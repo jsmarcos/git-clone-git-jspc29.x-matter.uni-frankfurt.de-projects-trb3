@@ -1,0 +1,58 @@
+====================
+== CVS Organization
+====================
+base		Here the main files like entity templates and pin-out files are stored. 
+fpgatest 	Designs used during hardware testing go here
+central_hub2	The central hub design for TRBnetv2 goes here
+
+
+====================
+== Design Files
+====================
+
+In general, there should be two designs: One for the central FPGA, one for the peripheral FPGA. If necessary, designs for each of the peripheral FPGA can be defined. I.e. six different cases of design files are listed for each of the settings below.
+
+
+====================
+== FLASH ROMs
+====================
+
+To run TRBnet and especially to operate the Flash ROMs to store the FPGA designs, several settings have to be present in each design:
+
+The filename must contain a substring according to the FPGA the design belongs to:
+- trb3_central or trb3_fpga5   : designs for the central FPGA
+- trb3_periph or trb3_fpga1234 : designs for the peripheral FPGAs
+- trb3_fpga1                   : designs for FPGA 1 only
+- trb3_fpga2                   : designs for FPGA 2 only
+- trb3_fpga3                   : designs for FPGA 3 only
+- trb3_fpga4                   : designs for FPGA 4 only
+
+
+The upper 16 bit of the REGIO_HARDWARE_VERSION generic of the TrbNet endpoint has to be initialized:
+- 0x9000  for the central FPGA
+- 0x9100  for peripheral FPGA
+- 0x9110  for FPGA 1 only
+- 0x9120  for FPGA 2 only
+- 0x9130  for FPGA 3 only
+- 0x9140  for FPGA 4 only
+
+====================
+== Network addresses
+====================
+
+REGIO_INIT_ADDRESS gives the default network address
+- 0xFF30 for the central FPGA
+- 0xFF35 for peripheral FPGAs
+- 0xFF31 for FPGA 1 only
+- 0xFF32 for FPGA 2 only
+- 0xFF33 for FPGA 3 only
+- 0xFF34 for FPGA 4 only
+
+BROADCAST_SPECIAL_ADDR has to be set to address all FPGA of a given type within a setup:
+- 0x40   for the central FPGA
+- 0x45   for peripheral FPGAs
+- 0x41   for FPGA 1 only
+- 0x42   for FPGA 2 only
+- 0x43   for FPGA 3 only
+- 0x44   for FPGA 4 only
+
