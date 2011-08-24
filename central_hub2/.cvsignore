@@ -1,5 +1,10 @@
-shower_fpga*
 *.log
 *.rpt
 version.vhd
+*.jhd
+*.naf
+*.sort
+*.srp
+*.sym
+*tmpl.vhd
 *.log
