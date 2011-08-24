@@ -1,5 +1,6 @@
 *.log
 *.rpt
+workdir
 version.vhd
 *.jhd
 *.naf
