@@ -13,8 +13,9 @@
 ====================
 base		                Here the main files like entity templates and pin-out files are stored. 
 base/cores              All IP-cores specific to the TRB3 that will be used in more than one project, e.g. PLLs
+base/clockmanager       Designs for the two clock managers
+central_hub2            The central hub design for TRBnetv2
 fpgatest 	              Designs used during hardware testing
-central_hub2	          The central hub design for TRBnetv2
 
 
 
@@ -30,6 +31,7 @@ base/compile_central_gsi.pl         Generic compile script for central FPGA usin
 base/compile_periph_frankfurt.pl    Generic compile script for peripheral FPGA using paths for Frankfurt set-up
 base/compile_periph_gsi.pl          Generic compile script for peripheral FPGA using paths for GSI set-up
 
+base/trb3.xcf                       ispVM configuration file
 
 
 === Files to change directly for all projects (NO COPY)
