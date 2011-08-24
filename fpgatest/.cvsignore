@@ -1,0 +1,5 @@
+shower_fpga*
+*.log
+*.rpt
+version.vhd
+*.log

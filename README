@@ -1,23 +1,61 @@
 ====================
-== CVS Organization
-====================
-base		Here the main files like entity templates and pin-out files are stored. 
-fpgatest 	Designs used during hardware testing go here
-central_hub2	The central hub design for TRBnetv2 goes here
-
-
-====================
-== Design Files
+== 0. Content
 ====================
 
-In general, there should be two designs: One for the central FPGA, one for the peripheral FPGA. If necessary, designs for each of the peripheral FPGA can be defined. I.e. six different cases of design files are listed for each of the settings below.
+== 1. CVS Organization / File list
+== 2. Design Files & FLASH ROMs
+== 3. Network addresses generic settings for TrbNet
+
 
 
 ====================
-== FLASH ROMs
+== 1. CVS Organization / File list
+====================
+base		                Here the main files like entity templates and pin-out files are stored. 
+base/cores              All IP-cores specific to the TRB3 that will be used in more than one project, e.g. PLLs
+fpgatest 	              Designs used during hardware testing
+central_hub2	          The central hub design for TRBnetv2
+
+
+
+=== Files to copy & change for new projects (COPY, CHANGE & USE)
+
+base/trb3_central.vhd               Basic design for central FPGA
+base/trb3_periph.vhd                Basic design for central FPGA
+base/constraints_trb3_central.lpf   Constraints for each specific design of trb3_central
+base/constraints_trb3_periph.lpf    Constraints for each specific design of trb3_peripheral
+
+base/compile_central_frankfurt.pl   Generic compile script for central FPGA using paths for Frankfurt set-up
+base/compile_central_gsi.pl         Generic compile script for central FPGA using paths for GSI set-up
+base/compile_periph_frankfurt.pl    Generic compile script for peripheral FPGA using paths for Frankfurt set-up
+base/compile_periph_gsi.pl          Generic compile script for peripheral FPGA using paths for GSI set-up
+
+
+
+=== Files to change directly for all projects (NO COPY)
+
+base/trb3_components.vhd            All VHDL components special for TRB3 used in any design should 
+                                    be listed in here
+
+
+=== Files not to change at all (NO CHANGE)
+
+base/trb3_central.lpf               Pin-out for central FPGA
+
+
+
+
+====================
+== 2. Design Files & FLASH ROMs
 ====================
 
-To run TRBnet and especially to operate the Flash ROMs to store the FPGA designs, several settings have to be present in each design:
+
+In general, there should be two designs: One for the central FPGA, one for the peripheral FPGA. 
+If necessary, designs for each of the peripheral FPGA can be defined. I.e. six different cases 
+of design files are listed for each of the settings below.
+
+To run TRBnet and especially to operate the Flash ROMs to store the FPGA designs, several settings 
+have to be present in each design:
 
 The filename must contain a substring according to the FPGA the design belongs to:
 - trb3_central or trb3_fpga5   : designs for the central FPGA
@@ -36,8 +74,12 @@ The upper 16 bit of the REGIO_HARDWARE_VERSION generic of the TrbNet endpoint ha
 - 0x9130  for FPGA 3 only
 - 0x9140  for FPGA 4 only
 
+
+
+
+
 ====================
-== Network addresses
+== 3. Network addresses generic settings for TrbNet
 ====================
 
 REGIO_INIT_ADDRESS gives the default network address
