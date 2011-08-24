@@ -21,7 +21,9 @@ fpgatest 	              Designs used during hardware testing
 
 === Files to copy & change for new projects (COPY, CHANGE & USE)
 
+base/trb3_central.p2t               Config file for PAR
 base/trb3_central.vhd               Basic design for central FPGA
+base/trb3_periph.p2t                Config file for PAR
 base/trb3_periph.vhd                Basic design for central FPGA
 base/constraints_trb3_central.lpf   Constraints for each specific design of trb3_central
 base/constraints_trb3_periph.lpf    Constraints for each specific design of trb3_peripheral

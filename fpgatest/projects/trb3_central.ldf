@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BaliProject version="1.3" title="trb3_central" device="LFE3-150EA-7FN672C" default_implementation="trb3_central">
+    <Options/>
+    <Implementation title="trb3_central" dir="trb3_central" description="trb3_central" default_strategy="Strategy1">
+        <Options/>
+        <Source name="../../base/trb3_central.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
+        <Source name="../../base/trb3_components.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
+        <Source name="../../base/cores/pll_in200_out100.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
+        <Source name="../../base/cores/pll_in200_out100.lpc" type="LPC_Module" type_short="LPC">
+            <Options/>
+        </Source>
+        <Source name="../../base/cores/pll_in200_out100.ipx" type="IPX_Module" type_short="IPX">
+            <Options/>
+        </Source>
+        <Source name="../../../trbnet/trb_net_components.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
+        <Source name="../../../trbnet/trb_net_std.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
+        <Source name="../../base/trb3_central.lpf" type="Logic Preference" type_short="LPF">
+            <Options/>
+        </Source>
+    </Implementation>
+    <Strategy name="Strategy1" file="Strategy1.sty"/>
+</BaliProject>

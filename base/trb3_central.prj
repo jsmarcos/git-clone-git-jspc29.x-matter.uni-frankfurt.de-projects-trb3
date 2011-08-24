@@ -1,0 +1,63 @@
+
+# implementation: "workdir"
+impl -add workdir -type fpga
+
+# device options
+set_option -technology LATTICE-ECP3
+set_option -part LFE3_150EA
+set_option -package FN1156C
+set_option -speed_grade -7
+set_option -part_companion ""
+
+# compilation/mapping options
+set_option -default_enum_encoding sequential
+set_option -symbolic_fsm_compiler 1
+set_option -top_module "trb3_central"
+set_option -resource_sharing true
+
+# map options
+set_option -frequency 200
+set_option -fanout_limit 100
+set_option -disable_io_insertion 0
+set_option -retiming 0
+set_option -pipe 0
+#set_option -force_gsr 
+set_option -force_gsr false
+set_option -fixgatedclocks 3
+set_option -fixgeneratedclocks 3
+set_option -compiler_compatible true
+
+
+# simulation options
+set_option -write_verilog 0
+set_option -write_vhdl 1
+
+# automatic place and route (vendor) options
+set_option -write_apr_constraint 0
+
+# set result format/file last
+project -result_format "edif"
+project -result_file "workdir/trb3_central.edf"
+
+#implementation attributes
+
+set_option -vlog_std v2001
+set_option -project_relative_includes 1
+impl -active "workdir"
+
+####################
+
+
+
+#add_file options
+
+add_file -vhdl -lib work "version.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net_std.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net_components.vhd"
+
+add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
+add_file -vhdl -lib "work" "./trb3_central.vhd"
+add_file -vhdl -lib "work" "../base/trb3_components.vhd"
+
+
+

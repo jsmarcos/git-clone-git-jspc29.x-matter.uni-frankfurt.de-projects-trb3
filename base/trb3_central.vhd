@@ -99,7 +99,6 @@ entity trb3_central is
     attribute syn_useioff : boolean;
     --no IO-FF for LEDs relaxes timing constraints
     attribute syn_useioff of LED_CLOCK_GREEN    : signal is false;
-    attribute syn_useioff of LED_CLOCK_GREEN    : signal is false;
     attribute syn_useioff of LED_CLOCK_RED      : signal is false;
     attribute syn_useioff of LED_GREEN          : signal is false;
     attribute syn_useioff of LED_ORANGE         : signal is false;
@@ -132,6 +131,9 @@ architecture trb3_central_arch of trb3_central is
   signal clk_200_i   : std_logic; --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
   signal pll_lock    : std_logic; --Internal PLL locked. E.g. used to reset all internal logic.
 
+  
+  --FPGA Test
+  signal time_counter : unsigned(31 downto 0);
 begin
 
 ---------------------------------------------------------------------------
@@ -151,24 +153,24 @@ begin
 ---------------------------------------------------------------------------
   TRIGGER_SELECT <= '0'; --always external trigger source
   CLOCK_SELECT   <= '0'; --use on-board oscillator
-  CLK_MNGR1_USER <= (others => 'Z');
-  CLK_MNGR2_USER <= (others => 'Z'); 
+  CLK_MNGR1_USER <= (others => '0');
+  CLK_MNGR2_USER <= (others => '0'); 
 
   TRIGGER_OUT    <= '0';
 
-
+  SFP_TXDIS <= (others => '0');
 ---------------------------------------------------------------------------
 -- FPGA communication
 ---------------------------------------------------------------------------
-  FPGA1_COMM <= (others => 'Z');
-  FPGA2_COMM <= (others => 'Z');
-  FPGA3_COMM <= (others => 'Z');
-  FPGA4_COMM <= (others => 'Z');
+  FPGA1_COMM <= (others => '0');
+  FPGA2_COMM <= (others => '0');
+  FPGA3_COMM <= (others => '0');
+  FPGA4_COMM <= (others => '0');
 
-  FPGA1_TTL <= (others => 'Z');
-  FPGA2_TTL <= (others => 'Z');
-  FPGA3_TTL <= (others => 'Z');
-  FPGA4_TTL <= (others => 'Z');
+  FPGA1_TTL <= (others => '0');
+  FPGA2_TTL <= (others => '0');
+  FPGA3_TTL <= (others => '0');
+  FPGA4_TTL <= (others => '0');
 
   FPGA1_CONNECTOR <= (others => '0');
   FPGA2_CONNECTOR <= (others => '0');
@@ -198,14 +200,13 @@ begin
 -- LED
 ---------------------------------------------------------------------------
   LED_CLOCK_GREEN                <= '0';
-  LED_CLOCK_GREEN                <= '1';
   LED_CLOCK_RED                  <= '1';
-  LED_GREEN                      <= '1';
-  LED_ORANGE                     <= '1'; 
-  LED_RED                        <= '1';
+  LED_GREEN                      <= not time_counter(24);
+  LED_ORANGE                     <= not time_counter(25); 
+  LED_RED                        <= not time_counter(26);
   LED_TRIGGER_GREEN              <= '0';
   LED_TRIGGER_RED                <= '1';
-  LED_YELLOW                     <= '1';
+  LED_YELLOW                     <= not time_counter(27);
 
 
 ---------------------------------------------------------------------------
@@ -213,5 +214,14 @@ begin
 ---------------------------------------------------------------------------    
   TEST_LINE                     <= (others => '0');
 
+
+---------------------------------------------------------------------------
+-- Test Circuits
+---------------------------------------------------------------------------
+  process
+    begin
+      wait until rising_edge(clk_100_i);
+      time_counter <= time_counter + 1;
+    end process;
 
 end architecture;
