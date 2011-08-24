@@ -84,7 +84,6 @@ entity trb3_central is
     ENPIRION_CLOCK                 : out std_logic;  --Clock for power supply, not necessary, floating
     TEMPSENS                       : inout std_logic; --Temperature Sensor
     LED_CLOCK_GREEN                : out std_logic;
-    LED_CLOCK_GREEN                : out std_logic; 
     LED_CLOCK_RED                  : out std_logic;
     LED_GREEN                      : out std_logic;
     LED_ORANGE                     : out std_logic; 
