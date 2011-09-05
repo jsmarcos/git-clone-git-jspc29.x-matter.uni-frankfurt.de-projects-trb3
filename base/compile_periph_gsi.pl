@@ -35,7 +35,7 @@ $ENV{'LM_LICENSE_FILE'}=$lm_license_file_for_synplify;
 my $FAMILYNAME="LatticeECP3";
 my $DEVICENAME="LFE3-150EA";
 my $PACKAGE="FPBGA672";
-my $SPEEDGRADE="7";
+my $SPEEDGRADE="8";
 
 
 #create full lpf file

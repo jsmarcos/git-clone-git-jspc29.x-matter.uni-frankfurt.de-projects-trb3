@@ -14,9 +14,9 @@ entity trb3_periph is
   port(
     --Clocks
     CLK_GPLL_LEFT                  : in  std_logic;  --Clock Manager 1/(2468), 125 MHz
-    CLK_GPLL_RIGHT                 : in  std_logic;  --Clock Manager 2/(2468), 200 MHz  <-- MAIN CLOCK
-    CLK_PCLK_LEFT                  : in  std_logic;  --Clock Fan-out, 200 MHz      <-- For TDC. Same oscillator as GPLL right!
-    CLK_PCLK_RIGHT                 : in  std_logic;  --Clock Fan-out, 200 MHz      <-- For TDC. Same oscillator as GPLL right!
+    CLK_GPLL_RIGHT                 : in  std_logic;  --Clock Manager 2/(2468), 200 MHz  <-- MAIN CLOCK for FPGA
+    CLK_PCLK_LEFT                  : in  std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
+    CLK_PCLK_RIGHT                 : in  std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
 
     --Trigger
     TRIGGER_LEFT                   : in  std_logic;  --left side trigger input from fan-out
@@ -100,6 +100,7 @@ architecture trb3_periph_arch of trb3_periph is
 
   signal clk_100_i   : std_logic; --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i   : std_logic; --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
+                                  --TDC clock is separate
   signal pll_lock    : std_logic; --Internal PLL locked. E.g. used to reset all internal logic.
 
   

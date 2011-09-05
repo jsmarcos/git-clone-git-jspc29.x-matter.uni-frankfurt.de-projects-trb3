@@ -9,6 +9,7 @@ use strict;
 ###################################################################################
 #Settings for this project
 my $TOPNAME                      = "trb3_central";  #Name of top-level entity
+my $BasePath                     = "../base/";     #path to "base" directory
 my $lattice_path                 = '/d/sugar/lattice/diamond/1.3';
 my $synplify_path                = '/d/sugar/lattice/synplify/D-2010.03/';
 my $lm_license_file_for_synplify = "27000\@localhost";
@@ -34,11 +35,11 @@ $ENV{'LM_LICENSE_FILE'}=$lm_license_file_for_synplify;
 my $FAMILYNAME="LatticeECP3";
 my $DEVICENAME="LFE3-150EA";
 my $PACKAGE="FPBGA1156";
-my $SPEEDGRADE="7";
+my $SPEEDGRADE="8";
 
 
 #create full lpf file
-system("cp ../base/$TOPNAME.lpf workdir/$TOPNAME.lpf");
+system("cp $BasePath/$TOPNAME.lpf workdir/$TOPNAME.lpf");
 system("cat constraints_$TOPNAME.lpf >> workdir/$TOPNAME.lpf");
 
 #set -e

@@ -16,8 +16,8 @@ entity trb3_central is
     CLK_EXT                        : in  std_logic_vector(4 downto 3); --from RJ45
     CLK_GPLL_LEFT                  : in  std_logic;  --Clock Manager 2/9, 200 MHz  <-- MAIN CLOCK
     CLK_GPLL_RIGHT                 : in  std_logic;  --Clock Manager 1/9, 125 MHz  <-- for GbE
-    CLK_PCLK_LEFT                  : in  std_logic;  --Clock Fan-out, 200 MHz      <-- for Serdes if GPLL doesn't work. Same oscillator as GPLL left!
-    CLK_PCLK_RIGHT                 : in  std_logic;  --Clock Fan-out, 200 MHz      <-- use this clock for BASIC tests!
+    CLK_PCLK_LEFT                  : in  std_logic;  --Clock Fan-out, 200/400 MHz 
+    CLK_PCLK_RIGHT                 : in  std_logic;  --Clock Fan-out, 200/400 MHz 
 
     --Trigger
     TRIGGER_LEFT                   : in  std_logic;  --left side trigger input from fan-out
@@ -78,7 +78,7 @@ entity trb3_central is
     FLASH_CS                       : out std_logic;
     FLASH_CIN                      : out std_logic;
     FLASH_DOUT                     : in  std_logic;
-    PROGRAMN                       : out std_logic; --reboot FPGA
+    PROGRAMN                       : out std_logic := '1'; --reboot FPGA
     
     --Misc
     ENPIRION_CLOCK                 : out std_logic;  --Clock for power supply, not necessary, floating
@@ -162,20 +162,20 @@ begin
 ---------------------------------------------------------------------------
 -- FPGA communication
 ---------------------------------------------------------------------------
-  FPGA1_COMM <= (others => '0');
-  FPGA2_COMM <= (others => '0');
-  FPGA3_COMM <= (others => '0');
-  FPGA4_COMM <= (others => '0');
+  FPGA1_COMM <= (others => 'Z');
+  FPGA2_COMM <= (others => 'Z');
+  FPGA3_COMM <= (others => 'Z');
+  FPGA4_COMM <= (others => 'Z');
 
-  FPGA1_TTL <= (others => '0');
-  FPGA2_TTL <= (others => '0');
-  FPGA3_TTL <= (others => '0');
-  FPGA4_TTL <= (others => '0');
+  FPGA1_TTL <= (others => 'Z');
+  FPGA2_TTL <= (others => 'Z');
+  FPGA3_TTL <= (others => 'Z');
+  FPGA4_TTL <= (others => 'Z');
 
-  FPGA1_CONNECTOR <= (others => '0');
-  FPGA2_CONNECTOR <= (others => '0');
-  FPGA3_CONNECTOR <= (others => '0');
-  FPGA4_CONNECTOR <= (others => '0');
+  FPGA1_CONNECTOR <= (others => 'Z');
+  FPGA2_CONNECTOR <= (others => 'Z');
+  FPGA3_CONNECTOR <= (others => 'Z');
+  FPGA4_CONNECTOR <= (others => 'Z');
 
 
 ---------------------------------------------------------------------------
@@ -184,7 +184,7 @@ begin
   FLASH_CLK <= '0';
   FLASH_CS  <= '0';
   FLASH_CIN <= '0';
-
+  PROGRAMN  <= '1';
 
 ---------------------------------------------------------------------------
 -- Big AddOn Connector

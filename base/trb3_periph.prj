@@ -6,7 +6,7 @@ impl -add workdir -type fpga
 set_option -technology LATTICE-ECP3
 set_option -part LFE3_150EA
 set_option -package FN672C
-set_option -speed_grade -7
+set_option -speed_grade -8
 set_option -part_companion ""
 
 # compilation/mapping options
@@ -54,10 +54,11 @@ impl -active "workdir"
 add_file -vhdl -lib work "version.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_std.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_components.vhd"
+add_file -vhdl -lib "work" "../base/trb3_components.vhd"
 
 add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
 add_file -vhdl -lib "work" "./trb3_periph.vhd"
-add_file -vhdl -lib "work" "../base/trb3_components.vhd"
+
 
 
 

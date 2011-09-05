@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<BaliProject version="1.3" title="trb3_central" device="LFE3-150EA-7FN672C" default_implementation="trb3_central">
+<BaliProject version="1.3" title="trb3_central" device="LFE3-150EA-7FN1156C" default_implementation="trb3_central">
     <Options/>
     <Implementation title="trb3_central" dir="trb3_central" description="trb3_central" default_strategy="Strategy1">
         <Options/>
