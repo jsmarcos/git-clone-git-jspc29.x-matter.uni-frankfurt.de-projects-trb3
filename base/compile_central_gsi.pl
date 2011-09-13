@@ -39,7 +39,8 @@ my $SPEEDGRADE="8";
 
 #create full lpf file
 system("cp ../base/$TOPNAME.lpf workdir/$TOPNAME.lpf");
-system("cat constraints_$TOPNAME.lpf >> workdir/$TOPNAME.lpf");
+system("cat ".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
+
 
 #set -e
 #set -o errexit
@@ -125,8 +126,10 @@ execute($c);
 $c=qq|$lattice_path/ispfpga/bin/lin/trce -hld -c -v 5 -o "$TOPNAME.twr.hold"  "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
 
+$c=qq|$lattice_path/ispfpga/bin/lin/ltxt2ptxt $TOPNAME.ncd|;
+execute($c);
 
-$c=qq|$lattice_path/ispfpga/bin/lin/bitgen  -w "$TOPNAME.ncd" -f "$TOPNAME.t2b" "$TOPNAME.prf"|;
+$c=qq|$lattice_path/ispfpga/bin/lin/bitgen  -w "$TOPNAME.ncd"  "$TOPNAME.prf"|;
 execute($c);
 
 chdir "..";
