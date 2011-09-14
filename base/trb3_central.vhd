@@ -31,10 +31,10 @@ entity trb3_central is
     CLK_SERDES_INT_RIGHT           : in  std_logic;  --Clock Manager 1/0, off, 125 MHz possible
     
     --SFP
-    SFP_RX_P                       : in  std_logic_vector(8 downto 1); 
-    SFP_RX_N                       : in  std_logic_vector(8 downto 1); 
-    SFP_TX_P                       : out std_logic_vector(8 downto 1); 
-    SFP_TX_N                       : out std_logic_vector(8 downto 1); 
+    SFP_RX_P                       : in  std_logic_vector(16 downto 1); 
+    SFP_RX_N                       : in  std_logic_vector(16 downto 1); 
+    SFP_TX_P                       : out std_logic_vector(16 downto 1); 
+    SFP_TX_N                       : out std_logic_vector(16 downto 1); 
     SFP_TX_FAULT                   : in  std_logic_vector(8 downto 1); --TX broken
     SFP_RATE_SEL                   : out std_logic_vector(8 downto 1); --not supported by our SFP
     SFP_LOS                        : in  std_logic_vector(8 downto 1); --Loss of signal
@@ -283,7 +283,49 @@ SFP_TXDIS(8 downto 2) <= (others => '1');
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (to other FPGA)
 ---------------------------------------------------------------------------
-med_stat_op(63 downto 0) <= x"0007000700070007";
+THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
+  port map(
+    CLK                => clk_200_i,
+    SYSCLK             => clk_100_i,
+    RESET              => reset_i,
+    CLEAR              => clear_i,
+    CLK_EN             => '1',
+    --Internal Connection
+    MED_DATA_IN        => med_data_out(63 downto 0),
+    MED_PACKET_NUM_IN  => med_packet_num_out(11 downto 0),
+    MED_DATAREADY_IN   => med_dataready_out(3 downto 0),
+    MED_READ_OUT       => med_read_in(3 downto 0),
+    MED_DATA_OUT       => med_data_in(63 downto 0),
+    MED_PACKET_NUM_OUT => med_packet_num_in(11 downto 0),
+    MED_DATAREADY_OUT  => med_dataready_in(3 downto 0),
+    MED_READ_IN        => med_read_out(3 downto 0),
+    REFCLK2CORE_OUT    => open,
+    --SFP Connection
+    SD_RXD_P_IN        => SFP_RX_P(12 downto 9),
+    SD_RXD_N_IN        => SFP_RX_N(12 downto 9),
+    SD_TXD_P_OUT       => SFP_TX_P(12 downto 9),
+    SD_TXD_N_OUT       => SFP_TX_N(12 downto 9),
+    SD_REFCLK_P_IN     => open,
+    SD_REFCLK_N_IN     => open,
+    SD_PRSNT_N_IN(0)   => FPGA1_COMM(2),
+    SD_PRSNT_N_IN(1)   => FPGA2_COMM(2),
+    SD_PRSNT_N_IN(2)   => FPGA3_COMM(2),
+    SD_PRSNT_N_IN(3)   => FPGA4_COMM(2),
+    SD_LOS_IN(0)       => FPGA1_COMM(2),
+    SD_LOS_IN(1)       => FPGA2_COMM(2),
+    SD_LOS_IN(2)       => FPGA3_COMM(2),
+    SD_LOS_IN(3)       => FPGA4_COMM(2),
+    SD_TXDIS_OUT(0)    => FPGA1_COMM(0),
+    SD_TXDIS_OUT(1)    => FPGA1_COMM(1),
+    SD_TXDIS_OUT(2)    => FPGA1_COMM(2),
+    SD_TXDIS_OUT(3)    => FPGA1_COMM(3),
+    -- Status and control port
+    STAT_OP            => med_stat_op(63 downto 0),
+    CTRL_OP            => med_ctrl_op(63 downto 0),
+    STAT_DEBUG         => med_stat_debug(3*64+63 downto 0*64),
+    CTRL_DEBUG         => (others => '0')
+   );
+
 
 
 ---------------------------------------------------------------------------
