@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<BaliProject version="1.3" title="trb3_central" device="LFE3-150EA-7FN1156C" default_implementation="trb3_central">
+<BaliProject version="1.3" title="trb3_central" device="LFE3-150EA-8FN1156C" default_implementation="trb3_central">
     <Options>
         <Option name="HDL type" value="VHDL"/>
     </Options>

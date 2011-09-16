@@ -1,30 +1,91 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<BaliProject version="1.3" title="trb3_periph" device="LFE3-150EA-7FN672" default_implementation="trb3_periph">
+<BaliProject version="1.3" title="trb3_periph" device="LFE3-150EA-8FN672C" default_implementation="trb3_periph">
     <Options/>
     <Implementation title="trb3_periph" dir="trb3_periph" description="trb3_periph" default_strategy="Strategy1">
         <Options/>
-        <Source name="../../base/trb3_periph.vhd" type="VHDL" type_short="VHDL">
-            <Options/>
-        </Source>
-        <Source name="../../base/trb3_components.vhd" type="VHDL" type_short="VHDL">
-            <Options/>
-        </Source>
-        <Source name="../../base/cores/pll_in200_out100.vhd" type="VHDL" type_short="VHDL">
-            <Options/>
-        </Source>
-        <Source name="../../base/cores/pll_in200_out100.lpc" type="LPC_Module" type_short="LPC">
-            <Options/>
-        </Source>
-        <Source name="../../base/cores/pll_in200_out100.ipx" type="IPX_Module" type_short="IPX">
-            <Options/>
-        </Source>
-        <Source name="../../../trbnet/trb_net_components.vhd" type="VHDL" type_short="VHDL">
-            <Options/>
-        </Source>
-        <Source name="../../../trbnet/trb_net_std.vhd" type="VHDL" type_short="VHDL">
-            <Options/>
-        </Source>
-        <Source name="../../base/trb3_periph.lpf" type="Logic Preference" type_short="LPF">
+        
+
+<Source name="../../base/version.vhd"                                       type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net_std.vhd"                              type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net_components.vhd"                       type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../base/trb3_components.vhd"                               type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net16_term_buf.vhd"                       type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net_CRC.vhd"                              type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net_CRC8.vhd"                             type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net_onewire.vhd"                          type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/basics/rom_16x8.vhd"                          type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/basics/ram.vhd"                               type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/basics/pulse_sync.vhd"                        type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/basics/state_sync.vhd"                        type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/basics/ram_16x8_dp.vhd"                       type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/basics/ram_16x16_dp.vhd"                      type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net16_addresses.vhd"                      type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/basics/ram_dp.vhd"                            type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net16_term.vhd"                           type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net_sbuf.vhd"                             type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net_sbuf5.vhd"                            type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net_sbuf6.vhd"                            type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net16_sbuf.vhd"                           type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net16_regIO.vhd"                          type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net16_regio_bus_handler.vhd"              type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net_priority_encoder.vhd"                 type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net_dummy_fifo.vhd"                       type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net16_dummy_fifo.vhd"                     type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net16_term_ibuf.vhd"                      type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net_priority_arbiter.vhd"                 type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net_pattern_gen.vhd"                      type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net16_obuf_nodata.vhd"                    type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net16_obuf.vhd"                           type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net16_ibuf.vhd"                           type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net16_api_base.vhd"                       type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net16_iobuf.vhd"                          type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net16_io_multiplexer.vhd"                 type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net16_trigger.vhd"                        type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net16_ipudata.vhd"                        type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net16_endpoint_hades_full.vhd"            type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/basics/signal_sync.vhd"                       type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/basics/ram_dp_rw.vhd"                         type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/basics/pulse_stretch.vhd"                     type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/special/handler_lvl1.vhd"                     type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/special/handler_data.vhd"                     type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/special/handler_ipu.vhd"                      type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/special/handler_trigger_and_data.vhd"         type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/special/trb_net_reset_handler.vhd"            type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/trb_net16_endpoint_hades_full_handler.vhd"    type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/special/fpga_reboot.vhd"                      type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/lattice_ecp3_fifo_18x1k.vhd"          type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/trb_net16_fifo_arch.vhd"              type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/lattice_ecp3_fifo_16bit_dualport.vhd" type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/trb_net_fifo_16bit_bram_dualport.vhd" type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/lattice_ecp2m_fifo.vhd"               type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/fifo/fifo_36x256_oreg.vhd"            type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/fifo/fifo_36x512_oreg.vhd"            type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/fifo/fifo_36x1k_oreg.vhd"             type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/fifo/fifo_36x2k_oreg.vhd"             type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/fifo/fifo_36x4k_oreg.vhd"             type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/fifo/fifo_36x8k_oreg.vhd"             type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/fifo/fifo_36x16k_oreg.vhd"            type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/fifo/fifo_36x32k_oreg.vhd"            type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/fifo/fifo_18x256_oreg.vhd"            type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/fifo/fifo_18x512_oreg.vhd"            type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/fifo/fifo_18x1k_oreg.vhd"             type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/fifo/fifo_18x2k_oreg.vhd"             type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp2m/fifo/fifo_var_oreg.vhd"              type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/fifo/fifo_19x16_obuf.vhd"             type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/lattice_ecp3_fifo_16x16_dualport.vhd" type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/lattice_ecp3_fifo_18x16_dualport.vhd" type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/lattice/ecp3/spi_dpram_32_to_8.vhd"                type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/special/spi_slim.vhd"                              type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/special/spi_master.vhd"                            type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/special/spi_databus_memory.vhd"                    type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/optical_link/f_divider.vhd"                        type="VHDL" type_short="VHDL"><Options/></Source> 
+<Source name="../../../trbnet/media_interfaces/ecp3_sfp/sfp_1_200_int.vhd"             type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/media_interfaces/trb_net16_lsm_sfp.vhd"                  type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.vhd"             type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../base/cores/pll_in200_out100.vhd"    type="VHDL" type_short="VHDL"><Options/></Source>
+<Source name="../../base/trb3_periph.vhd"               type="VHDL" type_short="VHDL"><Options/></Source>
+
+        <Source name="../../base/workdir/trb3_periph.lpf" type="Logic Preference" type_short="LPF">
             <Options/>
         </Source>
     </Implementation>
