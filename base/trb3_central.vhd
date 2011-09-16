@@ -194,8 +194,6 @@ architecture trb3_central_arch of trb3_central is
   signal spi_bram_rd_d           : std_logic_vector(7 downto 0);
   signal spi_bram_we             : std_logic;
 
-  signal delayed_restart_fpga : std_logic;
-  signal restart_fpga_counter : unsigned(11 downto 0);  
 
 begin
 
@@ -316,9 +314,9 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
     SD_LOS_IN(2)       => FPGA3_COMM(2),
     SD_LOS_IN(3)       => FPGA4_COMM(2),
     SD_TXDIS_OUT(0)    => FPGA1_COMM(0),
-    SD_TXDIS_OUT(1)    => FPGA1_COMM(1),
-    SD_TXDIS_OUT(2)    => FPGA1_COMM(2),
-    SD_TXDIS_OUT(3)    => FPGA1_COMM(3),
+    SD_TXDIS_OUT(1)    => FPGA2_COMM(0),
+    SD_TXDIS_OUT(2)    => FPGA3_COMM(0),
+    SD_TXDIS_OUT(3)    => FPGA4_COMM(0),
     -- Status and control port
     STAT_OP            => med_stat_op(63 downto 0),
     CTRL_OP            => med_ctrl_op(63 downto 0),
@@ -347,7 +345,7 @@ THE_HUB : trb_net16_hub_base
     HARDWARE_VERSION  => x"90000000",
     INIT_ENDPOINT_ID  => x"0005",
     INIT_ADDRESS      => x"F305",
-    BROADCAST_SPECIAL_ADDR => x"15"
+    BROADCAST_SPECIAL_ADDR => x"40"
     )
   port map (
     CLK    => clk_100_i,
@@ -496,27 +494,15 @@ THE_SPI_MEMORY: spi_databus_memory
 ---------------------------------------------------------------------------
 -- Reboot FPGA
 ---------------------------------------------------------------------------
-  PROC_REBOOT : process
-    begin
-      wait until rising_edge(clk_100_i);
-      if reset_i = '1' then
-        PROGRAMN               <= '1';
-        delayed_restart_fpga   <= '0';
-        restart_fpga_counter   <= x"FFF";
-      else
-        PROGRAMN                 <= not delayed_restart_fpga;
-        delayed_restart_fpga     <= '0';
-        if common_ctrl_regs(15) = '1' then
-          restart_fpga_counter   <= x"000";
-        elsif restart_fpga_counter /= x"FFF" then
-          restart_fpga_counter   <= restart_fpga_counter + 1;
-          if restart_fpga_counter >= x"F00" then
-            delayed_restart_fpga <= '1';
-          end if;
-        end if;
-      end if;
-    end process;    
+THE_FPGA_REBOOT : fpga_reboot
+  port map(
+    CLK       => clk_100_i,
+    RESET     => reset_i,
+    DO_REBOOT => common_ctrl_regs(15),
+    PROGRAMN  => PROGRAMN
+    );
 
+    
 ---------------------------------------------------------------------------
 -- Clock and Trigger Configuration
 ---------------------------------------------------------------------------
@@ -530,10 +516,10 @@ THE_SPI_MEMORY: spi_databus_memory
 ---------------------------------------------------------------------------
 -- FPGA communication
 ---------------------------------------------------------------------------
-  FPGA1_COMM <= (others => 'Z');
-  FPGA2_COMM <= (others => 'Z');
-  FPGA3_COMM <= (others => 'Z');
-  FPGA4_COMM <= (others => 'Z');
+--   FPGA1_COMM <= (others => 'Z');
+--   FPGA2_COMM <= (others => 'Z');
+--   FPGA3_COMM <= (others => 'Z');
+--   FPGA4_COMM <= (others => 'Z');
 
   FPGA1_TTL <= (others => 'Z');
   FPGA2_TTL <= (others => 'Z');
@@ -561,18 +547,24 @@ THE_SPI_MEMORY: spi_databus_memory
 ---------------------------------------------------------------------------
   LED_CLOCK_GREEN                <= '0';
   LED_CLOCK_RED                  <= '1';
-  LED_GREEN                      <= '0';
-  LED_ORANGE                     <= '1'; 
+  LED_GREEN                      <= not med_stat_op(9);
+  LED_YELLOW                     <= not med_stat_op(10);
+  LED_ORANGE                     <= not med_stat_op(11); 
   LED_RED                        <= '1';
   LED_TRIGGER_GREEN              <= not med_stat_op(4*16+9);
   LED_TRIGGER_RED                <= not (med_stat_op(4*16+11) or med_stat_op(4*16+10));
-  LED_YELLOW                     <= '1';
 
 
 ---------------------------------------------------------------------------
 -- Test Connector
 ---------------------------------------------------------------------------    
-  TEST_LINE                     <= (others => '0');
+
+  TEST_LINE(7 downto 0)   <= med_data_in(7 downto 0);
+  TEST_LINE(8)            <= med_dataready_in(0);
+  TEST_LINE(9)            <= med_dataready_out(0);
+
+  
+  TEST_LINE(31 downto 10) <= (others => '0');
 
 
 ---------------------------------------------------------------------------

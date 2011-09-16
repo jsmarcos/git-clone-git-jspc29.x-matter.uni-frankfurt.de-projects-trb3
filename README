@@ -91,12 +91,12 @@ The upper 16 bit of the REGIO_HARDWARE_VERSION generic of the TrbNet endpoint ha
 ====================
 
 REGIO_INIT_ADDRESS gives the default network address
-- 0xFF30 for the central FPGA
-- 0xFF35 for peripheral FPGAs
-- 0xFF31 for FPGA 1 only
-- 0xFF32 for FPGA 2 only
-- 0xFF33 for FPGA 3 only
-- 0xFF34 for FPGA 4 only
+- 0xF300 for the central FPGA
+- 0xF305 for peripheral FPGAs
+- 0xF301 for FPGA 1 only
+- 0xF302 for FPGA 2 only
+- 0xF303 for FPGA 3 only
+- 0xF304 for FPGA 4 only
 
 BROADCAST_SPECIAL_ADDR has to be set to address all FPGA of a given type within a setup:
 - 0x40   for the central FPGA
