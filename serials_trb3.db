@@ -1,0 +1,10 @@
+#List of all serial numbers for TRB3. Five entries for each board!
+
+#  Serial    #  Unique ID
+########################################
+   0015  	0x08000002e2e22b28
+   0010  	0xa6000002e2e2df28
+   0011  	0x51000002e2e22828
+   0012  	0x72000002e2eb4628
+   0013  	0xb0000002e311b928
+

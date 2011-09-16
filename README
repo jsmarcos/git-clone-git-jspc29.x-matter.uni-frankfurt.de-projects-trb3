@@ -2,14 +2,27 @@
 == 0. Content
 ====================
 
-== 1. CVS Organization / File list
-== 2. Design Files & FLASH ROMs
-== 3. Network addresses generic settings for TrbNet
-
-
+== 1. Boards
+== 2. CVS Organization / File list
+== 3. Design Files & FLASH ROMs
+== 4. Network addresses generic settings for TrbNet
 
 ====================
-== 1. CVS Organization / File list
+== 1. Boards
+====================
+  Serial numbers will be four digits: 3 digits to identify the board (we are looking into a bright future of the TRB3 ;-))
+  plus one digit for the FPGA number (this is also the endpoint ID the FPGA will report)
+  Four digits in total which are to be listed in the list of serial numbers, e.g. the first board is:
+    0015  0x08000002e2e22b28
+    0010  0xa6000002e2e2df28
+    0011  0x51000002e2e22828
+    0012  0x72000002e2eb4628
+    0013  0xb0000002e311b928
+  All serial numbers have to be listed in serials_trb3.db in the CVS. This file is readable by the DAQ-startup scripts 
+  and will be used to assign addresses to the individual boards.
+
+====================
+== 2. CVS Organization / File list
 ====================
 
 === Directories
@@ -18,7 +31,7 @@ base		                Here the main files like entity templates and pin-out file
 base/cores              All IP-cores specific to the TRB3 that will be used in more than one project, e.g. PLLs
 base/clockmanager       Designs for the two clock managers
 central_hub2            The central hub design for TRBnetv2
-fpgatest 	              Designs used during hardware testing
+fpgatest 	        Designs used during hardware testing
 fpgatest/projects       Diamond Projects for FPGA tests
 
 
