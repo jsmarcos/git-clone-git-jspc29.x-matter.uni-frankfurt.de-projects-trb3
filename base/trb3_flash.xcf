@@ -10,7 +10,7 @@
 			<Vendor>Lattice</Vendor>
 			<Family>LatticeECP3EA</Family>
 			<Name>LFE3-150EA</Name>
-			<Package>All</Package>
+			<Package>1156-ball fpBGA</Package>
 			<PON>LFE3-150EA</PON>
 			<Bypass>
 				<InstrLen>8</InstrLen>
@@ -29,13 +29,13 @@
 			<CPLDDevice>
 				<Device>
 					<Pos>1</Pos>
-					<Ref>LFE3-150EA</Ref>
+					<Ref>LFE3-150EA-XXFN1156</Ref>
 					<Vendor>Lattice</Vendor>
 					<Family>LatticeECP3EA</Family>
 					<Name>LFE3-150EA</Name>
 					<IDCode>0x01015043</IDCode>
-					<Package>All</Package>
-					<PON>LFE3-150EA</PON>
+					<Package>1156-ball fpBGA</Package>
+					<PON>LFE3-150EA-XXFN1156</PON>
 					<Bypass>
 						<InstrLen>8</InstrLen>
 						<InstrVal>11111111</InstrVal>
