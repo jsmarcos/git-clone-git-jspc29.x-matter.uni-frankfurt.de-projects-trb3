@@ -31,7 +31,7 @@ base		                Here the main files like entity templates and pin-out file
 base/cores              All IP-cores specific to the TRB3 that will be used in more than one project, e.g. PLLs
 base/clockmanager       Designs for the two clock managers
 central_hub2            The central hub design for TRBnetv2
-fpgatest 	        Designs used during hardware testing
+fpgatest 	              Designs used during hardware testing
 fpgatest/projects       Diamond Projects for FPGA tests
 
 
@@ -40,13 +40,15 @@ fpgatest/projects       Diamond Projects for FPGA tests
 
 base/trb3_central.p2t               Config file for PAR
 base/trb3_central.vhd               Basic design for central FPGA
-base/trb3_periph.p2t                Config file for PAR
-base/trb3_periph.vhd                Basic design for central FPGA
-base/constraints_trb3_central.lpf   Constraints for each specific design of trb3_central
-base/constraints_trb3_periph.lpf    Constraints for each specific design of trb3_peripheral
-
+base/trb3_central.prj               Project file for toolchain
+base/trb3_central_constraints.lpf   Constraints for each specific design of trb3_central
 base/compile_central_frankfurt.pl   Generic compile script for central FPGA using paths for Frankfurt set-up
 base/compile_central_gsi.pl         Generic compile script for central FPGA using paths for GSI set-up
+
+base/trb3_periph.p2t                Config file for PAR
+base/trb3_periph.vhd                Basic design for central FPGA
+base/trb3_periph.prj                Project file for toolchain
+base/trb3_periph_constraints.lpf    Constraints for each specific design of trb3_peripheral
 base/compile_periph_frankfurt.pl    Generic compile script for peripheral FPGA using paths for Frankfurt set-up
 base/compile_periph_gsi.pl          Generic compile script for peripheral FPGA using paths for GSI set-up
 
@@ -67,7 +69,7 @@ base/trb3_central.lpf               Pin-out for central FPGA
 
 
 ====================
-== 2. Design Files & FLASH ROMs
+== 3. Design Files & FLASH ROMs
 ====================
 
 
@@ -100,7 +102,7 @@ The upper 16 bit of the REGIO_HARDWARE_VERSION generic of the TrbNet endpoint ha
 
 
 ====================
-== 3. Network addresses generic settings for TrbNet
+== 4. Network addresses generic settings for TrbNet
 ====================
 
 REGIO_INIT_ADDRESS gives the default network address

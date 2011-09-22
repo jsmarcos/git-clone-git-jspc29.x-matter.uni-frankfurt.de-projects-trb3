@@ -201,6 +201,12 @@ architecture trb3_periph_arch of trb3_periph is
   --FPGA Test
   signal time_counter : unsigned(31 downto 0);
   
+  type a_t is array(0 to 33) of std_logic_vector(1000 downto 0);
+  signal c : a_t;
+  
+  attribute syn_keep of c : signal is true;
+  attribute syn_preserve of c : signal is true;  
+  
 begin
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -392,6 +398,25 @@ THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
   DQLR <= (others => '0');
   DQUR <= (others => '0');
 
+  gen_chains : for i in 0 to 33 generate
+    process begin
+      wait until rising_edge(clk_200_i);
+      c(i)(1000 downto 1) <= c(i)(999 downto 0);
+      c(i)(0) <= not c(i)(0) or DQUL(i);
+      DQUR(i) <= c(i)(1000);
+      if reset_i = '1' then
+        c(i)(1000 downto 0) <= (others => '0');
+      end if;
+    end process;
+  
+  end generate;
+  
+  
+--     DQUL                           : inout std_logic_vector(45 downto 0);                              
+--     DQLL                           : inout std_logic_vector(47 downto 0);                              
+--     DQUR                           : inout std_logic_vector(33 downto 0);
+--     DQLR                           : inout std_logic_vector(35 downto 0);             
+  
 ---------------------------------------------------------------------------
 -- Bus Handler
 ---------------------------------------------------------------------------

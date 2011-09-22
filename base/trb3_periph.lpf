@@ -269,7 +269,7 @@ LOCATE COMP  "DQUR_32"    SITE "P21";    #DQUR2_8   #150
 LOCATE COMP  "DQUR_33"    SITE "P22";    #DQUR2_9   #152
 
 DEFINE PORT GROUP "DQ_group" "DQ*" ;
-IOBUF GROUP "DQ_group" IO_TYPE=LVCMOS25 PULLMODE=NONE DRIVE=12;
+IOBUF GROUP "DQ_group" IO_TYPE=LVCMOS25 PULLMODE=DOWN;
 
 #################################################################
 # Additional Lines to AddOn
