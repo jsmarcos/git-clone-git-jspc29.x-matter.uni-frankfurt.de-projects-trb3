@@ -27,11 +27,11 @@
 
 === Directories
 
-base		                Here the main files like entity templates and pin-out files are stored. 
+base	                Here the main files like entity templates and pin-out files are stored. 
 base/cores              All IP-cores specific to the TRB3 that will be used in more than one project, e.g. PLLs
 base/clockmanager       Designs for the two clock managers
 central_hub2            The central hub design for TRBnetv2
-fpgatest 	              Designs used during hardware testing
+fpgatest		Designs used during hardware testing
 fpgatest/projects       Diamond Projects for FPGA tests
 
 
