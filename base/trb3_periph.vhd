@@ -50,7 +50,7 @@ entity trb3_periph is
     --Flash ROM & Reboot
     FLASH_CLK                      : out std_logic;
     FLASH_CS                       : out std_logic;
-    FLASH_CIN                      : out std_logic;
+    FLASH_DIN                      : out std_logic;
     FLASH_DOUT                     : in  std_logic;
     PROGRAMN                       : out std_logic; --reboot FPGA
     
@@ -83,7 +83,7 @@ entity trb3_periph is
     --important signals _with_ IO-FF
     attribute syn_useioff of FLASH_CLK          : signal is true;
     attribute syn_useioff of FLASH_CS           : signal is true;
-    attribute syn_useioff of FLASH_CIN          : signal is true;
+    attribute syn_useioff of FLASH_DIN          : signal is true;
     attribute syn_useioff of FLASH_DOUT         : signal is true;
     attribute syn_useioff of FPGA5_COMM         : signal is true;
     attribute syn_useioff of TEST_LINE          : signal is true;
@@ -229,9 +229,9 @@ THE_RESET_HANDLER : trb_net_reset_handler
 ---------------------------------------------------------------------------
 -- Clock Handling
 ---------------------------------------------------------------------------
-THE_MAIN_PLL : pll_in200_out100
+THE_MAIN_PLL : pll_in125_out125
   port map(
-    CLK    => CLK_GPLL_RIGHT,
+    CLK    => CLK_GPLL_LEFT, --CLK_GPLL_RIGHT
     CLKOP  => clk_100_i,
     CLKOK  => clk_200_i,
     LOCK   => pll_lock
@@ -289,11 +289,12 @@ THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
       REGIO_NUM_CTRL_REGS        => REGIO_NUM_CTRL_REGS,--3,    --8 cotrol reg
       ADDRESS_MASK               => x"FFFF",
       BROADCAST_BITMASK          => x"FF",
+      BROADCAST_SPECIAL_ADDR     => x"45",
       REGIO_COMPILE_TIME         => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME,32)),
       REGIO_HARDWARE_VERSION     => x"91000001",
       REGIO_INIT_ADDRESS         => x"f300",
       REGIO_USE_VAR_ENDPOINT_ID  => c_YES,
-      CLOCK_FREQUENCY            => 100,
+      CLOCK_FREQUENCY            => 125,
       TIMING_TRIGGER_RAW         => c_YES,
       --Configure data handler
       DATA_INTERFACE_NUMBER      => 1,
@@ -463,7 +464,7 @@ THE_SPI_MASTER: spi_master
     -- SPI connections
     SPI_CS_OUT     => FLASH_CS,
     SPI_SDI_IN     => FLASH_DOUT,
-    SPI_SDO_OUT    => FLASH_CIN,
+    SPI_SDO_OUT    => FLASH_DIN,
     SPI_SCK_OUT    => FLASH_CLK,
     -- BRAM for read/write data
     BRAM_A_OUT     => spi_bram_addr,

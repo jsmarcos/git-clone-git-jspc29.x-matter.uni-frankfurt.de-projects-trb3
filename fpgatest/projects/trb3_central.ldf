@@ -182,14 +182,15 @@
         <Source name="../../../trbnet/lattice/ecp3/spi_dpram_32_to_8.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-
-       <Source name="../../../trbnet/media_interfaces/ecp3_sfp/serdes_onboard_full.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../../../trbnet/media_interfaces/ecp3_sfp/serdes_onboard_full.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
         <Source name="../../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4_onboard.vhd" type="VHDL" type_short="VHDL">
             <Options/>
-        </Source>        
-
+        </Source>
+        <Source name="../../../trbnet/special/fpga_reboot.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
         <Source name="../../base/trb3.xcf" type="ispVM Download Project" type_short="ispVM" excluded="TRUE">
             <Options/>
         </Source>

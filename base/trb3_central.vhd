@@ -12,6 +12,9 @@ use work.version.all;
 
 
 entity trb3_central is
+  generic(
+    FREQUENCY : integer range 125 to 200 := 200
+    );
   port(
     --Clocks
     CLK_EXT                        : in  std_logic_vector(4 downto 3); --from RJ45
@@ -81,7 +84,7 @@ entity trb3_central is
     --Flash ROM & Reboot
     FLASH_CLK                      : out std_logic;
     FLASH_CS                       : out std_logic;
-    FLASH_CIN                      : out std_logic;
+    FLASH_DIN                      : out std_logic;
     FLASH_DOUT                     : in  std_logic;
     PROGRAMN                       : out std_logic := '1'; --reboot FPGA
     
@@ -120,7 +123,7 @@ entity trb3_central is
     --important signals _with_ IO-FF
     attribute syn_useioff of FLASH_CLK          : signal is true;
     attribute syn_useioff of FLASH_CS           : signal is true;
-    attribute syn_useioff of FLASH_CIN          : signal is true;
+    attribute syn_useioff of FLASH_DIN          : signal is true;
     attribute syn_useioff of FLASH_DOUT         : signal is true;
     attribute syn_useioff of FPGA1_COMM         : signal is true;
     attribute syn_useioff of FPGA2_COMM         : signal is true;
@@ -137,14 +140,13 @@ architecture trb3_central_arch of trb3_central is
   signal clk_100_i   : std_logic; --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i   : std_logic; --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
   signal pll_lock    : std_logic; --Internal PLL locked. E.g. used to reset all internal logic.
+  signal clk_serdes  : std_logic; --wrapper for serdes clock
+  signal clk_system  : std_logic; --wrapper for system clock
   signal clear_i     : std_logic;
   signal reset_i     : std_logic;
   signal GSR_N       : std_logic;
   attribute syn_keep of GSR_N : signal is true;
   attribute syn_preserve of GSR_N : signal is true;
-  
-  --FPGA Test
-  signal time_counter : unsigned(31 downto 0);
   
   --Media Interface
   signal med_stat_op             : std_logic_vector (5*16-1  downto 0);
@@ -193,6 +195,7 @@ architecture trb3_central_arch of trb3_central is
   signal spi_bram_wr_d           : std_logic_vector(7 downto 0);
   signal spi_bram_rd_d           : std_logic_vector(7 downto 0);
   signal spi_bram_we             : std_logic;
+  signal spi_debug               : std_logic_vector(31 downto 0);
 
 
 begin
@@ -210,8 +213,8 @@ THE_RESET_HANDLER : trb_net_reset_handler
   port map(
     CLEAR_IN        => '0',             -- reset input (high active, async)
     CLEAR_N_IN      => '1',             -- reset input (low active, async)
-    CLK_IN          => clk_200_i,       -- raw master clock, NOT from PLL/DLL!
-    SYSCLK_IN       => clk_100_i,       -- PLL/DLL remastered clock
+    CLK_IN          => clk_serdes,      -- raw master clock, NOT from PLL/DLL!
+    SYSCLK_IN       => clk_system,      -- PLL/DLL remastered clock
     PLL_LOCKED_IN   => pll_lock,        -- master PLL lock signal (async)
     RESET_IN        => '0',             -- general reset signal (SYSCLK)
     TRB_RESET_IN    => med_stat_op(4*16+13), -- TRBnet reset signal (SYSCLK)
@@ -223,14 +226,29 @@ THE_RESET_HANDLER : trb_net_reset_handler
 ---------------------------------------------------------------------------
 -- Clock Handling
 ---------------------------------------------------------------------------
-THE_MAIN_PLL : pll_in200_out100
-  port map(
-    CLK    => CLK_GPLL_LEFT,
-    CLKOP  => clk_100_i,
-    CLKOK  => clk_200_i,
-    LOCK   => pll_lock
-    );
-
+gen_200_CLK : if FREQUENCY = 200 generate
+  THE_MAIN_PLL : pll_in200_out100
+    port map(
+      CLK    => CLK_GPLL_LEFT,
+      CLKOP  => clk_100_i,
+      CLKOK  => clk_200_i,
+      LOCK   => pll_lock
+      );
+  clk_serdes <= clk_200_i;
+  clk_system <= clk_100_i;
+end generate;
+  
+gen_125_CLK : if FREQUENCY = 125 generate
+  THE_MAIN_PLL : pll_in125_out125
+    port map(
+      CLK    => CLK_GPLL_RIGHT,
+      CLKOP  => clk_100_i, --125 from PLL
+      CLKOK  => clk_200_i, --125 bypass
+      LOCK   => pll_lock
+      );
+  clk_serdes <= CLK_GPLL_LEFT;
+  clk_system <= clk_100_i;
+end generate;
 
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (Uplink)
@@ -239,11 +257,12 @@ THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
   generic map(
     SERDES_NUM  => 0,     --number of serdes in quad
     EXT_CLOCK   => c_NO,  --use internal clock
-    USE_200_MHZ => c_YES  --run on 200 MHz clock
+    USE_200_MHZ => c_YES, --run on 200 MHz clock
+    USE_125_MHZ => c_NO
     )
   port map(
-    CLK                => clk_200_i,
-    SYSCLK             => clk_100_i,
+    CLK                => clk_serdes,
+    SYSCLK             => clk_system,
     RESET              => reset_i,
     CLEAR              => clear_i,
     CLK_EN             => '1',
@@ -283,8 +302,8 @@ SFP_TXDIS(8 downto 2) <= (others => '1');
 ---------------------------------------------------------------------------
 THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
   port map(
-    CLK                => clk_200_i,
-    SYSCLK             => clk_100_i,
+    CLK                => clk_serdes,
+    SYSCLK             => clk_system,
     RESET              => reset_i,
     CLEAR              => clear_i,
     CLK_EN             => '1',
@@ -348,7 +367,7 @@ THE_HUB : trb_net16_hub_base
     BROADCAST_SPECIAL_ADDR => x"40"
     )
   port map (
-    CLK    => clk_100_i,
+    CLK    => clk_system,
     RESET  => reset_i,
     CLK_EN => '1',
 
@@ -398,7 +417,7 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
     PORT_ADDR_MASK => (0 => 1,       1 => 6,        others => 0)
     )
   port map(
-    CLK                   => clk_100_i,
+    CLK                   => clk_system,
     RESET                 => reset_i,
 
     DAT_ADDR_IN           => regio_addr_out,
@@ -446,7 +465,7 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
 
 THE_SPI_MASTER: spi_master
   port map(
-    CLK_IN         => clk_100_i,
+    CLK_IN         => clk_system,
     RESET_IN       => reset_i,
     -- Slave bus
     BUS_READ_IN    => spictrl_read_en,
@@ -459,7 +478,7 @@ THE_SPI_MASTER: spi_master
     -- SPI connections
     SPI_CS_OUT     => FLASH_CS,
     SPI_SDI_IN     => FLASH_DOUT,
-    SPI_SDO_OUT    => FLASH_CIN,
+    SPI_SDO_OUT    => FLASH_DIN, --open,
     SPI_SCK_OUT    => FLASH_CLK,
     -- BRAM for read/write data
     BRAM_A_OUT     => spi_bram_addr,
@@ -467,13 +486,13 @@ THE_SPI_MASTER: spi_master
     BRAM_RD_D_OUT  => spi_bram_rd_d,
     BRAM_WE_OUT    => spi_bram_we,
     -- Status lines
-    STAT           => open
+    STAT           => spi_debug
     );
 
 -- data memory for SPI accesses
 THE_SPI_MEMORY: spi_databus_memory
   port map(
-    CLK_IN        => clk_100_i,
+    CLK_IN        => clk_system,
     RESET_IN      => reset_i,
     -- Slave bus
     BUS_ADDR_IN   => spimem_addr,
@@ -496,7 +515,7 @@ THE_SPI_MEMORY: spi_databus_memory
 ---------------------------------------------------------------------------
 THE_FPGA_REBOOT : fpga_reboot
   port map(
-    CLK       => clk_100_i,
+    CLK       => clk_system,
     RESET     => reset_i,
     DO_REBOOT => common_ctrl_regs(15),
     PROGRAMN  => PROGRAMN
@@ -559,21 +578,18 @@ THE_FPGA_REBOOT : fpga_reboot
 -- Test Connector
 ---------------------------------------------------------------------------    
 
-  TEST_LINE(7 downto 0)   <= med_data_in(7 downto 0);
-  TEST_LINE(8)            <= med_dataready_in(0);
-  TEST_LINE(9)            <= med_dataready_out(0);
+  TEST_LINE <= spi_debug;
+--   TEST_LINE(7 downto 0)   <= med_data_in(7 downto 0);
+--   TEST_LINE(8)            <= med_dataready_in(0);
+--   TEST_LINE(9)            <= med_dataready_out(0);
+-- 
+--   
+--   TEST_LINE(31 downto 10) <= (others => '0');
 
-  
-  TEST_LINE(31 downto 10) <= (others => '0');
-
-
+--   FLASH_DIN <=  not med_stat_op(10);
 ---------------------------------------------------------------------------
 -- Test Circuits
 ---------------------------------------------------------------------------
-  process
-    begin
-      wait until rising_edge(clk_100_i);
-      time_counter <= time_counter + 1;
-    end process;
+
 
 end architecture;

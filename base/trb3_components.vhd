@@ -12,10 +12,18 @@ component pll_in200_out100
   port (
     CLK: in std_logic; 
     CLKOP: out std_logic; --100 MHz
-    CLKOK: out std_logic; --200 MHz
+    CLKOK: out std_logic; --200 MHz, bypass
     LOCK: out std_logic
     );
   end component;
-  
+
+component pll_in125_out125
+  port (
+    CLK: in std_logic; 
+    CLKOP: out std_logic; --125 MHz
+    CLKOK: out std_logic; --125 MHz, bypass
+    LOCK: out std_logic
+    );
+  end component;  
   
 end package;

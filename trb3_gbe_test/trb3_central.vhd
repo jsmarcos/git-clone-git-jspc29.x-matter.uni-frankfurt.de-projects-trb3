@@ -7,8 +7,8 @@ library work;
 use work.trb_net_std.all;
 use work.trb_net_components.all;
 use work.trb3_components.all;
-use work.trb_net16_hub_func.all;
-use work.version.all;
+--use work.trb_net16_hub_func.all;
+--use work.version.all;
 
 
 
