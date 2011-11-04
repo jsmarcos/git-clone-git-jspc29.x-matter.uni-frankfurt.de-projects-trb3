@@ -250,7 +250,7 @@ begin
 ---------------------------------------------------------------------------
   THE_MAIN_PLL : pll_in200_out100
     port map(
-      CLK   => CLK_GPLL_LEFT,           --CLK_GPLL_RIGHT
+      CLK   => CLK_GPLL_RIGHT,
       CLKOP => clk_100_i,
       CLKOK => clk_200_i,
       LOCK  => pll_lock
