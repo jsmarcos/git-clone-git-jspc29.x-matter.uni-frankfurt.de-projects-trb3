@@ -556,27 +556,4 @@ begin
     time_counter <= time_counter + 1;
   end process;
 
--------------------------------------------------------------------------------
--- TDC
--------------------------------------------------------------------------------
-
-  THE_TDC : TDC
-    generic map (
-      CHANNEL_NUMBER => 8)              -- Number of TDC channels
-    port map (
-      RESET             => reset_i,
-      CLK_TDC           => CLK_PCLK_LEFT,  -- Clock used for the time measurement
-      CLK_READOUT       => clk_100_i,   -- Clock for the readout
-      HIT_IN            => DQUL(7 downto 0),     -- Channel start signals
-      TRIGGER_IN        => trg_timing_valid_i,   -- Readout trigger
-      TRIGGER_WIN_IN    => x"00640000",  -- Trigger window register relative to
-                                         -- the trigger (post edge & pre edge)
-      DATA_OUT          => fee_data_i,  -- Data to readout
-      TRB_WR_CLK_OUT    => open,        -- Readout clk (maybe not necessary
-                                        -- in trb3)
-      DATA_VALID_OUT    => fee_data_write_i,     -- Data valid signal
-      DATA_FINISHED_OUT => fee_data_finished_i,  -- Readout finished signal
-      READY_OUT         => fee_trg_release_i,    -- Ready for the next trigger
-      TDC_DEBUG_00      => open);       -- Debug
-
 end architecture;
