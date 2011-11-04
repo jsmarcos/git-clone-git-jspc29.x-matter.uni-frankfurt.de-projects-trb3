@@ -13,19 +13,20 @@ use ecp2m.components.all;
 
 entity TDC is
   generic (
-    CHANNEL_NUMBER :     integer range 0 to 64 := 8);
+    CHANNEL_NUMBER : integer range 0 to 64 := 8);
   port (
-    RESET          : in  std_logic;
-    CLK_CHANNEL    : in  std_logic;
-    CLK_READOUT    : in  std_logic;
-    HIT_IN         : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-    TRIGGER_IN     : in  std_logic;
-    TRIGGER_WIN    : in  std_logic_vector(31 downto 0);
-    DATA_OUT       : out std_logic_vector(31 downto 0);
-    TRB_WR_CLK_OUT : out std_logic;
-    DATA_VALID     : out std_logic;
-    DATA_READY     : out std_logic;
-    TDC_DEBUG_00   : out std_logic_vector(31 downto 0)
+    RESET             : in  std_logic;
+    CLK_TDC           : in  std_logic;
+    CLK_READOUT       : in  std_logic;
+    HIT_IN            : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+    TRIGGER_IN        : in  std_logic;
+    TRIGGER_WIN_IN    : in  std_logic_vector(31 downto 0);
+    DATA_OUT          : out std_logic_vector(31 downto 0);
+    TRB_WR_CLK_OUT    : out std_logic;
+    DATA_VALID_OUT    : out std_logic;
+    DATA_FINISHED_OUT : out std_logic;
+    READY_OUT         : out std_logic;
+    TDC_DEBUG_00      : out std_logic_vector(31 downto 0)
     );
 end TDC;
 
@@ -37,7 +38,7 @@ architecture TDC of TDC is
 
   component Channel
     generic (
-      CHANNEL_ID        :     integer range 0 to 15);
+      CHANNEL_ID : integer range 0 to 15);
     port (
       RESET             : in  std_logic;
       CLK               : in  std_logic;
@@ -52,64 +53,64 @@ architecture TDC of TDC is
 --
   component ROM_FIFO
     port (
-      Address           : in  std_logic_vector(7 downto 0);
-      OutClock          : in  std_logic;
-      OutClockEn        : in  std_logic;
-      Reset             : in  std_logic;
-      Q                 : out std_logic_vector(3 downto 0));
+      Address    : in  std_logic_vector(7 downto 0);
+      OutClock   : in  std_logic;
+      OutClockEn : in  std_logic;
+      Reset      : in  std_logic;
+      Q          : out std_logic_vector(3 downto 0));
   end component;
 --
   component up_counter
     generic (
-      NUMBER_OF_BITS    :     positive);
+      NUMBER_OF_BITS : positive);
     port (
-      CLK               : in  std_logic;
-      RESET             : in  std_logic;
-      COUNT_OUT         : out std_logic_vector(NUMBER_OF_BITS-1 downto 0);
-      UP_IN             : in  std_logic);
+      CLK       : in  std_logic;
+      RESET     : in  std_logic;
+      COUNT_OUT : out std_logic_vector(NUMBER_OF_BITS-1 downto 0);
+      UP_IN     : in  std_logic);
   end component;
 --
   component edge_to_pulse_fast
     port (
-      RESET             : in  std_logic;
-      CLK               : in  std_logic;
-      SIGNAL_IN         : in  std_logic;
-      PULSE_OUT         : out std_logic);
+      RESET     : in  std_logic;
+      CLK       : in  std_logic;
+      SIGNAL_IN : in  std_logic;
+      PULSE_OUT : out std_logic);
   end component;
 --
   component bit_sync
     generic (
-      DEPTH             :     integer);
+      DEPTH : integer);
     port (
-      RESET             : in  std_logic;
-      CLK0              : in  std_logic;
-      CLK1              : in  std_logic;
-      D_IN              : in  std_logic;
-      D_OUT             : out std_logic);
+      RESET : in  std_logic;
+      CLK0  : in  std_logic;
+      CLK1  : in  std_logic;
+      D_IN  : in  std_logic;
+      D_OUT : out std_logic);
   end component;
 --
   component ddr_off
     port (
-      Clk               : in  std_logic;
-      Data              : in  std_logic_vector(1 downto 0);
-      Q                 : out std_logic_vector(0 downto 0));
+      Clk  : in  std_logic;
+      Data : in  std_logic_vector(1 downto 0);
+      Q    : out std_logic_vector(0 downto 0));
   end component;
 
 -------------------------------------------------------------------------------
 -- Signal Declarations
 -------------------------------------------------------------------------------
 -- Input Output signals
-  signal clk_i        : std_logic;
-  signal clk_100_i    : std_logic;
-  signal lock_100_i   : std_logic;
-  signal reset_i      : std_logic;
-  signal hit_in_i     : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-  signal trigger_in_i : std_logic;
-  signal trig_pulse_i : std_logic;
-  signal trig_sync_i  : std_logic;
-  signal data_out_i   : std_logic_vector(31 downto 0);
-  signal data_valid_i : std_logic;
-  signal data_ready_i : std_logic;
+  signal clk_i           : std_logic;
+  signal clk_100_i       : std_logic;
+  signal lock_100_i      : std_logic;
+  signal reset_i         : std_logic;
+  signal hit_in_i        : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+  signal trigger_in_i    : std_logic;
+  signal trig_pulse_i    : std_logic;
+  signal trig_sync_i     : std_logic;
+  signal data_out_i      : std_logic_vector(31 downto 0);
+  signal data_valid_i    : std_logic;
+  signal data_finished_i : std_logic;
 
 -- Other signals
   type FSM is (IDLE, WR_HEADER, WR_ERROR, WR_TRAILOR, WAIT_FOR_FIFO_NR,
@@ -121,8 +122,8 @@ architecture TDC of TDC is
   signal start_rdout_i         : std_logic;
   signal rdout_busy_fsm        : std_logic;
   signal rdout_busy_i          : std_logic;
-  signal send_ready_fsm        : std_logic;
-  signal send_ready_i          : std_logic;
+  signal send_finished_fsm     : std_logic;
+  signal send_finished_i       : std_logic;
   signal wr_header_fsm         : std_logic;
   signal wr_header_i           : std_logic;
   signal wr_ch_data_fsm        : std_logic;
@@ -153,7 +154,7 @@ architecture TDC of TDC is
   signal ctwe_reset_i          : std_logic;
   signal trig_win_end_i        : std_logic;
 --
-  type Std_Logic_8_array is array (0 to 1) of std_logic_vector(3 downto 0);
+  type   Std_Logic_8_array is array (0 to 1) of std_logic_vector(3 downto 0);
   signal fifo_nr_hex           : Std_Logic_8_array;
 --
   signal coarse_counter_i      : std_logic_vector(15 downto 0);
@@ -168,7 +169,7 @@ architecture TDC of TDC is
   signal LE_cntr_up            : std_logic;
   signal LE_cntr_i             : std_logic_vector(15 downto 0);
 --
-  type channel_data_array is array (0 to CHANNEL_NUMBER) of std_logic_vector(31 downto 0);
+  type   channel_data_array is array (0 to CHANNEL_NUMBER) of std_logic_vector(31 downto 0);
   signal channel_data_i        : channel_data_array;
   signal channel_data_reg      : channel_data_array;
   signal channel_data_2reg     : channel_data_array;
@@ -186,21 +187,21 @@ architecture TDC of TDC is
 begin
 
   reset_i       <= RESET;
-  clk_i         <= CLK_CHANNEL;
+  clk_i         <= CLK_TDC;
   clk_100_i     <= CLK_READOUT;
   trigger_in_i  <= TRIGGER_IN;
   hit_in_i      <= HIT_IN;
-  trig_win_pre  <= TRIGGER_WIN(15 downto 0);
-  trig_win_post <= TRIGGER_WIN(31 downto 16);
+  trig_win_pre  <= TRIGGER_WIN_IN(15 downto 0);
+  trig_win_post <= TRIGGER_WIN_IN(31 downto 16);
 
 -------------------------------------------------------------------------------
 -- COMPONENT INSTANTINIATIONS
 -------------------------------------------------------------------------------
 -- Channels
   GEN_Channels : for i in 0 to CHANNEL_NUMBER - 1 generate
-    Channels   : Channel
+    Channels : Channel
       generic map (
-        CHANNEL_ID        => i)
+        CHANNEL_ID => i)
       port map (
         RESET             => reset_i,
         CLK               => clk_i,
@@ -219,10 +220,10 @@ begin
     generic map (
       NUMBER_OF_BITS => 16)
     port map (
-      CLK            => clk_i,
-      RESET          => reset_i,
-      COUNT_OUT      => coarse_counter_i,
-      UP_IN          => '1');
+      CLK       => clk_i,
+      RESET     => reset_i,
+      COUNT_OUT => coarse_counter_i,
+      UP_IN     => '1');
 
 -------------------------------------------------------------------------------
 -- CLOCK SETTINGS
@@ -279,10 +280,10 @@ begin
     generic map (
       NUMBER_OF_BITS => 16)
     port map (
-      CLK            => clk_100_i,
-      RESET          => reset_i,
-      COUNT_OUT      => LE_cntr_i,
-      UP_IN          => LE_cntr_up);
+      CLK       => clk_100_i,
+      RESET     => reset_i,
+      COUNT_OUT => LE_cntr_i,
+      UP_IN     => LE_cntr_up);
   LE_cntr_up <= start_rdout_i;
 
   -- purpose: Defines the trigger time with respect to the coarse counter
@@ -328,10 +329,10 @@ begin
     generic map (
       NUMBER_OF_BITS => 16)
     port map (
-      CLK            => clk_100_i,
-      RESET          => ctwe_reset_i,
-      COUNT_OUT      => ctwe_cntr_i,
-      UP_IN          => ctwe_up_i);
+      CLK       => clk_100_i,
+      RESET     => ctwe_reset_i,
+      COUNT_OUT => ctwe_cntr_i,
+      UP_IN     => ctwe_up_i);
 
   --purpose: Calculates the position of the trigger window edges
   Trig_Win_Calculation : process (clk_100_i, reset_i)
@@ -370,11 +371,11 @@ begin
   begin
     if rising_edge(clk_100_i) then
       if reset_i = '1' then
-        trig_win_r           <= '0';
+        trig_win_r <= '0';
       elsif channel_hit_time <= TW_post then
-        trig_win_r           <= '1';
+        trig_win_r <= '1';
       else
-        trig_win_r           <= '0';
+        trig_win_r <= '0';
       end if;
     end if;
   end process Check_Trig_Win_Right;
@@ -386,13 +387,13 @@ begin
   begin
     if rising_edge(clk_100_i) then
       if reset_i = '1' then
-        mask_i          <= (others => '1');
+        mask_i <= (others => '1');
       elsif trig_win_end_i = '1' then
-        mask_i          <= channel_empty_i;
+        mask_i <= channel_empty_i;
       elsif updt_mask_i = '1' then
         mask_i(fifo_nr) <= '1';
       else
-        mask_i          <= mask_i;
+        mask_i <= mask_i;
       end if;
     end if;
   end process CREAT_MASK;
@@ -442,19 +443,19 @@ begin
     end if;
   end process UPDATE_INDEX_NR;
 -------------------------------------------------------------------------------
--- Data Out, Data Valid and Data Ready assigning according to the control
+-- Data Out, Data Valid and Data Finished assigning according to the control
 -- signals from the readout final-state-machine.
 
   Data_Out_MUX : process (clk_100_i, reset_i)
   begin
     if rising_edge(clk_100_i) then
       if reset_i = '1' then
-        data_out_i         <= (others => '1');
-        data_valid_i       <= '0';
+        data_out_i   <= (others => '1');
+        data_valid_i <= '0';
       else
         if wr_header_i = '1' then
-          data_out_i       <= x"aa00" & LE_cntr_i;
-          data_valid_i     <= '1';
+          data_out_i   <= x"aa00" & LE_cntr_i;
+          data_valid_i <= '1';
         elsif wr_ch_data_i = '1' then
           if (TW_pre(15) = '1' and trig_time_i(15) = '0') or (TW_post(15) = '0' and trig_time_i(15) = '1') then
             if (trig_win_l = '0' and trig_win_r = '1') or (trig_win_l = '1' and trig_win_r = '0') then
@@ -476,36 +477,37 @@ begin
             end if;
           end if;
         elsif wr_error_i = '1' then
-          data_out_i       <= x"ee000000";
-          data_valid_i     <= '1';
+          data_out_i   <= x"ee000000";
+          data_valid_i <= '1';
         elsif wr_trailor_i = '1' then
-          data_out_i       <= x"bb00" & LE_cntr_i;
-          data_valid_i     <= '1';
+          data_out_i   <= x"bb00" & LE_cntr_i;
+          data_valid_i <= '1';
         else
-          data_out_i       <= (others => '1');
-          data_valid_i     <= '0';
+          data_out_i   <= (others => '1');
+          data_valid_i <= '0';
         end if;
       end if;
     end if;
   end process Data_Out_MUX;
 
-  DATA_OUT   <= data_out_i;
-  DATA_VALID <= data_valid_i;
+  DATA_OUT       <= data_out_i;
+  DATA_VALID_OUT <= data_valid_i;
 
-  Send_Ready : process (clk_100_i, reset_i)
+  Send_Finished : process (clk_100_i, reset_i)
   begin
     if rising_edge(clk_100_i) then
       if reset_i = '1' then
-        data_ready_i <= '0';
-      elsif send_ready_i = '1' then
-        data_ready_i <= '1';
+        data_finished_i <= '0';
+      elsif send_finished_i = '1' then
+        data_finished_i <= '1';
       else
-        data_ready_i <= '0';
+        data_finished_i <= '0';
       end if;
     end if;
-  end process Send_Ready;
+  end process Send_Finished;
 
-  DATA_READY <= data_ready_i;
+  DATA_FINISHED_OUT <= data_finished_i;
+  READY_OUT         <= data_finished_i;
 -----------------------------------------------------------------------------
 -- Data delay
 
@@ -542,29 +544,29 @@ begin
   begin
     if rising_edge(clk_100_i) then
       if reset_i = '1' then
-        FSM_CURRENT  <= IDLE;
-        rdout_busy_i <= '0';
-        updt_index_i <= '0';
-        updt_mask_i  <= '0';
-        wr_header_i  <= '0';
-        wr_ch_data_i <= '0';
-        wr_error_i   <= '0';
-        wr_trailor_i <= '0';
-        rd_en_i      <= (others => '0');
-        send_ready_i <= '0';
-        fsm_debug_i  <= x"0";
+        FSM_CURRENT     <= IDLE;
+        rdout_busy_i    <= '0';
+        updt_index_i    <= '0';
+        updt_mask_i     <= '0';
+        wr_header_i     <= '0';
+        wr_ch_data_i    <= '0';
+        wr_error_i      <= '0';
+        wr_trailor_i    <= '0';
+        rd_en_i         <= (others => '0');
+        send_finished_i <= '0';
+        fsm_debug_i     <= x"0";
       else
-        FSM_CURRENT  <= FSM_NEXT;
-        rdout_busy_i <= rdout_busy_fsm;
-        updt_index_i <= updt_index_fsm;
-        updt_mask_i  <= updt_mask_fsm;
-        wr_header_i  <= wr_header_fsm;
-        wr_ch_data_i <= wr_ch_data_fsm;
-        wr_error_i   <= wr_error_fsm;
-        wr_trailor_i <= wr_trailor_fsm;
-        rd_en_i      <= rd_en_fsm;
-        send_ready_i <= send_ready_fsm;
-        fsm_debug_i  <= fsm_debug_fsm;
+        FSM_CURRENT     <= FSM_NEXT;
+        rdout_busy_i    <= rdout_busy_fsm;
+        updt_index_i    <= updt_index_fsm;
+        updt_mask_i     <= updt_mask_fsm;
+        wr_header_i     <= wr_header_fsm;
+        wr_ch_data_i    <= wr_ch_data_fsm;
+        wr_error_i      <= wr_error_fsm;
+        wr_trailor_i    <= wr_trailor_fsm;
+        rd_en_i         <= rd_en_fsm;
+        send_finished_i <= send_finished_fsm;
+        fsm_debug_i     <= fsm_debug_fsm;
       end if;
     end if;
   end process FSM_CLK;
@@ -573,107 +575,107 @@ begin
                       channel_empty_4reg)
   begin
 
-    rdout_busy_fsm <= '1';
-    updt_index_fsm <= '0';
-    updt_mask_fsm  <= '0';
-    wr_header_fsm  <= '0';
-    wr_ch_data_fsm <= '0';
-    wr_error_fsm   <= '0';
-    wr_trailor_fsm <= '0';
-    rd_en_fsm      <= (others => '0');
-    send_ready_fsm <= '0';
+    rdout_busy_fsm    <= '1';
+    updt_index_fsm    <= '0';
+    updt_mask_fsm     <= '0';
+    wr_header_fsm     <= '0';
+    wr_ch_data_fsm    <= '0';
+    wr_error_fsm      <= '0';
+    wr_trailor_fsm    <= '0';
+    rd_en_fsm         <= (others => '0');
+    send_finished_fsm <= '0';
 
     case (FSM_CURRENT) is
-      when IDLE             =>
+      when IDLE =>
         if trig_win_end_i = '1' then
-          rdout_busy_fsm         <= '1';
-          FSM_NEXT               <= WR_HEADER;
-          fsm_debug_fsm          <= x"1";
+          rdout_busy_fsm <= '1';
+          FSM_NEXT       <= WR_HEADER;
+          fsm_debug_fsm  <= x"1";
         else
-          rdout_busy_fsm         <= '0';
-          FSM_NEXT               <= IDLE;
-          fsm_debug_fsm          <= x"2";
+          rdout_busy_fsm <= '0';
+          FSM_NEXT       <= IDLE;
+          fsm_debug_fsm  <= x"2";
         end if;
 --
-      when WR_HEADER        =>
-        FSM_NEXT                 <= WAIT_FOR_FIFO_NR;
-        wr_header_fsm            <= '1';
-        fsm_debug_fsm            <= x"3";
+      when WR_HEADER =>
+        FSM_NEXT      <= WAIT_FOR_FIFO_NR;
+        wr_header_fsm <= '1';
+        fsm_debug_fsm <= x"3";
 --
       when WAIT_FOR_FIFO_NR =>
-        FSM_NEXT                 <= APPLY_MASK;
-        updt_index_fsm           <= '1';
-        fsm_debug_fsm            <= x"4";
+        FSM_NEXT       <= APPLY_MASK;
+        updt_index_fsm <= '1';
+        fsm_debug_fsm  <= x"4";
 --
-      when APPLY_MASK       =>
+      when APPLY_MASK =>
         if fifo_nr_int = 8 then
-          FSM_NEXT               <= WR_ERROR;
-          fsm_debug_fsm          <= x"5";
+          FSM_NEXT      <= WR_ERROR;
+          fsm_debug_fsm <= x"5";
         else
           FSM_NEXT               <= RD_CHANNEL_1;
           rd_en_fsm(fifo_nr_int) <= '1';
           fsm_debug_fsm          <= x"6";
         end if;
 --
-      when RD_CHANNEL_1     =>
-        FSM_NEXT                 <= RD_CHANNEL_2;
-        rd_en_fsm(fifo_nr_int)   <= '1';
-        updt_mask_fsm            <= '1';
-        fsm_debug_fsm            <= x"7";
+      when RD_CHANNEL_1 =>
+        FSM_NEXT               <= RD_CHANNEL_2;
+        rd_en_fsm(fifo_nr_int) <= '1';
+        updt_mask_fsm          <= '1';
+        fsm_debug_fsm          <= x"7";
 --
-      when RD_CHANNEL_2     =>
-        FSM_NEXT                 <= RD_CHANNEL_3;
-        rd_en_fsm(fifo_nr_int)   <= '1';
-        fsm_debug_fsm            <= x"7";
+      when RD_CHANNEL_2 =>
+        FSM_NEXT               <= RD_CHANNEL_3;
+        rd_en_fsm(fifo_nr_int) <= '1';
+        fsm_debug_fsm          <= x"7";
 --
-      when RD_CHANNEL_3     =>
-        FSM_NEXT                 <= RD_CHANNEL_4;
-        rd_en_fsm(fifo_nr_int)   <= '1';
-        fsm_debug_fsm            <= x"7";
+      when RD_CHANNEL_3 =>
+        FSM_NEXT               <= RD_CHANNEL_4;
+        rd_en_fsm(fifo_nr_int) <= '1';
+        fsm_debug_fsm          <= x"7";
 --
-      when RD_CHANNEL_4     =>
-        FSM_NEXT                 <= RD_CHANNEL_5;
-        rd_en_fsm(fifo_nr_int)   <= '1';
-        fsm_debug_fsm            <= x"7";
+      when RD_CHANNEL_4 =>
+        FSM_NEXT               <= RD_CHANNEL_5;
+        rd_en_fsm(fifo_nr_int) <= '1';
+        fsm_debug_fsm          <= x"7";
 --
-      when RD_CHANNEL_5     =>
-        FSM_NEXT                 <= RD_CHANNEL;
-        rd_en_fsm(fifo_nr)       <= '1';
-        fsm_debug_fsm            <= x"7";
+      when RD_CHANNEL_5 =>
+        FSM_NEXT           <= RD_CHANNEL;
+        rd_en_fsm(fifo_nr) <= '1';
+        fsm_debug_fsm      <= x"7";
 --
-      when RD_CHANNEL       =>
+      when RD_CHANNEL =>
 -- if channel_empty_3reg(fifo_nr) = '1' then
         if channel_empty_4reg(fifo_nr) = '1' then
-          wr_ch_data_fsm         <= '0';
-          updt_index_fsm         <= '1';
-          FSM_NEXT               <= APPLY_MASK;
-          fsm_debug_fsm          <= x"8";
+          wr_ch_data_fsm <= '0';
+          updt_index_fsm <= '1';
+          FSM_NEXT       <= APPLY_MASK;
+          fsm_debug_fsm  <= x"8";
         else
-          wr_ch_data_fsm         <= '1';
-          rd_en_fsm(fifo_nr)     <= '1';
-          FSM_NEXT               <= RD_CHANNEL;
-          fsm_debug_fsm          <= x"9";
+          wr_ch_data_fsm     <= '1';
+          rd_en_fsm(fifo_nr) <= '1';
+          FSM_NEXT           <= RD_CHANNEL;
+          fsm_debug_fsm      <= x"9";
         end if;
 --
-      when WR_ERROR         =>
-        wr_error_fsm             <= '1';
-        FSM_NEXT                 <= WR_TRAILOR;
-        fsm_debug_fsm            <= x"A";
+      when WR_ERROR =>
+        wr_error_fsm  <= '1';
+        FSM_NEXT      <= WR_TRAILOR;
+        fsm_debug_fsm <= x"A";
 --
-      when WR_TRAILOR       =>
-        wr_trailor_fsm           <= '1';
-        FSM_NEXT                 <= FINISH;
-        fsm_debug_fsm            <= x"B";
+      when WR_TRAILOR =>
+        wr_trailor_fsm <= '1';
+        FSM_NEXT       <= FINISH;
+        fsm_debug_fsm  <= x"B";
 --
-      when FINISH           =>
-        send_ready_fsm           <= '1';
-        rdout_busy_fsm           <= '0';
-        FSM_NEXT                 <= IDLE;
-        fsm_debug_fsm            <= x"C";
+      when FINISH =>
+        send_finished_fsm <= '1';
+        rdout_busy_fsm    <= '0';
+        FSM_NEXT          <= IDLE;
+        fsm_debug_fsm     <= x"C";
 --
-      when others           =>
-        FSM_NEXT                 <= IDLE;
-        fsm_debug_fsm            <= x"D";
+      when others =>
+        FSM_NEXT      <= IDLE;
+        fsm_debug_fsm <= x"D";
     end case;
   end process FSM_PROC;
 
@@ -696,7 +698,7 @@ begin
 -- tdc_debug_out_i(4 downto 1) <= fsm_debug_i;
 -- tdc_debug_out_i(5) <= buf1_start_i;
 -- tdc_debug_out_i(9 downto 6) <= buf1_fsm_debug_i;
--- tdc_debug_out_i(11 downto 10) <= data_ready_i;              --2
+-- tdc_debug_out_i(11 downto 10) <= data_finished_i;              --2
 -- tdc_debug_out_i(15 downto 12) <= data_len_0_i(5 downto 2);  --12
 -- tdc_debug_out_i(19 downto 16) <= data_len_1_i(5 downto 2);  --12
 -- tdc_debug_out_i(25 downto 24) <= clear_in_i;
@@ -716,6 +718,6 @@ begin
       end if;
     end if;
   end process REG_OUTPUTS;
-  TDC_DEBUG_00      <= tdc_debug_i;
+  TDC_DEBUG_00 <= tdc_debug_i;
 
 end TDC;

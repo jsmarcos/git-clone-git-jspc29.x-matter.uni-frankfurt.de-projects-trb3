@@ -85,11 +85,11 @@ foreach (@a)
 {
     if(/\@E:/)
     {
-  print "\n";
-  $c="cat $TOPNAME.srr | grep \"\@E\"";
-  system($c);
+	print "\n";
+	$c="cat $TOPNAME.srr | grep \"\@E\"";
+	system($c);
         print "\n\n";
-  exit 129;
+	exit 129;
     }
 }
 

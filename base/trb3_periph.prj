@@ -146,8 +146,6 @@ add_file -vhdl -lib "work" "../base/tdc_source_files/FIFO_32x512_Oreg.vhd"
 add_file -vhdl -lib "work" "../base/tdc_source_files/ROM_FIFO.vhd"
 add_file -vhdl -lib "work" "../base/cores/bit_sync.vhd"
 add_file -vhdl -lib "work" "../base/cores/edge_to_pulse_fast.vhd"
-add_file -vhdl -lib "work" "../base/cores/f_divider.vhd"
-add_file -vhdl -lib "work" "../base/cores/signal_sync.vhd"
 add_file -vhdl -lib "work" "../base/cores/up_counter.vhd"
 
 
