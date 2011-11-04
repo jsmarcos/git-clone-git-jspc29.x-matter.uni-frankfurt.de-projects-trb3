@@ -84,18 +84,18 @@ architecture Channel of Channel is
 -- BINARY_CODE_OUTPUT : out std_logic_vector(9 downto 0));
 -- end component;
 --
-  component FIFO_32x512_Oreg
+  component FIFO_32x512_NOreg
     port (
-      Data       : in  std_logic_vector(31 downto 0);
-      WrClock    : in  std_logic;
-      RdClock    : in  std_logic;
-      WrEn       : in  std_logic;
-      RdEn       : in  std_logic;
-      Reset      : in  std_logic;
-      RPReset    : in  std_logic;
-      Q          : out std_logic_vector(31 downto 0);
-      Empty      : out std_logic;
-      Full       : out std_logic);
+      Data    : in  std_logic_vector(31 downto 0);
+      WrClock : in  std_logic;
+      RdClock : in  std_logic;
+      WrEn    : in  std_logic;
+      RdEn    : in  std_logic;
+      Reset   : in  std_logic;
+      RPReset : in  std_logic;
+      Q       : out std_logic_vector(31 downto 0);
+      Empty   : out std_logic;
+      Full    : out std_logic);
   end component;
 --
   component ORCALUT4
@@ -277,7 +277,7 @@ begin
   thermo_code_i <= "11" & result_reg(319 downto 2);
 -- hit_trig_reset_i <= fifo_wr_en_i;
 
-  FIFO : FIFO_32x512_Oreg
+  THE_FIFO : FIFO_32x512_NOreg
     port map (
       Data    => fifo_data_in_i,
       WrClock => clk_i,

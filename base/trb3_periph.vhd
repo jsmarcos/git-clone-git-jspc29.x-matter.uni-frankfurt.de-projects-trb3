@@ -248,7 +248,7 @@ begin
 ---------------------------------------------------------------------------
 -- Clock Handling
 ---------------------------------------------------------------------------
-  THE_MAIN_PLL : pll_in125_out125
+  THE_MAIN_PLL : pll_in200_out100
     port map(
       CLK   => CLK_GPLL_LEFT,           --CLK_GPLL_RIGHT
       CLKOP => clk_100_i,
