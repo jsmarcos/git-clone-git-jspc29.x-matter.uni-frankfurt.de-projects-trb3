@@ -250,7 +250,7 @@ begin
 ---------------------------------------------------------------------------
   THE_MAIN_PLL : pll_in200_out100
     port map(
-      CLK   => CLK_GPLL_LEFT,           --CLK_GPLL_RIGHT
+      CLK   => CLK_GPLL_RIGHT,
       CLKOP => clk_100_i,
       CLKOK => clk_200_i,
       LOCK  => pll_lock
@@ -407,7 +407,7 @@ begin
 ---------------------------------------------------------------------------
 -- AddOn
 ---------------------------------------------------------------------------
-  DQLL <= (others => '0');
+  DQLL(47 downto 8) <= (others => '0');
   DQUL <= (others => '0');
   DQLR <= (others => '0');
   DQUR <= (others => '0');
@@ -540,11 +540,11 @@ begin
 ---------------------------------------------------------------------------
 -- Test Connector
 ---------------------------------------------------------------------------    
-  TEST_LINE(7 downto 0)   <= med_data_in(7 downto 0);
-  TEST_LINE(8)            <= med_dataready_in;
-  TEST_LINE(9)            <= med_dataready_out;
-  TEST_LINE(10)           <= stat_reg_strobe(0);
-  TEST_LINE(15 downto 11) <= (others => '0');
+  TEST_LINE(7 downto 0)   <= open; -- med_data_in(7 downto 0);
+  TEST_LINE(8)            <= open; -- med_dataready_in;
+  TEST_LINE(9)            <= open; -- med_dataready_out;
+  TEST_LINE(10)           <= open; -- stat_reg_strobe(0);
+  TEST_LINE(15 downto 11) <= open; -- (others => '0');
 
 
 ---------------------------------------------------------------------------
@@ -567,7 +567,7 @@ begin
       RESET             => reset_i,
       CLK_TDC           => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT       => clk_100_i,   -- Clock for the readout
-      HIT_IN            => DQUL(7 downto 0),     -- Channel start signals
+      HIT_IN            => DQLL(7 downto 0),     -- Channel start signals
       TRIGGER_IN        => trg_timing_valid_i,   -- Readout trigger
       TRIGGER_WIN_IN    => x"00640000",  -- Trigger window register relative to
                                          -- the trigger (post edge & pre edge)
