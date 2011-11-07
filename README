@@ -33,6 +33,7 @@ base/clockmanager       Designs for the two clock managers
 central_hub2            The central hub design for TRBnetv2
 fpgatest		Designs used during hardware testing
 fpgatest/projects       Diamond Projects for FPGA tests
+tdc_souce_files		The source files of the TDC are stored here.
 
 
 
@@ -51,6 +52,7 @@ base/trb3_periph.prj                Project file for toolchain
 base/trb3_periph_constraints.lpf    Constraints for each specific design of trb3_peripheral
 base/compile_periph_frankfurt.pl    Generic compile script for peripheral FPGA using paths for Frankfurt set-up
 base/compile_periph_gsi.pl          Generic compile script for peripheral FPGA using paths for GSI set-up
+base/compile_periph_synonly.pl      Generic synthesis only script for peripheral FPGA. Can be used if Diamond GUI is wished to be used.
 
 base/trb3.xcf                       ispVM configuration file
 
@@ -64,7 +66,7 @@ base/trb3_components.vhd            All VHDL components special for TRB3 used in
 === Files not to change at all (NO CHANGE)
 
 base/trb3_central.lpf               Pin-out for central FPGA
-
+base/trb3_periph.lpf		    Pin-out for peripheral FPGA
 
 
 
