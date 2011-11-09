@@ -13,7 +13,7 @@ use work.version.all;
 entity trb3_periph is
   port(
     --Clocks
-    CLK_GPLL_LEFT  : in std_logic;      --Clock Manager 1/(2468), 125 MHz
+    CLK_GPLL_LEFT  : in std_logic;  --Clock Manager 1/(2468), 125 MHz
     CLK_GPLL_RIGHT : in std_logic;  --Clock Manager 2/(2468), 200 MHz  <-- MAIN CLOCK for FPGA
     CLK_PCLK_LEFT  : in std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
     CLK_PCLK_RIGHT : in std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
@@ -403,6 +403,8 @@ begin
       STAT_ADDR_DEBUG             => open,
       DEBUG_LVL1_HANDLER_OUT      => open
       );
+
+  timing_trg_received_i <= TRIGGER_LEFT;
 
 ---------------------------------------------------------------------------
 -- AddOn
