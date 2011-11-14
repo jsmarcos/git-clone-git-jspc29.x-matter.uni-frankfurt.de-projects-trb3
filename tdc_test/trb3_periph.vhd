@@ -13,10 +13,10 @@ use work.version.all;
 entity trb3_periph is
   port(
     --Clocks
-    CLK_GPLL_LEFT  : in std_logic;  --Clock Manager 1/(2468), 125 MHz
-    CLK_GPLL_RIGHT : in std_logic;  --Clock Manager 2/(2468), 200 MHz  <-- MAIN CLOCK for FPGA
-    CLK_PCLK_LEFT  : in std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
-    CLK_PCLK_RIGHT : in std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
+    CLK_GPLL_LEFT  : in std_logic;      --Clock Manager 1/(2468), 125 MHz
+    CLK_GPLL_RIGHT : in std_logic;  --Clock Manager 2/(2468), 200 MHz  <  -- MAIN CLOCK for FPGA
+    CLK_PCLK_LEFT  : in std_logic;  --Clock Fan-out, 200/400 MHz <  -- For TDC. Same oscillator as GPLL right!
+    CLK_PCLK_RIGHT : in std_logic;  --Clock Fan-out, 200/400 MHz <  -- For TDC. Same oscillator as GPLL right!
 
     --Trigger
     TRIGGER_LEFT  : in std_logic;       --left side trigger input from fan-out
@@ -70,27 +70,27 @@ entity trb3_periph is
 
   attribute syn_useioff                  : boolean;
   --no IO-FF for LEDs relaxes timing constraints
-  attribute syn_useioff of LED_GREEN     : signal is false;
-  attribute syn_useioff of LED_ORANGE    : signal is false;
-  attribute syn_useioff of LED_RED       : signal is false;
-  attribute syn_useioff of LED_YELLOW    : signal is false;
-  attribute syn_useioff of TEMPSENS      : signal is false;
-  attribute syn_useioff of PROGRAMN      : signal is false;
-  attribute syn_useioff of CODE_LINE     : signal is false;
-  attribute syn_useioff of TRIGGER_LEFT  : signal is false;
+  attribute syn_useioff of LED_GREEN     : signal     is false;
+  attribute syn_useioff of LED_ORANGE    : signal    is false;
+  attribute syn_useioff of LED_RED       : signal       is false;
+  attribute syn_useioff of LED_YELLOW    : signal    is false;
+  attribute syn_useioff of TEMPSENS      : signal      is false;
+  attribute syn_useioff of PROGRAMN      : signal      is false;
+  attribute syn_useioff of CODE_LINE     : signal     is false;
+  attribute syn_useioff of TRIGGER_LEFT  : signal  is false;
   attribute syn_useioff of TRIGGER_RIGHT : signal is false;
 
   --important signals _with_ IO-FF
-  attribute syn_useioff of FLASH_CLK  : signal is true;
-  attribute syn_useioff of FLASH_CS   : signal is true;
-  attribute syn_useioff of FLASH_DIN  : signal is true;
+  attribute syn_useioff of FLASH_CLK  : signal  is true;
+  attribute syn_useioff of FLASH_CS   : signal   is true;
+  attribute syn_useioff of FLASH_DIN  : signal  is true;
   attribute syn_useioff of FLASH_DOUT : signal is true;
   attribute syn_useioff of FPGA5_COMM : signal is true;
-  attribute syn_useioff of TEST_LINE  : signal is true;
-  attribute syn_useioff of DQLL       : signal is true;
-  attribute syn_useioff of DQUL       : signal is true;
-  attribute syn_useioff of DQLR       : signal is true;
-  attribute syn_useioff of DQUR       : signal is true;
+  attribute syn_useioff of TEST_LINE  : signal  is true;
+  attribute syn_useioff of DQLL       : signal       is true;
+  attribute syn_useioff of DQUL       : signal       is true;
+  attribute syn_useioff of DQLR       : signal       is true;
+  attribute syn_useioff of DQUR       : signal       is true;
   attribute syn_useioff of SPARE_LINE : signal is true;
 
 
@@ -105,14 +105,14 @@ architecture trb3_periph_arch of trb3_periph is
   attribute syn_preserve : boolean;
 
   --Clock / Reset
-  signal clk_100_i                : std_logic;  --clock for main logic, 100 MHz, via Clock Manager and internal PLL
-  signal clk_200_i                : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
-  signal pll_lock                 : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
-  signal clear_i                  : std_logic;
-  signal reset_i                  : std_logic;
-  signal GSR_N                    : std_logic;
-  attribute syn_keep of GSR_N     : signal is true;
-  attribute syn_preserve of GSR_N : signal is true;
+  signal                                   clk_100_i : std_logic;  --clock for main logic, 100 MHz, via Clock Manager and internal PLL
+  signal                                   clk_200_i : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
+  signal                                   pll_lock  : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
+  signal                                   clear_i   : std_logic;
+  signal                                   reset_i   : std_logic;
+  signal                                   GSR_N     : std_logic;
+  attribute syn_keep of GSR_N                        : signal     is true;
+  attribute syn_preserve of GSR_N                    : signal is true;
 
   --Media Interface
   signal med_stat_op        : std_logic_vector (1*16-1 downto 0);
@@ -139,6 +139,11 @@ architecture trb3_periph_arch of trb3_periph is
   signal trg_code_i            : std_logic_vector(7 downto 0);
   signal trg_information_i     : std_logic_vector(23 downto 0);
   signal trg_int_number_i      : std_logic_vector(15 downto 0);
+  signal trg_multiple_trg_i    : std_logic;
+  signal trg_timeout_detected_i: std_logic;
+  signal trg_spurious_trg_i    : std_logic;
+  signal trg_missing_tmg_trg_i : std_logic;
+  signal trg_spike_detected_i  : std_logic;
 
   --Data channel
   signal fee_trg_release_i    : std_logic;
@@ -204,20 +209,32 @@ architecture trb3_periph_arch of trb3_periph is
   --TDC component
   component TDC
     generic (
-      CHANNEL_NUMBER : integer range 0 to 64);
+      CHANNEL_NUMBER : integer range 0 to 64;
+      TRG_WIN_PRE    : std_logic_vector(15 downto 0);
+      TRG_WIN_POST   : std_logic_vector(15 downto 0));
     port (
-      RESET             : in  std_logic;
-      CLK_TDC           : in  std_logic;
-      CLK_READOUT       : in  std_logic;
-      HIT_IN            : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-      TRIGGER_IN        : in  std_logic;
-      TRIGGER_WIN_IN    : in  std_logic_vector(31 downto 0);
-      DATA_OUT          : out std_logic_vector(31 downto 0);
-      TRB_WR_CLK_OUT    : out std_logic;
-      DATA_VALID_OUT    : out std_logic;
-      DATA_FINISHED_OUT : out std_logic;
-      READY_OUT         : out std_logic;
-      TDC_DEBUG_00      : out std_logic_vector(31 downto 0));
+      RESET                 : in  std_logic;
+      CLK_TDC               : in  std_logic;
+      CLK_READOUT           : in  std_logic;
+      REFERENCE_TIME        : in  std_logic;
+      HIT_IN                : in  std_logic_vector(CHANNEL_NUMBER-2 downto 0);
+      TRG_DATA_VALID_IN     : in  std_logic;
+      VALID_TIMING_TRG_IN   : in  std_logic;
+      VALID_NOTIMING_TRG_IN : in  std_logic;
+      INVALID_TRG_IN        : in  std_logic;
+      TMGTRG_TIMEOUT_IN     : in  std_logic;
+      SPIKE_DETECTED_IN     : in  std_logic;
+      MULTI_TMG_TRG_IN      : in  std_logic;
+      TRG_NUMBER_IN         : in  std_logic_vector(15 downto 0);
+      TRG_CODE_IN           : in  std_logic_vector(7 downto 0);
+      TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0);
+      TRG_TYPE_IN           : in  std_logic_vector(3 downto 0);
+      TRG_RELEASE_OUT       : out std_logic;
+      TRG_STATUSBIT_OUT     : out std_logic_vector(31 downto 0);
+      DATA_OUT              : out std_logic_vector(31 downto 0);
+      DATA_WRITE_OUT        : out std_logic;
+      DATA_FINISHED_OUT     : out std_logic;
+      TDC_DEBUG_00          : out std_logic_vector(31 downto 0));
   end component;
   
 begin
@@ -229,7 +246,7 @@ begin
 
   THE_RESET_HANDLER : trb_net_reset_handler
     generic map(
-      RESET_DELAY => x"FEEE"
+      RESET_DELAY   => x"FEEE"
       )
     port map(
       CLEAR_IN      => '0',              -- reset input (high active, async)
@@ -242,7 +259,7 @@ begin
       CLEAR_OUT     => clear_i,          -- async reset out, USE WITH CARE!
       RESET_OUT     => reset_i,          -- synchronous reset out (SYSCLK)
       DEBUG_OUT     => open
-      );  
+      );
 
 
 ---------------------------------------------------------------------------
@@ -262,9 +279,9 @@ begin
 ---------------------------------------------------------------------------
   THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
     generic map(
-      SERDES_NUM  => 1,                 --number of serdes in quad
-      EXT_CLOCK   => c_NO,              --use internal clock
-      USE_200_MHZ => c_YES              --run on 200 MHz clock
+      SERDES_NUM         => 1,          --number of serdes in quad
+      EXT_CLOCK          => c_NO,       --use internal clock
+      USE_200_MHZ        => c_YES       --run on 200 MHz clock
       )
     port map(
       CLK                => clk_200_i,
@@ -304,8 +321,8 @@ begin
 ---------------------------------------------------------------------------
   THE_ENDPOINT : trb_net16_endpoint_hades_full_handler
     generic map(
-      REGIO_NUM_STAT_REGS       => REGIO_NUM_STAT_REGS,  --4,    --16 stat reg
-      REGIO_NUM_CTRL_REGS       => REGIO_NUM_CTRL_REGS,  --3,    --8 cotrol reg
+      REGIO_NUM_STAT_REGS       => REGIO_NUM_STAT_REGS,  --4,  --16 stat reg
+      REGIO_NUM_CTRL_REGS       => REGIO_NUM_CTRL_REGS,  --3,  --8 cotrol reg
       ADDRESS_MASK              => x"FFFF",
       BROADCAST_BITMASK         => x"FF",
       BROADCAST_SPECIAL_ADDR    => x"45",
@@ -317,7 +334,7 @@ begin
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
       DATA_INTERFACE_NUMBER     => 1,
-      DATA_BUFFER_DEPTH         => 13,         --13
+      DATA_BUFFER_DEPTH         => 13,  --13
       DATA_BUFFER_WIDTH         => 32,
       DATA_BUFFER_FULL_THRESH   => 2**13-800,  --2**13-1024
       TRG_RELEASE_AFTER_DATA    => c_YES,
@@ -325,19 +342,19 @@ begin
       HEADER_BUFFER_FULL_THRESH => 2**9-16
       )
     port map(
-      CLK                => clk_100_i,
-      RESET              => reset_i,
-      CLK_EN             => '1',
-      MED_DATAREADY_OUT  => med_dataready_out,  -- open, --
-      MED_DATA_OUT       => med_data_out,  -- open, --
-      MED_PACKET_NUM_OUT => med_packet_num_out,  -- open, --
-      MED_READ_IN        => med_read_in,
-      MED_DATAREADY_IN   => med_dataready_in,
-      MED_DATA_IN        => med_data_in,
-      MED_PACKET_NUM_IN  => med_packet_num_in,
-      MED_READ_OUT       => med_read_out,  -- open, --
-      MED_STAT_OP_IN     => med_stat_op,
-      MED_CTRL_OP_OUT    => med_ctrl_op,
+      CLK                       => clk_100_i,
+      RESET                     => reset_i,
+      CLK_EN                    => '1',
+      MED_DATAREADY_OUT         => med_dataready_out,  -- open,  --
+      MED_DATA_OUT              => med_data_out,  -- open,  --
+      MED_PACKET_NUM_OUT        => med_packet_num_out,  -- open,  --
+      MED_READ_IN               => med_read_in,
+      MED_DATAREADY_IN          => med_dataready_in,
+      MED_DATA_IN               => med_data_in,
+      MED_PACKET_NUM_IN         => med_packet_num_in,
+      MED_READ_OUT              => med_read_out,  -- open,  --
+      MED_STAT_OP_IN            => med_stat_op,
+      MED_CTRL_OP_OUT           => med_ctrl_op,
 
       --Timing trigger in
       TRG_TIMING_TRG_RECEIVED_IN  => timing_trg_received_i,
@@ -352,6 +369,13 @@ begin
       LVL1_TRG_CODE_OUT        => trg_code_i,
       LVL1_TRG_INFORMATION_OUT => trg_information_i,
       LVL1_INT_TRG_NUMBER_OUT  => trg_int_number_i,
+
+      --Information about trigger handler errors
+      TRG_MULTIPLE_TRG_OUT         => trg_multiple_trg_i,
+      TRG_TIMEOUT_DETECTED_OUT     => trg_timeout_detected_i,
+      TRG_SPURIOUS_TRG_OUT         => trg_spurious_trg_i,
+      TRG_MISSING_TMG_TRG_OUT      => trg_missing_tmg_trg_i,
+      TRG_SPIKE_DETECTED_OUT       => trg_spike_detected_i,
 
       --Response from FEE
       FEE_TRG_RELEASE_IN(0)       => fee_trg_release_i,
@@ -410,9 +434,9 @@ begin
 -- AddOn
 ---------------------------------------------------------------------------
   DQLL(47 downto 8) <= (others => '0');
-  DQUL <= (others => '0');
-  DQLR <= (others => '0');
-  DQUR <= (others => '0');
+  DQUL              <= (others => '0');
+  DQLR              <= (others => '0');
+  DQUR              <= (others => '0');
 
 ---------------------------------------------------------------------------
 -- Bus Handler
@@ -424,8 +448,8 @@ begin
       PORT_ADDR_MASK => (0 => 1, 1 => 6, others => 0)
       )
     port map(
-      CLK   => clk_100_i,
-      RESET => reset_i,
+      CLK            => clk_100_i,
+      RESET          => reset_i,
 
       DAT_ADDR_IN          => regio_addr_out,
       DAT_DATA_IN          => regio_data_out,
@@ -541,12 +565,14 @@ begin
 
 ---------------------------------------------------------------------------
 -- Test Connector
----------------------------------------------------------------------------    
-  TEST_LINE(7 downto 0)   <= open; -- med_data_in(7 downto 0);
-  TEST_LINE(8)            <= open; -- med_dataready_in;
-  TEST_LINE(9)            <= open; -- med_dataready_out;
-  TEST_LINE(10)           <= open; -- stat_reg_strobe(0);
-  TEST_LINE(15 downto 11) <= open; -- (others => '0');
+---------------------------------------------------------------------------
+--   TEST_LINE(7 downto 0)   <= x"00";     -- med_data_in(7 downto 0);
+--   TEST_LINE(8)            <= '0';       -- med_dataready_in;
+--   TEST_LINE(9)            <= '0';       -- med_dataready_out;
+--   TEST_LINE(10)           <= '0';       -- stat_reg_strobe(0);
+--   TEST_LINE(15 downto 11) <= "00000";   -- (others => '0');
+
+  TEST_LINE(15 downto 0) <= x"0000";
 
 
 ---------------------------------------------------------------------------
@@ -564,21 +590,55 @@ begin
 
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 8)              -- Number of TDC channels
+      CHANNEL_NUMBER        => 8,       -- Number of TDC channels
+      TRG_WIN_PRE           => x"0023",  -- Pre-Trigger window width
+      TRG_WIN_POST          => x"0023")  -- Post-Trigger window width
     port map (
-      RESET             => reset_i,
-      CLK_TDC           => CLK_PCLK_LEFT,  -- Clock used for the time measurement
-      CLK_READOUT       => clk_100_i,   -- Clock for the readout
-      HIT_IN            => DQLL(7 downto 0),     -- Channel start signals
-      TRIGGER_IN        => trg_timing_valid_i,   -- Readout trigger
-      TRIGGER_WIN_IN    => x"00640000",  -- Trigger window register relative to
-                                         -- the trigger (post edge & pre edge)
-      DATA_OUT          => fee_data_i,  -- Data to readout
-      TRB_WR_CLK_OUT    => open,        -- Readout clk (maybe not necessary
-                                        -- in trb3)
-      DATA_VALID_OUT    => fee_data_write_i,     -- Data valid signal
-      DATA_FINISHED_OUT => fee_data_finished_i,  -- Readout finished signal
-      READY_OUT         => fee_trg_release_i,    -- Ready for the next trigger
-      TDC_DEBUG_00      => open);       -- Debug
+      RESET                 => reset_i,
+      CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
+      CLK_READOUT           => clk_100_i,  -- Clock for the readout
+      REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
+      HIT_IN                => DQLL(6 downto 0),  -- Channel start signals
+      TRG_DATA_VALID_IN     => trg_data_valid_i,  -- trig data valid signal
+                                        -- from trbnet
+      VALID_TIMING_TRG_IN   => trg_timing_valid_i,  -- valid timing trigger
+                                        -- signal from trbnet
+      VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,  -- valid notiming signal
+                                        -- from trbnet
+      INVALID_TRG_IN        => trg_invalid_i,  -- invalid trigger signal from trbnet
+      TMGTRG_TIMEOUT_IN     => trg_timeout_detected_i,  -- timing trigger timeout signal from trbnet
+      SPIKE_DETECTED_IN     => trg_spike_detected_i,
+      MULTI_TMG_TRG_IN      => trg_multiple_trg_i,
+      
+      TRG_NUMBER_IN         => trg_number_i,  -- LVL1 trigger information package
+      TRG_CODE_IN           => trg_code_i,  --
+      TRG_INFORMATION_IN    => trg_information_i,  --
+      TRG_TYPE_IN           => trg_type_i,  -- LVL1 trigger information package
+      TRG_RELEASE_OUT       => fee_trg_release_i,  -- trigger release signal
+      TRG_STATUSBIT_OUT     => fee_trg_statusbits_i,  -- status information of
+                                        -- the tdc
+      DATA_OUT              => fee_data_i,  -- tdc data
+      DATA_WRITE_OUT        => fee_data_write_i,  -- data valid signal
+      DATA_FINISHED_OUT     => fee_data_finished_i,  -- readout finished signal
+      TDC_DEBUG_00          => stat_reg(31 downto 0));
+
+-- THE_TDC : TDC
+-- generic map (
+-- CHANNEL_NUMBER => 8)                 -- Number of TDC channels
+--     port map (
+--       RESET             => reset_i,
+--       CLK_TDC           => CLK_PCLK_LEFT,  -- Clock used for the time measurement
+--       CLK_READOUT       => clk_100_i,  -- Clock for the readout
+--       HIT_IN            => DQLL(7 downto 0),  -- Channel start signals
+--       TRIGGER_IN        => trg_timing_valid_i,  -- Readout trigger
+--       TRIGGER_WIN_IN    => x"00640000",  -- Trigger window register relative to
+--                                         -- the trigger (post edge & pre edge)
+--       DATA_OUT          => fee_data_i,  -- Data to readout
+--       TRB_WR_CLK_OUT    => open,     -- Readout clk (maybe not necessary
+--                                         -- in trb3)
+--       DATA_VALID_OUT    => fee_data_write_i,  -- Data valid signal
+--       DATA_FINISHED_OUT => fee_data_finished_i,  -- Readout finished signal
+--       READY_OUT         => fee_trg_release_i,  -- Ready for the next trigger
+--       TDC_DEBUG_00      => open);    -- Debug
 
 end architecture;

@@ -138,18 +138,13 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.v
 add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
 add_file -vhdl -lib "work" "./trb3_periph.vhd"
 
-add_file -vhdl -lib "work" "source/TDC.vhd"
 add_file -vhdl -lib "work" "source/Adder_320.vhd"
+add_file -vhdl -lib "work" "source/bit_sync.vhd"
 add_file -vhdl -lib "work" "source/Channel_320.vhd"
 add_file -vhdl -lib "work" "source/Encoder_320_Bit.vhd"
-add_file -vhdl -lib "work" "source/FIFO_32x512_NOreg.vhd"
+add_file -vhdl -lib "work" "source/FIFO_32x512_OutReg.vhd"
+add_file -vhdl -lib "work" "source/Reference_channel.vhd"
+add_file -vhdl -lib "work" "source/reset_generator.vhd"
 add_file -vhdl -lib "work" "source/ROM_FIFO.vhd"
-add_file -vhdl -lib "work" "source/bit_sync.vhd"
-add_file -vhdl -lib "work" "source/edge_to_pulse_fast.vhd"
+add_file -vhdl -lib "work" "source/TDC.vhd"
 add_file -vhdl -lib "work" "source/up_counter.vhd"
-
-
-
-
-
-
