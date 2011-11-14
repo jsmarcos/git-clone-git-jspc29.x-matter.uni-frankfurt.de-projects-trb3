@@ -139,7 +139,12 @@ architecture trb3_periph_arch of trb3_periph is
   signal trg_code_i            : std_logic_vector(7 downto 0);
   signal trg_information_i     : std_logic_vector(23 downto 0);
   signal trg_int_number_i      : std_logic_vector(15 downto 0);
-
+  signal trg_multiple_trg_i    : std_logic;
+  signal trg_timeout_detected_i: std_logic;
+  signal trg_spurious_trg_i    : std_logic;
+  signal trg_missing_tmg_trg_i : std_logic;
+  signal trg_spike_detected_i  : std_logic;
+  
   --Data channel
   signal fee_trg_release_i    : std_logic;
   signal fee_trg_statusbits_i : std_logic_vector(31 downto 0);
@@ -248,6 +253,7 @@ begin
 ---------------------------------------------------------------------------
 -- Clock Handling
 ---------------------------------------------------------------------------
+
   THE_MAIN_PLL : pll_in200_out100
     port map(
       CLK   => CLK_GPLL_RIGHT,
@@ -353,6 +359,13 @@ begin
       LVL1_TRG_INFORMATION_OUT => trg_information_i,
       LVL1_INT_TRG_NUMBER_OUT  => trg_int_number_i,
 
+      --Information about trigger handler errors
+      TRG_MULTIPLE_TRG_OUT         => trg_multiple_trg_i,
+      TRG_TIMEOUT_DETECTED_OUT     => trg_timeout_detected_i,
+      TRG_SPURIOUS_TRG_OUT         => trg_spurious_trg_i,
+      TRG_MISSING_TMG_TRG_OUT      => trg_missing_tmg_trg_i,
+      TRG_SPIKE_DETECTED_OUT       => trg_spike_detected_i,
+      
       --Response from FEE
       FEE_TRG_RELEASE_IN(0)       => fee_trg_release_i,
       FEE_TRG_STATUSBITS_IN       => fee_trg_statusbits_i,
