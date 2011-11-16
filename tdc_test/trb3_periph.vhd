@@ -590,7 +590,7 @@ begin
 
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER        => 8,       -- Number of TDC channels
+      CHANNEL_NUMBER        => 16,       -- Number of TDC channels
       TRG_WIN_PRE           => x"0023",  -- Pre-Trigger window width
       TRG_WIN_POST          => x"0023")  -- Post-Trigger window width
     port map (
@@ -598,7 +598,7 @@ begin
       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,  -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
-      HIT_IN                => DQLL(6 downto 0),  -- Channel start signals
+      HIT_IN                => DQLL(14 downto 0),  -- Channel start signals
       TRG_DATA_VALID_IN     => trg_data_valid_i,  -- trig data valid signal
                                         -- from trbnet
       VALID_TIMING_TRG_IN   => trg_timing_valid_i,  -- valid timing trigger
