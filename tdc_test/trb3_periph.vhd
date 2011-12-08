@@ -129,21 +129,21 @@ architecture trb3_periph_arch of trb3_periph is
   signal med_read_in        : std_logic;
 
   --LVL1 channel
-  signal timing_trg_received_i : std_logic;
-  signal trg_data_valid_i      : std_logic;
-  signal trg_timing_valid_i    : std_logic;
-  signal trg_notiming_valid_i  : std_logic;
-  signal trg_invalid_i         : std_logic;
-  signal trg_type_i            : std_logic_vector(3 downto 0);
-  signal trg_number_i          : std_logic_vector(15 downto 0);
-  signal trg_code_i            : std_logic_vector(7 downto 0);
-  signal trg_information_i     : std_logic_vector(23 downto 0);
-  signal trg_int_number_i      : std_logic_vector(15 downto 0);
-  signal trg_multiple_trg_i    : std_logic;
-  signal trg_timeout_detected_i: std_logic;
-  signal trg_spurious_trg_i    : std_logic;
-  signal trg_missing_tmg_trg_i : std_logic;
-  signal trg_spike_detected_i  : std_logic;
+  signal timing_trg_received_i  : std_logic;
+  signal trg_data_valid_i       : std_logic;
+  signal trg_timing_valid_i     : std_logic;
+  signal trg_notiming_valid_i   : std_logic;
+  signal trg_invalid_i          : std_logic;
+  signal trg_type_i             : std_logic_vector(3 downto 0);
+  signal trg_number_i           : std_logic_vector(15 downto 0);
+  signal trg_code_i             : std_logic_vector(7 downto 0);
+  signal trg_information_i      : std_logic_vector(23 downto 0);
+  signal trg_int_number_i       : std_logic_vector(15 downto 0);
+  signal trg_multiple_trg_i     : std_logic;
+  signal trg_timeout_detected_i : std_logic;
+  signal trg_spurious_trg_i     : std_logic;
+  signal trg_missing_tmg_trg_i  : std_logic;
+  signal trg_spike_detected_i   : std_logic;
 
   --Data channel
   signal fee_trg_release_i    : std_logic;
@@ -209,9 +209,11 @@ architecture trb3_periph_arch of trb3_periph is
   --TDC component
   component TDC
     generic (
-      CHANNEL_NUMBER : integer range 0 to 64;
-      TRG_WIN_PRE    : std_logic_vector(10 downto 0);
-      TRG_WIN_POST   : std_logic_vector(10 downto 0));
+      CHANNEL_NUMBER        :     integer range 0 to 64;
+      TRG_WIN_PRE           :     std_logic_vector(10 downto 0);
+      TRG_WIN_POST          :     std_logic_vector(10 downto 0);
+      STATUS_REG_NR         :     integer range 0 to 6;
+      CONTROL_REG_NR        :     integer range 0 to 6);
     port (
       RESET                 : in  std_logic;
       CLK_TDC               : in  std_logic;
@@ -235,10 +237,11 @@ architecture trb3_periph_arch of trb3_periph is
       DATA_OUT              : out std_logic_vector(31 downto 0);
       DATA_WRITE_OUT        : out std_logic;
       DATA_FINISHED_OUT     : out std_logic;
-      TDC_DEBUG             : out std_logic_vector(32*2**2-1 downto 0);
-      LOGIC_ANALYSER_OUT    : out std_logic_vector(15 downto 0));
+      TDC_DEBUG             : out std_logic_vector(32*2**STATUS_REG_NR-1 downto 0);
+      LOGIC_ANALYSER_OUT    : out std_logic_vector(15 downto 0);
+      CONTROL_REG_IN        : in  std_logic_vector(32*2**CONTROL_REG_NR-1 downto 0));
   end component;
-    
+
 begin
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -373,11 +376,11 @@ begin
       LVL1_INT_TRG_NUMBER_OUT  => trg_int_number_i,
 
       --Information about trigger handler errors
-      TRG_MULTIPLE_TRG_OUT         => trg_multiple_trg_i,
-      TRG_TIMEOUT_DETECTED_OUT     => trg_timeout_detected_i,
-      TRG_SPURIOUS_TRG_OUT         => trg_spurious_trg_i,
-      TRG_MISSING_TMG_TRG_OUT      => trg_missing_tmg_trg_i,
-      TRG_SPIKE_DETECTED_OUT       => trg_spike_detected_i,
+      TRG_MULTIPLE_TRG_OUT     => trg_multiple_trg_i,
+      TRG_TIMEOUT_DETECTED_OUT => trg_timeout_detected_i,
+      TRG_SPURIOUS_TRG_OUT     => trg_spurious_trg_i,
+      TRG_MISSING_TMG_TRG_OUT  => trg_missing_tmg_trg_i,
+      TRG_SPIKE_DETECTED_OUT   => trg_spike_detected_i,
 
       --Response from FEE
       FEE_TRG_RELEASE_IN(0)       => fee_trg_release_i,
@@ -568,13 +571,13 @@ begin
 ---------------------------------------------------------------------------
 -- Test Connector
 ---------------------------------------------------------------------------
---   TEST_LINE(7 downto 0)   <= x"00";     -- med_data_in(7 downto 0);
---   TEST_LINE(8)            <= '0';       -- med_dataready_in;
---   TEST_LINE(9)            <= '0';       -- med_dataready_out;
---   TEST_LINE(10)           <= '0';       -- stat_reg_strobe(0);
---   TEST_LINE(15 downto 11) <= "00000";   -- (others => '0');
+-- TEST_LINE(7 downto 0) <= x"00";        -- med_data_in(7 downto 0);
+--   TEST_LINE(8)            <= '0';      -- med_dataready_in;
+--   TEST_LINE(9)            <= '0';      -- med_dataready_out;
+--   TEST_LINE(10)           <= '0';      -- stat_reg_strobe(0);
+--   TEST_LINE(15 downto 11) <= "00000";  -- (others => '0');
 
---   TEST_LINE(15 downto 0) <= x"0000";
+-- TEST_LINE(15 downto 0) <= x"0000";
 
 
 ---------------------------------------------------------------------------
@@ -593,8 +596,10 @@ begin
   THE_TDC : TDC
     generic map (
       CHANNEL_NUMBER        => 8,       -- Number of TDC channels
-      TRG_WIN_PRE           => "00001100100",  -- Pre-Trigger window width
-      TRG_WIN_POST          => "00001100100")  -- Post-Trigger window width
+      TRG_WIN_PRE           => "00000000000",  -- Pre-Trigger window width
+      TRG_WIN_POST          => "00001100100",  -- Post-Trigger window width
+      STATUS_REG_NR         => REGIO_NUM_STAT_REGS,
+      CONTROL_REG_NR        => REGIO_NUM_CTRL_REGS)
     port map (
       RESET                 => reset_i,
       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
@@ -624,7 +629,8 @@ begin
       DATA_WRITE_OUT        => fee_data_write_i,  -- data valid signal
       DATA_FINISHED_OUT     => fee_data_finished_i,  -- readout finished signal
 --
-      TDC_FSM_DEBUG         => stat_reg,
-      LOGIC_ANALYSER_OUT    => TEST_LINE);       
+      TDC_DEBUG             => stat_reg,
+      LOGIC_ANALYSER_OUT    => TEST_LINE,
+      CONTROL_REG_IN        => ctrl_reg);
 
 end architecture;
