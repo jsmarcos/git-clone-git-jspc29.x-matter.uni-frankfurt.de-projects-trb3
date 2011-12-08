@@ -235,7 +235,7 @@ architecture trb3_periph_arch of trb3_periph is
       DATA_OUT              : out std_logic_vector(31 downto 0);
       DATA_WRITE_OUT        : out std_logic;
       DATA_FINISHED_OUT     : out std_logic;
-      TDC_FSM_DEBUG         : out std_logic_vector(7 downto 0);
+      TDC_DEBUG             : out std_logic_vector(32*2**2-1 downto 0);
       LOGIC_ANALYSER_OUT    : out std_logic_vector(15 downto 0));
   end component;
     
@@ -624,7 +624,7 @@ begin
       DATA_WRITE_OUT        => fee_data_write_i,  -- data valid signal
       DATA_FINISHED_OUT     => fee_data_finished_i,  -- readout finished signal
 --
-      TDC_FSM_DEBUG         => stat_reg(7 downto 0),
+      TDC_FSM_DEBUG         => stat_reg,
       LOGIC_ANALYSER_OUT    => TEST_LINE);       
 
 end architecture;

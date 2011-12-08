@@ -1,0 +1,236 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<!DOCTYPE		ispXCF	SYSTEM	"IspXCF.dtd" >
+<ispXCF version="18.0.1 Linux">
+	<Comment></Comment>
+	<Chain>
+		<Comm>JTAG</Comm>
+		<Device>
+			<Pos>1</Pos>
+			<Ref>FPGA5</Ref>
+			<Vendor>Lattice</Vendor>
+			<Family>LatticeECP3</Family>
+			<Name>LFE3-150EA</Name>
+			<IDCode>0x01015043</IDCode>
+			<Package>All</Package>
+			<PON>LFE3-150EA</PON>
+			<Bypass>
+				<InstrLen>8</InstrLen>
+				<InstrVal>11111111</InstrVal>
+				<BScanLen>1</BScanLen>
+				<BScanVal>0</BScanVal>
+			</Bypass>
+			<File>/home/hadaq/trb3_central_20111019_exp.bit</File>
+			<MaskFile>/opt/lattice/isptools/ispvmsystem/Database/xpga/ecp3/ecp3-150.msk</MaskFile>
+			<FileTime>12/5/2011 13:56:41</FileTime>
+			<Operation>Fast Program</Operation>
+			<Option>
+				<SVFVendor>JTAG STANDARD</SVFVendor>
+				<IOState>HighZ</IOState>
+				<PreloadLength>1326</PreloadLength>
+				<IOVectorData>0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF</IOVectorData>
+				<OverideUES value="TRUE"/>
+				<TCKFrequency>1.000000 MHz</TCKFrequency>
+				<SVFProcessor>ispVM</SVFProcessor>
+				<Usercode>00000000</Usercode>
+				<AccessMode>JTAG</AccessMode>
+			</Option>
+		</Device>
+		<Device>
+			<Pos>2</Pos>
+			<Ref>FPGA0</Ref>
+			<Vendor>Lattice</Vendor>
+			<Family>LatticeECP3</Family>
+			<Name>LFE3-150EA</Name>
+			<IDCode>0x01015043</IDCode>
+			<Package>All</Package>
+			<PON>LFE3-150EA</PON>
+			<Bypass>
+				<InstrLen>8</InstrLen>
+				<InstrVal>11111111</InstrVal>
+				<BScanLen>1</BScanLen>
+				<BScanVal>0</BScanVal>
+			</Bypass>
+			<File>/home/ugur/Projects/trb3/tdc_test/diamond/trb3_periph/trb3_periph_trb3_periph.bit</File>
+			<MaskFile>/opt/lattice/isptools/ispvmsystem/Database/xpga/ecp3/ecp3-150.msk</MaskFile>
+			<FileTime>11/7/2011 15:31:8</FileTime>
+			<Operation>Fast Program</Operation>
+			<Option>
+				<SVFVendor>JTAG STANDARD</SVFVendor>
+				<IOState>HighZ</IOState>
+				<PreloadLength>1326</PreloadLength>
+				<IOVectorData>0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF</IOVectorData>
+				<OverideUES value="TRUE"/>
+				<TCKFrequency>1.000000 MHz</TCKFrequency>
+				<SVFProcessor>ispVM</SVFProcessor>
+				<Usercode>00000000</Usercode>
+				<AccessMode>JTAG</AccessMode>
+			</Option>
+		</Device>
+		<Device>
+			<Pos>3</Pos>
+			<Ref>FPGA1</Ref>
+			<Vendor>Lattice</Vendor>
+			<Family>LatticeECP3</Family>
+			<Name>LFE3-150EA</Name>
+			<IDCode>0x01015043</IDCode>
+			<Package>All</Package>
+			<PON>LFE3-150EA</PON>
+			<Bypass>
+				<InstrLen>8</InstrLen>
+				<InstrVal>11111111</InstrVal>
+				<BScanLen>1</BScanLen>
+				<BScanVal>0</BScanVal>
+			</Bypass>
+			<File>/home/ugur/Projects/trb3/tdc_test/diamond/trb3_periph/trb3_periph_trb3_periph.bit</File>
+			<MaskFile>/opt/lattice/isptools/ispvmsystem/Database/xpga/ecp3/ecp3-150.msk</MaskFile>
+			<FileTime>11/7/2011 15:31:8</FileTime>
+			<Operation>Fast Program</Operation>
+			<Option>
+				<SVFVendor>JTAG STANDARD</SVFVendor>
+				<IOState>HighZ</IOState>
+				<PreloadLength>1326</PreloadLength>
+				<IOVectorData>0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF</IOVectorData>
+				<OverideUES value="TRUE"/>
+				<TCKFrequency>1.000000 MHz</TCKFrequency>
+				<SVFProcessor>ispVM</SVFProcessor>
+				<Usercode>00000000</Usercode>
+				<AccessMode>JTAG</AccessMode>
+			</Option>
+		</Device>
+		<Device>
+			<Pos>4</Pos>
+			<Ref>FPGA2</Ref>
+			<Vendor>Lattice</Vendor>
+			<Family>LatticeECP3</Family>
+			<Name>LFE3-150EA</Name>
+			<IDCode>0x01015043</IDCode>
+			<Package>All</Package>
+			<PON>LFE3-150EA</PON>
+			<Bypass>
+				<InstrLen>8</InstrLen>
+				<InstrVal>11111111</InstrVal>
+				<BScanLen>1</BScanLen>
+				<BScanVal>0</BScanVal>
+			</Bypass>
+			<File>/home/ugur/Projects/trb3/tdc_test/diamond/trb3_periph/trb3_periph_trb3_periph.bit</File>
+			<MaskFile>/opt/lattice/isptools/ispvmsystem/Database/xpga/ecp3/ecp3-150.msk</MaskFile>
+			<FileTime>11/7/2011 15:31:8</FileTime>
+			<Operation>Fast Program</Operation>
+			<Option>
+				<SVFVendor>JTAG STANDARD</SVFVendor>
+				<IOState>HighZ</IOState>
+				<PreloadLength>1326</PreloadLength>
+				<IOVectorData>0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF</IOVectorData>
+				<OverideUES value="TRUE"/>
+				<TCKFrequency>1.000000 MHz</TCKFrequency>
+				<SVFProcessor>ispVM</SVFProcessor>
+				<Usercode>00000000</Usercode>
+				<AccessMode>JTAG</AccessMode>
+			</Option>
+		</Device>
+		<Device>
+			<Pos>5</Pos>
+			<Ref>FPGA4</Ref>
+			<Vendor>Lattice</Vendor>
+			<Family>LatticeECP3</Family>
+			<Name>LFE3-150EA</Name>
+			<IDCode>0x01015043</IDCode>
+			<Package>All</Package>
+			<PON>LFE3-150EA</PON>
+			<Bypass>
+				<InstrLen>8</InstrLen>
+				<InstrVal>11111111</InstrVal>
+				<BScanLen>1</BScanLen>
+				<BScanVal>0</BScanVal>
+			</Bypass>
+			<File>/home/ugur/Projects/trb3/tdc_test/diamond/trb3_periph/trb3_periph_trb3_periph.bit</File>
+			<MaskFile>/opt/lattice/isptools/ispvmsystem/Database/xpga/ecp3/ecp3-150.msk</MaskFile>
+			<FileTime>11/7/2011 15:31:8</FileTime>
+			<Operation>Fast Program</Operation>
+			<Option>
+				<SVFVendor>JTAG STANDARD</SVFVendor>
+				<IOState>HighZ</IOState>
+				<PreloadLength>1326</PreloadLength>
+				<IOVectorData>0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF</IOVectorData>
+				<OverideUES value="TRUE"/>
+				<TCKFrequency>1.000000 MHz</TCKFrequency>
+				<SVFProcessor>ispVM</SVFProcessor>
+				<Usercode>00000000</Usercode>
+				<AccessMode>JTAG</AccessMode>
+			</Option>
+		</Device>
+		<Device>
+			<Pos>6</Pos>
+			<Vendor>Lattice</Vendor>
+			<Family>ispCLOCK</Family>
+			<Name>ispPAC-CLK5410D</Name>
+			<IDCode>0x00190043</IDCode>
+			<Package>64-pin QFNS</Package>
+			<PON>ispPAC-CLK5410D-XXSN64C</PON>
+			<Bypass>
+				<InstrLen>8</InstrLen>
+				<InstrVal>11111111</InstrVal>
+				<BScanLen>1</BScanLen>
+				<BScanVal>0</BScanVal>
+			</Bypass>
+			<File>/home/ugur/Projects/trb3/base/clockmanager/CM1.jed</File>
+			<FileTime>8/24/2011 15:40:4</FileTime>
+			<JedecChecksum>0x1C8C</JedecChecksum>
+			<Operation>Erase,Program,Verify</Operation>
+			<Option>
+				<SVFVendor>JTAG STANDARD</SVFVendor>
+				<IOState>HighZ</IOState>
+				<PreloadLength>32</PreloadLength>
+				<IOVectorData>0x00000000</IOVectorData>
+				<OverideUES value="TRUE"/>
+				<TCKFrequency>1.000000 MHz</TCKFrequency>
+				<SVFProcessor>ispVM</SVFProcessor>
+				<Usercode>0xFFFFFFFF</Usercode>
+			</Option>
+		</Device>
+		<Device>
+			<Pos>7</Pos>
+			<Vendor>Lattice</Vendor>
+			<Family>ispCLOCK</Family>
+			<Name>ispPAC-CLK5410D</Name>
+			<IDCode>0x00190043</IDCode>
+			<Package>64-pin QFNS</Package>
+			<PON>ispPAC-CLK5410D-XXSN64C</PON>
+			<Bypass>
+				<InstrLen>8</InstrLen>
+				<InstrVal>11111111</InstrVal>
+				<BScanLen>1</BScanLen>
+				<BScanVal>0</BScanVal>
+			</Bypass>
+			<File>/home/ugur/Projects/trb3/base/clockmanager/CM2.jed</File>
+			<FileTime>9/16/2011 20:18:19</FileTime>
+			<JedecChecksum>0x18FB</JedecChecksum>
+			<Operation>Erase,Program,Verify</Operation>
+			<Option>
+				<SVFVendor>JTAG STANDARD</SVFVendor>
+				<IOState>HighZ</IOState>
+				<PreloadLength>32</PreloadLength>
+				<IOVectorData>0x00000000</IOVectorData>
+				<OverideUES value="TRUE"/>
+				<TCKFrequency>1.000000 MHz</TCKFrequency>
+				<SVFProcessor>ispVM</SVFProcessor>
+				<Usercode>0xFFFFFFFF</Usercode>
+			</Option>
+		</Device>
+	</Chain>
+	<ProjectOptions>
+		<Program>SEQUENTIAL</Program>
+		<Process>ENTIRED CHAIN</Process>
+		<OperationOverride>No Override</OperationOverride>
+		<StartTAP>TLR</StartTAP>
+		<EndTAP>TLR</EndTAP>
+		<DeGlitch value="TRUE"/>
+		<VerifyUsercode value="TRUE"/>
+		<PinSetting>
+			TMS	LOW;
+			TCK	LOW;
+			TDI	LOW;
+			TDO	LOW;
+		</PinSetting>
+	</ProjectOptions>
+</ispXCF>
