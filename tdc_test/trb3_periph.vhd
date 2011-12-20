@@ -242,6 +242,8 @@ architecture trb3_periph_arch of trb3_periph is
       CONTROL_REG_IN        : in  std_logic_vector(32*2**CONTROL_REG_NR-1 downto 0));
   end component;
 
+  signal hit_in_i : std_logic_vector(63 downto 0);
+
 begin
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -438,10 +440,10 @@ begin
 ---------------------------------------------------------------------------
 -- AddOn
 ---------------------------------------------------------------------------
-  DQLL(47 downto 8) <= (others => '0');
-  DQUL              <= (others => '0');
-  DQLR              <= (others => '0');
-  DQUR              <= (others => '0');
+  DQLL(47 downto 14) <= (others => '0');
+  DQUL               <= (others => '0');
+  DQLR               <= (others => '0');
+  DQUR               <= (others => '0');
 
 ---------------------------------------------------------------------------
 -- Bus Handler
@@ -557,80 +559,78 @@ begin
       PROGRAMN  => PROGRAMN
       );
 
-
-
 ---------------------------------------------------------------------------
 -- LED
 ---------------------------------------------------------------------------
   LED_GREEN  <= not med_stat_op(9);
   LED_ORANGE <= not med_stat_op(10);
-  LED_RED    <= not time_counter(26);
+  LED_RED    <= not DQLL(0);
   LED_YELLOW <= not med_stat_op(11);
-
 
 ---------------------------------------------------------------------------
 -- Test Connector
 ---------------------------------------------------------------------------
--- TEST_LINE(7 downto 0) <= x"00";        -- med_data_in(7 downto 0);
---   TEST_LINE(8)            <= '0';      -- med_dataready_in;
---   TEST_LINE(9)            <= '0';      -- med_dataready_out;
---   TEST_LINE(10)           <= '0';      -- stat_reg_strobe(0);
---   TEST_LINE(15 downto 11) <= "00000";  -- (others => '0');
 
--- TEST_LINE(15 downto 0) <= x"0000";
+--    TEST_LINE(15 downto 0) <= time_counter(15 downto 0);
+ ---------------------------------------------------------------------------
+ -- Test Circuits
+ ---------------------------------------------------------------------------
+    process
+    begin
+      wait until rising_edge(clk_100_i);
+      time_counter         <= time_counter + 1;
+    end process;
 
+ -------------------------------------------------------------------------------
+ -- TDC
+ -------------------------------------------------------------------------------
 
----------------------------------------------------------------------------
--- Test Circuits
----------------------------------------------------------------------------
-  process
-  begin
-    wait until rising_edge(clk_100_i);
-    time_counter <= time_counter + 1;
-  end process;
-
--------------------------------------------------------------------------------
--- TDC
--------------------------------------------------------------------------------
-
-  THE_TDC : TDC
-    generic map (
-      CHANNEL_NUMBER        => 8,       -- Number of TDC channels
-      TRG_WIN_PRE           => "00000000000",  -- Pre-Trigger window width
-      TRG_WIN_POST          => "00001100100",  -- Post-Trigger window width
-      STATUS_REG_NR         => REGIO_NUM_STAT_REGS,
-      CONTROL_REG_NR        => REGIO_NUM_CTRL_REGS)
-    port map (
-      RESET                 => reset_i,
-      CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
-      CLK_READOUT           => clk_100_i,  -- Clock for the readout
-      REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
-      HIT_IN                => DQLL(6 downto 0),  -- Channel start signals
---
-      -- Trigger signals from handler
-      TRG_DATA_VALID_IN     => trg_data_valid_i,  -- trig data valid signal from trbnet
-      VALID_TIMING_TRG_IN   => trg_timing_valid_i,  -- valid timing trigger signal from trbnet
-      VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,  -- valid notiming signal from trbnet
-      INVALID_TRG_IN        => trg_invalid_i,  -- invalid trigger signal from trbnet
-      TMGTRG_TIMEOUT_IN     => trg_timeout_detected_i,  -- timing trigger timeout signal from trbnet
-      SPIKE_DETECTED_IN     => trg_spike_detected_i,
-      MULTI_TMG_TRG_IN      => trg_multiple_trg_i,
-      SPURIOUS_TRG_IN       => trg_spurious_trg_i,
---
-      TRG_NUMBER_IN         => trg_number_i,  -- LVL1 trigger information package
-      TRG_CODE_IN           => trg_code_i,  --
-      TRG_INFORMATION_IN    => trg_information_i,  --
-      TRG_TYPE_IN           => trg_type_i,  -- LVL1 trigger information package
---
+   THE_TDC : TDC
+     generic map (
+       CHANNEL_NUMBER        => 8,       -- Number of TDC channels
+       TRG_WIN_PRE           => "00000000000",  -- Pre-Trigger window width
+       TRG_WIN_POST          => "00001100100",  -- Post-Trigger window width
+       STATUS_REG_NR         => REGIO_NUM_STAT_REGS,
+       CONTROL_REG_NR        => REGIO_NUM_CTRL_REGS)
+     port map (
+       RESET                 => reset_i,
+       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
+       CLK_READOUT           => clk_100_i,  -- Clock for the readout
+       REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
+       HIT_IN                => hit_in_i(6 downto 0),  -- Channel start signals
+       --
+       -- Trigger signals from handler
+       TRG_DATA_VALID_IN     => trg_data_valid_i,  -- trig data valid signal from trbnet
+       VALID_TIMING_TRG_IN   => trg_timing_valid_i,  -- valid timing trigger signal from trbnet
+       VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,  -- valid notiming signal from trbnet
+       INVALID_TRG_IN        => trg_invalid_i,  -- invalid trigger signal from trbnet
+       TMGTRG_TIMEOUT_IN     => trg_timeout_detected_i,  -- timing trigger timeout signal from trbnet
+       SPIKE_DETECTED_IN     => trg_spike_detected_i,
+       MULTI_TMG_TRG_IN      => trg_multiple_trg_i,
+       SPURIOUS_TRG_IN       => trg_spurious_trg_i,
+       --
+       TRG_NUMBER_IN         => trg_number_i,  -- LVL1 trigger information package
+       TRG_CODE_IN           => trg_code_i,  --
+       TRG_INFORMATION_IN    => trg_information_i,  --
+       TRG_TYPE_IN           => trg_type_i,  -- LVL1 trigger information package
+      --
       --Response to handler
       TRG_RELEASE_OUT       => fee_trg_release_i,  -- trigger release signal
       TRG_STATUSBIT_OUT     => fee_trg_statusbits_i,  -- status information of the tdc
       DATA_OUT              => fee_data_i,  -- tdc data
       DATA_WRITE_OUT        => fee_data_write_i,  -- data valid signal
       DATA_FINISHED_OUT     => fee_data_finished_i,  -- readout finished signal
---
+      --
       TDC_DEBUG             => stat_reg,
       LOGIC_ANALYSER_OUT    => TEST_LINE,
       CONTROL_REG_IN        => ctrl_reg);
 
+  hit_in_i(0) <= DQLL(0);
+  hit_in_i(1) <= DQLL(2);
+  hit_in_i(2) <= DQLL(4);
+  hit_in_i(3) <= DQLL(6);
+  hit_in_i(4) <= DQLL(8);
+  hit_in_i(5) <= DQLL(10);
+  hit_in_i(6) <= DQLL(12);
+--   hit_in_i(7) <= DQLL(14);
 end architecture;
