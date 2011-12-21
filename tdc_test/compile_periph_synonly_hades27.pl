@@ -39,7 +39,7 @@ my $SPEEDGRADE="8";
 
 
 #create full lpf file
-system("cp $BasePath/$TOPNAME.lpf workdir/$TOPNAME.lpf");
+system("cp $BasePath/".$TOPNAME."_ada.lpf workdir/$TOPNAME.lpf");
 system("cat ".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
 
 
