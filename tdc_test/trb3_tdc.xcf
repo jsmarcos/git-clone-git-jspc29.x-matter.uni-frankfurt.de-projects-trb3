@@ -50,9 +50,9 @@
 				<BScanLen>1</BScanLen>
 				<BScanVal>0</BScanVal>
 			</Bypass>
-			<File>/home/ugur/Projects/trb3/tdc_test/diamond/trb3_periph/trb3_periph_trb3_periph.bit</File>
+			<File>/home/hadaq/projects/trb3/tdc_test/trb3_periph.bit</File>
 			<MaskFile>/opt/lattice/isptools/ispvmsystem/Database/xpga/ecp3/ecp3-150.msk</MaskFile>
-			<FileTime>11/7/2011 15:31:8</FileTime>
+			<FileTime>12/22/2011 16:0:10</FileTime>
 			<Operation>Fast Program</Operation>
 			<Option>
 				<SVFVendor>JTAG STANDARD</SVFVendor>
@@ -62,7 +62,7 @@
 				<OverideUES value="TRUE"/>
 				<TCKFrequency>1.000000 MHz</TCKFrequency>
 				<SVFProcessor>ispVM</SVFProcessor>
-				<Usercode>00000000</Usercode>
+				<Usercode>0x00000000</Usercode>
 				<AccessMode>JTAG</AccessMode>
 			</Option>
 		</Device>
@@ -81,9 +81,9 @@
 				<BScanLen>1</BScanLen>
 				<BScanVal>0</BScanVal>
 			</Bypass>
-			<File>/home/ugur/Projects/trb3/tdc_test/diamond/trb3_periph/trb3_periph_trb3_periph.bit</File>
+			<File>/home/hadaq/projects/trb3/tdc_test/trb3_periph.bit</File>
 			<MaskFile>/opt/lattice/isptools/ispvmsystem/Database/xpga/ecp3/ecp3-150.msk</MaskFile>
-			<FileTime>11/7/2011 15:31:8</FileTime>
+			<FileTime>12/22/2011 16:0:10</FileTime>
 			<Operation>Fast Program</Operation>
 			<Option>
 				<SVFVendor>JTAG STANDARD</SVFVendor>
@@ -93,7 +93,7 @@
 				<OverideUES value="TRUE"/>
 				<TCKFrequency>1.000000 MHz</TCKFrequency>
 				<SVFProcessor>ispVM</SVFProcessor>
-				<Usercode>00000000</Usercode>
+				<Usercode>0x00000000</Usercode>
 				<AccessMode>JTAG</AccessMode>
 			</Option>
 		</Device>
@@ -112,9 +112,9 @@
 				<BScanLen>1</BScanLen>
 				<BScanVal>0</BScanVal>
 			</Bypass>
-			<File>/home/ugur/Projects/trb3/tdc_test/diamond/trb3_periph/trb3_periph_trb3_periph.bit</File>
+			<File>/home/hadaq/projects/trb3/tdc_test/trb3_periph.bit</File>
 			<MaskFile>/opt/lattice/isptools/ispvmsystem/Database/xpga/ecp3/ecp3-150.msk</MaskFile>
-			<FileTime>11/7/2011 15:31:8</FileTime>
+			<FileTime>12/22/2011 16:0:10</FileTime>
 			<Operation>Fast Program</Operation>
 			<Option>
 				<SVFVendor>JTAG STANDARD</SVFVendor>
@@ -124,7 +124,7 @@
 				<OverideUES value="TRUE"/>
 				<TCKFrequency>1.000000 MHz</TCKFrequency>
 				<SVFProcessor>ispVM</SVFProcessor>
-				<Usercode>00000000</Usercode>
+				<Usercode>0x00000000</Usercode>
 				<AccessMode>JTAG</AccessMode>
 			</Option>
 		</Device>
@@ -143,9 +143,9 @@
 				<BScanLen>1</BScanLen>
 				<BScanVal>0</BScanVal>
 			</Bypass>
-			<File>/home/ugur/Projects/trb3/tdc_test/diamond/trb3_periph/trb3_periph_trb3_periph.bit</File>
+			<File>/home/hadaq/projects/trb3/tdc_test/trb3_periph.bit</File>
 			<MaskFile>/opt/lattice/isptools/ispvmsystem/Database/xpga/ecp3/ecp3-150.msk</MaskFile>
-			<FileTime>11/7/2011 15:31:8</FileTime>
+			<FileTime>12/22/2011 16:0:10</FileTime>
 			<Operation>Fast Program</Operation>
 			<Option>
 				<SVFVendor>JTAG STANDARD</SVFVendor>
@@ -155,7 +155,7 @@
 				<OverideUES value="TRUE"/>
 				<TCKFrequency>1.000000 MHz</TCKFrequency>
 				<SVFProcessor>ispVM</SVFProcessor>
-				<Usercode>00000000</Usercode>
+				<Usercode>0x00000000</Usercode>
 				<AccessMode>JTAG</AccessMode>
 			</Option>
 		</Device>
