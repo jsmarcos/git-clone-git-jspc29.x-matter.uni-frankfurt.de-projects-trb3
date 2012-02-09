@@ -141,7 +141,11 @@ add_file -vhdl -lib "work" "source/trb3_periph.vhd"
 add_file -vhdl -lib "work" "source/Adder_304.vhd"
 add_file -vhdl -lib "work" "source/bit_sync.vhd"
 add_file -vhdl -lib "work" "source/Channel.vhd"
-add_file -vhdl -lib "work" "source/Encoder_304_Bit.vhd"
+
+#add_file -vhdl -lib "work" "source/Encoder_304_Bit.vhd"
+
+add_file -vhdl -lib "work" "source/Encoder_304_ROMsuz.vhd"
+
 add_file -vhdl -lib "work" "source/FIFO_32x512_OutReg.vhd"
 add_file -vhdl -lib "work" "source/Reference_channel.vhd"
 add_file -vhdl -lib "work" "source/reset_generator.vhd"
