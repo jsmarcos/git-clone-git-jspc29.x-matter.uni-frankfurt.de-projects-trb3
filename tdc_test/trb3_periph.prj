@@ -144,9 +144,9 @@ add_file -vhdl -lib "work" "source/Channel.vhd"
 
 #add_file -vhdl -lib "work" "source/Encoder_304_Bit.vhd"
 
-#add_file -vhdl -lib "work" "source/Encoder_304_ROMsuz.vhd"
+add_file -vhdl -lib "work" "source/Encoder_304_ROMsuz.vhd"
 
-add_file -vhdl -lib "work" "source/Encoder_304_Sngl_ROMsuz.vhd"
+#add_file -vhdl -lib "work" "source/Encoder_304_Sngl_ROMsuz.vhd"
 
 add_file -vhdl -lib "work" "source/FIFO_32x512_OutReg.vhd"
 add_file -vhdl -lib "work" "source/Reference_channel.vhd"
