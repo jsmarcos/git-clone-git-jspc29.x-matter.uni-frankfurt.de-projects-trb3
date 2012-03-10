@@ -1,0 +1,948 @@
+BLOCK RESETPATHS ;
+BLOCK ASYNCPATHS ;
+BLOCK RD_DURING_WR_PATHS ;
+
+#################################################################
+# Reset Nets
+#################################################################  
+GSR_NET NET "GSR_N";  
+
+
+#################################################################
+# Locate Serdes and media interfaces
+#################################################################
+LOCATE COMP   "THE_MEDIA_UPLINK/gen_serdes_1_200_THE_SERDES/PCSD_INST" SITE "PCSA" ;
+
+
+REGION "MEDIA_UPLINK" "R102C95D" 13 25;
+LOCATE UGROUP "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLINK" ;
+
+# REGION "REGION_ENDPOINT" "" ;
+
+
+
+
+#################################################################
+# TDC Constraints
+#################################################################
+##############################################################################
+##			     REGION DECLERATION                             ##
+##############################################################################
+#REGION "Region_0" "R109C2D" 6 93 DEVSIZE;
+#REGION "Region_1" "R100C2D" 5 93 DEVSIZE;
+#REGION "Region_2" "R89C2D" 6 93 DEVSIZE;
+#REGION "Region_3" "R82C2D" 6 93 DEVSIZE;
+
+#REGION "Region_4" "R71C2D" 6 93 DEVSIZE;
+#REGION "Region_5" "R64C2D" 6 93 DEVSIZE;
+#REGION "Region_6" "R53C2D" 6 93 DEVSIZE;
+#REGION "Region_7" "R46C2D" 6 93 DEVSIZE;
+
+REGION "Region_E&F_0" "R105C2D" 6 60 DEVSIZE;
+REGION "Region_E&F_1" "R92C2D" 10 60 DEVSIZE;
+REGION "Region_E&F_2" "R74C2D" 10 60 DEVSIZE;
+REGION "Region_E&F_3" "R56C2D" 10 60 DEVSIZE;
+REGION "Region_E&F_4" "R38C2D" 10 60 DEVSIZE;
+REGION "Region_E&F_5" "R24C2D" 5 60 DEVSIZE;
+REGION "Region_E&F_6" "R11C2D" 10 60 DEVSIZE;
+
+REGION "Region_E&F_7" "R105C122D" 6 60 DEVSIZE;
+REGION "Region_E&F_8" "R92C122D" 10 60 DEVSIZE;
+REGION "Region_E&F_9" "R74C122D" 10 60 DEVSIZE;
+REGION "Region_E&F_10" "R56C122D" 10 60 DEVSIZE;
+REGION "Region_E&F_11" "R38C122D" 10 60 DEVSIZE;
+REGION "Region_E&F_12" "R24C122D" 5 60 DEVSIZE;
+REGION "Region_E&F_13" "R11C122D" 10 60 DEVSIZE;
+
+
+
+
+
+
+
+
+##############################################################################
+##	            DELAY LINE and HIT BUFFER PLACEMENTS                    ##
+##############################################################################
+#
+UGROUP "FC_1" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_1_Channels/FC;
+LOCATE UGROUP "FC_1" SITE "R110C2D" ;
+UGROUP "hit_1" 
+	BLKNAME THE_TDC/GEN_Channels_1_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_1" SITE "R111C4D" ;
+#
+UGROUP "FC_2" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_2_Channels/FC;
+LOCATE UGROUP "FC_2" SITE "R104C2D" ;
+UGROUP "hit_2" 
+	BLKNAME THE_TDC/GEN_Channels_2_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_2" SITE "R105C4D" ;
+#
+UGROUP "FC_3" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_3_Channels/FC;
+LOCATE UGROUP "FC_3" SITE "R101C2D" ;
+UGROUP "hit_3" 
+	BLKNAME THE_TDC/GEN_Channels_3_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_3" SITE "R102C4D" ;
+#
+UGROUP "FC_4" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_4_Channels/FC;
+LOCATE UGROUP "FC_4" SITE "R92C2D" ;
+UGROUP "hit_4" 
+	BLKNAME THE_TDC/GEN_Channels_4_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_4" SITE "R93C4D" ;
+#
+UGROUP "FC_5" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_5_Channels/FC;
+LOCATE UGROUP "FC_5" SITE "R89C2D" ;
+UGROUP "hit_5" 
+	BLKNAME THE_TDC/GEN_Channels_5_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_5" SITE "R90C4D" ;
+#
+UGROUP "FC_6" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_6_Channels/FC;
+LOCATE UGROUP "FC_6" SITE "R86C2D" ;
+UGROUP "hit_6" 
+	BLKNAME THE_TDC/GEN_Channels_6_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_6" SITE "R87C4D" ;
+#
+UGROUP "FC_7" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_7_Channels/FC;
+LOCATE UGROUP "FC_7" SITE "R83C2D" ;
+UGROUP "hit_7" 
+	BLKNAME THE_TDC/GEN_Channels_7_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_7" SITE "R84C4D" ;
+#
+UGROUP "FC_8" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_8_Channels/FC;
+LOCATE UGROUP "FC_8" SITE "R74C2D" ;
+UGROUP "hit_8" 
+	BLKNAME THE_TDC/GEN_Channels_8_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_8" SITE "R75C4D" ;
+#
+UGROUP "FC_9" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_9_Channels/FC;
+LOCATE UGROUP "FC_9" SITE "R71C2D" ;
+UGROUP "hit_9" 
+	BLKNAME THE_TDC/GEN_Channels_9_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_9" SITE "R72C4D" ;
+#
+UGROUP "FC_10" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_10_Channels/FC;
+LOCATE UGROUP "FC_10" SITE "R68C2D" ;
+UGROUP "hit_10" 
+	BLKNAME THE_TDC/GEN_Channels_10_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_10" SITE "R69C4D" ;
+#
+UGROUP "FC_11" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_11_Channels/FC;
+LOCATE UGROUP "FC_11" SITE "R65C2D" ;
+UGROUP "hit_11" 
+	BLKNAME THE_TDC/GEN_Channels_11_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_11" SITE "R66C4D" ;
+#
+UGROUP "FC_12" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_12_Channels/FC;
+LOCATE UGROUP "FC_12" SITE "R56C2D" ;
+UGROUP "hit_12" 
+	BLKNAME THE_TDC/GEN_Channels_12_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_12" SITE "R57C4D" ;
+#
+UGROUP "FC_13" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_13_Channels/FC;
+LOCATE UGROUP "FC_13" SITE "R53C2D" ;
+UGROUP "hit_13" 
+	BLKNAME THE_TDC/GEN_Channels_13_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_13" SITE "R54C4D" ;
+#
+UGROUP "FC_14" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_14_Channels/FC;
+LOCATE UGROUP "FC_14" SITE "R50C2D" ;
+UGROUP "hit_14" 
+	BLKNAME THE_TDC/GEN_Channels_14_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_14" SITE "R51C4D" ;
+#
+UGROUP "FC_15" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_15_Channels/FC;
+LOCATE UGROUP "FC_15" SITE "R47C2D" ;
+UGROUP "hit_15" 
+	BLKNAME THE_TDC/GEN_Channels_15_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_15" SITE "R48C4D" ;
+#
+UGROUP "FC_16" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_16_Channels/FC;
+LOCATE UGROUP "FC_16" SITE "R38C2D" ;
+UGROUP "hit_16" 
+	BLKNAME THE_TDC/GEN_Channels_16_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_16" SITE "R39C4D" ;
+#
+UGROUP "FC_17" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_17_Channels/FC;
+LOCATE UGROUP "FC_17" SITE "R35C2D" ;
+UGROUP "hit_17" 
+	BLKNAME THE_TDC/GEN_Channels_17_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_17" SITE "R36C4D" ;
+#
+UGROUP "FC_18" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_18_Channels/FC;
+LOCATE UGROUP "FC_18" SITE "R32C2D" ;
+UGROUP "hit_18" 
+	BLKNAME THE_TDC/GEN_Channels_18_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_18" SITE "R33C4D" ;
+#
+UGROUP "FC_19" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_19_Channels/FC;
+LOCATE UGROUP "FC_19" SITE "R29C2D" ;
+UGROUP "hit_19" 
+	BLKNAME THE_TDC/GEN_Channels_19_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_19" SITE "R30C4D" ;
+#
+UGROUP "FC_20" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_20_Channels/FC;
+LOCATE UGROUP "FC_20" SITE "R23C2D" ;
+UGROUP "hit_20" 
+	BLKNAME THE_TDC/GEN_Channels_20_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_20" SITE "R24C4D" ;
+#
+UGROUP "FC_21" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_21_Channels/FC;
+LOCATE UGROUP "FC_21" SITE "R20C2D" ;
+UGROUP "hit_21" 
+	BLKNAME THE_TDC/GEN_Channels_21_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_21" SITE "R21C4D" ;
+#
+UGROUP "FC_22" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_22_Channels/FC;
+LOCATE UGROUP "FC_22" SITE "R10C2D" ;
+UGROUP "hit_22" 
+	BLKNAME THE_TDC/GEN_Channels_22_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_22" SITE "R11C4D" ;
+#
+UGROUP "FC_23" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_23_Channels/FC;
+LOCATE UGROUP "FC_23" SITE "R7C2D" ;
+UGROUP "hit_23" 
+	BLKNAME THE_TDC/GEN_Channels_23_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_23" SITE "R8C4D" ;
+#
+
+
+
+
+UGROUP "FC_24" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_24_Channels/FC;
+LOCATE UGROUP "FC_24" SITE "R113C125D" ;
+UGROUP "hit_24" 
+	BLKNAME THE_TDC/GEN_Channels_24_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_24" SITE "R114C127D" ;
+#
+UGROUP "FC_25" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_25_Channels/FC;
+LOCATE UGROUP "FC_25" SITE "R110C125D" ;
+UGROUP "hit_25" 
+	BLKNAME THE_TDC/GEN_Channels_25_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_25" SITE "R111C127D" ;
+#
+UGROUP "FC_26" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_26_Channels/FC;
+LOCATE UGROUP "FC_26" SITE "R104C125D" ;
+UGROUP "hit_26" 
+	BLKNAME THE_TDC/GEN_Channels_26_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_26" SITE "R105C127D" ;
+#
+UGROUP "FC_27" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_27_Channels/FC;
+LOCATE UGROUP "FC_27" SITE "R101C125D" ;
+UGROUP "hit_27" 
+	BLKNAME THE_TDC/GEN_Channels_27_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_27" SITE "R102C127D" ;
+#
+UGROUP "FC_28" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_28_Channels/FC;
+LOCATE UGROUP "FC_28" SITE "R92C125D" ;
+UGROUP "hit_28" 
+	BLKNAME THE_TDC/GEN_Channels_28_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_28" SITE "R93C127D" ;
+#
+UGROUP "FC_29" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_29_Channels/FC;
+LOCATE UGROUP "FC_29" SITE "R89C125D" ;
+UGROUP "hit_29" 
+	BLKNAME THE_TDC/GEN_Channels_29_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_29" SITE "R90C127D" ;
+#
+UGROUP "FC_30" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_30_Channels/FC;
+LOCATE UGROUP "FC_30" SITE "R86C125D" ;
+UGROUP "hit_30" 
+	BLKNAME THE_TDC/GEN_Channels_30_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_30" SITE "R87C127D" ;
+#
+UGROUP "FC_31" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_31_Channels/FC;
+LOCATE UGROUP "FC_31" SITE "R83C125D" ;
+UGROUP "hit_31" 
+	BLKNAME THE_TDC/GEN_Channels_31_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_31" SITE "R84C127D" ;
+#
+UGROUP "FC_32" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_32_Channels/FC;
+LOCATE UGROUP "FC_32" SITE "R74C125D" ;
+UGROUP "hit_32" 
+	BLKNAME THE_TDC/GEN_Channels_32_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_32" SITE "R75C127D" ;
+#
+UGROUP "FC_33" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_33_Channels/FC;
+LOCATE UGROUP "FC_33" SITE "R71C125D" ;
+UGROUP "hit_33" 
+	BLKNAME THE_TDC/GEN_Channels_33_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_33" SITE "R72C127D" ;
+#
+UGROUP "FC_34" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_34_Channels/FC;
+LOCATE UGROUP "FC_34" SITE "R68C125D" ;
+UGROUP "hit_34" 
+	BLKNAME THE_TDC/GEN_Channels_34_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_34" SITE "R69C127D" ;
+#
+UGROUP "FC_35" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_35_Channels/FC;
+LOCATE UGROUP "FC_35" SITE "R65C125D" ;
+UGROUP "hit_35" 
+	BLKNAME THE_TDC/GEN_Channels_35_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_35" SITE "R66C127D" ;
+#
+UGROUP "FC_36" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_36_Channels/FC;
+LOCATE UGROUP "FC_36" SITE "R56C125D" ;
+UGROUP "hit_36" 
+	BLKNAME THE_TDC/GEN_Channels_36_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_36" SITE "R57C127D" ;
+#
+UGROUP "FC_37" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_37_Channels/FC;
+LOCATE UGROUP "FC_37" SITE "R53C125D" ;
+UGROUP "hit_37" 
+	BLKNAME THE_TDC/GEN_Channels_37_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_37" SITE "R54C127D" ;
+#
+UGROUP "FC_38" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_38_Channels/FC;
+LOCATE UGROUP "FC_38" SITE "R50C125D" ;
+UGROUP "hit_38" 
+	BLKNAME THE_TDC/GEN_Channels_38_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_38" SITE "R51C127D" ;
+#
+UGROUP "FC_39" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_39_Channels/FC;
+LOCATE UGROUP "FC_39" SITE "R47C125D" ;
+UGROUP "hit_39" 
+	BLKNAME THE_TDC/GEN_Channels_39_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_39" SITE "R48C127D" ;
+#
+UGROUP "FC_40" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_40_Channels/FC;
+LOCATE UGROUP "FC_40" SITE "R38C125D" ;
+UGROUP "hit_40" 
+	BLKNAME THE_TDC/GEN_Channels_40_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_40" SITE "R39C127D" ;
+#
+UGROUP "FC_41" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_41_Channels/FC;
+LOCATE UGROUP "FC_41" SITE "R35C125D" ;
+UGROUP "hit_41" 
+	BLKNAME THE_TDC/GEN_Channels_41_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_41" SITE "R36C127D" ;
+#
+UGROUP "FC_42" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_42_Channels/FC;
+LOCATE UGROUP "FC_42" SITE "R32C125D" ;
+UGROUP "hit_42" 
+	BLKNAME THE_TDC/GEN_Channels_42_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_42" SITE "R33C127D" ;
+#
+UGROUP "FC_43" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_43_Channels/FC;
+LOCATE UGROUP "FC_43" SITE "R29C125D" ;
+UGROUP "hit_43" 
+	BLKNAME THE_TDC/GEN_Channels_43_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_43" SITE "R30C127D" ;
+#
+UGROUP "FC_44" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_44_Channels/FC;
+LOCATE UGROUP "FC_44" SITE "R23C125D" ;
+UGROUP "hit_44" 
+	BLKNAME THE_TDC/GEN_Channels_44_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_44" SITE "R24C127D" ;
+#
+UGROUP "FC_45" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_45_Channels/FC;
+LOCATE UGROUP "FC_45" SITE "R20C125D" ;
+UGROUP "hit_45" 
+	BLKNAME THE_TDC/GEN_Channels_45_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_45" SITE "R21C127D" ;
+#
+UGROUP "FC_46" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_46_Channels/FC;
+LOCATE UGROUP "FC_46" SITE "R10C125D" ;
+UGROUP "hit_46" 
+	BLKNAME THE_TDC/GEN_Channels_46_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_46" SITE "R11C127D" ;
+#
+UGROUP "FC_47" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_47_Channels/FC;
+LOCATE UGROUP "FC_47" SITE "R7C125D" ;
+UGROUP "hit_47" 
+	BLKNAME THE_TDC/GEN_Channels_47_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_47" SITE "R8C127D" ;
+#
+
+
+
+
+
+
+
+##############################################################################
+##		        REFERENCE CHANNEL PLACEMENT                         ##
+##############################################################################
+UGROUP "Ref_Ch" BBOX 1 51 
+	BLKNAME THE_TDC/The_Reference_Time/FC;
+LOCATE UGROUP "Ref_Ch" SITE "R113C2D" ;
+
+UGROUP "hit_ref_ch" 
+	BLKNAME THE_TDC/The_Reference_Time/hit_buf_RNO;
+LOCATE UGROUP "hit_ref_ch" SITE "R114C4D" ;
+
+MAXDELAY NET "THE_TDC/The_Reference_Time/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+
+UGROUP "Encoder_ref" BBOX 2 28
+	BLKNAME THE_TDC/The_Reference_Time/Encoder;
+LOCATE UGROUP "Encoder_ref" REGION "Region_E&F_0" ;
+
+UGROUP "FIFO_ref" BBOX 2 14
+	BLKNAME THE_TDC/The_Reference_Time/FIFO;
+LOCATE UGROUP "FIFO_ref" REGION "Region_E&F_0" ;
+
+#
+MAXDELAY NET "THE_TDC/GEN_Channels_1_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_2_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_3_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_4_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_5_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_6_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_7_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_8_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_9_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_10_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_11_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_12_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_13_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_14_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_15_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_16_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_17_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_18_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_19_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_20_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_21_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_22_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_23_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_24_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_25_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_26_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_27_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_28_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_29_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_30_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_31_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_32_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_33_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_34_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_35_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_36_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_37_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_38_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_39_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_40_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_41_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_42_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_43_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_44_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_45_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_46_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_47_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+
+##############################################################################
+##			     CHANNEL PLACEMENTS                             ##
+##############################################################################
+UGROUP "Encoder_1" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_1_Channels/Encoder;
+LOCATE UGROUP "Encoder_1" REGION "Region_E&F_0" ;
+UGROUP "FIFO_1" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_1_Channels/FIFO;
+LOCATE UGROUP "FIFO_1" REGION "Region_E&F_0" ;
+UGROUP "Encoder_2" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_2_Channels/Encoder;
+LOCATE UGROUP "Encoder_2" REGION "Region_E&F_1" ;
+UGROUP "FIFO_2" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_2_Channels/FIFO;
+LOCATE UGROUP "FIFO_2" REGION "Region_E&F_1" ;
+UGROUP "Encoder_3" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_3_Channels/Encoder;
+LOCATE UGROUP "Encoder_3" REGION "Region_E&F_1" ;
+UGROUP "FIFO_3" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_3_Channels/FIFO;
+LOCATE UGROUP "FIFO_3" REGION "Region_E&F_1" ;
+UGROUP "Encoder_4" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_4_Channels/Encoder;
+LOCATE UGROUP "Encoder_4" REGION "Region_E&F_1" ;
+UGROUP "FIFO_4" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_4_Channels/FIFO;
+LOCATE UGROUP "FIFO_4" REGION "Region_E&F_1" ;
+UGROUP "Encoder_5" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_5_Channels/Encoder;
+LOCATE UGROUP "Encoder_5" REGION "Region_E&F_1" ;
+UGROUP "FIFO_5" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_5_Channels/FIFO;
+LOCATE UGROUP "FIFO_5" REGION "Region_E&F_1" ;
+UGROUP "Encoder_6" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_6_Channels/Encoder;
+LOCATE UGROUP "Encoder_6" REGION "Region_E&F_2" ;
+UGROUP "FIFO_6" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_6_Channels/FIFO;
+LOCATE UGROUP "FIFO_6" REGION "Region_E&F_2" ;
+UGROUP "Encoder_7" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_7_Channels/Encoder;
+LOCATE UGROUP "Encoder_7" REGION "Region_E&F_2" ;
+UGROUP "FIFO_7" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_7_Channels/FIFO;
+LOCATE UGROUP "FIFO_7" REGION "Region_E&F_2" ;
+UGROUP "Encoder_8" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_8_Channels/Encoder;
+LOCATE UGROUP "Encoder_8" REGION "Region_E&F_2" ;
+UGROUP "FIFO_8" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_8_Channels/FIFO;
+LOCATE UGROUP "FIFO_8" REGION "Region_E&F_2" ;
+UGROUP "Encoder_9" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_9_Channels/Encoder;
+LOCATE UGROUP "Encoder_9" REGION "Region_E&F_2" ;
+UGROUP "FIFO_9" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_9_Channels/FIFO;
+LOCATE UGROUP "FIFO_9" REGION "Region_E&F_2" ;
+UGROUP "Encoder_10" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_10_Channels/Encoder;
+LOCATE UGROUP "Encoder_10" REGION "Region_E&F_3" ;
+UGROUP "FIFO_10" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_10_Channels/FIFO;
+LOCATE UGROUP "FIFO_10" REGION "Region_E&F_3" ;
+UGROUP "Encoder_11" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_11_Channels/Encoder;
+LOCATE UGROUP "Encoder_11" REGION "Region_E&F_3" ;
+UGROUP "FIFO_11" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_11_Channels/FIFO;
+LOCATE UGROUP "FIFO_11" REGION "Region_E&F_3" ;
+UGROUP "Encoder_12" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_12_Channels/Encoder;
+LOCATE UGROUP "Encoder_12" REGION "Region_E&F_3" ;
+UGROUP "FIFO_12" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_12_Channels/FIFO;
+LOCATE UGROUP "FIFO_12" REGION "Region_E&F_3" ;
+UGROUP "Encoder_13" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_13_Channels/Encoder;
+LOCATE UGROUP "Encoder_13" REGION "Region_E&F_3" ;
+UGROUP "FIFO_13" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_13_Channels/FIFO;
+LOCATE UGROUP "FIFO_13" REGION "Region_E&F_3" ;
+UGROUP "Encoder_14" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_14_Channels/Encoder;
+LOCATE UGROUP "Encoder_14" REGION "Region_E&F_4" ;
+UGROUP "FIFO_14" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_14_Channels/FIFO;
+LOCATE UGROUP "FIFO_14" REGION "Region_E&F_4" ;
+UGROUP "Encoder_15" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_15_Channels/Encoder;
+LOCATE UGROUP "Encoder_15" REGION "Region_E&F_4" ;
+UGROUP "FIFO_15" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_15_Channels/FIFO;
+LOCATE UGROUP "FIFO_15" REGION "Region_E&F_4" ;
+UGROUP "Encoder_16" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_16_Channels/Encoder;
+LOCATE UGROUP "Encoder_16" REGION "Region_E&F_4" ;
+UGROUP "FIFO_16" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_16_Channels/FIFO;
+LOCATE UGROUP "FIFO_16" REGION "Region_E&F_4" ;
+UGROUP "Encoder_17" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_17_Channels/Encoder;
+LOCATE UGROUP "Encoder_17" REGION "Region_E&F_4" ;
+UGROUP "FIFO_17" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_17_Channels/FIFO;
+LOCATE UGROUP "FIFO_17" REGION "Region_E&F_4" ;
+UGROUP "Encoder_18" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_18_Channels/Encoder;
+LOCATE UGROUP "Encoder_18" REGION "Region_E&F_5" ;
+UGROUP "FIFO_18" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_18_Channels/FIFO;
+LOCATE UGROUP "FIFO_18" REGION "Region_E&F_5" ;
+UGROUP "Encoder_19" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_19_Channels/Encoder;
+LOCATE UGROUP "Encoder_19" REGION "Region_E&F_5" ;
+UGROUP "FIFO_19" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_19_Channels/FIFO;
+LOCATE UGROUP "FIFO_19" REGION "Region_E&F_5" ;
+UGROUP "Encoder_20" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_20_Channels/Encoder;
+LOCATE UGROUP "Encoder_20" REGION "Region_E&F_6" ;
+UGROUP "FIFO_20" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_20_Channels/FIFO;
+LOCATE UGROUP "FIFO_20" REGION "Region_E&F_6" ;
+UGROUP "Encoder_21" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_21_Channels/Encoder;
+LOCATE UGROUP "Encoder_21" REGION "Region_E&F_6" ;
+UGROUP "FIFO_21" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_21_Channels/FIFO;
+LOCATE UGROUP "FIFO_21" REGION "Region_E&F_6" ;
+UGROUP "Encoder_22" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_22_Channels/Encoder;
+LOCATE UGROUP "Encoder_22" REGION "Region_E&F_6" ;
+UGROUP "FIFO_22" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_22_Channels/FIFO;
+LOCATE UGROUP "FIFO_22" REGION "Region_E&F_6" ;
+UGROUP "Encoder_23" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_23_Channels/Encoder;
+LOCATE UGROUP "Encoder_23" REGION "Region_E&F_6" ;
+UGROUP "FIFO_23" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_23_Channels/FIFO;
+LOCATE UGROUP "FIFO_23" REGION "Region_E&F_6" ;
+UGROUP "Encoder_24" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_24_Channels/Encoder;
+LOCATE UGROUP "Encoder_24" REGION "Region_E&F_7" ;
+UGROUP "FIFO_24" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_24_Channels/FIFO;
+LOCATE UGROUP "FIFO_24" REGION "Region_E&F_7" ;
+UGROUP "Encoder_25" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_25_Channels/Encoder;
+LOCATE UGROUP "Encoder_25" REGION "Region_E&F_7" ;
+UGROUP "FIFO_25" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_25_Channels/FIFO;
+LOCATE UGROUP "FIFO_25" REGION "Region_E&F_7" ;
+UGROUP "Encoder_26" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_26_Channels/Encoder;
+LOCATE UGROUP "Encoder_26" REGION "Region_E&F_8" ;
+UGROUP "FIFO_26" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_26_Channels/FIFO;
+LOCATE UGROUP "FIFO_26" REGION "Region_E&F_8" ;
+UGROUP "Encoder_27" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_27_Channels/Encoder;
+LOCATE UGROUP "Encoder_27" REGION "Region_E&F_8" ;
+UGROUP "FIFO_27" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_27_Channels/FIFO;
+LOCATE UGROUP "FIFO_27" REGION "Region_E&F_8" ;
+UGROUP "Encoder_28" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_28_Channels/Encoder;
+LOCATE UGROUP "Encoder_28" REGION "Region_E&F_8" ;
+UGROUP "FIFO_28" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_28_Channels/FIFO;
+LOCATE UGROUP "FIFO_28" REGION "Region_E&F_8" ;
+UGROUP "Encoder_29" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_29_Channels/Encoder;
+LOCATE UGROUP "Encoder_29" REGION "Region_E&F_8" ;
+UGROUP "FIFO_29" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_29_Channels/FIFO;
+LOCATE UGROUP "FIFO_29" REGION "Region_E&F_8" ;
+UGROUP "Encoder_30" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_30_Channels/Encoder;
+LOCATE UGROUP "Encoder_30" REGION "Region_E&F_9" ;
+UGROUP "FIFO_30" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_30_Channels/FIFO;
+LOCATE UGROUP "FIFO_30" REGION "Region_E&F_9" ;
+UGROUP "Encoder_31" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_31_Channels/Encoder;
+LOCATE UGROUP "Encoder_31" REGION "Region_E&F_9" ;
+UGROUP "FIFO_31" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_31_Channels/FIFO;
+LOCATE UGROUP "FIFO_31" REGION "Region_E&F_9" ;
+UGROUP "Encoder_32" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_32_Channels/Encoder;
+LOCATE UGROUP "Encoder_32" REGION "Region_E&F_9" ;
+UGROUP "FIFO_32" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_32_Channels/FIFO;
+LOCATE UGROUP "FIFO_32" REGION "Region_E&F_9" ;
+UGROUP "Encoder_33" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_33_Channels/Encoder;
+LOCATE UGROUP "Encoder_33" REGION "Region_E&F_9" ;
+UGROUP "FIFO_33" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_33_Channels/FIFO;
+LOCATE UGROUP "FIFO_33" REGION "Region_E&F_9" ;
+UGROUP "Encoder_34" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_34_Channels/Encoder;
+LOCATE UGROUP "Encoder_34" REGION "Region_E&F_10" ;
+UGROUP "FIFO_34" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_34_Channels/FIFO;
+LOCATE UGROUP "FIFO_34" REGION "Region_E&F_10" ;
+UGROUP "Encoder_35" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_35_Channels/Encoder;
+LOCATE UGROUP "Encoder_35" REGION "Region_E&F_10" ;
+UGROUP "FIFO_35" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_35_Channels/FIFO;
+LOCATE UGROUP "FIFO_35" REGION "Region_E&F_10" ;
+UGROUP "Encoder_36" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_36_Channels/Encoder;
+LOCATE UGROUP "Encoder_36" REGION "Region_E&F_10" ;
+UGROUP "FIFO_36" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_36_Channels/FIFO;
+LOCATE UGROUP "FIFO_36" REGION "Region_E&F_10" ;
+UGROUP "Encoder_37" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_37_Channels/Encoder;
+LOCATE UGROUP "Encoder_37" REGION "Region_E&F_10" ;
+UGROUP "FIFO_37" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_37_Channels/FIFO;
+LOCATE UGROUP "FIFO_37" REGION "Region_E&F_10" ;
+UGROUP "Encoder_38" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_38_Channels/Encoder;
+LOCATE UGROUP "Encoder_38" REGION "Region_E&F_11" ;
+UGROUP "FIFO_38" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_38_Channels/FIFO;
+LOCATE UGROUP "FIFO_38" REGION "Region_E&F_11" ;
+UGROUP "Encoder_39" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_39_Channels/Encoder;
+LOCATE UGROUP "Encoder_39" REGION "Region_E&F_11" ;
+UGROUP "FIFO_39" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_39_Channels/FIFO;
+LOCATE UGROUP "FIFO_39" REGION "Region_E&F_11" ;
+UGROUP "Encoder_40" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_40_Channels/Encoder;
+LOCATE UGROUP "Encoder_40" REGION "Region_E&F_11" ;
+UGROUP "FIFO_40" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_40_Channels/FIFO;
+LOCATE UGROUP "FIFO_40" REGION "Region_E&F_11" ;
+UGROUP "Encoder_41" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_41_Channels/Encoder;
+LOCATE UGROUP "Encoder_41" REGION "Region_E&F_11" ;
+UGROUP "FIFO_41" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_41_Channels/FIFO;
+LOCATE UGROUP "FIFO_41" REGION "Region_E&F_11" ;
+UGROUP "Encoder_42" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_42_Channels/Encoder;
+LOCATE UGROUP "Encoder_42" REGION "Region_E&F_12" ;
+UGROUP "FIFO_42" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_42_Channels/FIFO;
+LOCATE UGROUP "FIFO_42" REGION "Region_E&F_12" ;
+UGROUP "Encoder_43" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_43_Channels/Encoder;
+LOCATE UGROUP "Encoder_43" REGION "Region_E&F_12" ;
+UGROUP "FIFO_43" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_43_Channels/FIFO;
+LOCATE UGROUP "FIFO_43" REGION "Region_E&F_12" ;
+UGROUP "Encoder_44" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_44_Channels/Encoder;
+LOCATE UGROUP "Encoder_44" REGION "Region_E&F_13" ;
+UGROUP "FIFO_44" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_44_Channels/FIFO;
+LOCATE UGROUP "FIFO_44" REGION "Region_E&F_13" ;
+UGROUP "Encoder_45" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_45_Channels/Encoder;
+LOCATE UGROUP "Encoder_45" REGION "Region_E&F_13" ;
+UGROUP "FIFO_45" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_45_Channels/FIFO;
+LOCATE UGROUP "FIFO_45" REGION "Region_E&F_13" ;
+UGROUP "Encoder_46" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_46_Channels/Encoder;
+LOCATE UGROUP "Encoder_46" REGION "Region_E&F_13" ;
+UGROUP "FIFO_46" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_46_Channels/FIFO;
+LOCATE UGROUP "FIFO_46" REGION "Region_E&F_13" ;
+UGROUP "Encoder_47" BBOX 2 28
+	BLKNAME THE_TDC/GEN_Channels_47_Channels/Encoder;
+LOCATE UGROUP "Encoder_47" REGION "Region_E&F_13" ;
+UGROUP "FIFO_47" BBOX 2 14
+	BLKNAME THE_TDC/GEN_Channels_47_Channels/FIFO;
+LOCATE UGROUP "FIFO_47" REGION "Region_E&F_13" ;
+
+
+##############################################################################
+##                     FF ARRAY ENABLE PLACEMENT                            ##
+##############################################################################
+UGROUP "ff_en_0" BBOX 1 1 
+	BLKNAME I_686_lat_r;
+LOCATE UGROUP "ff_en_0" SITE "R113C27D"   ; ##
+UGROUP "ff_en_1" BBOX 1 1 
+	BLKNAME I_693_lat_r;
+LOCATE UGROUP "ff_en_1" SITE "R110C27D"   ; ##
+UGROUP "ff_en_2" BBOX 1 1 
+	BLKNAME I_692_lat_r;
+LOCATE UGROUP "ff_en_2" SITE "R104C27D"   ; ##
+UGROUP "ff_en_3" BBOX 1 1 
+	BLKNAME I_691_lat_r;
+LOCATE UGROUP "ff_en_3" SITE "R101C27D"   ; ##
+UGROUP "ff_en_4" BBOX 1 1 
+	BLKNAME I_690_lat_r;
+LOCATE UGROUP "ff_en_4" SITE "R92C27D"    ; ##
+UGROUP "ff_en_5" BBOX 1 1 
+	BLKNAME I_689_lat_r;
+LOCATE UGROUP "ff_en_5" SITE "R89C27D"    ; ##
+UGROUP "ff_en_6" BBOX 1 1 
+	BLKNAME I_688_lat_r;
+LOCATE UGROUP "ff_en_6" SITE "R86C27D"    ; ##
+UGROUP "ff_en_7" BBOX 1 1 
+	BLKNAME I_687_lat_r;
+LOCATE UGROUP "ff_en_7" SITE "R83C27D"    ; ##
+
+
+#UGROUP "ff_en_8" BBOX 1 1 
+#	BLKNAME I_2161_lat_r;
+#LOCATE UGROUP "ff_en_8" SITE "R74C27D"    ; ##
+#UGROUP "ff_en_9" BBOX 1 1 
+#	BLKNAME I_2160_lat_r;
+#LOCATE UGROUP "ff_en_9" SITE "R71C27D"    ; ##
+#UGROUP "ff_en_10" BBOX 1 1 
+#	BLKNAME I_2174_lat_r;
+#LOCATE UGROUP "ff_en_10" SITE "R68C27D"   ; ##
+#UGROUP "ff_en_11" BBOX 1 1 
+#	BLKNAME I_2173_lat_r;
+#LOCATE UGROUP "ff_en_11" SITE "R65C27D"   ; ##
+#UGROUP "ff_en_12" BBOX 1 1 
+#	BLKNAME I_2172_lat_r;
+#LOCATE UGROUP "ff_en_12" SITE "R56C27D"   ; ##
+#UGROUP "ff_en_13" BBOX 1 1 
+#	BLKNAME I_2171_lat_r;
+#LOCATE UGROUP "ff_en_13" SITE "R53C27D"   ; ##
+#UGROUP "ff_en_14" BBOX 1 1 
+#	BLKNAME I_2170_lat_r;
+#LOCATE UGROUP "ff_en_14" SITE "R50C27D"   ; ##
+#UGROUP "ff_en_15" BBOX 1 1 
+#	BLKNAME I_2169_lat_r;
+#LOCATE UGROUP "ff_en_15" SITE "R47C27D"   ; ##
+
+
+#UGROUP "ff_en_16" BBOX 1 1 
+#	BLKNAME I_2170_lat_r;
+#LOCATE UGROUP "ff_en_16" SITE "R38C27D"   ; ##
+#UGROUP "ff_en_17" BBOX 1 1 
+#	BLKNAME I_2169_lat_r;
+#LOCATE UGROUP "ff_en_17" SITE "R35C27D"   ; ##
+#UGROUP "ff_en_18" BBOX 1 1 
+#	BLKNAME I_2168_lat_r;
+#LOCATE UGROUP "ff_en_18" SITE "R32C27D"   ; ##
+#UGROUP "ff_en_19" BBOX 1 1 
+#	BLKNAME I_2167_lat_r;
+#LOCATE UGROUP "ff_en_19" SITE "R29C27D"   ; ##
+#UGROUP "ff_en_20" BBOX 1 1 
+#	BLKNAME I_1234_lat_r;
+#LOCATE UGROUP "ff_en_20" SITE "R23C27D"   ; ##
+#UGROUP "ff_en_21" BBOX 1 1 
+#	BLKNAME I_1233_lat_r;
+#LOCATE UGROUP "ff_en_21" SITE "R20C27D"   ; ##
+#UGROUP "ff_en_22" BBOX 1 1 
+#	BLKNAME I_1232_lat_r;
+#LOCATE UGROUP "ff_en_22" SITE "R10C27D"   ; ##
+#UGROUP "ff_en_23" BBOX 1 1 
+#	BLKNAME I_1231_lat_r;
+#LOCATE UGROUP "ff_en_23" SITE "R7C27D"    ; ##
+
+
+#UGROUP "ff_en_24" BBOX 1 1 
+#	BLKNAME I_1230_lat_r;
+#LOCATE UGROUP "ff_en_24" SITE "R113C150D" ; ##
+#UGROUP "ff_en_25" BBOX 1 1               
+#	BLKNAME I_1229_lat_r;             
+#LOCATE UGROUP "ff_en_25" SITE "R110C150D" ; ##
+#UGROUP "ff_en_26" BBOX 1 1               
+#	BLKNAME I_1228_lat_r;             
+#LOCATE UGROUP "ff_en_26" SITE "R104C150D" ; ##
+#UGROUP "ff_en_27" BBOX 1 1               
+#	BLKNAME I_1227_lat_r;             
+#LOCATE UGROUP "ff_en_27" SITE "R101C150D" ; ##
+#UGROUP "ff_en_28" BBOX 1 1               
+#	BLKNAME I_1226_lat_r;             
+#LOCATE UGROUP "ff_en_28" SITE "R92C150D"  ; ##
+#UGROUP "ff_en_29" BBOX 1 1               
+#	BLKNAME I_1225_lat_r;             
+#LOCATE UGROUP "ff_en_29" SITE "R89C150D"  ; ##
+#UGROUP "ff_en_30" BBOX 1 1               
+#	BLKNAME I_1223_lat_r;             
+#LOCATE UGROUP "ff_en_30" SITE "R86C150D"  ; ##
+#UGROUP "ff_en_31" BBOX 1 1               
+#	BLKNAME I_1222_lat_r;             
+#LOCATE UGROUP "ff_en_31" SITE "R83C150D"  ; ##
+
+
+#UGROUP "ff_en_32" BBOX 1 1               
+#	BLKNAME I_1221_lat_r;             
+#LOCATE UGROUP "ff_en_32" SITE "R74C150D"  ; ##
+#UGROUP "ff_en_33" BBOX 1 1               
+#	BLKNAME I_1220_lat_r;             
+#LOCATE UGROUP "ff_en_33" SITE "R71C150D"  ; ##
+#UGROUP "ff_en_34" BBOX 1 1               
+#	BLKNAME I_1219_lat_r;             
+#LOCATE UGROUP "ff_en_34" SITE  "R68C150D" ; ##
+#UGROUP "ff_en_35" BBOX 1 1               
+#	BLKNAME I_1218_lat_r;             
+#LOCATE UGROUP "ff_en_35" SITE  "R65C150D" ; ##
+#UGROUP "ff_en_36" BBOX 1 1               
+#	BLKNAME I_1217_lat_r;             
+#LOCATE UGROUP "ff_en_36" SITE  "R56C150D" ; ##
+#UGROUP "ff_en_37" BBOX 1 1               
+#	BLKNAME I_1216_lat_r;             
+#LOCATE UGROUP "ff_en_37" SITE  "R53C150D" ; ##
+#UGROUP "ff_en_38" BBOX 1 1               
+#	BLKNAME I_1215_lat_r;             
+#LOCATE UGROUP "ff_en_38" SITE  "R50C150D" ; ##
+#UGROUP "ff_en_39" BBOX 1 1               
+#	BLKNAME I_1214_lat_r;             
+#LOCATE UGROUP "ff_en_39" SITE  "R47C150D" ; ##
+
+
+#UGROUP "ff_en_40" BBOX 1 1               
+#	BLKNAME I_1212_lat_r;             
+#LOCATE UGROUP "ff_en_40" SITE  "R38C150D" ; ##
+#UGROUP "ff_en_41" BBOX 1 1               
+#	BLKNAME I_1211_lat_r;             
+#LOCATE UGROUP "ff_en_41" SITE  "R35C150D" ; ##
+#UGROUP "ff_en_42" BBOX 1 1               
+#	BLKNAME I_1210_lat_r;             
+#LOCATE UGROUP "ff_en_42" SITE  "R32C150D" ; ##
+#UGROUP "ff_en_43" BBOX 1 1               
+#	BLKNAME I_1209_lat_r;             
+#LOCATE UGROUP "ff_en_43" SITE  "R29C150D" ; ##
+#UGROUP "ff_en_44" BBOX 1 1               
+#	BLKNAME I_1208_lat_r;             
+#LOCATE UGROUP "ff_en_44" SITE  "R23C150D" ; ##
+#UGROUP "ff_en_45" BBOX 1 1               
+#	BLKNAME I_1207_lat_r;             
+#LOCATE UGROUP "ff_en_45" SITE  "R20C150D" ; ##
+#UGROUP "ff_en_46" BBOX 1 1               
+#	BLKNAME I_1206_lat_r;             
+#LOCATE UGROUP "ff_en_46" SITE  "R10C150D" ; ##
+#UGROUP "ff_en_47" BBOX 1 1               
+#	BLKNAME I_1205_lat_r;             
+#LOCATE UGROUP "ff_en_47" SITE  "R7C150D"  ; ##
+
+
+
+
+##############################################################################
+
+MULTICYCLE FROM CELL "THE_TDC/The_Reset_Generator/reset_cnt_*" 3.000000 X ;
+MULTICYCLE FROM CELL "THE_TDC/The_Reset_Generator/RESET_OUT_*" 3.000000 X ;
+MULTICYCLE FROM CELL "THE_TDC/The_Reset_Generator/reset_i*" 3.000000 X ;
+#MULTICYCLE TO PORT "TEST_LINE_*" 2.000000 X ;
+
+
+##############################################################################
+##                      PIN PLACEMENT FOR CORELL                            ##
+##############################################################################
+
+LOCATE COMP  "MOSI_OUT"  SITE "G6";   #"DQUL_7"   DQSUL0_C  #88   #IN_L_SDIb
+LOCATE COMP  "SCK_OUT"   SITE "E4";   #"DQUL_3"   DQUL0_3   #80   #OUT_L_SDOb
+LOCATE COMP  "CS_OUT_0"  SITE "C3";   #"DQUL_4"   DQUL0_4   #82   #OUT_L_SCK
+LOCATE COMP  "CS_OUT_1"  SITE "D3";   #"DQUL_5"   DQUL0_5   #84   #OUT_L_SCKb
+LOCATE COMP  "CS_OUT_2"  SITE "U24";  #"DQLR_32"  DQLR2_6   #186  #OUT_H_SCK
+LOCATE COMP  "CS_OUT_3"  SITE "V24";  #"DQLR_33"  DQLR2_7   #188  #OUT_H_SCKb
+
+IOBUF PORT "MOSI_OUT" IO_TYPE=LVCMOS25 PULLMODE=UP;
+IOBUF PORT "SCK_OUT"  IO_TYPE=LVCMOS25 PULLMODE=UP;
+DEFINE PORT GROUP "CS_group" "CS_OUT_*" ;
+IOBUF GROUP "CS_group" IO_TYPE=LVCMOS25 PULLMODE=UP;
