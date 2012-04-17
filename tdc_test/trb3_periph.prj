@@ -152,7 +152,9 @@ add_file -vhdl -lib "work" "source/pll_100_in_5_out.vhd"
 add_file -vhdl -lib "work" "source/Reference_channel.vhd"
 add_file -vhdl -lib "work" "source/reset_generator.vhd"
 
-add_file -vhdl -lib "work" "source/ROM_Encoder.vhd"
+#add_file -vhdl -lib "work" "source/ROM_Encoder.vhd"
+#add_file -vhdl -lib "work" "source/ROM_encoder_2.vhd"
+add_file -vhdl -lib "work" "source/ROM_encoder_3.vhd"
 
 add_file -vhdl -lib "work" "source/ROM_FIFO.vhd"
 
