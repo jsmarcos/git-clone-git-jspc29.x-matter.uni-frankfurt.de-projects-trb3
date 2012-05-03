@@ -1,0 +1,82 @@
+BLOCK RESETPATHS ;
+BLOCK ASYNCPATHS ;
+BLOCK RD_DURING_WR_PATHS ;
+
+#################################################################
+# Basic Settings
+#################################################################
+
+  SYSCONFIG MCCLK_FREQ = 20;
+
+  FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
+  FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;
+  FREQUENCY PORT CLK_GPLL_RIGHT 125 MHz;
+  FREQUENCY PORT CLK_GPLL_LEFT  200 MHz;
+  FREQUENCY PORT CLK_EXT_3      10  MHz;
+  FREQUENCY PORT CLK_EXT_4      10  MHz;
+  
+#################################################################
+# Reset Nets
+#################################################################  
+GSR_NET NET "GSR_N";  
+
+
+#################################################################
+# Locate Serdes and media interfaces
+#################################################################
+LOCATE COMP   "THE_MEDIA_UPLINK/gen_serdes_0_200_THE_SERDES/PCSD_INST" SITE "PCSA" ;
+LOCATE COMP   "THE_MEDIA_ONBOARD/THE_SERDES/PCSD_INST" SITE "PCSC" ;
+LOCATE COMP   "gen_ethernet_hub_GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/clk_int_SERDES_GBE/PCSD_INST" SITE "PCSB";
+
+
+REGION "MEDIA_UPLINK" "R98C95" 17 27;
+LOCATE UGROUP "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLINK" ;
+
+REGION "MEDIA_ONBOARD" "R90C122" 25 40;
+LOCATE UGROUP "THE_MEDIA_ONBOARD/media_interface_group" REGION "MEDIA_ONBOARD" ;
+
+
+
+
+FREQUENCY NET "gen_ethernet_hub_GBE/serdes_clk_125"                              125.000000 MHz ;
+FREQUENCY NET "gen_ethernet_hub_GBE/CLK_125_OUT_inferred_clock"                  125.00 MHz ;
+FREQUENCY NET "gen_ethernet_hub_GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/clk_int_SERDES_GBE/ff_txfullclk"  125.000000 MHz ;
+FREQUENCY NET "gen_ethernet_hub_GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/clk_int_SERDES_GBE/ff_rxfullclk"  125.000000 MHz ;
+
+FREQUENCY NET "gen_ethernet_hub_GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/sd_tx_clock"              125.000000 MHz ;
+FREQUENCY NET "gen_ethernet_hub_GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/sd_rx_clock"              125.000000 MHz ;
+FREQUENCY NET "gen_ethernet_hub_GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/refclkcore"             125.000000 MHz ;
+
+FREQUENCY NET "gen_ethernet_hub_GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/CLK_RX_OUT"               125.000000 MHz ;
+FREQUENCY NET "gen_ethernet_hub_GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/clk_int_SERDES_GBE/CLK_TX_OUT_inferred_clock"  125.000000 MHz ;
+
+FREQUENCY PORT "gen_ethernet_hub_GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/clk_int_SERDES_GBE/PCSC_INST.FF_TX_F_CLK"  125.000000 MHz;
+FREQUENCY PORT "gen_ethernet_hub_GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/clk_int_SERDES_GBE/PCSC_INST.FF_RX_F_CLK"  125.000000 MHz;
+
+
+UGROUP "tsmac" 
+	BLKNAME gen_ethernet_hub_GBE/imp_gen_MAC
+	BLKNAME gen_ethernet_hub_GBE/imp_gen_serdes_intclk_gen_PCS_SERDES
+	BLKNAME gen_ethernet_hub_GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SGMII_GBE_PCS
+	BLKNAME gen_ethernet_hub_GBE/FRAME_RECEIVER
+	BLKNAME gen_ethernet_hub_GBE/FRAME_TRANSMITTER;
+UGROUP "controllers" 
+	BLKNAME gen_ethernet_hub_GBE/MAIN_CONTROL
+	BLKNAME gen_ethernet_hub_GBE/RECEIVE_CONTROLLER
+	BLKNAME gen_ethernet_hub_GBE/TRANSMIT_CONTROLLER;
+UGROUP "gbe_rx_tx" 
+	BLKNAME gen_ethernet_hub_GBE/FRAME_CONSTRUCTOR
+	BLKNAME gen_ethernet_hub_GBE/MB_IP_CONFIG
+	BLKNAME gen_ethernet_hub_GBE/THE_IP_CONFIGURATOR
+	#BLKNAME gen_ethernet_hub_GBE/PACKET_CONSTRUCTOR
+	#BLKNAME gen_ethernet_hub_GBE/THE_IPU_INTERFACE
+	BLKNAME gen_ethernet_hub_GBE/setup_imp_gen_SETUP;
+
+REGION "GBE_REGION" "R40C2D" 35 40 DEVSIZE;
+REGION "MED0" "R75C2D" 30 28 DEVSIZE;
+LOCATE UGROUP "gbe_rx_tx" REGION "GBE_REGION" ;
+FREQUENCY NET "gen_ethernet_hub_GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/un1_PCS_SERDES_1" 125.000000 MHz ;
+FREQUENCY NET "gen_ethernet_hub_GBE/serdes_clk_125_c" 125.000000 MHz ;
+REGION "GBE_MAIN_REGION" "R74C30C" 38 31 DEVSIZE;
+LOCATE UGROUP "controllers" REGION "GBE_MAIN_REGION" ;
+LOCATE UGROUP "tsmac" REGION "MED0" ;

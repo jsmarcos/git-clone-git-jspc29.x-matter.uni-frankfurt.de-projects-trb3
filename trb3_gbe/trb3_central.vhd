@@ -252,6 +252,7 @@ signal gsc_init_data, gsc_reply_data : std_logic_vector(15 downto 0);
 signal gsc_init_read, gsc_reply_read : std_logic;
 signal gsc_init_dataready, gsc_reply_dataready : std_logic;
 signal gsc_init_packet_num, gsc_reply_packet_num : std_logic_vector(2 downto 0);
+signal gsc_busy : std_logic;
 signal mc_unique_id : std_logic_vector(63 downto 0);
 
 
@@ -335,8 +336,8 @@ THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
    );
 
 
-SFP_TXDIS(4 downto 2) <= (others => '1');
-SFP_TXDIS(8 downto 6) <= (others => '1');
+SFP_TXDIS(7 downto 2) <= (others => '1');
+--SFP_TXDIS(8 downto 6) <= (others => '1');
 
 
 ---------------------------------------------------------------------------
@@ -458,9 +459,10 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
 	  --IBUF_SECURE_MODE    => c_YES,
 	  INIT_ADDRESS        => x"F305",
 	  MII_NUMBER          => 5,
-	  MII_IS_UPLINK       => (4 => 1, others => 1),
-	  MII_IS_DOWNLINK     => (4 => 0, others => 1),
-	  MII_IS_UPLINK_ONLY  => (4 => 1, others => 0),
+	  MII_IS_UPLINK       => (4 => 1, 6 => 1, others => 1),
+	  MII_IS_DOWNLINK     => (0 => 1, 1 => 1, 2 => 1, 3 => 1, 4 => 1, 5 => 1, others => 1),
+	  MII_IS_UPLINK_ONLY  => (6 => 1, others => 0),
+	  
 	  USE_ONEWIRE         => c_YES,
 	  HARDWARE_VERSION    => x"90000000",
 	  INIT_ENDPOINT_ID    => x"0005",
@@ -543,6 +545,7 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
     GSC_REPLY_DATA_OUT           => gsc_reply_data,
     GSC_REPLY_PACKET_NUM_OUT     => gsc_reply_packet_num,
     GSC_REPLY_READ_IN            => gsc_reply_read,
+    GSC_BUSY_OUT                 => gsc_busy,
 
   --status and control ports
     HUB_STAT_CHANNEL             => open,
@@ -626,15 +629,15 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
 	    FEE_STATUS_BITS_IN          => fee_status_bits,
 	    FEE_BUSY_IN                 => fee_busy,
 	  --SFP   Connection
-	  SFP_RXD_P_IN                => SFP_RX_P(5),
-	  SFP_RXD_N_IN                => SFP_RX_N(5),
-	  SFP_TXD_P_OUT               => SFP_TX_P(5),
-	  SFP_TXD_N_OUT               => SFP_TX_N(5),
+	  SFP_RXD_P_IN                => SFP_RX_P(8),
+	  SFP_RXD_N_IN                => SFP_RX_N(8),
+	  SFP_TXD_P_OUT               => SFP_TX_P(8),
+	  SFP_TXD_N_OUT               => SFP_TX_N(8),
 	  SFP_REFCLK_P_IN             => open, --SFP_REFCLKP(2),
 	  SFP_REFCLK_N_IN             => open, --SFP_REFCLKN(2),
-	  SFP_PRSNT_N_IN              => SFP_MOD0(5), -- SFP Present ('0' = SFP in place, '1' = no SFP mounted)
-	  SFP_LOS_IN                  => SFP_LOS(5), -- SFP Loss Of Signal ('0' = OK, '1' = no signal)
-	  SFP_TXDIS_OUT               => SFP_TXDIS(5),  -- SFP disable
+	  SFP_PRSNT_N_IN              => SFP_MOD0(8), -- SFP Present ('0' = SFP in place, '1' = no SFP mounted)
+	  SFP_LOS_IN                  => SFP_LOS(8), -- SFP Loss Of Signal ('0' = OK, '1' = no signal)
+	  SFP_TXDIS_OUT               => SFP_TXDIS(8),  -- SFP disable
 
 	-- interface between main_controller and hub logic
 	MC_UNIQUE_ID_IN          => mc_unique_id,
@@ -647,6 +650,7 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
 	GSC_REPLY_DATA_IN        => gsc_reply_data,
 	GSC_REPLY_PACKET_NUM_IN  => gsc_reply_packet_num,
 	GSC_REPLY_READ_OUT       => gsc_reply_read,
+	GSC_BUSY_IN              => gsc_busy,
 
 	  --for simulation of receiving part only
 	  MAC_RX_EOF_IN		=> '0',
