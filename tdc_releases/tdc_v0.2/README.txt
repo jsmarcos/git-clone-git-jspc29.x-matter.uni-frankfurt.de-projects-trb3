@@ -43,16 +43,17 @@ Version Details:
 v0.2 09.05.2012
 
 # of Channels	: 32 (for rising & falling edges of 16 channels)
-LUTs used	: 41443 / 149040 (27,8%)
-Registers used	: 34873 / 111780 (31,2%)
-SLICEs used	: 26570 / 74520  (35,7%)
+LUTs used	: 41718 / 149040 (28,0%)
+Registers used	: 34930 / 111780 (31,2%)
+SLICEs used	: 26764 / 74520  (35,9%)
 
 - 32 physical channels are implemented in order to measure rising & falling
 times of 16 pulses (including the reference channel). The timing information
 of the edges of the same pulse are in the adjacent channels, e.g., Ch0-rising
 edge of reference time, Ch1-falling edge of reference time, Ch2-rising edge of
 INP0, Ch3-falling edge of INP0.
-- Designed for "with trigger" run.
+- Designed for "with trigger" and "triggerless" run. (for slow control refer
+to the documentation)
 - Post trigger window value must be set to minimum 0x1f
 
 
