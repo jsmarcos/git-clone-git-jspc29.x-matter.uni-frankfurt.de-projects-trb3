@@ -38,8 +38,8 @@ my $SPEEDGRADE="8";
 
 
 #create full lpf file
-#system("cp ../base/$TOPNAME.lpf workdir/$TOPNAME.lpf");
-#system("cat ".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
+system("cp ../base/$TOPNAME.lpf workdir/$TOPNAME.lpf");
+system("cat ".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
 
 
 #set -e
@@ -108,7 +108,6 @@ my $tpmap = $TOPNAME . "_map" ;
 
 $c=qq|$lattice_path/ispfpga/bin/lin/map  -retime -split_node -a $FAMILYNAME -p $DEVICENAME -t $PACKAGE -s $SPEEDGRADE "$TOPNAME.ngd" -o "$tpmap.ncd"  -mp "$TOPNAME.mrp" "$TOPNAME.lpf"|;
 execute($c);
-
 
 system("rm $TOPNAME.ncd");
 
