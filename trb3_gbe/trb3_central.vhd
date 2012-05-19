@@ -652,6 +652,8 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
 	GSC_REPLY_READ_OUT       => gsc_reply_read,
 	GSC_BUSY_IN              => gsc_busy,
 
+	MAKE_RESET_OUT           => open,
+
 	  --for simulation of receiving part only
 	  MAC_RX_EOF_IN		=> '0',
 	  MAC_RXD_IN		=> "00000000",

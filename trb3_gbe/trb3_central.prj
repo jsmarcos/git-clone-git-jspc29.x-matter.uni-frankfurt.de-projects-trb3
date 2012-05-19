@@ -116,7 +116,8 @@ add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_512x72.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_512x32.vhd"
 
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_2048x8x16.vhd"
-add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_1024x16x8.vhd"
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_65536x18x9.vhd"
+#add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_1024x16x8.vhd"
 
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_32kx16x8_mb.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/debug_fifo_2kx16.vhd"
