@@ -253,8 +253,9 @@ signal gsc_init_read, gsc_reply_read : std_logic;
 signal gsc_init_dataready, gsc_reply_dataready : std_logic;
 signal gsc_init_packet_num, gsc_reply_packet_num : std_logic_vector(2 downto 0);
 signal gsc_busy : std_logic;
-signal mc_unique_id : std_logic_vector(63 downto 0);
-
+signal mc_unique_id  : std_logic_vector(63 downto 0);
+signal trb_reset_in  : std_logic;
+signal reset_via_gbe : std_logic;
 
 begin
 
@@ -275,11 +276,15 @@ THE_RESET_HANDLER : trb_net_reset_handler
     SYSCLK_IN       => clk_100_i,       -- PLL/DLL remastered clock
     PLL_LOCKED_IN   => pll_lock,        -- master PLL lock signal (async)
     RESET_IN        => '0',             -- general reset signal (SYSCLK)
-    TRB_RESET_IN    => med_stat_op(4*16+13), -- TRBnet reset signal (SYSCLK)
+    TRB_RESET_IN    => trb_reset_in, -- TRBnet reset signal (SYSCLK)
     CLEAR_OUT       => clear_i,         -- async reset out, USE WITH CARE!
     RESET_OUT       => reset_i,         -- synchronous reset out (SYSCLK)
     DEBUG_OUT       => open
   );
+
+trb_reset_in <= med_stat_op(4*16+13) or reset_via_gbe;
+
+reset_via_gbe <= '0';
 
 ---------------------------------------------------------------------------
 -- Clock Handling
