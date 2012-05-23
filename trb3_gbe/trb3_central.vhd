@@ -284,7 +284,7 @@ THE_RESET_HANDLER : trb_net_reset_handler
 
 trb_reset_in <= med_stat_op(4*16+13) or reset_via_gbe;
 
-reset_via_gbe <= '0';
+
 
 ---------------------------------------------------------------------------
 -- Clock Handling
@@ -464,8 +464,8 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
 	  --IBUF_SECURE_MODE    => c_YES,
 	  INIT_ADDRESS        => x"F305",
 	  MII_NUMBER          => 5,
-	  MII_IS_UPLINK       => (4 => 1, 6 => 1, others => 1),
-	  MII_IS_DOWNLINK     => (0 => 1, 1 => 1, 2 => 1, 3 => 1, 4 => 1, 5 => 1, others => 1),
+	  MII_IS_UPLINK       => (4 => 1, 6 => 1, others => 0),
+	  MII_IS_DOWNLINK     => (0 => 1, 1 => 1, 2 => 1, 3 => 1, 4 => 1, 5 => 1, others => 0),
 	  MII_IS_UPLINK_ONLY  => (6 => 1, others => 0),
 	  
 	  USE_ONEWIRE         => c_YES,
@@ -657,7 +657,7 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
 	GSC_REPLY_READ_OUT       => gsc_reply_read,
 	GSC_BUSY_IN              => gsc_busy,
 
-	MAKE_RESET_OUT           => open,
+	MAKE_RESET_OUT           => reset_via_gbe,
 
 	  --for simulation of receiving part only
 	  MAC_RX_EOF_IN		=> '0',
