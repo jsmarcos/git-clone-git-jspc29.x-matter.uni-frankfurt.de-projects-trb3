@@ -6,7 +6,7 @@ BLOCK RD_DURING_WR_PATHS ;
 # Basic Settings
 #################################################################
 
-  SYSCONFIG MCCLK_FREQ = 20;
+  SYSCONFIG MCCLK_FREQ = 2.5;
 
   FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
   FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;
@@ -24,19 +24,20 @@ GSR_NET NET "GSR_N";
 #################################################################
 # Locate Serdes and media interfaces
 #################################################################
-LOCATE COMP   "THE_MEDIA_UPLINK/gen_serdes_0_200_THE_SERDES/PCSD_INST" SITE "PCSA" ;
-LOCATE COMP   "THE_MEDIA_ONBOARD/THE_SERDES/PCSD_INST" SITE "PCSC" ;
 LOCATE COMP   "gen_ethernet_hub_GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/clk_int_SERDES_GBE/PCSD_INST" SITE "PCSB";
+LOCATE COMP   "THE_MEDIA_UPLINK/gen_serdes_0_200_THE_SERDES/PCSD_INST" SITE "PCSA" ;
+LOCATE COMP   "THE_MEDIA_ONBOARD/gen_serdes_200_THE_SERDES/PCSD_INST" SITE "PCSC" ;
+LOCATE COMP   "THE_MEDIA_ONBOARD/gen_serdes_125_THE_SERDES/PCSD_INST" SITE "PCSC" ;
 
 
 REGION "MEDIA_UPLINK" "R98C95" 17 27;
 LOCATE UGROUP "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLINK" ;
 
-REGION "MEDIA_ONBOARD" "R90C122" 25 40;
+REGION "MEDIA_ONBOARD" "R90C122" 20 40;
 LOCATE UGROUP "THE_MEDIA_ONBOARD/media_interface_group" REGION "MEDIA_ONBOARD" ;
 
-
-
+REGION "REGION_SPI" "R13C150D" 12 16 DEVSIZE;
+REGION "REGION_IOBUF" "R20C96D" 88 86 DEVSIZE;
 
 FREQUENCY NET "gen_ethernet_hub_GBE/serdes_clk_125"                              125.000000 MHz ;
 FREQUENCY NET "gen_ethernet_hub_GBE/CLK_125_OUT_inferred_clock"                  125.00 MHz ;
@@ -77,6 +78,6 @@ REGION "MED0" "R75C2D" 30 28 DEVSIZE;
 LOCATE UGROUP "gbe_rx_tx" REGION "GBE_REGION" ;
 FREQUENCY NET "gen_ethernet_hub_GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/un1_PCS_SERDES_1" 125.000000 MHz ;
 FREQUENCY NET "gen_ethernet_hub_GBE/serdes_clk_125_c" 125.000000 MHz ;
-REGION "GBE_MAIN_REGION" "R74C30C" 38 31 DEVSIZE;
+REGION "GBE_MAIN_REGION" "R74C30C" 38 36 DEVSIZE;
 LOCATE UGROUP "controllers" REGION "GBE_MAIN_REGION" ;
 LOCATE UGROUP "tsmac" REGION "MED0" ;

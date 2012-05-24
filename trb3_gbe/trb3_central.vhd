@@ -86,7 +86,7 @@ entity trb3_central is
     --Flash ROM & Reboot
     FLASH_CLK                      : out std_logic;
     FLASH_CS                       : out std_logic;
-    FLASH_CIN                      : out std_logic;
+    FLASH_DIN                      : out std_logic;
     FLASH_DOUT                     : in  std_logic;
     PROGRAMN                       : out std_logic := '1'; --reboot FPGA
     
@@ -125,7 +125,7 @@ entity trb3_central is
     --important signals _with_ IO-FF
     attribute syn_useioff of FLASH_CLK          : signal is true;
     attribute syn_useioff of FLASH_CS           : signal is true;
-    attribute syn_useioff of FLASH_CIN          : signal is true;
+    attribute syn_useioff of FLASH_DIN          : signal is true;
     attribute syn_useioff of FLASH_DOUT         : signal is true;
     attribute syn_useioff of FPGA1_COMM         : signal is true;
     attribute syn_useioff of FPGA2_COMM         : signal is true;
@@ -765,7 +765,7 @@ THE_SPI_MASTER: spi_master
     -- SPI connections
     SPI_CS_OUT     => FLASH_CS,
     SPI_SDI_IN     => FLASH_DOUT,
-    SPI_SDO_OUT    => FLASH_CIN,
+    SPI_SDO_OUT    => FLASH_DIN,
     SPI_SCK_OUT    => FLASH_CLK,
     -- BRAM for read/write data
     BRAM_A_OUT     => spi_bram_addr,
