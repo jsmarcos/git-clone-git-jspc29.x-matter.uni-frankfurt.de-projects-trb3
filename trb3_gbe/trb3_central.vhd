@@ -457,6 +457,11 @@ gen_normal_hub : if USE_ETHERNET = c_NO generate
 end generate;
 
 gen_ethernet_hub : if USE_ETHERNET = c_YES generate
+--If the injected slow control should be visible to the network below this hub only:
+-- MII_IS_UPLINK        => (0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0);
+-- MII_IS_DOWNLINK      => (1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0);
+-- MII_IS_UPLINK_ONLY   => (0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0);
+
 
   THE_HUB: trb_net16_hub_streaming_port_sctrl
   generic map( 
@@ -464,9 +469,9 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
 	  --IBUF_SECURE_MODE    => c_YES,
 	  INIT_ADDRESS        => x"F305",
 	  MII_NUMBER          => 5,
-	  MII_IS_UPLINK       => (4 => 1, 6 => 1, others => 0),
-	  MII_IS_DOWNLINK     => (0 => 1, 1 => 1, 2 => 1, 3 => 1, 4 => 1, 5 => 1, others => 0),
-	  MII_IS_UPLINK_ONLY  => (6 => 1, others => 0),
+	  MII_IS_UPLINK       => (4 => 1, 5 => 1, 6 => 1, others => 0),
+	  MII_IS_DOWNLINK     => (0 => 1, 1 => 1, 2 => 1, 3 => 1, 4 => 1, others => 0),
+	  MII_IS_UPLINK_ONLY  => (5 => 1, 6 => 1, others => 0),
 	  
 	  USE_ONEWIRE         => c_YES,
 	  HARDWARE_VERSION    => x"90000000",
