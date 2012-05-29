@@ -10,7 +10,8 @@ use strict;
 #Settings for this project
 my $TOPNAME                      = "trb3_central";  #Name of top-level entity
 my $lattice_path                 = '/d/jspc29/lattice/diamond/1.4';
-my $synplify_path                = '/d/jspc29/lattice/synplify/fpga_e201103/';
+# my $synplify_path                = '/d/jspc29/lattice/synplify/fpga_e201103/';
+my $synplify_path                = '/d/jspc29/lattice/synplify/F-2012.03-SP1/';
 my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
 my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
 ###################################################################################
