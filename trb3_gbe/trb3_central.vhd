@@ -36,10 +36,10 @@ entity trb3_central is
     CLK_SERDES_INT_RIGHT           : in  std_logic;  --Clock Manager 1/0, off, 125 MHz possible
     
     --SFP
-    SFP_RX_P                       : in  std_logic_vector(16 downto 1); 
-    SFP_RX_N                       : in  std_logic_vector(16 downto 1); 
-    SFP_TX_P                       : out std_logic_vector(16 downto 1); 
-    SFP_TX_N                       : out std_logic_vector(16 downto 1); 
+    SFP_RX_P                       : in  std_logic_vector(6 downto 1); 
+    SFP_RX_N                       : in  std_logic_vector(6 downto 1); 
+    SFP_TX_P                       : out std_logic_vector(6 downto 1); 
+    SFP_TX_N                       : out std_logic_vector(6 downto 1); 
     SFP_TX_FAULT                   : in  std_logic_vector(8 downto 1); --TX broken
     SFP_RATE_SEL                   : out std_logic_vector(8 downto 1); --not supported by our SFP
     SFP_LOS                        : in  std_logic_vector(8 downto 1); --Loss of signal
@@ -305,7 +305,8 @@ THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
   generic map(
     SERDES_NUM  => 0,     --number of serdes in quad
     EXT_CLOCK   => c_NO,  --use internal clock
-    USE_200_MHZ => c_YES  --run on 200 MHz clock
+    USE_200_MHZ => c_YES, --run on 200 MHz clock
+    USE_CTC     => c_YES
     )
   port map(
     CLK                => clk_200_i,
@@ -366,10 +367,10 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
     MED_READ_IN        => med_read_out(3 downto 0),
     REFCLK2CORE_OUT    => open,
     --SFP Connection
-    SD_RXD_P_IN        => SFP_RX_P(12 downto 9),
-    SD_RXD_N_IN        => SFP_RX_N(12 downto 9),
-    SD_TXD_P_OUT       => SFP_TX_P(12 downto 9),
-    SD_TXD_N_OUT       => SFP_TX_N(12 downto 9),
+    SD_RXD_P_IN        => SFP_RX_P(5 downto 2),
+    SD_RXD_N_IN        => SFP_RX_N(5 downto 2),
+    SD_TXD_P_OUT       => SFP_TX_P(5 downto 2),
+    SD_TXD_N_OUT       => SFP_TX_N(5 downto 2),
     SD_REFCLK_P_IN     => open,
     SD_REFCLK_N_IN     => open,
     SD_PRSNT_N_IN(0)   => FPGA1_COMM(2),
@@ -639,10 +640,10 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
 	    FEE_STATUS_BITS_IN          => fee_status_bits,
 	    FEE_BUSY_IN                 => fee_busy,
 	  --SFP   Connection
-	  SFP_RXD_P_IN                => SFP_RX_P(8),
-	  SFP_RXD_N_IN                => SFP_RX_N(8),
-	  SFP_TXD_P_OUT               => SFP_TX_P(8),
-	  SFP_TXD_N_OUT               => SFP_TX_N(8),
+	  SFP_RXD_P_IN                => SFP_RX_P(6), --these ports are don't care
+	  SFP_RXD_N_IN                => SFP_RX_N(6),
+	  SFP_TXD_P_OUT               => SFP_TX_P(6),
+	  SFP_TXD_N_OUT               => SFP_TX_N(6),
 	  SFP_REFCLK_P_IN             => open, --SFP_REFCLKP(2),
 	  SFP_REFCLK_N_IN             => open, --SFP_REFCLKN(2),
 	  SFP_PRSNT_N_IN              => SFP_MOD0(8), -- SFP Present ('0' = SFP in place, '1' = no SFP mounted)
