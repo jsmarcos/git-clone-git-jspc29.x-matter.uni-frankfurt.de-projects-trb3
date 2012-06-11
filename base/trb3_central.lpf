@@ -2,18 +2,18 @@ BLOCK RESETPATHS ;
 BLOCK ASYNCPATHS ;
 BLOCK RD_DURING_WR_PATHS ;
 
-#################################################################
-# Basic Settings
-#################################################################
-
-  SYSCONFIG MCCLK_FREQ = 2.5;
-
-  FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
-  FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;
-  FREQUENCY PORT CLK_GPLL_RIGHT 125 MHz;
-  FREQUENCY PORT CLK_GPLL_LEFT  200 MHz;
-  FREQUENCY PORT CLK_EXT_3      10  MHz;
-  FREQUENCY PORT CLK_EXT_4      10  MHz;
+# #################################################################
+# # Basic Settings
+# #################################################################
+# 
+#   SYSCONFIG MCCLK_FREQ = 2.5;
+# 
+#   FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
+#   FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;
+#   FREQUENCY PORT CLK_GPLL_RIGHT 125 MHz;
+#   FREQUENCY PORT CLK_GPLL_LEFT  200 MHz;
+#   FREQUENCY PORT CLK_EXT_3      10  MHz;
+#   FREQUENCY PORT CLK_EXT_4      10  MHz;
 
 
 #################################################################

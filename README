@@ -98,6 +98,7 @@ The upper 16 bit of the REGIO_HARDWARE_VERSION generic of the TrbNet endpoint ha
 - 0x9120  for FPGA 2 only
 - 0x9130  for FPGA 3 only
 - 0x9140  for FPGA 4 only
+- 0x9200  for CBM RICH Board
 
 
 
@@ -122,4 +123,5 @@ BROADCAST_SPECIAL_ADDR has to be set to address all FPGA of a given type within 
 - 0x42   for FPGA 2 only
 - 0x43   for FPGA 3 only
 - 0x44   for FPGA 4 only
+- 0x50   for CBM RICH
 
