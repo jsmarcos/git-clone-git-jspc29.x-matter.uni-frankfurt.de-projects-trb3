@@ -10,7 +10,7 @@ use work.version.all;
 
 
 
-entity trb3_periph is
+entity trb3_periph_multitest is
   port(
     --Clocks
     CLK_GPLL_LEFT  : in std_logic;      --Clock Manager 1/(2468), 125 MHz
@@ -149,7 +149,7 @@ entity trb3_periph is
 
 end entity;
 
-architecture trb3_periph_arch of trb3_periph is
+architecture trb3_periph_arch of trb3_periph_multitest is
   --Constants
   constant REGIO_NUM_STAT_REGS : integer := 2;
   constant REGIO_NUM_CTRL_REGS : integer := 2;
@@ -255,7 +255,13 @@ architecture trb3_periph_arch of trb3_periph is
   signal spi_bram_rd_d : std_logic_vector(7 downto 0);
   signal spi_bram_we   : std_logic;
 
-
+  signal dac_read_en   : std_logic;
+  signal dac_write_en  : std_logic;
+  signal dac_data_in   : std_logic_vector(31 downto 0);
+  signal dac_addr      : std_logic_vector(4 downto 0);
+  signal dac_data_out  : std_logic_vector(31 downto 0);
+  signal dac_ack       : std_logic;
+  signal dac_busy      : std_logic;
   --FPGA Test
   signal time_counter : unsigned(31 downto 0);
 
@@ -305,7 +311,8 @@ begin
     generic map(
       SERDES_NUM  => 1,                 --number of serdes in quad
       EXT_CLOCK   => c_NO,              --use internal clock
-      USE_200_MHZ => c_YES              --run on 200 MHz clock
+      USE_200_MHZ => c_YES,             --run on 200 MHz clock
+      USE_CTC     => c_NO
       )
     port map(
       CLK                => clk_200_i,
@@ -460,11 +467,14 @@ begin
 ---------------------------------------------------------------------------
 -- Bus Handler
 ---------------------------------------------------------------------------
+---------------------------------------------------------------------------
+-- Bus Handler
+---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 2,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, others => 0)
+      PORT_NUMBER    => 3,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -505,7 +515,18 @@ begin
       BUS_WRITE_ACK_IN(1)                 => spimem_ack,
       BUS_NO_MORE_DATA_IN(1)              => '0',
       BUS_UNKNOWN_ADDR_IN(1)              => '0',
-
+      --DAC
+      BUS_READ_ENABLE_OUT(2)              => dac_read_en,
+      BUS_WRITE_ENABLE_OUT(2)             => dac_write_en,
+      BUS_DATA_OUT(2*32+31 downto 2*32)   => dac_data_in,
+      BUS_ADDR_OUT(2*16+4 downto 2*16)    => dac_addr,
+      BUS_ADDR_OUT(2*16+15 downto 2*16+5) => open,
+      BUS_TIMEOUT_OUT(2)                  => open,
+      BUS_DATA_IN(2*32+31 downto 2*32)    => dac_data_out,
+      BUS_DATAREADY_IN(2)                 => dac_ack,
+      BUS_WRITE_ACK_IN(2)                 => dac_ack,
+      BUS_NO_MORE_DATA_IN(2)              => dac_busy,
+      BUS_UNKNOWN_ADDR_IN(2)              => '0',
       STAT_DEBUG => open
       );
 
@@ -571,8 +592,30 @@ begin
       PROGRAMN  => PROGRAMN
       );
 
+---------------------------------------------------------------------------
+-- DAC
+---------------------------------------------------------------------------      
+  THE_DAC_SPI : spi_ltc2600
+    port map(
+      CLK_IN        => clk_100_i,
+      RESET_IN      => reset_i,
+      -- Slave bus
+      BUS_ADDR_IN   => dac_addr,
+      BUS_READ_IN   => dac_read_en,
+      BUS_WRITE_IN  => dac_write_en,
+      BUS_ACK_OUT   => dac_ack,
+      BUS_BUSY_OUT  => dac_busy,
+      BUS_DATA_IN   => dac_data_in,
+      BUS_DATA_OUT  => dac_data_out,
+      -- SPI connections
+      SPI_CS_OUT    => DAC12_CSB,
+      SPI_SDI_IN    => DAC12_SDO,
+      SPI_SDO_OUT   => DAC12_SDI,
+      SPI_SCK_OUT   => DAC12_SCK
+      );
 
-
+      DAC12_CLRB <= '0';
+      
 ---------------------------------------------------------------------------
 -- LED
 ---------------------------------------------------------------------------
