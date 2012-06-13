@@ -1,0 +1,6 @@
+- coin level basiert
+- busy ausgang
+- delay um 16 takte
+- 1 pulser auf e, rest auf 1
+- prefix in type-definitionen
+- trigger an endpoint
