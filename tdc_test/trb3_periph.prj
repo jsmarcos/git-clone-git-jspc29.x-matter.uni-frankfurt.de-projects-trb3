@@ -151,7 +151,8 @@ add_file -vhdl -lib "work" "source/Reference_channel.vhd"
 
 #add_file -vhdl -lib "work" "source/ROM_Encoder.vhd"
 #add_file -vhdl -lib "work" "source/ROM_encoder_2.vhd"
-add_file -vhdl -lib "work" "source/ROM_encoder_3.vhd"
+#add_file -vhdl -lib "work" "source/ROM_encoder_3.vhd"
+add_file -vhdl -lib "work" "source/ROM_encoder_4.vhd"
 
 add_file -vhdl -lib "work" "source/ROM_FIFO.vhd"
 add_file -vhdl -lib "work" "source/TDC.vhd"
