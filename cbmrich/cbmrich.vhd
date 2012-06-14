@@ -561,7 +561,7 @@ timing_trg_received_i <= SPARE_LINE(0);
       BUS_DATA_IN   => dac_data_in,
       BUS_DATA_OUT  => dac_data_out,
       -- SPI connections
-      SPI_CS_OUT    => DAC_CS,
+      SPI_CS_OUT(0) => DAC_CS,
       SPI_SDI_IN    => DAC_SDO,
       SPI_SDO_OUT   => DAC_SDI,
       SPI_SCK_OUT   => DAC_SCK

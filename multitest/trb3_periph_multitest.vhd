@@ -608,7 +608,7 @@ begin
       BUS_DATA_IN   => dac_data_in,
       BUS_DATA_OUT  => dac_data_out,
       -- SPI connections
-      SPI_CS_OUT    => DAC12_CSB,
+      SPI_CS_OUT(0) => DAC12_CSB,
       SPI_SDI_IN    => DAC12_SDO,
       SPI_SDO_OUT   => DAC12_SDI,
       SPI_SCK_OUT   => DAC12_SCK
