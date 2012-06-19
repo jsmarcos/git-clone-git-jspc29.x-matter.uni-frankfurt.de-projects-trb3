@@ -1,0 +1,271 @@
+BLOCK RESETPATHS ;
+BLOCK ASYNCPATHS ;
+BLOCK RD_DURING_WR_PATHS ;
+
+
+#################################################################
+# Basic Settings
+#################################################################
+
+#  FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
+#  FREQUENCY PORT CLK_GPLL_LEFT  125 MHz;
+  FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;
+  FREQUENCY PORT CLK_GPLL_RIGHT 200 MHz;
+
+#################################################################
+# Clock I/O
+#################################################################
+#LOCATE COMP  "CLK_PCLK_RIGHT"       SITE "U20";
+#LOCATE COMP  "CLK_SERDES_INT_RIGHT" SITE "AC18";
+#LOCATE COMP  "CLK_SERDES_INT_LEFT"  SITE "AC10";
+#LOCATE COMP  "CLK_GPLL_LEFT"        SITE "U25";
+
+LOCATE COMP  "CLK_PCLK_LEFT"        SITE "M4";
+LOCATE COMP  "CLK_GPLL_RIGHT"       SITE "W1";
+
+DEFINE PORT GROUP "CLK_group" "CLK*" ;
+IOBUF GROUP  "CLK_group" IO_TYPE=LVDS25 ;
+
+
+#################################################################
+# Trigger I/O
+#################################################################
+
+#Trigger from fan-out
+#LOCATE COMP  "TRIGGER_RIGHT"   SITE "N24";
+#IOBUF  PORT  "TRIGGER_RIGHT" IO_TYPE=LVDS25; 
+
+LOCATE COMP  "TRIGGER_LEFT"   SITE "V3";
+IOBUF  PORT  "TRIGGER_LEFT"  IO_TYPE=LVDS25;
+
+
+
+#################################################################
+# To central FPGA
+#################################################################
+
+LOCATE COMP  "FPGA5_COMM_0"   SITE "AD4";
+LOCATE COMP  "FPGA5_COMM_1"   SITE "AE3";
+LOCATE COMP  "FPGA5_COMM_2"   SITE "AA7";
+LOCATE COMP  "FPGA5_COMM_3"   SITE "AB7";
+LOCATE COMP  "FPGA5_COMM_4"   SITE "AD3";
+LOCATE COMP  "FPGA5_COMM_5"   SITE "AC4";
+LOCATE COMP  "FPGA5_COMM_6"   SITE "AE2";
+LOCATE COMP  "FPGA5_COMM_7"   SITE "AF3";
+LOCATE COMP  "FPGA5_COMM_8"   SITE "AE4";
+LOCATE COMP  "FPGA5_COMM_9"   SITE "AF4";
+LOCATE COMP  "FPGA5_COMM_10"  SITE "V10";
+LOCATE COMP  "FPGA5_COMM_11"  SITE "W10";
+DEFINE PORT GROUP "FPGA_group" "FPGA*" ;
+IOBUF GROUP "FPGA_group" IO_TYPE=LVCMOS25 PULLMODE=UP ;
+
+LOCATE COMP  "TEST_LINE_0"   SITE "A5";
+LOCATE COMP  "TEST_LINE_1"   SITE "A6";
+LOCATE COMP  "TEST_LINE_2"   SITE "G8";
+LOCATE COMP  "TEST_LINE_3"   SITE "F9";
+LOCATE COMP  "TEST_LINE_4"   SITE "D9";
+LOCATE COMP  "TEST_LINE_5"   SITE "D10";
+LOCATE COMP  "TEST_LINE_6"   SITE "F10";
+LOCATE COMP  "TEST_LINE_7"   SITE "E10";
+LOCATE COMP  "TEST_LINE_8"   SITE "A8";
+LOCATE COMP  "TEST_LINE_9"   SITE "B8";
+LOCATE COMP  "TEST_LINE_10"  SITE "G10";
+LOCATE COMP  "TEST_LINE_11"  SITE "G9";
+LOCATE COMP  "TEST_LINE_12"  SITE "C9";
+LOCATE COMP  "TEST_LINE_13"  SITE "C10";
+LOCATE COMP  "TEST_LINE_14"  SITE "H10";
+LOCATE COMP  "TEST_LINE_15"  SITE "H11";
+DEFINE PORT GROUP "TEST_LINE_group" "TEST_LINE*" ;
+IOBUF GROUP "TEST_LINE_group" IO_TYPE=LVCMOS25 PULLMODE=DOWN DRIVE=12;
+
+#################################################################
+# TDC INPUTS
+#################################################################
+
+LOCATE COMP  "INP_0"    SITE "P1";  
+LOCATE COMP  "INP_1"    SITE "T2";  
+LOCATE COMP  "INP_2"    SITE "R1";  
+LOCATE COMP  "INP_3"    SITE "N3";  
+LOCATE COMP  "INP_4"    SITE "P5";  
+LOCATE COMP  "INP_5"    SITE "N5";   
+LOCATE COMP  "INP_6"    SITE "AC2";
+LOCATE COMP  "INP_7"    SITE "AB1";
+LOCATE COMP  "INP_8"    SITE "AA1";
+LOCATE COMP  "INP_9"    SITE "W7";
+LOCATE COMP  "INP_10"   SITE "Y5";
+LOCATE COMP  "INP_11"   SITE "V6";
+LOCATE COMP  "INP_12"   SITE "H2";
+LOCATE COMP  "INN_12"   SITE "G1";
+LOCATE COMP  "INP_13"   SITE "K3";
+LOCATE COMP  "INN_13"   SITE "L3";
+LOCATE COMP  "INP_14"   SITE "H1";
+LOCATE COMP  "INN_13"   SITE "J1";
+LOCATE COMP  "INP_15"   SITE "M5";
+LOCATE COMP  "INN_15"   SITE "M6";
+LOCATE COMP  "INP_16"   SITE "AD1";
+LOCATE COMP  "INP_17"   SITE "AB5";
+LOCATE COMP  "INP_18"   SITE "AB3";
+LOCATE COMP  "INP_19"   SITE "Y6";
+LOCATE COMP  "INP_20"   SITE "AA3";
+LOCATE COMP  "INP_21"   SITE "W8";
+LOCATE COMP  "INP_22"   SITE "V1";
+LOCATE COMP  "INP_23"   SITE "T1";
+LOCATE COMP  "INP_24"   SITE "P4";
+LOCATE COMP  "INP_25"   SITE "T3";
+LOCATE COMP  "INP_26"   SITE "R5";
+LOCATE COMP  "INP_27"   SITE "T7";
+LOCATE COMP  "INP_28"   SITE "K2";
+LOCATE COMP  "INP_29"   SITE "J4";
+LOCATE COMP  "INP_30"   SITE "D1";
+LOCATE COMP  "INP_31"   SITE "K4";
+LOCATE COMP  "INP_32"   SITE "J23";
+LOCATE COMP  "INP_33"   SITE "G26";
+LOCATE COMP  "INP_34"   SITE "H26";
+LOCATE COMP  "INP_35"   SITE "F24";
+LOCATE COMP  "INP_36"   SITE "K23";
+LOCATE COMP  "INP_37"   SITE "F25";
+LOCATE COMP  "INP_38"   SITE "AC26";
+LOCATE COMP  "INP_39"   SITE "Y19";
+LOCATE COMP  "INP_40"   SITE "AB24";
+LOCATE COMP  "INP_41"   SITE "Y22";
+LOCATE COMP  "INP_42"   SITE "AD24";
+LOCATE COMP  "INP_43"   SITE "AE25";
+LOCATE COMP  "INP_44"   SITE "W23";
+LOCATE COMP  "INP_45"   SITE "AA25";
+LOCATE COMP  "INP_46"   SITE "AA26";
+LOCATE COMP  "INP_47"   SITE "W21";
+LOCATE COMP  "INP_48"   SITE "H24";
+LOCATE COMP  "INP_49"   SITE "L20";
+LOCATE COMP  "INP_50"   SITE "K24";
+LOCATE COMP  "INP_51"   SITE "M23";
+LOCATE COMP  "INP_52"   SITE "L24";
+LOCATE COMP  "INP_53"   SITE "M22";
+LOCATE COMP  "INP_54"   SITE "J26";
+LOCATE COMP  "INP_55"   SITE "N23";
+LOCATE COMP  "INP_56"   SITE "K19";
+LOCATE COMP  "INP_57"   SITE "P23";                                         
+LOCATE COMP  "INP_58"   SITE "L25";
+LOCATE COMP  "INP_59"   SITE "P21";
+LOCATE COMP  "INP_60"   SITE "R25";
+LOCATE COMP  "INP_61"   SITE "T25";
+LOCATE COMP  "INP_62"   SITE "T26";
+LOCATE COMP  "INP_63"   SITE "V21";
+
+DEFINE PORT GROUP "INP_group" "INP*" ;
+IOBUF GROUP "INP_group" IO_TYPE=LVDS25 DIFFRESISTOR=100;
+
+
+
+
+
+# LOCATE COMP  "DQUL_44"  SITE "L2";
+# LOCATE COMP  "DQUL_45"  SITE "L1";
+# LOCATE COMP  "OUT_H_SDO"   SITE "AA24";   #"DQLR_20"   DQLR1_6   #185
+# LOCATE COMP  "OUT_H_SDOb"   SITE "AA23";   #"DQLR_21"   DQLR1_7   #187
+# LOCATE COMP  "IN_H_SDI"   SITE "AD26";   #"DQLR_22"   DQLR1_8   #189
+# LOCATE COMP  "IN_H_SDIbD"   SITE "AD25";   #"DQLR_23"   DQLR1_9   #191
+# LOCATE COMP  "OUT_H_SCK"   SITE "U24";    #"DQLR_32"   DQLR2_6   #186
+# LOCATE COMP  "OUT_H_SCKb"   SITE "V24";    #"DQLR_33"   DQLR2_7   #188
+# LOCATE COMP  "OUT_H_CS"   SITE "U23";    #"DQLR_34"   DQLR2_8   #190
+# LOCATE COMP  "OUT_H_CSb"   SITE "U22";    #"DQLR_35"   DQLR2_9   #192
+# LOCATE COMP  "DQUL_0"    SITE "B2";     #"DQUL_0"    DQUL0_0   #74
+# LOCATE COMP  "DQUL_1"    SITE "B3";     #"DQUL_1"    DQUL0_1   #76
+# LOCATE COMP  "OUT_L_SDO"    SITE "D4";     #"DQUL_2"    DQUL0_2   #78
+# LOCATE COMP  "OUT_L_SDOb"    SITE "E4";     #"DQUL_3"    DQUL0_3   #80
+# LOCATE COMP  "OUT_L_SCK"    SITE "C3";     #"DQUL_4"    DQUL0_4   #82
+# LOCATE COMP  "OUT_L_SCKb"    SITE "D3";     #"DQUL_5"    DQUL0_5   #84
+# LOCATE COMP  "IN_L_SDI"    SITE "G5";     #"DQUL_6"    DQSUL0_T  #86
+# LOCATE COMP  "IN_L_SDIb"    SITE "G6";     #"DQUL_7"    DQSUL0_C  #88
+# LOCATE COMP  "DQUL_8"    SITE "E3";     #"DQUL_8"    DQUL0_6   #90
+# LOCATE COMP  "DQUL_9"    SITE "F4";     #"DQUL_9"    DQUL0_7   #92
+# LOCATE COMP  "OUT_L_CS"   SITE "H6";     #"DQUL_10"   DQUL0_8   #94
+# LOCATE COMP  "OUT_L_CSb"   SITE "J6";     #"DQUL_11"   DQUL0_9   #96
+# LOCATE COMP  "DQUL_12"   SITE "G2";     #"DQUL_12"   DQUL1_0   #73
+# LOCATE COMP  "DQUL_13"   SITE "G3";     #"DQUL_13"   DQUL1_1   #75
+# LOCATE COMP  "DQUL_14"   SITE "F2";     #"DQUL_14"   DQUL1_2   #77
+# LOCATE COMP  "DQUL_15"   SITE "F3";     #"DQUL_15"   DQUL1_3   #79
+# LOCATE COMP  "DQUL_16"   SITE "C2";     #"DQUL_16"   DQUL1_4   #81
+# LOCATE COMP  "DQUL_17"   SITE "D2";     #"DQUL_17"   DQUL1_5   #83
+# LOCATE COMP  "DQUL_18"   SITE "K7";     #"DQUL_18"   DQSUL1_T  #85
+# LOCATE COMP  "DQUL_19"   SITE "K6";     #"DQUL_19"   DQSUL1_C  #87
+# LOCATE COMP  "DQUL_20"   SITE "H5";     #"DQUL_20"   DQUL1_6   #89
+# LOCATE COMP  "DQUL_21"   SITE "J5";     #"DQUL_21"   DQUL1_7   #91
+# LOCATE COMP  "DQUL_22"   SITE "K8";     #"DQUL_22"   DQUL1_8   #93
+# LOCATE COMP  "DQUL_23"   SITE "J7";     #"DQUL_23"   DQUL1_9   #95
+# LOCATE COMP  "DQUL_32"   SITE "E1";     #"DQUL_32"   DQUL2_6   #66
+# LOCATE COMP  "DQUL_33"   SITE "F1";     #"DQUL_33"   DQUL2_7   #68
+# LOCATE COMP  "DQUL_34"   SITE "L5";     #"DQUL_34"   DQUL2_8   #70
+# LOCATE COMP  "DQUL_35"   SITE "L6";     #"DQUL_35"   DQUL2_9   #72
+
+
+#DEFINE PORT GROUP "IN_group" "IN_*" ;
+#IOBUF GROUP "IN_group" IO_TYPE=LVDS25 DIFFRESISTOR=100;
+
+#DEFINE PORT GROUP "OUT_group" "OUT_*" ;
+#IOBUF GROUP "OUT_group" IO_TYPE=LVDS25;
+
+#################################################################
+# Additional Lines to AddOn
+#################################################################
+
+#Lines 0/1 are terminated with 100 Ohm, pads available on 0-3
+#all lines are input only
+#line 4/5 go to PLL input
+#LOCATE COMP  "SPARE_LINE_0"    SITE "M25"; #194
+#LOCATE COMP  "SPARE_LINE_1"    SITE "M26"; #196
+#LOCATE COMP  "SPARE_LINE_2"    SITE "W4";  #198
+#LOCATE COMP  "SPARE_LINE_3"    SITE "W5";  #200
+
+
+#################################################################
+# DAC SPI & Flash ROM & Reboot
+#################################################################
+
+LOCATE COMP  "FLASH_CLK"    SITE "B12";
+LOCATE COMP  "FLASH_CS"   SITE "E11";
+LOCATE COMP  "FLASH_DIN"   SITE "E12";
+LOCATE COMP  "FLASH_DOUT"    SITE "A12";
+
+DEFINE PORT GROUP "FLASH_group" "FLASH*" ;
+IOBUF GROUP "FLASH_group" IO_TYPE=LVCMOS25 PULLMODE=NONE;
+
+LOCATE COMP  "PROGRAMN"   SITE "B11";
+IOBUF  PORT "PROGRAMN" IO_TYPE=LVCMOS25 PULLMODE=UP DRIVE=8  ;
+
+LOCATE COMP  "DAC_SDI"   SITE "G6";   #"DQUL_7"   DQSUL0_C  #88   #IN_L_SDIb
+LOCATE COMP  "DAC_SCK"   SITE "E4";   #"DQUL_3"   DQUL0_3   #80   #OUT_L_SDOb
+LOCATE COMP  "DAC_CS_1"  SITE "C3";   #"DQUL_4"   DQUL0_4   #82   #OUT_L_SCK
+LOCATE COMP  "DAC_CS_2"  SITE "D3";   #"DQUL_5"   DQUL0_5   #84   #OUT_L_SCKb
+LOCATE COMP  "DAC_CS_3"  SITE "H6";   #"DQUL_10"  DQUL0_8   #94   #OUT_L_CS
+LOCATE COMP  "DAC_CS_4"  SITE "J6";   #"DQUL_11"  DQUL0_9   #96   #OUT_L_CSb
+
+DEFINE PORT GROUP "DAC_group" "DAC*" ;
+IOBUF GROUP "DAC_group" IO_TYPE=LVCMOS25 PULLMODE=NONE;
+
+
+#################################################################
+# Misc
+#################################################################
+LOCATE COMP  "TEMPSENS"    SITE "A13";
+IOBUF  PORT "TEMPSENS" IO_TYPE=LVCMOS25 PULLMODE=UP DRIVE=8  ;
+
+#coding of FPGA number
+LOCATE COMP "CODE_LINE_1"    SITE "AA20";
+LOCATE COMP "CODE_LINE_0"    SITE "Y21";
+IOBUF  PORT "CODE_LINE_1" IO_TYPE=LVCMOS25 PULLMODE=UP  ;
+IOBUF  PORT "CODE_LINE_0" IO_TYPE=LVCMOS25 PULLMODE=UP  ;
+
+#terminated differential pair to pads
+LOCATE COMP  "SUPPL"   SITE "C14";
+IOBUF  PORT "SUPPL" IO_TYPE=LVDS25   ;
+
+
+#################################################################
+# LED
+#################################################################
+LOCATE COMP  "LED_GREEN"    SITE "F12";
+LOCATE COMP  "LED_ORANGE"   SITE "G13";
+LOCATE COMP  "LED_RED"      SITE "A15";
+LOCATE COMP  "LED_YELLOW"   SITE "A16";
+DEFINE PORT GROUP "LED_group" "LED*" ;
+IOBUF GROUP "LED_group" IO_TYPE=LVCMOS25 PULLMODE=NONE DRIVE=12;
