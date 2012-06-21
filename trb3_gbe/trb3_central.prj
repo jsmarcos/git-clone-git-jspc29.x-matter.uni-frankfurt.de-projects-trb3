@@ -88,7 +88,8 @@ add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_med_ecp_sfp_gbe_8b.vh
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_frame_trans.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_frame_constr.vhd"
 #add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_packet_constr_nologic.vhd"
-add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_packet_constr.vhd"
+#add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_packet_constr.vhd"
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_packet_constr_simple_sender.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_ipu2gbe.vhd"
 #add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_ipu2gbe_nologic.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ip_configurator.vhd"
@@ -194,6 +195,7 @@ add_file -vhdl -lib work "../../trbnet/lattice/ecp3/trb_net_fifo_16bit_bram_dual
 
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/serdes_onboard_full.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_ctc.vhd"
+add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_int.vhd"
 
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_lsm_sfp.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.vhd"
