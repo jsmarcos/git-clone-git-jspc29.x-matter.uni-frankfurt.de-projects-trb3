@@ -349,13 +349,13 @@ begin
       REGIO_HARDWARE_VERSION    => x"92000000",
       REGIO_INIT_ADDRESS        => x"f300",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
-      CLOCK_FREQUENCY           => 125,
+      CLOCK_FREQUENCY           => 100,
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
       DATA_INTERFACE_NUMBER     => 1,
       DATA_BUFFER_DEPTH         => 13,         --13
       DATA_BUFFER_WIDTH         => 32,
-      DATA_BUFFER_FULL_THRESH   => 2**13-800,  --2**13-1024
+      DATA_BUFFER_FULL_THRESH   => 2**13-800,
       TRG_RELEASE_AFTER_DATA    => c_YES,
       HEADER_BUFFER_DEPTH       => 9,
       HEADER_BUFFER_FULL_THRESH => 2**9-16
@@ -615,6 +615,8 @@ timing_trg_received_i <= SPARE_LINE(0);
 ---------------------------------------------------------------------------    
   TEST_LINE(15 downto 0) <= (others => '0');
 
+
+  LVDS <= INPUT(2 downto 1);
 
 ---------------------------------------------------------------------------
 -- Test Circuits

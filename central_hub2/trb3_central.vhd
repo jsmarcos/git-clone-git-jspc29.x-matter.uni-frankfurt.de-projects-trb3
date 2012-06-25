@@ -239,7 +239,8 @@ THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
   generic map(
     SERDES_NUM  => 0,     --number of serdes in quad
     EXT_CLOCK   => c_NO,  --use internal clock
-    USE_200_MHZ => c_YES  --run on 200 MHz clock
+    USE_200_MHZ => c_YES,  --run on 200 MHz clock
+    USE_CTC     => c_YES
     )
   port map(
     CLK                => clk_200_i,

@@ -6,7 +6,7 @@ BLOCK RD_DURING_WR_PATHS ;
 # Basic Settings
 #################################################################
 
-  SYSCONFIG MCCLK_FREQ = 2.5;
+  SYSCONFIG MCCLK_FREQ = 20;
 
   FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
   FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;
@@ -139,6 +139,7 @@ UGROUP "gbe_rx_tx"
 	#BLKNAME gen_ethernet_hub_GBE/THE_IPU_INTERFACE
 	BLKNAME gen_ethernet_hub_GBE/setup_imp_gen_SETUP;
 
+	
 REGION "GBE_REGION" "R40C2D" 35 40 DEVSIZE;
 REGION "MED0" "R75C2D" 30 28 DEVSIZE;
 LOCATE UGROUP "gbe_rx_tx" REGION "GBE_REGION" ;
@@ -260,4 +261,4 @@ MULTICYCLE FROM CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac/U1_tx_rfifo/r
 MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac/U1_tx_rfifo/wr_ptr*" 2.000000 X ;
 MULTICYCLE FROM CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac/U1_tx_rfifo/wr_ptr*" 2.000000 X ;
 
-BLOCK INTERCLOCKDOMAIN PATHS ;
+#BLOCK INTERCLOCKDOMAIN PATHS ;

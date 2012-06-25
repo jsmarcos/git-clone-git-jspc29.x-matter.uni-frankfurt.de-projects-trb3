@@ -7,7 +7,7 @@ BLOCK RD_DURING_WR_PATHS ;
 # Basic Settings
 #################################################################
 
-  SYSCONFIG MCCLK_FREQ = 4.3;
+  SYSCONFIG MCCLK_FREQ = 2.5;
 
   FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
   FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;

@@ -121,6 +121,7 @@ entity trb3_central is
     attribute syn_useioff of FPGA3_TTL          : signal is false;
     attribute syn_useioff of FPGA4_TTL          : signal is false;
     attribute syn_useioff of SFP_TXDIS          : signal is false;
+    attribute syn_useioff of PROGRAMN           : signal is false;
     
     --important signals _with_ IO-FF
     attribute syn_useioff of FLASH_CLK          : signal is true;
