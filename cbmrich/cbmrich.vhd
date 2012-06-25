@@ -99,8 +99,8 @@ end entity;
 
 architecture cbmrich_arch of cbmrich is
   --Constants
-  constant REGIO_NUM_STAT_REGS : integer := 2;
-  constant REGIO_NUM_CTRL_REGS : integer := 2;
+  constant REGIO_NUM_STAT_REGS : integer := 5;
+  constant REGIO_NUM_CTRL_REGS : integer := 3;
 
   attribute syn_keep     : boolean;
   attribute syn_preserve : boolean;
@@ -215,24 +215,44 @@ architecture cbmrich_arch of cbmrich is
   --FPGA Test
   signal time_counter : unsigned(31 downto 0);
 
---   --TDC component
---   component TDC
---     generic (
---       CHANNEL_NUMBER : integer range 0 to 64);
---     port (
---       RESET             : in  std_logic;
---       CLK_TDC           : in  std_logic;
---       CLK_READOUT       : in  std_logic;
---       HIT_IN            : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
---       TRIGGER_IN        : in  std_logic;
---       TRIGGER_WIN_IN    : in  std_logic_vector(31 downto 0);
---       DATA_OUT          : out std_logic_vector(31 downto 0);
---       TRB_WR_CLK_OUT    : out std_logic;
---       DATA_VALID_OUT    : out std_logic;
---       DATA_FINISHED_OUT : out std_logic;
---       READY_OUT         : out std_logic;
---       TDC_DEBUG_00      : out std_logic_vector(31 downto 0));
---   end component;
+  --TDC
+  signal hit_in_i : std_logic_vector(63 downto 1);
+
+  --TDC component
+  component TDC
+    generic (
+      CHANNEL_NUMBER : integer range 0 to 64;
+      STATUS_REG_NR  : integer range 0 to 6;
+      CONTROL_REG_NR : integer range 0 to 6);
+    port (
+      RESET                 : in  std_logic;
+      CLK_TDC               : in  std_logic;
+      CLK_READOUT           : in  std_logic;
+      REFERENCE_TIME        : in  std_logic;
+      HIT_IN                : in  std_logic_vector(CHANNEL_NUMBER-1 downto 1);
+      TRG_WIN_PRE           : in  std_logic_vector(10 downto 0);
+      TRG_WIN_POST          : in  std_logic_vector(10 downto 0);
+      TRG_DATA_VALID_IN     : in  std_logic;
+      VALID_TIMING_TRG_IN   : in  std_logic;
+      VALID_NOTIMING_TRG_IN : in  std_logic;
+      INVALID_TRG_IN        : in  std_logic;
+      TMGTRG_TIMEOUT_IN     : in  std_logic;
+      SPIKE_DETECTED_IN     : in  std_logic;
+      MULTI_TMG_TRG_IN      : in  std_logic;
+      SPURIOUS_TRG_IN       : in  std_logic;
+      TRG_NUMBER_IN         : in  std_logic_vector(15 downto 0);
+      TRG_CODE_IN           : in  std_logic_vector(7 downto 0);
+      TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0);
+      TRG_TYPE_IN           : in  std_logic_vector(3 downto 0);
+      TRG_RELEASE_OUT       : out std_logic;
+      TRG_STATUSBIT_OUT     : out std_logic_vector(31 downto 0);
+      DATA_OUT              : out std_logic_vector(31 downto 0);
+      DATA_WRITE_OUT        : out std_logic;
+      DATA_FINISHED_OUT     : out std_logic;
+      TDC_DEBUG             : out std_logic_vector(32*2**STATUS_REG_NR-1 downto 0);
+      LOGIC_ANALYSER_OUT    : out std_logic_vector(15 downto 0);
+      CONTROL_REG_IN        : in  std_logic_vector(32*2**CONTROL_REG_NR-1 downto 0));
+  end component;
   
 begin
 ---------------------------------------------------------------------------
@@ -604,5 +624,59 @@ timing_trg_received_i <= SPARE_LINE(0);
     wait until rising_edge(clk_100_i);
     time_counter <= time_counter + 1;
   end process;
+
+-------------------------------------------------------------------------------
+-- TDC
+-------------------------------------------------------------------------------
+    THE_TDC : TDC
+    generic map (
+      CHANNEL_NUMBER => 32,             -- Number of TDC channels
+      STATUS_REG_NR  => REGIO_NUM_STAT_REGS,
+      CONTROL_REG_NR => REGIO_NUM_CTRL_REGS)
+    port map (
+      RESET                 => reset_i,
+      CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
+      CLK_READOUT           => clk_100_i,   -- Clock for the readout
+      REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
+      HIT_IN                => hit_in_i(31 downto 1),  -- Channel start signals
+      TRG_WIN_PRE           => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
+      TRG_WIN_POST          => ctrl_reg(58 downto 48),  -- Post-Trigger window width
+      --
+      -- Trigger signals from handler
+      TRG_DATA_VALID_IN     => trg_data_valid_i,  -- trig data valid signal from trbnet
+      VALID_TIMING_TRG_IN   => trg_timing_valid_i,  -- valid timing trigger signal from trbnet
+      VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,  -- valid notiming signal from trbnet
+      INVALID_TRG_IN        => trg_invalid_i,  -- invalid trigger signal from trbnet
+      TMGTRG_TIMEOUT_IN     => trg_timeout_detected_i,  -- timing trigger timeout signal from trbnet
+      SPIKE_DETECTED_IN     => trg_spike_detected_i,
+      MULTI_TMG_TRG_IN      => trg_multiple_trg_i,
+      SPURIOUS_TRG_IN       => trg_spurious_trg_i,
+      --
+      TRG_NUMBER_IN         => trg_number_i,  -- LVL1 trigger information package
+      TRG_CODE_IN           => trg_code_i,  --
+      TRG_INFORMATION_IN    => trg_information_i,   --
+      TRG_TYPE_IN           => trg_type_i,  -- LVL1 trigger information package
+      --
+      --Response to handler
+      TRG_RELEASE_OUT       => fee_trg_release_i,   -- trigger release signal
+      TRG_STATUSBIT_OUT     => fee_trg_statusbits_i,  -- status information of the tdc
+      DATA_OUT              => fee_data_i,  -- tdc data
+      DATA_WRITE_OUT        => fee_data_write_i,  -- data valid signal
+      DATA_FINISHED_OUT     => fee_data_finished_i,  -- readout finished signal
+      --
+      TDC_DEBUG             => stat_reg,
+      LOGIC_ANALYSER_OUT    => TEST_LINE,
+      CONTROL_REG_IN        => ctrl_reg);
+
+
+  hit_in_i(31 downto 1)   <= INPUT(31 downto 1);
+  
+  -- to detect rising & falling edges
+  --hit_in_i(1) <= not timing_trg_received_i;
+  
+  --Gen_Hit_In_Signals : for i in 1 to 15 generate
+  --  hit_in_i(i*2)   <= INPUT(i-1);
+  --  hit_in_i(i*2+1) <= not INPUT(i-1);
+  --end generate Gen_Hit_In_Signals;
 
 end architecture;
