@@ -19,6 +19,7 @@ entity Channel is
     FIFO_DATA_OUT        : out std_logic_vector(31 downto 0);
     FIFO_EMPTY_OUT       : out std_logic;
     FIFO_FULL_OUT        : out std_logic;
+    FIFO_ALMOST_FULL_OUT : out std_logic;
     COARSE_COUNTER_IN    : in  std_logic_vector(10 downto 0);
 --
     LOST_HIT_NUMBER      : out std_logic_vector(23 downto 0);
@@ -26,17 +27,6 @@ entity Channel is
     ENCODER_START_NUMBER : out std_logic_vector(23 downto 0);
 --
     Channel_DEBUG_01     : out std_logic_vector(31 downto 0)
--- Channel_DEBUG_02 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_03 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_04 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_05 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_06 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_07 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_08 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_09 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_10 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_11 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_12 : out std_logic_vector(31 downto 0)
     );
 
 end Channel;
@@ -69,19 +59,34 @@ architecture Channel of Channel is
       ENCODER_DEBUG   : out std_logic_vector(31 downto 0));
   end component;
 --
-  component FIFO_32x512_OutReg
+  component FIFO_32x32_OutReg
     port (
-      Data    : in  std_logic_vector(31 downto 0);
-      WrClock : in  std_logic;
-      RdClock : in  std_logic;
-      WrEn    : in  std_logic;
-      RdEn    : in  std_logic;
-      Reset   : in  std_logic;
-      RPReset : in  std_logic;
-      Q       : out std_logic_vector(31 downto 0);
-      Empty   : out std_logic;
-      Full    : out std_logic);
+      Data       : in  std_logic_vector(31 downto 0);
+      WrClock    : in  std_logic;
+      RdClock    : in  std_logic;
+      WrEn       : in  std_logic;
+      RdEn       : in  std_logic;
+      Reset      : in  std_logic;
+      RPReset    : in  std_logic;
+      Q          : out std_logic_vector(31 downto 0);
+      Empty      : out std_logic;
+      Full       : out std_logic;
+      AlmostFull : out std_logic);
   end component;
+--
+  --component FIFO_32x512_OutReg
+  --  port (
+  --    Data    : in  std_logic_vector(31 downto 0);
+  --    WrClock : in  std_logic;
+  --    RdClock : in  std_logic;
+  --    WrEn    : in  std_logic;
+  --    RdEn    : in  std_logic;
+  --    Reset   : in  std_logic;
+  --    RPReset : in  std_logic;
+  --    Q       : out std_logic_vector(31 downto 0);
+  --    Empty   : out std_logic;
+  --    Full    : out std_logic);
+  --end component;
 --
   component edge_to_pulse
     port (
@@ -125,6 +130,7 @@ architecture Channel of Channel is
   signal fifo_data_in_i       : std_logic_vector(31 downto 0);
   signal fifo_empty_i         : std_logic;
   signal fifo_full_i          : std_logic;
+  signal fifo_almost_full_i   : std_logic;
   signal fifo_wr_en_i         : std_logic;
   signal fifo_rd_en_i         : std_logic;
   signal sync_q               : std_logic_vector(3 downto 0);
@@ -304,18 +310,32 @@ begin
       BINARY_CODE_OUT => fine_counter_i,
       ENCODER_DEBUG   => encoder_debug_i);
 
-  FIFO : FIFO_32x512_OutReg
+  FIFO : FIFO_32x32_OutReg
     port map (
-      Data    => fifo_data_in_i,
-      WrClock => CLK_WR,
-      RdClock => CLK_RD,
-      WrEn    => fifo_wr_en_i,
-      RdEn    => fifo_rd_en_i,
-      Reset   => RESET_RD,
-      RPReset => RESET_RD,
-      Q       => fifo_data_out_i,
-      Empty   => fifo_empty_i,
-      Full    => fifo_full_i);
+      Data       => fifo_data_in_i,
+      WrClock    => CLK_WR,
+      RdClock    => CLK_RD,
+      WrEn       => fifo_wr_en_i,
+      RdEn       => fifo_rd_en_i,
+      Reset      => RESET_RD,
+      RPReset    => RESET_RD,
+      Q          => fifo_data_out_i,
+      Empty      => fifo_empty_i,
+      Full       => fifo_full_i,
+      AlmostFull => fifo_almost_full_i);
+
+  --FIFO : FIFO_32x512_OutReg
+  --  port map (
+  --    Data    => fifo_data_in_i,
+  --    WrClock => CLK_WR,
+  --    RdClock => CLK_RD,
+  --    WrEn    => fifo_wr_en_i,
+  --    RdEn    => fifo_rd_en_i,
+  --    Reset   => RESET_RD,
+  --    RPReset => RESET_RD,
+  --    Q       => fifo_data_out_i,
+  --    Empty   => fifo_empty_i,
+  --    Full    => fifo_full_i);
   fifo_data_in_i(31)           <= '1';  -- data marker
   fifo_data_in_i(30 downto 28) <= "000";           -- reserved bits
   fifo_data_in_i(27 downto 22) <= conv_std_logic_vector(CHANNEL_ID, 6);  -- channel number
@@ -351,13 +371,15 @@ begin
   begin
     if rising_edge(CLK_RD) then
       if RESET_RD = '1' then
-        FIFO_DATA_OUT  <= (others => '1');
-        FIFO_EMPTY_OUT <= '0';
-        FIFO_FULL_OUT  <= '0';
+        FIFO_DATA_OUT        <= (others => '1');
+        FIFO_EMPTY_OUT       <= '0';
+        FIFO_FULL_OUT        <= '0';
+        FIFO_ALMOST_FULL_OUT <= '0';
       else
-        FIFO_DATA_OUT  <= fifo_data_out_i;
-        FIFO_EMPTY_OUT <= fifo_empty_i;
-        FIFO_FULL_OUT  <= fifo_full_i;
+        FIFO_DATA_OUT        <= fifo_data_out_i;
+        FIFO_EMPTY_OUT       <= fifo_empty_i;
+        FIFO_FULL_OUT        <= fifo_full_i;
+        FIFO_ALMOST_FULL_OUT <= fifo_almost_full_i;
       end if;
     end if;
   end process Register_Outputs;

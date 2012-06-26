@@ -9,35 +9,23 @@ entity Reference_Channel is
   generic (
     CHANNEL_ID : integer range 0 to 15);
   port (
-    RESET_WR          : in  std_logic;
-    RESET_RD          : in  std_logic;
-    CLK_WR            : in  std_logic;
-    CLK_RD            : in  std_logic;
+    RESET_WR             : in  std_logic;
+    RESET_RD             : in  std_logic;
+    CLK_WR               : in  std_logic;
+    CLK_RD               : in  std_logic;
 --
-    HIT_IN            : in  std_logic;
-    READ_EN_IN        : in  std_logic;
-    VALID_TMG_TRG_IN  : in  std_logic;
-    SPIKE_DETECTED_IN : in  std_logic;
-    MULTI_TMG_TRG_IN  : in  std_logic;
-    FIFO_DATA_OUT     : out std_logic_vector(31 downto 0);
-    FIFO_EMPTY_OUT    : out std_logic;
-    FIFO_FULL_OUT     : out std_logic;
-    COARSE_COUNTER_IN : in  std_logic_vector(10 downto 0);
-    TRIGGER_TIME_OUT  : out std_logic_vector(10 downto 0);  -- coarse time of the timing trigger
-    REF_DEBUG_OUT     : out std_logic_vector(31 downto 0)
---
--- Channel_DEBUG_01 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_02 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_03 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_04 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_05 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_06 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_07 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_08 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_09 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_10 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_11 : out std_logic_vector(31 downto 0);
--- Channel_DEBUG_12 : out std_logic_vector(31 downto 0)
+    HIT_IN               : in  std_logic;
+    READ_EN_IN           : in  std_logic;
+    VALID_TMG_TRG_IN     : in  std_logic;
+    SPIKE_DETECTED_IN    : in  std_logic;
+    MULTI_TMG_TRG_IN     : in  std_logic;
+    FIFO_DATA_OUT        : out std_logic_vector(31 downto 0);
+    FIFO_EMPTY_OUT       : out std_logic;
+    FIFO_FULL_OUT        : out std_logic;
+    FIFO_ALMOST_FULL_OUT : out std_logic;
+    COARSE_COUNTER_IN    : in  std_logic_vector(10 downto 0);
+    TRIGGER_TIME_OUT     : out std_logic_vector(10 downto 0);  -- coarse time of the timing trigger
+    REF_DEBUG_OUT        : out std_logic_vector(31 downto 0)
     );
 
 end Reference_Channel;
@@ -69,41 +57,34 @@ architecture Reference_Channel of Reference_Channel is
       ENCODER_DEBUG   : out std_logic_vector(31 downto 0));
   end component;
 --
-  --component Encoder_304_ROMsuz
-  --  port (
-  --    RESET           : in  std_logic;
-  --    CLK             : in  std_logic;
-  --    START_IN        : in  std_logic;
-  --    THERMOCODE_IN   : in  std_logic_vector(303 downto 0);
-  --    FINISHED_OUT    : out std_logic;
-  --    BINARY_CODE_OUT : out std_logic_vector(9 downto 0);
-  --    ENCODER_DEBUG   : out std_logic_vector(31 downto 0));
-  --end component;
---
-  --component Encoder_304_Sngl_ROMsuz
-  --  port (
-  --    RESET           : in  std_logic;
-  --    CLK             : in  std_logic;
-  --    START_IN        : in  std_logic;
-  --    THERMOCODE_IN   : in  std_logic_vector(303 downto 0);
-  --    FINISHED_OUT    : out std_logic;
-  --    BINARY_CODE_OUT : out std_logic_vector(9 downto 0);
-  --    ENCODER_DEBUG   : out std_logic_vector(31 downto 0));
-  --end component;
---
-  component FIFO_32x512_OutReg
+  component FIFO_32x32_OutReg
     port (
-      Data    : in  std_logic_vector(31 downto 0);
-      WrClock : in  std_logic;
-      RdClock : in  std_logic;
-      WrEn    : in  std_logic;
-      RdEn    : in  std_logic;
-      Reset   : in  std_logic;
-      RPReset : in  std_logic;
-      Q       : out std_logic_vector(31 downto 0);
-      Empty   : out std_logic;
-      Full    : out std_logic);
+      Data       : in  std_logic_vector(31 downto 0);
+      WrClock    : in  std_logic;
+      RdClock    : in  std_logic;
+      WrEn       : in  std_logic;
+      RdEn       : in  std_logic;
+      Reset      : in  std_logic;
+      RPReset    : in  std_logic;
+      Q          : out std_logic_vector(31 downto 0);
+      Empty      : out std_logic;
+      Full       : out std_logic;
+      AlmostFull : out std_logic);
   end component;
+--  
+  --component FIFO_32x512_OutReg
+  --  port (
+  --    Data    : in  std_logic_vector(31 downto 0);
+  --    WrClock : in  std_logic;
+  --    RdClock : in  std_logic;
+  --    WrEn    : in  std_logic;
+  --    RdEn    : in  std_logic;
+  --    Reset   : in  std_logic;
+  --    RPReset : in  std_logic;
+  --    Q       : out std_logic_vector(31 downto 0);
+  --    Empty   : out std_logic;
+  --    Full    : out std_logic);
+  --end component;
 --
   component bit_sync
     generic (
@@ -144,6 +125,7 @@ architecture Reference_Channel of Reference_Channel is
   signal fifo_data_in_i       : std_logic_vector(31 downto 0);
   signal fifo_empty_i         : std_logic;
   signal fifo_full_i          : std_logic;
+  signal fifo_almost_full_i   : std_logic;
   signal fifo_wr_en_i         : std_logic;
   signal fifo_rd_en_i         : std_logic;
   signal valid_tmg_trg_i      : std_logic;
@@ -201,9 +183,9 @@ begin
       RESET  => RESET_WR,
       DataA  => data_a_i,
       DataB  => data_b_i,
-      ClkEn  => '1',      --ff_array_en_i,
+      ClkEn  => '1',                    --ff_array_en_i,
       Result => result_i);
-  data_a_i <= x"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000FF" & x"7FFFFFF";
+  data_a_i <= x"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF" & x"7FFFFFF";
   data_b_i <= x"000000000000000000000000000000000000000000000000000000000000000000000" & not(hit_buf) & x"000000" & "00" & hit_buf;
 
   --FF_Array_Enable : process (hit_detect_i, release_delay_line_i)
@@ -261,9 +243,9 @@ begin
   end process Hit_Detect_Register;
 
   --purpose: Detects the hit
-  Hit_Detect : process (result_2_reg, result_i)  --result_29_reg
+  Hit_Detect : process (result_2_reg, result_i)            --result_29_reg
   begin
-    hit_detect_i <= ((not result_2_reg) and result_i(2)); -- or (result_29_reg and not(result_i(29)));
+    hit_detect_i <= ((not result_2_reg) and result_i(2));  -- or (result_29_reg and not(result_i(29)));
   end process Hit_Detect;
 
   --purpose: Double Synchroniser
@@ -320,24 +302,38 @@ begin
     end if;
   end process Register_Binary_Code;
 
-  FIFO : FIFO_32x512_OutReg
+  FIFO : FIFO_32x32_OutReg
     port map (
-      Data    => fifo_data_in_i,
-      WrClock => CLK_WR,
-      RdClock => CLK_RD,
-      WrEn    => fifo_wr_en_i,
-      RdEn    => fifo_rd_en_i,
-      Reset   => RESET_RD,
-      RPReset => RESET_RD,
-      Q       => fifo_data_out_i,
-      Empty   => fifo_empty_i,
-      Full    => fifo_full_i);
+      Data       => fifo_data_in_i,
+      WrClock    => CLK_WR,
+      RdClock    => CLK_RD,
+      WrEn       => fifo_wr_en_i,
+      RdEn       => fifo_rd_en_i,
+      Reset      => RESET_RD,
+      RPReset    => RESET_RD,
+      Q          => fifo_data_out_i,
+      Empty      => fifo_empty_i,
+      Full       => fifo_full_i,
+      AlmostFull => fifo_almost_full_i);
+
+  --FIFO : FIFO_32x512_OutReg
+  --  port map (
+  --    Data    => fifo_data_in_i,
+  --    WrClock => CLK_WR,
+  --    RdClock => CLK_RD,
+  --    WrEn    => fifo_wr_en_i,
+  --    RdEn    => fifo_rd_en_i,
+  --    Reset   => RESET_RD,
+  --    RPReset => RESET_RD,
+  --    Q       => fifo_data_out_i,
+  --    Empty   => fifo_empty_i,
+  --    Full    => fifo_full_i);
 
   fifo_data_in_i(31)           <= '1';  -- data marker
   fifo_data_in_i(30 downto 28) <= "000";             -- reserved bits
   fifo_data_in_i(27 downto 22) <= conv_std_logic_vector(CHANNEL_ID, 6);  -- channel number
   fifo_data_in_i(21 downto 12) <= fine_counter_reg;  -- fine time from the encoder
-  fifo_data_in_i(11)           <= '1'; --edge_type_i;  -- rising '1'  or falling '0' edge
+  fifo_data_in_i(11)           <= '1';  --edge_type_i;  -- rising '1'  or falling '0' edge
   fifo_data_in_i(10 downto 0)  <= hit_time_stamp_i;  -- hit time stamp
 
   --Toggle_Edge_Type : process (CLK_WR, RESET_WR)
@@ -355,13 +351,15 @@ begin
   begin
     if rising_edge(CLK_RD) then
       if RESET_RD = '1' then
-        FIFO_DATA_OUT  <= (others => '1');
-        FIFO_EMPTY_OUT <= '0';
-        FIFO_FULL_OUT  <= '0';
+        FIFO_DATA_OUT        <= (others => '1');
+        FIFO_EMPTY_OUT       <= '0';
+        FIFO_FULL_OUT        <= '0';
+        FIFO_ALMOST_FULL_OUT <= '0';
       else
-        FIFO_DATA_OUT  <= fifo_data_out_i;
-        FIFO_EMPTY_OUT <= fifo_empty_i;
-        FIFO_FULL_OUT  <= fifo_full_i;
+        FIFO_DATA_OUT        <= fifo_data_out_i;
+        FIFO_EMPTY_OUT       <= fifo_empty_i;
+        FIFO_FULL_OUT        <= fifo_full_i;
+        FIFO_ALMOST_FULL_OUT <= fifo_almost_full_i;
       end if;
     end if;
   end process Register_Outputs;
@@ -398,7 +396,7 @@ begin
           fsm_debug_fsm <= x"2";
         end if;
 
-      when ENCODER_FINISHED => 
+      when ENCODER_FINISHED =>
         if encoder_finished_i = '1' then
           FSM_NEXT <= LOOK_FOR_VALIDITY;
         elsif valid_tmg_trg_i = '1' then
@@ -409,7 +407,7 @@ begin
         
       when LOOK_FOR_VALIDITY =>
         if valid_tmg_trg_i = '1' then
-          FSM_NEXT       <= IDLE; --WAIT_FOR_FALLING_EDGE;
+          FSM_NEXT       <= IDLE;       --WAIT_FOR_FALLING_EDGE;
           fifo_wr_en_fsm <= '1';
           fsm_debug_fsm  <= x"4";
         elsif multi_tmg_trg_i = '1' then
