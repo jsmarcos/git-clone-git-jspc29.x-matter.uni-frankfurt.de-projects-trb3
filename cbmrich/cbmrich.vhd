@@ -613,7 +613,7 @@ timing_trg_received_i <= SPARE_LINE(0);
 ---------------------------------------------------------------------------
 -- Test Connector
 ---------------------------------------------------------------------------    
-  TEST_LINE(15 downto 0) <= (others => '0');
+--  TEST_LINE(15 downto 0) <= (others => '0');
 
 
   LVDS <= INPUT(2 downto 1);
@@ -671,7 +671,7 @@ timing_trg_received_i <= SPARE_LINE(0);
       CONTROL_REG_IN        => ctrl_reg);
 
 
-  hit_in_i(31 downto 1)   <= INPUT(31 downto 1);
+  hit_in_i(63 downto 1)   <= INPUT(63 downto 1);
   
   -- to detect rising & falling edges
   --hit_in_i(1) <= not timing_trg_received_i;
