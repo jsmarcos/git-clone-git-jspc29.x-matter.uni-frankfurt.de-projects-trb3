@@ -216,12 +216,12 @@ architecture cbmrich_arch of cbmrich is
   signal time_counter : unsigned(31 downto 0);
 
   --TDC
-  signal hit_in_i : std_logic_vector(63 downto 1);
+  signal hit_in_i : std_logic_vector(64 downto 1);
 
   --TDC component
   component TDC
     generic (
-      CHANNEL_NUMBER : integer range 0 to 64;
+      CHANNEL_NUMBER : integer range 1 to 65;
       STATUS_REG_NR  : integer range 0 to 6;
       CONTROL_REG_NR : integer range 0 to 6);
     port (
@@ -632,7 +632,7 @@ timing_trg_received_i <= SPARE_LINE(0);
 -------------------------------------------------------------------------------
     THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 32,             -- Number of TDC channels
+      CHANNEL_NUMBER => 65,             -- Number of TDC channels
       STATUS_REG_NR  => REGIO_NUM_STAT_REGS,
       CONTROL_REG_NR => REGIO_NUM_CTRL_REGS)
     port map (
@@ -640,7 +640,7 @@ timing_trg_received_i <= SPARE_LINE(0);
       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
-      HIT_IN                => hit_in_i(31 downto 1),  -- Channel start signals
+      HIT_IN                => hit_in_i(64 downto 1),  -- Channel start signals
       TRG_WIN_PRE           => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --
@@ -671,7 +671,7 @@ timing_trg_received_i <= SPARE_LINE(0);
       CONTROL_REG_IN        => ctrl_reg);
 
 
-  hit_in_i(63 downto 1)   <= INPUT(63 downto 1);
+  hit_in_i  <= INPUT;
   
   -- to detect rising & falling edges
   --hit_in_i(1) <= not timing_trg_received_i;

@@ -33,7 +33,7 @@ entity trb3_periph is
     --Connection to ADA AddOn
     SPARE_LINE           : inout std_logic_vector(3 downto 0);  --inputs only
     INP                  : in    std_logic_vector(63 downto 0);
-    DAC_SDO              : in    std_logic;
+--    DAC_SDO              : in    std_logic;
     DAC_SDI              : out   std_logic;
     DAC_SCK              : out   std_logic;
     DAC_CS               : out   std_logic_vector(3 downto 0);
@@ -616,7 +616,7 @@ begin
 
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 8,             -- Number of TDC channels
+      CHANNEL_NUMBER => 64,             -- Number of TDC channels
       STATUS_REG_NR  => REGIO_NUM_STAT_REGS,
       CONTROL_REG_NR => REGIO_NUM_CTRL_REGS)
     port map (
@@ -624,7 +624,7 @@ begin
       CLK_TDC        => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT    => clk_100_i,      -- Clock for the readout
       REFERENCE_TIME => timing_trg_received_i,   -- Reference time input
-      HIT_IN         => hit_in_i(7 downto 1),   -- Channel start signals
+      HIT_IN         => hit_in_i(64 downto 1),   -- Channel start signals
       TRG_WIN_PRE    => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST   => ctrl_reg(58 downto 48),  -- Post-Trigger window width
 
@@ -655,8 +655,8 @@ begin
       CONTROL_REG_IN     => ctrl_reg);
 
 
---  -- For single edge measurements
-----  hit_in_i(64 downto 1) <= INP(63 downto 0);
+  -- For single edge measurements
+  hit_in_i(64 downto 1) <= INP(63 downto 0);
 
 --  -- For ToT Measurements
 --  hit_in_i(1) <= not timing_trg_received_i;

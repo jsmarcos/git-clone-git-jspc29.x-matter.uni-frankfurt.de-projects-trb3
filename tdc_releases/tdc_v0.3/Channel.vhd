@@ -197,7 +197,7 @@ begin
       DataB  => data_b_i,
       ClkEn  => '1', --ff_array_en_i,
       Result => result_i);
-  data_a_i <= x"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF" & x"7FFFFFF";
+  data_a_i <= x"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000F" & x"7FFFFFF";
   data_b_i <= x"000000000000000000000000000000000000000000000000000000000000000000000" & not(hit_buf) & x"000000" & "00" & hit_buf;
 
   --FF_Array_Enable : process (hit_detect_i, release_delay_line_i)
@@ -337,8 +337,8 @@ begin
   --    Empty   => fifo_empty_i,
   --    Full    => fifo_full_i);
   fifo_data_in_i(31)           <= '1';  -- data marker
-  fifo_data_in_i(30 downto 28) <= "000";           -- reserved bits
-  fifo_data_in_i(27 downto 22) <= conv_std_logic_vector(CHANNEL_ID, 6);  -- channel number
+  fifo_data_in_i(30 downto 29) <= "00";           -- reserved bits
+  fifo_data_in_i(28 downto 22) <= conv_std_logic_vector(CHANNEL_ID, 7);  -- channel number
   fifo_data_in_i(21 downto 12) <= fine_counter_i;  -- fine time from the encoder
   fifo_data_in_i(11)           <= '1';  --edge_type_i;  -- rising '1' or falling '0' edge
   fifo_data_in_i(10 downto 0)  <= hit_time_stamp_i;  -- hit time stamp

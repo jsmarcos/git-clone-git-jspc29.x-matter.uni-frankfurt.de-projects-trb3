@@ -13,7 +13,7 @@ use IEEE.STD_LOGIC_TEXTIO.all;
 
 entity TDC is
   generic (
-    CHANNEL_NUMBER : integer range 0 to 64;
+    CHANNEL_NUMBER : integer range 1 to 65;
     STATUS_REG_NR  : integer range 0 to 6;
     CONTROL_REG_NR : integer range 0 to 6);
   port (
@@ -83,7 +83,7 @@ architecture TDC of TDC is
 --
   component Channel
     generic (
-      CHANNEL_ID : integer range 1 to 64);
+      CHANNEL_ID : integer range 1 to 65);
     port (
       RESET_WR             : in  std_logic;
       RESET_RD             : in  std_logic;
@@ -202,7 +202,7 @@ architecture TDC of TDC is
 -- Other Signals
   signal fifo_full_i           : std_logic;
   signal fifo_almost_full_i    : std_logic;
-  signal mask_i                : std_logic_vector(CHANNEL_NUMBER downto 0);
+  signal mask_i                : std_logic_vector(71 downto 0);
   signal fifo_nr               : integer range 0 to CHANNEL_NUMBER := CHANNEL_NUMBER;
   signal fifo_nr_next          : integer range 0 to CHANNEL_NUMBER := CHANNEL_NUMBER;
   signal TW_pre                : std_logic_vector(10 downto 0);
@@ -210,7 +210,7 @@ architecture TDC of TDC is
   signal channel_hit_time      : std_logic_vector(10 downto 0);
   signal trg_win_l             : std_logic;
   signal trg_win_r             : std_logic;
-  type   Std_Logic_8_array is array (0 to (CHANNEL_NUMBER/8-1)) of std_logic_vector(3 downto 0);
+  type   Std_Logic_8_array is array (0 to 8) of std_logic_vector(3 downto 0);
   signal fifo_nr_hex           : Std_Logic_8_array;
   signal coarse_cnt            : std_logic_vector(10 downto 0);
   signal reset_coarse_cnt      : std_logic;
@@ -316,7 +316,7 @@ begin
 
   -- Channel enable signals
   GEN_Channel_Enable : for i in 1 to CHANNEL_NUMBER-1 generate
-    hit_in_i(i) <= HIT_IN(i) and ch_en_i(i);
+    hit_in_i(i) <= HIT_IN(i) and ch_en_i(i-1);
   end generate GEN_Channel_Enable;
 
   -- Channels
@@ -510,7 +510,7 @@ begin
     end if;
   end process CREAT_MASK;
 
-  GEN : for i in 0 to (CHANNEL_NUMBER/8-1) generate
+  GEN : for i in 0 to 8 generate
     ROM : ROM_FIFO
       port map (
         Address    => mask_i(8*(i+1)-1 downto 8*i),
@@ -528,20 +528,22 @@ begin
         fifo_nr_next <= CHANNEL_NUMBER;
       elsif fifo_nr_hex(0)(3) /= '1' then
         fifo_nr_next <= conv_integer("00000" & fifo_nr_hex(0)(2 downto 0));
-      --elsif fifo_nr_hex(1)(3) /= '1' then
-      --  fifo_nr_next <= conv_integer("00001" & fifo_nr_hex(1)(2 downto 0));
-      --elsif fifo_nr_hex(2)(3) /= '1' then
-      --  fifo_nr_next <= conv_integer("00010" & fifo_nr_hex(2)(2 downto 0));
-      --elsif fifo_nr_hex(3)(3) /= '1' then
-      --  fifo_nr_next <= conv_integer("00011" & fifo_nr_hex(3)(2 downto 0));
-      --elsif fifo_nr_hex(4)(3) /= '1' then
-      --  fifo_nr_next <= conv_integer("00100" & fifo_nr_hex(4)(2 downto 0));
-      --elsif fifo_nr_hex(5)(3) /= '1' then
-      --  fifo_nr_next <= conv_integer("00101" & fifo_nr_hex(5)(2 downto 0));
-      --elsif fifo_nr_hex(6)(3) /= '1' then
-      --  fifo_nr_next <= conv_integer("00110" & fifo_nr_hex(6)(2 downto 0));
-      --elsif fifo_nr_hex(7)(3) /= '1' then
-      --  fifo_nr_next <= conv_integer("00111" & fifo_nr_hex(7)(2 downto 0));
+      elsif fifo_nr_hex(1)(3) /= '1' then
+        fifo_nr_next <= conv_integer("00001" & fifo_nr_hex(1)(2 downto 0));
+      elsif fifo_nr_hex(2)(3) /= '1' then
+        fifo_nr_next <= conv_integer("00010" & fifo_nr_hex(2)(2 downto 0));
+      elsif fifo_nr_hex(3)(3) /= '1' then
+        fifo_nr_next <= conv_integer("00011" & fifo_nr_hex(3)(2 downto 0));
+      elsif fifo_nr_hex(4)(3) /= '1' then
+        fifo_nr_next <= conv_integer("00100" & fifo_nr_hex(4)(2 downto 0));
+      elsif fifo_nr_hex(5)(3) /= '1' then
+        fifo_nr_next <= conv_integer("00101" & fifo_nr_hex(5)(2 downto 0));
+      elsif fifo_nr_hex(6)(3) /= '1' then
+        fifo_nr_next <= conv_integer("00110" & fifo_nr_hex(6)(2 downto 0));
+      elsif fifo_nr_hex(7)(3) /= '1' then
+        fifo_nr_next <= conv_integer("00111" & fifo_nr_hex(7)(2 downto 0));
+      elsif fifo_nr_hex(8)(3) /= '1' then
+        fifo_nr_next <= conv_integer("01000" & fifo_nr_hex(8)(2 downto 0));
       else
         fifo_nr_next <= CHANNEL_NUMBER;
       end if;
@@ -594,7 +596,7 @@ begin
           end if;
           stop_status_i <= '0';
         elsif wr_ch_data_reg = '1' and trigger_win_en = '0' then
-          data_out_reg  <= "1000" & channel_data_reg(fifo_nr)(27 downto 0);
+          data_out_reg  <= channel_data_reg(fifo_nr);
           data_wr_reg   <= '1';
           stop_status_i <= '0';
         elsif wr_status_i = '1' then
@@ -877,23 +879,23 @@ begin
   -- Information bits sent after a status trigger
   -- <= lost_hits_nr_i;                 -- total number of lost hits.
 
-  fifo_full_i <= channel_full_i(31) or channel_full_i(30) or channel_full_i(29) or channel_full_i(28) or
-                 channel_full_i(27) or channel_full_i(26) or channel_full_i(25) or channel_full_i(24) or
-                 channel_full_i(23) or channel_full_i(22) or channel_full_i(21) or channel_full_i(20) or
-                 channel_full_i(19) or channel_full_i(18) or channel_full_i(17) or channel_full_i(16) or
-                 channel_full_i(15) or channel_full_i(14) or channel_full_i(13) or channel_full_i(12) or
-                 channel_full_i(11) or channel_full_i(10) or channel_full_i(9) or channel_full_i(8) or
-                 channel_full_i(7) or channel_full_i(6) or channel_full_i(5) or channel_full_i(4) or
-                 channel_full_i(3) or channel_full_i(2) or channel_full_i(1) or channel_full_i(0);
+  --fifo_full_i <= channel_full_i(31) or channel_full_i(30) or channel_full_i(29) or channel_full_i(28) or
+  --               channel_full_i(27) or channel_full_i(26) or channel_full_i(25) or channel_full_i(24) or
+  --               channel_full_i(23) or channel_full_i(22) or channel_full_i(21) or channel_full_i(20) or
+  --               channel_full_i(19) or channel_full_i(18) or channel_full_i(17) or channel_full_i(16) or
+  --               channel_full_i(15) or channel_full_i(14) or channel_full_i(13) or channel_full_i(12) or
+  --               channel_full_i(11) or channel_full_i(10) or channel_full_i(9) or channel_full_i(8) or
+  --               channel_full_i(7) or channel_full_i(6) or channel_full_i(5) or channel_full_i(4) or
+  --               channel_full_i(3) or channel_full_i(2) or channel_full_i(1) or channel_full_i(0);
 
-  fifo_almost_full_i <= channel_almost_full_i(31) or channel_almost_full_i(30) or channel_almost_full_i(29) or channel_almost_full_i(28) or
-                        channel_almost_full_i(27) or channel_almost_full_i(26) or channel_almost_full_i(25) or channel_almost_full_i(24) or
-                        channel_almost_full_i(23) or channel_almost_full_i(22) or channel_almost_full_i(21) or channel_almost_full_i(20) or
-                        channel_almost_full_i(19) or channel_almost_full_i(18) or channel_almost_full_i(17) or channel_almost_full_i(16) or
-                        channel_almost_full_i(15) or channel_almost_full_i(14) or channel_almost_full_i(13) or channel_almost_full_i(12) or
-                        channel_almost_full_i(11) or channel_almost_full_i(10) or channel_almost_full_i(9) or channel_almost_full_i(8) or
-                        channel_almost_full_i(7) or channel_almost_full_i(6) or channel_almost_full_i(5) or channel_almost_full_i(4) or
-                        channel_almost_full_i(3) or channel_almost_full_i(2) or channel_almost_full_i(1) or channel_almost_full_i(0);
+  --fifo_almost_full_i <= channel_almost_full_i(31) or channel_almost_full_i(30) or channel_almost_full_i(29) or channel_almost_full_i(28) or
+  --                      channel_almost_full_i(27) or channel_almost_full_i(26) or channel_almost_full_i(25) or channel_almost_full_i(24) or
+  --                      channel_almost_full_i(23) or channel_almost_full_i(22) or channel_almost_full_i(21) or channel_almost_full_i(20) or
+  --                      channel_almost_full_i(19) or channel_almost_full_i(18) or channel_almost_full_i(17) or channel_almost_full_i(16) or
+  --                      channel_almost_full_i(15) or channel_almost_full_i(14) or channel_almost_full_i(13) or channel_almost_full_i(12) or
+  --                      channel_almost_full_i(11) or channel_almost_full_i(10) or channel_almost_full_i(9) or channel_almost_full_i(8) or
+  --                      channel_almost_full_i(7) or channel_almost_full_i(6) or channel_almost_full_i(5) or channel_almost_full_i(4) or
+  --                      channel_almost_full_i(3) or channel_almost_full_i(2) or channel_almost_full_i(1) or channel_almost_full_i(0);
 
 -------------------------------------------------------------------------------
 -- Debug and statistics words
@@ -1135,14 +1137,9 @@ begin
 --
 --  TDC_DEBUG(31 downto 28)          <= 
 
--- Register 0x81
-  --TDC_DEBUG(1*32+CHANNEL_NUMBER-1 downto 1*32+0) <= channel_empty_i(CHANNEL_NUMBER-1 downto 0);
-
--- Register 0x82
-  --Empty_Channels : if CHANNEL_NUMBER >= 33 generate
-  --  TDC_DEBUG(2*32+CHANNEL_NUMBER-33 downto 2*32+0) <= channel_empty_i(CHANNEL_NUMBER-1 downto 32);
-  --end generate Empty_Channels;
-
+  -- Register 0x81 & 0x82
+  TDC_DEBUG(1*32+CHANNEL_NUMBER-1 downto 1*32+0) <= channel_empty_i(CHANNEL_NUMBER-1 downto 0);
+  
 -- Register 0x83
   TDC_DEBUG(3*32+31 downto 3*32+0) <= "00000" & TRG_WIN_POST & "00000" & TRG_WIN_PRE;
 

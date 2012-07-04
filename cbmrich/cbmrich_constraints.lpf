@@ -702,13 +702,16 @@ UGROUP "E&F_31" # BBOX 4 5
 LOCATE UGROUP "E&F_31" REGION "Region_E&F_12" ;
 
 ##############################################################################
-
+##                         Unimportant Data Lines                           ##
+##############################################################################
 #MULTICYCLE TO PORT "TEST_LINE_*" 2.000000 X ;
-
 MULTICYCLE TO CELL "THE_TDC/GEN_Channels_*_Channels/lost_hit_cntr_*" 3.000000 X ;
+MULTICYCLE TO CELL "THE_TDC/GEN_Channels_*_Channels/hit_detect_cntr_*" 3.000000 X ;
+MULTICYCLE TO CELL "THE_TDC/GEN_Channels_*_Channels/encoder_start_cntr_*" 3.000000 X ;
+MULTICYCLE TO CELL "THE_TDC/GEN_Channels_*_Channels/fifo_wr_cntr_*" 3.000000 X ;
+
 MULTICYCLE FROM CELL "THE_TDC/reset_tdc*" 3.000000 X ;
 
 
 MAXDELAY NET "THE_TDC/The_Reference_Time/hit_buf" 0.700000 nS DATAPATH_ONLY ;
 MAXDELAY NET "THE_TDC/GEN_Channels_*_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
-

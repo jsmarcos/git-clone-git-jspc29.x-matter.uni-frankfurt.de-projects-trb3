@@ -589,7 +589,7 @@ begin
       RESET                 => reset_i,
       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
-      REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
+      REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
       HIT_IN                => hit_in_i(31 downto 1),  -- Channel start signals
       TRG_WIN_PRE           => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => ctrl_reg(58 downto 48),  -- Post-Trigger window width
@@ -622,7 +622,7 @@ begin
 
 
   hit_in_i(1) <= not timing_trg_received_i;
-  
+
   Gen_Hit_In_Signals : for i in 1 to 15 generate
     hit_in_i(i*2)   <= INP(i-1);
     hit_in_i(i*2+1) <= not INP(i-1);
