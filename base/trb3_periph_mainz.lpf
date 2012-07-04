@@ -7,18 +7,18 @@ BLOCK RD_DURING_WR_PATHS ;
 # Basic Settings
 #################################################################
 
-#  FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
-#  FREQUENCY PORT CLK_GPLL_LEFT  125 MHz;
+  FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
+  FREQUENCY PORT CLK_GPLL_LEFT  125 MHz;
   FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;
   FREQUENCY PORT CLK_GPLL_RIGHT 200 MHz;
 
 #################################################################
 # Clock I/O
 #################################################################
-#LOCATE COMP  "CLK_PCLK_RIGHT"       SITE "U20";
-#LOCATE COMP  "CLK_SERDES_INT_RIGHT" SITE "AC18";
-#LOCATE COMP  "CLK_SERDES_INT_LEFT"  SITE "AC10";
-#LOCATE COMP  "CLK_GPLL_LEFT"        SITE "U25";
+LOCATE COMP  "CLK_PCLK_RIGHT"       SITE "U20";
+LOCATE COMP  "CLK_SERDES_INT_RIGHT" SITE "AC18";
+LOCATE COMP  "CLK_SERDES_INT_LEFT"  SITE "AC10";
+LOCATE COMP  "CLK_GPLL_LEFT"        SITE "U25";
 
 LOCATE COMP  "CLK_PCLK_LEFT"        SITE "M4";
 LOCATE COMP  "CLK_GPLL_RIGHT"       SITE "W1";

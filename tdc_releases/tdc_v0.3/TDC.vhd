@@ -528,20 +528,20 @@ begin
         fifo_nr_next <= CHANNEL_NUMBER;
       elsif fifo_nr_hex(0)(3) /= '1' then
         fifo_nr_next <= conv_integer("00000" & fifo_nr_hex(0)(2 downto 0));
-      elsif fifo_nr_hex(1)(3) /= '1' then
-        fifo_nr_next <= conv_integer("00001" & fifo_nr_hex(1)(2 downto 0));
-      elsif fifo_nr_hex(2)(3) /= '1' then
-        fifo_nr_next <= conv_integer("00010" & fifo_nr_hex(2)(2 downto 0));
-      elsif fifo_nr_hex(3)(3) /= '1' then
-        fifo_nr_next <= conv_integer("00011" & fifo_nr_hex(3)(2 downto 0));
-        --elsif fifo_nr_hex(4)(3) /= '1' then
-        --  fifo_nr_next <= conv_integer("00100" & fifo_nr_hex(4)(2 downto 0));
-        --elsif fifo_nr_hex(5)(3) /= '1' then
-        --  fifo_nr_next <= conv_integer("00101" & fifo_nr_hex(5)(2 downto 0));
-        --elsif fifo_nr_hex(6)(3) /= '1' then
-        --  fifo_nr_next <= conv_integer("00110" & fifo_nr_hex(6)(2 downto 0));
-        --elsif fifo_nr_hex(7)(3) /= '1' then
-        --  fifo_nr_next <= conv_integer("00111" & fifo_nr_hex(7)(2 downto 0));
+      --elsif fifo_nr_hex(1)(3) /= '1' then
+      --  fifo_nr_next <= conv_integer("00001" & fifo_nr_hex(1)(2 downto 0));
+      --elsif fifo_nr_hex(2)(3) /= '1' then
+      --  fifo_nr_next <= conv_integer("00010" & fifo_nr_hex(2)(2 downto 0));
+      --elsif fifo_nr_hex(3)(3) /= '1' then
+      --  fifo_nr_next <= conv_integer("00011" & fifo_nr_hex(3)(2 downto 0));
+      --elsif fifo_nr_hex(4)(3) /= '1' then
+      --  fifo_nr_next <= conv_integer("00100" & fifo_nr_hex(4)(2 downto 0));
+      --elsif fifo_nr_hex(5)(3) /= '1' then
+      --  fifo_nr_next <= conv_integer("00101" & fifo_nr_hex(5)(2 downto 0));
+      --elsif fifo_nr_hex(6)(3) /= '1' then
+      --  fifo_nr_next <= conv_integer("00110" & fifo_nr_hex(6)(2 downto 0));
+      --elsif fifo_nr_hex(7)(3) /= '1' then
+      --  fifo_nr_next <= conv_integer("00111" & fifo_nr_hex(7)(2 downto 0));
       else
         fifo_nr_next <= CHANNEL_NUMBER;
       end if;
@@ -1136,12 +1136,12 @@ begin
 --  TDC_DEBUG(31 downto 28)          <= 
 
 -- Register 0x81
-  TDC_DEBUG(1*32+CHANNEL_NUMBER-1 downto 1*32+0) <= channel_empty_i(CHANNEL_NUMBER-1 downto 0);
+  --TDC_DEBUG(1*32+CHANNEL_NUMBER-1 downto 1*32+0) <= channel_empty_i(CHANNEL_NUMBER-1 downto 0);
 
 -- Register 0x82
-  Empty_Channels : if CHANNEL_NUMBER >= 33 generate
-    TDC_DEBUG(2*32+CHANNEL_NUMBER-33 downto 2*32+0) <= channel_empty_i(CHANNEL_NUMBER-1 downto 32);
-  end generate Empty_Channels;
+  --Empty_Channels : if CHANNEL_NUMBER >= 33 generate
+  --  TDC_DEBUG(2*32+CHANNEL_NUMBER-33 downto 2*32+0) <= channel_empty_i(CHANNEL_NUMBER-1 downto 32);
+  --end generate Empty_Channels;
 
 -- Register 0x83
   TDC_DEBUG(3*32+31 downto 3*32+0) <= "00000" & TRG_WIN_POST & "00000" & TRG_WIN_PRE;
