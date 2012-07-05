@@ -614,53 +614,53 @@ begin
 -- TDC
 -------------------------------------------------------------------------------
 
-  THE_TDC : TDC
-    generic map (
-      CHANNEL_NUMBER => 34,             -- Number of TDC channels
-      STATUS_REG_NR  => REGIO_NUM_STAT_REGS,
-      CONTROL_REG_NR => REGIO_NUM_CTRL_REGS)
-    port map (
-      RESET          => reset_i,
-      CLK_TDC        => CLK_PCLK_LEFT,  -- Clock used for the time measurement
-      CLK_READOUT    => clk_100_i,      -- Clock for the readout
-      REFERENCE_TIME => timing_trg_received_i,   -- Reference time input
-      HIT_IN         => hit_in_i(33 downto 1),   -- Channel start signals
-      TRG_WIN_PRE    => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
-      TRG_WIN_POST   => ctrl_reg(58 downto 48),  -- Post-Trigger window width
+  --THE_TDC : TDC
+  --  generic map (
+  --    CHANNEL_NUMBER => 34,             -- Number of TDC channels
+  --    STATUS_REG_NR  => REGIO_NUM_STAT_REGS,
+  --    CONTROL_REG_NR => REGIO_NUM_CTRL_REGS)
+  --  port map (
+  --    RESET          => reset_i,
+  --    CLK_TDC        => CLK_PCLK_LEFT,  -- Clock used for the time measurement
+  --    CLK_READOUT    => clk_100_i,      -- Clock for the readout
+  --    REFERENCE_TIME => timing_trg_received_i,   -- Reference time input
+  --    HIT_IN         => hit_in_i(33 downto 1),   -- Channel start signals
+  --    TRG_WIN_PRE    => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
+  --    TRG_WIN_POST   => ctrl_reg(58 downto 48),  -- Post-Trigger window width
 
-      -- Trigger signals from handler
-      TRG_DATA_VALID_IN     => trg_data_valid_i,  -- trig data valid signal from trbnet
-      VALID_TIMING_TRG_IN   => trg_timing_valid_i,  -- valid timing trigger signal from trbnet
-      VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,  -- valid notiming signal from trbnet
-      INVALID_TRG_IN        => trg_invalid_i,  -- invalid trigger signal from trbnet
-      TMGTRG_TIMEOUT_IN     => trg_timeout_detected_i,  -- timing trigger timeout signal from trbnet
-      SPIKE_DETECTED_IN     => trg_spike_detected_i,
-      MULTI_TMG_TRG_IN      => trg_multiple_trg_i,
-      SPURIOUS_TRG_IN       => trg_spurious_trg_i,
+  --    -- Trigger signals from handler
+  --    TRG_DATA_VALID_IN     => trg_data_valid_i,  -- trig data valid signal from trbnet
+  --    VALID_TIMING_TRG_IN   => trg_timing_valid_i,  -- valid timing trigger signal from trbnet
+  --    VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,  -- valid notiming signal from trbnet
+  --    INVALID_TRG_IN        => trg_invalid_i,  -- invalid trigger signal from trbnet
+  --    TMGTRG_TIMEOUT_IN     => trg_timeout_detected_i,  -- timing trigger timeout signal from trbnet
+  --    SPIKE_DETECTED_IN     => trg_spike_detected_i,
+  --    MULTI_TMG_TRG_IN      => trg_multiple_trg_i,
+  --    SPURIOUS_TRG_IN       => trg_spurious_trg_i,
 
-      TRG_NUMBER_IN      => trg_number_i,  -- LVL1 trigger information package
-      TRG_CODE_IN        => trg_code_i,    --
-      TRG_INFORMATION_IN => trg_information_i,  --
-      TRG_TYPE_IN        => trg_type_i,    -- LVL1 trigger information package
+  --    TRG_NUMBER_IN      => trg_number_i,  -- LVL1 trigger information package
+  --    TRG_CODE_IN        => trg_code_i,    --
+  --    TRG_INFORMATION_IN => trg_information_i,  --
+  --    TRG_TYPE_IN        => trg_type_i,    -- LVL1 trigger information package
 
-      --Response to handler
-      TRG_RELEASE_OUT    => fee_trg_release_i,     -- trigger release signal
-      TRG_STATUSBIT_OUT  => fee_trg_statusbits_i,  -- status information of the tdc
-      DATA_OUT           => fee_data_i,            -- tdc data
-      DATA_WRITE_OUT     => fee_data_write_i,      -- data valid signal
-      DATA_FINISHED_OUT  => fee_data_finished_i,   -- readout finished signal
-      --
-      TDC_DEBUG          => stat_reg,
-      LOGIC_ANALYSER_OUT => open,       --TEST_LINE,
-      CONTROL_REG_IN     => ctrl_reg);
+  --    --Response to handler
+  --    TRG_RELEASE_OUT    => fee_trg_release_i,     -- trigger release signal
+  --    TRG_STATUSBIT_OUT  => fee_trg_statusbits_i,  -- status information of the tdc
+  --    DATA_OUT           => fee_data_i,            -- tdc data
+  --    DATA_WRITE_OUT     => fee_data_write_i,      -- data valid signal
+  --    DATA_FINISHED_OUT  => fee_data_finished_i,   -- readout finished signal
+  --    --
+  --    TDC_DEBUG          => stat_reg,
+  --    LOGIC_ANALYSER_OUT => open,       --TEST_LINE,
+  --    CONTROL_REG_IN     => ctrl_reg);
 
 
-  -- For single edge measurements
-  hit_in_i(64 downto 1) <= INP(63 downto 0);
+  ------ For single edge measurements
+  ----hit_in_i(64 downto 1) <= INP(63 downto 0);
 
   ---- For ToT Measurements
   --hit_in_i(1) <= not timing_trg_received_i;
-  --Gen_Hit_In_Signals : for i in 1 to 19 generate
+  --Gen_Hit_In_Signals : for i in 1 to 16 generate
   --  hit_in_i(i*2)   <= INP(i-1);
   --  hit_in_i(i*2+1) <= not INP(i-1);
   --end generate Gen_Hit_In_Signals;
