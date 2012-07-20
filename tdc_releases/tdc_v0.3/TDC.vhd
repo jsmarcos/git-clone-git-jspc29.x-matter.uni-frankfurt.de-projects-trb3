@@ -221,7 +221,7 @@ architecture TDC of TDC is
   type   channel_data_array is array (0 to CHANNEL_NUMBER) of std_logic_vector(31 downto 0);
   signal channel_data_i        : channel_data_array;
   signal channel_data_reg      : channel_data_array;
-  signal hit_in_i              : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+  signal hit_in_i              : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
 
 -- Slow Control Signals
   signal ch_en_i                  : std_logic_vector(63 downto 0);
@@ -1112,12 +1112,10 @@ begin
         logic_analyser_reg <= ref_debug_i(15 downto 0);
 
       elsif logic_anal_control = x"3" then  -- Data out
-        logic_analyser_reg(7 downto 0)  <= fsm_debug_reg;
-        logic_analyser_reg(8)           <= REFERENCE_TIME;
-        logic_analyser_reg(13)          <= data_wr_reg;
-        logic_analyser_reg(12 downto 9) <= data_out_reg(25 downto 22);
-        logic_analyser_reg(14)          <= data_out_reg(26);
-        logic_analyser_reg(15)          <= RESET;
+        logic_analyser_reg(7 downto 0)   <= fsm_debug_reg;
+        logic_analyser_reg(8)            <= REFERENCE_TIME;
+        logic_analyser_reg(9)            <= data_wr_reg;
+        logic_analyser_reg(15 downto 10) <= data_out_reg(27 downto 22);
       end if;
     end if;
   end process REG_LOGIC_ANALYSER_OUTPUT;
@@ -1138,7 +1136,7 @@ begin
 --  TDC_DEBUG(31 downto 28)          <= 
 
   -- Register 0x81 & 0x82
-  TDC_DEBUG(1*32+CHANNEL_NUMBER-1 downto 1*32+0) <= channel_empty_i(CHANNEL_NUMBER-1 downto 0);
+  TDC_DEBUG(1*32+CHANNEL_NUMBER-2 downto 1*32+0) <= channel_empty_i(CHANNEL_NUMBER-1 downto 1);
   
 -- Register 0x83
   TDC_DEBUG(3*32+31 downto 3*32+0) <= "00000" & TRG_WIN_POST & "00000" & TRG_WIN_PRE;

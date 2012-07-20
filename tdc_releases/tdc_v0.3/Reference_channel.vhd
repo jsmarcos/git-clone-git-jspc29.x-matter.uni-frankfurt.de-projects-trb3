@@ -185,7 +185,7 @@ begin
       DataB  => data_b_i,
       ClkEn  => '1',                    --ff_array_en_i,
       Result => result_i);
-  data_a_i <= x"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF000000FF" & x"7FFFFFF";
+  data_a_i <= x"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF" & x"7FFFFFF";
   data_b_i <= x"000000000000000000000000000000000000000000000000000000000000000000000" & not(hit_buf) & x"000000" & "00" & hit_buf;
 
   --FF_Array_Enable : process (hit_detect_i, release_delay_line_i)
