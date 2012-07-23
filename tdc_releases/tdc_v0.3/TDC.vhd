@@ -863,7 +863,7 @@ begin
         release_number <= release_number + 1;
       end if;
     end if;
-  end process Statistics_Trigger_Number;
+  end process Statistics_Release_Number;
     
   -- purpose: Internal valid timing trigger number counter
   Statistics_Valid_Timing_Trigger_Number : process (CLK_READOUT, RESET)
