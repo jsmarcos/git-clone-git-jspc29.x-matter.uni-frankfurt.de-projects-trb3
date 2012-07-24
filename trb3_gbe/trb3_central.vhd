@@ -257,7 +257,9 @@ signal gsc_busy : std_logic;
 signal mc_unique_id  : std_logic_vector(63 downto 0);
 signal trb_reset_in  : std_logic;
 signal reset_via_gbe : std_logic;
-
+signal timer_ticks   : std_logic_vector(1 downto 0);
+signal reset_via_gbe_delayed : std_logic_vector(2 downto 0);
+signal reset_i_temp  : std_logic;
 begin
 
 ---------------------------------------------------------------------------
@@ -277,15 +279,23 @@ THE_RESET_HANDLER : trb_net_reset_handler
     SYSCLK_IN       => clk_100_i,       -- PLL/DLL remastered clock
     PLL_LOCKED_IN   => pll_lock,        -- master PLL lock signal (async)
     RESET_IN        => '0',             -- general reset signal (SYSCLK)
-    TRB_RESET_IN    => trb_reset_in, -- TRBnet reset signal (SYSCLK)
+    TRB_RESET_IN    => '0',             -- TRBnet reset signal (SYSCLK)
     CLEAR_OUT       => clear_i,         -- async reset out, USE WITH CARE!
-    RESET_OUT       => reset_i,         -- synchronous reset out (SYSCLK)
+    RESET_OUT       => reset_i_temp,    -- synchronous reset out (SYSCLK)
     DEBUG_OUT       => open
   );
 
-trb_reset_in <= med_stat_op(4*16+13) or reset_via_gbe;
+trb_reset_in <= med_stat_op(4*16+13) or reset_via_gbe_delayed(2);
+reset_i <= reset_i_temp or trb_reset_in;
 
-
+process begin
+  wait until rising_edge(clk_100_i);
+    if reset_i = '1' then
+      reset_via_gbe_delayed <= "000";
+    elsif timer_ticks(0) = '1' then
+      reset_via_gbe_delayed <= reset_via_gbe_delayed(1 downto 0) & reset_via_gbe;
+    end if;
+  end process;
 
 ---------------------------------------------------------------------------
 -- Clock Handling
@@ -437,6 +447,8 @@ gen_normal_hub : if USE_ETHERNET = c_NO generate
       COMMON_STAT_REGS                => common_stat_regs,
       COMMON_CTRL_REGS                => common_ctrl_regs,
       MY_ADDRESS_OUT                  => my_address,
+      TIMER_TICKS_OUT                 => timer_ticks,
+
       --REGIO INTERFACE
       REGIO_ADDR_OUT                  => regio_addr_out,
       REGIO_READ_ENABLE_OUT           => regio_read_enable_out,
@@ -459,10 +471,13 @@ gen_normal_hub : if USE_ETHERNET = c_NO generate
 end generate;
 
 gen_ethernet_hub : if USE_ETHERNET = c_YES generate
---If the injected slow control should be visible to the network below this hub only:
--- MII_IS_UPLINK        => (0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0);
--- MII_IS_DOWNLINK      => (1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0);
--- MII_IS_UPLINK_ONLY   => (0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0);
+-- Be careful when setting the MII_NUMBER and MII_IS_* generics!
+-- for MII_NUMBER=5 (4 downlinks, 1 uplink):
+-- port 0,1,2,3: downlinks to other FPGA
+-- port 4: LVL1/Data channel on uplink to CTS, but internal endpoint on SCTRL
+-- port 5: SCTRL channel on uplink to CTS
+-- port 6: SCTRL channel from GbE interface
+
 
 
   THE_HUB: trb_net16_hub_streaming_port_sctrl
@@ -471,10 +486,17 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
 	  --IBUF_SECURE_MODE    => c_YES,
 	  INIT_ADDRESS        => x"F305",
 	  MII_NUMBER          => 5,
-	  MII_IS_UPLINK       => (4 => 1, 5 => 1, 6 => 1, others => 0),
-	  MII_IS_DOWNLINK     => (0 => 1, 1 => 1, 2 => 1, 3 => 1, 4 => 1, others => 0),
-	  MII_IS_UPLINK_ONLY  => (5 => 1, 6 => 1, others => 0),
-	  
+    
+    --optical link SFP1 is uplink on all channels  (e.g. connect a Hub)
+-- 	  MII_IS_UPLINK       => (0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0),
+-- 	  MII_IS_DOWNLINK     => (1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0),
+-- 	  MII_IS_UPLINK_ONLY  => (0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0),
+
+    --optical link SFP1 is uplink on TRG & IPU and downlink on sctrl  (e.g. connect a CTS, sctrl via GbE)
+    MII_IS_UPLINK       => (0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0),
+    MII_IS_DOWNLINK     => (1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0),
+    MII_IS_UPLINK_ONLY  => (0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0),
+
 	  USE_ONEWIRE         => c_YES,
 	  HARDWARE_VERSION    => x"90000000",
 	  INIT_ENDPOINT_ID    => x"0005",
@@ -534,9 +556,10 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
 	  ONEWIRE                 => TEMPSENS,
 	  ONEWIRE_MONITOR_IN      => open,
 	  MY_ADDRESS_OUT          => my_address,
-
-    UNIQUE_ID_OUT                => mc_unique_id,
-
+    TIMER_TICKS_OUT         => timer_ticks,
+    UNIQUE_ID_OUT           => mc_unique_id,
+    EXTERNAL_SEND_RESET     => reset_via_gbe,
+    
 	  REGIO_ADDR_OUT          => regio_addr_out,
 	  REGIO_READ_ENABLE_OUT   => regio_read_enable_out,
 	  REGIO_WRITE_ENABLE_OUT  => regio_write_enable_out,
@@ -891,6 +914,12 @@ LED_YELLOW <= link_ok; --debug(3);
   TEST_LINE(31 downto 10) <= (others => '0');
 
 
+--   FPGA1_CONNECTOR(0) <= '0';
+  FPGA2_CONNECTOR(0) <= '0';
+--   FPGA3_CONNECTOR(0) <= '0';
+--   FPGA4_CONNECTOR(0) <= '0';
+  
+  
 ---------------------------------------------------------------------------
 -- Test Circuits
 ---------------------------------------------------------------------------
