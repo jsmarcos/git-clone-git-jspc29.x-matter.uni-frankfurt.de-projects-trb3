@@ -608,7 +608,7 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
 	  CLK                         => clk_100_i,
 	  TEST_CLK                    => '0',
 	  CLK_125_IN                  => CLK_GPLL_RIGHT,
-	  RESET                       => reset_i,
+	  RESET                       => reset_i_temp,
 	  GSR_N                       => gsr_n,
 	  --Debug
 	  STAGE_STAT_REGS_OUT         => open, --stage_stat_regs, -- should be come STATUS or similar
