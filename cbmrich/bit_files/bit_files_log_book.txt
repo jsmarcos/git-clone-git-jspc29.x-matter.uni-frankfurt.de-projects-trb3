@@ -1,0 +1,18 @@
+	FILE
+cbmrich_20120626.bit	31 channels with 32x512 FIFO. caused problems with the
+			readout, because the size of the tdc bufers are too
+			big for the endpoint buffers.
+
+cbmrich_20120705.bit	31 channels. Tdc channel buffer size is decreased to
+			32x32. During tests at gsi lab there were no
+			problems with old hades DAQ setup
+			(scntr+hub+cts). Later with trb3 hub the daq hangs
+			after few triggers.
+
+cbmrich_20120721.bit	2 channels. Recompiled to test the previous
+			problem. The DAQ runs just fine. But there is no data
+			from the reference channel. TDL line is somehow corrupt.
+
+cbmrich_20120725.bit	31 channels. Went back to the version 0.2 in order to
+			get rid of the problem with the TDL. PAR successful
+			but has to be tested (26.07.2012)
