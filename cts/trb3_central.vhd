@@ -517,7 +517,7 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
 	  CLK                     => clk_100_i,
 	  RESET                   => reset_i,
 	  CLK_EN                  => '1',
-
+ 
 	  --Media interfacces
 	  MED_DATAREADY_OUT(5*1-1 downto 0)   => med_dataready_out,
 	  MED_DATA_OUT(5*16-1 downto 0)       => med_data_out,
