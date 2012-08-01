@@ -4,12 +4,14 @@ use ieee.numeric_std.all;
 USE IEEE.std_logic_UNSIGNED.ALL;
 
 library work;
-use work.trb_net_std.all;
-use work.trb_net_components.all;
-use work.trb3_components.all;
-use work.trb_net16_hub_func.all;
-use work.version.all;
-use work.trb_net_gbe_components.all;
+   use work.trb_net_std.all;
+   use work.trb_net_components.all;
+   use work.trb3_components.all;
+   use work.trb_net16_hub_func.all;
+   use work.version.all;
+   use work.trb_net_gbe_components.all;
+   
+   use work.cts_pkg.all;
 
 --Ports:
 --        LVL1/IPU       SCtrl
@@ -295,13 +297,15 @@ signal cts_rdo_trg_data_valid      : std_logic;
 signal cts_rdo_valid_timing_trg    : std_logic;
 signal cts_rdo_valid_notiming_trg  : std_logic;
 signal cts_rdo_invalid_trg         : std_logic;
+
 signal cts_rdo_trg_status_bits     : std_logic_vector(31 downto 0);
 signal cts_rdo_data                : std_logic_vector(31 downto 0);
 signal cts_rdo_write               : std_logic;
 signal cts_rdo_finished            : std_logic;
+
 signal cts_rdo_additional_data     : std_logic_vector(31 downto 0);
-signal cts_rdo_additional_write    : std_logic;
-signal cts_rdo_additional_finished : std_logic;
+signal cts_rdo_additional_write    : std_logic := '0';
+signal cts_rdo_additional_finished : std_logic := '1';
 
 signal cts_trg_send                : std_logic;
 signal cts_trg_type                : std_logic_vector(3 downto 0);
@@ -310,6 +314,7 @@ signal cts_trg_information         : std_logic_vector(23 downto 0);
 signal cts_trg_code                : std_logic_vector(7 downto 0);
 signal cts_trg_status_bits         : std_logic_vector(31 downto 0);
 signal cts_trg_busy                : std_logic;
+
 signal cts_ipu_send                : std_logic;
 signal cts_ipu_type                : std_logic_vector(3 downto 0);
 signal cts_ipu_number              : std_logic_vector(15 downto 0);
@@ -318,11 +323,80 @@ signal cts_ipu_code                : std_logic_vector(7 downto 0);
 signal cts_ipu_status_bits         : std_logic_vector(31 downto 0);
 signal cts_ipu_busy                : std_logic;
 
+signal cts_regio_addr              : std_logic_vector(15 downto 0);
+signal cts_regio_read              : std_logic;
+signal cts_regio_write             : std_logic;
+signal cts_regio_data_out          : std_logic_vector(31 downto 0);
+signal cts_regio_data_in           : std_logic_vector(31 downto 0);
+signal cts_regio_dataready         : std_logic;
+signal cts_regio_no_more_data      : std_logic;
+signal cts_regio_write_ack         : std_logic;
+signal cts_regio_unknown_addr      : std_logic;
+
 signal cts_trigger_out             : std_logic;
 signal external_send_reset         : std_logic;
 signal timer_ticks                 : std_logic_vector(1 downto 0);
-begin
 
+signal trigger_busy_i          : std_logic;
+signal trigger_in_buf_i        : std_logic_vector(4 downto 0);
+begin
+--  TRIGGER_BUSY_OUT <= trigger_busy_i;
+
+   trigger_in_buf_i(0) <= TRIGGER_LEFT;
+   trigger_in_buf_i(1) <= TRIGGER_RIGHT;
+   trigger_in_buf_i(4 downto 2) <= TRIGGER_EXT;
+
+   THE_CTS: CTS 
+   generic map (
+      TRIGGER_INPUT_COUNT  => 5,
+      TRIGGER_COIN_COUNT   => 4,
+      TRIGGER_PULSER_COUNT => 4,
+      TRIGGER_RAND_PULSER  => TRUE
+   )
+   port map ( 
+      CLK => clk_100_i,
+      RESET => reset_i,
+      
+      TRIGGERS_IN => trigger_in_buf_i,
+      TRIGGER_BUSY_OUT => trigger_busy_i,
+      TIME_REFERENCE_OUT => cts_trigger_out,
+      
+      CTS_TRG_SEND_OUT => cts_trg_send,
+      CTS_TRG_TYPE_OUT => cts_trg_type,
+      CTS_TRG_NUMBER_OUT => cts_trg_number,
+      CTS_TRG_INFORMATION_OUT => cts_trg_information,
+      CTS_TRG_RND_CODE_OUT => cts_trg_code,
+      CTS_TRG_STATUS_BITS_IN => cts_trg_status_bits,
+      CTS_TRG_BUSY_IN => cts_trg_busy,
+       
+      CTS_IPU_SEND_OUT => cts_ipu_send,
+      CTS_IPU_TYPE_OUT => cts_ipu_type,
+      CTS_IPU_NUMBER_OUT => cts_ipu_number,
+      CTS_IPU_INFORMATION_OUT => cts_ipu_information,
+      CTS_IPU_RND_CODE_OUT => cts_ipu_code,
+      CTS_IPU_STATUS_BITS_IN => cts_ipu_status_bits,
+      CTS_IPU_BUSY_IN => cts_ipu_busy,
+       
+      CTS_REGIO_ADDR_IN => cts_regio_addr,
+      CTS_REGIO_DATA_IN => cts_regio_data_out,
+      CTS_REGIO_READ_ENABLE_IN => cts_regio_read,
+      CTS_REGIO_WRITE_ENABLE_IN => cts_regio_write,
+      CTS_REGIO_DATA_OUT => cts_regio_data_in,
+      CTS_REGIO_DATAREADY_OUT => cts_regio_dataready,
+      CTS_REGIO_WRITE_ACK_OUT => cts_regio_write_ack,
+      CTS_REGIO_UNKNOWN_ADDR_OUT => cts_regio_unknown_addr,
+  
+      LVL1_TRG_DATA_VALID_IN    => cts_rdo_trg_data_valid,
+      LVL1_VALID_TIMING_TRG_IN  => cts_rdo_valid_timing_trg,
+      LVL1_VALID_NOTIMING_TRG_IN=> cts_rdo_valid_notiming_trg,
+      LVL1_INVALID_TRG_IN       => cts_rdo_invalid_trg,
+  
+      FEE_TRG_STATUSBITS_OUT  => cts_rdo_trg_status_bits,
+      FEE_DATA_OUT            => cts_rdo_data,
+      FEE_DATA_WRITE_OUT      => cts_rdo_write,
+      FEE_DATA_FINISHED_OUT   => cts_rdo_finished
+   );   
+   
 ---------------------------------------------------------------------------
 -- Reset Generation
 ---------------------------------------------------------------------------
@@ -736,9 +810,9 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
 ---------------------------------------------------------------------------
 THE_BUS_HANDLER : trb_net16_regio_bus_handler
   generic map(
-    PORT_NUMBER    => 4,
-    PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"8100", 3 => x"8300", others => x"0000"),
-    PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 8,       3 => 8,       others => 0)
+    PORT_NUMBER    => 5,
+    PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"8100", 3 => x"8300", 4 => x"a000", others => x"0000"),
+    PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 8,       3 => 8,       4 => 9,       others => 0)
     )
   port map(
     CLK                   => clk_100_i,
@@ -804,8 +878,20 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
 	BUS_WRITE_ACK_IN(3)              => gbe_stp_reg_ack,
 	BUS_NO_MORE_DATA_IN(3)           => '0',
 	BUS_UNKNOWN_ADDR_IN(3)           => '0',
-
-    STAT_DEBUG  => open
+	
+	-- CTS
+   BUS_ADDR_OUT(5*16-1 downto 4*16) => cts_regio_addr,
+   BUS_DATA_OUT(5*32-1 downto 4*32) => cts_regio_data_out,
+   BUS_READ_ENABLE_OUT(4)           => cts_regio_read,
+   BUS_WRITE_ENABLE_OUT(4)          => cts_regio_write,
+   BUS_TIMEOUT_OUT(4)               => open,
+   BUS_DATA_IN(5*32-1 downto 4*32)  => cts_regio_data_in,
+   BUS_DATAREADY_IN(4)              => cts_regio_dataready,
+   BUS_WRITE_ACK_IN(4)              => cts_regio_write_ack,
+   BUS_NO_MORE_DATA_IN(4)           => '0',
+   BUS_UNKNOWN_ADDR_IN(4)           => cts_regio_unknown_addr,
+   
+   STAT_DEBUG  => open
     );
 
 ---------------------------------------------------------------------------
