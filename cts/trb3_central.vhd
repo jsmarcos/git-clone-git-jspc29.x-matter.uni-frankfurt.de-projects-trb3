@@ -999,8 +999,8 @@ THE_FPGA_REBOOT : fpga_reboot
 ---------------------------------------------------------------------------
 -- LED
 ---------------------------------------------------------------------------
-  LED_CLOCK_GREEN                <= '0';
-  LED_CLOCK_RED                  <= '1';
+  LED_CLOCK_GREEN                <= not med_stat_op(15);
+  LED_CLOCK_RED                  <= not reset_via_gbe;
 --   LED_GREEN                      <= not med_stat_op(9);
 --   LED_YELLOW                     <= not med_stat_op(10);
 --   LED_ORANGE                     <= not med_stat_op(11); 
