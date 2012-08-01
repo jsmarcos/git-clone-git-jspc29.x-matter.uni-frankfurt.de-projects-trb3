@@ -203,8 +203,6 @@ add_file -vhdl -lib work "../../trbnet/lattice/ecp3/fifo/fifo_18x1k_oreg.vhd"
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/fifo/fifo_18x2k_oreg.vhd"
 add_file -vhdl -lib work "../../trbnet/lattice/ecp2m/fifo/fifo_var_oreg.vhd"
 
-
-
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/spi_dpram_32_to_8.vhd"
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/fifo/fifo_19x16_obuf.vhd"
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/fifo/fifo_19x16.vhd"
@@ -224,8 +222,16 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.v
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4_onboard.vhd"
 
 add_file -vhdl -lib work "../base/cores/pll_in200_out100.vhd"
-add_file -vhdl -lib work "./trb3_central.vhd"
 
+add_file -vhdl -lib work "../cts2/cts_pkg.vhd"
+add_file -vhdl -lib work "../cts2/cts_fifo.vhd"
+add_file -vhdl -lib work "../cts2/cts_trg_input.vhd"
+add_file -vhdl -lib work "../cts2/cts_trg_coin.vhd"
+add_file -vhdl -lib work "../cts2/cts_trg_pseudorand_pulser.vhd"
+add_file -vhdl -lib work "../cts2/cts_trigger.vhd"
+add_file -vhdl -lib work "../cts2/cts.vhd"
+
+add_file -vhdl -lib work "./trb3_central.vhd"
 
 
 
