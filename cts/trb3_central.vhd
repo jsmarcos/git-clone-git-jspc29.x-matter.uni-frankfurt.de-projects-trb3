@@ -25,12 +25,12 @@ use work.trb_net_gbe_components.all;
 -- INT_NUMBER        => 5,
 -- INT_CHANNELS      => (0,1,0,1,3),
 
--- No trigger sent to optical link, slow control receiving possible
+-- No trigger / sctrl sent to optical link, slow control receiving possible
 -- MII_IS_UPLINK        => (0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0);
 -- MII_IS_DOWNLINK      => (1,1,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0);
 -- MII_IS_UPLINK_ONLY   => (0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0);
 
--- Trigger sent to optical link, slow control receiving possible
+-- Trigger / sctrl sent to optical link, slow control receiving possible
 -- MII_IS_UPLINK        => (0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0);
 -- MII_IS_DOWNLINK      => (1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0);
 -- MII_IS_UPLINK_ONLY   => (0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0);
@@ -365,7 +365,7 @@ THE_RESET_HANDLER : trb_net_reset_handler
     DEBUG_OUT       => open
   );
 
-trb_reset_in <= reset_via_gbe_delayed(2);
+trb_reset_in <= reset_via_gbe_delayed(2) or MED_STAT_OP(4*16+13);
 reset_i <= reset_i_temp or trb_reset_in;
 
 process begin
@@ -501,7 +501,7 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
     MII_IS_UPLINK_ONLY   => (0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0),	  
     COMPILE_TIME                     => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME,32)),
     COMPILE_VERSION                  => x"0001",
-    HARDWARE_VERSION                 => x"9000CE00",
+    HARDWARE_VERSION                 => x"9000CEE0",
     INIT_ENDPOINT_ID                 => x"0005",
     BROADCAST_BITMASK                => x"7E",
     CLOCK_FREQUENCY                  => 100,
@@ -590,7 +590,7 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
 	  MY_ADDRESS_OUT          => my_address,
     UNIQUE_ID_OUT           => mc_unique_id,
     TIMER_TICKS_OUT         => timer_ticks,
-    EXTERNAL_SEND_RESET     => external_send_reset,
+    EXTERNAL_SEND_RESET     => reset_via_gbe,
 
 	  REGIO_ADDR_OUT          => regio_addr_out,
 	  REGIO_READ_ENABLE_OUT   => regio_read_enable_out,
@@ -678,24 +678,24 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
 	  --gk 23.04.10
 	  LED_PACKET_SENT_OUT         => open, --buf_SFP_LED_ORANGE(17),
 	  LED_AN_DONE_N_OUT           => link_ok, --buf_SFP_LED_GREEN(17),
-	    --CTS interface
-	    CTS_NUMBER_IN               => gbe_cts_number,
-	    CTS_CODE_IN                 => gbe_cts_code,
-	    CTS_INFORMATION_IN          => gbe_cts_information,
-	    CTS_READOUT_TYPE_IN         => gbe_cts_readout_type,
-	    CTS_START_READOUT_IN        => gbe_cts_start_readout,
-	    CTS_DATA_OUT                => open,
-	    CTS_DATAREADY_OUT           => open,
-	    CTS_READOUT_FINISHED_OUT    => gbe_cts_readout_finished,
-	    CTS_READ_IN                 => '1',
-	    CTS_LENGTH_OUT              => open,
-	    CTS_ERROR_PATTERN_OUT       => gbe_cts_status_bits,
-	    --Data payload interface
-	    FEE_DATA_IN                 => gbe_fee_data,
-	    FEE_DATAREADY_IN            => gbe_fee_dataready,
-	    FEE_READ_OUT                => gbe_fee_read,
-	    FEE_STATUS_BITS_IN          => gbe_fee_status_bits,
-	    FEE_BUSY_IN                 => gbe_fee_busy,
+    --CTS interface
+    CTS_NUMBER_IN               => gbe_cts_number,
+    CTS_CODE_IN                 => gbe_cts_code,
+    CTS_INFORMATION_IN          => gbe_cts_information,
+    CTS_READOUT_TYPE_IN         => gbe_cts_readout_type,
+    CTS_START_READOUT_IN        => gbe_cts_start_readout,
+    CTS_DATA_OUT                => open,
+    CTS_DATAREADY_OUT           => open,
+    CTS_READOUT_FINISHED_OUT    => gbe_cts_readout_finished,
+    CTS_READ_IN                 => '1',
+    CTS_LENGTH_OUT              => open,
+    CTS_ERROR_PATTERN_OUT       => gbe_cts_status_bits,
+    --Data payload interface
+    FEE_DATA_IN                 => gbe_fee_data,
+    FEE_DATAREADY_IN            => gbe_fee_dataready,
+    FEE_READ_OUT                => gbe_fee_read,
+    FEE_STATUS_BITS_IN          => gbe_fee_status_bits,
+    FEE_BUSY_IN                 => gbe_fee_busy,
 	  --SFP   Connection
 	  SFP_RXD_P_IN                => SFP_RX_P(6), --these ports are don't care
 	  SFP_RXD_N_IN                => SFP_RX_N(6),
@@ -707,20 +707,20 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
 	  SFP_LOS_IN                  => SFP_LOS(8), -- SFP Loss Of Signal ('0' = OK, '1' = no signal)
 	  SFP_TXDIS_OUT               => SFP_TXDIS(8),  -- SFP disable
 
-	-- interface between main_controller and hub logic
-	MC_UNIQUE_ID_IN          => mc_unique_id,
-	GSC_CLK_IN               => clk_100_i,
-	GSC_INIT_DATAREADY_OUT   => gsc_init_dataready,
-	GSC_INIT_DATA_OUT        => gsc_init_data,
-	GSC_INIT_PACKET_NUM_OUT  => gsc_init_packet_num,
-	GSC_INIT_READ_IN         => gsc_init_read,
-	GSC_REPLY_DATAREADY_IN   => gsc_reply_dataready,
-	GSC_REPLY_DATA_IN        => gsc_reply_data,
-	GSC_REPLY_PACKET_NUM_IN  => gsc_reply_packet_num,
-	GSC_REPLY_READ_OUT       => gsc_reply_read,
-	GSC_BUSY_IN              => gsc_busy,
+    -- interface between main_controller and hub logic
+    MC_UNIQUE_ID_IN          => mc_unique_id,
+    GSC_CLK_IN               => clk_100_i,
+    GSC_INIT_DATAREADY_OUT   => gsc_init_dataready,
+    GSC_INIT_DATA_OUT        => gsc_init_data,
+    GSC_INIT_PACKET_NUM_OUT  => gsc_init_packet_num,
+    GSC_INIT_READ_IN         => gsc_init_read,
+    GSC_REPLY_DATAREADY_IN   => gsc_reply_dataready,
+    GSC_REPLY_DATA_IN        => gsc_reply_data,
+    GSC_REPLY_PACKET_NUM_IN  => gsc_reply_packet_num,
+    GSC_REPLY_READ_OUT       => gsc_reply_read,
+    GSC_BUSY_IN              => gsc_busy,
 
-	MAKE_RESET_OUT           => reset_via_gbe,
+    MAKE_RESET_OUT           => reset_via_gbe,
 
 	  --for simulation of receiving part only
 	  MAC_RX_EOF_IN		=> '0',
