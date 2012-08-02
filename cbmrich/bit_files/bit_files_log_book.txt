@@ -16,3 +16,6 @@ cbmrich_20120721.bit	2 channels. Recompiled to test the previous
 cbmrich_20120725.bit	31 channels. Went back to the version 0.2 in order to
 			get rid of the problem with the TDL. PAR successful
 			but has to be tested (26.07.2012)
+
+cbmrich_20120802.bit	2 channels in order to test the missing events from
+			the reference channel.
