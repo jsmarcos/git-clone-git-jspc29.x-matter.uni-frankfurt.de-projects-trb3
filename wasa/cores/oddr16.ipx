@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="oddr16" module="DDR_GENERIC" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2012 08 03 16:02:26.912" version="5.2" type="Module" synthesis="synplify" source_format="VHDL">
+  <Package>
+		<File name="oddr16.lpc" type="lpc" modified="2012 08 03 16:02:24.000"/>
+		<File name="oddr16.vhd" type="top_level_vhdl" modified="2012 08 03 16:02:24.000"/>
+		<File name="oddr16_tmpl.vhd" type="template_vhdl" modified="2012 08 03 16:02:24.000"/>
+  </Package>
+</DiamondModule>

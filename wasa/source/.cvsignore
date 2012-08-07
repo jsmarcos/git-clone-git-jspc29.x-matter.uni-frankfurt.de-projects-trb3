@@ -1,0 +1,12 @@
+*.log
+*.rpt
+stdout.log
+workdir
+version.vhd
+*.jhd
+*.naf
+*.sort
+*.srp
+*.sym
+*tmpl.vhd
+*.log
