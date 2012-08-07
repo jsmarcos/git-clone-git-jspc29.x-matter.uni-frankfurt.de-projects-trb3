@@ -498,7 +498,7 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
     MII_IS_UPLINK_ONLY  => (0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0),
 
 	  USE_ONEWIRE         => c_YES,
-	  HARDWARE_VERSION    => x"90000000",
+	  HARDWARE_VERSION    => x"90000E00",
 	  INIT_ENDPOINT_ID    => x"0005",
 	  COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME,32))
   )
@@ -608,7 +608,7 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
 	  CLK                         => clk_100_i,
 	  TEST_CLK                    => '0',
 	  CLK_125_IN                  => CLK_GPLL_RIGHT,
-	  RESET                       => reset_i_temp,
+	  RESET                       => reset_i,
 	  GSR_N                       => gsr_n,
 	  --Debug
 	  STAGE_STAT_REGS_OUT         => open, --stage_stat_regs, -- should be come STATUS or similar

@@ -493,14 +493,14 @@ THE_HUB : trb_net16_hub_base
     MII_IS_DOWNLINK   => (0 => 0, others => 1),
     MII_IS_UPLINK_ONLY=> (0 => 1, others => 0),
     INT_NUMBER        => 0,
-    INT_CHANNELS      => (0,1,3,3,3,3,3,3),
+--     INT_CHANNELS      => (0,1,3,3,3,3,3,3),
     USE_ONEWIRE       => c_YES,
     COMPILE_TIME      => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME,32)),
     HARDWARE_VERSION  => x"91000000",
     INIT_ENDPOINT_ID  => x"0000",
     INIT_ADDRESS      => x"F300",
     USE_VAR_ENDPOINT_ID => c_YES,
-    BROADCAST_SPECIAL_ADDR => x"40"
+    BROADCAST_SPECIAL_ADDR => x"45"
     )
   port map (
     CLK    => clk_100_i,
@@ -723,5 +723,5 @@ THE_HUB : trb_net16_hub_base
   TEST_LINE(15 downto 11) <= (others => '0');
 
 
-
+  
 end architecture;
