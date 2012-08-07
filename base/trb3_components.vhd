@@ -169,14 +169,7 @@ component ROM_Encoder
     Q          : out std_logic_vector(7 downto 0));
 end component;
 
-component ROM_FIFO
-  port (
-    Address    : in  std_logic_vector(7 downto 0);
-    OutClock   : in  std_logic;
-    OutClockEn : in  std_logic;
-    Reset      : in  std_logic;
-    Q          : out std_logic_vector(3 downto 0));
-end component;
+
 
 component bit_sync
   generic (

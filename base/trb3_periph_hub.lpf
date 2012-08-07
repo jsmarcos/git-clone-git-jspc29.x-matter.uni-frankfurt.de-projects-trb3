@@ -155,8 +155,6 @@ DEFINE PORT GROUP "SFP_group" "SFP*" ;
 IOBUF GROUP "SFP_group" IO_TYPE=LVCMOS25 PULLMODE=UP;
 
 
-
-
 #################################################################
 # Additional Lines to AddOn
 #################################################################
