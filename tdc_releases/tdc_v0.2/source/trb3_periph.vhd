@@ -199,7 +199,7 @@ architecture trb3_periph_arch of trb3_periph is
   signal time_counter : unsigned(31 downto 0);
 
   --TDC
-  signal hit_in_i : std_logic_vector(31 downto 1);
+  signal hit_in_i : std_logic_vector(64 downto 1);
 
   --TDC component
   component TDC
@@ -582,7 +582,7 @@ begin
 
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 32,             -- Number of TDC channels
+      CHANNEL_NUMBER => 5,             -- Number of TDC channels
       STATUS_REG_NR  => REGIO_NUM_STAT_REGS,
       CONTROL_REG_NR => REGIO_NUM_CTRL_REGS)
     port map (
@@ -590,7 +590,7 @@ begin
       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
-      HIT_IN                => hit_in_i(31 downto 1),  -- Channel start signals
+      HIT_IN                => hit_in_i(4 downto 1),  -- Channel start signals
       TRG_WIN_PRE           => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --
@@ -620,12 +620,14 @@ begin
       LOGIC_ANALYSER_OUT    => TEST_LINE,
       CONTROL_REG_IN        => ctrl_reg);
 
+  -- For single edge measurements
+  hit_in_i(64 downto 1) <= INP(63 downto 0);
 
-  hit_in_i(1) <= not timing_trg_received_i;
-
-  Gen_Hit_In_Signals : for i in 1 to 15 generate
-    hit_in_i(i*2)   <= INP(i-1);
-    hit_in_i(i*2+1) <= not INP(i-1);
-  end generate Gen_Hit_In_Signals;
+  ---- For ToT Measurements
+  --hit_in_i(1) <= not timing_trg_received_i;
+  --Gen_Hit_In_Signals : for i in 1 to 3 generate
+  --  hit_in_i(i*2)   <= INP(i-1);
+  --  hit_in_i(i*2+1) <= not INP(i-1);
+  --end generate Gen_Hit_In_Signals;
 
 end architecture;

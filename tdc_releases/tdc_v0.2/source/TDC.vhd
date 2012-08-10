@@ -6,6 +6,12 @@ use IEEE.NUMERIC_STD.all;
 use STD.TEXTIO.all;
 use IEEE.STD_LOGIC_TEXTIO.all;
 
+library work;
+use work.trb_net_std.all;
+use work.trb_net_components.all;
+use work.trb3_components.all;
+use work.version.all;
+
 -- synopsys translate_off
 -- library ecp2m;
 -- use ecp2m.components.all;
@@ -13,7 +19,7 @@ use IEEE.STD_LOGIC_TEXTIO.all;
 
 entity TDC is
   generic (
-    CHANNEL_NUMBER : integer range 0 to 64;
+    CHANNEL_NUMBER : integer range 2 to 65;
     STATUS_REG_NR  : integer range 0 to 6;
     CONTROL_REG_NR : integer range 0 to 6);
   port (
@@ -54,90 +60,6 @@ entity TDC is
 end TDC;
 
 architecture TDC of TDC is
-
--------------------------------------------------------------------------------
--- Component Declarations
--------------------------------------------------------------------------------
-
-  component Reference_Channel
-    generic (
-      CHANNEL_ID : integer range 0 to 0);
-    port (
-      RESET_WR          : in  std_logic;
-      RESET_RD          : in  std_logic;
-      CLK_WR            : in  std_logic;
-      CLK_RD            : in  std_logic;
-      HIT_IN            : in  std_logic;
-      READ_EN_IN        : in  std_logic;
-      VALID_TMG_TRG_IN  : in  std_logic;
-      SPIKE_DETECTED_IN : in  std_logic;
-      MULTI_TMG_TRG_IN  : in  std_logic;
-      FIFO_DATA_OUT     : out std_logic_vector(31 downto 0);
-      FIFO_EMPTY_OUT    : out std_logic;
-      FIFO_FULL_OUT     : out std_logic;
-      COARSE_COUNTER_IN : in  std_logic_vector(10 downto 0);
-      TRIGGER_TIME_OUT  : out std_logic_vector(10 downto 0);
-      REF_DEBUG_OUT     : out std_logic_vector(31 downto 0));
-  end component;
---
-  component Channel
-    generic (
-      CHANNEL_ID : integer range 1 to 64);
-    port (
-      RESET_WR             : in  std_logic;
-      RESET_RD             : in  std_logic;
-      CLK_WR               : in  std_logic;
-      CLK_RD               : in  std_logic;
-      HIT_IN               : in  std_logic;
-      READ_EN_IN           : in  std_logic;
-      FIFO_DATA_OUT        : out std_logic_vector(31 downto 0);
-      FIFO_EMPTY_OUT       : out std_logic;
-      FIFO_FULL_OUT        : out std_logic;
-      COARSE_COUNTER_IN    : in  std_logic_vector(10 downto 0);
-      LOST_HIT_NUMBER      : out std_logic_vector(23 downto 0);
-      MEASUREMENT_NUMBER   : out std_logic_vector(23 downto 0);
-      ENCODER_START_NUMBER : out std_logic_vector(23 downto 0);
-      Channel_DEBUG_01     : out std_logic_vector(31 downto 0)
-      );
-  end component;
---
-  component ROM_FIFO
-    port (
-      Address    : in  std_logic_vector(7 downto 0);
-      OutClock   : in  std_logic;
-      OutClockEn : in  std_logic;
-      Reset      : in  std_logic;
-      Q          : out std_logic_vector(3 downto 0));
-  end component;
---
-  component up_counter
-    generic (
-      NUMBER_OF_BITS : positive);
-    port (
-      CLK       : in  std_logic;
-      RESET     : in  std_logic;
-      COUNT_OUT : out std_logic_vector(NUMBER_OF_BITS-1 downto 0);
-      UP_IN     : in  std_logic);
-  end component;
---
-  component edge_to_pulse
-    port (
-      clock     : in  std_logic;
-      en_clk    : in  std_logic;
-      signal_in : in  std_logic;
-      pulse     : out std_logic);
-  end component;
---
-  component bit_sync
-    generic (
-      DEPTH : integer);
-    port (
-      RESET : in  std_logic;
-      CLK0  : in  std_logic;
-      CLK1  : in  std_logic;
-      D_IN  : in  std_logic;
-      D_OUT : out std_logic);
-  end component;
 
 -------------------------------------------------------------------------------
 -- Signal Declarations
@@ -198,26 +120,28 @@ architecture TDC of TDC is
   signal wr_trailer_i          : std_logic;
 
 -- Other Signals
-  signal fifo_full_i       : std_logic;
-  signal mask_i            : std_logic_vector(CHANNEL_NUMBER downto 0);
-  signal fifo_nr           : integer range 0 to CHANNEL_NUMBER := CHANNEL_NUMBER;
-  signal fifo_nr_next      : integer range 0 to CHANNEL_NUMBER := CHANNEL_NUMBER;
-  signal TW_pre            : std_logic_vector(10 downto 0);
-  signal TW_post           : std_logic_vector(10 downto 0);
-  signal channel_hit_time  : std_logic_vector(10 downto 0);
-  signal trg_win_l         : std_logic;
-  signal trg_win_r         : std_logic;
-  type   Std_Logic_8_array is array (0 to (CHANNEL_NUMBER/8-1)) of std_logic_vector(3 downto 0);
-  signal fifo_nr_hex       : Std_Logic_8_array;
-  signal coarse_cnt        : std_logic_vector(10 downto 0);
-  signal reset_coarse_cnt  : std_logic;
-  signal channel_full_i    : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-  signal channel_empty_i   : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-  signal channel_empty_reg : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+  signal fifo_full_i           : std_logic;
+  signal fifo_almost_full_i    : std_logic;
+  signal mask_i                : std_logic_vector(71 downto 0);
+  signal fifo_nr               : integer range 0 to CHANNEL_NUMBER := CHANNEL_NUMBER;
+  signal fifo_nr_next          : integer range 0 to CHANNEL_NUMBER := CHANNEL_NUMBER;
+  signal TW_pre                : std_logic_vector(10 downto 0);
+  signal TW_post               : std_logic_vector(10 downto 0);
+  signal channel_hit_time      : std_logic_vector(10 downto 0);
+  signal trg_win_l             : std_logic;
+  signal trg_win_r             : std_logic;
+  type   Std_Logic_8_array is array (0 to 8) of std_logic_vector(3 downto 0);
+  signal fifo_nr_hex           : Std_Logic_8_array;
+  signal coarse_cnt            : std_logic_vector(10 downto 0);
+  signal reset_coarse_cnt      : std_logic;
+  signal channel_full_i        : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+  signal channel_almost_full_i : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+  signal channel_empty_i       : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+  signal channel_empty_reg     : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
   type   channel_data_array is array (0 to CHANNEL_NUMBER) of std_logic_vector(31 downto 0);
-  signal channel_data_i    : channel_data_array;
-  signal channel_data_reg  : channel_data_array;
-  signal hit_in_i          : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+  signal channel_data_i        : channel_data_array;
+  signal channel_data_reg      : channel_data_array;
+  signal hit_in_i              : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
 
 -- Slow Control Signals
   signal ch_en_i                  : std_logic_vector(63 downto 0);
@@ -227,11 +151,13 @@ architecture TDC of TDC is
                                                        -- 0: triggerless
   signal readout_trigger_mode_200 : std_logic := '1';  -- trigger mode signal synchronised to the coarse counter clk
   signal logic_anal_control       : std_logic_vector(3 downto 0);
+  signal debug_mode_en_i          : std_logic;
 
 -- Statistics Signals
   type   statistics_array_12 is array (1 to CHANNEL_NUMBER-1) of std_logic_vector(11 downto 0);
   type   statistics_array_24 is array (1 to CHANNEL_NUMBER-1) of std_logic_vector(23 downto 0);
   signal trig_number                  : std_logic_vector(23 downto 0);
+  signal release_number               : std_logic_vector(23 downto 0);
   signal valid_tmg_trig_number        : std_logic_vector(23 downto 0);
   signal valid_timing_trg_pulse       : std_logic;
   signal valid_NOtmg_trig_number      : std_logic_vector(23 downto 0);
@@ -256,25 +182,30 @@ architecture TDC of TDC is
   signal wait_time                    : std_logic_vector(23 downto 0);
   signal empty_channels               : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
   signal total_empty_channel          : std_logic_vector(23 downto 0);
-  signal channel_lost_hits            : statistics_array_24;
-  signal channel_measurement          : statistics_array_24;
+  signal channel_lost_hit_number      : statistics_array_24;
+  signal channel_hit_detect_number    : statistics_array_24;
   signal channel_encoder_start_number : statistics_array_24;
+  signal channel_fifo_wr_number       : statistics_array_24;
   signal stop_status_i                : std_logic;
 
 -- Test signals
-  signal ref_debug_i        : std_logic_vector(31 downto 0);
+  signal ref_debug_i     : std_logic_vector(31 downto 0);
   type   channel_debug_array is array (1 to CHANNEL_NUMBER-1) of std_logic_vector(31 downto 0);
-  signal channel_debug_01_i : channel_debug_array;
+  signal channel_debug_i : channel_debug_array;
 -------------------------------------------------------------------------------
   
 begin
 -------------------------------------------------------------------------------
 -- Slow control signals
 -------------------------------------------------------------------------------
-  ch_en_i              <= CONTROL_REG_IN(3*32+31 downto 2*32+0);
-  trigger_win_en       <= CONTROL_REG_IN(1*32+31);
+  logic_anal_control   <= CONTROL_REG_IN(3 downto 0) when rising_edge(CLK_READOUT);
+  debug_mode_en_i      <= CONTROL_REG_IN(4);
   readout_trigger_mode <= CONTROL_REG_IN(12);
-  logic_anal_control   <= CONTROL_REG_IN(3 downto 0);
+
+  trigger_win_en       <= CONTROL_REG_IN(1*32+31);
+
+  ch_en_i              <= CONTROL_REG_IN(3*32+31 downto 2*32+0);
+    
 -------------------------------------------------------------------------------
 -- The Reset Signal Genaration (Synchronous with the fine time clock)
 -------------------------------------------------------------------------------
@@ -293,25 +224,26 @@ begin
     generic map (
       CHANNEL_ID => 0)
     port map (
-      RESET_WR          => reset_tdc,
-      RESET_RD          => RESET,
-      CLK_WR            => CLK_TDC,
-      CLK_RD            => CLK_READOUT,
-      HIT_IN            => REFERENCE_TIME,
-      READ_EN_IN        => rd_en_i(0),
-      VALID_TMG_TRG_IN  => VALID_TIMING_TRG_IN,
-      SPIKE_DETECTED_IN => SPIKE_DETECTED_IN,
-      MULTI_TMG_TRG_IN  => MULTI_TMG_TRG_IN,
-      FIFO_DATA_OUT     => channel_data_i(0),
-      FIFO_EMPTY_OUT    => channel_empty_i(0),
-      FIFO_FULL_OUT     => channel_full_i(0),
-      COARSE_COUNTER_IN => coarse_cnt,
-      TRIGGER_TIME_OUT  => trigger_time_i,
-      REF_DEBUG_OUT     => ref_debug_i);
+      RESET_WR             => reset_tdc,
+      RESET_RD             => RESET,
+      CLK_WR               => CLK_TDC,
+      CLK_RD               => CLK_READOUT,
+      HIT_IN               => REFERENCE_TIME,
+      READ_EN_IN           => rd_en_i(0),
+      VALID_TMG_TRG_IN     => VALID_TIMING_TRG_IN,
+      SPIKE_DETECTED_IN    => SPIKE_DETECTED_IN,
+      MULTI_TMG_TRG_IN     => MULTI_TMG_TRG_IN,
+      FIFO_DATA_OUT        => channel_data_i(0),
+      FIFO_EMPTY_OUT       => channel_empty_i(0),
+      FIFO_FULL_OUT        => channel_full_i(0),
+      FIFO_ALMOST_FULL_OUT => channel_almost_full_i(0),
+      COARSE_COUNTER_IN    => coarse_cnt,
+      TRIGGER_TIME_OUT     => trigger_time_i,
+      REF_DEBUG_OUT        => ref_debug_i);
 
   -- Channel enable signals
   GEN_Channel_Enable : for i in 1 to CHANNEL_NUMBER-1 generate
-    hit_in_i(i) <= HIT_IN(i) and ch_en_i(i);
+    hit_in_i(i) <= HIT_IN(i) and ch_en_i(i-1);
   end generate GEN_Channel_Enable;
 
   -- Channels
@@ -329,11 +261,13 @@ begin
         FIFO_DATA_OUT        => channel_data_i(i),
         FIFO_EMPTY_OUT       => channel_empty_i(i),
         FIFO_FULL_OUT        => channel_full_i(i),
+        FIFO_ALMOST_FULL_OUT => channel_almost_full_i(i),
         COARSE_COUNTER_IN    => coarse_cnt,
-        LOST_HIT_NUMBER      => channel_lost_hits(i),
-        MEASUREMENT_NUMBER   => channel_measurement(i),
+        LOST_HIT_NUMBER      => channel_lost_hit_number(i),
+        HIT_DETECT_NUMBER    => channel_hit_detect_number(i),
         ENCODER_START_NUMBER => channel_encoder_start_number(i),
-        Channel_DEBUG_01     => channel_debug_01_i(i));
+        FIFO_WR_NUMBER       => channel_fifo_wr_number(i),
+        Channel_DEBUG        => channel_debug_i(i));
   end generate GEN_Channels;
   channel_data_i(CHANNEL_NUMBER) <= x"FFFFFFFF";
 
@@ -348,7 +282,7 @@ begin
       UP_IN     => '1');
 
   -- Trigger mode control register synchronised to the coarse counter clk
-  Readout_trigger_mode_sync: bit_sync
+  Readout_trigger_mode_sync : bit_sync
     generic map (
       DEPTH => 3)
     port map (
@@ -358,7 +292,7 @@ begin
       D_IN  => readout_trigger_mode,
       D_OUT => readout_trigger_mode_200);
 
-  Valid_timing_trigger_sync: bit_sync
+  Valid_timing_trigger_sync : bit_sync
     generic map (
       DEPTH => 3)
     port map (
@@ -374,7 +308,7 @@ begin
       en_clk    => '1',
       signal_in => valid_timing_trg_200,
       pulse     => valid_timing_trg_pulse_200);
-  
+
 
 
 -------------------------------------------------------------------------------
@@ -398,7 +332,7 @@ begin
       end if;
     end if;
   end process Coarse_Counter_Reset;
-  
+
 -- Reference Time (Coarse)
 
   -- purpose: If the timing trigger is valid, the coarse time of the reference
@@ -528,14 +462,14 @@ begin
         fifo_nr_next <= conv_integer("00010" & fifo_nr_hex(2)(2 downto 0));
       elsif fifo_nr_hex(3)(3) /= '1' then
         fifo_nr_next <= conv_integer("00011" & fifo_nr_hex(3)(2 downto 0));
-        --elsif fifo_nr_hex(4)(3) /= '1' then
-        --  fifo_nr_next <= conv_integer("00100" & fifo_nr_hex(4)(2 downto 0));
-        --elsif fifo_nr_hex(5)(3) /= '1' then
-        --  fifo_nr_next <= conv_integer("00101" & fifo_nr_hex(5)(2 downto 0));
-        --elsif fifo_nr_hex(6)(3) /= '1' then
-        --  fifo_nr_next <= conv_integer("00110" & fifo_nr_hex(6)(2 downto 0));
-        --elsif fifo_nr_hex(7)(3) /= '1' then
-        --  fifo_nr_next <= conv_integer("00111" & fifo_nr_hex(7)(2 downto 0));
+      elsif fifo_nr_hex(4)(3) /= '1' then
+        fifo_nr_next <= conv_integer("00100" & fifo_nr_hex(4)(2 downto 0));
+      elsif fifo_nr_hex(5)(3) /= '1' then
+        fifo_nr_next <= conv_integer("00101" & fifo_nr_hex(5)(2 downto 0));
+      elsif fifo_nr_hex(6)(3) /= '1' then
+        fifo_nr_next <= conv_integer("00110" & fifo_nr_hex(6)(2 downto 0));
+      elsif fifo_nr_hex(7)(3) /= '1' then
+        fifo_nr_next <= conv_integer("00111" & fifo_nr_hex(7)(2 downto 0));
       else
         fifo_nr_next <= CHANNEL_NUMBER;
       end if;
@@ -567,7 +501,7 @@ begin
         stop_status_i <= '0';
       else
         if wr_header_i = '1' then
-          data_out_reg  <= "001" & "0000000000000" & header_error_bits;
+          data_out_reg  <= "001" & "00000" & TRG_CODE_IN & header_error_bits;
           data_wr_reg   <= '1';
           stop_status_i <= '0';
         elsif wr_ch_data_reg = '1' and trigger_win_en = '1' then
@@ -588,23 +522,25 @@ begin
           end if;
           stop_status_i <= '0';
         elsif wr_ch_data_reg = '1' and trigger_win_en = '0' then
-          data_out_reg  <= "1000" & channel_data_reg(fifo_nr)(27 downto 0);
+          data_out_reg  <= channel_data_reg(fifo_nr);
           data_wr_reg   <= '1';
           stop_status_i <= '0';
         elsif wr_status_i = '1' then
           case i is
-            when 0 => data_out_reg <= "010" & "00000" & valid_tmg_trig_number;
-            when 1 => data_out_reg <= "010" & "00001" & trig_number;
-            when 2 => data_out_reg <= "010" & "00010" & valid_NOtmg_trig_number;
-            when 3 => data_out_reg <= "010" & "00011" & invalid_trig_number;
-            when 4 => data_out_reg <= "010" & "00100" & multi_tmg_trig_number;
-            when 5 => data_out_reg <= "010" & "00101" & spurious_trig_number;
-            when 6 => data_out_reg <= "010" & "00110" & wrong_readout_number;
-            when 7 => data_out_reg <= "010" & "00111" & spike_number;
-            when 8 => data_out_reg <= "010" & "01000" & idle_time;
-            when 9 => data_out_reg <= "010" & "01001" & wait_time;
-                      stop_status_i <= '1';
-            when 10     => data_out_reg <= "010" & "01010" & total_empty_channel;
+            when 0  => data_out_reg <= "010" & "00000" & trig_number;
+            when 1  => data_out_reg <= "010" & "00001" & release_number;
+            when 2  => data_out_reg <= "010" & "00010" & valid_tmg_trig_number;
+            when 3  => data_out_reg <= "010" & "00011" & valid_NOtmg_trig_number;
+            when 4  => data_out_reg <= "010" & "00100" & invalid_trig_number;
+            when 5  => data_out_reg <= "010" & "00101" & multi_tmg_trig_number;
+            when 6  => data_out_reg <= "010" & "00110" & spurious_trig_number;
+            when 7  => data_out_reg <= "010" & "00111" & wrong_readout_number;
+            when 8  => data_out_reg <= "010" & "01000" & spike_number;
+            when 9  => data_out_reg <= "010" & "01001" & idle_time;
+            when 10 => data_out_reg <= "010" & "01010" & wait_time;
+                       stop_status_i <= '1';
+            when 11     => data_out_reg <= "010" & "01011" & total_empty_channel;
+                           i := -1;
             when others => null;
           end case;
           data_wr_reg <= '1';
@@ -635,11 +571,11 @@ begin
   begin
     if rising_edge(CLK_READOUT) then
       if RESET = '1' then
-        channel_data_reg  <= (others => x"00000000");
-        channel_empty_reg <= (others => '0');
+        channel_data_reg   <= (others => x"00000000");
+        channel_empty_reg  <= (others => '0');
       else
-        channel_data_reg  <= channel_data_i;
-        channel_empty_reg <= channel_empty_i;
+        channel_data_reg   <= channel_data_i;
+        channel_empty_reg  <= channel_empty_i;
       end if;
     end if;
   end process Delay_Channel_Data;
@@ -694,7 +630,7 @@ begin
 
   FSM_PROC : process (FSM_CURRENT, VALID_TIMING_TRG_IN, VALID_NOTIMING_TRG_IN, trg_win_end_i, fifo_nr_next,
                       fifo_nr, channel_empty_reg, TRG_DATA_VALID_IN, INVALID_TRG_IN, TMGTRG_TIMEOUT_IN,
-                      TRG_TYPE_IN, SPURIOUS_TRG_IN, stop_status_i)
+                      TRG_TYPE_IN, SPURIOUS_TRG_IN, stop_status_i, debug_mode_en_i)
   begin
 
     start_trg_win_cnt_fsm <= '0';
@@ -710,143 +646,144 @@ begin
     readout_fsm           <= '0';
     wait_fsm              <= '0';
     wr_status_fsm         <= '0';
+    fsm_debug_fsm         <= x"00";
+    FSM_NEXT              <= IDLE;
 
     case (FSM_CURRENT) is
       when IDLE =>
         if VALID_TIMING_TRG_IN = '1' then
           FSM_NEXT              <= WAIT_FOR_TRG_WIND_END;
           start_trg_win_cnt_fsm <= '1';
-          fsm_debug_fsm         <= x"01";
         elsif VALID_NOTIMING_TRG_IN = '1' then
           if TRG_TYPE_IN = x"E" then
-            FSM_NEXT      <= SEND_STATUS;
-            fsm_debug_fsm <= x"02";
+            FSM_NEXT <= SEND_STATUS;
           else
-            FSM_NEXT      <= SEND_TRG_RELEASE_A;
-            fsm_debug_fsm <= x"03";
+            FSM_NEXT <= SEND_TRG_RELEASE_A;
           end if;
           wr_header_fsm <= '1';
         elsif INVALID_TRG_IN = '1' then
-          FSM_NEXT      <= SEND_TRG_RELEASE_A;
-          fsm_debug_fsm <= x"04";
+          FSM_NEXT          <= SEND_TRG_RELEASE_A;
+          data_finished_fsm <= '1';
         else
-          FSM_NEXT      <= IDLE;
-          fsm_debug_fsm <= x"05";
+          FSM_NEXT <= IDLE;
         end if;
-        idle_fsm <= '1';
+        idle_fsm      <= '1';
+        fsm_debug_fsm <= x"01";
 --
       when WAIT_FOR_TRG_WIND_END =>
         if trg_win_end_i = '1' then
-          FSM_NEXT      <= WR_HEADER;
-          fsm_debug_fsm <= x"06";
+          FSM_NEXT <= WR_HEADER;
         else
-          FSM_NEXT      <= WAIT_FOR_TRG_WIND_END;
-          fsm_debug_fsm <= x"07";
+          FSM_NEXT <= WAIT_FOR_TRG_WIND_END;
         end if;
-        wait_fsm <= '1';
+        wait_fsm      <= '1';
+        fsm_debug_fsm <= x"02";
 -------------------------------------------------------------------------------
 -- Readout process starts
       when WR_HEADER =>
         FSM_NEXT      <= WAIT_FOR_FIFO_NR_A;
         wr_header_fsm <= '1';
-        fsm_debug_fsm <= x"08";
         readout_fsm   <= '1';
+        fsm_debug_fsm <= x"03";
 
       when WAIT_FOR_FIFO_NR_A =>
         FSM_NEXT       <= WAIT_FOR_FIFO_NR_B;
         updt_index_fsm <= '1';
-        fsm_debug_fsm  <= x"0A";
         wait_fsm       <= '1';
+        fsm_debug_fsm  <= x"04";
 
       when WAIT_FOR_FIFO_NR_B =>
         FSM_NEXT      <= APPLY_MASK;
-        fsm_debug_fsm <= x"0C";
         wait_fsm      <= '1';
+        fsm_debug_fsm <= x"05";
 
       when APPLY_MASK =>
         if fifo_nr_next = CHANNEL_NUMBER then
-          FSM_NEXT          <= WAIT_FOR_LVL1_TRG_A;
-          data_finished_fsm <= '1';
-          fsm_debug_fsm     <= x"0D";
+          if debug_mode_en_i = '1' then
+            FSM_NEXT          <= SEND_STATUS;
+          else
+            FSM_NEXT          <= WAIT_FOR_LVL1_TRG_A;
+            data_finished_fsm <= '1';
+          end if;
         else
           FSM_NEXT           <= RD_CHANNEL_A;
           rd_en_fsm(fifo_nr) <= '1';
           updt_mask_fsm      <= '1';
-          fsm_debug_fsm      <= x"0E";
         end if;
-        wait_fsm <= '1';
+        wait_fsm      <= '1';
+        fsm_debug_fsm <= x"06";
 
       when RD_CHANNEL_A =>
         FSM_NEXT           <= RD_CHANNEL_B;
         rd_en_fsm(fifo_nr) <= '1';
-        fsm_debug_fsm      <= x"0F";
         readout_fsm        <= '1';
-
+        fsm_debug_fsm      <= x"07";
+        
       when RD_CHANNEL_B =>
         FSM_NEXT           <= RD_CHANNEL_C;
         rd_en_fsm(fifo_nr) <= '1';
-        fsm_debug_fsm      <= x"10";
         readout_fsm        <= '1';
-
+        fsm_debug_fsm      <= x"08";
+        
       when RD_CHANNEL_C =>
         if channel_empty_reg(fifo_nr) = '1' then
           FSM_NEXT       <= WAIT_FOR_FIFO_NR_B;
           wr_ch_data_fsm <= '0';
           updt_index_fsm <= '1';
-          fsm_debug_fsm  <= x"11";
         else
           FSM_NEXT           <= RD_CHANNEL_C;
           wr_ch_data_fsm     <= '1';
           rd_en_fsm(fifo_nr) <= '1';
-          fsm_debug_fsm      <= x"12";
         end if;
-        readout_fsm <= '1';
+        readout_fsm   <= '1';
+        fsm_debug_fsm <= x"09";
 -------------------------------------------------------------------------------
       when WAIT_FOR_LVL1_TRG_A =>
         if TRG_DATA_VALID_IN = '1' then
-          FSM_NEXT      <= WAIT_FOR_LVL1_TRG_B;
-          fsm_debug_fsm <= x"13";
+          FSM_NEXT <= WAIT_FOR_LVL1_TRG_B;
         elsif TMGTRG_TIMEOUT_IN = '1' then
-          FSM_NEXT      <= IDLE;
-          fsm_debug_fsm <= x"14";
+          FSM_NEXT <= IDLE;
         else
-          FSM_NEXT      <= WAIT_FOR_LVL1_TRG_A;
-          fsm_debug_fsm <= x"15";
+          FSM_NEXT <= WAIT_FOR_LVL1_TRG_A;
         end if;
-        wait_fsm <= '1';
+        wait_fsm      <= '1';
+        fsm_debug_fsm <= x"0A";
 --
       when WAIT_FOR_LVL1_TRG_B =>
         FSM_NEXT      <= WAIT_FOR_LVL1_TRG_C;
-        fsm_debug_fsm <= x"16";
         wait_fsm      <= '1';
+        fsm_debug_fsm <= x"0B";
 --
       when WAIT_FOR_LVL1_TRG_C =>
         if SPURIOUS_TRG_IN = '1' then
           wrong_readout_fsm <= '1';
         end if;
         FSM_NEXT      <= SEND_TRG_RELEASE_A;
-        fsm_debug_fsm <= x"17";
         wait_fsm      <= '1';
+        fsm_debug_fsm <= x"0C";
 --
       when SEND_STATUS =>  -- here the status of the TDC should be sent
         if stop_status_i = '1' then
-          FSM_NEXT          <= SEND_TRG_RELEASE_A;
+          if debug_mode_en_i = '1' then
+            FSM_NEXT <= WAIT_FOR_LVL1_TRG_A;
+          else
+            FSM_NEXT <= SEND_TRG_RELEASE_A;
+          end if;
           data_finished_fsm <= '1';
-          fsm_debug_fsm     <= x"18";
         else
           FSM_NEXT      <= SEND_STATUS;
           wr_status_fsm <= '1';
-          fsm_debug_fsm <= x"19";
         end if;
+        fsm_debug_fsm <= x"0D";
 --
       when SEND_TRG_RELEASE_A =>
         FSM_NEXT        <= SEND_TRG_RELEASE_B;
         trg_release_fsm <= '1';
-        fsm_debug_fsm   <= x"1A";
+        fsm_debug_fsm   <= x"0E";
 --
       when SEND_TRG_RELEASE_B =>
         FSM_NEXT      <= IDLE;
-        fsm_debug_fsm <= x"1B";
+        fsm_debug_fsm <= x"0F";
 --
       when others =>
         FSM_NEXT      <= IDLE;
@@ -858,28 +795,23 @@ begin
 -- Header-Trailor Error & Warning Bits
 -------------------------------------------------------------------------------
   -- Error, warning bits set in the header
-  header_error_bits(15 downto 2) <= (others => '0');
+  header_error_bits(15 downto 3) <= (others => '0');
   header_error_bits(0)           <= '0';
   --header_error_bits(0) <= lost_hit_i;  -- if there is at least one lost hit (can be more if the FIFO is full).
   header_error_bits(1)           <= fifo_full_i;  -- if the channel FIFO is full.
-  --header_error_bits(2) <= fifo_almost_full_i;  -- if the channel FIFO is almost full.
+  header_error_bits(2)           <= fifo_almost_full_i;  -- if the channel FIFO is almost full.
 
   -- Error, warning bits set in the trailer
   trailer_error_bits <= (others => '0');
   -- trailer_error_bits (0) <= wrong_readout_i;  -- if there is a wrong readout because of a spurious timing trigger.
 
-  -- Information bits sent after a status trigger
-  -- <= lost_hits_nr_i;                 -- total number of lost hits.
-
-  fifo_full_i <= channel_full_i(15) or channel_full_i(14) or channel_full_i(13) or channel_full_i(12) or
-                  channel_full_i(11) or channel_full_i(10) or channel_full_i(9) or channel_full_i(8) or
-                  channel_full_i(7) or channel_full_i(6) or channel_full_i(5) or channel_full_i(4) or
-                  channel_full_i(3) or channel_full_i(2) or channel_full_i(1) or channel_full_i(0);
+  fifo_full_i        <= or_all(channel_full_i);
+  fifo_almost_full_i <= or_all(channel_almost_full_i);
 
 -------------------------------------------------------------------------------
 -- Debug and statistics words
 -------------------------------------------------------------------------------
-  
+
   edge_to_pulse_1 : edge_to_pulse
     port map (
       clock     => CLK_READOUT,
@@ -934,6 +866,18 @@ begin
     end if;
   end process Statistics_Trigger_Number;
 
+  -- purpose: Internal release number counter
+  Statistics_Release_Number : process (CLK_READOUT, RESET)
+  begin
+    if rising_edge(CLK_READOUT) then
+      if RESET = '1' then
+        release_number <= (others => '0');
+      elsif trg_release_reg = '1' then
+        release_number <= release_number + 1;
+      end if;
+    end if;
+  end process Statistics_Release_Number;
+    
   -- purpose: Internal valid timing trigger number counter
   Statistics_Valid_Timing_Trigger_Number : process (CLK_READOUT, RESET)
   begin
@@ -1071,116 +1015,53 @@ begin
 -- Logic Analyser Signals
 -------------------------------------------------------------------------------
 -- Logic Analyser and Test Signals
-  --REG_LOGIC_ANALYSER_OUTPUT : process (CLK_READOUT, RESET)
-  --begin
-  --  if rising_edge(CLK_READOUT) then
-  --    if RESET = '1' then
-  --      logic_analyser_reg <= (others => '0');
-  --    elsif logic_anal_control = x"1" then   TRBNET connections debugging
-  --      logic_analyser_reg(7 downto 0) <= fsm_debug_reg;
-  --      logic_analyser_reg(8)          <= REFERENCE_TIME;
-  --      logic_analyser_reg(9)          <= VALID_TIMING_TRG_IN;
-  --      logic_analyser_reg(10)         <= VALID_NOTIMING_TRG_IN;
-  --      logic_analyser_reg(11)         <= INVALID_TRG_IN;
-  --      logic_analyser_reg(12)         <= TRG_DATA_VALID_IN;
-  --      logic_analyser_reg(13)         <= data_wr_reg;
-  --      logic_analyser_reg(14)         <= data_finished_reg;
-  --      logic_analyser_reg(15)         <= trg_release_reg;
-  --    elsif logic_anal_control = x"2" then   Reference channel debugging
-  --      logic_analyser_reg <= ref_debug_i(15 downto 0);
-  --    elsif logic_anal_control = x"3" then   Hit input debugging        
-  --      logic_analyser_reg(7 downto 1) <= HIT_IN(7 downto 1);
-  --      elsif logic_anal_control = x"4" then  -- Hit input debugging        
-  --        logic_analyser_reg(15 downto 0) <= HIT_IN(31 downto 16);
-  --      elsif logic_anal_control = x"5" then  -- Hit input debugging        
-  --        logic_analyser_reg(15 downto 0) <= HIT_IN(47 downto 32);
-  --      elsif logic_anal_control = x"6" then  -- Hit input debugging        
-  --        logic_analyser_reg(15 downto 0) <= HIT_IN(63 downto 48);
-  --      logic_analyser_reg(15 downto 7) <= (others => '0');
-  --    elsif logic_anal_control = x"7" then   Data out
-  --      logic_analyser_reg(7 downto 0)  <= fsm_debug_reg;
-  --      logic_analyser_reg(8)           <= REFERENCE_TIME;
-  --      logic_analyser_reg(13)          <= data_wr_reg;
-  --      logic_analyser_reg(12 downto 9) <= data_out_reg(25 downto 22);
-  --      logic_analyser_reg(14)          <= data_out_reg(26);
-  --      logic_analyser_reg(15)          <= RESET;
+  REG_LOGIC_ANALYSER_OUTPUT : process (CLK_READOUT, RESET)
+  begin
+    if rising_edge(CLK_READOUT) then
+      if RESET = '1' then
+        logic_analyser_reg <= (others => '0');
+      elsif logic_anal_control = x"1" then  -- TRBNET connections debugging
+        logic_analyser_reg(7 downto 0) <= fsm_debug_reg;
+        logic_analyser_reg(8)          <= REFERENCE_TIME;
+        logic_analyser_reg(9)          <= VALID_TIMING_TRG_IN;
+        logic_analyser_reg(10)         <= VALID_NOTIMING_TRG_IN;
+        logic_analyser_reg(11)         <= INVALID_TRG_IN;
+        logic_analyser_reg(12)         <= TRG_DATA_VALID_IN;
+        logic_analyser_reg(13)         <= data_wr_reg;
+        logic_analyser_reg(14)         <= data_finished_reg;
+        logic_analyser_reg(15)         <= trg_release_reg;
 
-  --    elsif logic_anal_control = x"8" then   Data out
-  --      logic_analyser_reg(0)           <= HIT_IN(2);
-  --      logic_analyser_reg(1)           <= CLK_TDC;
-  --      logic_analyser_reg(2)           <= channel_debug_01_i(2)(1);  encoder_start
-  --      logic_analyser_reg(3)           <= channel_debug_01_i(2)(2);  fifo_wr_en
-  --      logic_analyser_reg(7 downto 4)  <= channel_debug_01_i(2)(6 downto 3);  interval register
-  --      logic_analyser_reg(12 downto 9) <= channel_debug_01_i(2)(10 downto 7);  interval register
-  --      logic_analyser_reg(14)          <= channel_debug_01_i(2)(11);  interval register
-  --      logic_analyser_reg(8)           <= REFERENCE_TIME;
-  --      logic_analyser_reg(13)          <= data_wr_reg;
-  --      logic_analyser_reg(15)          <= RESET;
+      elsif logic_anal_control = x"2" then  -- Reference channel debugging
+        logic_analyser_reg <= ref_debug_i(15 downto 0);
 
-  --    elsif logic_anal_control = x"9" then   Data out
-  --      logic_analyser_reg(0)           <= HIT_IN(3);
-  --      logic_analyser_reg(1)           <= CLK_TDC;
-  --      logic_analyser_reg(2)           <= channel_debug_01_i(3)(1);  encoder_start
-  --      logic_analyser_reg(3)           <= channel_debug_01_i(3)(2);  fifo_wr_en
-  --      logic_analyser_reg(7 downto 4)  <= channel_debug_01_i(3)(6 downto 3);  interval register
-  --      logic_analyser_reg(12 downto 9) <= channel_debug_01_i(3)(10 downto 7);  interval register
-  --      logic_analyser_reg(14)          <= channel_debug_01_i(3)(11);  interval register
-  --      logic_analyser_reg(8)           <= REFERENCE_TIME;
-  --      logic_analyser_reg(13)          <= data_wr_reg;
-  --      logic_analyser_reg(15)          <= RESET;
+      elsif logic_anal_control = x"3" then  -- Data out
+        logic_analyser_reg(7 downto 0)   <= fsm_debug_reg;
+        logic_analyser_reg(8)            <= REFERENCE_TIME;
+        logic_analyser_reg(9)            <= data_wr_reg;
+        logic_analyser_reg(15 downto 10) <= data_out_reg(27 downto 22);
 
-  --    end if;
-  --  end if;
-  --end process REG_LOGIC_ANALYSER_OUTPUT;
+      elsif logic_anal_control = x"4" then  -- channel debugging
+        logic_analyser_reg <= channel_debug_i(1)(15 downto 0);
+      end if;
+    end if;
+  end process REG_LOGIC_ANALYSER_OUTPUT;
 
-
---  REG_LOGIC_ANALYSER_OUTPUT : process (CLK_TDC, reset_tdc)
---  begin
---    if rising_edge(CLK_TDC) then
---      if reset_tdc = '1' then
---        logic_analyser_reg  <= (others => '0');
---        logic_analyser_2reg <= (others => '0');
---      elsif logic_anal_control = x"1" then  --TRBNET connections debugging
---        logic_analyser_reg(0)           <= HIT_IN(3);
---        logic_analyser_reg(1)           <= RESET;
---        logic_analyser_reg(2)           <= channel_debug_01_i(3)(1);  --encoder_start
---        logic_analyser_reg(3)           <= channel_debug_01_i(3)(2);  --fifo_wr_en
---        logic_analyser_reg(7 downto 4)  <= channel_debug_01_i(3)(6 downto 3);  --interval register
---        logic_analyser_reg(12 downto 9) <= channel_debug_01_i(3)(10 downto 7);  --interval register
---        logic_analyser_reg(14)          <= channel_debug_01_i(3)(11);  --interval register
---        logic_analyser_reg(8)           <= REFERENCE_TIME;
-----  logic_analyser_reg(13)          <= data_wr_reg;
---        logic_analyser_2reg             <= logic_analyser_reg;
---      else
---        logic_analyser_reg  <= (others => '0');
---        logic_analyser_2reg <= logic_analyser_reg;
---      end if;
---    end if;
---  end process REG_LOGIC_ANALYSER_OUTPUT;
-
-  --LOGIC_ANALYSER_OUT(14 downto 0) <= logic_analyser_2reg(14 downto 0);
-  --LOGIC_ANALYSER_OUT(15)          <= CLK_TDC;
-
+  LOGIC_ANALYSER_OUT <= logic_analyser_reg;
 -------------------------------------------------------------------------------
 -- STATUS REGISTERS
 -------------------------------------------------------------------------------
 
 -- Register 0x80
-  TDC_DEBUG(7 downto 0) <= fsm_debug_reg;
---
---  TDC_DEBUG(15 downto 8)           <= 
---
---  TDC_DEBUG(23 downto 16)          <= 
+  TDC_DEBUG(7 downto 0)  <= fsm_debug_reg;
+  TDC_DEBUG(15 downto 8) <= std_logic_vector(to_unsigned(CHANNEL_NUMBER-1, 8));
+  TDC_DEBUG(16)          <= REFERENCE_TIME when rising_edge(CLK_READOUT);
 --
 --  TDC_DEBUG(27 downto 24)          <= 
 --
 --  TDC_DEBUG(31 downto 28)          <= 
 
--- Register 0x81
-  TDC_DEBUG(1*32+CHANNEL_NUMBER-1 downto 1*32+0) <= channel_empty_i;
-
--- Register 0x82
---  TDC_DEBUG(2*32+7 downto 2*32+0) <= channel_empty_i(63 downto 32);
+  -- Register 0x81 & 0x82
+  TDC_DEBUG(1*32+CHANNEL_NUMBER-2 downto 1*32+0) <= channel_empty_i(CHANNEL_NUMBER-1 downto 1);
 
 -- Register 0x83
   TDC_DEBUG(3*32+31 downto 3*32+0) <= "00000" & TRG_WIN_POST & "00000" & TRG_WIN_PRE;
@@ -1219,21 +1100,30 @@ begin
   TDC_DEBUG(14*32+23 downto 14*32+0) <= total_empty_channel;
 
 -- Register 0x8f
-  TDC_DEBUG(15*32+23 downto 15*32+0) <= channel_lost_hits(3);
+  TDC_DEBUG(15*32+23 downto 15*32+0) <= release_number;
 
 -- Register 0x90
-  TDC_DEBUG(16*32+23 downto 16*32+0) <= channel_measurement(3);
+  TDC_DEBUG(16*32+23 downto 16*32+0) <= channel_lost_hit_number(1);
 
 -- Register 0x91
-  TDC_DEBUG(17*32+23 downto 17*32+0) <= channel_encoder_start_number(3);
+  TDC_DEBUG(17*32+23 downto 17*32+0) <= channel_hit_detect_number(1);
 
 -- Register 0x92
-  TDC_DEBUG(18*32+23 downto 18*32+0) <= channel_lost_hits(2);
+  TDC_DEBUG(18*32+23 downto 18*32+0) <= channel_encoder_start_number(1);
 
 -- Register 0x93
-  TDC_DEBUG(19*32+23 downto 19*32+0) <= channel_measurement(2);
+  TDC_DEBUG(19*32+23 downto 19*32+0) <= channel_fifo_wr_number(1);
 
--- Register 0x94
-  TDC_DEBUG(20*32+23 downto 20*32+0) <= channel_encoder_start_number(2);
+---- Register 0x94
+--  TDC_DEBUG(20*32+23 downto 20*32+0) <= channel_lost_hit_number(2);
+
+---- Register 0x95
+--  TDC_DEBUG(21*32+23 downto 21*32+0) <= channel_hit_detect_number(2);
+
+---- Register 0x96
+--  TDC_DEBUG(22*32+23 downto 22*32+0) <= channel_encoder_start_number(2);
+
+---- Register 0x97
+--  TDC_DEBUG(23*32+23 downto 23*32+0) <= channel_fifo_wr_number(2);
 
 end TDC;
