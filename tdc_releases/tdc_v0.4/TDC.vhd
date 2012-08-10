@@ -146,10 +146,10 @@ architecture TDC of TDC is
 -- Slow Control Signals
   signal ch_en_i                  : std_logic_vector(63 downto 0);
   signal trigger_win_en           : std_logic;
-  signal readout_trigger_mode     : std_logic := '1';  -- readout trigger
-                                                       -- 1: with trigger
-                                                       -- 0: triggerless
-  signal readout_trigger_mode_200 : std_logic := '1';  -- trigger mode signal synchronised to the coarse counter clk
+  signal readout_trigger_mode     : std_logic;  -- readout trigger
+                                                -- 1: with trigger
+                                                -- 0: triggerless
+  signal readout_trigger_mode_200 : std_logic;  -- trigger mode signal synchronised to the coarse counter clk
   signal logic_anal_control       : std_logic_vector(3 downto 0);
   signal debug_mode_en_i          : std_logic;
 
@@ -552,7 +552,7 @@ begin
           data_wr_reg   <= '1';
           stop_status_i <= '0';
         else
---          data_out_reg <= (others => '1');
+          data_out_reg <= (others => '1');
           data_wr_reg   <= '0';
           stop_status_i <= '0';
         end if;
