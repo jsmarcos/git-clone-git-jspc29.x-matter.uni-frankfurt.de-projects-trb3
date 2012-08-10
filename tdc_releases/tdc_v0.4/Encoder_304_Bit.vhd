@@ -158,15 +158,17 @@ begin
 -------------------------------------------------------------------------------
 
   Gen_P_one : for i in 0 to 36 generate
-    P_one(i) <= P_lut(i) and (not P_lut(i+1));
+    P_one(i) <= P_lut(i) and (not P_lut(i+1)) when rising_edge(CLK);
   end generate Gen_P_one;
 
-  P_one_assign : process (START_IN, P_lut)
+  P_one_assign : process (CLK, START_IN, P_lut)
   begin
-    if START_IN = '1' then
-      P_one(37) <= P_lut(37);
-    else
-      P_one(37) <= '0';
+    if rising_edge(CLK) then
+      if RESET = '1' or START_IN = '0' then
+        P_one(37) <= '0';
+      else
+        P_one(37) <= P_lut(37);
+      end if;
     end if;
   end process P_one_assign;
 
@@ -263,7 +265,7 @@ begin
       OutClockEn => '1',
       Reset      => RESET,
       Q          => q_reg);
-  address_i       <= start_3reg & interval_2reg;
+  address_i       <= start_3reg & interval_reg;  --start_3reg & interval_2reg;
   rom_done_i      <= q_2reg(7);
   interval_binary <= q_2reg(2 downto 0);
 
@@ -274,7 +276,7 @@ begin
         binary_code_f <= (others => '0');
         binary_code_r <= (others => '0');
       elsif rom_done_i = '1' then
-        binary_code_r <= (mux_control_5reg - 1) & interval_binary;
+        binary_code_r <= (mux_control_4reg - 1) & interval_binary;
         binary_code_f <= binary_code_r;
       end if;
     end if;
@@ -350,16 +352,16 @@ begin
   begin
     if rising_edge(CLK) then
       if RESET = '1' then
-        proc_cnt_1      <= x"7";
+        proc_cnt_1      <= x"6";
         proc_finished_1 <= '0';
       elsif start_cnt_1_i = '1' then
         proc_cnt_1      <= x"1";
         proc_finished_1 <= '0';
-      elsif proc_cnt_1 = x"6" then
+      elsif proc_cnt_1 = x"5" then
         proc_cnt_1      <= proc_cnt_1 + 1;
         proc_finished_1 <= '1';
-      elsif proc_cnt_1 = x"7" then
-        proc_cnt_1      <= x"7";
+      elsif proc_cnt_1 = x"6" then
+        proc_cnt_1      <= x"6";
         proc_finished_1 <= '0';
       else
         proc_cnt_1      <= proc_cnt_1 + 1;
@@ -373,16 +375,16 @@ begin
   begin
     if rising_edge(CLK) then
       if RESET = '1' then
-        proc_cnt_2      <= x"7";
+        proc_cnt_2      <= x"6";
         proc_finished_2 <= '0';
       elsif start_cnt_2_i = '1' then
         proc_cnt_2      <= x"1";
         proc_finished_2 <= '0';
-      elsif proc_cnt_2 = x"6" then
+      elsif proc_cnt_2 = x"5" then
         proc_cnt_2      <= proc_cnt_2 + 1;
         proc_finished_2 <= '1';
-      elsif proc_cnt_2 = x"7" then
-        proc_cnt_2      <= x"7";
+      elsif proc_cnt_2 = x"6" then
+        proc_cnt_2      <= x"6";
         proc_finished_2 <= '0';
       else
         proc_cnt_2      <= proc_cnt_2 + 1;
@@ -396,16 +398,16 @@ begin
   begin
     if rising_edge(CLK) then
       if RESET = '1' then
-        proc_cnt_3      <= x"7";
+        proc_cnt_3      <= x"6";
         proc_finished_3 <= '0';
       elsif start_cnt_3_i = '1' then
         proc_cnt_3      <= x"1";
         proc_finished_3 <= '0';
-      elsif proc_cnt_3 = x"6" then
+      elsif proc_cnt_3 = x"5" then
         proc_cnt_3      <= proc_cnt_3 + 1;
         proc_finished_3 <= '1';
-      elsif proc_cnt_3 = x"7" then
-        proc_cnt_3      <= x"7";
+      elsif proc_cnt_3 = x"6" then
+        proc_cnt_3      <= x"6";
         proc_finished_3 <= '0';
       else
         proc_cnt_3      <= proc_cnt_3 + 1;
@@ -419,16 +421,16 @@ begin
   begin
     if rising_edge(CLK) then
       if RESET = '1' then
-        proc_cnt_4      <= x"7";
+        proc_cnt_4      <= x"6";
         proc_finished_4 <= '0';
       elsif start_cnt_4_i = '1' then
         proc_cnt_4      <= x"1";
         proc_finished_4 <= '0';
-      elsif proc_cnt_4 = x"6" then
+      elsif proc_cnt_4 = x"5" then
         proc_cnt_4      <= proc_cnt_4 + 1;
         proc_finished_4 <= '1';
-      elsif proc_cnt_4 = x"7" then
-        proc_cnt_4      <= x"7";
+      elsif proc_cnt_4 = x"6" then
+        proc_cnt_4      <= x"6";
         proc_finished_4 <= '0';
       else
         proc_cnt_4      <= proc_cnt_4 + 1;
