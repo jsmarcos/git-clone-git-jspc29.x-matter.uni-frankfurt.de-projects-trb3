@@ -4,7 +4,7 @@
 -- File       : Encoder_304_Bit.vhd
 -- Author     : Cahit Ugur
 -- Created    : 2011-11-28
--- Last update: 2012-05-08
+-- Last update: 2012-08-02
 -------------------------------------------------------------------------------
 -- Description: Encoder for 304 bits
 -------------------------------------------------------------------------------
@@ -17,6 +17,12 @@ library ieee;
 use ieee.std_logic_unsigned.all;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+
+library work;
+use work.trb_net_std.all;
+use work.trb_net_components.all;
+use work.trb3_components.all;
+use work.version.all;
 
 -- synopsys translate_off
 library ecp3;
@@ -48,16 +54,7 @@ architecture behavioral of Encoder_304_Bit is
       Z          : out std_ulogic);
   end component;
 
-  component ROM_Encoder
-    port (
-      Address    : in  std_logic_vector(9 downto 0);
-      OutClock   : in  std_logic;
-      OutClockEn : in  std_logic;
-      Reset      : in  std_logic;
-      Q          : out std_logic_vector(7 downto 0)); 
-  end component;
-
--------------------------------------------------------------------------------
+-----------------------------------------------------------------------------
 -- Signal Declarations
 -------------------------------------------------------------------------------
   signal P_lut                 : std_logic_vector(37 downto 0);
