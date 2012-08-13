@@ -19,3 +19,8 @@ cbmrich_20120725.bit	31 channels. Went back to the version 0.2 in order to
 
 cbmrich_20120802.bit	31 channels in order to test the missing events from
 			the reference channel.
+
+cbmrich_20120810.bit	32 channels.
+
+cbmrich_20120813.bit	65 channels. Channel 28, spi_dac and a debug signal in
+			endpoint don't meet the timing constraints.
