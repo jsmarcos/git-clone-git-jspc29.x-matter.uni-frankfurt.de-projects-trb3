@@ -19,7 +19,7 @@
 				<BScanLen>1</BScanLen>
 				<BScanVal>0</BScanVal>
 			</Bypass>
-			<File>/home/hadaq/trb3_central_20111019_exp.bit</File>
+			<File>/home/hadaq/projects/trb3/tdc_test/trb3_central_20111019_exp.bit</File>
 			<MaskFile>/opt/lattice/isptools/ispvmsystem/Database/xpga/ecp3/ecp3-150.msk</MaskFile>
 			<FileTime>12/5/2011 13:56:41</FileTime>
 			<Operation>Fast Program</Operation>
@@ -50,9 +50,9 @@
 				<BScanLen>1</BScanLen>
 				<BScanVal>0</BScanVal>
 			</Bypass>
-			<File>/home/hadaq/projects/trb3/tdc_test/trb3_periph.bit</File>
+			<File>/home/hadaq/projects/trb3/tdc_releases/tdc_v0.2/bit_file/trb3_periph_v02_20120509.bit</File>
 			<MaskFile>/opt/lattice/isptools/ispvmsystem/Database/xpga/ecp3/ecp3-150.msk</MaskFile>
-			<FileTime>12/22/2011 16:0:10</FileTime>
+			<FileTime>5/9/2012 17:21:10</FileTime>
 			<Operation>Fast Program</Operation>
 			<Option>
 				<SVFVendor>JTAG STANDARD</SVFVendor>
@@ -62,7 +62,7 @@
 				<OverideUES value="TRUE"/>
 				<TCKFrequency>1.000000 MHz</TCKFrequency>
 				<SVFProcessor>ispVM</SVFProcessor>
-				<Usercode>0x00000000</Usercode>
+				<Usercode>00000000</Usercode>
 				<AccessMode>JTAG</AccessMode>
 			</Option>
 		</Device>
@@ -81,9 +81,9 @@
 				<BScanLen>1</BScanLen>
 				<BScanVal>0</BScanVal>
 			</Bypass>
-			<File>/home/hadaq/projects/trb3/tdc_test/trb3_periph.bit</File>
+			<File>/home/hadaq/projects/trb3/tdc_releases/tdc_v0.2/bit_file/trb3_periph_v02_20120509.bit</File>
 			<MaskFile>/opt/lattice/isptools/ispvmsystem/Database/xpga/ecp3/ecp3-150.msk</MaskFile>
-			<FileTime>12/22/2011 16:0:10</FileTime>
+			<FileTime>5/9/2012 17:21:10</FileTime>
 			<Operation>Fast Program</Operation>
 			<Option>
 				<SVFVendor>JTAG STANDARD</SVFVendor>
@@ -93,7 +93,7 @@
 				<OverideUES value="TRUE"/>
 				<TCKFrequency>1.000000 MHz</TCKFrequency>
 				<SVFProcessor>ispVM</SVFProcessor>
-				<Usercode>0x00000000</Usercode>
+				<Usercode>00000000</Usercode>
 				<AccessMode>JTAG</AccessMode>
 			</Option>
 		</Device>
@@ -112,9 +112,9 @@
 				<BScanLen>1</BScanLen>
 				<BScanVal>0</BScanVal>
 			</Bypass>
-			<File>/home/hadaq/projects/trb3/tdc_test/trb3_periph.bit</File>
+			<File>/home/hadaq/projects/trb3/tdc_releases/tdc_v0.2/bit_file/trb3_periph_v02_20120509.bit</File>
 			<MaskFile>/opt/lattice/isptools/ispvmsystem/Database/xpga/ecp3/ecp3-150.msk</MaskFile>
-			<FileTime>12/22/2011 16:0:10</FileTime>
+			<FileTime>5/9/2012 17:21:10</FileTime>
 			<Operation>Fast Program</Operation>
 			<Option>
 				<SVFVendor>JTAG STANDARD</SVFVendor>
@@ -124,7 +124,7 @@
 				<OverideUES value="TRUE"/>
 				<TCKFrequency>1.000000 MHz</TCKFrequency>
 				<SVFProcessor>ispVM</SVFProcessor>
-				<Usercode>0x00000000</Usercode>
+				<Usercode>00000000</Usercode>
 				<AccessMode>JTAG</AccessMode>
 			</Option>
 		</Device>
@@ -143,9 +143,9 @@
 				<BScanLen>1</BScanLen>
 				<BScanVal>0</BScanVal>
 			</Bypass>
-			<File>/home/hadaq/projects/trb3/tdc_test/trb3_periph.bit</File>
+			<File>/home/hadaq/projects/trb3/tdc_releases/tdc_v0.2/bit_file/trb3_periph_v02_20120509.bit</File>
 			<MaskFile>/opt/lattice/isptools/ispvmsystem/Database/xpga/ecp3/ecp3-150.msk</MaskFile>
-			<FileTime>12/22/2011 16:0:10</FileTime>
+			<FileTime>5/9/2012 17:21:10</FileTime>
 			<Operation>Fast Program</Operation>
 			<Option>
 				<SVFVendor>JTAG STANDARD</SVFVendor>
@@ -155,7 +155,7 @@
 				<OverideUES value="TRUE"/>
 				<TCKFrequency>1.000000 MHz</TCKFrequency>
 				<SVFProcessor>ispVM</SVFProcessor>
-				<Usercode>0x00000000</Usercode>
+				<Usercode>00000000</Usercode>
 				<AccessMode>JTAG</AccessMode>
 			</Option>
 		</Device>
@@ -176,7 +176,7 @@
 			<File>/home/ugur/Projects/trb3/base/clockmanager/CM1.jed</File>
 			<FileTime>8/24/2011 15:40:4</FileTime>
 			<JedecChecksum>0x1C8C</JedecChecksum>
-			<Operation>Erase,Program,Verify</Operation>
+			<Operation>Bypass</Operation>
 			<Option>
 				<SVFVendor>JTAG STANDARD</SVFVendor>
 				<IOState>HighZ</IOState>
@@ -205,7 +205,7 @@
 			<File>/home/ugur/Projects/trb3/base/clockmanager/CM2.jed</File>
 			<FileTime>9/16/2011 20:18:19</FileTime>
 			<JedecChecksum>0x18FB</JedecChecksum>
-			<Operation>Erase,Program,Verify</Operation>
+			<Operation>Bypass</Operation>
 			<Option>
 				<SVFVendor>JTAG STANDARD</SVFVendor>
 				<IOState>HighZ</IOState>
