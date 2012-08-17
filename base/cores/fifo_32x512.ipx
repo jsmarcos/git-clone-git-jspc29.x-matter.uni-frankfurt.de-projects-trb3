@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="fifo_32x512" module="FIFO" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2012 08 14 18:18:38.064" version="4.8" type="Module" synthesis="synplify" source_format="VHDL">
+  <Package>
+		<File name="fifo_32x512.lpc" type="lpc" modified="2012 08 14 18:18:36.000"/>
+		<File name="fifo_32x512.vhd" type="top_level_vhdl" modified="2012 08 14 18:18:36.000"/>
+		<File name="fifo_32x512_tmpl.vhd" type="template_vhdl" modified="2012 08 14 18:18:36.000"/>
+		<File name="tb_fifo_32x512_tmpl.vhd" type="testbench_vhdl" modified="2012 08 14 18:18:36.000"/>
+  </Package>
+</DiamondModule>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="fifo_cdt_200" module="FIFO_DC" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2012 08 16 10:56:13.501" version="5.4" type="Module" synthesis="" source_format="VHDL">
+  <Package>
+		<File name="fifo_cdt_200.lpc" type="lpc" modified="2012 08 16 10:56:11.000"/>
+		<File name="fifo_cdt_200.vhd" type="top_level_vhdl" modified="2012 08 16 10:56:11.000"/>
+		<File name="fifo_cdt_200_tmpl.vhd" type="template_vhdl" modified="2012 08 16 10:56:11.000"/>
+		<File name="tb_fifo_cdt_200_tmpl.vhd" type="testbench_vhdl" modified="2012 08 16 10:56:11.000"/>
+  </Package>
+</DiamondModule>

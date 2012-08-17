@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="pll_adc12bit" module="PLL" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2012 08 16 14:37:38.890" version="5.2" type="Module" synthesis="" source_format="VHDL">
+  <Package>
+		<File name="pll_adc12bit.lpc" type="lpc" modified="2012 08 16 14:37:37.000"/>
+		<File name="pll_adc12bit.vhd" type="top_level_vhdl" modified="2012 08 16 14:37:37.000"/>
+		<File name="pll_adc12bit_tmpl.vhd" type="template_vhdl" modified="2012 08 16 14:37:37.000"/>
+  </Package>
+</DiamondModule>

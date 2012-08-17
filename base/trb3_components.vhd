@@ -190,4 +190,75 @@ component edge_to_pulse
     pulse     : out std_logic);
 end component;
   
+component adc_ad9222
+  generic(
+    CHANNELS : integer range 4 to 4 := 4;
+    DEVICES  : integer range 2 to 2 := 2;
+    RESOLUTION : integer range 12 to 12 := 12
+    );
+  port(
+    CLK        : in std_logic;
+    CLK_ADCREF : in std_logic;
+    CLK_ADCDAT : in std_logic;   
+    RESTART_IN : in std_logic;
+    ADCCLK_OUT : out std_logic;
+    ADC_DATA   : in  std_logic_vector(DEVICES*CHANNELS-1 downto 0);
+    ADC_DCO    : in  std_logic_vector(DEVICES-1 downto 0);
+    ADC_FCO    : in  std_logic_vector(DEVICES-1 downto 0);
+    
+    DATA_OUT       : out std_logic_vector(DEVICES*CHANNELS*RESOLUTION-1 downto 0);
+    FCO_OUT        : out std_logic_vector(DEVICES*RESOLUTION-1 downto 0);
+    DATA_VALID_OUT : out std_logic_vector(DEVICES-1 downto 0);
+    DEBUG          : out std_logic_vector(31 downto 0)
+    
+    );
+end component;
+
+component fifo_32x512
+    port (
+        Data: in  std_logic_vector(31 downto 0); 
+        Clock: in  std_logic; 
+        WrEn: in  std_logic; 
+        RdEn: in  std_logic; 
+        Reset: in  std_logic; 
+        Q: out  std_logic_vector(31 downto 0); 
+        Empty: out  std_logic; 
+        Full: out  std_logic);
+end component;
+
+
+
+component dqsinput
+    port (
+        clk_0: in  std_logic; 
+        clk_1: in  std_logic; 
+        clkdiv_reset: in  std_logic; 
+        eclk: in  std_logic; 
+        reset_0: in  std_logic; 
+        reset_1: in  std_logic; 
+        sclk: out  std_logic; 
+        datain_0: in  std_logic_vector(4 downto 0); 
+        datain_1: in  std_logic_vector(4 downto 0); 
+        q_0: out  std_logic_vector(19 downto 0); 
+        q_1: out  std_logic_vector(19 downto 0)
+        );
+end component;
+
+component fifo_cdt_200
+    port (
+        Data: in  std_logic_vector(59 downto 0); 
+        WrClock: in  std_logic; 
+        RdClock: in  std_logic; 
+        WrEn: in  std_logic; 
+        RdEn: in  std_logic; 
+        Reset: in  std_logic; 
+        RPReset: in  std_logic; 
+        Q: out  std_logic_vector(59 downto 0); 
+        Empty: out  std_logic; 
+        Full: out  std_logic);
+end component;
+
+
+
 end package;
+
