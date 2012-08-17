@@ -137,6 +137,12 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_lsm_sfp.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.vhd"
 
 add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
+add_file -vhdl -lib "work" "../base/cores/dqsinput.vhd"
+add_file -vhdl -lib "work" "../base/cores/fifo_cdt_200.vhd"
+add_file -vhdl -lib "work" "../base/cores/pll_adc12bit.vhd"
+add_file -vhdl -lib "work" "../base/cores/fifo_32x512.vhd"
+
+add_file -vhdl -lib "work" "../base/code/adc_ad9222.vhd"
 
 add_file -vhdl -lib "work" "trb3_periph_multitest.vhd"
 

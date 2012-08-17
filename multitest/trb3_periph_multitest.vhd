@@ -7,14 +7,15 @@ use work.trb_net_std.all;
 use work.trb_net_components.all;
 use work.trb3_components.all;
 use work.version.all;
+use work.lattice_ecp2m_fifo.all;
 
 
 
 entity trb3_periph_multitest is
   port(
     --Clocks
-    CLK_GPLL_LEFT  : in std_logic;      --Clock Manager 1/(2468), 125 MHz
-    CLK_GPLL_RIGHT : in std_logic;  --Clock Manager 2/(2468), 200 MHz  <-- MAIN CLOCK for FPGA
+    CLK_GPLL_LEFT  : in std_logic;  --Clock Manager 2/(2468), 200 MHz  <-- MAIN CLOCK for FPGA
+    CLK_GPLL_RIGHT : in std_logic;      --Clock Manager 1/(2468), 125 MHz
     CLK_PCLK_LEFT  : in std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
     CLK_PCLK_RIGHT : in std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
 
@@ -27,8 +28,8 @@ entity trb3_periph_multitest is
     CLK_SERDES_INT_RIGHT : in  std_logic;  --Clock Manager 2/(1357), 200 MHz, only in case of problems
     SERDES_INT_TX        : out std_logic_vector(3 downto 0);
     SERDES_INT_RX        : in  std_logic_vector(3 downto 0);
-    SERDES_ADDON_TX      : out std_logic_vector(11 downto 0);
-    SERDES_ADDON_RX      : in  std_logic_vector(11 downto 0);
+--     SERDES_ADDON_TX      : out std_logic_vector(11 downto 0);
+--     SERDES_ADDON_RX      : in  std_logic_vector(11 downto 0);
 
     --Inter-FPGA Communication
     FPGA5_COMM : inout std_logic_vector(11 downto 0);
@@ -52,8 +53,8 @@ entity trb3_periph_multitest is
     MADC2_D    : in    std_logic_vector(8 downto 1);
     MADC2_SCLK : out   std_logic;
     MADC2_SDIO : inout std_logic;
-    MADC2_CSB  : out   std_logic;
-    MADC2_PDWN : out   std_logic;
+    MADC2_CSB  : out   std_logic := '1';
+    MADC2_PDWN : out   std_logic := '0';
     
     KONR_ADC       : in  std_logic_vector(2 downto 1);
     KONR_ADC_THR   : out std_logic_vector(2 downto 1);
@@ -150,6 +151,16 @@ entity trb3_periph_multitest is
 end entity;
 
 architecture trb3_periph_arch of trb3_periph_multitest is
+
+component pll_adc12bit is
+    port (
+        CLK: in std_logic; 
+        CLKOP: out std_logic;
+        CLKOS: out std_logic;
+        CLKOK: out std_logic; 
+        LOCK: out std_logic);
+end component;
+
   --Constants
   constant REGIO_NUM_STAT_REGS : integer := 2;
   constant REGIO_NUM_CTRL_REGS : integer := 2;
@@ -160,6 +171,8 @@ architecture trb3_periph_arch of trb3_periph_multitest is
   --Clock / Reset
   signal clk_100_i                : std_logic;  --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i                : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
+  signal clk_adcref_i             : std_logic;  --reference for ADC
+  signal clk_adcfast_i            : std_logic;  --data clock reference for ADC
   signal pll_lock                 : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
   signal clear_i                  : std_logic;
   signal reset_i                  : std_logic;
@@ -265,7 +278,25 @@ architecture trb3_periph_arch of trb3_periph_multitest is
   --FPGA Test
   signal time_counter : unsigned(31 downto 0);
 
-  
+  signal clk_adc  : std_logic;
+  signal adc_data : std_logic_vector(8*12-1 downto 0);
+  signal adc_fco  : std_logic_vector(2*12-1 downto 0);
+  signal adc_datavalid : std_logic_vector(1 downto 0);
+
+  signal adcbus_empty : std_logic;
+  signal adcbus_write : std_logic;
+  signal adcbus_read  : std_logic;
+  signal adcbus_addr  : std_logic_vector(2 downto 0);
+  signal adcbus_dataout : std_logic_vector(31 downto 0);
+  signal last_adcbus_read : std_logic;
+  signal ll_adcbus_read : std_logic;
+  signal lll_adcbus_read : std_logic;
+  signal llll_adcbus_read : std_logic;
+
+  signal adcfifo_data_out : std_logic_vector(32*8-1 downto 0);
+  signal adcfifo_read     : std_logic_vector(7 downto 0);
+  signal adcfifo_empty    : std_logic_vector(7 downto 0);
+  signal adcdebug         : std_logic_vector(31 downto 0);
 begin
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -295,14 +326,22 @@ begin
 -- Clock Handling
 ---------------------------------------------------------------------------
 
-  THE_MAIN_PLL : pll_in200_out100
+  THE_MAIN_PLL : pll_adc12bit
     port map(
-      CLK   => CLK_GPLL_RIGHT,
-      CLKOP => clk_100_i,
-      CLKOK => clk_200_i,
-      LOCK  => pll_lock
+      CLK   => CLK_PCLK_LEFT,
+      CLKOS => clk_200_i,
+      CLKOP => clk_adcfast_i,
+      CLKOK => clk_adcref_i,
+      LOCK  => open
       );
 
+  THE_MAIN_PLL_2 : pll_in200_out100
+    port map(
+      CLK   => clk_200_i,
+      CLKOP => clk_100_i,
+      CLKOK => open,
+      LOCK  => pll_lock
+      );
 
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (to other FPGA)
@@ -358,7 +397,7 @@ begin
       BROADCAST_BITMASK         => x"FF",
       BROADCAST_SPECIAL_ADDR    => x"45",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
-      REGIO_HARDWARE_VERSION    => x"91000001",
+      REGIO_HARDWARE_VERSION    => x"91002000",
       REGIO_INIT_ADDRESS        => x"f300",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
       CLOCK_FREQUENCY           => 125,
@@ -460,21 +499,69 @@ begin
       );
 
 ---------------------------------------------------------------------------
--- AddOn
+-- AddOn ADC
 ---------------------------------------------------------------------------
+THE_ADC : adc_ad9222
+  port map(
+    CLK        => clk_100_i,
+    CLK_ADCREF => clk_adcref_i,
+    CLK_ADCDAT => clk_adcfast_i,
+    RESTART_IN => adcbus_write,
+    ADCCLK_OUT => clk_adc,
+    ADC_DATA(3 downto 0) => MADC1_D(4 downto 1),
+    ADC_DATA(7 downto 4) => MADC2_D(4 downto 1),
+    ADC_FCO(0) => MADC1_FCO,    
+    ADC_FCO(1) => MADC2_FCO,    
+    ADC_DCO(0) => MADC1_DCO,
+    ADC_DCO(1) => MADC2_DCO,
+    
+    DATA_OUT       => adc_data,
+    FCO_OUT        => adc_fco,
+    DATA_VALID_OUT => adc_datavalid,
+    DEBUG          => adcdebug
+    );
+
+MADC1_CLK <= clk_adc;
+MADC2_CLK <= clk_adc;
+-- MADC1_PDWN <= '0'; Ha Ha Ha
+MADC2_PDWN <= '0';
+MADC2_CSB  <= '1';
+MADC2_SCLK <= '0';
+MADC2_SDIO <= 'Z';
+MADC1_SCLK <= '0';
+MADC1_SDIO <= 'Z';
 
 
----------------------------------------------------------------------------
--- Bus Handler
----------------------------------------------------------------------------
+gen_adc_fifos : for i in 0 to 7 generate
+  THE_ADC_FIFO : fifo_36x8k_oreg
+    port map(
+      Data(11 downto 0)  => adc_data(i*12+11 downto i*12),
+      Data(15 downto 12) => x"0",
+      Data(27 downto 16) => adc_fco((i / 4)*12+11 downto (i / 4)*12),
+      Data(35 downto 28) => x"00",
+      Clock  => clk_100_i, 
+      WrEn   => adc_datavalid(i / 4), 
+      RdEn   => adcfifo_read(i), 
+      Reset  => adcbus_write,
+      Q(31 downto 0) => adcfifo_data_out(i*32+31 downto i*32),
+      Empty  => adcfifo_empty(i),
+      AmFullThresh => (others => '1'),
+      Full   => open
+      );
+end generate;
+
+
+LVDS_IO <= adcdebug(16 downto 0);
+
+
 ---------------------------------------------------------------------------
 -- Bus Handler
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 3,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, others => 0)
+      PORT_NUMBER    => 4,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 3, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -527,8 +614,46 @@ begin
       BUS_WRITE_ACK_IN(2)                 => dac_ack,
       BUS_NO_MORE_DATA_IN(2)              => dac_busy,
       BUS_UNKNOWN_ADDR_IN(2)              => '0',
+      --ADC
+      BUS_READ_ENABLE_OUT(3)              => adcbus_read,
+      BUS_WRITE_ENABLE_OUT(3)             => adcbus_write,
+      BUS_DATA_OUT(3*32+31 downto 3*32)   => open,
+      BUS_ADDR_OUT(3*16+2 downto 3*16)    => adcbus_addr,
+      BUS_ADDR_OUT(3*16+15 downto 3*16+3) => open,
+      BUS_TIMEOUT_OUT(3)                  => open,
+      BUS_DATA_IN(3*32+31 downto 3*32)    => adcbus_dataout,
+      BUS_DATAREADY_IN(3)                 => llll_adcbus_read,
+      BUS_WRITE_ACK_IN(3)                 => adcbus_write,
+      BUS_NO_MORE_DATA_IN(3)              => adcbus_empty,
+      BUS_UNKNOWN_ADDR_IN(3)              => '0',
       STAT_DEBUG => open
       );
+
+
+last_adcbus_read <= adcbus_read when rising_edge(clk_100_i);
+ll_adcbus_read <= last_adcbus_read when rising_edge(clk_100_i);
+lll_adcbus_read <= ll_adcbus_read when rising_edge(clk_100_i);
+llll_adcbus_read <= lll_adcbus_read when rising_edge(clk_100_i);
+
+
+  proc_read_adc_fifo : process 
+    variable chan : integer range 0 to 7;
+    begin
+    wait until rising_edge(clk_100_i);
+    adcbus_empty <= '0';
+    adcfifo_read <= (others => '0');
+    if adcbus_read = '1' then
+      chan := to_integer(unsigned(adcbus_addr));
+      if adcfifo_empty(chan) = '1' then
+        adcbus_empty <= '1';
+      else
+        adcfifo_read(chan) <= '1';
+      end if;
+    end if;
+    adcbus_dataout <= adcfifo_data_out(chan*32+31 downto chan*32);
+  end process;
+
+
 
 ---------------------------------------------------------------------------
 -- SPI / Flash
@@ -623,16 +748,21 @@ begin
   LED_ORANGE <= not med_stat_op(10);
   LED_RED    <= not time_counter(26);
   LED_YELLOW <= not med_stat_op(11);
-
+  
+  LEDADDON_GREEN  <= '0';
+  LEDADDON_LINKOK <= '0';
+  LEDADDON_ORANGE <= '0';
+  LEDADDON_RED    <= '0';
+  LEDADDON_YELLOW <= '0';
 
 ---------------------------------------------------------------------------
 -- Test Connector
 ---------------------------------------------------------------------------    
-  TEST_LINE(7 downto 0)   <= med_data_in(7 downto 0);
-  TEST_LINE(8)            <= med_dataready_in;
-  TEST_LINE(9)            <= med_dataready_out;
-  TEST_LINE(10)           <= stat_reg_strobe(0);
-  TEST_LINE(15 downto 11) <= (others => '0');
+--   TEST_LINE(7 downto 0)   <= med_data_in(7 downto 0);
+--   TEST_LINE(8)            <= med_dataready_in;
+--   TEST_LINE(9)            <= med_dataready_out;
+--   TEST_LINE(10)           <= stat_reg_strobe(0);
+  TEST_LINE(15 downto 0) <= (others => '0');
 
 
 ---------------------------------------------------------------------------
