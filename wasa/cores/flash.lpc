@@ -16,8 +16,8 @@ CoreRevision=1.0
 ModuleName=flash
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=08/03/2012
-Time=15:05:55
+Date=08/09/2012
+Time=14:22:11
 
 [Parameters]
 Verilog=0
@@ -74,11 +74,11 @@ tc_osc=0
 tc_sa_oflow=0
 tc_top=65535
 ufm=1
-wb_clk_freq=133
+wb_clk_freq=33.33
 ufm_usage=SHARED_EBR_TAG
-ufm_ebr=751
+ufm_ebr=0
 ufm_remain=
-mem_size=16
+mem_size=767
 ufm_start=
 ufm_init=0
 memfile=

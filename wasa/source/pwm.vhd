@@ -38,7 +38,7 @@ begin
 PROC_MEM : process begin
   wait until rising_edge(CLK);
   if WRITE_IN = '1' then
-    set(to_integer(unsigned(ADDR_IN)))(16) <= '0';
+--     set(to_integer(unsigned(ADDR_IN)))(16) <= '0';
     set(to_integer(unsigned(ADDR_IN)))(15 downto 0) <= unsigned(DATA_IN);
   end if;
   DATA_OUT <= std_logic_vector(set(to_integer(unsigned(ADDR_IN)))(15 downto 0));

@@ -88,6 +88,53 @@ component pwm_generator
     );
 end component;
 
+component flashram
+  port (
+    DataInA: in  std_logic_vector(7 downto 0); 
+    DataInB: in  std_logic_vector(7 downto 0); 
+    AddressA: in  std_logic_vector(3 downto 0); 
+    AddressB: in  std_logic_vector(3 downto 0); 
+    ClockA: in  std_logic; 
+    ClockB: in  std_logic; 
+    ClockEnA: in  std_logic; 
+    ClockEnB: in  std_logic; 
+    WrA: in  std_logic; 
+    WrB: in  std_logic; 
+    ResetA: in  std_logic; 
+    ResetB: in  std_logic; 
+    QA: out  std_logic_vector(7 downto 0); 
+    QB: out  std_logic_vector(7 downto 0)
+    );
+end component;
+
+component pll
+    port (
+        CLKI: in  std_logic; 
+        CLKOP: out  std_logic; 
+        CLKOS: out  std_logic; 
+        LOCK: out  std_logic);
+end component;
+
+
+component UFM_WB
+  port(
+    clk_i : in std_logic;
+    rst_n : in std_logic;
+    cmd       : in std_logic_vector(2 downto 0);
+    ufm_page  : in std_logic_vector(10 downto 0);
+    GO        : in std_logic;
+    BUSY      : out std_logic;
+    ERR       : out std_logic;
+    mem_clk   : out std_logic;
+    mem_we    : out std_logic;
+    mem_ce    : out std_logic;
+    mem_addr  : out std_logic_vector(3 downto 0);
+    mem_wr_data : out std_logic_vector(7 downto 0);
+    mem_rd_data : in  std_logic_vector(7 downto 0)
+    );
+end component;
+
+
 attribute NOM_FREQ : string;
 attribute NOM_FREQ of clk_source : label is "133.00";
 signal clk_i  : std_logic;
@@ -98,9 +145,9 @@ signal id_data_i : std_logic_vector(15 downto 0);
 signal id_addr_i : std_logic_vector(2 downto 0);
 signal id_write_i: std_logic;
 signal ram_write_i : std_logic;
-signal ram_data_i: std_logic_vector(15 downto 0);
-signal ram_data_o: std_logic_vector(15 downto 0);
-signal ram_addr_i: integer range 0 to 15;
+signal ram_data_i: std_logic_vector(7 downto 0);
+signal ram_data_o: std_logic_vector(7 downto 0);
+signal ram_addr_i: std_logic_vector(3 downto 0);
 signal temperature_i : std_logic_vector(11 downto 0);
 
 type ram_t is array(0 to 15) of std_logic_vector(15 downto 0);
@@ -118,16 +165,43 @@ signal spi_operation_i : std_logic_vector(3 downto 0);
 signal spi_channel_i   : std_logic_vector(7 downto 0);
 signal spi_write_i     : std_logic_vector(15 downto 0);
 
+signal pll_lock : std_logic;
+signal clk_33 : std_logic;
+signal clk_osc : std_logic;
+
+signal flashram_addr_i : std_logic_vector(3 downto 0);
+signal flashram_cen_i  : std_logic;
+signal flashram_reset  : std_logic;
+signal flashram_write_i: std_logic;
+signal flashram_data_i : std_logic_vector(7 downto 0);
+signal flashram_data_o : std_logic_vector(7 downto 0);
+
+signal flash_command : std_logic_vector(2 downto 0);
+signal flash_page    : std_logic_vector(10 downto 0);
+signal flash_go      : std_logic;
+signal flash_busy    : std_logic;
+signal flash_err     : std_logic;
+
 begin
 
 PROC_RESET : process begin
   wait until rising_edge(clk_i);
-  reset_i <= '0';
+  reset_i <= not pll_lock;
   if reset_cnt /= x"F" then
     reset_cnt <= reset_cnt + 1;
     reset_i   <= '1';
   end if;
 end process;
+
+
+
+THE_PLL : pll
+    port map(
+        CLKI   => clk_osc,
+        CLKOP  => clk_33, --33
+        CLKOS  => clk_i, --133
+        LOCK   => pll_lock
+        );
 
 ---------------------------------------------------------------------------
 -- Clock
@@ -138,7 +212,7 @@ clk_source: OSCH
 -- synthesis translate_on
   port map (
     STDBY    => '0',
-    OSC      => clk_i,
+    OSC      => clk_osc,
     SEDSTDBY => open
   );
 
@@ -164,18 +238,57 @@ THE_SPI_SLAVE : spi_slave
     DEBUG_OUT     => open
     );
 
-ram_write_i <= spi_write_i(4);                      --or signal from Flash entity
-ram_data_i  <= spi_data_i;                          --or signal from Flash entity
-ram_addr_i  <= to_integer(unsigned(spi_channel_i(3 downto 0))); --or signal from Flash entity
+    
+---------------------------------------------------------------------------
+-- RAM Interface
+---------------------------------------------------------------------------  
 
-PROC_RAM : process begin
-  wait until rising_edge(clk_i);
-  if ram_write_i = '1' then
-    ram(ram_addr_i) <= ram_data_i;
-  end if;
-  ram_data_o  <= ram(ram_addr_i);
-  spi_reg40_i <= ram(to_integer(unsigned(spi_channel_i(3 downto 0))));
-end process;
+ram_write_i <= spi_write_i(4);                      --or signal from Flash entity
+ram_data_i  <= spi_data_i(7 downto 0);                          --or signal from Flash entity
+ram_addr_i  <= spi_channel_i(3 downto 0); --or signal from Flash entity
+
+spi_reg40_i <= x"00" & ram_data_o;
+
+
+THE_FLASH_RAM : flashram
+  port map(
+    DataInA   => ram_data_i,
+    DataInB   => flashram_data_i,
+    AddressA  => ram_addr_i,
+    AddressB  => flashram_addr_i,
+    ClockA    => clk_i, 
+    ClockB    => clk_33,
+    ClockEnA  => '1',
+    ClockEnB  => flashram_cen_i,
+    WrA       => ram_write_i, 
+    WrB       => flashram_write_i, 
+    ResetA    => '0',
+    ResetB    => flashram_reset,
+    QA        => ram_data_o,
+    QB        => flashram_data_o
+    );
+
+---------------------------------------------------------------------------
+-- Flash Controller
+---------------------------------------------------------------------------  
+
+THE_FLASH : UFM_WB
+  port map(
+    clk_i => clk_33,
+    rst_n => '1',
+    cmd       => flash_command,
+    ufm_page  => flash_page,
+    GO        => flash_go,
+    BUSY      => flash_busy,
+    ERR       => flash_err,
+    mem_clk    => open,
+    mem_we      => flashram_write_i,
+    mem_ce      => flashram_cen_i,
+    mem_addr    => flashram_addr_i,
+    mem_wr_data => flashram_data_i,
+    mem_rd_data => flashram_data_o
+    );
+
     
 ---------------------------------------------------------------------------
 -- PWM
@@ -209,8 +322,11 @@ PWM_ODDR : oddr16
 ---------------------------------------------------------------------------  
   
 THE_ONEWIRE : trb_net_onewire
+  generic map(
+    CLK_PERIOD => 30
+    )
   port map(
-    CLK      => clk_i,
+    CLK      => clk_33,
     RESET    => reset_i,
     READOUT_ENABLE_IN => '1',
     ONEWIRE  => TEMP_LINE,
@@ -243,7 +359,7 @@ CON <= INP;
 
 SPARE_LINE <= (others => '0');
 
-TEST_LINE(0) <= clk_i;
+TEST_LINE(0) <= '0';
 TEST_LINE(15 downto 1) <= (others => '0');
 
 LED_GREEN  <= '0';

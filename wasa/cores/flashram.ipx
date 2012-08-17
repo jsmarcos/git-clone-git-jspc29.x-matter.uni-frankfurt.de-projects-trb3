@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="flashram" module="RAM_DP_TRUE" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2012 08 09 14:41:35.856" version="7.1" type="Module" synthesis="synplify" source_format="VHDL">
+  <Package>
+		<File name="" type="mem" modified="2012 08 09 14:41:35.000"/>
+		<File name="flashram.lpc" type="lpc" modified="2012 08 09 14:41:31.000"/>
+		<File name="flashram.vhd" type="top_level_vhdl" modified="2012 08 09 14:41:31.000"/>
+		<File name="flashram_tmpl.vhd" type="template_vhdl" modified="2012 08 09 14:41:31.000"/>
+		<File name="tb_flashram_tmpl.vhd" type="testbench_vhdl" modified="2012 08 09 14:41:32.000"/>
+  </Package>
+</DiamondModule>

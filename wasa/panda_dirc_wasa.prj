@@ -1,20 +1,29 @@
 #--  Synopsys, Inc.
 #--  Version F-2012.03-SP1 
-#--  Project file /local/trb/cvs/trb3/wasa/panda_dirc_wasa/panda_dirc_wasa_syn.prj
+#--  Project file /d/jspc22/trb/cvs/trb3/wasa/panda_dirc_wasa/panda_dirc_wasa_syn.prj
 #--  Written on Mon Aug  6 18:53:10 2012
 
 
 #project files
 add_file -vhdl -lib work "/d/jspc29/lattice/diamond/1.4.2.105/cae_library/synthesis/vhdl/machxo2.vhd"
-add_file -vhdl -lib work "/local/trb/cvs/trb3/wasa/panda_dirc_wasa.vhd"
-add_file -vhdl -lib work "/local/trb/cvs/trb3/base/trb3_components.vhd"
-add_file -vhdl -lib work "/local/trb/cvs/trbnet/trb_net_std.vhd"
-add_file -vhdl -lib work "/local/trb/cvs/trbnet/trb_net_components.vhd"
-add_file -vhdl -lib work "/local/trb/cvs/trb3/wasa/source/spi_slave.vhd"
-add_file -vhdl -lib work "/local/trb/cvs/trbnet/trb_net_onewire.vhd"
-add_file -vhdl -lib work "/local/trb/cvs/trb3/wasa/version.vhd"
-add_file -vhdl -lib work "/local/trb/cvs/trb3/wasa/cores/oddr16.vhd"
-add_file -vhdl -lib work "/local/trb/cvs/trb3/wasa/source/pwm.vhd"
+add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/base/trb3_components.vhd"
+add_file -vhdl -lib work "/d/jspc22/trb/cvs/trbnet/trb_net_std.vhd"
+add_file -vhdl -lib work "/d/jspc22/trb/cvs/trbnet/trb_net_components.vhd"
+add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/wasa/source/spi_slave.vhd"
+add_file -vhdl -lib work "/d/jspc22/trb/cvs/trbnet/trb_net_onewire.vhd"
+add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/wasa/version.vhd"
+add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/wasa/source/pwm.vhd"
+
+
+add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/wasa/cores/oddr16.vhd"
+add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/wasa/cores/flash.vhd"
+add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/wasa/cores/flashram.vhd"
+add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/wasa/cores/pll.vhd"
+add_file -verilog -lib work "/d/jspc22/trb/cvs/trb3/wasa/cores/UFM_WB.v"
+add_file -verilog -lib work "/d/jspc22/trb/cvs/trb3/wasa/cores/efb_define_def.v"
+
+
+add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/wasa/panda_dirc_wasa.vhd"
 
 
 #implementation: "panda_dirc_wasa"
@@ -62,7 +71,7 @@ set_option -symbolic_fsm_compiler 1
 set_option -compiler_compatible 0
 set_option -resource_sharing 1
 set_option -multi_file_compilation_unit 1
-
+set_option -top_module "panda_dirc_wasa"
 #automatic place and route (vendor) options
 set_option -write_apr_constraint 1
 
