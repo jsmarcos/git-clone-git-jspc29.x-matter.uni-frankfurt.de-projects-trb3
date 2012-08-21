@@ -119,7 +119,7 @@ execute($c);
 
 # IOR IO Timing Report
 $c=qq|$lattice_path/ispfpga/bin/lin/iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;
-execute($c);
+#execute($c);
 
 # TWR Timing Report
 $c=qq|$lattice_path/ispfpga/bin/lin/trce -c -v 15 -o "$TOPNAME.twr.setup" "$TOPNAME.ncd" "$TOPNAME.prf"|;

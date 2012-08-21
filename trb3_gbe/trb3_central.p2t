@@ -4,7 +4,7 @@
 -n 1
 -y
 -s 12
--t 13
+-t 11
 -c 1
 -e 2
 #-g guidefile.ncd
