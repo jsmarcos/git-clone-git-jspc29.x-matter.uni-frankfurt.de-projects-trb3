@@ -279,14 +279,14 @@ THE_RESET_HANDLER : trb_net_reset_handler
     SYSCLK_IN       => clk_100_i,       -- PLL/DLL remastered clock
     PLL_LOCKED_IN   => pll_lock,        -- master PLL lock signal (async)
     RESET_IN        => '0',             -- general reset signal (SYSCLK)
-    TRB_RESET_IN    => '0',             -- TRBnet reset signal (SYSCLK)
+    TRB_RESET_IN    => trb_reset_in,    -- TRBnet reset signal (SYSCLK)
     CLEAR_OUT       => clear_i,         -- async reset out, USE WITH CARE!
     RESET_OUT       => reset_i_temp,    -- synchronous reset out (SYSCLK)
     DEBUG_OUT       => open
   );
 
-trb_reset_in <= med_stat_op(4*16+13) or reset_via_gbe_delayed(2);
-reset_i <= reset_i_temp or trb_reset_in;
+trb_reset_in <= med_stat_op(4*16+13) or reset_via_gbe; --_delayed(2);
+reset_i <= reset_i_temp;
 
 process begin
   wait until rising_edge(clk_100_i);
@@ -493,7 +493,7 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
 -- 	  MII_IS_UPLINK_ONLY  => (0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0),
 
     --optical link SFP1 is uplink on TRG & IPU and downlink on sctrl  (e.g. connect a CTS, sctrl via GbE)
-    MII_IS_UPLINK       => (0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0),
+    MII_IS_UPLINK       => (0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0),
     MII_IS_DOWNLINK     => (1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0),
     MII_IS_UPLINK_ONLY  => (0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0),
 
