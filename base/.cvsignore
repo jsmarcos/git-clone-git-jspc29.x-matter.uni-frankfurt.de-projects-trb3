@@ -10,3 +10,4 @@ version.vhd
 *.sym
 *tmpl.vhd
 *.log
+*debuglog.txt
