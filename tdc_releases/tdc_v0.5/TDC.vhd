@@ -78,15 +78,10 @@ architecture TDC of TDC is
   signal reset_tdc : std_logic_vector(2 downto 0) := "111";
 
 -- ReadOut Signals
-  signal trigger_time_i             : std_logic_vector(10 downto 0);
-  signal ref_time_coarse            : std_logic_vector(10 downto 0);
-  signal trg_win_cnt                : std_logic_vector(15 downto 0);
-  signal trg_win_cnt_up_i           : std_logic;
-  signal trg_win_end_i              : std_logic;
-  signal header_error_bits          : std_logic_vector(15 downto 0);
-  signal trailer_error_bits         : std_logic_vector(15 downto 0);
-  signal valid_timing_trg_200       : std_logic;
-  signal valid_timing_trg_pulse_200 : std_logic;
+  signal trigger_time_i     : std_logic_vector(10 downto 0);
+  signal ref_time_coarse    : std_logic_vector(10 downto 0);
+  signal header_error_bits  : std_logic_vector(15 downto 0);
+  signal trailer_error_bits : std_logic_vector(15 downto 0);
 -- FSM Signals
   type FSM is (IDLE, WAIT_FOR_TRG_WIND_END,
                WAIT_FOR_LVL1_TRG_A, WAIT_FOR_LVL1_TRG_B, WAIT_FOR_LVL1_TRG_C,
@@ -94,30 +89,32 @@ architecture TDC of TDC is
                WAIT_FOR_FIFO_NR_A, WAIT_FOR_FIFO_NR_B, WAIT_FOR_FIFO_NR_C,
                WR_HEADER, APPLY_MASK,
                RD_CHANNEL_A, RD_CHANNEL_B, RD_CHANNEL_C);
-  signal FSM_CURRENT, FSM_NEXT : FSM;
-  signal fsm_debug_fsm         : std_logic_vector(7 downto 0);
-  signal start_trg_win_cnt_i   : std_logic;
-  signal start_trg_win_cnt_fsm : std_logic;
-  signal updt_index_fsm        : std_logic;
-  signal updt_index_i          : std_logic;
-  signal updt_mask_fsm         : std_logic;
-  signal updt_mask_i           : std_logic;
-  signal rd_en_fsm             : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-  signal rd_en_i               : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-  signal data_finished_fsm     : std_logic;
-  signal data_finished_i       : std_logic;
-  signal trg_release_fsm       : std_logic;
-  signal wr_header_fsm         : std_logic;
-  signal wr_header_i           : std_logic;
-  signal wr_ch_data_fsm        : std_logic;
-  signal wr_ch_data_i          : std_logic;
-  signal wr_ch_data_reg        : std_logic;
-  signal wr_status_fsm         : std_logic;
-  signal wr_status_i           : std_logic;
-  signal wrong_readout_fsm     : std_logic;
-  signal wrong_readout_i       : std_logic;
-  signal wr_trailer_fsm        : std_logic;
-  signal wr_trailer_i          : std_logic;
+  signal FSM_CURRENT, FSM_NEXT       : FSM;
+  signal start_trg_win_cnt_fsm       : std_logic;
+  signal start_trg_win_cnt_i         : std_logic;
+  signal start_trg_win_cnt_200       : std_logic;
+  signal start_trg_win_cnt_200_pulse : std_logic;
+  signal fsm_debug_fsm               : std_logic_vector(7 downto 0);
+  signal updt_index_fsm              : std_logic;
+  signal updt_index_i                : std_logic;
+  signal updt_mask_fsm               : std_logic;
+  signal updt_mask_i                 : std_logic;
+  signal rd_en_fsm                   : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+  signal rd_en_i                     : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+  signal data_finished_fsm           : std_logic;
+  signal data_finished_i             : std_logic;
+  signal trg_release_fsm             : std_logic;
+  signal wr_header_fsm               : std_logic;
+  signal wr_header_i                 : std_logic;
+  signal wr_ch_data_fsm              : std_logic;
+  signal wr_ch_data_i                : std_logic;
+  signal wr_ch_data_reg              : std_logic;
+  signal wr_status_fsm               : std_logic;
+  signal wr_status_i                 : std_logic;
+  signal wrong_readout_fsm           : std_logic;
+  signal wrong_readout_i             : std_logic;
+  signal wr_trailer_fsm              : std_logic;
+  signal wr_trailer_i                : std_logic;
 
 -- Other Signals
   signal fifo_full_i           : std_logic;
@@ -127,6 +124,12 @@ architecture TDC of TDC is
   signal fifo_nr_next          : integer range 0 to CHANNEL_NUMBER := CHANNEL_NUMBER;
   signal TW_pre                : std_logic_vector(10 downto 0);
   signal TW_post               : std_logic_vector(10 downto 0);
+  signal trg_win_end_100       : std_logic;
+  signal trg_win_end_100_pulse : std_logic;
+  signal trg_win_end_200       : std_logic;
+  signal trg_win_end_200_pulse : std_logic;
+  signal trg_win_cnt           : std_logic_vector(11 downto 0);
+  signal trg_win_post_200      : std_logic_vector(10 downto 0);
   signal channel_hit_time      : std_logic_vector(10 downto 0);
   signal trg_win_l             : std_logic;
   signal trg_win_r             : std_logic;
@@ -261,10 +264,10 @@ begin
       generic map (
         CHANNEL_ID => i)
       port map (
-        RESET_WR             => reset_tdc(0),
-        RESET_RD             => RESET,
-        CLK_WR               => CLK_TDC,
-        CLK_RD               => CLK_READOUT,
+        RESET_200            => reset_tdc(0),
+        RESET_100            => RESET,
+        CLK_200              => CLK_TDC,
+        CLK_100              => CLK_READOUT,
         HIT_IN               => hit_in_i(i),
         READ_EN_IN           => rd_en_i(i),
         FIFO_DATA_OUT        => channel_data_i(i),
@@ -301,25 +304,48 @@ begin
       D_IN  => readout_trigger_mode,
       D_OUT => readout_trigger_mode_200);
 
-  Valid_timing_trigger_sync : bit_sync
+  StartTrgWinCntSync : bit_sync
     generic map (
       DEPTH => 3)
     port map (
       RESET => reset_tdc(0),
       CLK0  => CLK_READOUT,
       CLK1  => CLK_TDC,
-      D_IN  => VALID_TIMING_TRG_IN,
-      D_OUT => valid_timing_trg_200);
+      D_IN  => start_trg_win_cnt_i,
+      D_OUT => start_trg_win_cnt_200);
 
-  Valid_timing_trigger_pulse : edge_to_pulse
+  StartTrgWinCntPulse : edge_to_pulse
     port map (
       clock     => CLK_TDC,
       en_clk    => '1',
-      signal_in => valid_timing_trg_200,
-      pulse     => valid_timing_trg_pulse_200);
+      signal_in => start_trg_win_cnt_200,
+      pulse     => start_trg_win_cnt_200_pulse);
 
+  trg_win_post_200 <= TRG_WIN_POST when rising_edge(CLK_TDC);
+    
+  TriggerWinEndSync : bit_sync
+    generic map (
+      DEPTH => 3)
+    port map (
+      RESET => RESET,
+      CLK0  => CLK_TDC,
+      CLK1  => CLK_READOUT,
+      D_IN  => trg_win_end_200,
+      D_OUT => trg_win_end_100);
+  
+  TriggerWinEndPulse100 : edge_to_pulse
+    port map (
+      clock     => CLK_READOUT,
+      en_clk    => '1',
+      signal_in => trg_win_end_100,
+      pulse     => trg_win_end_100_pulse);
 
-
+  TriggerWinEndPulse200 : edge_to_pulse
+    port map (
+      clock     => CLK_TDC,
+      en_clk    => '1',
+      signal_in => trg_win_end_200,
+      pulse     => trg_win_end_200_pulse);
 -------------------------------------------------------------------------------
 -- READOUT
 -------------------------------------------------------------------------------
@@ -334,10 +360,8 @@ begin
         reset_coarse_cnt <= '1';
       elsif readout_trigger_mode_200 = '1' then
         reset_coarse_cnt <= '0';
-      elsif valid_timing_trg_pulse_200 = '1' then
-        reset_coarse_cnt <= '1';
       else
-        reset_coarse_cnt <= '0';
+        reset_coarse_cnt <= trg_win_end_200_pulse;
       end if;
     end if;
   end process Coarse_Counter_Reset;
@@ -361,24 +385,21 @@ begin
 -- Trigger Window
 
   --purpose: Generates trigger window end signal
-  Check_Trg_Win_End_Conrollers : process (CLK_READOUT, RESET)
+  Check_Trg_Win_End_Conrollers : process (CLK_TDC)
   begin
-    if rising_edge(CLK_READOUT) then
-      if RESET = '1' then
-        trg_win_cnt      <= x"0000";
-        trg_win_end_i    <= '0';
-        trg_win_cnt_up_i <= '0';
-      elsif start_trg_win_cnt_i = '1' then
-        trg_win_cnt      <= x"0001";
-        trg_win_cnt_up_i <= '1';
-      elsif trg_win_cnt = TRG_WIN_POST then
-        trg_win_cnt      <= x"0000";
-        trg_win_end_i    <= '1';
-        trg_win_cnt_up_i <= '0';
-      elsif trg_win_cnt_up_i = '1' then
-        trg_win_cnt <= trg_win_cnt + 1;
+    if rising_edge(CLK_TDC) then
+      if reset_tdc(0) = '1' then
+        trg_win_end_200 <= '0';
+        trg_win_cnt     <= ('1' & trg_win_post_200)-20;
+      elsif start_trg_win_cnt_200_pulse = '1' then
+        trg_win_end_200 <= '0';
+        trg_win_cnt     <= "000000000001";
+      elsif trg_win_cnt(10 downto 0) = trg_win_post_200 - 20 then
+        trg_win_end_200 <= '1';
+        trg_win_cnt(11) <= '1';
       else
-        trg_win_end_i <= '0';
+        trg_win_end_200 <= '0';
+        trg_win_cnt     <= trg_win_cnt + 1;
       end if;
     end if;
   end process Check_Trg_Win_End_Conrollers;
@@ -438,7 +459,7 @@ begin
       if RESET = '1' then
         mask_i         <= (others => '1');
         empty_channels <= (others => '1');
-      elsif trg_win_end_i = '1' then
+      elsif trg_win_end_100_pulse = '1' then
         mask_i(CHANNEL_NUMBER-1 downto 0)         <= channel_empty_i;
         empty_channels(CHANNEL_NUMBER-1 downto 0) <= channel_empty_i;
       elsif updt_mask_i = '1' then
@@ -601,8 +622,8 @@ begin
     if rising_edge(CLK_READOUT) then
       if RESET = '1' then
         FSM_CURRENT         <= IDLE;
-        fsm_debug_reg       <= x"00";
         start_trg_win_cnt_i <= '0';
+        fsm_debug_reg       <= x"00";
         updt_index_i        <= '0';
         updt_mask_i         <= '0';
         rd_en_i             <= (others => '0');
@@ -619,8 +640,8 @@ begin
         wait_i              <= '0';
       else
         FSM_CURRENT         <= FSM_NEXT;
-        fsm_debug_reg       <= fsm_debug_fsm;
         start_trg_win_cnt_i <= start_trg_win_cnt_fsm;
+        fsm_debug_reg       <= fsm_debug_fsm;
         updt_index_i        <= updt_index_fsm;
         updt_mask_i         <= updt_mask_fsm;
         rd_en_i             <= rd_en_fsm;
@@ -639,7 +660,7 @@ begin
     end if;
   end process FSM_CLK;
 
-  FSM_PROC : process (FSM_CURRENT, VALID_TIMING_TRG_IN, VALID_NOTIMING_TRG_IN, trg_win_end_i, fifo_nr_next,
+  FSM_PROC : process (FSM_CURRENT, VALID_TIMING_TRG_IN, VALID_NOTIMING_TRG_IN, trg_win_end_100_pulse, fifo_nr_next,
                       fifo_nr, channel_empty_reg, TRG_DATA_VALID_IN, INVALID_TRG_IN, TMGTRG_TIMEOUT_IN,
                       TRG_TYPE_IN, SPURIOUS_TRG_IN, stop_status_i, debug_mode_en_i)
   begin
@@ -682,7 +703,7 @@ begin
         fsm_debug_fsm <= x"01";
 --
       when WAIT_FOR_TRG_WIND_END =>
-        if trg_win_end_i = '1' then
+        if trg_win_end_100_pulse = '1' then
           FSM_NEXT <= WR_HEADER;
         else
           FSM_NEXT <= WAIT_FOR_TRG_WIND_END;
@@ -1008,7 +1029,7 @@ begin
       if RESET = '1' then
         total_empty_channel <= (others => '0');
         i                   := CHANNEL_NUMBER;
-      elsif trg_win_end_i = '1' then
+      elsif trg_win_end_100_pulse = '1' then
         i := 0;
       elsif i = CHANNEL_NUMBER then
         i := i;

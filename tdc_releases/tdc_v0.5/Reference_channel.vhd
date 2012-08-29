@@ -51,7 +51,6 @@ architecture Reference_Channel of Reference_Channel is
   signal hit_detect_reg     : std_logic;
   signal hit_detect_2reg    : std_logic;
   signal result_2_reg       : std_logic;
-  signal coarse_cntr_i      : std_logic_vector(10 downto 0);
   signal hit_time_stamp_i   : std_logic_vector(10 downto 0);
   signal fine_counter_i     : std_logic_vector(9 downto 0);
   signal fine_counter_reg   : std_logic_vector(9 downto 0);
@@ -64,7 +63,6 @@ architecture Reference_Channel of Reference_Channel is
   signal fifo_full_i        : std_logic;
   signal fifo_almost_full_i : std_logic;
   signal fifo_wr_en_i       : std_logic;
-  signal fifo_rd_en_i       : std_logic;
   signal valid_tmg_trg_i    : std_logic;
   signal multi_tmg_trg_i    : std_logic;
   signal spike_detected_i   : std_logic;
@@ -78,20 +76,19 @@ architecture Reference_Channel of Reference_Channel is
 
   attribute syn_keep                  : boolean;
   attribute syn_keep of hit_buf       : signal is true;
-  attribute syn_keep of hit_in_i      : signal is true;
+--  attribute syn_keep of hit_in_i      : signal is true;
   attribute syn_keep of ff_array_en_i : signal is true;
-  attribute NOMERGE                   : string;
-  attribute NOMERGE of hit_buf        : signal is "true";
-  attribute NOMERGE of ff_array_en_i  : signal is "true";
+  --attribute NOMERGE                   : string;
+  --attribute NOMERGE of hit_buf        : signal is "true";
+  --attribute NOMERGE of ff_array_en_i  : signal is "true";
 -------------------------------------------------------------------------------
 
 begin
 
-  fifo_rd_en_i  <= READ_EN_IN;
-  coarse_cntr_i <= COARSE_COUNTER_IN;
 --  hit_in_i      <= HIT_IN;
   hit_buf       <= not HIT_IN;
 
+  
   --purpose: Tapped Delay Line 304 (Carry Chain) with wave launcher (21) double transition
   FC : Adder_304
     port map (
@@ -148,7 +145,7 @@ begin
         hit_time_stamp_i <= (others => '0');
       elsif hit_detect_reg = '1' then
 --        encoder_start_i  <= '1';
-        hit_time_stamp_i <= coarse_cntr_i;
+        hit_time_stamp_i <= COARSE_COUNTER_IN;
 --      else
 --        encoder_start_i <= '0';
       end if;
@@ -186,7 +183,7 @@ begin
       WrClock    => CLK_WR,
       RdClock    => CLK_RD,
       WrEn       => fifo_wr_en_i,
-      RdEn       => fifo_rd_en_i,
+      RdEn       => READ_EN_IN,
       Reset      => RESET_RD,
       RPReset    => RESET_RD,
       Q          => fifo_data_out_i,
