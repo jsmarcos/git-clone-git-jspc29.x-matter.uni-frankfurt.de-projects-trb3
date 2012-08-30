@@ -28,7 +28,7 @@ component pll_in125_out125
 
 component TDC
   generic (
-    CHANNEL_NUMBER : integer range 0 to 64;
+    CHANNEL_NUMBER : integer range 2 to 65;
     STATUS_REG_NR  : integer range 0 to 6;
     CONTROL_REG_NR : integer range 0 to 6);
   port (
@@ -83,14 +83,16 @@ component Reference_Channel
     REF_DEBUG_OUT        : out std_logic_vector(31 downto 0));
 end component;
 
-component Channel
+component Channel is
+
   generic (
-    CHANNEL_ID : integer range 1 to 65);
+    CHANNEL_ID : integer range 1 to 64);
   port (
-    RESET_WR             : in  std_logic;
-    RESET_RD             : in  std_logic;
-    CLK_WR               : in  std_logic;
-    CLK_RD               : in  std_logic;
+    RESET_200            : in  std_logic;
+    RESET_100            : in  std_logic;
+    CLK_200              : in  std_logic;
+    CLK_100              : in  std_logic;
+--
     HIT_IN               : in  std_logic;
     READ_EN_IN           : in  std_logic;
     FIFO_DATA_OUT        : out std_logic_vector(31 downto 0);
@@ -98,11 +100,38 @@ component Channel
     FIFO_FULL_OUT        : out std_logic;
     FIFO_ALMOST_FULL_OUT : out std_logic;
     COARSE_COUNTER_IN    : in  std_logic_vector(10 downto 0);
+--
     LOST_HIT_NUMBER      : out std_logic_vector(23 downto 0);
     HIT_DETECT_NUMBER    : out std_logic_vector(23 downto 0);
     ENCODER_START_NUMBER : out std_logic_vector(23 downto 0);
     FIFO_WR_NUMBER       : out std_logic_vector(23 downto 0);
-    Channel_DEBUG_01     : out std_logic_vector(31 downto 0));
+--
+    Channel_DEBUG        : out std_logic_vector(31 downto 0)
+    );
+
+end component;
+
+
+component Channel_200 is
+
+  generic (
+    CHANNEL_ID : integer range 0 to 64);  
+  port (
+    CLK_200              : in  std_logic;   -- 200 MHz clk
+    RESET_200            : in  std_logic;   -- reset sync with 200Mhz clk
+    CLK_100              : in  std_logic;   -- 100 MHz clk
+    RESET_100            : in  std_logic;   -- reset sync with 100Mhz clk
+--
+    HIT_IN               : in  std_logic;   -- hit in
+    COARSE_CNTR_IN       : in  std_logic_vector(10 downto 0);  -- coarse counter in
+    READ_EN_IN           : in  std_logic;   -- read en signal
+    FIFO_DATA_OUT        : out std_logic_vector(31 downto 0);  -- fifo data out
+    FIFO_EMPTY_OUT       : out std_logic;   -- fifo empty signal
+    FIFO_FULL_OUT        : out std_logic;   -- fifo full signal
+    FIFO_ALMOST_FULL_OUT : out std_logic;   -- fifo almost full signal
+    FIFO_WR_OUT          : out std_logic;   -- fifo wr en signal
+    ENCODER_START_OUT    : out std_logic);  -- encoder start signal
+
 end component;
 
 component ROM_FIFO

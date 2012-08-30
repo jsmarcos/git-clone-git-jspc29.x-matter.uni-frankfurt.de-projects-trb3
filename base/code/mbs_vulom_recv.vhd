@@ -49,7 +49,7 @@ end entity;
 -- Bit 30 - 29 : Status
 -- Bit 31      : Error flag
 
-
+--statusbit 23 will be set in case of a data error from MBS
 
 architecture mbs_vulom_recv_arch of mbs_vulom_recv is
 
@@ -62,7 +62,7 @@ signal first_bits_slow : std_logic;
 signal reg_MBS_IN      : std_logic;
 signal done            : std_logic;
 
-signal numer_reg       : std_logic_vector(23 downto 0);
+signal number_reg      : std_logic_vector(23 downto 0);
 signal status_reg      : std_logic_vector(1 downto 0);
 signal error_reg       : std_logic;
 
@@ -132,7 +132,7 @@ end process;
 PROC_REG_INFO : process begin
   wait until rising_edge(CLK);
   if done = '1' then
-    numer_reg <= shift_reg(31 downto 8);
+    number_reg <= shift_reg(31 downto 8);
     status_reg <= shift_reg(7 downto 6);
     if shift_reg(36 downto 32) = "01010" and shift_reg(4 downto 0) = "10101" and xor_all(31 downto 5) = '0' then
       error_reg <= '0';
@@ -145,10 +145,19 @@ end process;
 
 PROC_RDO : process begin
   wait until rising_edge(CLK);
+  WRITE_OUT     <= '0';
+  FINISHED_OUT  <= '0';
+  STATUSBIT_OUT <= (23 => error_reg, others => '0');
   case rdostate is
     when RDO_IDLE =>
-    when RDO_WRITE =>
+      if TRIGGER_IN = '1' then
+        rdostate <= RDO_FINISH;
+        DATA_OUT <= error_reg & status_reg & "00000" & number_reg;
+        WRITE_OUT <= '1';
+      end if;
     when RDO_FINISH =>
+      FINISHED_OUT <= '1';
+      rdostate     <= RDO_IDLE;
   end case;
 end process;
 
