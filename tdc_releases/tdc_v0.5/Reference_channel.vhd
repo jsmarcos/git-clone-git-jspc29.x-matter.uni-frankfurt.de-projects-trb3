@@ -52,6 +52,7 @@ architecture Reference_Channel of Reference_Channel is
   signal hit_detect_2reg    : std_logic;
   signal result_2_reg       : std_logic;
   signal hit_time_stamp_i   : std_logic_vector(10 downto 0);
+  signal hit_time_stamp_reg : std_logic_vector(10 downto 0);
   signal fine_counter_i     : std_logic_vector(9 downto 0);
   signal fine_counter_reg   : std_logic_vector(9 downto 0);
   signal encoder_start_i    : std_logic;
@@ -76,19 +77,16 @@ architecture Reference_Channel of Reference_Channel is
 
   attribute syn_keep                  : boolean;
   attribute syn_keep of hit_buf       : signal is true;
---  attribute syn_keep of hit_in_i      : signal is true;
   attribute syn_keep of ff_array_en_i : signal is true;
-  --attribute NOMERGE                   : string;
-  --attribute NOMERGE of hit_buf        : signal is "true";
-  --attribute NOMERGE of ff_array_en_i  : signal is "true";
+  attribute NOMERGE                   : string;
+  attribute NOMERGE of hit_buf        : signal is "true";
 -------------------------------------------------------------------------------
 
 begin
 
---  hit_in_i      <= HIT_IN;
-  hit_buf       <= not HIT_IN;
+  hit_in_i <= HIT_IN;
+  hit_buf  <= not hit_in_i;
 
-  
   --purpose: Tapped Delay Line 304 (Carry Chain) with wave launcher (21) double transition
   FC : Adder_304
     port map (
@@ -124,36 +122,20 @@ begin
     hit_detect_i <= ((not result_2_reg) and result_i(2));
   end process Hit_Detect;
 
-  ----purpose: Double Synchroniser
-  --Double_Syncroniser : process (CLK_WR)
-  --begin
-  --  if rising_edge(CLK_WR) then
-  --    if RESET_WR = '1' then
-  --      result_reg <= (others => '1');
-  --    elsif hit_detect_i = '1' then
-  --      result_reg <= result_i;
-  --    end if;
-  --  end if;
-  --end process Double_Syncroniser;
-
   --purpose: Start Encoder and captures the time stamp of the hit
   Start_Encoder : process (CLK_WR)
   begin
     if rising_edge(CLK_WR) then
       if RESET_WR = '1' then
---        encoder_start_i  <= '0';
         hit_time_stamp_i <= (others => '0');
       elsif hit_detect_reg = '1' then
---        encoder_start_i  <= '1';
         hit_time_stamp_i <= COARSE_COUNTER_IN;
---      else
---        encoder_start_i <= '0';
       end if;
     end if;
   end process Start_Encoder;
-  encoder_start_i <= hit_detect_reg;
-
-  TRIGGER_TIME_OUT <= hit_time_stamp_i;  -- coarse time of the timing trigger
+  encoder_start_i    <= hit_detect_reg;
+  hit_time_stamp_reg <= hit_time_stamp_i when rising_edge(CLK_WR);
+  TRIGGER_TIME_OUT   <= hit_time_stamp_reg;  -- coarse time of the timing trigger
 
   --purpose: Encoder
   Encoder : Encoder_304_Bit
@@ -195,7 +177,7 @@ begin
   fifo_data_in_i(28 downto 22) <= conv_std_logic_vector(CHANNEL_ID, 7);  -- channel number
   fifo_data_in_i(21 downto 12) <= fine_counter_reg;  -- fine time from the encoder
   fifo_data_in_i(11)           <= '1';  --edge_type_i;  -- rising '1'  or falling '0' edge
-  fifo_data_in_i(10 downto 0)  <= hit_time_stamp_i;  -- hit time stamp
+  fifo_data_in_i(10 downto 0)  <= hit_time_stamp_reg;  -- hit time stamp
 
   Register_Outputs : process (CLK_RD, RESET_RD)
   begin

@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2012-08-28
+-- Last update: 2012-09-03
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -39,7 +39,9 @@ entity Channel_200 is
     RESET_100            : in  std_logic;   -- reset sync with 100Mhz clk
 --
     HIT_IN               : in  std_logic;   -- hit in
-    COARSE_CNTR_IN       : in  std_logic_vector(10 downto 0);  -- coarse counter in
+    HIT_DETECT_OUT       : out std_logic;   -- hit detect reg out
+--    COARSE_CNTR_IN       : in  std_logic_vector(10 downto 0);  -- coarse counter in
+    TIME_STAMP_IN        : in  std_logic_vector(10 downto 0);  -- time stamp in 
     READ_EN_IN           : in  std_logic;   -- read en signal
     FIFO_DATA_OUT        : out std_logic_vector(31 downto 0);  -- fifo data out
     FIFO_EMPTY_OUT       : out std_logic;   -- fifo empty signal
@@ -65,7 +67,8 @@ architecture Channel_200 of Channel_200 is
   signal hit_detect_2reg : std_logic;
 
   -- time stamp
-  signal time_stamp_i : std_logic_vector(10 downto 0);
+  signal time_stamp_i   : std_logic_vector(10 downto 0);
+  signal time_stamp_reg : std_logic_vector(10 downto 0);
 
   -- encoder
   signal encoder_start_i    : std_logic;
@@ -105,19 +108,8 @@ begin  -- Channel_200
                                                           -- hit detection bit
   hit_detect_reg  <= hit_detect_i   when rising_edge(CLK_200);
   hit_detect_2reg <= hit_detect_reg when rising_edge(CLK_200);
-
-  --purpose: Captures the time stamp of the hit
-  TimeStamp : process (CLK_200)
-  begin
-    if rising_edge(CLK_200) then
-      if RESET_200 = '1' then
-        time_stamp_i <= (others => '0');
-      elsif hit_detect_reg = '1' then
-        time_stamp_i <= COARSE_CNTR_IN;
-      end if;
-    end if;
-  end process TimeStamp;
-
+  time_stamp_reg  <= TIME_STAMP_IN  when rising_edge(CLK_200);
+  HIT_DETECT_OUT  <= hit_detect_reg;
   encoder_start_i <= hit_detect_reg;
 
   --purpose: Encoder
@@ -149,7 +141,7 @@ begin  -- Channel_200
   fifo_data_in_i(28 downto 22) <= conv_std_logic_vector(CHANNEL_ID, 7);  -- channel number
   fifo_data_in_i(21 downto 12) <= encoder_data_out_i;  -- fine time from the encoder
   fifo_data_in_i(11)           <= '1';  --edge_type_i;  -- rising '1' or falling '0' edge
-  fifo_data_in_i(10 downto 0)  <= time_stamp_i;    -- hit time stamp
+  fifo_data_in_i(10 downto 0)  <= time_stamp_reg;      -- hit time stamp
 
   RegisterOutputs : process (CLK_100)
   begin

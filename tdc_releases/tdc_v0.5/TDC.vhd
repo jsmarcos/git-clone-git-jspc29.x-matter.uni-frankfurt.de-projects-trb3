@@ -136,6 +136,7 @@ architecture TDC of TDC is
   type   Std_Logic_8_array is array (0 to 8) of std_logic_vector(3 downto 0);
   signal fifo_nr_hex           : Std_Logic_8_array;
   signal coarse_cnt            : std_logic_vector(10 downto 0);
+  signal coarse_cnt_reg        : std_logic_vector(10 downto 0);
   signal reset_coarse_cnt      : std_logic;
   signal channel_full_i        : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
   signal channel_almost_full_i : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
@@ -249,7 +250,7 @@ begin
       FIFO_EMPTY_OUT       => channel_empty_i(0),
       FIFO_FULL_OUT        => channel_full_i(0),
       FIFO_ALMOST_FULL_OUT => channel_almost_full_i(0),
-      COARSE_COUNTER_IN    => coarse_cnt,
+      COARSE_COUNTER_IN    => coarse_cnt_reg,
       TRIGGER_TIME_OUT     => trigger_time_i,
       REF_DEBUG_OUT        => ref_debug_i);
 
@@ -274,7 +275,7 @@ begin
         FIFO_EMPTY_OUT       => channel_empty_i(i),
         FIFO_FULL_OUT        => channel_full_i(i),
         FIFO_ALMOST_FULL_OUT => channel_almost_full_i(i),
-        COARSE_COUNTER_IN    => coarse_cnt,
+        COARSE_COUNTER_IN    => coarse_cnt_reg,
         LOST_HIT_NUMBER      => channel_lost_hit_number(i),
         HIT_DETECT_NUMBER    => channel_hit_detect_number(i),
         ENCODER_START_NUMBER => channel_encoder_start_number(i),
@@ -292,6 +293,7 @@ begin
       RESET     => reset_coarse_cnt,
       COUNT_OUT => coarse_cnt,
       UP_IN     => '1');
+  coarse_cnt_reg  <= coarse_cnt     when rising_edge(CLK_TDC);
 
   -- Trigger mode control register synchronised to the coarse counter clk
   Readout_trigger_mode_sync : bit_sync
@@ -322,7 +324,7 @@ begin
       pulse     => start_trg_win_cnt_200_pulse);
 
   trg_win_post_200 <= TRG_WIN_POST when rising_edge(CLK_TDC);
-    
+
   TriggerWinEndSync : bit_sync
     generic map (
       DEPTH => 3)
@@ -332,7 +334,7 @@ begin
       CLK1  => CLK_READOUT,
       D_IN  => trg_win_end_200,
       D_OUT => trg_win_end_100);
-  
+
   TriggerWinEndPulse100 : edge_to_pulse
     port map (
       clock     => CLK_READOUT,
@@ -390,11 +392,11 @@ begin
     if rising_edge(CLK_TDC) then
       if reset_tdc(0) = '1' then
         trg_win_end_200 <= '0';
-        trg_win_cnt     <= ('1' & trg_win_post_200)-20;
+        trg_win_cnt     <= '1' & trg_win_post_200;
       elsif start_trg_win_cnt_200_pulse = '1' then
         trg_win_end_200 <= '0';
         trg_win_cnt     <= "000000000001";
-      elsif trg_win_cnt(10 downto 0) = trg_win_post_200 - 20 then
+      elsif trg_win_cnt(10 downto 0) = trg_win_post_200 then
         trg_win_end_200 <= '1';
         trg_win_cnt(11) <= '1';
       else
@@ -1072,8 +1074,8 @@ begin
         logic_analyser_reg(9)            <= data_wr_reg;
         logic_analyser_reg(15 downto 10) <= data_out_reg(27 downto 22);
 
-      --elsif logic_anal_control = x"4" then  -- channel debugging
-      --  logic_analyser_reg <= channel_debug_i(1)(15 downto 0);
+        --elsif logic_anal_control = x"4" then  -- channel debugging
+        --  logic_analyser_reg <= channel_debug_i(1)(15 downto 0);
       end if;
     end if;
   end process REG_LOGIC_ANALYSER_OUTPUT;

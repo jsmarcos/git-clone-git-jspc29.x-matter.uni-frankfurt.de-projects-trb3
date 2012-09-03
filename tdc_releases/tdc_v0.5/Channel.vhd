@@ -43,8 +43,13 @@ architecture Channel of Channel is
 -- Signal Declarations
 -------------------------------------------------------------------------------
 
-  signal hit_in_i      : std_logic;
-  signal hit_buf       : std_logic;
+  signal hit_in_i       : std_logic;
+  signal hit_buf        : std_logic;
+  signal hit_detect_reg : std_logic;
+
+  -- time stamp
+  signal time_stamp_i   : std_logic_vector(10 downto 0);
+  signal time_stamp_reg : std_logic_vector(10 downto 0);
 
 -------------------------------------------------------------------------------
 -- Debug Signals
@@ -65,20 +70,15 @@ architecture Channel of Channel is
 
 -------------------------------------------------------------------------------
 
-  attribute syn_keep             : boolean;
-  attribute syn_keep of hit_buf  : signal is true;  
---  attribute syn_keep of hit_in_i : signal is true;
---  attribute NOMERGE              : string;
---  attribute NOMERGE of hit_buf   : signal is "true";
---  attribute NOMERGE of hit_in_i  : signal is "true";
-
+  attribute syn_keep            : boolean;
+  attribute syn_keep of hit_buf : signal is true;
 
 -------------------------------------------------------------------------------
 
 begin
 
-  hit_in_i      <= HIT_IN;
-  hit_buf       <= not hit_in_i;
+  hit_in_i <= HIT_IN;
+  hit_buf  <= not hit_in_i;
 
   Channel_200_1 : Channel_200
     generic map (
@@ -89,7 +89,9 @@ begin
       CLK_100              => CLK_100,
       RESET_100            => RESET_100,
       HIT_IN               => hit_buf,
-      COARSE_CNTR_IN       => COARSE_COUNTER_IN,
+      HIT_DETECT_OUT       => hit_detect_reg,
+--      COARSE_CNTR_IN       => COARSE_COUNTER_IN,
+      TIME_STAMP_IN        => time_stamp_reg,
       READ_EN_IN           => READ_EN_IN,
       FIFO_DATA_OUT        => FIFO_DATA_OUT,
       FIFO_EMPTY_OUT       => FIFO_EMPTY_OUT,
@@ -97,6 +99,20 @@ begin
       FIFO_ALMOST_FULL_OUT => FIFO_ALMOST_FULL_OUT,
       FIFO_WR_OUT          => fifo_wr_i ,
       ENCODER_START_OUT    => encoder_start_i);
+
+  --purpose: Captures the time stamp of the hit
+  TimeStamp : process (CLK_200)
+  begin
+    if rising_edge(CLK_200) then
+      if RESET_200 = '1' then
+        time_stamp_i <= (others => '0');
+      elsif hit_detect_reg = '1' then
+        time_stamp_i <= COARSE_COUNTER_IN;
+      end if;
+    end if;
+  end process TimeStamp;
+
+  time_stamp_reg <= time_stamp_i when rising_edge(CLK_200);
 
 -------------------------------------------------------------------------------
 -- Lost Hit Detection
