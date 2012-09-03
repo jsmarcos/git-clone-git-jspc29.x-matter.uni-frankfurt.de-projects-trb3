@@ -24,3 +24,6 @@ cbmrich_20120810.bit	32 channels.
 
 cbmrich_20120813.bit	65 channels. Channel 28, spi_dac and a debug signal in
 			endpoint don't meet the timing constraints.
+
+cbrich_20120903.bit	65 channels without any timing problems. Also some
+			bugs are fixed with the coarse counter.
