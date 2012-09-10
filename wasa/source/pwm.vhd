@@ -23,7 +23,7 @@ end entity;
 architecture pwm_arch of pwm_generator is
 
 type ram_t is array(0 to 15) of unsigned(16 downto 0);
-signal set : ram_t := (others => (others => '0'));
+signal set : ram_t := (others => '0' & x"87C1");
 
 type cnt_t is array(0 to 15) of unsigned(16 downto 0);
 signal cnt : cnt_t := (others => (others => '0'));

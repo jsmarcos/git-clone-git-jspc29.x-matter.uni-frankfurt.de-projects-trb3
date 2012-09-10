@@ -47,7 +47,8 @@ component panda_dirc_wasa is
     CON        : out std_logic_vector(16 downto 1);
     INP        : in  std_logic_vector(16 downto 1);
     PWM        : out std_logic_vector(16 downto 1);
-    SPARE_LINE : out std_logic_vector(5 downto 0);
+    SPARE_LINE : out std_logic_vector(3 downto 0);
+    SPARE_LVDS : out std_logic;
     LED_GREEN  : out std_logic;
     LED_ORANGE : out std_logic;
     LED_RED    : out std_logic;

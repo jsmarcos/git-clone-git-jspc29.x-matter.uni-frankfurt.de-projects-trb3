@@ -4,9 +4,6 @@ use ieee.numeric_std.all;
 
 library work;
 use work.trb_net_std.all;
-use work.trb_net_components.all;
-use work.trb3_components.all;
-use work.version.all;
 
 library machxo2;
 use machxo2.all;
@@ -42,6 +39,7 @@ signal spi_clk_last : std_logic;
 signal spi_clk_reg : std_logic;
 signal spi_cs_reg  : std_logic;
 signal spi_in_reg  : std_logic;
+signal buf_SPI_OUT : std_logic;
 
 signal input       : std_logic_vector(31 downto 0);
 signal output_data : std_logic_vector(31 downto 0);
@@ -74,7 +72,7 @@ PROC_OUTPUT : process begin
   next_output <= output_data(bitcnt);
   if spi_clk_reg = '0' and spi_clk_last = '1' then
     SPI_OUT <= last_input;
-    if operation_i = x"8" and bitcnt <= 15 then
+    if operation_i = x"0" and bitcnt <= 15 then
       SPI_OUT <= next_output;
     end if;
   end if;
@@ -104,7 +102,7 @@ PROC_GEN_SIGNALS : process begin
   write_i <= (others => '0');
   case state is
     when IDLE =>
-      operation_i <= x"F";
+      operation_i <= x"7";
       if spi_cs_reg = '0' then
         state       <= WAIT_FOR_CMD;
       end if;
@@ -129,7 +127,7 @@ PROC_GEN_SIGNALS : process begin
       state <= WRITE_DATA;
     when WRITE_DATA =>
       if bitcnt = 31 then
-        if operation_i(3) = '0' then
+        if operation_i(3) = '1' then
           data_write <= input(15 downto 0);
           write_i(to_integer(unsigned(input(31 downto 28)))) <= '1';
         end if;
@@ -143,9 +141,17 @@ PROC_GEN_SIGNALS : process begin
    
   if spi_cs_reg = '1' then
     state <= IDLE;
-    operation_i <= x"F";    
+    operation_i <= x"7";    
   end if;
 end process;
+
+DEBUG_OUT(0) <= spi_clk_reg;
+DEBUG_OUT(1) <= spi_cs_reg;
+DEBUG_OUT(2) <= spi_in_reg;
+DEBUG_OUT(3) <= buf_SPI_OUT;
+DEBUG_OUT(7 downto 4) <= std_logic_vector(to_unsigned(bitcnt,4));
+-- DEBUG_OUT(8) <= 
+DEBUG_OUT(15 downto 8) <= input(31 downto 24);
 
 
 
