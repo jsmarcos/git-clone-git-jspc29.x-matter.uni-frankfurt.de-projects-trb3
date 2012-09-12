@@ -488,17 +488,17 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
 	  MII_NUMBER          => 5,
     
     --optical link SFP1 is uplink on all channels  (e.g. connect a Hub)
--- 	  MII_IS_UPLINK       => (0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0),
--- 	  MII_IS_DOWNLINK     => (1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0),
--- 	  MII_IS_UPLINK_ONLY  => (0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0),
+	  MII_IS_UPLINK       => (0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0),
+	  MII_IS_DOWNLINK     => (1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0),
+	  MII_IS_UPLINK_ONLY  => (0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0),
 
     --optical link SFP1 is uplink on TRG & IPU and downlink on sctrl  (e.g. connect a CTS, sctrl via GbE)
-    MII_IS_UPLINK       => (0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0),
-    MII_IS_DOWNLINK     => (1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0),
-    MII_IS_UPLINK_ONLY  => (0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0),
+--     MII_IS_UPLINK       => (0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0),
+--     MII_IS_DOWNLINK     => (1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0),
+--     MII_IS_UPLINK_ONLY  => (0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0),
 
 	  USE_ONEWIRE         => c_YES,
-	  HARDWARE_VERSION    => x"90000E00",
+	  HARDWARE_VERSION    => x"90000E30",
 	  INIT_ENDPOINT_ID    => x"0005",
 	  COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME,32))
   )
@@ -508,17 +508,6 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
 	  CLK_EN                  => '1',
 
 	  --Media interfacces
--- 	  MED_DATAREADY_OUT       => med_dataready_out(mii-1 downto 0),
--- 	  MED_DATA_OUT            => med_data_out(mii*16-1 downto 0),
--- 	  MED_PACKET_NUM_OUT      => med_packet_num_out(mii*3-1 downto 0),
--- 	  MED_READ_IN             => med_read_in(mii-1 downto 0),
--- 	  MED_DATAREADY_IN        => med_dataready_in(mii-1 downto 0),
--- 	  MED_DATA_IN             => med_data_in(mii*16-1 downto 0),
--- 	  MED_PACKET_NUM_IN       => med_packet_num_in(mii*3-1 downto 0),
--- 	  MED_READ_OUT            => med_read_out(mii-1 downto 0),
--- 	  MED_STAT_OP             => med_stat_op(mii*16-1 downto 0),
--- 	  MED_CTRL_OP             => med_ctrl_op(mii*16-1 downto 0),
-
 	  MED_DATAREADY_OUT(5*1-1 downto 0)   => med_dataready_out,
 	  MED_DATA_OUT(5*16-1 downto 0)       => med_data_out,
 	  MED_PACKET_NUM_OUT(5*3-1 downto 0)  => med_packet_num_out,
