@@ -190,7 +190,8 @@ signal flash_go      : std_logic;
 signal flash_busy    : std_logic;
 signal flash_err     : std_logic;
 
-signal inp_select    : integer range 0 to 15 := 0;
+signal inp_select    : integer range 0 to 31 := 0;
+signal inp_invert   : std_logic_vector(15 downto 0);
 signal input_enable : std_logic_vector(15 downto 0);
 signal inp_status   : std_logic_vector(15 downto 0);
 signal led_status   : std_logic_vector(4  downto 0);
@@ -391,7 +392,8 @@ THE_IO_REG_READ : process begin
       when x"0" => spi_reg20_i <= input_enable;
       when x"1" => spi_reg20_i <= inp_status;
       when x"2" => spi_reg20_i <= x"00" & "000" & led_status(4) & leds;
-      when x"3" => spi_reg20_i <= x"000" & std_logic_vector(to_unsigned(inp_select,4));
+      when x"3" => spi_reg20_i <= x"00" & "000" & std_logic_vector(to_unsigned(inp_select,5));
+      when x"4" => spi_reg20_i <= inp_invert;
       when others => null;
     end case;
   else
@@ -410,7 +412,8 @@ THE_IO_REG_WRITE : process begin
       when x"0" => input_enable <= spi_data_i;
       when x"1" => null;
       when x"2" => led_status <= spi_data_i(4 downto 0);
-      when x"3" => inp_select <= to_integer(unsigned(spi_data_i(3 downto 0)));
+      when x"3" => inp_select <= to_integer(unsigned(spi_data_i(4 downto 0)));
+      when x"4" => inp_invert <= spi_data_i;
       when others => null;
     end case;
   end if;
@@ -435,14 +438,22 @@ end process;
 ---------------------------------------------------------------------------
 -- Rest of the I/O
 ---------------------------------------------------------------------------
-CON <= INP and not input_enable;
+CON <= (INP xor inp_invert) and not input_enable;
 
 SPARE_LINE(0) <= '0'; --clk_26;
 SPARE_LINE(1) <= '0'; --clk_i;
 SPARE_LINE(2) <= '0'; --timer(18);
 SPARE_LINE(3) <= '0';
 
-SPARE_LVDS <= INP(inp_select+1);
+
+SPARE_OUTPUT : process(INP, inp_select, input_enable)
+  begin
+    if inp_select < 16 then
+      SPARE_LVDS <= INP(inp_select+1);
+    else
+      SPARE_LVDS <= or_all(INP and not input_enable);
+    end if;
+  end process;
 
 -- TEST_LINE(0) <= '0';
 -- TEST_LINE(15 downto 1) <= (others => '0');

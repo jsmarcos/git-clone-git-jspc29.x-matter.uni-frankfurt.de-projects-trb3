@@ -28,9 +28,6 @@ entity trb3_periph_padiwa is
     CLK_SERDES_INT_RIGHT : in  std_logic;  --Clock Manager 0, not used
     SERDES_TX        : out std_logic_vector(3 downto 2);
     SERDES_RX        : in  std_logic_vector(3 downto 2);
-    SFP_TXDIS        : out std_logic;
-    SFP_MOD          : inout std_logic_vector(2 downto 0);
-    SFP_LOS          : in  std_logic;
 
     FPGA5_COMM           : inout std_logic_vector(11 downto 0);
                                         --Bit 0/1 input, serial link RX active
@@ -39,7 +36,7 @@ entity trb3_periph_padiwa is
     
     --Connections
     SPARE_LINE : inout std_logic_vector( 3 downto 0);
-    INP        : in    std_logic_vector(64 downto 1);
+    INP        : in    std_logic_vector(63 downto 0);
 
     --Flash ROM & Reboot
     FLASH_CLK  : out   std_logic;
@@ -49,10 +46,10 @@ entity trb3_periph_padiwa is
     PROGRAMN   : out   std_logic;                     --reboot FPGA
 
     --DAC
-    OUT_SDO    : out   std_logic_vector(3 downto 0);
-    IN_SDI     : in    std_logic_vector(3 downto 0);
-    OUT_SCK    : out   std_logic_vector(3 downto 0);
-    OUT_CS     : out   std_logic_vector(3 downto 0);
+    OUT_SDO    : out   std_logic_vector(4 downto 1);
+    IN_SDI     : in    std_logic_vector(4 downto 1);
+    OUT_SCK    : out   std_logic_vector(4 downto 1);
+    OUT_CS     : out   std_logic_vector(4 downto 1);
     --Misc
     TEMPSENS      : inout std_logic;       --Temperature Sensor
     CODE_LINE     : in    std_logic_vector(1 downto 0);
@@ -208,11 +205,8 @@ architecture trb3_periph_padiwa_arch of trb3_periph_padiwa is
   signal padiwa_sdi    : std_logic;
   signal padiwa_sdo    : std_logic;
   
-  --FPGA Test
-  signal time_counter : unsigned(31 downto 0);
-
   --TDC
-  signal hit_in_i : std_logic_vector(64 downto 1);
+  signal hit_in_i : std_logic_vector(63 downto 0);
 
   --TDC component
   component TDC
@@ -412,7 +406,8 @@ begin
       REGIO_CTRL_REG_OUT                 => ctrl_reg,         --start 0xc0
       REGIO_STAT_STROBE_OUT              => stat_reg_strobe,
       REGIO_CTRL_STROBE_OUT              => ctrl_reg_strobe,
-      REGIO_VAR_ENDPOINT_ID              => (others => '0'),
+      REGIO_VAR_ENDPOINT_ID(1 downto 0)  => CODE_LINE,
+      REGIO_VAR_ENDPOINT_ID(15 downto 2) => (others => '0'),
 
       BUS_ADDR_OUT         => regio_addr_out,
       BUS_READ_ENABLE_OUT  => regio_read_enable_out,
@@ -619,14 +614,7 @@ padiwa_sdi <= or_all(IN_SDI and not padiwa_cs(3 downto 0));
 --  TEST_LINE(15 downto 0) <= (others => '0');
 
 
----------------------------------------------------------------------------
--- Test Circuits
----------------------------------------------------------------------------
-  process
-  begin
-    wait until rising_edge(clk_100_i);
-    time_counter <= time_counter + 1;
-  end process;
+
 
 -------------------------------------------------------------------------------
 -- TDC
@@ -641,7 +629,7 @@ padiwa_sdi <= or_all(IN_SDI and not padiwa_cs(3 downto 0));
       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
-      HIT_IN                => hit_in_i(16 downto 1),  -- Channel start signals
+      HIT_IN                => hit_in_i(15 downto 0),  -- Channel start signals
       TRG_WIN_PRE           => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --
