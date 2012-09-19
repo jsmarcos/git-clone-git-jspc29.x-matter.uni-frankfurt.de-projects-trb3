@@ -15,10 +15,10 @@ entity Reference_Channel is
   generic (
     CHANNEL_ID : integer range 0 to 0);
   port (
-    RESET_WR             : in  std_logic;
-    RESET_RD             : in  std_logic;
-    CLK_WR               : in  std_logic;
-    CLK_RD               : in  std_logic;
+    RESET_200            : in  std_logic;
+    RESET_100            : in  std_logic;
+    CLK_200              : in  std_logic;
+    CLK_100              : in  std_logic;
 --
     HIT_IN               : in  std_logic;
     READ_EN_IN           : in  std_logic;
@@ -90,8 +90,8 @@ begin
   --purpose: Tapped Delay Line 304 (Carry Chain) with wave launcher (21) double transition
   FC : Adder_304
     port map (
-      CLK    => CLK_WR,
-      RESET  => RESET_WR,
+      CLK    => CLK_200,
+      RESET  => RESET_200,
       DataA  => data_a_i,
       DataB  => data_b_i,
       ClkEn  => ff_array_en_i,
@@ -101,10 +101,10 @@ begin
   ff_array_en_i <= not(hit_detect_i or hit_detect_reg or hit_detect_2reg);
 
   --purpose: Registers the 2nd bit of the carry chain
-  Hit_Detect_Register : process (CLK_WR, RESET_WR)
+  Hit_Detect_Register : process (CLK_200, RESET_200)
   begin
-    if rising_edge(CLK_WR) then
-      if RESET_WR = '1' then
+    if rising_edge(CLK_200) then
+      if RESET_200 = '1' then
         result_2_reg    <= '0';
         hit_detect_reg  <= '0';
         hit_detect_2reg <= '0';
@@ -123,10 +123,10 @@ begin
   end process Hit_Detect;
 
   --purpose: Start Encoder and captures the time stamp of the hit
-  Start_Encoder : process (CLK_WR)
+  Start_Encoder : process (CLK_200)
   begin
-    if rising_edge(CLK_WR) then
-      if RESET_WR = '1' then
+    if rising_edge(CLK_200) then
+      if RESET_200 = '1' then
         hit_time_stamp_i <= (others => '0');
       elsif hit_detect_reg = '1' then
         hit_time_stamp_i <= COARSE_COUNTER_IN;
@@ -134,24 +134,24 @@ begin
     end if;
   end process Start_Encoder;
   encoder_start_i    <= hit_detect_reg;
-  hit_time_stamp_reg <= hit_time_stamp_i when rising_edge(CLK_WR);
+  hit_time_stamp_reg <= hit_time_stamp_i when rising_edge(CLK_200);
   TRIGGER_TIME_OUT   <= hit_time_stamp_reg;  -- coarse time of the timing trigger
 
   --purpose: Encoder
   Encoder : Encoder_304_Bit
     port map (
-      RESET           => RESET_WR,
-      CLK             => CLK_WR,
+      RESET           => RESET_200,
+      CLK             => CLK_200,
       START_IN        => encoder_start_i,
       THERMOCODE_IN   => result_i,
       FINISHED_OUT    => encoder_finished_i,
       BINARY_CODE_OUT => fine_counter_i,
       ENCODER_DEBUG   => encoder_debug_i);
 
-  Register_Binary_Code : process (CLK_WR, RESET_WR)
+  Register_Binary_Code : process (CLK_200, RESET_200)
   begin
-    if rising_edge(CLK_WR) then
-      if RESET_WR = '1' then
+    if rising_edge(CLK_200) then
+      if RESET_200 = '1' then
         fine_counter_reg <= (others => '0');
       elsif encoder_finished_i = '1' then
         fine_counter_reg <= fine_counter_i;
@@ -162,12 +162,12 @@ begin
   FIFO : FIFO_32x32_OutReg
     port map (
       Data       => fifo_data_in_i,
-      WrClock    => CLK_WR,
-      RdClock    => CLK_RD,
+      WrClock    => CLK_200,
+      RdClock    => CLK_100,
       WrEn       => fifo_wr_en_i,
       RdEn       => READ_EN_IN,
-      Reset      => RESET_RD,
-      RPReset    => RESET_RD,
+      Reset      => RESET_100,
+      RPReset    => RESET_100,
       Q          => fifo_data_out_i,
       Empty      => fifo_empty_i,
       Full       => fifo_full_i,
@@ -179,10 +179,10 @@ begin
   fifo_data_in_i(11)           <= '1';  --edge_type_i;  -- rising '1'  or falling '0' edge
   fifo_data_in_i(10 downto 0)  <= hit_time_stamp_reg;  -- hit time stamp
 
-  Register_Outputs : process (CLK_RD, RESET_RD)
+  Register_Outputs : process (CLK_100, RESET_100)
   begin
-    if rising_edge(CLK_RD) then
-      if RESET_RD = '1' then
+    if rising_edge(CLK_100) then
+      if RESET_100 = '1' then
         FIFO_DATA_OUT        <= (others => '1');
         FIFO_EMPTY_OUT       <= '0';
         FIFO_FULL_OUT        <= '0';
@@ -197,10 +197,10 @@ begin
   end process Register_Outputs;
 
   --purpose: FSM for controlling the validity of the timing signal
-  FSM_CLK : process (CLK_WR, RESET_WR)
+  FSM_CLK : process (CLK_200, RESET_200)
   begin
-    if rising_edge(CLK_WR) then
-      if RESET_WR = '1' then
+    if rising_edge(CLK_200) then
+      if RESET_200 = '1' then
         FSM_CURRENT  <= IDLE;
         fifo_wr_en_i <= '0';
         fsm_debug_i  <= (others => '0');
@@ -270,27 +270,27 @@ begin
     generic map (
       DEPTH => 3)
     port map (
-      RESET => RESET_WR,
-      CLK0  => CLK_RD,
-      CLK1  => CLK_WR,
+      RESET => RESET_200,
+      CLK0  => CLK_100,
+      CLK1  => CLK_200,
       D_IN  => VALID_TMG_TRG_IN,
       D_OUT => valid_tmg_trg_i);
   bit_sync_2 : bit_sync
     generic map (
       DEPTH => 3)
     port map (
-      RESET => RESET_WR,
-      CLK0  => CLK_RD,
-      CLK1  => CLK_WR,
+      RESET => RESET_200,
+      CLK0  => CLK_100,
+      CLK1  => CLK_200,
       D_IN  => SPIKE_DETECTED_IN,
       D_OUT => spike_detected_i);
   bit_sync_3 : bit_sync
     generic map (
       DEPTH => 3)
     port map (
-      RESET => RESET_WR,
-      CLK0  => CLK_RD,
-      CLK1  => CLK_WR,
+      RESET => RESET_200,
+      CLK0  => CLK_100,
+      CLK1  => CLK_200,
       D_IN  => MULTI_TMG_TRG_IN,
       D_OUT => multi_tmg_trg_i);
 
@@ -310,7 +310,7 @@ begin
   --REF_DEBUG_OUT(13)         <= encoder_finished_i;
   --REF_DEBUG_OUT(14)         <= fifo_wr_en_i;
 
-  --REF_DEBUG_OUT(15) <= CLK_WR;
+  --REF_DEBUG_OUT(15) <= CLK_200;
 
   REF_DEBUG_OUT(31 downto 0) <= (others => '0');
 end Reference_Channel;

@@ -237,10 +237,10 @@ begin
     generic map (
       CHANNEL_ID => 0)
     port map (
-      RESET_WR             => reset_tdc(0),
-      RESET_RD             => RESET,
-      CLK_WR               => CLK_TDC,
-      CLK_RD               => CLK_READOUT,
+      RESET_200            => reset_tdc(0),
+      RESET_100            => RESET,
+      CLK_200              => CLK_TDC,
+      CLK_100              => CLK_READOUT,
       HIT_IN               => REFERENCE_TIME,
       READ_EN_IN           => rd_en_i(0),
       VALID_TMG_TRG_IN     => VALID_TIMING_TRG_IN,
