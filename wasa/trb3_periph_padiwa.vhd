@@ -621,7 +621,7 @@ padiwa_sdi <= or_all(IN_SDI and not padiwa_cs(3 downto 0));
 -------------------------------------------------------------------------------
     THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 17,             -- Number of TDC channels
+      CHANNEL_NUMBER => 65,             -- Number of TDC channels
       STATUS_REG_NR  => REGIO_NUM_STAT_REGS,
       CONTROL_REG_NR => REGIO_NUM_CTRL_REGS)
     port map (
@@ -629,7 +629,7 @@ padiwa_sdi <= or_all(IN_SDI and not padiwa_cs(3 downto 0));
       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
-      HIT_IN                => hit_in_i(15 downto 0),  -- Channel start signals
+      HIT_IN                => hit_in_i(63 downto 0),  -- Channel start signals
       TRG_WIN_PRE           => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --

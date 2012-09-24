@@ -202,6 +202,17 @@ signal leds     : std_logic_vector(3 downto 0) := (others => '0');
 signal last_leds: std_logic_vector(3 downto 0) := (others => '0');
 signal onewire_monitor : std_logic;
 signal onewire_reset   : std_logic;
+signal inp_or            : std_logic;
+signal inp_long_or            : std_logic;
+signal inp_long_reg      : std_logic;
+signal last_inp_long_reg : std_logic;
+
+signal inp_stretch : std_logic_vector(15 downto 0);
+signal inp_stretched : std_logic_vector(15 downto 0);
+signal inp_hold    : std_logic_vector(15 downto 0);
+signal inp_gated   : std_logic_vector(15 downto 0);
+signal inp_hold_reg: std_logic_vector(15 downto 0);
+signal last_inp_hold_reg: std_logic_vector(15 downto 0);
 
 begin
 
@@ -394,6 +405,7 @@ THE_IO_REG_READ : process begin
       when x"2" => spi_reg20_i <= x"00" & "000" & led_status(4) & leds;
       when x"3" => spi_reg20_i <= x"00" & "000" & std_logic_vector(to_unsigned(inp_select,5));
       when x"4" => spi_reg20_i <= inp_invert;
+      when x"5" => spi_reg20_i <= inp_stretch;
       when others => null;
     end case;
   else
@@ -414,6 +426,7 @@ THE_IO_REG_WRITE : process begin
       when x"2" => led_status <= spi_data_i(4 downto 0);
       when x"3" => inp_select <= to_integer(unsigned(spi_data_i(4 downto 0)));
       when x"4" => inp_invert <= spi_data_i;
+      when x"5" => inp_stretch <= spi_data_i;
       when others => null;
     end case;
   end if;
@@ -438,7 +451,9 @@ end process;
 ---------------------------------------------------------------------------
 -- Rest of the I/O
 ---------------------------------------------------------------------------
-CON <= (INP xor inp_invert) and not input_enable;
+
+inp_gated <= (INP xor inp_invert) and not input_enable;
+CON <= inp_gated or (inp_stretched and inp_stretch);
 
 SPARE_LINE(0) <= '0'; --clk_26;
 SPARE_LINE(1) <= '0'; --clk_i;
@@ -446,14 +461,45 @@ SPARE_LINE(2) <= '0'; --timer(18);
 SPARE_LINE(3) <= '0';
 
 
-SPARE_OUTPUT : process(INP, inp_select, input_enable)
+
+-- process(inp_gated,clk_i); 
+--   begin
+--     if inp_gated(i) then
+--       inp_hold(i) <= inp_gated(i);
+--     elsif rising_edge(clk_i) then
+--       inp_hold(i) <= inp_hold(i) and not inp_hold_reg(i);
+--     end if;
+--   end process;
+-- 
+
+inp_hold <= (inp_gated or inp_hold) and not inp_hold_reg;
+inp_hold_reg <= inp_hold when rising_edge(clk_i);
+last_inp_hold_reg <= inp_hold_reg when rising_edge(clk_i);
+inp_stretched <= inp_hold_reg or last_inp_hold_reg or inp_hold;
+
+
+
+
+
+SPARE_OUTPUT : process(INP, inp_select, inp_or, inp_long_or, inp_long_reg, last_inp_long_reg)
   begin
     if inp_select < 16 then
       SPARE_LVDS <= INP(inp_select+1);
+    elsif inp_select < 24 then
+      SPARE_LVDS <= inp_or;
     else
-      SPARE_LVDS <= or_all(INP and not input_enable);
+      SPARE_LVDS <= inp_long_reg or last_inp_long_reg or inp_long_or ;
     end if;
   end process;
+
+inp_or <= or_all((INP xor inp_invert) and not input_enable);
+
+inp_long_or <= (inp_or or inp_long_or) and not inp_long_reg;
+
+inp_long_reg      <= inp_long_or when rising_edge(clk_i);
+last_inp_long_reg <= inp_long_reg when rising_edge(clk_i);
+-- ll_inp_long_reg   <= last_inp_long_reg when rising_edge(clk_i);
+
 
 -- TEST_LINE(0) <= '0';
 -- TEST_LINE(15 downto 1) <= (others => '0');
