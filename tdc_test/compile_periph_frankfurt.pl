@@ -108,7 +108,7 @@ execute($c);
 my $tpmap = $TOPNAME . "_map" ;
 system("mv $TOPNAME.ncd guidefile.ncd");
 
-$c=qq|$lattice_path/ispfpga/bin/lin/map -g guidefile.ncd -retime -split_node -a $FAMILYNAME -p $DEVICENAME -t $PACKAGE -s $SPEEDGRADE "$TOPNAME.ngd" -o "$tpmap.ncd"  -mp "$TOPNAME.mrp" "$TOPNAME.lpf"|;
+$c=qq|$lattice_path/ispfpga/bin/lin/map -retime -split_node -a $FAMILYNAME -p $DEVICENAME -t $PACKAGE -s $SPEEDGRADE "$TOPNAME.ngd" -o "$tpmap.ncd"  -mp "$TOPNAME.mrp" "$TOPNAME.lpf"|;
 execute($c);
 
 
