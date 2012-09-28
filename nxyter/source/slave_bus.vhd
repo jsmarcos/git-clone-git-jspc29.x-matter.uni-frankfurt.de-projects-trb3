@@ -71,7 +71,7 @@ architecture Behavioral of slave_bus is
   signal onewire_debug        : std_logic_vector(63 downto 0);
   
   -- do not know at the moment, have no backplanes, needed by Slave-Bus
-  signal bp_module_qq             : std_logic_vector(3 downto 0);
+  signal bp_module_qq             : std_logic_vector(2 downto 0);
 
   -- Pedestal and threshold stuff
   type reg_18bit_t is array (0 to 15) of std_logic_vector(17 downto 0);
@@ -139,6 +139,7 @@ begin
       DAT_WRITE_ACK_OUT                   => REGIO_WRITE_ACK_OUT,
       DAT_NO_MORE_DATA_OUT                => REGIO_NO_MORE_DATA_OUT,
       DAT_UNKNOWN_ADDR_OUT                => REGIO_UNKNOWN_ADDR_OUT,
+
       -- pedestal memories
       BUS_READ_ENABLE_OUT(0)              => slv_read(0),
       BUS_WRITE_ENABLE_OUT(0)             => slv_write(0),
@@ -150,6 +151,7 @@ begin
       BUS_WRITE_ACK_IN(0)                 => slv_ack(0),
       BUS_NO_MORE_DATA_IN(0)              => slv_busy(0),
       BUS_UNKNOWN_ADDR_IN(0)              => '0',
+
       -- threshold memories
       BUS_READ_ENABLE_OUT(1)              => slv_read(1),
       BUS_WRITE_ENABLE_OUT(1)             => slv_write(1),
@@ -161,6 +163,7 @@ begin
       BUS_WRITE_ACK_IN(1)                 => slv_ack(1),
       BUS_NO_MORE_DATA_IN(1)              => slv_busy(1),
       BUS_UNKNOWN_ADDR_IN(1)              => '0',
+
       -- I2C master
       BUS_READ_ENABLE_OUT(2)              => slv_read(2),
       BUS_WRITE_ENABLE_OUT(2)             => slv_write(2),

@@ -13,8 +13,8 @@ use work.adcmv3_components.all;
 entity nXyter_FEE_board is
   
   port (
-    CLK_IN             : in std_logic_vector;  
-    RESET_IN           : in std_logic_vector;  
+    CLK_IN             : in std_logic;  
+    RESET_IN           : in std_logic;  
     
     -- I2C Ports
     I2C_SDA_INOUT      : inout std_logic;   -- nXyter I2C fdata line
@@ -29,7 +29,7 @@ entity nXyter_FEE_board is
 
     -- nXyter Timestamp Ports
     NX_CLK128_IN       : in std_logic;
-    NX_IN              : in std_logic_vector (7 downto 0);
+    NX_TIMESTAMP_IN    : in std_logic_vector (7 downto 0);
     NX_RESET_OUT       : out std_logic;
     NX_CLK256A_OUT     : out std_logic;
     NX_TESTPULSE_OUT   : out std_logic;

@@ -31,14 +31,11 @@ entity trb3_periph is
     FPGA5_COMM           : inout std_logic_vector(11 downto 0);
                                         --Bit 0/1 input, serial link RX active
                                         --Bit 2/3 output, serial link TX active
-
-
-    
     
     ---------------------------------------------------------------------------
     -- BEGIN AddonBoard nXyter
     ---------------------------------------------------------------------------
-    --Connections to NXYTER-FEB
+    --Connections to NXYTER-FEB 1
 
     NX1_RESET_OUT              : out   std_logic;     
     NX1_I2C_SDA_INOUT          : inout std_logic;
@@ -49,8 +46,7 @@ entity trb3_periph is
     NX1_SPI_SDIO_INOUT         : in    std_logic;
     NX1_SPI_CSB_OUT            : out   std_logic;
     NX1_CLK128_IN              : in    std_logic;
-    NX1_IN                     : in    std_logic_vector (7 downto 0);
-    NX1_RESET_OUT              : out   std_logic;
+    NX1_TIMESTAMP_IN           : in    std_logic_vector (7 downto 0);
     NX1_CLK256A_OUT            : out   std_logic;
     NX1_TESTPULSE_OUT          : out   std_logic;
     NX1_ADC_FCLK_IN            : in    std_logic;
@@ -60,6 +56,29 @@ entity trb3_periph is
     NX1_ADC_B_IN               : in    std_logic;
     NX1_ADC_NX_IN              : in    std_logic;
     NX1_ADC_D_IN               : in    std_logic;
+
+    --Connections to NXYTER-FEB 2
+
+    NX2_RESET_OUT              : out   std_logic;     
+    NX2_I2C_SDA_INOUT          : inout std_logic;
+    NX2_I2C_SCL_OUT            : out   std_logic;
+    NX2_I2C_SM_RESET_OUT       : out   std_logic;
+    NX2_I2C_REG_RESET_OUT      : out   std_logic;
+    NX2_SPI_SCLK_OUT           : out   std_logic;
+    NX2_SPI_SDIO_INOUT         : in    std_logic;
+    NX2_SPI_CSB_OUT            : out   std_logic;
+    NX2_CLK128_IN              : in    std_logic;
+    NX2_IN                     : in    std_logic_vector (7 downto 0);
+    NX2_CLK256A_OUT            : out   std_logic;
+    NX2_TESTPULSE_OUT          : out   std_logic;
+    NX2_ADC_FCLK_IN            : in    std_logic;
+    NX2_ADC_DCLK_IN            : in    std_logic;
+    NX2_ADC_SC_CLK32_OUT       : out   std_logic;
+    NX2_ADC_A_IN               : in    std_logic;
+    NX2_ADC_B_IN               : in    std_logic;
+    NX2_ADC_NX_IN              : in    std_logic;
+    NX2_ADC_D_IN               : in    std_logic;
+     
      
     ---------------------------------------------------------------------------
     -- END AddonBoard nXyter
@@ -83,6 +102,7 @@ entity trb3_periph is
     --Test Connectors
     TEST_LINE            : out   std_logic_vector(15 downto 0)
     );
+
   attribute syn_useioff                  : boolean;
   --no IO-FF for LEDs relaxes timing constraints
   attribute syn_useioff of LED_GREEN     : signal is false;
@@ -101,12 +121,12 @@ entity trb3_periph is
   attribute syn_useioff of FLASH_DOUT    : signal is true;
   attribute syn_useioff of FPGA5_COMM    : signal is true;
   attribute syn_useioff of TEST_LINE     : signal is true;
-  attribute syn_useioff of INP           : signal is false;
-  attribute syn_useioff of SPARE_LINE    : signal is true;
-  attribute syn_useioff of DAC_SDO       : signal is true;
-  attribute syn_useioff of DAC_SDI       : signal is true;
-  attribute syn_useioff of DAC_SCK       : signal is true;
-  attribute syn_useioff of DAC_CS        : signal is true;
+  --attribute syn_useioff of INP           : signal is false;
+  --attribute syn_useioff of SPARE_LINE    : signal is true;
+  --attribute syn_useioff of DAC_SDO       : signal is true;
+  --attribute syn_useioff of DAC_SDI       : signal is true;
+  --attribute syn_useioff of DAC_SCK       : signal is true;
+  --attribute syn_useioff of DAC_CS        : signal is true;
 
 end entity;
 
@@ -232,8 +252,29 @@ architecture trb3_periph_arch of trb3_periph is
   signal time_counter : unsigned(31 downto 0);
 
 
-  -- nXyter
-    
+  -- nXyter 1 Regio Bus
+  signal nx1_regio_addr_in           : std_logic_vector (15 downto 0);
+  signal nx1_regio_data_in           : std_logic_vector (31 downto 0);
+  signal nx1_regio_data_out          : std_logic_vector (31 downto 0);
+  signal nx1_regio_read_enable_in    : std_logic;
+  signal nx1_regio_write_enable_in   : std_logic;
+  signal nx1_regio_timeout_in        : std_logic;
+  signal nx1_regio_dataready_out     : std_logic;
+  signal nx1_regio_write_ack_out     : std_logic;
+  signal nx1_regio_no_more_data_out  : std_logic;
+  signal nx1_regio_unknown_addr_out  : std_logic;
+
+  -- nXyter 1 Regio Bus
+  signal nx2_regio_addr_in           : std_logic_vector (15 downto 0);
+  signal nx2_regio_data_in           : std_logic_vector (31 downto 0);
+  signal nx2_regio_data_out          : std_logic_vector (31 downto 0);
+  signal nx2_regio_read_enable_in    : std_logic;
+  signal nx2_regio_write_enable_in   : std_logic;
+  signal nx2_regio_timeout_in        : std_logic;
+  signal nx2_regio_dataready_out     : std_logic;
+  signal nx2_regio_write_ack_out     : std_logic;
+  signal nx2_regio_no_more_data_out  : std_logic;
+  signal nx2_regio_unknown_addr_out  : std_logic;
 
 begin
 ---------------------------------------------------------------------------
@@ -439,12 +480,16 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 3,
+      PORT_NUMBER    => 4,
       PORT_ADDRESSES => (0 => x"d000",
                          1 => x"d100",
+                         2 => x"8000",
+                         3 => x"9000", 
                          others => x"0000"),
       PORT_ADDR_MASK => (0 => 1,
                          1 => 6,
+                         2 => 15,
+                         3 => 15,
                          others => 0)
       )
     port map(
@@ -474,6 +519,7 @@ begin
       BUS_WRITE_ACK_IN(0)                 => spictrl_ack,
       BUS_NO_MORE_DATA_IN(0)              => spictrl_busy,
       BUS_UNKNOWN_ADDR_IN(0)              => '0',
+
       --Bus Handler (SPI Memory)
       BUS_READ_ENABLE_OUT(1)              => spimem_read_en,
       BUS_WRITE_ENABLE_OUT(1)             => spimem_write_en,
@@ -487,12 +533,29 @@ begin
       BUS_NO_MORE_DATA_IN(1)              => '0',
       BUS_UNKNOWN_ADDR_IN(1)              => '0',
 
-      -------------------------------------------------------------------------
-      -- Hier meine register.....
-      -- Macht aber das nxyter entity
-      -------------------------------------------------------------------------
-      
+      --Bus Handler (nXyter1 trb_net16_regio_bus_handler)
+      BUS_READ_ENABLE_OUT(2)              => nx1_regio_read_enable_in,
+      BUS_WRITE_ENABLE_OUT(2)             => nx1_regio_write_enable_in,
+      BUS_DATA_OUT(2*32+31 downto 2*32)   => nx1_regio_data_in,
+      BUS_ADDR_OUT(2*16+15 downto 2*16)   => nx1_regio_addr_in,
+      BUS_TIMEOUT_OUT(2)                  => nx1_regio_timeout_in,
+      BUS_DATA_IN(2*32+31 downto 2*32)    => nx1_regio_data_out,
+      BUS_DATAREADY_IN(2)                 => nx1_regio_dataready_out,
+      BUS_WRITE_ACK_IN(2)                 => nx1_regio_write_ack_out,
+      BUS_NO_MORE_DATA_IN(2)              => nx1_regio_no_more_data_out,
+      BUS_UNKNOWN_ADDR_IN(2)              => nx1_regio_unknown_addr_out,
 
+      --Bus Handler (nXyter2 trb_net16_regio_bus_handler)
+      BUS_READ_ENABLE_OUT(3)              => nx2_regio_read_enable_in,
+      BUS_WRITE_ENABLE_OUT(3)             => nx2_regio_write_enable_in,
+      BUS_DATA_OUT(3*32+31 downto 3*32)   => nx2_regio_data_in,
+      BUS_ADDR_OUT(3*16+15 downto 3*16)   => nx2_regio_addr_in,
+      BUS_TIMEOUT_OUT(3)                  => nx2_regio_timeout_in,
+      BUS_DATA_IN(3*32+31 downto 3*32)    => nx2_regio_data_out,
+      BUS_DATAREADY_IN(3)                 => nx2_regio_dataready_out,
+      BUS_WRITE_ACK_IN(3)                 => nx2_regio_write_ack_out,
+      BUS_NO_MORE_DATA_IN(3)              => nx2_regio_no_more_data_out,
+      BUS_UNKNOWN_ADDR_IN(3)              => nx2_regio_unknown_addr_out,
       
       STAT_DEBUG => open
       );
@@ -589,7 +652,7 @@ begin
       SPI_CSB_OUT            => NX1_SPI_CSB_OUT,
 
       NX_CLK128_IN           => NX1_CLK128_IN,
-      NX_IN                  => NX1_IN,
+      NX_TIMESTAMP_IN        => NX1_TIMESTAMP_IN,
       NX_RESET_OUT           => NX1_RESET_OUT,
       NX_CLK256A_OUT         => NX1_CLK256A_OUT,
       NX_TESTPULSE_OUT       => NX1_TESTPULSE_OUT,
@@ -602,16 +665,16 @@ begin
       ADC_NX_IN              => NX1_ADC_NX_IN,
       ADC_D_IN               => NX1_ADC_D_IN,
 
-      REGIO_ADDR_IN          => regio_addr_out,
-      REGIO_DATA_IN          => regio_data_out,
-      REGIO_DATA_OUT         => regio_data_in,
-      REGIO_READ_ENABLE_IN   => regio_read_enable_out,
-      REGIO_WRITE_ENABLE_IN  => regio_write_enable_out,
-      REGIO_TIMEOUT_IN       => regio_timeout_out,
-      REGIO_DATAREADY_OUT    => regio_dataready_in,
-      REGIO_WRITE_ACK_OUT    => regio_write_ack_in,
-      REGIO_NO_MORE_DATA_OUT => regio_no_more_data_in,
-      REGIO_UNKNOWN_ADDR_OUT => regio_unknown_addr_in
+      REGIO_ADDR_IN          => nx1_regio_addr_in,
+      REGIO_DATA_IN          => nx1_regio_data_in,
+      REGIO_DATA_OUT         => nx1_regio_data_out,
+      REGIO_READ_ENABLE_IN   => nx1_regio_read_enable_in,
+      REGIO_WRITE_ENABLE_IN  => nx1_regio_write_enable_in,
+      REGIO_TIMEOUT_IN       => nx1_regio_timeout_in,
+      REGIO_DATAREADY_OUT    => nx1_regio_dataready_out,
+      REGIO_WRITE_ACK_OUT    => nx1_regio_write_ack_out,
+      REGIO_NO_MORE_DATA_OUT => nx1_regio_no_more_data_out,
+      REGIO_UNKNOWN_ADDR_OUT => nx1_regio_unknown_addr_out
       );
   
 ---------------------------------------------------------------------------

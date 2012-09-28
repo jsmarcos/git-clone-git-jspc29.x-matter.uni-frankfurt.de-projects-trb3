@@ -10,8 +10,8 @@ package nxyter_components is
 
 component nXyter_FEE_board
   port (
-    CLK_IN                 : in    std_logic_vector;
-    RESET_IN               : in    std_logic_vector;
+    CLK_IN                 : in    std_logic;
+    RESET_IN               : in    std_logic;
 
     I2C_SDA_INOUT          : inout std_logic;
     I2C_SCL_OUT            : out   std_logic;
@@ -23,7 +23,7 @@ component nXyter_FEE_board
     SPI_CSB_OUT            : out   std_logic;
 
     NX_CLK128_IN           : in    std_logic;
-    NX_IN                  : in    std_logic_vector (7 downto 0);
+    NX_TIMESTAMP_IN        : in    std_logic_vector (7 downto 0);
     NX_RESET_OUT           : out   std_logic;
     NX_CLK256A_OUT         : out   std_logic;
     NX_TESTPULSE_OUT       : out   std_logic;
