@@ -496,7 +496,7 @@ THE_HUB : trb_net16_hub_base
 --     INT_CHANNELS      => (0,1,3,3,3,3,3,3),
     USE_ONEWIRE       => c_YES,
     COMPILE_TIME      => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME,32)),
-    HARDWARE_VERSION  => x"91000000",
+    HARDWARE_VERSION  => x"91003200",
     INIT_ENDPOINT_ID  => x"0000",
     INIT_ADDRESS      => x"F300",
     USE_VAR_ENDPOINT_ID => c_YES,

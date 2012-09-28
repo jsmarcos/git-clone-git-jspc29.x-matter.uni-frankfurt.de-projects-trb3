@@ -24,8 +24,8 @@ entity trb3_periph is
     CLK_SERDES_INT_RIGHT : in    std_logic;  --Clock Manager 2/(1357), 200 MHz, only in case of problems
     SERDES_INT_TX        : out   std_logic_vector(3 downto 0);
     SERDES_INT_RX        : in    std_logic_vector(3 downto 0);
-    SERDES_ADDON_TX      : out   std_logic_vector(11 downto 0);
-    SERDES_ADDON_RX      : in    std_logic_vector(11 downto 0);
+--     SERDES_ADDON_TX      : out   std_logic_vector(11 downto 0);
+--     SERDES_ADDON_RX      : in    std_logic_vector(11 downto 0);
     --Inter-FPGA Communication
     FPGA5_COMM           : inout std_logic_vector(11 downto 0);
                                         --Bit 0/1 input, serial link RX active
@@ -580,7 +580,11 @@ begin
 
   THE_TDC : TDC
     generic map (
+<<<<<<< trb3_periph.vhd
+      CHANNEL_NUMBER => 17,              -- Number of TDC channels
+=======
       CHANNEL_NUMBER => 65,              -- Number of TDC channels
+>>>>>>> 1.3
       STATUS_REG_NR  => REGIO_NUM_STAT_REGS,
       CONTROL_REG_NR => REGIO_NUM_CTRL_REGS)
     port map (
@@ -588,7 +592,11 @@ begin
       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
+<<<<<<< trb3_periph.vhd
+      HIT_IN                => hit_in_i(16 downto 1),  -- Channel start signals
+=======
       HIT_IN                => hit_in_i(64 downto 1),  -- Channel start signals
+>>>>>>> 1.3
       TRG_WIN_PRE           => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --

@@ -470,17 +470,17 @@ begin
       -- HIer meine register.....
       -------------------------------------------------------------------------
        --Bus Handler (SPI Memory)
-      BUS_READ_ENABLE_OUT(1)              => spimem_read_en,
-      BUS_WRITE_ENABLE_OUT(1)             => spimem_write_en,
-      BUS_DATA_OUT(1*32+31 downto 1*32)   => spimem_data_in,
-      BUS_ADDR_OUT(1*16+5 downto 1*16)    => spimem_addr,
-      BUS_ADDR_OUT(1*16+15 downto 1*16+6) => open,
-      BUS_TIMEOUT_OUT(1)                  => open,
-      BUS_DATA_IN(1*32+31 downto 1*32)    => spimem_data_out,
-      BUS_DATAREADY_IN(1)                 => spimem_ack,
-      BUS_WRITE_ACK_IN(1)                 => spimem_ack,
-      BUS_NO_MORE_DATA_IN(1)              => '0',
-      BUS_UNKNOWN_ADDR_IN(1)              => '0',
+--       BUS_READ_ENABLE_OUT(2)              => spimem_read_en,
+--       BUS_WRITE_ENABLE_OUT(2)             => spimem_write_en,
+--       BUS_DATA_OUT(2*32+31 downto 2*32)   => spimem_data_in,
+--       BUS_ADDR_OUT(2*16+5 downto 2*16)    => spimem_addr,
+--       BUS_ADDR_OUT(2*16+15 downto 2*16+6) => open,
+--       BUS_TIMEOUT_OUT(2)                  => open,
+--       BUS_DATA_IN(2*32+31 downto 2*32)    => spimem_data_out,
+--       BUS_DATAREADY_IN(2)                 => spimem_ack,
+--       BUS_WRITE_ACK_IN(2)                 => spimem_ack,
+--       BUS_NO_MORE_DATA_IN(2)              => '0',
+--       BUS_UNKNOWN_ADDR_IN(2)              => '0',
 
       
       STAT_DEBUG => open
