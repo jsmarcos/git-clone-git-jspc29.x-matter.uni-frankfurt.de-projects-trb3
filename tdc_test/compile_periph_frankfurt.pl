@@ -108,12 +108,8 @@ execute($c);
 my $tpmap = $TOPNAME . "_map" ;
 system("mv $TOPNAME.ncd guidefile.ncd");
 
-<<<<<<< compile_periph_frankfurt.pl
 #-g guidefile.ncd
 $c=qq|$lattice_path/ispfpga/bin/lin/map -retime -split_node -a $FAMILYNAME -p $DEVICENAME -t $PACKAGE -s $SPEEDGRADE "$TOPNAME.ngd" -o "$tpmap.ncd"  -mp "$TOPNAME.mrp" "$TOPNAME.lpf"|;
-=======
-$c=qq|$lattice_path/ispfpga/bin/lin/map -retime -split_node -a $FAMILYNAME -p $DEVICENAME -t $PACKAGE -s $SPEEDGRADE "$TOPNAME.ngd" -o "$tpmap.ncd"  -mp "$TOPNAME.mrp" "$TOPNAME.lpf"|;
->>>>>>> 1.2
 execute($c);
 
 
