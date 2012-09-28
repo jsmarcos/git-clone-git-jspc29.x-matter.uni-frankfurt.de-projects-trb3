@@ -12,25 +12,30 @@ component nXyter_FEE_board
   port (
     CLK_IN                 : in    std_logic_vector;
     RESET_IN               : in    std_logic_vector;
+
     I2C_SDA_INOUT          : inout std_logic;
     I2C_SCL_OUT            : out   std_logic;
     I2C_SM_RESET_OUT       : out   std_logic;
     I2C_REG_RESET_OUT      : out   std_logic;
+
     SPI_SCLK_OUT           : out   std_logic;
     SPI_SDIO_INOUT         : in    std_logic;
     SPI_CSB_OUT            : out   std_logic;
+
     NX_CLK128_IN           : in    std_logic;
     NX_IN                  : in    std_logic_vector (7 downto 0);
     NX_RESET_OUT           : out   std_logic;
     NX_CLK256A_OUT         : out   std_logic;
     NX_TESTPULSE_OUT       : out   std_logic;
+
     ADC_FCLK_IN            : in    std_logic;
     ADC_DCLK_IN            : in    std_logic;
-    ADC_SC_CLK32_IN        : in    std_logic;
+    ADC_SC_CLK32_OUT       : out   std_logic;
     ADC_A_IN               : in    std_logic;
     ADC_B_IN               : in    std_logic;
     ADC_NX_IN              : in    std_logic;
     ADC_D_IN               : in    std_logic;
+
     REGIO_ADDR_IN          : in    std_logic_vector(15 downto 0);
     REGIO_DATA_IN          : in    std_logic_vector(31 downto 0);
     REGIO_DATA_OUT         : out   std_logic_vector(31 downto 0);
@@ -42,8 +47,6 @@ component nXyter_FEE_board
     REGIO_NO_MORE_DATA_OUT : out   std_logic;
     REGIO_UNKNOWN_ADDR_OUT : out   std_logic);
 end component;
-
-
 
 
 

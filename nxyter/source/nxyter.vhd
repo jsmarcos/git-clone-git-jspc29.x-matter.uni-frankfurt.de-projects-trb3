@@ -19,7 +19,6 @@ entity nXyter_FEE_board is
     -- I2C Ports
     I2C_SDA_INOUT      : inout std_logic;   -- nXyter I2C fdata line
     I2C_SCL_OUT        : out std_logic;     -- nXyter I2C Clock line
-
     I2C_SM_RESET_OUT   : out std_logic;     -- reset nXyter I2C StateMachine 
     I2C_REG_RESET_OUT  : out std_logic;     -- reset I2C registers to default
 
@@ -38,7 +37,7 @@ entity nXyter_FEE_board is
     -- ADC nXyter Pulse Hight Ports
     ADC_FCLK_IN        : in std_logic;
     ADC_DCLK_IN        : in std_logic;
-    ADC_SC_CLK32_IN    : in std_logic;
+    ADC_SC_CLK32_OUT   : out std_logic;
     ADC_A_IN           : in std_logic;
     ADC_B_IN           : in std_logic;
     ADC_NX_IN          : in std_logic;

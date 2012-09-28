@@ -140,6 +140,19 @@ add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
 
 add_file -vhdl -lib "work" "trb3_periph.vhd"
 
+# nXyter Files
 
+add_file -vhdl -lib "work" "./source/adcmv3_components.vhd"
+add_file -vhdl -lib "work" "./source/nxyter_components.vhd"
 
+add_file -vhdl -lib "work" "./source/nxyter.vhd"
+add_file -vhdl -lib "work" "./source/slave_bus.vhd"
+add_file -vhdl -lib "work" "./source/slv_ped_thr_mem.vhd"
+add_file -vhdl -lib "work" "./source/slv_register.vhd"
+#add_file -vhdl -lib "work" "./source/gray_decoder.vhd"
+
+add_file -vhdl -lib "work" "./source/i2c_gstart.vhd"
+add_file -vhdl -lib "work" "./source/i2c_master.vhd"
+add_file -vhdl -lib "work" "./source/i2c_sendb.vhd"
+add_file -vhdl -lib "work" "./source/i2c_slim.vhd"
 

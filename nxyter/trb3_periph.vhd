@@ -7,6 +7,7 @@ use work.trb_net_std.all;
 use work.trb_net_components.all;
 use work.trb3_components.all;
 use work.version.all;
+use work.nxyter_components.all;
 
 
 entity trb3_periph is
@@ -32,24 +33,38 @@ entity trb3_periph is
                                         --Bit 2/3 output, serial link TX active
 
 
-
-
+    
+    
     ---------------------------------------------------------------------------
-    -- ANFANG LUDWIG Addonstecker 
+    -- BEGIN AddonBoard nXyter
     ---------------------------------------------------------------------------
+    --Connections to NXYTER-FEB
 
-    --Connection to ADA AddOn
-    SPARE_LINE           : inout std_logic_vector(3 downto 0);  --inputs only
-    INP                  : in    std_logic_vector(63 downto 0);
-    DAC_SDO              : in    std_logic;
-    DAC_SDI              : out   std_logic;
-    DAC_SCK              : out   std_logic;
-    DAC_CS               : out   std_logic_vector(3 downto 0);
-
+    NX1_RESET_OUT              : out   std_logic;     
+    NX1_I2C_SDA_INOUT          : inout std_logic;
+    NX1_I2C_SCL_OUT            : out   std_logic;
+    NX1_I2C_SM_RESET_OUT       : out   std_logic;
+    NX1_I2C_REG_RESET_OUT      : out   std_logic;
+    NX1_SPI_SCLK_OUT           : out   std_logic;
+    NX1_SPI_SDIO_INOUT         : in    std_logic;
+    NX1_SPI_CSB_OUT            : out   std_logic;
+    NX1_CLK128_IN              : in    std_logic;
+    NX1_IN                     : in    std_logic_vector (7 downto 0);
+    NX1_RESET_OUT              : out   std_logic;
+    NX1_CLK256A_OUT            : out   std_logic;
+    NX1_TESTPULSE_OUT          : out   std_logic;
+    NX1_ADC_FCLK_IN            : in    std_logic;
+    NX1_ADC_DCLK_IN            : in    std_logic;
+    NX1_ADC_SC_CLK32_OUT       : out   std_logic;
+    NX1_ADC_A_IN               : in    std_logic;
+    NX1_ADC_B_IN               : in    std_logic;
+    NX1_ADC_NX_IN              : in    std_logic;
+    NX1_ADC_D_IN               : in    std_logic;
+     
     ---------------------------------------------------------------------------
-    -- ENDE LUDWIG
+    -- END AddonBoard nXyter
     ---------------------------------------------------------------------------
-
+    
 
     --Flash ROM & Reboot
     FLASH_CLK            : out   std_logic;
@@ -217,6 +232,8 @@ architecture trb3_periph_arch of trb3_periph is
   signal time_counter : unsigned(31 downto 0);
 
 
+  -- nXyter
+    
 
 begin
 ---------------------------------------------------------------------------
@@ -422,9 +439,13 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 2,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"e000", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 4, others => 0)
+      PORT_NUMBER    => 3,
+      PORT_ADDRESSES => (0 => x"d000",
+                         1 => x"d100",
+                         others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1,
+                         1 => 6,
+                         others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -467,20 +488,10 @@ begin
       BUS_UNKNOWN_ADDR_IN(1)              => '0',
 
       -------------------------------------------------------------------------
-      -- HIer meine register.....
+      -- Hier meine register.....
+      -- Macht aber das nxyter entity
       -------------------------------------------------------------------------
-       --Bus Handler (SPI Memory)
---       BUS_READ_ENABLE_OUT(2)              => spimem_read_en,
---       BUS_WRITE_ENABLE_OUT(2)             => spimem_write_en,
---       BUS_DATA_OUT(2*32+31 downto 2*32)   => spimem_data_in,
---       BUS_ADDR_OUT(2*16+5 downto 2*16)    => spimem_addr,
---       BUS_ADDR_OUT(2*16+15 downto 2*16+6) => open,
---       BUS_TIMEOUT_OUT(2)                  => open,
---       BUS_DATA_IN(2*32+31 downto 2*32)    => spimem_data_out,
---       BUS_DATAREADY_IN(2)                 => spimem_ack,
---       BUS_WRITE_ACK_IN(2)                 => spimem_ack,
---       BUS_NO_MORE_DATA_IN(2)              => '0',
---       BUS_UNKNOWN_ADDR_IN(2)              => '0',
+      
 
       
       STAT_DEBUG => open
@@ -560,14 +571,52 @@ begin
 
 
   -----------------------------------------------------------------------------
-  -- HIER darf ich arbeiten!
+  -- The xXyter-FEB
   -----------------------------------------------------------------------------
 
+  nXyter_FEE_board_1: nXyter_FEE_board
+    port map (
+      CLK_IN                 => clk_100_i,
+      RESET_IN               => reset_i,
+
+      I2C_SDA_INOUT          => NX1_I2C_SDA_INOUT,
+      I2C_SCL_OUT            => NX1_I2C_SCL_OUT,
+      I2C_SM_RESET_OUT       => NX1_I2C_SM_RESET_OUT,
+      I2C_REG_RESET_OUT      => NX1_I2C_REG_RESET_OUT,
+
+      SPI_SCLK_OUT           => NX1_SPI_SCLK_OUT,
+      SPI_SDIO_INOUT         => NX1_SPI_SDIO_INOUT,
+      SPI_CSB_OUT            => NX1_SPI_CSB_OUT,
+
+      NX_CLK128_IN           => NX1_CLK128_IN,
+      NX_IN                  => NX1_IN,
+      NX_RESET_OUT           => NX1_RESET_OUT,
+      NX_CLK256A_OUT         => NX1_CLK256A_OUT,
+      NX_TESTPULSE_OUT       => NX1_TESTPULSE_OUT,
+
+      ADC_FCLK_IN            => NX1_ADC_FCLK_IN,
+      ADC_DCLK_IN            => NX1_ADC_DCLK_IN,
+      ADC_SC_CLK32_OUT       => NX1_ADC_SC_CLK32_OUT,
+      ADC_A_IN               => NX1_ADC_A_IN,
+      ADC_B_IN               => NX1_ADC_B_IN,
+      ADC_NX_IN              => NX1_ADC_NX_IN,
+      ADC_D_IN               => NX1_ADC_D_IN,
+
+      REGIO_ADDR_IN          => regio_addr_out,
+      REGIO_DATA_IN          => regio_data_out,
+      REGIO_DATA_OUT         => regio_data_in,
+      REGIO_READ_ENABLE_IN   => regio_read_enable_out,
+      REGIO_WRITE_ENABLE_IN  => regio_write_enable_out,
+      REGIO_TIMEOUT_IN       => regio_timeout_out,
+      REGIO_DATAREADY_OUT    => regio_dataready_in,
+      REGIO_WRITE_ACK_OUT    => regio_write_ack_in,
+      REGIO_NO_MORE_DATA_OUT => regio_no_more_data_in,
+      REGIO_UNKNOWN_ADDR_OUT => regio_unknown_addr_in
+      );
+  
 ---------------------------------------------------------------------------
 -- Test Connector - Logic Analyser
 ---------------------------------------------------------------------------
-
-
 
   
   TEST_LINE(15 downto 0) <= (others => '0');
