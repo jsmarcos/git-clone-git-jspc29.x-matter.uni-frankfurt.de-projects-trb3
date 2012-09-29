@@ -89,8 +89,8 @@ add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_med_ecp_sfp_gbe_8b.vh
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_frame_trans.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_frame_constr.vhd"
 #add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_packet_constr_nologic.vhd"
-#add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_packet_constr.vhd"
-add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_packet_constr_simple_sender.vhd"
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_packet_constr.vhd"
+#add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_packet_constr_simple_sender.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_ipu2gbe.vhd"
 #add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_ipu2gbe_nologic.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ip_configurator.vhd"
@@ -223,13 +223,13 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4
 
 add_file -vhdl -lib work "../base/cores/pll_in200_out100.vhd"
 
-add_file -vhdl -lib work "../cts2/cts_pkg.vhd"
-add_file -vhdl -lib work "../cts2/cts_fifo.vhd"
-add_file -vhdl -lib work "../cts2/cts_trg_input.vhd"
-add_file -vhdl -lib work "../cts2/cts_trg_coin.vhd"
-add_file -vhdl -lib work "../cts2/cts_trg_pseudorand_pulser.vhd"
-add_file -vhdl -lib work "../cts2/cts_trigger.vhd"
-add_file -vhdl -lib work "../cts2/cts.vhd"
+add_file -vhdl -lib work "source/cts_pkg.vhd"
+add_file -vhdl -lib work "source/cts_fifo.vhd"
+add_file -vhdl -lib work "source/cts_trg_input.vhd"
+add_file -vhdl -lib work "source/cts_trg_coin.vhd"
+add_file -vhdl -lib work "source/cts_trg_pseudorand_pulser.vhd"
+add_file -vhdl -lib work "source/cts_trigger.vhd"
+add_file -vhdl -lib work "source/cts.vhd"
 
 add_file -vhdl -lib work "./trb3_central.vhd"
 
