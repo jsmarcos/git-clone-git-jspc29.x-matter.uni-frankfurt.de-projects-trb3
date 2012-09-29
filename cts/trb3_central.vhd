@@ -66,6 +66,7 @@ entity trb3_central is
     TRIGGER_RIGHT                  : in  std_logic;  --right side trigger input from fan-out
     TRIGGER_EXT                    : in  std_logic_vector(4 downto 2); --additional trigger from RJ45
     TRIGGER_OUT                    : out std_logic;  --trigger to second input of fan-out
+    TRIGGER_OUT2                   : out std_logic;
     
     --Serdes
     CLK_SERDES_INT_LEFT            : in  std_logic;  --Clock Manager 2/0, 200 MHz, only in case of problems
@@ -303,6 +304,10 @@ signal cts_rdo_data                : std_logic_vector(31 downto 0);
 signal cts_rdo_write               : std_logic;
 signal cts_rdo_finished            : std_logic;
 
+signal cts_ext_trigger             : std_logic;
+signal cts_ext_status              : std_logic_vector(31 downto 0) := (others => '0');
+signal cts_ext_control             : std_logic_vector(31 downto 0);
+
 signal cts_rdo_additional_data     : std_logic_vector(31 downto 0);
 signal cts_rdo_additional_write    : std_logic := '0';
 signal cts_rdo_additional_finished : std_logic := '1';
@@ -338,20 +343,20 @@ signal external_send_reset         : std_logic;
 signal timer_ticks                 : std_logic_vector(1 downto 0);
 
 signal trigger_busy_i          : std_logic;
-signal trigger_in_buf_i        : std_logic_vector(4 downto 0);
+signal trigger_in_buf_i        : std_logic_vector(3 downto 0);
 begin
 --  TRIGGER_BUSY_OUT <= trigger_busy_i;
 
-   trigger_in_buf_i(0) <= TRIGGER_LEFT;
-   trigger_in_buf_i(1) <= TRIGGER_RIGHT;
-   trigger_in_buf_i(4 downto 2) <= TRIGGER_EXT;
+   trigger_in_buf_i(1 downto 0) <= CLK_EXT;
+   trigger_in_buf_i(3 downto 2) <= TRIGGER_EXT(3 downto 2);
 
    THE_CTS: CTS 
    generic map (
-      TRIGGER_INPUT_COUNT  => 5,
+--      EXTERNAL_TRIGGER_ID  => X"00", fill in trigger logic enumeration id of external trigger logic
+      TRIGGER_INPUT_COUNT  => 4,
       TRIGGER_COIN_COUNT   => 4,
       TRIGGER_PULSER_COUNT => 4,
-      TRIGGER_RAND_PULSER  => TRUE
+      TRIGGER_RAND_PULSER  => 2
    )
    port map ( 
       CLK => clk_100_i,
@@ -360,6 +365,10 @@ begin
       TRIGGERS_IN => trigger_in_buf_i,
       TRIGGER_BUSY_OUT => trigger_busy_i,
       TIME_REFERENCE_OUT => cts_trigger_out,
+      
+      EXT_TRIGGER_IN => cts_ext_trigger,
+      EXT_STATUS_IN  => cts_ext_status,
+      EXT_CONTROL_OUT => cts_ext_control, 
       
       CTS_TRG_SEND_OUT => cts_trg_send,
       CTS_TRG_TYPE_OUT => cts_trg_type,
@@ -966,6 +975,7 @@ THE_FPGA_REBOOT : fpga_reboot
   CLK_MNGR2_USER <= (others => '0'); 
 
   TRIGGER_OUT    <= cts_trigger_out;
+  TRIGGER_OUT2   <= cts_trigger_out;
 
 ---------------------------------------------------------------------------
 -- FPGA communication
