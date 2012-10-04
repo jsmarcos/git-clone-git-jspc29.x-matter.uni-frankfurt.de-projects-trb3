@@ -110,7 +110,7 @@ PROC_FSM: process begin
       state <= WAIT2;
     when WAIT2 =>
       bitcnt <= bitcnt - 1;
-      shift_reg <= shift_reg(35 downto 1) & reg_MBS_IN;
+      shift_reg <= shift_reg(shift_reg'high - 1 downto 0) & reg_MBS_IN;
       state <= WAIT3;
     when WAIT3 =>
       if bitcnt = 0 then
@@ -134,7 +134,7 @@ PROC_REG_INFO : process begin
   if done = '1' then
     number_reg <= shift_reg(31 downto 8);
     status_reg <= shift_reg(7 downto 6);
-    if shift_reg(36 downto 32) = "01010" and shift_reg(4 downto 0) = "10101" and xor_all(31 downto 5) = '0' then
+    if shift_reg(36 downto 32) = "01010" and shift_reg(4 downto 0) = "10101" and xor_all(shift_reg(31 downto 5)) = '0' then
       error_reg <= '0';
     else
       error_reg <= '1';
