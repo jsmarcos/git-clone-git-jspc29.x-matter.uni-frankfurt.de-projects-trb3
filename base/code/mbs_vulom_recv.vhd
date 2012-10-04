@@ -29,7 +29,7 @@ entity mbs_vulom_recv is
     
     --Registers / Debug    
     CONTROL_REG_IN : in  std_logic_vector(31 downto 0);
-    STATUS_REG_OUT : out std_logic_vector(31 downto 0);
+    STATUS_REG_OUT : out std_logic_vector(31 downto 0) := (others => '0');
     DEBUG          : out std_logic_vector(31 downto 0)    
     );
 end entity;
@@ -74,6 +74,8 @@ signal state           : state_t;
 
 type rdo_state_t is (RDO_IDLE, RDO_WRITE, RDO_FINISH);
 signal rdostate        : rdo_state_t;
+
+signal config_rdo_disable_i : std_logic;
 
 begin
 
@@ -134,6 +136,8 @@ PROC_REG_INFO : process begin
   if done = '1' then
     number_reg <= shift_reg(31 downto 8);
     status_reg <= shift_reg(7 downto 6);
+
+    
     if shift_reg(36 downto 32) = "01010" and shift_reg(4 downto 0) = "10101" and xor_all(shift_reg(31 downto 5)) = '0' then
       error_reg <= '0';
     else
@@ -142,17 +146,19 @@ PROC_REG_INFO : process begin
   end if;
 end process;
 
+STATUS_REG_OUT(23 downto 0) <= number_reg;
+STATUS_REG_OUT(24) <= error_reg;
 
 PROC_RDO : process begin
   wait until rising_edge(CLK);
   WRITE_OUT     <= '0';
-  FINISHED_OUT  <= '0';
+  FINISHED_OUT  <= config_rdo_disable_i;
   STATUSBIT_OUT <= (23 => error_reg, others => '0');
   case rdostate is
     when RDO_IDLE =>
-      if TRIGGER_IN = '1' then
+      if TRIGGER_IN = '1' and config_rdo_disable_i = '0' then
         rdostate <= RDO_FINISH;
-        DATA_OUT <= error_reg & status_reg & "00000" & number_reg;
+        DATA_OUT <= error_reg & status_reg & "10000" & number_reg;
         WRITE_OUT <= '1';
       end if;
     when RDO_FINISH =>
@@ -161,7 +167,12 @@ PROC_RDO : process begin
   end case;
 end process;
 
+<<<<<<< mbs_vulom_recv.vhd
+config_rdo_disable_i <= CONTROL_REG_IN(0);
+
+=======
 STATUS_REG_OUT <= error_reg & '0' & std_logic_vector(to_unsigned(bitcnt,6)) & number_reg;
 
 
+>>>>>>> 1.4
 end architecture;
