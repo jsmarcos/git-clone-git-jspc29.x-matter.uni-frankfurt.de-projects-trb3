@@ -91,11 +91,11 @@ end process;
   
 first_bits_slow <= first_bits_fast when rising_edge(CLK);
 
-trg_async     <= not MBS_IN or trg_async when first_bits_fast = '1' else '0';
-trg_sync      <= not reg_MBS_IN or trg_sync when rising_edge(CLK) and first_bits_slow ='1' else '0';
+trg_async     <= (not MBS_IN or trg_async) when first_bits_fast = '1' else '0';
+trg_sync      <= (not reg_MBS_IN or trg_sync) and first_bits_slow when rising_edge(CLK);
 
 TRG_ASYNC_OUT <= trg_async;
-TRG_SYNC_OUT  <= trg_sync;
+TRG_SYNC_OUT  <= trg_sync when rising_edge(CLK);
 
 PROC_FSM: process begin
   wait until rising_edge(CLK_200);
@@ -160,5 +160,8 @@ PROC_RDO : process begin
       rdostate     <= RDO_IDLE;
   end case;
 end process;
+
+STATUS_REG_OUT <= error_reg & '0' & std_logic_vector(to_unsigned(bitcnt,6)) & number_reg;
+
 
 end architecture;
