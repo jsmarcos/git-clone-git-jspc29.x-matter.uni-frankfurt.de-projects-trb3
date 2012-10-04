@@ -174,185 +174,237 @@ entity trb3_central is
 end entity;
 
 architecture trb3_central_arch of trb3_central is
-  attribute syn_keep : boolean;
-  attribute syn_preserve : boolean;
-  
-  signal clk_100_i   : std_logic; --clock for main logic, 100 MHz, via Clock Manager and internal PLL
-  signal clk_200_i   : std_logic; --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
-  signal pll_lock    : std_logic; --Internal PLL locked. E.g. used to reset all internal logic.
-  signal clear_i     : std_logic;
-  signal reset_i     : std_logic;
-  signal GSR_N       : std_logic;
-  attribute syn_keep of GSR_N : signal is true;
-  attribute syn_preserve of GSR_N : signal is true;
-  
-  --FPGA Test
-  signal time_counter, time_counter2 : unsigned(31 downto 0);
-  
-  --Media Interface
-  signal med_stat_op             : std_logic_vector (5*16-1  downto 0);
-  signal med_ctrl_op             : std_logic_vector (5*16-1  downto 0);
-  signal med_stat_debug          : std_logic_vector (5*64-1  downto 0);
-  signal med_ctrl_debug          : std_logic_vector (5*64-1  downto 0);
-  signal med_data_out            : std_logic_vector (5*16-1  downto 0);
-  signal med_packet_num_out      : std_logic_vector (5*3-1   downto 0);
-  signal med_dataready_out       : std_logic_vector (5*1-1   downto 0);
-  signal med_read_out            : std_logic_vector (5*1-1   downto 0);
-  signal med_data_in             : std_logic_vector (5*16-1  downto 0);
-  signal med_packet_num_in       : std_logic_vector (5*3-1   downto 0);
-  signal med_dataready_in        : std_logic_vector (5*1-1   downto 0);
-  signal med_read_in             : std_logic_vector (5*1-1   downto 0);
-  
-  --Hub
-  signal common_stat_regs        : std_logic_vector (std_COMSTATREG*32-1 downto 0);
-  signal common_ctrl_regs        : std_logic_vector (std_COMCTRLREG*32-1 downto 0);
-  signal my_address              : std_logic_vector (16-1 downto 0);
-  signal regio_addr_out          : std_logic_vector (16-1 downto 0);
-  signal regio_read_enable_out   : std_logic;
-  signal regio_write_enable_out  : std_logic;
-  signal regio_data_out          : std_logic_vector (32-1 downto 0);
-  signal regio_data_in           : std_logic_vector (32-1 downto 0);
-  signal regio_dataready_in      : std_logic;
-  signal regio_no_more_data_in   : std_logic;
-  signal regio_write_ack_in      : std_logic;
-  signal regio_unknown_addr_in   : std_logic;
-  signal regio_timeout_out       : std_logic;
-  
-  signal spictrl_read_en         : std_logic;
-  signal spictrl_write_en        : std_logic;
-  signal spictrl_data_in         : std_logic_vector(31 downto 0);
-  signal spictrl_addr            : std_logic;
-  signal spictrl_data_out        : std_logic_vector(31 downto 0);
-  signal spictrl_ack             : std_logic;
-  signal spictrl_busy            : std_logic;
-  signal spimem_read_en          : std_logic;
-  signal spimem_write_en         : std_logic;
-  signal spimem_data_in          : std_logic_vector(31 downto 0);
-  signal spimem_addr             : std_logic_vector(5 downto 0);
-  signal spimem_data_out         : std_logic_vector(31 downto 0);
-  signal spimem_ack              : std_logic;
+   attribute syn_keep : boolean;
+   attribute syn_preserve : boolean;
 
-  signal spi_bram_addr           : std_logic_vector(7 downto 0);
-  signal spi_bram_wr_d           : std_logic_vector(7 downto 0);
-  signal spi_bram_rd_d           : std_logic_vector(7 downto 0);
-  signal spi_bram_we             : std_logic;
+   signal clk_100_i   : std_logic; --clock for main logic, 100 MHz, via Clock Manager and internal PLL
+   signal clk_200_i   : std_logic; --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
+   signal pll_lock    : std_logic; --Internal PLL locked. E.g. used to reset all internal logic.
+   signal clear_i     : std_logic;
+   signal reset_i     : std_logic;
+   signal GSR_N       : std_logic;
+   attribute syn_keep of GSR_N : signal is true;
+   attribute syn_preserve of GSR_N : signal is true;
 
-  signal gbe_cts_number                   : std_logic_vector(15 downto 0);
-  signal gbe_cts_code                     : std_logic_vector(7 downto 0);
-  signal gbe_cts_information              : std_logic_vector(7 downto 0);
-  signal gbe_cts_start_readout            : std_logic;
-  signal gbe_cts_readout_type             : std_logic_vector(3 downto 0);
-  signal gbe_cts_readout_finished         : std_logic;
-  signal gbe_cts_status_bits              : std_logic_vector(31 downto 0);
-  signal gbe_fee_data                     : std_logic_vector(15 downto 0);
-  signal gbe_fee_dataready                : std_logic;
-  signal gbe_fee_read                     : std_logic;
-  signal gbe_fee_status_bits              : std_logic_vector(31 downto 0);
-  signal gbe_fee_busy                     : std_logic;
+   --FPGA Test
+   signal time_counter, time_counter2 : unsigned(31 downto 0);
 
-signal stage_stat_regs              : std_logic_vector (31 downto 0);
-signal stage_ctrl_regs              : std_logic_vector (31 downto 0);
+   --Media Interface
+   signal med_stat_op             : std_logic_vector (5*16-1  downto 0);
+   signal med_ctrl_op             : std_logic_vector (5*16-1  downto 0);
+   signal med_stat_debug          : std_logic_vector (5*64-1  downto 0);
+   signal med_ctrl_debug          : std_logic_vector (5*64-1  downto 0);
+   signal med_data_out            : std_logic_vector (5*16-1  downto 0);
+   signal med_packet_num_out      : std_logic_vector (5*3-1   downto 0);
+   signal med_dataready_out       : std_logic_vector (5*1-1   downto 0);
+   signal med_read_out            : std_logic_vector (5*1-1   downto 0);
+   signal med_data_in             : std_logic_vector (5*16-1  downto 0);
+   signal med_packet_num_in       : std_logic_vector (5*3-1   downto 0);
+   signal med_dataready_in        : std_logic_vector (5*1-1   downto 0);
+   signal med_read_in             : std_logic_vector (5*1-1   downto 0);
 
-signal mb_stat_reg_data_wr          : std_logic_vector(31 downto 0);
-signal mb_stat_reg_data_rd          : std_logic_vector(31 downto 0);
-signal mb_stat_reg_read             : std_logic;
-signal mb_stat_reg_write            : std_logic;
-signal mb_stat_reg_ack              : std_logic;
-signal mb_ip_mem_addr               : std_logic_vector(15 downto 0); -- only [7:0] in used
-signal mb_ip_mem_data_wr            : std_logic_vector(31 downto 0);
-signal mb_ip_mem_data_rd            : std_logic_vector(31 downto 0);
-signal mb_ip_mem_read               : std_logic;
-signal mb_ip_mem_write              : std_logic;
-signal mb_ip_mem_ack                : std_logic;
-signal ip_cfg_mem_clk				: std_logic;
-signal ip_cfg_mem_addr				: std_logic_vector(7 downto 0);
-signal ip_cfg_mem_data				: std_logic_vector(31 downto 0);
-signal ctrl_reg_addr                : std_logic_vector(15 downto 0);
-signal gbe_stp_reg_addr             : std_logic_vector(15 downto 0);
-signal gbe_stp_data                 : std_logic_vector(31 downto 0);
-signal gbe_stp_reg_ack              : std_logic;
-signal gbe_stp_reg_data_wr          : std_logic_vector(31 downto 0);
-signal gbe_stp_reg_read             : std_logic;
-signal gbe_stp_reg_write            : std_logic;
-signal gbe_stp_reg_data_rd          : std_logic_vector(31 downto 0);
+   --Hub
+   signal common_stat_regs        : std_logic_vector (std_COMSTATREG*32-1 downto 0);
+   signal common_ctrl_regs        : std_logic_vector (std_COMCTRLREG*32-1 downto 0);
+   signal my_address              : std_logic_vector (16-1 downto 0);
+   signal regio_addr_out          : std_logic_vector (16-1 downto 0);
+   signal regio_read_enable_out   : std_logic;
+   signal regio_write_enable_out  : std_logic;
+   signal regio_data_out          : std_logic_vector (32-1 downto 0);
+   signal regio_data_in           : std_logic_vector (32-1 downto 0);
+   signal regio_dataready_in      : std_logic;
+   signal regio_no_more_data_in   : std_logic;
+   signal regio_write_ack_in      : std_logic;
+   signal regio_unknown_addr_in   : std_logic;
+   signal regio_timeout_out       : std_logic;
 
-signal debug : std_logic_vector(63 downto 0);
+   signal spictrl_read_en         : std_logic;
+   signal spictrl_write_en        : std_logic;
+   signal spictrl_data_in         : std_logic_vector(31 downto 0);
+   signal spictrl_addr            : std_logic;
+   signal spictrl_data_out        : std_logic_vector(31 downto 0);
+   signal spictrl_ack             : std_logic;
+   signal spictrl_busy            : std_logic;
+   signal spimem_read_en          : std_logic;
+   signal spimem_write_en         : std_logic;
+   signal spimem_data_in          : std_logic_vector(31 downto 0);
+   signal spimem_addr             : std_logic_vector(5 downto 0);
+   signal spimem_data_out         : std_logic_vector(31 downto 0);
+   signal spimem_ack              : std_logic;
 
-signal next_reset, make_reset_via_network_q : std_logic;
-signal reset_counter : std_logic_vector(11 downto 0);
-signal link_ok : std_logic;
+   signal spi_bram_addr           : std_logic_vector(7 downto 0);
+   signal spi_bram_wr_d           : std_logic_vector(7 downto 0);
+   signal spi_bram_rd_d           : std_logic_vector(7 downto 0);
+   signal spi_bram_we             : std_logic;
 
-signal gsc_init_data, gsc_reply_data : std_logic_vector(15 downto 0);
-signal gsc_init_read, gsc_reply_read : std_logic;
-signal gsc_init_dataready, gsc_reply_dataready : std_logic;
-signal gsc_init_packet_num, gsc_reply_packet_num : std_logic_vector(2 downto 0);
-signal gsc_busy : std_logic;
-signal mc_unique_id  : std_logic_vector(63 downto 0);
-signal trb_reset_in  : std_logic;
-signal reset_via_gbe : std_logic;
-signal reset_via_gbe_delayed : std_logic_vector(2 downto 0);
-signal reset_i_temp  : std_logic;
+   signal gbe_cts_number                   : std_logic_vector(15 downto 0);
+   signal gbe_cts_code                     : std_logic_vector(7 downto 0);
+   signal gbe_cts_information              : std_logic_vector(7 downto 0);
+   signal gbe_cts_start_readout            : std_logic;
+   signal gbe_cts_readout_type             : std_logic_vector(3 downto 0);
+   signal gbe_cts_readout_finished         : std_logic;
+   signal gbe_cts_status_bits              : std_logic_vector(31 downto 0);
+   signal gbe_fee_data                     : std_logic_vector(15 downto 0);
+   signal gbe_fee_dataready                : std_logic;
+   signal gbe_fee_read                     : std_logic;
+   signal gbe_fee_status_bits              : std_logic_vector(31 downto 0);
+   signal gbe_fee_busy                     : std_logic;
 
-signal cts_rdo_trigger             : std_logic;
-signal cts_rdo_trg_data_valid      : std_logic;
-signal cts_rdo_valid_timing_trg    : std_logic;
-signal cts_rdo_valid_notiming_trg  : std_logic;
-signal cts_rdo_invalid_trg         : std_logic;
+   signal stage_stat_regs              : std_logic_vector (31 downto 0);
+   signal stage_ctrl_regs              : std_logic_vector (31 downto 0);
 
-signal cts_rdo_trg_status_bits     : std_logic_vector(31 downto 0);
-signal cts_rdo_data                : std_logic_vector(31 downto 0);
-signal cts_rdo_write               : std_logic;
-signal cts_rdo_finished            : std_logic;
+   signal mb_stat_reg_data_wr          : std_logic_vector(31 downto 0);
+   signal mb_stat_reg_data_rd          : std_logic_vector(31 downto 0);
+   signal mb_stat_reg_read             : std_logic;
+   signal mb_stat_reg_write            : std_logic;
+   signal mb_stat_reg_ack              : std_logic;
+   signal mb_ip_mem_addr               : std_logic_vector(15 downto 0); -- only [7:0] in used
+   signal mb_ip_mem_data_wr            : std_logic_vector(31 downto 0);
+   signal mb_ip_mem_data_rd            : std_logic_vector(31 downto 0);
+   signal mb_ip_mem_read               : std_logic;
+   signal mb_ip_mem_write              : std_logic;
+   signal mb_ip_mem_ack                : std_logic;
+   signal ip_cfg_mem_clk				: std_logic;
+   signal ip_cfg_mem_addr				: std_logic_vector(7 downto 0);
+   signal ip_cfg_mem_data				: std_logic_vector(31 downto 0);
+   signal ctrl_reg_addr                : std_logic_vector(15 downto 0);
+   signal gbe_stp_reg_addr             : std_logic_vector(15 downto 0);
+   signal gbe_stp_data                 : std_logic_vector(31 downto 0);
+   signal gbe_stp_reg_ack              : std_logic;
+   signal gbe_stp_reg_data_wr          : std_logic_vector(31 downto 0);
+   signal gbe_stp_reg_read             : std_logic;
+   signal gbe_stp_reg_write            : std_logic;
+   signal gbe_stp_reg_data_rd          : std_logic_vector(31 downto 0);
 
-signal cts_ext_trigger             : std_logic;
-signal cts_ext_status              : std_logic_vector(31 downto 0) := (others => '0');
-signal cts_ext_control             : std_logic_vector(31 downto 0);
+   signal debug : std_logic_vector(63 downto 0);
 
-signal cts_rdo_additional_data     : std_logic_vector(31 downto 0);
-signal cts_rdo_additional_write    : std_logic := '0';
-signal cts_rdo_additional_finished : std_logic := '1';
+   signal next_reset, make_reset_via_network_q : std_logic;
+   signal reset_counter : std_logic_vector(11 downto 0);
+   signal link_ok : std_logic;
 
-signal cts_trg_send                : std_logic;
-signal cts_trg_type                : std_logic_vector(3 downto 0);
-signal cts_trg_number              : std_logic_vector(15 downto 0);
-signal cts_trg_information         : std_logic_vector(23 downto 0);
-signal cts_trg_code                : std_logic_vector(7 downto 0);
-signal cts_trg_status_bits         : std_logic_vector(31 downto 0);
-signal cts_trg_busy                : std_logic;
+   signal gsc_init_data, gsc_reply_data : std_logic_vector(15 downto 0);
+   signal gsc_init_read, gsc_reply_read : std_logic;
+   signal gsc_init_dataready, gsc_reply_dataready : std_logic;
+   signal gsc_init_packet_num, gsc_reply_packet_num : std_logic_vector(2 downto 0);
+   signal gsc_busy : std_logic;
+   signal mc_unique_id  : std_logic_vector(63 downto 0);
+   signal trb_reset_in  : std_logic;
+   signal reset_via_gbe : std_logic;
+   signal reset_via_gbe_delayed : std_logic_vector(2 downto 0);
+   signal reset_i_temp  : std_logic;
 
-signal cts_ipu_send                : std_logic;
-signal cts_ipu_type                : std_logic_vector(3 downto 0);
-signal cts_ipu_number              : std_logic_vector(15 downto 0);
-signal cts_ipu_information         : std_logic_vector(7 downto 0);
-signal cts_ipu_code                : std_logic_vector(7 downto 0);
-signal cts_ipu_status_bits         : std_logic_vector(31 downto 0);
-signal cts_ipu_busy                : std_logic;
+   signal cts_rdo_trigger             : std_logic;
+   signal cts_rdo_trg_data_valid      : std_logic;
+   signal cts_rdo_valid_timing_trg    : std_logic;
+   signal cts_rdo_valid_notiming_trg  : std_logic;
+   signal cts_rdo_invalid_trg         : std_logic;
 
-signal cts_regio_addr              : std_logic_vector(15 downto 0);
-signal cts_regio_read              : std_logic;
-signal cts_regio_write             : std_logic;
-signal cts_regio_data_out          : std_logic_vector(31 downto 0);
-signal cts_regio_data_in           : std_logic_vector(31 downto 0);
-signal cts_regio_dataready         : std_logic;
-signal cts_regio_no_more_data      : std_logic;
-signal cts_regio_write_ack         : std_logic;
-signal cts_regio_unknown_addr      : std_logic;
+   signal cts_rdo_trg_status_bits,
+      cts_rdo_trg_status_bits_cts,
+      cts_rdo_trg_status_bits_additional: std_logic_vector(31 downto 0) := (others => '0');
+   signal cts_rdo_data                : std_logic_vector(31 downto 0);
+   signal cts_rdo_write               : std_logic;
+   signal cts_rdo_finished            : std_logic;
 
-signal cts_trigger_out             : std_logic;
-signal external_send_reset         : std_logic;
-signal timer_ticks                 : std_logic_vector(1 downto 0);
+   signal cts_ext_trigger             : std_logic;
+   signal cts_ext_status              : std_logic_vector(31 downto 0) := (others => '0');
+   signal cts_ext_control             : std_logic_vector(31 downto 0);
 
-signal trigger_busy_i          : std_logic;
-signal trigger_in_buf_i        : std_logic_vector(3 downto 0);
+   signal cts_rdo_additional_data     : std_logic_vector(31 downto 0);
+   signal cts_rdo_additional_write    : std_logic := '0';
+   signal cts_rdo_additional_finished : std_logic := '1';
+
+   signal cts_trg_send                : std_logic;
+   signal cts_trg_type                : std_logic_vector(3 downto 0);
+   signal cts_trg_number              : std_logic_vector(15 downto 0);
+   signal cts_trg_information         : std_logic_vector(23 downto 0);
+   signal cts_trg_code                : std_logic_vector(7 downto 0);
+   signal cts_trg_status_bits         : std_logic_vector(31 downto 0);
+   signal cts_trg_busy                : std_logic;
+
+   signal cts_ipu_send                : std_logic;
+   signal cts_ipu_type                : std_logic_vector(3 downto 0);
+   signal cts_ipu_number              : std_logic_vector(15 downto 0);
+   signal cts_ipu_information         : std_logic_vector(7 downto 0);
+   signal cts_ipu_code                : std_logic_vector(7 downto 0);
+   signal cts_ipu_status_bits         : std_logic_vector(31 downto 0);
+   signal cts_ipu_busy                : std_logic;
+
+   signal cts_regio_addr              : std_logic_vector(15 downto 0);
+   signal cts_regio_read              : std_logic;
+   signal cts_regio_write             : std_logic;
+   signal cts_regio_data_out          : std_logic_vector(31 downto 0);
+   signal cts_regio_data_in           : std_logic_vector(31 downto 0);
+   signal cts_regio_dataready         : std_logic;
+   signal cts_regio_no_more_data      : std_logic;
+   signal cts_regio_write_ack         : std_logic;
+   signal cts_regio_unknown_addr      : std_logic;
+
+   signal cts_trigger_out             : std_logic;
+   signal external_send_reset         : std_logic;
+   signal timer_ticks                 : std_logic_vector(1 downto 0);
+   
+   signal trigger_busy_i              : std_logic;
+   signal trigger_in_buf_i            : std_logic_vector(3 downto 0);
+
+   component mbs_vulom_recv is
+   port(
+      CLK        : in std_logic;  -- e.g. 100 MHz
+      RESET_IN   : in std_logic;  -- could be used after busy_release to make sure entity is in correct state
+
+      --Module inputs
+      MBS_IN     : in std_logic;  -- raw input
+      CLK_200    : in std_logic;  -- internal sampling clock
+      
+      --trigger outputs
+      TRG_ASYNC_OUT  : out std_logic;  -- asynchronous rising edge, length varying, here: approx. 110 ns
+      TRG_SYNC_OUT   : out std_logic;  -- sync. to CLK
+
+      --data output for read-out
+      TRIGGER_IN   : in  std_logic;
+      DATA_OUT     : out std_logic_vector(31 downto 0);
+      WRITE_OUT    : out std_logic;
+      STATUSBIT_OUT: out std_logic_vector(31 downto 0);
+      FINISHED_OUT : out std_logic;
+      
+      --Registers / Debug    
+      CONTROL_REG_IN : in  std_logic_vector(31 downto 0);
+      STATUS_REG_OUT : out std_logic_vector(31 downto 0);
+      DEBUG          : out std_logic_vector(31 downto 0)    
+      );
+   end component;
+
 begin
---  TRIGGER_BUSY_OUT <= trigger_busy_i;
+-- MBS Module
+   THE_CMB: mbs_vulom_recv
+   port map (
+      CLK => clk_100_i,
+      RESET_IN => reset_i,
+      
+      MBS_IN => CLK_EXT(3),
+      CLK_200 => clk_200_i,
+      
+      -- TRG_ASYNC_OUT => ,
+      TRG_SYNC_OUT => cts_ext_trigger,
+      
+      TRIGGER_IN     => cts_rdo_trg_data_valid,
+      DATA_OUT       => cts_rdo_additional_data,
+      WRITE_OUT      => cts_rdo_additional_write,
+      STATUSBIT_OUT  => cts_rdo_trg_status_bits_additional,
+      FINISHED_OUT   => cts_rdo_additional_finished,
+
+      CONTROL_REG_IN => cts_ext_control,
+      STATUS_REG_OUT => cts_ext_status
+      
+      -- DEBUG => ''
+   );
 
    trigger_in_buf_i(1 downto 0) <= CLK_EXT;
    trigger_in_buf_i(3 downto 2) <= TRIGGER_EXT(3 downto 2);
 
    THE_CTS: CTS 
    generic map (
---      EXTERNAL_TRIGGER_ID  => X"00", fill in trigger logic enumeration id of external trigger logic
+      EXTERNAL_TRIGGER_ID  => X"60", --, fill in trigger logic enumeration id of external trigger logic
       TRIGGER_INPUT_COUNT  => 4,
       TRIGGER_COIN_COUNT   => 4,
       TRIGGER_PULSER_COUNT => 4,
@@ -400,11 +452,13 @@ begin
       LVL1_VALID_NOTIMING_TRG_IN=> cts_rdo_valid_notiming_trg,
       LVL1_INVALID_TRG_IN       => cts_rdo_invalid_trg,
   
-      FEE_TRG_STATUSBITS_OUT  => cts_rdo_trg_status_bits,
+      FEE_TRG_STATUSBITS_OUT  => cts_rdo_trg_status_bits_cts,
       FEE_DATA_OUT            => cts_rdo_data,
       FEE_DATA_WRITE_OUT      => cts_rdo_write,
       FEE_DATA_FINISHED_OUT   => cts_rdo_finished
    );   
+   
+   cts_rdo_trg_status_bits <= cts_rdo_trg_status_bits_cts OR cts_rdo_trg_status_bits_additional;
    
 ---------------------------------------------------------------------------
 -- Reset Generation

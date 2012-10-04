@@ -4,6 +4,7 @@
    
 library work;
    use work.cts_pkg.all;
+   use work.trb_net_std.all;
    
 entity CTS_TRIGGER is
    generic (
@@ -59,7 +60,8 @@ architecture RTL of CTS_TRIGGER is
    signal channel_mask_i : std_logic_vector(15 downto 0);
    signal channel_edge_select_i : std_logic_vector(15 downto 0);
 
-   constant ITC_NUM_EXT     : integer := MIN(0, to_integer(unsigned(EXTERNAL_TRIGGER_ID)));
+   constant ITC_NUM_EXT_BUF : unsigned(0 downto 0) := (others => or_all(EXTERNAL_TRIGGER_ID));  -- oh, that's dirty, but dont know a better solution (but define a func)
+   constant ITC_NUM_EXT     : integer := to_integer( ITC_NUM_EXT_BUF )  ;
    
    constant ITC_BASE_EXT    : integer := 0; 
    constant ITC_BASE_PULSER : integer      := ITC_BASE_EXT         + ITC_NUM_EXT;
@@ -86,6 +88,8 @@ architecture RTL of CTS_TRIGGER is
    signal channel_edge_counters_i : channel_counters_t;
    
 -- Trigger Inputs (Spike Rejection, Negation, Override ...)
+   signal triggers_i : std_logic_vector(TRIGGERS_IN'RANGE);
+
    type trigger_input_configs_t is array(TRIGGER_INPUT_COUNT - 1 downto 0) of std_logic_vector(10 downto 0);
    signal trigger_input_configs_i : trigger_input_configs_t;
 
@@ -120,7 +124,15 @@ begin
 
    NUM_OF_ITC_USED_OUT <= STD_LOGIC_VECTOR(TO_UNSIGNED(ITC_NUM_USED, 5));
    EXT_CONTROL_OUT <= ext_control_i;
-   
+
+-- Modules   
+   proc_input_ffs: process(CLK_IN) is
+   begin
+      if rising_edge(CLK_IN) then
+         triggers_i <= TRIGGERS_IN;
+      end if;
+   end process;
+
    gen_ext_trigger: if EXTERNAL_TRIGGER_ID /= X"00" generate
       channels_i(ITC_BASE_EXT) <= EXT_TRIGGER_IN;
    end generate;
@@ -129,7 +141,7 @@ begin
       my_trigger_input: CTS_TRG_INPUT port map (
          CLK_IN => CLK_IN,
          RST_IN => RESET_IN,
-         DATA_IN => TRIGGERS_IN(i),
+         DATA_IN => triggers_i(i),
          DATA_OUT => trigger_inputs_i(i),
          CONFIG_IN => trigger_input_configs_i(i)
       );
@@ -177,6 +189,8 @@ begin
          end loop;
       end if;
    end process;
+
+-- Common   
    
    proc_output: process(CLK_IN) is
       variable channels_delay_v : std_logic_vector(15 downto 0) := (others => '1');
@@ -211,7 +225,7 @@ begin
    end process;
    
    proc_counter: process(CLK_IN) is
-      variable last_inputs_v : std_logic_vector(triggers_in'range);
+      variable last_inputs_v : std_logic_vector(triggers_i'range);
       variable last_itc_v : std_logic_vector(channels_i'range);
    
    begin
@@ -224,7 +238,7 @@ begin
          
          else
             for i in 0 to TRIGGER_INPUT_COUNT-1 loop
-               if TRIGGERS_IN(i) = '1' then
+               if triggers_i(i) = '1' then
                   trigger_input_counters_i(i) <= trigger_input_counters_i(i) + "1";
                   
                   if last_inputs_v(i) = '0' then
@@ -245,7 +259,7 @@ begin
             
          end if;
          
-         last_inputs_v := TRIGGERS_IN;
+         last_inputs_v := triggers_i;
          last_itc_v := channels_i;
       end if;
    end process;
@@ -462,7 +476,7 @@ begin
                      id   => 16#50#,
                      len  => TRIGGER_RAND_PULSER,
                      itc_base => ITC_BASE_RAND_PULSER,
-                     itc_num  => 1,
+                     itc_num  => TRIGGER_RAND_PULSER,
                      last => false
                   );
                end if;
