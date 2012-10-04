@@ -312,7 +312,7 @@ architecture trb3_central_arch of trb3_central is
 
    signal cts_rdo_additional_data     : std_logic_vector(31 downto 0);
    signal cts_rdo_additional_write    : std_logic := '0';
-   signal cts_rdo_additional_finished : std_logic := '1';
+   signal cts_rdo_additional_finished : std_logic := '0';
 
    signal cts_trg_send                : std_logic;
    signal cts_trg_type                : std_logic_vector(3 downto 0);
@@ -408,7 +408,7 @@ begin
       TRIGGER_INPUT_COUNT  => 4,
       TRIGGER_COIN_COUNT   => 4,
       TRIGGER_PULSER_COUNT => 4,
-      TRIGGER_RAND_PULSER  => 2
+      TRIGGER_RAND_PULSER  => 1
    )
    port map ( 
       CLK => clk_100_i,
@@ -458,7 +458,7 @@ begin
       FEE_DATA_FINISHED_OUT   => cts_rdo_finished
    );   
    
-   cts_rdo_trg_status_bits <= cts_rdo_trg_status_bits_cts OR cts_rdo_trg_status_bits_additional;
+--    cts_rdo_trg_status_bits <= cts_rdo_trg_status_bits_cts OR cts_rdo_trg_status_bits_additional;
    
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -711,15 +711,16 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
     RDO_VALID_NOTIMING_TRG_OUT     => cts_rdo_valid_notiming_trg,
     RDO_INVALID_TRG_OUT            => cts_rdo_invalid_trg,
     --Data out
-    RDO_TRG_STATUSBITS_IN          => cts_rdo_trg_status_bits,
+    RDO_TRG_STATUSBITS_IN          => cts_rdo_trg_status_bits_cts,
     RDO_DATA_IN                    => cts_rdo_data,
     RDO_DATA_WRITE_IN              => cts_rdo_write,
     RDO_DATA_FINISHED_IN           => cts_rdo_finished,
     
+    RDO_ADDITIONAL_STATUSBITS_IN   => cts_rdo_trg_status_bits_additional,
     RDO_ADDITIONAL_DATA            => cts_rdo_additional_data,
     RDO_ADDITIONAL_WRITE           => cts_rdo_additional_write,
     RDO_ADDITIONAL_FINISHED        => cts_rdo_additional_finished,
-    	  
+    
 	  COMMON_STAT_REGS        => common_stat_regs, --open,
 	  COMMON_CTRL_REGS        => common_ctrl_regs, --open,
 	  ONEWIRE                 => TEMPSENS,
