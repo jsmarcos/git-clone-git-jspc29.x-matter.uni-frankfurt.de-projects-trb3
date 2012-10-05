@@ -26,9 +26,17 @@ library work;
 --            0   TD_FSM_IDLE
 --            1   TD_FSM_SEND_TRIGGER
 --            2   TD_FSM_WAIT_FEE_RECV_TRIGGER
---            3   TD_FSM_FEE_COMPLETE
---            4   TD_FSM_WAIT_TRIGGER_BECOME_IDLE
---            5   TD_FSM_DEBUG_LIMIT_REACHED
+--            3   TD_FSM_FEE_ENQUEUE_INPUT_COUNTER 
+--            4   TD_FSM_FEE_ENQUEUE_CHANNEL_COUNTER
+--            5   TD_FSM_FEE_ENQUEUE_IDLE_COUNTER
+--            6   TD_FSM_FEE_ENQUEUE_DEAD_COUNTER
+--            7   TD_FSM_FEE_ENQUEUE_TRIGGER_ASSERTED_COUNTER
+--            8   TD_FSM_FEE_ENQUEUE_TRIGGER_EDGES_COUNTER 
+--            9   TD_FSM_FEE_ENQUEUE_TRIGGER_ACCEPTED_COUNTER 
+--           10   TD_FSM_FEE_ENQUEUE_TIMESTAMP
+--           11   TD_FSM_FEE_COMPLETE
+--           12   TD_FSM_WAIT_TRIGGER_BECOME_IDLE
+--           13   TD_FSM_DEBUG_LIMIT_REACHED
 --
 --
 --    0x06        RO FSM State (Readout Handling). One-Hot-Encoding:
