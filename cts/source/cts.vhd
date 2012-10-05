@@ -30,6 +30,7 @@ library work;
 --            4   TD_FSM_WAIT_TRIGGER_BECOME_IDLE
 --            5   TD_FSM_DEBUG_LIMIT_REACHED
 --
+--
 --    0x06        RO FSM State (Readout Handling). One-Hot-Encoding:
 --            0   RO_FSM_IDLE
 --            1   RO_FSM_SEND_REQUEST
@@ -51,6 +52,7 @@ library work;
 --            1   Channel Counters
 --            2   Statistics: Idle- and Dead-Time counter
 --            3   Statistics: Trigger asserted, -edges, -accepted
+--            4   Timestamp
 --
 --    0x0a        Statistics: Dead time of last trigger
 --                   (in clock cycles: 0xffffffff if n/a)
@@ -68,10 +70,14 @@ library work;
 --       Bit   Description
 -- <reg_table name="cts_data_header" >
 --    15 : 0      ITC bitmask (state of all channels when trigger was accepted)
---    19 : 16     Number of Input Counter included (divided by two, as each input has two counters)
---    24 : 20     Number of Channel Counters included (divided by two, as each channel has two counters)
+--    19 : 16     Number of Input included (two counters per input:
+--                   lower word: num of clocks with input asserted. 
+--                   upper word: num of rising edges.
+--                   both counters overflow indepently)
+--    24 : 20     Number of Channels included (same format as above)
 --      25        Include last idle, dead time counters
---      26        Include Counter "Trigger asserted "Trigger Edges", "Triggers Accepted"
+--      26        Include Counters "Trigger asserted", "Trigger Edges", "Triggers Accepted"
+--      27        Timestamp (1 word)
 -- </reg_table>
 
 entity CTS is
@@ -203,6 +209,7 @@ architecture RTL of CTS is
          TD_FSM_FEE_ENQUEUE_TRIGGER_ASSERTED_COUNTER,
          TD_FSM_FEE_ENQUEUE_TRIGGER_EDGES_COUNTER,
          TD_FSM_FEE_ENQUEUE_TRIGGER_ACCEPTED_COUNTER,
+         TD_FSM_FEE_ENQUEUE_TIMESTAMP,
          TD_FSM_FEE_COMPLETE,
          TD_FSM_WAIT_TRIGGER_BECOME_IDLE,
          TD_FSM_DEBUG_LIMIT_REACHED
@@ -213,19 +220,20 @@ architecture RTL of CTS is
    
    type td_fsm_encode_t is array(td_fsm_t) of std_logic_vector(31 downto 0);
    constant TD_FSM_ENCODE : td_fsm_encode_t := (
-         TD_FSM_IDLE                                  => X"00000001",
+         TD_FSM_IDLE                                  => X"00000001", 
          TD_FSM_SEND_TRIGGER                          => X"00000002",
          TD_FSM_WAIT_FEE_RECV_TRIGGER                 => X"00000004",
-         TD_FSM_FEE_ENQUEUE_INPUT_COUNTER             => X"00000040",
-         TD_FSM_FEE_ENQUEUE_CHANNEL_COUNTER           => X"00000080",
-         TD_FSM_FEE_COMPLETE                          => X"00000008",
-         TD_FSM_WAIT_TRIGGER_BECOME_IDLE              => X"00000010",
-         TD_FSM_DEBUG_LIMIT_REACHED                   => X"00000020",
-         TD_FSM_FEE_ENQUEUE_IDLE_COUNTER              => X"00000040",
-         TD_FSM_FEE_ENQUEUE_DEAD_COUNTER              => X"00000080",
-         TD_FSM_FEE_ENQUEUE_TRIGGER_ASSERTED_COUNTER  => X"00000100",
-         TD_FSM_FEE_ENQUEUE_TRIGGER_EDGES_COUNTER     => X"00000200",
-         TD_FSM_FEE_ENQUEUE_TRIGGER_ACCEPTED_COUNTER  => X"00000400"
+         TD_FSM_FEE_ENQUEUE_INPUT_COUNTER             => X"00000008",
+         TD_FSM_FEE_ENQUEUE_CHANNEL_COUNTER           => X"00000010",
+         TD_FSM_FEE_ENQUEUE_IDLE_COUNTER              => X"00000020",
+         TD_FSM_FEE_ENQUEUE_DEAD_COUNTER              => X"00000040",
+         TD_FSM_FEE_ENQUEUE_TRIGGER_ASSERTED_COUNTER  => X"00000080",
+         TD_FSM_FEE_ENQUEUE_TRIGGER_EDGES_COUNTER     => X"00000100",
+         TD_FSM_FEE_ENQUEUE_TRIGGER_ACCEPTED_COUNTER  => X"00000200",
+         TD_FSM_FEE_ENQUEUE_TIMESTAMP                 => X"00000400",
+         TD_FSM_FEE_COMPLETE                          => X"00000800",
+         TD_FSM_WAIT_TRIGGER_BECOME_IDLE              => X"00001000",
+         TD_FSM_DEBUG_LIMIT_REACHED                   => X"00002000"
    );
    
 -- Read-Out
@@ -276,7 +284,9 @@ architecture RTL of CTS is
    signal cts_regio_read_enable_in_i, cts_regio_write_enable_in_i,
           cts_regio_timeout_in_i, cts_regio_dataready_out_i, 
           cts_regio_write_ack_out_i, cts_regio_no_more_data_out_i,
-          cts_regio_unknown_addr_out_i : std_logic := '0';      
+          cts_regio_unknown_addr_out_i : std_logic := '0';
+          
+   signal timestamp_i : unsigned(31 downto 0) := (others => '0');
    
 begin
 -- Trigger Distribution
@@ -446,7 +456,7 @@ begin
                   if ro_configuration_buf_i(3) = '1' then
                      td_fsm_i <= TD_FSM_FEE_ENQUEUE_TRIGGER_EDGES_COUNTER;
                   else
-                     td_fsm_i <= TD_FSM_FEE_COMPLETE;
+                     td_fsm_i <= TD_FSM_FEE_ENQUEUE_TIMESTAMP;
                   end if;
                   
                when TD_FSM_FEE_ENQUEUE_TRIGGER_EDGES_COUNTER =>
@@ -457,6 +467,11 @@ begin
                when TD_FSM_FEE_ENQUEUE_TRIGGER_ACCEPTED_COUNTER =>                     
                   FEE_DATA_OUT <= stat_trigger_accepted_buf_i;
                   FEE_DATA_WRITE_OUT <= '1';
+                  td_fsm_i     <= TD_FSM_FEE_ENQUEUE_TIMESTAMP;
+                  
+               when TD_FSM_FEE_ENQUEUE_TIMESTAMP =>
+                  FEE_DATA_OUT <= STD_LOGIC_VECTOR(timestamp_i);
+                  FEE_DATA_WRITE_OUT <= ro_configuration_i(4);
                   td_fsm_i     <= TD_FSM_FEE_COMPLETE;
                      
                when TD_FSM_FEE_COMPLETE =>
@@ -830,6 +845,13 @@ begin
             clk_1khz_i <= '0';
          end if;
       end if;
+   end process;
+   
+-- Timestamp
+   process is
+   begin
+      wait until rising_edge(CLK);
+      timestamp_i <= timestamp_i + "1";
    end process;
    
 -- Bus Handler

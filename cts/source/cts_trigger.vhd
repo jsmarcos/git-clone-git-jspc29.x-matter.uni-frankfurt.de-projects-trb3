@@ -69,7 +69,7 @@ architecture RTL of CTS_TRIGGER is
    constant ITC_BASE_INPUTS : integer      := ITC_BASE_RAND_PULSER + TRIGGER_RAND_PULSER;
    constant ITC_BASE_COINS  : integer      := ITC_BASE_INPUTS      + TRIGGER_INPUT_COUNT;
 
-   constant ITC_NUM_USED    : integer := ITC_BASE_EXT + ITC_NUM_EXT;
+   constant ITC_NUM_USED    : integer := ITC_BASE_COINS + TRIGGER_COIN_COUNT;
 
    alias trigger_inputs_i : std_logic_vector(TRIGGER_INPUT_COUNT - 1 downto 0) 
       is channels_i(ITC_BASE_INPUTS + TRIGGER_INPUT_COUNT - 1 downto ITC_BASE_INPUTS);
