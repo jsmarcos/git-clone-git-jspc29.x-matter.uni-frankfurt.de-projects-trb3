@@ -104,25 +104,33 @@ PROC_FSM: process begin
   case state is
     when IDLE =>
       bitcnt <= 37;
-      if reg_MBS_IN = '1' then
+      if reg_MBS_IN = '0' then
         done  <= '0';
         state <= WAIT1;
       end if;
+      
     when WAIT1 =>
       state <= WAIT2;
+      
     when WAIT2 =>
       bitcnt <= bitcnt - 1;
       shift_reg <= shift_reg(shift_reg'high - 1 downto 0) & reg_MBS_IN;
       state <= WAIT3;
+      
     when WAIT3 =>
       if bitcnt = 0 then
         state <= FINISH;
+      else
+        state <= WAIT4;
       end if;
-      state <= WAIT4;
+      
     when WAIT4 =>
       state <= WAIT1;
+      
     when FINISH =>
-      state <= IDLE;
+      if reg_MBS_IN = '1' then
+        state <= IDLE;
+      end if;
       done <= '1';
   end case;
   if RESET_IN = '1' then
@@ -137,7 +145,6 @@ PROC_REG_INFO : process begin
     number_reg <= shift_reg(31 downto 8);
     status_reg <= shift_reg(7 downto 6);
 
-    
     if shift_reg(36 downto 32) = "01010" and shift_reg(4 downto 0) = "10101" and xor_all(shift_reg(31 downto 5)) = '0' then
       error_reg <= '0';
     else
@@ -146,8 +153,6 @@ PROC_REG_INFO : process begin
   end if;
 end process;
 
-STATUS_REG_OUT(23 downto 0) <= number_reg;
-STATUS_REG_OUT(24) <= error_reg;
 
 PROC_RDO : process begin
   wait until rising_edge(CLK);
@@ -158,7 +163,7 @@ PROC_RDO : process begin
     when RDO_IDLE =>
       if TRIGGER_IN = '1' and config_rdo_disable_i = '0' then
         rdostate <= RDO_FINISH;
-        DATA_OUT <= error_reg & status_reg & "10000" & number_reg;
+        DATA_OUT <= error_reg & status_reg & "00000" & number_reg;
         WRITE_OUT <= '1';
       end if;
     when RDO_FINISH =>
@@ -167,12 +172,9 @@ PROC_RDO : process begin
   end case;
 end process;
 
-<<<<<<< mbs_vulom_recv.vhd
 config_rdo_disable_i <= CONTROL_REG_IN(0);
 
-=======
-STATUS_REG_OUT <= error_reg & '0' & std_logic_vector(to_unsigned(bitcnt,6)) & number_reg;
+STATUS_REG_OUT <= error_reg & reg_MBS_IN & std_logic_vector(to_unsigned(bitcnt,6)) & number_reg;
+DEBUG <= x"0000" & done & reg_MBS_IN & shift_reg(13 downto 0);
 
-
->>>>>>> 1.4
 end architecture;
