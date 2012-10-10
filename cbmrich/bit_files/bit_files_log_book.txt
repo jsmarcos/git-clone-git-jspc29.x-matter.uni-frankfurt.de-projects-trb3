@@ -27,3 +27,6 @@ cbmrich_20120813.bit	65 channels. Channel 28, spi_dac and a debug signal in
 
 cbrich_20120903.bit	65 channels without any timing problems. Also some
 			bugs are fixed with the coarse counter.
+
+cbmrich_20121009.bit	4 channels test design with the new epoch counter and
+			scaler counter.
