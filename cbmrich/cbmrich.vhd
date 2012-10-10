@@ -326,7 +326,7 @@ begin
       SD_REFCLK_P_IN     => open,
       SD_REFCLK_N_IN     => open,
       SD_PRSNT_N_IN      => SFP_MOD(0),
-      SD_LOS_IN          => '0',
+      SD_LOS_IN          => SFP_LOS,
       SD_TXDIS_OUT       => SFP_TXDIS,
       -- Status and control port
       STAT_OP            => med_stat_op,
