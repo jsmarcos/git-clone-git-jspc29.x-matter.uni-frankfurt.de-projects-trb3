@@ -13,10 +13,13 @@ entity Gray_Decoder is
     WIDTH : integer := 12);             -- Register Width
 
   port (
-    -- Inputs
-    GRAY_IN  : in  std_logic_vector(WIDTH - 1 downto 0);
+    CLK_IN     : in std_logic;
+    RESET_IN   : in std_logic;
+    
+    -- Input
+    GRAY_IN    : in  std_logic_vector(WIDTH - 1 downto 0);
 
-    -- OUTPUTS
+    -- OUTPUT
     BINARY_OUT : out std_logic_vector(WIDTH - 1 downto 0)
     );
 
@@ -29,28 +32,23 @@ architecture Gray_Decoder of Gray_Decoder is
 
 begin  -- Gray_Decoder
 
-  -- purpose: decode input
-  -- type   : combinational
-  -- inputs : GRAY_IN
-  -- outputs: binary_o
-  PROC_DECODER: process (GRAY_IN)
+  PROC_DECODER: process (CLK_IN)
   begin
-    binary_o(WIDTH - 1) <= GRAY_IN(WIDTH - 1);
+    if( rising_edge(CLK_IN) ) then
+      if( RESET_IN = '1' ) then
+        binary_o <= (others => '0');
+      else
+        binary_o(WIDTH - 1) <= GRAY_IN(WIDTH - 1);
     
-    for I in (WIDTH - 2) to 0 loop
-      binary_o(I) <= binary_o(I + 1) xor GRAY_IN(I);
-    end loop;
+        for I in (WIDTH - 2) to 0 loop
+          binary_o(I) <= binary_o(I + 1) xor GRAY_IN(I);
+        end loop;
+      end if;
+    end if;
     
   end process PROC_DECODER;
 
-  -- purpose: drive output ports
-  -- type   : combinational
-  -- inputs : binary_o
-  -- outputs: BINARY_OUT
-  PROC_OUT: process (binary_o)
-  begin
-    BINARY_OUT <= binary_o;
+  -- Output
+  BINARY_OUT <= binary_o;
     
-  end process PROC_OUT;
-
 end Gray_Decoder;

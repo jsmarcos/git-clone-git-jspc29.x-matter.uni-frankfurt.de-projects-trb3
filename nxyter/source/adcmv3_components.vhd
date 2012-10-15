@@ -12,30 +12,6 @@ package adcmv3_components is
 -------------------------------------------------------------------------------
 -- TRBNet interfaces
 -------------------------------------------------------------------------------
-component slave_bus
-  port (
-    CLK_IN                 : in  std_logic;
-    RESET_IN               : in  std_logic;
-    REGIO_ADDR_IN          : in  std_logic_vector(15 downto 0);
-    REGIO_DATA_IN          : in  std_logic_vector(31 downto 0);
-    REGIO_DATA_OUT         : out std_logic_vector(31 downto 0);
-    REGIO_READ_ENABLE_IN   : in  std_logic;
-    REGIO_WRITE_ENABLE_IN  : in  std_logic;
-    REGIO_TIMEOUT_IN       : in  std_logic;
-    REGIO_DATAREADY_OUT    : out std_logic;
-    REGIO_WRITE_ACK_OUT    : out std_logic;
-    REGIO_NO_MORE_DATA_OUT : out std_logic;
-    REGIO_UNKNOWN_ADDR_OUT : out std_logic;
-    SDA_IN                 : in  std_logic;
-    SDA_OUT                : out std_logic;
-    SCL_IN                 : in  std_logic;
-    SCL_OUT                : out std_logic;
-    SPI_CS_OUT             : out std_logic;
-    SPI_SCK_OUT            : out std_logic;
-    SPI_SDI_IN             : in  std_logic;
-    SPI_SDO_OUT            : out std_logic);
-end component slave_bus;
-
 
 component slv_register
   generic (
@@ -55,7 +31,6 @@ component slv_register
     STAT         : out std_logic_vector(31 downto 0));
 end component slv_register;
 
-
 component slv_ped_thr_mem
   port (
     CLK_IN       : in  std_logic;
@@ -66,27 +41,29 @@ component slv_ped_thr_mem
     SLV_ACK_OUT  : out std_logic;
     SLV_DATA_IN  : in  std_logic_vector(31 downto 0);
     SLV_DATA_OUT : out std_logic_vector(31 downto 0);
-    BACKPLANE_IN : in  std_logic_vector(2 downto 0);
     MEM_CLK_IN   : in  std_logic;
     MEM_ADDR_IN  : in  std_logic_vector(6 downto 0);
     MEM_0_D_OUT  : out std_logic_vector(17 downto 0);
-    MEM_1_D_OUT  : out std_logic_vector(17 downto 0);
-    MEM_2_D_OUT  : out std_logic_vector(17 downto 0);
-    MEM_3_D_OUT  : out std_logic_vector(17 downto 0);
-    MEM_4_D_OUT  : out std_logic_vector(17 downto 0);
-    MEM_5_D_OUT  : out std_logic_vector(17 downto 0);
-    MEM_6_D_OUT  : out std_logic_vector(17 downto 0);
-    MEM_7_D_OUT  : out std_logic_vector(17 downto 0);
-    MEM_8_D_OUT  : out std_logic_vector(17 downto 0);
-    MEM_9_D_OUT  : out std_logic_vector(17 downto 0);
-    MEM_10_D_OUT : out std_logic_vector(17 downto 0);
-    MEM_11_D_OUT : out std_logic_vector(17 downto 0);
-    MEM_12_D_OUT : out std_logic_vector(17 downto 0);
-    MEM_13_D_OUT : out std_logic_vector(17 downto 0);
-    MEM_14_D_OUT : out std_logic_vector(17 downto 0);
-    MEM_15_D_OUT : out std_logic_vector(17 downto 0);
     STAT         : out std_logic_vector(31 downto 0));
-end component slv_ped_thr_mem;
+end component;
+
+component ped_thr_true
+  port (
+    DataInA  : in  std_logic_vector(17 downto 0);
+    DataInB  : in  std_logic_vector(17 downto 0);
+    AddressA : in  std_logic_vector(6 downto 0);
+    AddressB : in  std_logic_vector(6 downto 0);
+    ClockA   : in  std_logic;
+    ClockB   : in  std_logic;
+    ClockEnA : in  std_logic;
+    ClockEnB : in  std_logic;
+    WrA      : in  std_logic;
+    WrB      : in  std_logic;
+    ResetA   : in  std_logic;
+    ResetB   : in  std_logic;
+    QA       : out std_logic_vector(17 downto 0);
+    QB       : out std_logic_vector(17 downto 0));
+end component;
 
 -------------------------------------------------------------------------------
 -- I2C INterfaces
