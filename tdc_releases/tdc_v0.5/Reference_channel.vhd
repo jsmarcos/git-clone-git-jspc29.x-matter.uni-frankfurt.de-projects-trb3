@@ -15,23 +15,23 @@ entity Reference_Channel is
   generic (
     CHANNEL_ID : integer range 0 to 0);
   port (
-    RESET_200            : in  std_logic;
-    RESET_100            : in  std_logic;
-    CLK_200              : in  std_logic;
-    CLK_100              : in  std_logic;
+    RESET_200              : in  std_logic;
+    RESET_100              : in  std_logic;
+    CLK_200                : in  std_logic;
+    CLK_100                : in  std_logic;
 --
-    HIT_IN               : in  std_logic;
-    READ_EN_IN           : in  std_logic;
-    VALID_TMG_TRG_IN     : in  std_logic;
-    SPIKE_DETECTED_IN    : in  std_logic;
-    MULTI_TMG_TRG_IN     : in  std_logic;
-    FIFO_DATA_OUT        : out std_logic_vector(31 downto 0);
-    FIFO_EMPTY_OUT       : out std_logic;
-    FIFO_FULL_OUT        : out std_logic;
-    FIFO_ALMOST_FULL_OUT : out std_logic;
-    COARSE_COUNTER_IN    : in  std_logic_vector(10 downto 0);
-    TRIGGER_TIME_OUT     : out std_logic_vector(10 downto 0);  -- coarse time of the timing trigger
-    REF_DEBUG_OUT        : out std_logic_vector(31 downto 0)
+    HIT_IN                 : in  std_logic;
+    READ_EN_IN             : in  std_logic;
+    VALID_TMG_TRG_IN       : in  std_logic;
+    SPIKE_DETECTED_IN      : in  std_logic;
+    MULTI_TMG_TRG_IN       : in  std_logic;
+    FIFO_DATA_OUT          : out std_logic_vector(31 downto 0);
+    FIFO_EMPTY_OUT         : out std_logic;
+    FIFO_FULL_OUT          : out std_logic;
+    FIFO_ALMOST_FULL_OUT   : out std_logic;
+    COARSE_COUNTER_IN      : in  std_logic_vector(10 downto 0);
+    TRIGGER_TIME_STAMP_OUT : out std_logic_vector(10 downto 0);  -- coarse time of the timing trigger
+    REF_DEBUG_OUT          : out std_logic_vector(31 downto 0)
     );
 
 end Reference_Channel;
@@ -133,9 +133,9 @@ begin
       end if;
     end if;
   end process Start_Encoder;
-  encoder_start_i    <= hit_detect_reg;
-  hit_time_stamp_reg <= hit_time_stamp_i when rising_edge(CLK_200);
-  TRIGGER_TIME_OUT   <= hit_time_stamp_reg;  -- coarse time of the timing trigger
+  encoder_start_i        <= hit_detect_reg;
+  hit_time_stamp_reg     <= hit_time_stamp_i when rising_edge(CLK_200);
+  TRIGGER_TIME_STAMP_OUT <= hit_time_stamp_reg;  -- coarse time of the timing trigger
 
   --purpose: Encoder
   Encoder : Encoder_304_Bit

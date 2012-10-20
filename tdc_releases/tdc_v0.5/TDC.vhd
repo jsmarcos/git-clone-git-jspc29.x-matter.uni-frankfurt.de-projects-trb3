@@ -12,11 +12,6 @@ use work.trb_net_components.all;
 use work.trb3_components.all;
 use work.version.all;
 
--- synopsys translate_off
--- library ecp2m;
--- use ecp2m.components.all;
--- synopsys translate_on
-
 entity TDC is
   generic (
     CHANNEL_NUMBER : integer range 2 to 65;
@@ -52,6 +47,14 @@ entity TDC is
     DATA_OUT              : out std_logic_vector(31 downto 0);
     DATA_WRITE_OUT        : out std_logic;
     DATA_FINISHED_OUT     : out std_logic;
+--
+    --ToBusHandler
+    HCB_READ_EN_IN        : in  std_logic;
+    HCB_WRITE_EN_IN       : in  std_logic;
+    HCB_ADDR_IN           : in  std_logic_vector(6 downto 0);
+    HCB_DATA_OUT          : out std_logic_vector(31 downto 0);
+    HCB_DATAREADY_OUT     : out std_logic;
+    HCB_UNKNOWN_ADDR_OUT  : out std_logic;
 --
     TDC_DEBUG             : out std_logic_vector(32*2**STATUS_REG_NR-1 downto 0);
     LOGIC_ANALYSER_OUT    : out std_logic_vector(15 downto 0);
@@ -175,6 +178,8 @@ architecture TDC of TDC is
   signal wrong_readout_number         : std_logic_vector(23 downto 0);
   signal spike_number                 : std_logic_vector(23 downto 0);
   signal spike_detected_pulse         : std_logic;
+  signal timeout_number               : std_logic_vector(23 downto 0);
+  signal timeout_detected_pulse       : std_logic;
   signal idle_i                       : std_logic;
   signal idle_fsm                     : std_logic;
   signal idle_time                    : std_logic_vector(23 downto 0);
@@ -186,10 +191,12 @@ architecture TDC of TDC is
   signal wait_time                    : std_logic_vector(23 downto 0);
   signal empty_channels               : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
   signal total_empty_channel          : std_logic_vector(23 downto 0);
-  signal channel_lost_hit_number      : statistics_array_24;
-  signal channel_hit_detect_number    : statistics_array_24;
-  signal channel_encoder_start_number : statistics_array_24;
-  signal channel_fifo_wr_number       : statistics_array_24;
+  signal channel_lost_hit_number      : std_logic_vector_array_24(0 to CHANNEL_NUMBER-1);
+  signal channel_hit_detect_number    : std_logic_vector_array_24(0 to CHANNEL_NUMBER-1);
+  signal channel_encoder_start_number : std_logic_vector_array_24(0 to CHANNEL_NUMBER-1);
+  signal channel_fifo_wr_number       : std_logic_vector_array_24(0 to CHANNEL_NUMBER-1);
+  signal channel_level_hit_number_i   : std_logic_vector_array_32(0 to CHANNEL_NUMBER-1);
+  
   signal stop_status_i                : std_logic;
 
 -- Test signals
@@ -237,22 +244,22 @@ begin
     generic map (
       CHANNEL_ID => 0)
     port map (
-      RESET_200            => reset_tdc(0),
-      RESET_100            => RESET,
-      CLK_200              => CLK_TDC,
-      CLK_100              => CLK_READOUT,
-      HIT_IN               => REFERENCE_TIME,
-      READ_EN_IN           => rd_en_i(0),
-      VALID_TMG_TRG_IN     => VALID_TIMING_TRG_IN,
-      SPIKE_DETECTED_IN    => SPIKE_DETECTED_IN,
-      MULTI_TMG_TRG_IN     => MULTI_TMG_TRG_IN,
-      FIFO_DATA_OUT        => channel_data_i(0),
-      FIFO_EMPTY_OUT       => channel_empty_i(0),
-      FIFO_FULL_OUT        => channel_full_i(0),
-      FIFO_ALMOST_FULL_OUT => channel_almost_full_i(0),
-      COARSE_COUNTER_IN    => coarse_cnt_reg,
-      TRIGGER_TIME_OUT     => trigger_time_i,
-      REF_DEBUG_OUT        => ref_debug_i);
+      RESET_200              => reset_tdc(0),
+      RESET_100              => RESET,
+      CLK_200                => CLK_TDC,
+      CLK_100                => CLK_READOUT,
+      HIT_IN                 => REFERENCE_TIME,
+      READ_EN_IN             => rd_en_i(0),
+      VALID_TMG_TRG_IN       => VALID_TIMING_TRG_IN,
+      SPIKE_DETECTED_IN      => SPIKE_DETECTED_IN,
+      MULTI_TMG_TRG_IN       => MULTI_TMG_TRG_IN,
+      FIFO_DATA_OUT          => channel_data_i(0),
+      FIFO_EMPTY_OUT         => channel_empty_i(0),
+      FIFO_FULL_OUT          => channel_full_i(0),
+      FIFO_ALMOST_FULL_OUT   => channel_almost_full_i(0),
+      COARSE_COUNTER_IN      => coarse_cnt_reg,
+      TRIGGER_TIME_STAMP_OUT => trigger_time_i,
+      REF_DEBUG_OUT          => ref_debug_i);
 
   -- Channel enable signals
   GEN_Channel_Enable : for i in 1 to CHANNEL_NUMBER-1 generate
@@ -293,7 +300,26 @@ begin
       RESET     => reset_coarse_cnt,
       COUNT_OUT => coarse_cnt,
       UP_IN     => '1');
-  coarse_cnt_reg  <= coarse_cnt     when rising_edge(CLK_TDC);
+  coarse_cnt_reg <= coarse_cnt when rising_edge(CLK_TDC);
+
+  -- Bus handler for the hit counter signals
+  TheHitCounterBus : BusHandler
+    generic map (
+      CHANNEL_NUMBER => CHANNEL_NUMBER-1)
+    port map (
+      RESET            => RESET,
+      CLK              => CLK_READOUT,
+      DATA_IN          => channel_level_hit_number_i,
+      READ_EN_IN       => HCB_READ_EN_IN,
+      WRITE_EN_IN      => HCB_WRITE_EN_IN,
+      ADDR_IN          => HCB_ADDR_IN,
+      DATA_OUT         => HCB_DATA_OUT,
+      DATAREADY_OUT    => HCB_DATAREADY_OUT,
+      UNKNOWN_ADDR_OUT => HCB_UNKNOWN_ADDR_OUT);
+
+  GenHitCounterLevelSignals: for i in 1 to CHANNEL_NUMBER-1 generate
+    channel_level_hit_number_i(i) <= hit_in_i(i) & "0000000" & channel_hit_detect_number(i);
+  end generate GenHitCounterLevelSignals;
 
   -- Trigger mode control register synchronised to the coarse counter clk
   Readout_trigger_mode_sync : bit_sync
@@ -572,8 +598,10 @@ begin
             when 8  => data_out_reg <= "010" & "01000" & spike_number;
             when 9  => data_out_reg <= "010" & "01001" & idle_time;
             when 10 => data_out_reg <= "010" & "01010" & wait_time;
-                       stop_status_i <= '1';
             when 11 => data_out_reg <= "010" & "01011" & total_empty_channel;
+            when 12 => data_out_reg <= "010" & "01100" & readout_time;
+                       stop_status_i <= '1';
+            when 13 => data_out_reg <= "010" & "01101" & timeout_number;
                        i := -1;
             when others => null;
           end case;
@@ -776,7 +804,7 @@ begin
         if TRG_DATA_VALID_IN = '1' then
           FSM_NEXT <= WAIT_FOR_LVL1_TRG_B;
         elsif TMGTRG_TIMEOUT_IN = '1' then
-          FSM_NEXT <= IDLE;
+          FSM_NEXT <= SEND_TRG_RELEASE_A;  --IDLE;
         else
           FSM_NEXT <= WAIT_FOR_LVL1_TRG_A;
         end if;
@@ -888,6 +916,13 @@ begin
       signal_in => SPIKE_DETECTED_IN,
       pulse     => spike_detected_pulse);
 
+  edge_to_pulse_7 : edge_to_pulse
+    port map (
+      clock     => CLK_READOUT,
+      en_clk    => '1',
+      signal_in => TMGTRG_TIMEOUT_IN,
+      pulse     => timeout_detected_pulse);
+
   -- purpose: Internal trigger number counter (only valid triggers)
   Statistics_Trigger_Number : process (CLK_READOUT, RESET)
   begin
@@ -995,6 +1030,18 @@ begin
       end if;
     end if;
   end process Statistics_Spike_Number;
+
+  -- purpose: Internal timeout number counter
+  Statistics_Timeout_Number : process (CLK_READOUT, RESET)
+  begin
+    if rising_edge(CLK_READOUT) then
+      if RESET = '1' then
+        timeout_number <= (others => '0');
+      elsif timeout_detected_pulse = '1' then
+        timeout_number <= timeout_number + 1;
+      end if;
+    end if;
+  end process Statistics_Timeout_Number;
 
   -- purpose: IDLE time of the TDC readout
   Statistics_Idle_Time : process (CLK_READOUT, RESET)
@@ -1136,8 +1183,8 @@ begin
 -- Register 0x8f
   TDC_DEBUG(15*32+23 downto 15*32+0) <= release_number;
 
-  --Register 0x90
-  -- TDC_DEBUG(16*32+23 downto 16*32+0) <= channel_lost_hit_number(1);
+-- Register 0x90
+  TDC_DEBUG(16*32+23 downto 16*32+0) <= timeout_number;
 
   --Register 0x91
   -- TDC_DEBUG(17*32+23 downto 17*32+0) <= channel_hit_detect_number(1);
