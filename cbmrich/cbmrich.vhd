@@ -13,54 +13,54 @@ use work.version.all;
 entity cbmrich is
   port(
     --Clocks
-    CLK_GPLL_LEFT  : in std_logic;  --Clock Manager 6
+    CLK_GPLL_LEFT  : in std_logic;      --Clock Manager 6
     CLK_GPLL_RIGHT : in std_logic;  --Clock Manager 4  <-- MAIN CLOCK for FPGA
-    CLK_PCLK_LEFT  : in std_logic;  --Clock Manager 3
-    CLK_PCLK_RIGHT : in std_logic;  --Clock Manager 1
+    CLK_PCLK_LEFT  : in std_logic;      --Clock Manager 3
+    CLK_PCLK_RIGHT : in std_logic;      --Clock Manager 1
     --CLK_PCLK_RIGHT is the only clock with external termination !?
-    CLK_EXTERNAL   : in std_logic;  --Clock Manager 9
+    CLK_EXTERNAL   : in std_logic;      --Clock Manager 9
 
-    
+
 --     --Trigger
 --     TRIGGER_LEFT  : in std_logic;       --left side trigger input from fan-out
 --     TRIGGER_RIGHT : in std_logic;       --right side trigger input from fan-out
 
     --Serdes
-    CLK_SERDES_INT_RIGHT : in  std_logic;  --Clock Manager 0, not used
-    SERDES_TX        : out std_logic_vector(1 downto 0);
-    SERDES_RX        : in  std_logic_vector(1 downto 0);
-    SFP_TXDIS        : out std_logic;
-    SFP_MOD          : inout std_logic_vector(2 downto 0);
-    SFP_LOS          : in  std_logic;
+    CLK_SERDES_INT_RIGHT : in    std_logic;  --Clock Manager 0, not used
+    SERDES_TX            : out   std_logic_vector(1 downto 0);
+    SERDES_RX            : in    std_logic_vector(1 downto 0);
+    SFP_TXDIS            : out   std_logic;
+    SFP_MOD              : inout std_logic_vector(2 downto 0);
+    SFP_LOS              : in    std_logic;
 
     --Connections
-    SPARE_LINE : inout std_logic_vector( 2 downto 0);  --LVDS, ext. termination, 1 used for trigger
-    LVDS       : inout std_logic_vector( 2 downto 1);    
+    SPARE_LINE : inout std_logic_vector(2 downto 0);  --LVDS, ext. termination, 1 used for trigger
+    LVDS       : inout std_logic_vector(2 downto 1);
     INPUT      : in    std_logic_vector(64 downto 1);
 
     --Flash ROM & Reboot
-    FLASH_CLK  : out   std_logic;
-    FLASH_CS   : out   std_logic;
-    FLASH_DIN  : out   std_logic;
-    FLASH_DOUT : in    std_logic;
-    PROGRAMN   : out   std_logic;                     --reboot FPGA
+    FLASH_CLK  : out std_logic;
+    FLASH_CS   : out std_logic;
+    FLASH_DIN  : out std_logic;
+    FLASH_DOUT : in  std_logic;
+    PROGRAMN   : out std_logic;         --reboot FPGA
 
     --DAC
-    DAC_SDO    : in    std_logic;
-    DAC_SDI    : out   std_logic;
-    DAC_SCK    : out   std_logic;
-    DAC_CS     : out   std_logic;
+    DAC_SDO       : in    std_logic;
+    DAC_SDI       : out   std_logic;
+    DAC_SCK       : out   std_logic;
+    DAC_CS        : out   std_logic;
     --Misc
-    TEMPSENS      : inout std_logic;       --Temperature Sensor
+    TEMPSENS      : inout std_logic;    --Temperature Sensor
     LED_GREEN     : out   std_logic;
     LED_ORANGE    : out   std_logic;
     LED_RED       : out   std_logic;
     LED_YELLOW    : out   std_logic;
-    LED_CLK_GREEN : out std_logic;
-    LED_CLK_RED   : out std_logic;
+    LED_CLK_GREEN : out   std_logic;
+    LED_CLK_RED   : out   std_logic;
     LED_SFP_GREEN : out   std_logic;
     LED_SFP_RED   : out   std_logic;
-    
+
     CLK_MNGR_USER : inout std_logic_vector(3 downto 0);
 
     --Test Connectors
@@ -130,22 +130,22 @@ architecture cbmrich_arch of cbmrich is
   signal med_read_in        : std_logic;
 
   --LVL1 channel
-  signal timing_trg_received_i : std_logic;
-  signal trg_data_valid_i      : std_logic;
-  signal trg_timing_valid_i    : std_logic;
-  signal trg_notiming_valid_i  : std_logic;
-  signal trg_invalid_i         : std_logic;
-  signal trg_type_i            : std_logic_vector(3 downto 0);
-  signal trg_number_i          : std_logic_vector(15 downto 0);
-  signal trg_code_i            : std_logic_vector(7 downto 0);
-  signal trg_information_i     : std_logic_vector(23 downto 0);
-  signal trg_int_number_i      : std_logic_vector(15 downto 0);
-  signal trg_multiple_trg_i    : std_logic;
-  signal trg_timeout_detected_i: std_logic;
-  signal trg_spurious_trg_i    : std_logic;
-  signal trg_missing_tmg_trg_i : std_logic;
-  signal trg_spike_detected_i  : std_logic;
-  
+  signal timing_trg_received_i  : std_logic;
+  signal trg_data_valid_i       : std_logic;
+  signal trg_timing_valid_i     : std_logic;
+  signal trg_notiming_valid_i   : std_logic;
+  signal trg_invalid_i          : std_logic;
+  signal trg_type_i             : std_logic_vector(3 downto 0);
+  signal trg_number_i           : std_logic_vector(15 downto 0);
+  signal trg_code_i             : std_logic_vector(7 downto 0);
+  signal trg_information_i      : std_logic_vector(23 downto 0);
+  signal trg_int_number_i       : std_logic_vector(15 downto 0);
+  signal trg_multiple_trg_i     : std_logic;
+  signal trg_timeout_detected_i : std_logic;
+  signal trg_spurious_trg_i     : std_logic;
+  signal trg_missing_tmg_trg_i  : std_logic;
+  signal trg_spike_detected_i   : std_logic;
+
   --Data channel
   signal fee_trg_release_i    : std_logic;
   signal fee_trg_statusbits_i : std_logic_vector(31 downto 0);
@@ -198,14 +198,22 @@ architecture cbmrich_arch of cbmrich is
   signal spimem_data_out  : std_logic_vector(31 downto 0);
   signal spimem_ack       : std_logic;
 
-  signal dac_read_en   : std_logic;
-  signal dac_write_en  : std_logic;
-  signal dac_data_in   : std_logic_vector(31 downto 0);
-  signal dac_addr      : std_logic_vector(4 downto 0);
-  signal dac_data_out  : std_logic_vector(31 downto 0);
-  signal dac_ack       : std_logic;
-  signal dac_busy      : std_logic;
-  
+  signal dac_read_en  : std_logic;
+  signal dac_write_en : std_logic;
+  signal dac_data_in  : std_logic_vector(31 downto 0);
+  signal dac_addr     : std_logic_vector(4 downto 0);
+  signal dac_data_out : std_logic_vector(31 downto 0);
+  signal dac_ack      : std_logic;
+  signal dac_busy     : std_logic;
+
+  signal hitreg_read_en    : std_logic;
+  signal hitreg_write_en   : std_logic;
+  signal hitreg_data_in    : std_logic_vector(31 downto 0);
+  signal hitreg_addr       : std_logic_vector(6 downto 0);
+  signal hitreg_data_out   : std_logic_vector(31 downto 0);
+  signal hitreg_data_ready : std_logic;
+  signal hitreg_invalid    : std_logic;
+
   signal spi_bram_addr : std_logic_vector(7 downto 0);
   signal spi_bram_wr_d : std_logic_vector(7 downto 0);
   signal spi_bram_rd_d : std_logic_vector(7 downto 0);
@@ -218,42 +226,6 @@ architecture cbmrich_arch of cbmrich is
   --TDC
   signal hit_in_i : std_logic_vector(64 downto 1);
 
-  --TDC component
-  component TDC
-    generic (
-      CHANNEL_NUMBER : integer range 1 to 65;
-      STATUS_REG_NR  : integer range 0 to 6;
-      CONTROL_REG_NR : integer range 0 to 6);
-    port (
-      RESET                 : in  std_logic;
-      CLK_TDC               : in  std_logic;
-      CLK_READOUT           : in  std_logic;
-      REFERENCE_TIME        : in  std_logic;
-      HIT_IN                : in  std_logic_vector(CHANNEL_NUMBER-1 downto 1);
-      TRG_WIN_PRE           : in  std_logic_vector(10 downto 0);
-      TRG_WIN_POST          : in  std_logic_vector(10 downto 0);
-      TRG_DATA_VALID_IN     : in  std_logic;
-      VALID_TIMING_TRG_IN   : in  std_logic;
-      VALID_NOTIMING_TRG_IN : in  std_logic;
-      INVALID_TRG_IN        : in  std_logic;
-      TMGTRG_TIMEOUT_IN     : in  std_logic;
-      SPIKE_DETECTED_IN     : in  std_logic;
-      MULTI_TMG_TRG_IN      : in  std_logic;
-      SPURIOUS_TRG_IN       : in  std_logic;
-      TRG_NUMBER_IN         : in  std_logic_vector(15 downto 0);
-      TRG_CODE_IN           : in  std_logic_vector(7 downto 0);
-      TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0);
-      TRG_TYPE_IN           : in  std_logic_vector(3 downto 0);
-      TRG_RELEASE_OUT       : out std_logic;
-      TRG_STATUSBIT_OUT     : out std_logic_vector(31 downto 0);
-      DATA_OUT              : out std_logic_vector(31 downto 0);
-      DATA_WRITE_OUT        : out std_logic;
-      DATA_FINISHED_OUT     : out std_logic;
-      TDC_DEBUG             : out std_logic_vector(32*2**STATUS_REG_NR-1 downto 0);
-      LOGIC_ANALYSER_OUT    : out std_logic_vector(15 downto 0);
-      CONTROL_REG_IN        : in  std_logic_vector(32*2**CONTROL_REG_NR-1 downto 0));
-  end component;
-  
 begin
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -353,7 +325,7 @@ begin
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
       DATA_INTERFACE_NUMBER     => 1,
-      DATA_BUFFER_DEPTH         => 13,         --13
+      DATA_BUFFER_DEPTH         => 13,  --13
       DATA_BUFFER_WIDTH         => 32,
       DATA_BUFFER_FULL_THRESH   => 2**13-800,
       TRG_RELEASE_AFTER_DATA    => c_YES,
@@ -390,12 +362,12 @@ begin
       LVL1_INT_TRG_NUMBER_OUT  => trg_int_number_i,
 
       --Information about trigger handler errors
-      TRG_MULTIPLE_TRG_OUT         => trg_multiple_trg_i,
-      TRG_TIMEOUT_DETECTED_OUT     => trg_timeout_detected_i,
-      TRG_SPURIOUS_TRG_OUT         => trg_spurious_trg_i,
-      TRG_MISSING_TMG_TRG_OUT      => trg_missing_tmg_trg_i,
-      TRG_SPIKE_DETECTED_OUT       => trg_spike_detected_i,
-      
+      TRG_MULTIPLE_TRG_OUT     => trg_multiple_trg_i,
+      TRG_TIMEOUT_DETECTED_OUT => trg_timeout_detected_i,
+      TRG_SPURIOUS_TRG_OUT     => trg_spurious_trg_i,
+      TRG_MISSING_TMG_TRG_OUT  => trg_missing_tmg_trg_i,
+      TRG_SPIKE_DETECTED_OUT   => trg_spike_detected_i,
+
       --Response from FEE
       FEE_TRG_RELEASE_IN(0)       => fee_trg_release_i,
       FEE_TRG_STATUSBITS_IN       => fee_trg_statusbits_i,
@@ -405,15 +377,15 @@ begin
       FEE_DATA_ALMOST_FULL_OUT(0) => fee_almost_full_i,
 
       -- Slow Control Data Port
-      REGIO_COMMON_STAT_REG_IN           => common_stat_reg,  --0x00
-      REGIO_COMMON_CTRL_REG_OUT          => common_ctrl_reg,  --0x20
-      REGIO_COMMON_STAT_STROBE_OUT       => common_stat_reg_strobe,
-      REGIO_COMMON_CTRL_STROBE_OUT       => common_ctrl_reg_strobe,
-      REGIO_STAT_REG_IN                  => stat_reg,         --start 0x80
-      REGIO_CTRL_REG_OUT                 => ctrl_reg,         --start 0xc0
-      REGIO_STAT_STROBE_OUT              => stat_reg_strobe,
-      REGIO_CTRL_STROBE_OUT              => ctrl_reg_strobe,
-      REGIO_VAR_ENDPOINT_ID              => (others => '0'),
+      REGIO_COMMON_STAT_REG_IN     => common_stat_reg,  --0x00
+      REGIO_COMMON_CTRL_REG_OUT    => common_ctrl_reg,  --0x20
+      REGIO_COMMON_STAT_STROBE_OUT => common_stat_reg_strobe,
+      REGIO_COMMON_CTRL_STROBE_OUT => common_ctrl_reg_strobe,
+      REGIO_STAT_REG_IN            => stat_reg,         --start 0x80
+      REGIO_CTRL_REG_OUT           => ctrl_reg,         --start 0xc0
+      REGIO_STAT_STROBE_OUT        => stat_reg_strobe,
+      REGIO_CTRL_STROBE_OUT        => ctrl_reg_strobe,
+      REGIO_VAR_ENDPOINT_ID        => (others => '0'),
 
       BUS_ADDR_OUT         => regio_addr_out,
       BUS_READ_ENABLE_OUT  => regio_read_enable_out,
@@ -449,16 +421,16 @@ begin
 ---------------------------------------------------------------------------
 -- I/O
 ---------------------------------------------------------------------------
-timing_trg_received_i <= SPARE_LINE(0);
+  timing_trg_received_i <= SPARE_LINE(0);
 
 ---------------------------------------------------------------------------
 -- Bus Handler
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 3,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, others => 0)
+      PORT_NUMBER    => 4,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -511,6 +483,19 @@ timing_trg_received_i <= SPARE_LINE(0);
       BUS_WRITE_ACK_IN(2)                 => dac_ack,
       BUS_NO_MORE_DATA_IN(2)              => dac_busy,
       BUS_UNKNOWN_ADDR_IN(2)              => '0',
+      --HitRegisters
+      BUS_READ_ENABLE_OUT(3)              => hitreg_read_en,
+      BUS_WRITE_ENABLE_OUT(3)             => hitreg_write_en,
+      BUS_DATA_OUT(3*32+31 downto 3*32)   => open,
+      BUS_ADDR_OUT(3*16+6 downto 3*16)    => hitreg_addr,
+      BUS_ADDR_OUT(3*16+15 downto 3*16+7) => open,
+      BUS_TIMEOUT_OUT(3)                  => open,
+      BUS_DATA_IN(3*32+31 downto 3*32)    => hitreg_data_out,
+      BUS_DATAREADY_IN(3)                 => hitreg_data_ready,
+      BUS_WRITE_ACK_IN(3)                 => '0',
+      BUS_NO_MORE_DATA_IN(3)              => '0',
+      BUS_UNKNOWN_ADDR_IN(3)              => hitreg_invalid,
+
       STAT_DEBUG => open
       );
 
@@ -586,7 +571,7 @@ timing_trg_received_i <= SPARE_LINE(0);
       SPI_SDO_OUT   => DAC_SDI,
       SPI_SCK_OUT   => DAC_SCK
       );
-      
+
 ---------------------------------------------------------------------------
 -- Reboot FPGA
 ---------------------------------------------------------------------------
@@ -603,20 +588,22 @@ timing_trg_received_i <= SPARE_LINE(0);
 ---------------------------------------------------------------------------
 -- LED
 ---------------------------------------------------------------------------
-  LED_GREEN  <= not time_counter(24);
-  LED_ORANGE <= not time_counter(25);
-  LED_RED    <= not time_counter(26);
-  LED_YELLOW <= not time_counter(27);
-  LED_SFP_GREEN  <= not med_stat_op(9);
-  LED_SFP_RED    <= not (med_stat_op(10) or med_stat_op(11));
+  LED_GREEN     <= not time_counter(24);
+  LED_ORANGE    <= not time_counter(25);
+  LED_RED       <= not time_counter(26);
+  LED_YELLOW    <= not time_counter(27);
+  LED_SFP_GREEN <= not med_stat_op(9);
+  LED_SFP_RED   <= not (med_stat_op(10) or med_stat_op(11));
 
 ---------------------------------------------------------------------------
 -- Test Connector
 ---------------------------------------------------------------------------    
---  TEST_LINE(15 downto 0) <= (others => '0');
+  TEST_LINE(15 downto 1) <= INPUT(15 downto 1);
+  TEST_LINE(0)           <= SPARE_LINE(0);
 
 
-  LVDS <= INPUT(2 downto 1);
+  LVDS(1) <= or_all(INPUT);
+  LVDS(2) <= SPARE_LINE(0);
 
 ---------------------------------------------------------------------------
 -- Test Circuits
@@ -630,52 +617,60 @@ timing_trg_received_i <= SPARE_LINE(0);
 -------------------------------------------------------------------------------
 -- TDC
 -------------------------------------------------------------------------------
-    THE_TDC : TDC
+  THE_TDC : TDC
     generic map (
       CHANNEL_NUMBER => 65,             -- Number of TDC channels
       STATUS_REG_NR  => REGIO_NUM_STAT_REGS,
       CONTROL_REG_NR => REGIO_NUM_CTRL_REGS)
     port map (
       RESET                 => reset_i,
-      CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
-      CLK_READOUT           => clk_100_i,   -- Clock for the readout
-      REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
+      CLK_TDC               => CLK_PCLK_LEFT,          -- Clock used for the time measurement
+      CLK_READOUT           => clk_100_i,              -- Clock for the readout
+      REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
       HIT_IN                => hit_in_i(64 downto 1),  -- Channel start signals
-      TRG_WIN_PRE           => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
-      TRG_WIN_POST          => ctrl_reg(58 downto 48),  -- Post-Trigger window width
+      TRG_WIN_PRE           => ctrl_reg(42 downto 32), -- Pre-Trigger window width
+      TRG_WIN_POST          => ctrl_reg(58 downto 48), -- Post-Trigger window width
       --
       -- Trigger signals from handler
-      TRG_DATA_VALID_IN     => trg_data_valid_i,  -- trig data valid signal from trbnet
-      VALID_TIMING_TRG_IN   => trg_timing_valid_i,  -- valid timing trigger signal from trbnet
-      VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,  -- valid notiming signal from trbnet
-      INVALID_TRG_IN        => trg_invalid_i,  -- invalid trigger signal from trbnet
-      TMGTRG_TIMEOUT_IN     => trg_timeout_detected_i,  -- timing trigger timeout signal from trbnet
+      TRG_DATA_VALID_IN     => trg_data_valid_i,       -- trig data valid signal from trbnet
+      VALID_TIMING_TRG_IN   => trg_timing_valid_i,     -- valid timing trigger signal from trbnet
+      VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,   -- valid notiming signal from trbnet
+      INVALID_TRG_IN        => trg_invalid_i,          -- invalid trigger signal from trbnet
+      TMGTRG_TIMEOUT_IN     => trg_timeout_detected_i, -- timing trigger timeout signal from trbnet
       SPIKE_DETECTED_IN     => trg_spike_detected_i,
       MULTI_TMG_TRG_IN      => trg_multiple_trg_i,
       SPURIOUS_TRG_IN       => trg_spurious_trg_i,
       --
-      TRG_NUMBER_IN         => trg_number_i,  -- LVL1 trigger information package
-      TRG_CODE_IN           => trg_code_i,  --
-      TRG_INFORMATION_IN    => trg_information_i,   --
-      TRG_TYPE_IN           => trg_type_i,  -- LVL1 trigger information package
+      TRG_NUMBER_IN         => trg_number_i,      -- LVL1 trigger information package
+      TRG_CODE_IN           => trg_code_i,        --
+      TRG_INFORMATION_IN    => trg_information_i, --
+      TRG_TYPE_IN           => trg_type_i,        -- LVL1 trigger information package
       --
       --Response to handler
       TRG_RELEASE_OUT       => fee_trg_release_i,   -- trigger release signal
-      TRG_STATUSBIT_OUT     => fee_trg_statusbits_i,  -- status information of the tdc
-      DATA_OUT              => fee_data_i,  -- tdc data
-      DATA_WRITE_OUT        => fee_data_write_i,  -- data valid signal
-      DATA_FINISHED_OUT     => fee_data_finished_i,  -- readout finished signal
+      TRG_STATUSBIT_OUT     => fee_trg_statusbits_i,-- status information of the tdc
+      DATA_OUT              => fee_data_i,          -- tdc data
+      DATA_WRITE_OUT        => fee_data_write_i,    -- data valid signal
+      DATA_FINISHED_OUT     => fee_data_finished_i, -- readout finished signal
+      --
+      --Hit Counter Bus
+      HCB_READ_EN_IN        => hitreg_read_en,    -- bus read en strobe
+      HCB_WRITE_EN_IN       => hitreg_write_en,   -- bus write en strobe
+      HCB_ADDR_IN           => hitreg_addr,       -- bus address
+      HCB_DATA_OUT          => hitreg_data_out,   -- bus data
+      HCB_DATAREADY_OUT     => hitreg_data_ready, -- bus data ready strobe
+      HCB_UNKNOWN_ADDR_OUT  => hitreg_invalid,    -- bus invalid addr
       --
       TDC_DEBUG             => stat_reg,
-      LOGIC_ANALYSER_OUT    => TEST_LINE,
+      LOGIC_ANALYSER_OUT    => open, --TEST_LINE,
       CONTROL_REG_IN        => ctrl_reg);
 
 
-  hit_in_i  <= INPUT;
-  
+  hit_in_i <= INPUT;
+
   -- to detect rising & falling edges
   --hit_in_i(1) <= not timing_trg_received_i;
-  
+
   --Gen_Hit_In_Signals : for i in 1 to 15 generate
   --  hit_in_i(i*2)   <= INPUT(i-1);
   --  hit_in_i(i*2+1) <= not INPUT(i-1);
