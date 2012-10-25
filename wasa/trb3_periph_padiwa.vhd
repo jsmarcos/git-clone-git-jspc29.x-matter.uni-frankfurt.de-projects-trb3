@@ -194,6 +194,14 @@ architecture trb3_periph_padiwa_arch of trb3_periph_padiwa is
   signal dac_data_out  : std_logic_vector(31 downto 0);
   signal dac_ack       : std_logic;
   signal dac_busy      : std_logic;
+
+  signal hitreg_read_en    : std_logic;
+  signal hitreg_write_en   : std_logic;
+  signal hitreg_data_in    : std_logic_vector(31 downto 0);
+  signal hitreg_addr       : std_logic_vector(6 downto 0);
+  signal hitreg_data_out   : std_logic_vector(31 downto 0);
+  signal hitreg_data_ready : std_logic;
+  signal hitreg_invalid    : std_logic;
   
   signal spi_bram_addr : std_logic_vector(7 downto 0);
   signal spi_bram_wr_d : std_logic_vector(7 downto 0);
@@ -208,42 +216,6 @@ architecture trb3_periph_padiwa_arch of trb3_periph_padiwa is
   --TDC
   signal hit_in_i : std_logic_vector(63 downto 0);
 
-  --TDC component
-  component TDC
-    generic (
-      CHANNEL_NUMBER : integer range 1 to 65;
-      STATUS_REG_NR  : integer range 0 to 6;
-      CONTROL_REG_NR : integer range 0 to 6);
-    port (
-      RESET                 : in  std_logic;
-      CLK_TDC               : in  std_logic;
-      CLK_READOUT           : in  std_logic;
-      REFERENCE_TIME        : in  std_logic;
-      HIT_IN                : in  std_logic_vector(CHANNEL_NUMBER-1 downto 1);
-      TRG_WIN_PRE           : in  std_logic_vector(10 downto 0);
-      TRG_WIN_POST          : in  std_logic_vector(10 downto 0);
-      TRG_DATA_VALID_IN     : in  std_logic;
-      VALID_TIMING_TRG_IN   : in  std_logic;
-      VALID_NOTIMING_TRG_IN : in  std_logic;
-      INVALID_TRG_IN        : in  std_logic;
-      TMGTRG_TIMEOUT_IN     : in  std_logic;
-      SPIKE_DETECTED_IN     : in  std_logic;
-      MULTI_TMG_TRG_IN      : in  std_logic;
-      SPURIOUS_TRG_IN       : in  std_logic;
-      TRG_NUMBER_IN         : in  std_logic_vector(15 downto 0);
-      TRG_CODE_IN           : in  std_logic_vector(7 downto 0);
-      TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0);
-      TRG_TYPE_IN           : in  std_logic_vector(3 downto 0);
-      TRG_RELEASE_OUT       : out std_logic;
-      TRG_STATUSBIT_OUT     : out std_logic_vector(31 downto 0);
-      DATA_OUT              : out std_logic_vector(31 downto 0);
-      DATA_WRITE_OUT        : out std_logic;
-      DATA_FINISHED_OUT     : out std_logic;
-      TDC_DEBUG             : out std_logic_vector(32*2**STATUS_REG_NR-1 downto 0);
-      LOGIC_ANALYSER_OUT    : out std_logic_vector(15 downto 0);
-      CONTROL_REG_IN        : in  std_logic_vector(32*2**CONTROL_REG_NR-1 downto 0));
-  end component;
-  
 begin
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -337,7 +309,7 @@ begin
       REGIO_NUM_CTRL_REGS       => REGIO_NUM_CTRL_REGS,  --3,    --8 cotrol reg
       ADDRESS_MASK              => x"FFFF",
       BROADCAST_BITMASK         => x"FF",
-      BROADCAST_SPECIAL_ADDR    => x"45",
+      BROADCAST_SPECIAL_ADDR    => x"48",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
       REGIO_HARDWARE_VERSION    => x"91004060",
       REGIO_INIT_ADDRESS        => x"f306",
@@ -450,9 +422,9 @@ timing_trg_received_i <= TRIGGER_LEFT;
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 3,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, others => 0)
+      PORT_NUMBER    => 4,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => X"c000", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -505,6 +477,20 @@ timing_trg_received_i <= TRIGGER_LEFT;
       BUS_WRITE_ACK_IN(2)                 => dac_ack,
       BUS_NO_MORE_DATA_IN(2)              => dac_busy,
       BUS_UNKNOWN_ADDR_IN(2)              => '0',
+
+      --HitRegisters
+      BUS_READ_ENABLE_OUT(3)              => hitreg_read_en,
+      BUS_WRITE_ENABLE_OUT(3)             => hitreg_write_en,
+      BUS_DATA_OUT(3*32+31 downto 3*32)   => open,
+      BUS_ADDR_OUT(3*16+6 downto 3*16)    => hitreg_addr,
+      BUS_ADDR_OUT(3*16+15 downto 3*16+7) => open,
+      BUS_TIMEOUT_OUT(3)                  => open,
+      BUS_DATA_IN(3*32+31 downto 3*32)    => hitreg_data_out,
+      BUS_DATAREADY_IN(3)                 => hitreg_data_ready,
+      BUS_WRITE_ACK_IN(3)                 => '0',
+      BUS_NO_MORE_DATA_IN(3)              => '0',
+      BUS_UNKNOWN_ADDR_IN(3)              => hitreg_invalid,
+      
       STAT_DEBUG => open
       );
 
@@ -654,6 +640,14 @@ padiwa_sdi <= or_all(IN_SDI and not padiwa_cs(3 downto 0));
       DATA_OUT              => fee_data_i,  -- tdc data
       DATA_WRITE_OUT        => fee_data_write_i,  -- data valid signal
       DATA_FINISHED_OUT     => fee_data_finished_i,  -- readout finished signal
+      --
+      --Hit Counter Bus
+      HCB_READ_EN_IN        => hitreg_read_en,    -- bus read en strobe
+      HCB_WRITE_EN_IN       => hitreg_write_en,   -- bus write en strobe
+      HCB_ADDR_IN           => hitreg_addr,       -- bus address
+      HCB_DATA_OUT          => hitreg_data_out,   -- bus data
+      HCB_DATAREADY_OUT     => hitreg_data_ready, -- bus data ready strobe
+      HCB_UNKNOWN_ADDR_OUT  => hitreg_invalid,    -- bus invalid addr
       --
       TDC_DEBUG             => stat_reg,
       LOGIC_ANALYSER_OUT    => TEST_LINE,
