@@ -1,23 +1,23 @@
 library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.STD_LOGIC_ARITH.ALL;
-use IEEE.STD_LOGIC_UNSIGNED.ALL;
+use IEEE.STD_LOGIC_1164.all;
+use IEEE.STD_LOGIC_ARITH.all;
+use IEEE.STD_LOGIC_UNSIGNED.all;
 
 entity up_counter is
 
   generic (
-    NUMBER_OF_BITS :     positive);
+    NUMBER_OF_BITS : positive);
   port (
-    CLK            : in  std_logic;
-    RESET          : in  std_logic;
-    COUNT_OUT      : out std_logic_vector(NUMBER_OF_BITS-1 downto 0);
-    UP_IN          : in  std_logic);
+    CLK       : in  std_logic;
+    RESET     : in  std_logic;
+    COUNT_OUT : out std_logic_vector(NUMBER_OF_BITS-1 downto 0);
+    UP_IN     : in  std_logic);
 
 end up_counter;
 
 architecture up_counter of up_counter is
 
-signal counter: std_logic_vector (NUMBER_OF_BITS-1 downto 0);
+  signal counter : std_logic_vector (NUMBER_OF_BITS-1 downto 0);
 
 begin
 

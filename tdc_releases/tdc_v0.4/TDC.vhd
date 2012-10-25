@@ -192,6 +192,13 @@ architecture TDC of TDC is
   signal ref_debug_i     : std_logic_vector(31 downto 0);
   type   channel_debug_array is array (1 to CHANNEL_NUMBER-1) of std_logic_vector(31 downto 0);
   signal channel_debug_i : channel_debug_array;
+
+  --attribute syn_preserve              : boolean;
+  --attribute syn_preserve of reset_tdc : signal is true;
+  --attribute syn_keep                  : boolean;
+  --attribute syn_keep of reset_tdc     : signal is true;
+  --attribute syn_maxfan                : integer;
+  --attribute syn_maxfan of reset_tdc   : signal is 100;
 -------------------------------------------------------------------------------
   
 begin
@@ -252,10 +259,10 @@ begin
       generic map (
         CHANNEL_ID => i)
       port map (
-        RESET_WR             => reset_tdc,
-        RESET_RD             => RESET,
-        CLK_WR               => CLK_TDC,
-        CLK_RD               => CLK_READOUT,
+        RESET_200            => reset_tdc,
+        RESET_100            => RESET,
+        CLK_200              => CLK_TDC,
+        CLK_100              => CLK_READOUT,
         HIT_IN               => hit_in_i(i),
         READ_EN_IN           => rd_en_i(i),
         FIFO_DATA_OUT        => channel_data_i(i),
@@ -542,7 +549,7 @@ begin
             when 10 => data_out_reg <= "010" & "01010" & wait_time;
                        stop_status_i <= '1';
             when 11 => data_out_reg <= "010" & "01011" & total_empty_channel;
-                           i := -1;
+                       i := -1;
             when others => null;
           end case;
           data_wr_reg <= '1';
@@ -552,7 +559,7 @@ begin
           data_wr_reg   <= '1';
           stop_status_i <= '0';
         else
-          data_out_reg <= (others => '1');
+          data_out_reg  <= (others => '1');
           data_wr_reg   <= '0';
           stop_status_i <= '0';
         end if;

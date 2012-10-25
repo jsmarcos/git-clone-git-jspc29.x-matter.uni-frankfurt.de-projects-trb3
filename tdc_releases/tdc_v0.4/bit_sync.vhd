@@ -13,8 +13,8 @@ entity bit_sync is
     RESET : in  std_logic;  --Reset is neceessary to avoid optimization to shift register
     CLK0  : in  std_logic;              --clock for first FF
     CLK1  : in  std_logic;              --Clock for other FF
-    D_IN  : in  std_logic;  --Data input
-    D_OUT : out std_logic   --Data output
+    D_IN  : in  std_logic;              --Data input
+    D_OUT : out std_logic               --Data output
     );
 end entity;
 

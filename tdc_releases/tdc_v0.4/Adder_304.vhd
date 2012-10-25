@@ -36,14 +36,14 @@ architecture Structure of Adder_304 is
           S1   : out std_logic);
   end component;
   component FD1P3DX
-    port (D    : in  std_logic;
-          SP   : in  std_logic;
-          CK   : in  std_logic;
-          CD   : in  std_logic;
-          Q    : out std_logic);
+    port (D  : in  std_logic;
+          SP : in  std_logic;
+          CK : in  std_logic;
+          CD : in  std_logic;
+          Q  : out std_logic);
   end component;
   component VLO
-    port (Z    : out std_logic);
+    port (Z : out std_logic);
   end component;
 
   attribute GSR           : string;
@@ -967,190 +967,190 @@ begin
   FF_100 : FD1P3DX
     port map (D => tsum(100), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(100));
-  FF_99  : FD1P3DX
+  FF_99 : FD1P3DX
     port map (D => tsum(99), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(99));
-  FF_98  : FD1P3DX
+  FF_98 : FD1P3DX
     port map (D => tsum(98), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(98));
-  FF_97  : FD1P3DX
+  FF_97 : FD1P3DX
     port map (D => tsum(97), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(97));
-  FF_96  : FD1P3DX
+  FF_96 : FD1P3DX
     port map (D => tsum(96), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(96));
-  FF_95  : FD1P3DX
+  FF_95 : FD1P3DX
     port map (D => tsum(95), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(95));
-  FF_94  : FD1P3DX
+  FF_94 : FD1P3DX
     port map (D => tsum(94), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(94));
-  FF_93  : FD1P3DX
+  FF_93 : FD1P3DX
     port map (D => tsum(93), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(93));
-  FF_92  : FD1P3DX
+  FF_92 : FD1P3DX
     port map (D => tsum(92), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(92));
-  FF_91  : FD1P3DX
+  FF_91 : FD1P3DX
     port map (D => tsum(91), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(91));
-  FF_90  : FD1P3DX
+  FF_90 : FD1P3DX
     port map (D => tsum(90), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(90));
-  FF_89  : FD1P3DX
+  FF_89 : FD1P3DX
     port map (D => tsum(89), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(89));
-  FF_88  : FD1P3DX
+  FF_88 : FD1P3DX
     port map (D => tsum(88), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(88));
-  FF_87  : FD1P3DX
+  FF_87 : FD1P3DX
     port map (D => tsum(87), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(87));
-  FF_86  : FD1P3DX
+  FF_86 : FD1P3DX
     port map (D => tsum(86), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(86));
-  FF_85  : FD1P3DX
+  FF_85 : FD1P3DX
     port map (D => tsum(85), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(85));
-  FF_84  : FD1P3DX
+  FF_84 : FD1P3DX
     port map (D => tsum(84), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(84));
-  FF_83  : FD1P3DX
+  FF_83 : FD1P3DX
     port map (D => tsum(83), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(83));
-  FF_82  : FD1P3DX
+  FF_82 : FD1P3DX
     port map (D => tsum(82), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(82));
-  FF_81  : FD1P3DX
+  FF_81 : FD1P3DX
     port map (D => tsum(81), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(81));
-  FF_80  : FD1P3DX
+  FF_80 : FD1P3DX
     port map (D => tsum(80), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(80));
-  FF_79  : FD1P3DX
+  FF_79 : FD1P3DX
     port map (D => tsum(79), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(79));
-  FF_78  : FD1P3DX
+  FF_78 : FD1P3DX
     port map (D => tsum(78), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(78));
-  FF_77  : FD1P3DX
+  FF_77 : FD1P3DX
     port map (D => tsum(77), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(77));
-  FF_76  : FD1P3DX
+  FF_76 : FD1P3DX
     port map (D => tsum(76), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(76));
-  FF_75  : FD1P3DX
+  FF_75 : FD1P3DX
     port map (D => tsum(75), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(75));
-  FF_74  : FD1P3DX
+  FF_74 : FD1P3DX
     port map (D => tsum(74), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(74));
-  FF_73  : FD1P3DX
+  FF_73 : FD1P3DX
     port map (D => tsum(73), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(73));
-  FF_72  : FD1P3DX
+  FF_72 : FD1P3DX
     port map (D => tsum(72), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(72));
-  FF_71  : FD1P3DX
+  FF_71 : FD1P3DX
     port map (D => tsum(71), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(71));
-  FF_70  : FD1P3DX
+  FF_70 : FD1P3DX
     port map (D => tsum(70), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(70));
-  FF_69  : FD1P3DX
+  FF_69 : FD1P3DX
     port map (D => tsum(69), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(69));
-  FF_68  : FD1P3DX
+  FF_68 : FD1P3DX
     port map (D => tsum(68), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(68));
-  FF_67  : FD1P3DX
+  FF_67 : FD1P3DX
     port map (D => tsum(67), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(67));
-  FF_66  : FD1P3DX
+  FF_66 : FD1P3DX
     port map (D => tsum(66), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(66));
-  FF_65  : FD1P3DX
+  FF_65 : FD1P3DX
     port map (D => tsum(65), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(65));
-  FF_64  : FD1P3DX
+  FF_64 : FD1P3DX
     port map (D => tsum(64), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(64));
-  FF_63  : FD1P3DX
+  FF_63 : FD1P3DX
     port map (D => tsum(63), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(63));
-  FF_62  : FD1P3DX
+  FF_62 : FD1P3DX
     port map (D => tsum(62), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(62));
-  FF_61  : FD1P3DX
+  FF_61 : FD1P3DX
     port map (D => tsum(61), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(61));
-  FF_60  : FD1P3DX
+  FF_60 : FD1P3DX
     port map (D => tsum(60), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(60));
-  FF_59  : FD1P3DX
+  FF_59 : FD1P3DX
     port map (D => tsum(59), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(59));
-  FF_58  : FD1P3DX
+  FF_58 : FD1P3DX
     port map (D => tsum(58), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(58));
-  FF_57  : FD1P3DX
+  FF_57 : FD1P3DX
     port map (D => tsum(57), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(57));
-  FF_56  : FD1P3DX
+  FF_56 : FD1P3DX
     port map (D => tsum(56), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(56));
-  FF_55  : FD1P3DX
+  FF_55 : FD1P3DX
     port map (D => tsum(55), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(55));
-  FF_54  : FD1P3DX
+  FF_54 : FD1P3DX
     port map (D => tsum(54), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(54));
-  FF_53  : FD1P3DX
+  FF_53 : FD1P3DX
     port map (D => tsum(53), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(53));
-  FF_52  : FD1P3DX
+  FF_52 : FD1P3DX
     port map (D => tsum(52), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(52));
-  FF_51  : FD1P3DX
+  FF_51 : FD1P3DX
     port map (D => tsum(51), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(51));
-  FF_50  : FD1P3DX
+  FF_50 : FD1P3DX
     port map (D => tsum(50), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(50));
-  FF_49  : FD1P3DX
+  FF_49 : FD1P3DX
     port map (D => tsum(49), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(49));
-  FF_48  : FD1P3DX
+  FF_48 : FD1P3DX
     port map (D => tsum(48), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(48));
-  FF_47  : FD1P3DX
+  FF_47 : FD1P3DX
     port map (D => tsum(47), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(47));
-  FF_46  : FD1P3DX
+  FF_46 : FD1P3DX
     port map (D => tsum(46), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(46));
-  FF_45  : FD1P3DX
+  FF_45 : FD1P3DX
     port map (D => tsum(45), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(45));
-  FF_44  : FD1P3DX
+  FF_44 : FD1P3DX
     port map (D => tsum(44), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(44));
-  FF_43  : FD1P3DX
+  FF_43 : FD1P3DX
     port map (D => tsum(43), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(43));
-  FF_42  : FD1P3DX
+  FF_42 : FD1P3DX
     port map (D => tsum(42), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(42));
-  FF_41  : FD1P3DX
+  FF_41 : FD1P3DX
     port map (D => tsum(41), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(41));
-  FF_40  : FD1P3DX
+  FF_40 : FD1P3DX
     port map (D => tsum(40), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(40));
-  FF_39  : FD1P3DX
+  FF_39 : FD1P3DX
     port map (D => tsum(39), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(39));
-  FF_38  : FD1P3DX
+  FF_38 : FD1P3DX
     port map (D => tsum(38), SP => CLKEn, CK => CLK, CD => Reset,
               Q => r0_sum(38));
   FF_37 : FD1P3DX
@@ -1278,7 +1278,7 @@ begin
               S0   => tsum(0),
               S1   => tsum(1));
 
-  GEN   : for i in 1 to 151 generate
+  GEN : for i in 1 to 151 generate
     ADD : FADD2B
       port map (A0   => DataA(2*i),
                 A1   => DataA(2*i+1),

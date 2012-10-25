@@ -302,16 +302,16 @@ begin
       BROADCAST_BITMASK         => x"FF",
       BROADCAST_SPECIAL_ADDR    => x"45",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
-      REGIO_HARDWARE_VERSION    => x"91000080", -- regio_hardware_version_i,
+      REGIO_HARDWARE_VERSION    => x"91000000",  -- regio_hardware_version_i,
       REGIO_INIT_ADDRESS        => x"f305",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
       CLOCK_FREQUENCY           => 125,
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
       DATA_INTERFACE_NUMBER     => 1,
-      DATA_BUFFER_DEPTH         => 13,         --13
+      DATA_BUFFER_DEPTH         => 13,           --13
       DATA_BUFFER_WIDTH         => 32,
-      DATA_BUFFER_FULL_THRESH   => 2**13-800,  --2**13-1024
+      DATA_BUFFER_FULL_THRESH   => 2**13-800,    --2**13-1024
       TRG_RELEASE_AFTER_DATA    => c_YES,
       HEADER_BUFFER_DEPTH       => 9,
       HEADER_BUFFER_FULL_THRESH => 2**9-16
@@ -580,7 +580,7 @@ begin
 
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 5,             -- Number of TDC channels
+      CHANNEL_NUMBER => 8,              -- Number of TDC channels
       STATUS_REG_NR  => REGIO_NUM_STAT_REGS,
       CONTROL_REG_NR => REGIO_NUM_CTRL_REGS)
     port map (
@@ -588,7 +588,7 @@ begin
       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
-      HIT_IN                => hit_in_i(4 downto 1),  -- Channel start signals
+      HIT_IN                => hit_in_i(7 downto 1),  -- Channel start signals
       TRG_WIN_PRE           => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --
@@ -629,7 +629,7 @@ begin
   --end generate Gen_Hit_In_Signals;
 
   --regio_hardware_version_i <= x"9100" & addOn_type_i & edge_type_i & tdc_channel_no_i & x"0";
-  
+
   --addOn_type_i     <= x"0";             -- x"0" - ADA AddOn version 1
   --                                      -- x"1" - ADA AddOn version 2
   --                                      -- x"2" - multi purpose test AddOn

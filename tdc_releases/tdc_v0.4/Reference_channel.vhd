@@ -54,9 +54,6 @@ architecture Reference_Channel of Reference_Channel is
   signal result_2_reg         : std_logic;
   signal coarse_cntr_i        : std_logic_vector(10 downto 0);
   signal hit_time_stamp_i     : std_logic_vector(10 downto 0);
-  signal hit_time_stamp_reg   : std_logic_vector(10 downto 0);
-  signal hit_time_stamp_reg2  : std_logic_vector(10 downto 0);
-  signal hit_time_stamp_reg3  : std_logic_vector(10 downto 0);
   signal fine_counter_i       : std_logic_vector(9 downto 0);
   signal fine_counter_reg     : std_logic_vector(9 downto 0);
   signal encoder_start_i      : std_logic;
@@ -93,7 +90,7 @@ begin
 
   fifo_rd_en_i  <= READ_EN_IN;
   coarse_cntr_i <= COARSE_COUNTER_IN;
-  hit_in_i      <= HIT_IN;
+--  hit_in_i      <= HIT_IN;
   hit_buf       <= not HIT_IN;
 
   --purpose: Tapped Delay Line 304 (Carry Chain) with wave launcher (21) double transition
@@ -103,7 +100,7 @@ begin
       RESET  => RESET_WR,
       DataA  => data_a_i,
       DataB  => data_b_i,
-      ClkEn  => '1',      --ff_array_en_i,
+      ClkEn  => '1',                    --ff_array_en_i,
       Result => result_i);
   data_a_i <= x"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF" & x"7FFFFFF";
   data_b_i <= x"000000000000000000000000000000000000000000000000000000000000000000000" & not(hit_buf) & x"000000" & "00" & hit_buf;
@@ -151,7 +148,7 @@ begin
         hit_time_stamp_i <= (others => '0');
       elsif hit_detect_reg = '1' then
         encoder_start_i  <= '1';
-        hit_time_stamp_i <= coarse_cntr_i-2;
+        hit_time_stamp_i <= coarse_cntr_i;
       else
         encoder_start_i <= '0';
       end if;
@@ -332,8 +329,8 @@ begin
   REF_DEBUG_OUT(12)         <= encoder_start_i;
   REF_DEBUG_OUT(13)         <= encoder_finished_i;
   REF_DEBUG_OUT(14)         <= fifo_wr_en_i;
-  
-  REF_DEBUG_OUT(15)         <= CLK_WR;
+
+  REF_DEBUG_OUT(15) <= CLK_WR;
 
   REF_DEBUG_OUT(31 downto 16) <= (others => '0');
 end Reference_Channel;
