@@ -8,4 +8,4 @@ my $BasePath                     = "../base/";     #path to "base" directory
 
 #create full lpf file
 system("cp ../base/trb3_periph_mainz.lpf workdir/$TOPNAME.lpf");
-system("cat ../tdc_releases/tdc_v0.6/".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
+system("cat ../tdc_releases/tdc_v0.5/".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
