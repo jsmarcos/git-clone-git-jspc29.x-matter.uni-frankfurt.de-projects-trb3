@@ -1,0 +1,9 @@
+Version		Release Date	Release Notes
+-------------------------------------------------------------------------------------
+tdc_v1.1	26.10.2012	Readout process is collected in an individual entity.
+
+tdc_v1.0	25.10.2012	The time measurement interval is extended with
+				a 28-bit epoch counter.
+
+tdc_v0.5	22.10.2012	Hit counter registers and LVDS receiver output
+				level can be reached via slow control.
