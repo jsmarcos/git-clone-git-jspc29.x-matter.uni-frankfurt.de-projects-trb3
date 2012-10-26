@@ -614,7 +614,7 @@ begin
       DATA_WRITE_OUT        => fee_data_write_i,  -- data valid signal
       DATA_FINISHED_OUT     => fee_data_finished_i,  -- readout finished signal
       --
-      TDC_DEBUG             => stat_reg,
+      SLOW_CONTROL_REG_OUT  => stat_reg,
       LOGIC_ANALYSER_OUT    => logic_analyser_i,
       CONTROL_REG_IN        => ctrl_reg);
 
