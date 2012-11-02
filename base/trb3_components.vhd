@@ -6,8 +6,9 @@ use work.trb_net_std.all;
 
 package trb3_components is
 
-  type std_logic_vector_array_24 is array (integer range <>) of std_logic_vector(23 downto 0);
   type std_logic_vector_array_32 is array (integer range <>) of std_logic_vector(31 downto 0);
+  type std_logic_vector_array_24 is array (integer range <>) of std_logic_vector(23 downto 0);
+  type std_logic_vector_array_11 is array (integer range <>) of std_logic_vector(10 downto 0);
 
   component pll_in200_out100
     port (
@@ -63,7 +64,7 @@ package trb3_components is
       HCB_DATA_OUT          : out std_logic_vector(31 downto 0);
       HCB_DATAREADY_OUT     : out std_logic;
       HCB_UNKNOWN_ADDR_OUT  : out std_logic;
-      TDC_DEBUG             : out std_logic_vector(32*2**STATUS_REG_NR-1 downto 0);
+      SLOW_CONTROL_REG_OUT  : out std_logic_vector(32*2**STATUS_REG_NR-1 downto 0);
       LOGIC_ANALYSER_OUT    : out std_logic_vector(15 downto 0);
       CONTROL_REG_IN        : in  std_logic_vector(32*2**CONTROL_REG_NR-1 downto 0));
   end component;
@@ -93,7 +94,7 @@ package trb3_components is
       TRIGGER_TIME_STAMP_OUT : out std_logic_vector(38 downto 0);
       REF_DEBUG_OUT          : out std_logic_vector(31 downto 0));
   end component;
-  
+
   component Reference_Channel_200
     generic (
       CHANNEL_ID : integer range 0 to 0);
@@ -176,6 +177,64 @@ package trb3_components is
       HIT_DETECT_NUMBER     : out std_logic_vector(23 downto 0);
       ENCODER_START_NUMBER  : out std_logic_vector(23 downto 0);
       FIFO_WR_NUMBER        : out std_logic_vector(23 downto 0));
+  end component;
+
+  component Readout
+    generic (
+      CHANNEL_NUMBER : integer range 2 to 65;
+      STATUS_REG_NR  : integer range 0 to 6);
+    port (
+      CLK_200           : in std_logic;
+      RESET_200         : in std_logic;
+      CLK_100           : in std_logic;
+      RESET_100         : in std_logic;
+      RESET_COUNTERS    : in std_logic;
+      HIT_IN            : in std_logic_vector(CHANNEL_NUMBER-1 downto 1);
+      REFERENCE_TIME    : in std_logic;
+      TRIGGER_TIME_IN   : in std_logic_vector(38 downto 0);
+      TRG_WIN_PRE       : in std_logic_vector(10 downto 0);
+      TRG_WIN_POST      : in std_logic_vector(10 downto 0);
+      DEBUG_MODE_EN_IN  : in std_logic;
+      TRIGGER_WIN_EN_IN : in std_logic;
+
+      CH_DATA_IN            : in  std_logic_vector_array_32(0 to CHANNEL_NUMBER);
+      CH_EMPTY_IN           : in  std_logic_vector(CHANNEL_NUMBER downto 0);
+      CH_FULL_IN            : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+      CH_ALMOST_FULL_IN     : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+      TRG_DATA_VALID_IN     : in  std_logic;
+      VALID_TIMING_TRG_IN   : in  std_logic;
+      VALID_NOTIMING_TRG_IN : in  std_logic;
+      INVALID_TRG_IN        : in  std_logic;
+      TMGTRG_TIMEOUT_IN     : in  std_logic;
+      SPIKE_DETECTED_IN     : in  std_logic;
+      MULTI_TMG_TRG_IN      : in  std_logic;
+      SPURIOUS_TRG_IN       : in  std_logic;
+      TRG_NUMBER_IN         : in  std_logic_vector(15 downto 0);
+      TRG_CODE_IN           : in  std_logic_vector(7 downto 0);
+      TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0);
+      TRG_TYPE_IN           : in  std_logic_vector(3 downto 0);
+      TRG_RELEASE_OUT       : out std_logic;
+      TRG_STATUSBIT_OUT     : out std_logic_vector(31 downto 0);
+      DATA_OUT              : out std_logic_vector(31 downto 0);
+      DATA_WRITE_OUT        : out std_logic;
+      DATA_FINISHED_OUT     : out std_logic;
+      READOUT_BUSY_OUT      : out std_logic;
+      READ_EN_OUT           : out std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+      TRIGGER_WIN_END_OUT   : out std_logic;
+      SLOW_CONTROL_REG_OUT  : out std_logic_vector(32*2**STATUS_REG_NR-1 downto 0);
+      READOUT_DEBUG         : out std_logic_vector(31 downto 0));
+  end component;
+
+  component LogicAnalyser
+    generic (
+      CHANNEL_NUMBER : integer range 2 to 65;
+      STATUS_REG_NR  : integer range 0 to 6);
+    port (
+      CLK        : in  std_logic;
+      RESET      : in  std_logic;
+      DATA_IN    : in  std_logic_vector(3*32-1 downto 0);
+      CONTROL_IN : in  std_logic_vector(3 downto 0);
+      DATA_OUT   : out std_logic_vector(15 downto 0));
   end component;
 
   component BusHandler
