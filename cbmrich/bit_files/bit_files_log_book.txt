@@ -31,4 +31,7 @@ cbrich_20120903.bit	65 channels without any timing problems. Also some
 cbmrich_20121009.bit	5 channels test design with the new epoch counter and
 			scaler counter.
 
-cbmrich_20121010.bit	33 channels version of the cbmrich_20121009.bit
+cbmrich_20121010.bit	33 channel version of the cbmrich_20121009.bit
+
+cbmrich_20121025.bit	65 channel version of the new design with the epoch
+			counter.

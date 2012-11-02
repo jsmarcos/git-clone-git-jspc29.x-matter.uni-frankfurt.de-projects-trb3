@@ -624,45 +624,45 @@ begin
       CONTROL_REG_NR => REGIO_NUM_CTRL_REGS)
     port map (
       RESET                 => reset_i,
-      CLK_TDC               => CLK_PCLK_LEFT,          -- Clock used for the time measurement
-      CLK_READOUT           => clk_100_i,              -- Clock for the readout
+      CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
+      CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
       HIT_IN                => hit_in_i(64 downto 1),  -- Channel start signals
-      TRG_WIN_PRE           => ctrl_reg(42 downto 32), -- Pre-Trigger window width
-      TRG_WIN_POST          => ctrl_reg(58 downto 48), -- Post-Trigger window width
+      TRG_WIN_PRE           => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
+      TRG_WIN_POST          => ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --
       -- Trigger signals from handler
-      TRG_DATA_VALID_IN     => trg_data_valid_i,       -- trig data valid signal from trbnet
-      VALID_TIMING_TRG_IN   => trg_timing_valid_i,     -- valid timing trigger signal from trbnet
-      VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,   -- valid notiming signal from trbnet
-      INVALID_TRG_IN        => trg_invalid_i,          -- invalid trigger signal from trbnet
-      TMGTRG_TIMEOUT_IN     => trg_timeout_detected_i, -- timing trigger timeout signal from trbnet
+      TRG_DATA_VALID_IN     => trg_data_valid_i,  -- trig data valid signal from trbnet
+      VALID_TIMING_TRG_IN   => trg_timing_valid_i,  -- valid timing trigger signal from trbnet
+      VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,  -- valid notiming signal from trbnet
+      INVALID_TRG_IN        => trg_invalid_i,  -- invalid trigger signal from trbnet
+      TMGTRG_TIMEOUT_IN     => trg_timeout_detected_i,  -- timing trigger timeout signal from trbnet
       SPIKE_DETECTED_IN     => trg_spike_detected_i,
       MULTI_TMG_TRG_IN      => trg_multiple_trg_i,
       SPURIOUS_TRG_IN       => trg_spurious_trg_i,
       --
-      TRG_NUMBER_IN         => trg_number_i,      -- LVL1 trigger information package
-      TRG_CODE_IN           => trg_code_i,        --
-      TRG_INFORMATION_IN    => trg_information_i, --
-      TRG_TYPE_IN           => trg_type_i,        -- LVL1 trigger information package
+      TRG_NUMBER_IN         => trg_number_i,  -- LVL1 trigger information package
+      TRG_CODE_IN           => trg_code_i,  --
+      TRG_INFORMATION_IN    => trg_information_i,   --
+      TRG_TYPE_IN           => trg_type_i,  -- LVL1 trigger information package
       --
       --Response to handler
       TRG_RELEASE_OUT       => fee_trg_release_i,   -- trigger release signal
-      TRG_STATUSBIT_OUT     => fee_trg_statusbits_i,-- status information of the tdc
-      DATA_OUT              => fee_data_i,          -- tdc data
-      DATA_WRITE_OUT        => fee_data_write_i,    -- data valid signal
-      DATA_FINISHED_OUT     => fee_data_finished_i, -- readout finished signal
+      TRG_STATUSBIT_OUT     => fee_trg_statusbits_i,  -- status information of the tdc
+      DATA_OUT              => fee_data_i,  -- tdc data
+      DATA_WRITE_OUT        => fee_data_write_i,  -- data valid signal
+      DATA_FINISHED_OUT     => fee_data_finished_i,  -- readout finished signal
       --
       --Hit Counter Bus
       HCB_READ_EN_IN        => hitreg_read_en,    -- bus read en strobe
       HCB_WRITE_EN_IN       => hitreg_write_en,   -- bus write en strobe
-      HCB_ADDR_IN           => hitreg_addr,       -- bus address
+      HCB_ADDR_IN           => hitreg_addr,   -- bus address
       HCB_DATA_OUT          => hitreg_data_out,   -- bus data
-      HCB_DATAREADY_OUT     => hitreg_data_ready, -- bus data ready strobe
+      HCB_DATAREADY_OUT     => hitreg_data_ready,   -- bus data ready strobe
       HCB_UNKNOWN_ADDR_OUT  => hitreg_invalid,    -- bus invalid addr
       --
-      TDC_DEBUG             => stat_reg,
-      LOGIC_ANALYSER_OUT    => open, --TEST_LINE,
+      SLOW_CONTROL_REG_OUT  => stat_reg,
+      LOGIC_ANALYSER_OUT    => open,    --TEST_LINE,
       CONTROL_REG_IN        => ctrl_reg);
 
 
