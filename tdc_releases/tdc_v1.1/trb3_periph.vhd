@@ -195,6 +195,14 @@ architecture trb3_periph_arch of trb3_periph is
   signal dac_sck_i : std_logic;
   signal dac_sdi_i : std_logic;
 
+  signal hitreg_read_en    : std_logic;
+  signal hitreg_write_en   : std_logic;
+  signal hitreg_data_in    : std_logic_vector(31 downto 0);
+  signal hitreg_addr       : std_logic_vector(6 downto 0);
+  signal hitreg_data_out   : std_logic_vector(31 downto 0);
+  signal hitreg_data_ready : std_logic;
+  signal hitreg_invalid    : std_logic;
+
   signal spi_bram_addr : std_logic_vector(7 downto 0);
   signal spi_bram_wr_d : std_logic_vector(7 downto 0);
   signal spi_bram_rd_d : std_logic_vector(7 downto 0);
@@ -415,9 +423,9 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 3,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, others => 0)
+      PORT_NUMBER    => 4,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -470,6 +478,18 @@ begin
       BUS_WRITE_ACK_IN(2)                 => spidac_ack,
       BUS_NO_MORE_DATA_IN(2)              => spidac_busy,
       BUS_UNKNOWN_ADDR_IN(2)              => '0',
+      --HitRegisters
+      BUS_READ_ENABLE_OUT(3)              => hitreg_read_en,
+      BUS_WRITE_ENABLE_OUT(3)             => hitreg_write_en,
+      BUS_DATA_OUT(3*32+31 downto 3*32)   => open,
+      BUS_ADDR_OUT(3*16+6 downto 3*16)    => hitreg_addr,
+      BUS_ADDR_OUT(3*16+15 downto 3*16+7) => open,
+      BUS_TIMEOUT_OUT(3)                  => open,
+      BUS_DATA_IN(3*32+31 downto 3*32)    => hitreg_data_out,
+      BUS_DATAREADY_IN(3)                 => hitreg_data_ready,
+      BUS_WRITE_ACK_IN(3)                 => '0',
+      BUS_NO_MORE_DATA_IN(3)              => '0',
+      BUS_UNKNOWN_ADDR_IN(3)              => hitreg_invalid,
 
       STAT_DEBUG => open
       );
@@ -613,6 +633,14 @@ begin
       DATA_OUT              => fee_data_i,  -- tdc data
       DATA_WRITE_OUT        => fee_data_write_i,  -- data valid signal
       DATA_FINISHED_OUT     => fee_data_finished_i,  -- readout finished signal
+      --
+      --Hit Counter Bus
+      HCB_READ_EN_IN        => hitreg_read_en,    -- bus read en strobe
+      HCB_WRITE_EN_IN       => hitreg_write_en,   -- bus write en strobe
+      HCB_ADDR_IN           => hitreg_addr,   -- bus address
+      HCB_DATA_OUT          => hitreg_data_out,   -- bus data
+      HCB_DATAREADY_OUT     => hitreg_data_ready,   -- bus data ready strobe
+      HCB_UNKNOWN_ADDR_OUT  => hitreg_invalid,    -- bus invalid addr
       --
       SLOW_CONTROL_REG_OUT  => stat_reg,
       LOGIC_ANALYSER_OUT    => logic_analyser_i,

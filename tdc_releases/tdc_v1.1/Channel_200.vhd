@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2012-10-26
+-- Last update: 2012-11-06
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -134,7 +134,7 @@ begin  -- Channel_200
       DataB  => data_b_i,
       ClkEn  => ff_array_en_i,
       Result => result_i);
-  data_a_i      <= x"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF00000FFF" & x"7FFFFFF";
+  data_a_i      <= x"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF" & x"7FFFFFF";
   data_b_i      <= x"000000000000000000000000000000000000000000000000000000000000000000000" & not(HIT_IN) & x"000000" & "00" & HIT_IN;
   ff_array_en_i <= not(hit_detect_i or hit_detect_reg or hit_detect_2reg);
 

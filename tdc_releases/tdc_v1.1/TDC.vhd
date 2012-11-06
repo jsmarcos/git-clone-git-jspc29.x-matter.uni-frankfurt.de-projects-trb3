@@ -237,7 +237,7 @@ begin
 -- Bus handler for the hit counter signals
   TheHitCounterBus : BusHandler
     generic map (
-      CHANNEL_NUMBER => CHANNEL_NUMBER-1)
+      BUS_LENGTH => CHANNEL_NUMBER-1)
     port map (
       RESET            => RESET,
       CLK              => CLK_READOUT,
