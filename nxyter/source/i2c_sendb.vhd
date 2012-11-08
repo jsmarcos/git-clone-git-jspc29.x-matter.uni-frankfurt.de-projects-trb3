@@ -11,13 +11,12 @@ entity i2c_sendb is
     CLK_IN          : in    std_logic;
     RESET_IN        : in    std_logic;
     DOBYTE_IN       : in    std_logic;
-    I2C_SPEED_IN    : in    std_logic_vector( 7 downto 0 );
+    I2C_SPEED_IN    : in    std_logic_vector( 8 downto 0 );
     I2C_BYTE_IN     : in    std_logic_vector( 8 downto 0 );
     I2C_BACK_OUT    : out   std_logic_vector( 8 downto 0 );
     SDA_IN          : in    std_logic;
     R_SDA_OUT       : out   std_logic;
     S_SDA_OUT       : out   std_logic;
---  SCL_IN          : in    std_logic;
     R_SCL_OUT       : out   std_logic;
     S_SCL_OUT       : out   std_logic;
     BDONE_OUT       : out   std_logic;
@@ -62,7 +61,7 @@ architecture Behavioral of i2c_sendb is
   signal s_scl        : std_logic; -- output for SCL
 
   signal bctr         : std_logic_vector( 3 downto 0 ); -- bit counter    (1...9)
-  signal cctr         : std_logic_vector( 7 downto 0 ); -- counter for bit length
+  signal cctr         : unsigned(8 downto 0); -- counter for bit length
   signal bok          : std_logic;
   signal cycdone      : std_logic; -- one counter period done
   signal bytedone     : std_logic; -- all bits sents
@@ -93,7 +92,7 @@ begin
   end process THE_BIT_CTR_PROC;
 
 -- end of byte recognition
-  bytedone <= '1' when (bctr = x"9") else '0';
+  bytedone <= '1' when (bctr = x"a") else '0';
 
 -- Countdown for one half of SCL (adjustable clock width)
   THE_CYC_CTR_PROC: process( clk_in )
@@ -110,7 +109,7 @@ begin
   end process THE_CYC_CTR_PROC;
 
 -- end of cycle recognition
-  cycdone <= '1' when (cctr = x"00") else '0';
+  cycdone <= '1' when (cctr = 0) else '0';
 
 -- Bit output
   THE_BIT_OUT_PROC: process( clk_in )

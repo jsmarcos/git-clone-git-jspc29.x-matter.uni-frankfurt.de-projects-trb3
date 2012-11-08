@@ -6,18 +6,15 @@ use IEEE.STD_LOGIC_UNSIGNED.ALL;
 library work;
 use work.adcmv3_components.all;
 
--- BUG: does alway set bit 0 of address byte to zero !!!!
--- REMARK: this is not a bug, but a feature....
-
 entity i2c_slim is
-  port(
+  port (
     CLK_IN          : in    std_logic;
     RESET_IN        : in    std_logic;
 
     -- I2C command / setup
     I2C_GO_IN       : in    std_logic; -- startbit to trigger I2C actions
     ACTION_IN       : in    std_logic; -- '0' -> write, '1' -> read
-    I2C_SPEED_IN    : in    std_logic_vector( 5 downto 0 ); -- speed adjustment (to be defined)
+    I2C_SPEED_IN    : in    std_logic_vector( 8 downto 0 ); -- speed adjustment
     I2C_ADR_IN      : in    std_logic_vector( 7 downto 0 ); -- I2C address byte (R/W bit is ignored)
     I2C_CMD_IN      : in    std_logic_vector( 7 downto 0 ); -- I2C command byte (sent after address byte)
     I2C_DW_IN       : in    std_logic_vector( 7 downto 0 ); -- data word for write command
@@ -109,11 +106,11 @@ architecture Behavioral of i2c_slim is
 
   signal gs_debug     : std_logic_vector(3 downto 0);
 
-  signal i2c_speed    : std_logic_vector(7 downto 0);
+  signal i2c_speed    : std_logic_vector(8 downto 0);
 
 begin
 
-  i2c_speed <= i2c_speed_in & "00";
+  i2c_speed <= I2C_SPEED_IN & "00";
 
 -- Read phase indicator
   THE_PHASE_PROC: process( clk_in )
@@ -202,10 +199,10 @@ begin
                             NEXT_STATE <= LOADC; -- I2C write
                             load_c_x   <= '1';
                           elsif( (bdone = '1') and (bok = '1') and (action_in = '1') and (phase = '0') ) then
-                            NEXT_STATE <= LOADC;    -- I2C read, send register address
+                            NEXT_STATE <= LOADC; -- I2C read, send register address
                             load_c_x   <= '1';
                           elsif( (bdone = '1') and (bok = '1') and (action_in = '1') and (phase = '1') ) then
-                            NEXT_STATE <= LOADD;    -- I2C read, send 0xff dummy byte
+                            NEXT_STATE <= LOADD; -- I2C read, send 0xff dummy byte
                             load_d_x   <= '1';
                           elsif( (bdone = '1') and (bok = '0') and (phase = '0') ) then
                             NEXT_STATE <= E_ADDR; -- first address phase failed
@@ -310,7 +307,6 @@ begin
   end process DECODE;
 
 -- We need to load different data sets
---LOAD_DATA_PROC: process( clk_in, reset_in, CURRENT_STATE, action_in, phase)
   LOAD_DATA_PROC: process( clk_in )
   begin
     if( rising_edge(clk_in) ) then
@@ -321,9 +317,9 @@ begin
       elsif( (CURRENT_STATE = LOADA) and (phase = '1') ) then
         i2c_byte <= i2c_adr_in(6 downto 0) & '1' & '1'; -- send read address, receive ACK
       elsif( (CURRENT_STATE = LOADC) and (action_in = '0') ) then
-        i2c_byte <= i2c_cmd_in(7 downto 1) & '0' & '1'; -- send command byte (WRITE), receive ACK
+        i2c_byte <= i2c_cmd_in(7 downto 0) & '1'; -- send command byte, receive ACK
       elsif( (CURRENT_STATE = LOADC) and (action_in = '1') ) then
-        i2c_byte <= i2c_cmd_in(7 downto 1) & '1' & '1'; -- send command byte (READ), receive ACK
+        i2c_byte <= i2c_cmd_in(7 downto 0) & '1'; -- send command byte, receive ACK
       elsif( (CURRENT_STATE = LOADD) and (action_in = '0') ) then
         i2c_byte <= i2c_dw_in & '1'; -- send data byte, receive ACK
       elsif( (CURRENT_STATE = LOADD) and (action_in = '1') ) then
@@ -343,8 +339,7 @@ begin
       I2C_BACK_OUT    => i2c_dr,
       SDA_IN          => sda_in,
       R_SDA_OUT       => r_sda_sb,
-      S_SDA_OUT      => s_sda_sb,
---  SCL_IN          => scl_in,
+      S_SDA_OUT       => s_sda_sb,
       R_SCL_OUT       => r_scl_sb,
       S_SCL_OUT       => s_scl_sb,
       BDONE_OUT       => bdone,

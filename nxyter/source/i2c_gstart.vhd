@@ -12,7 +12,7 @@ entity I2C_GSTART is
     RESET_IN        : in    std_logic;
     START_IN        : in    std_logic;
     DOSTART_IN      : in    std_logic;
-    I2C_SPEED_IN    : in    std_logic_vector(7 downto 0);
+    I2C_SPEED_IN    : in    std_logic_vector(8 downto 0);
     SDONE_OUT       : out   std_logic;
     SOK_OUT         : out   std_logic;
     SDA_IN          : in    std_logic;
@@ -42,7 +42,7 @@ architecture Behavioral of I2C_GSTART is
   signal CURRENT_STATE, NEXT_STATE: STATES;
 
   signal bsm          : std_logic_vector(3 downto 0);
-  signal cctr         : std_logic_vector(7 downto 0); -- counter for bit length
+  signal cctr         : unsigned(8 downto 0); -- counter for bit length
 
   signal cycdone_x    : std_logic;
   signal cycdone      : std_logic; -- one counter period done
@@ -80,7 +80,7 @@ begin
   end process THE_CYC_CTR_PROC;
 
 -- end of cycle recognition
-  cycdone_x <= '1' when (cctr = x"00") else '0';
+  cycdone_x <= '1' when (cctr = 0) else '0';
 
 -- The main state machine
 -- State memory process

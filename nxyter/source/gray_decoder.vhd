@@ -33,22 +33,23 @@ architecture Gray_Decoder of Gray_Decoder is
 begin  -- Gray_Decoder
 
   PROC_DECODER: process (CLK_IN)
+    variable b : std_logic_vector(WIDTH -1 downto 0) := (others => '0');
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        binary_o <= (others => '0');
+        b := (others => '0');
       else
-        binary_o(WIDTH - 1) <= GRAY_IN(WIDTH - 1);
+        b(WIDTH - 1) := GRAY_IN(WIDTH - 1);
     
-        for I in (WIDTH - 2) to 0 loop
-          binary_o(I) <= binary_o(I + 1) xor GRAY_IN(I);
+        for I in (WIDTH - 2) downto 0 loop
+          b(I) := b(I + 1) xor GRAY_IN(I);
         end loop;
       end if;
     end if;
-    
+    binary_o <= b;
   end process PROC_DECODER;
 
-  -- Output
+-- Output
   BINARY_OUT <= binary_o;
     
 end Gray_Decoder;

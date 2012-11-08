@@ -18,7 +18,8 @@ entity nxyter_registers is
     SLV_ADDR_IN          : in std_logic_vector(15 downto 0);
     SLV_ACK_OUT          : out std_logic;
     SLV_NO_MORE_DATA_OUT : out std_logic;
-    SLV_UNKNOWN_ADDR_OUT : out std_logic
+    SLV_UNKNOWN_ADDR_OUT : out std_logic;
+    DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
 end entity;
 
@@ -34,6 +35,8 @@ architecture Behavioral of nxyter_registers is
   
 begin
 
+  DEBUG_OUT  <= reg_data(0)(15 downto 0);
+  
   PROC_NX_REGISTERS: process(CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then

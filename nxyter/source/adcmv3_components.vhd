@@ -83,9 +83,9 @@ component i2c_master
     SDA_OUT      : out std_logic;
     SCL_IN       : in  std_logic;
     SCL_OUT      : out std_logic;
-    STAT         : out std_logic_vector(31 downto 0));
+    STAT         : out std_logic_vector(31 downto 0)
+    );
 end component i2c_master;
-
 
 component I2C_GSTART
   port (
@@ -111,7 +111,7 @@ component i2c_sendb
     CLK_IN       : in  std_logic;
     RESET_IN     : in  std_logic;
     DOBYTE_IN    : in  std_logic;
-    I2C_SPEED_IN : in  std_logic_vector(7 downto 0);
+    I2C_SPEED_IN : in  std_logic_vector(8 downto 0);
     I2C_BYTE_IN  : in  std_logic_vector(8 downto 0);
     I2C_BACK_OUT : out std_logic_vector(8 downto 0);
     SDA_IN       : in  std_logic;
@@ -131,7 +131,7 @@ component i2c_slim
     RESET_IN     : in  std_logic;
     I2C_GO_IN    : in  std_logic;
     ACTION_IN    : in  std_logic;
-    I2C_SPEED_IN : in  std_logic_vector(5 downto 0);
+    I2C_SPEED_IN : in  std_logic_vector(8 downto 0);
     I2C_ADR_IN   : in  std_logic_vector(7 downto 0);
     I2C_CMD_IN   : in  std_logic_vector(7 downto 0);
     I2C_DW_IN    : in  std_logic_vector(7 downto 0);

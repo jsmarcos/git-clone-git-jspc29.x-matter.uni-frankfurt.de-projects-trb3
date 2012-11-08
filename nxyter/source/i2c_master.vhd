@@ -59,6 +59,8 @@ architecture Behavioral of i2c_master is
   signal status_data      : std_logic_vector(31 downto 0);
   signal i2c_debug        : std_logic_vector(31 downto 0);
 
+  signal i2c_speed_static : std_logic_vector(8 downto 0);
+  
 begin
 
 ---------------------------------------------------------
@@ -72,7 +74,7 @@ begin
       -- I2C command / setup
       I2C_GO_IN       => reg_slv_data_in(31),
       ACTION_IN       => reg_slv_data_in(30),
-      I2C_SPEED_IN    => reg_slv_data_in(29 downto 24),
+      I2C_SPEED_IN    => i2c_speed_static,
       I2C_ADR_IN      => reg_slv_data_in(23 downto 16),
       I2C_CMD_IN      => reg_slv_data_in(15 downto 8),
       I2C_DW_IN       => reg_slv_data_in(7 downto 0),
@@ -91,7 +93,8 @@ begin
   status_data(23 downto 21) <= (others => '0');
   status_data(20 downto 16) <= i2c_debug(4 downto 0);
   status_data(15 downto 8)  <= (others => '0');
-
+  i2c_speed_static          <= (others => '1');
+  
 -- Fake
   stat <= i2c_debug;
 

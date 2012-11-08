@@ -4,7 +4,6 @@ use IEEE.STD_LOGIC_ARITH.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
 
 library work;
-use work.adcmv3_components.all;
 use work.nxyter_components.all;
 
 entity nx_timestamp_fifo_read is
@@ -17,6 +16,7 @@ entity nx_timestamp_fifo_read is
     NX_TIMESTAMP_IN      : in std_logic_vector (7 downto 0);
     NX_FRAME_CLOCK_OUT   : out std_logic;
     NX_FRAME_SYNC_OUT    : out std_logic;
+    NX_TIMESTAMP_OUT     : out std_logic_vector(31 downto 0);
     
     -- Slave bus         
     SLV_READ_IN          : in  std_logic;
@@ -26,7 +26,9 @@ entity nx_timestamp_fifo_read is
     SLV_ADDR_IN          : in std_logic_vector(15 downto 0);
     SLV_ACK_OUT          : out std_logic;
     SLV_NO_MORE_DATA_OUT : out std_logic;
-    SLV_UNKNOWN_ADDR_OUT : out std_logic
+    SLV_UNKNOWN_ADDR_OUT : out std_logic;
+
+    DEBUG_OUT            : out std_logic_vector(7 downto 0)
     );
 end entity;
 
@@ -34,6 +36,7 @@ architecture Behavioral of nx_timestamp_fifo_read is
 
 
   -- FIFO Input Handler
+  signal nx_timestamp_n      : std_logic_vector(7 downto 0);
   signal fifo_skip_write_x   : std_logic;
   signal fifo_skip_write_l   : std_logic;
   signal fifo_skip_write     : std_logic;
@@ -56,8 +59,14 @@ architecture Behavioral of nx_timestamp_fifo_read is
   signal fifo_skip_write_s   : std_logic;
 
   -- SYNC NX Frame Process
-  signal nx_frame_resync_ctr   : unsigned(7 downto 0);
+  
+  -- RS Sync FlipFlop
   signal nx_frame_synced_o     : std_logic;
+  signal rs_sync_set           : std_logic;
+  signal rs_sync_reset         : std_logic;
+  
+  -- Sync Process
+  signal nx_frame_resync_ctr   : unsigned(7 downto 0);
   signal frame_sync_wait_ctr   : unsigned (7 downto 0);
   
   -- Slave Bus
@@ -87,13 +96,37 @@ architecture Behavioral of nx_timestamp_fifo_read is
   
 begin
 
+  DEBUG_OUT(0) <= fifo_write_enable_o;
+  DEBUG_OUT(1) <= fifo_full;
+  DEBUG_OUT(2) <= fifo_read_enable_o;
+  DEBUG_OUT(3) <= fifo_empty;
+
+  DEBUG_OUT(4) <= nx_frame_synced_o;
+  DEBUG_OUT(5) <= fifo_skip_write_o;
+  DEBUG_OUT(6) <= nx_frame_clock_o;
+  DEBUG_OUT(7) <= CLK_IN;
+  
   -----------------------------------------------------------------------------
   -- Dual Clock FIFO 8bit to 32bit
   -----------------------------------------------------------------------------
 
+  -- First Decode
+  --  Gray_Decoder_1: Gray_Decoder
+  --   generic map (
+  --     WIDTH => 8)
+  --   port map (
+  --     CLK_IN     => NX_TIMESTAMP_CLK_IN,
+  --     RESET_IN   => RESET_IN,
+  --     GRAY_IN    => NX_TIMESTAMP_IN,
+  --     BINARY_OUT => nx_timestamp_n
+  --     );
+  nx_timestamp_n <= NX_TIMESTAMP_IN;
+  
+  
+  -- Second send data to FIFO
   fifo_dc_8to32_1: fifo_dc_8to32
     port map (
-      Data    => NX_TIMESTAMP_IN,
+      Data    => nx_timestamp_n,
       WrClock => NX_TIMESTAMP_CLK_IN,
       RdClock => CLK_IN,
       WrEn    => fifo_write_enable_o,
@@ -105,10 +138,11 @@ begin
       Full    => fifo_full_i
       );
 
+  
   -----------------------------------------------------------------------------
   -- FIFO Input Handler
   -----------------------------------------------------------------------------
-
+  
   -- Cross ClockDomain CLK_IN --> NX_TIMESTAMP_CLK_IN for signal
   -- fifo_skip_write
   PROC_FIFO_IN_HANDLER_SYNC: process(NX_TIMESTAMP_CLK_IN)
@@ -125,13 +159,13 @@ begin
   end process PROC_FIFO_IN_HANDLER_SYNC;
 
   -- Signal fifo_skip_write might 2 clocks long --> I need 1
- level_to_pulse_1: level_to_pulse
-   port map (
-     CLK_IN    => NX_TIMESTAMP_CLK_IN,
-     RESET_IN  => RESET_IN,
-     LEVEL_IN  => fifo_skip_write_l,
-     PULSE_OUT => fifo_skip_write
-     );
+  level_to_pulse_1: level_to_pulse
+    port map (
+      CLK_IN    => NX_TIMESTAMP_CLK_IN,
+      RESET_IN  => RESET_IN,
+      LEVEL_IN  => fifo_skip_write_l,
+      PULSE_OUT => fifo_skip_write
+      );
   
   -- Write only in case FIFO is not full, skip one write cycle in case
   -- fifo_skip_write is true (needed by the synchronization process
@@ -171,7 +205,6 @@ begin
 
   NX_FRAME_CLOCK_OUT <= nx_frame_clock_o;
   
-
   -----------------------------------------------------------------------------
   -- FIFO Output Handler and Sync FIFO
   -----------------------------------------------------------------------------
@@ -204,48 +237,60 @@ begin
       end if;
     end if;
   end process PROC_FIFO_READ;
+  
 
+  -- RS FlipFlop to hold Sync Status
+  PROC_RS_FRAME_SYNCED: process(CLK_IN)
+  begin
+    if( rising_edge(CLK_IN) ) then
+      if (RESET_IN = '1' or rs_sync_reset = '1') then
+        nx_frame_synced_o <= '0';
+      elsif (rs_sync_set = '1') then
+        nx_frame_synced_o <= '1';
+      end if;
+    end if;
+  end process PROC_RS_FRAME_SYNCED;
 
-  -- Sync to NX NO_DATA FRAME
+  -- Sync to NX NO_DATA FRAME 
   PROC_SYNC_TO_NO_DATA: process(CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        nx_frame_synced_o <= '0';
+        rs_sync_set          <= '0';
+        rs_sync_reset        <= '1';
         nx_frame_resync_ctr  <= (others => '0');
         frame_sync_wait_ctr  <= (others => '0');
-        fifo_skip_write_s <= '0';
-        STATE_SYNC <= SYNC_CHECK;
+        fifo_skip_write_s    <= '0';
+        STATE_SYNC           <= SYNC_CHECK;
       else
+        rs_sync_set       <= '0';
+        rs_sync_reset     <= '0';
         fifo_skip_write_s <= '0';
-
+        
         case STATE_SYNC is
 
           when SYNC_CHECK =>
             case fifo_out is
               when x"7f7f7f06" =>
-                nx_frame_synced_o <= '1';
-                STATE_SYNC <= SYNC_CHECK;
+                rs_sync_set <= '1';
+                STATE_SYNC  <= SYNC_CHECK;
 
               when x"067f7f7f" =>
-                nx_frame_synced_o <= '0';
                 STATE_SYNC <= SYNC_RESYNC;
 
               when x"7f067f7f" =>
-                nx_frame_synced_o <= '0';
                 STATE_SYNC <= SYNC_RESYNC;
                 
               when x"7f7f067f" =>
-                nx_frame_synced_o <= '0';
                 STATE_SYNC <= SYNC_RESYNC;
 
               when others =>
-                nx_frame_synced_o <= nx_frame_synced_o;
                 STATE_SYNC <= SYNC_CHECK;
-               
+                
             end case;
 
           when SYNC_RESYNC =>
+            rs_sync_reset     <= '1';
             fifo_skip_write_s <= '1';
             nx_frame_resync_ctr <= nx_frame_resync_ctr + 1;
             frame_sync_wait_ctr <= x"ff";
@@ -266,7 +311,8 @@ begin
   end process PROC_SYNC_TO_NO_DATA;
 
   NX_FRAME_SYNC_OUT <= nx_frame_synced_o;
-  
+  NX_TIMESTAMP_OUT  <= register_fifo_data;
+
 -------------------------------------------------------------------------------
 -- TRBNet Slave Bus
 -------------------------------------------------------------------------------

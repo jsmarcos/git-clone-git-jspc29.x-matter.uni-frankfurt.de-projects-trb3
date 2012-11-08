@@ -39,13 +39,12 @@ begin
         gray_o <= (others => '0');
       else
         gray_o(WIDTH - 1) <= BINARY_IN(WIDTH -1);
-        for I in (WIDTH - 2) to 0 loop
+        for I in (WIDTH - 2) downto 0 loop
           gray_o(I) <= BINARY_IN(I + 1) xor BINARY_IN(I);
         end loop;
       end if;
     end if;
 
-    GRAY_O <= gray_o; 
   end process PROC_ENCODER;
 
   -- Output

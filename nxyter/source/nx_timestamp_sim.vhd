@@ -54,22 +54,22 @@ begin
     end if;           
   end process PROC_NX_TIMESTAMP;
 
-  
-
---  Gray_Encoder_1: Gray_Encoder
---    generic map (
---      WIDTH => 8
---      )
---    port map (
---      CLK_IN    => CLK_IN,
---      RESET_IN  => RESET_IN,
---      BINARY_IN => timestamp_n,
---      GRAY_OUT  => timestamp_g 
---      );
+--   Gray_Encoder_1: Gray_Encoder
+--     generic map (
+--       WIDTH => 8
+--       )
+--     port map (
+--       CLK_IN    => CLK_IN,
+--       RESET_IN  => RESET_IN,
+--       BINARY_IN => timestamp_n,
+--       GRAY_OUT  => timestamp_g 
+--       );
 -- 
-
+  timestamp_g <= timestamp_n;
+  
+  
 -- Output Signals
-  TIMESTAMP_OUT <= timestamp_n;
+  TIMESTAMP_OUT <= timestamp_g;
   CLK128_OUT    <= CLK_IN;
   
 end Behavioral;
