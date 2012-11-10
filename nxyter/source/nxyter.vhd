@@ -121,13 +121,15 @@ begin
 --   DEBUG_LINE_OUT(9)            <= i2c_sda_i;
 --   DEBUG_LINE_OUT(10)           <= i2c_scl_o;
 --   DEBUG_LINE_OUT(11)           <= i2c_scl_i;
---  DEBUG_LINE_OUT(15 downto 12) <= (others => '0');
+--   DEBUG_LINE_OUT(15 downto 12) <= (others => '0');
 
-  DEBUG_LINE_OUT(0) <= CLK_IN;
-  DEBUG_LINE_OUT(1) <= I2C_SDA_INOUT;
-  DEBUG_LINE_OUT(2) <= I2C_SCL_INOUT;
-  
-  DEBUG_LINE_OUT(7 downto 3) <= (others => '0');
+--   DEBUG_LINE_OUT(0) <= CLK_IN;
+--   DEBUG_LINE_OUT(1) <= I2C_SDA_INOUT;
+--   DEBUG_LINE_OUT(2) <= I2C_SCL_INOUT;
+--   DEBUG_LINE_OUT(3) <= i2c_sm_reset_o;
+--   DEBUG_LINE_OUT(4) <= i2c_reg_reset_o;
+--   
+--   DEBUG_LINE_OUT(5 downto 5) <= (others => '0');
   
 -------------------------------------------------------------------------------
 -- Port Maps
@@ -135,12 +137,12 @@ begin
 
 
 
-  -- pll_nx_clk256_1: pll_nx_clk256
-  --   port map (
-  --     CLK   => CLK_IN,
-  --     CLKOP => clk_256_o,
-  --     LOCK  => open
-  --     );
+  pll_nx_clk256_1: pll_nx_clk256
+    port map (
+      CLK   => CLK_IN,
+      CLKOP => clk_256_o,
+      LOCK  => open
+      );
 
   -- pll_25_1: pll_25
   --   port map (
@@ -148,7 +150,7 @@ begin
   --     CLKOP => clk_256_o,
   --     LOCK  => open
   --     );
-  clk_256_o      <= CLK_128_IN;
+  -- clk_256_o      <= CLK_128_IN;
 
   NX_RESET_OUT       <= '0';
   NX_CLK256A_OUT     <= clk_256_o;
@@ -283,13 +285,15 @@ begin
       SLV_ACK_OUT          => slv_ack(0),
       SLV_NO_MORE_DATA_OUT => slv_no_more_data(0),
       SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(0),
-
+      I2C_SM_RESET_OUT     => i2c_sm_reset_o,
+      I2C_REG_RESET_OUT    => i2c_reg_reset_o,
       DEBUG_OUT            => open
       );
 
 -------------------------------------------------------------------------------
 -- I2C master block for accessing the nXyter
 -------------------------------------------------------------------------------
+
   nx_i2c_master_1: nx_i2c_master
     generic map (
       i2c_speed => x"3e8"
@@ -306,35 +310,11 @@ begin
       SLV_ACK_OUT           => slv_ack(1), 
       SLV_NO_MORE_DATA_OUT  => slv_no_more_data(1),
       SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(1),
-      DEBUG_OUT(7 downto 0) => DEBUG_LINE_OUT(15 downto 8)
+      DEBUG_OUT(13 downto 0) => DEBUG_LINE_OUT(13 downto 0)
+      --DEBUG_OUT             => open
       );
-
-
--- ADCM   i2c_master_1: i2c_master
--- ADCM     port map (
--- ADCM       CLK_IN       => CLK_IN,
--- ADCM       RESET_IN     => RESET_IN,
--- ADCM       SLV_READ_IN  => slv_read(1),
--- ADCM       SLV_WRITE_IN => slv_write(1),
--- ADCM       SLV_BUSY_OUT => open,
--- ADCM       SLV_ACK_OUT  => slv_ack(1),
--- ADCM       SLV_DATA_IN  => slv_data_wr(1*32+31 downto 1*32),
--- ADCM       SLV_DATA_OUT => slv_data_rd(1*32+31 downto 1*32),
--- ADCM       SDA_IN       => i2c_sda_i,
--- ADCM       SDA_OUT      => i2c_sda_o,
--- ADCM       SCL_IN       => i2c_scl_i,
--- ADCM       SCL_OUT      => i2c_scl_o,
--- ADCM       STAT         => open
--- ADCM       );
--- ADCM 
--- ADCM   -- I2c Outputs
--- ADCM   I2C_SDA_INOUT <= '0' when (i2c_sda_o = '0') else 'Z';
--- ADCM   i2c_sda_i     <= I2C_SDA_INOUT;
--- ADCM   I2C_SCL_INOUT <= '0' when (i2c_scl_o = '0') else 'Z';
--- ADCM   i2c_scl_i     <= I2C_SCL_INOUT;
-  
-  i2c_sm_reset_o    <= not '0';
-  i2c_reg_reset_o   <= not '0';
+  DEBUG_LINE_OUT(14) <= I2C_SDA_INOUT;
+  DEBUG_LINE_OUT(15) <= I2C_SCL_INOUT;
   
 -------------------------------------------------------------------------------
 -- nXyter TimeStamp Read
@@ -395,8 +375,8 @@ begin
 -- I2C Signals
 -------------------------------------------------------------------------------
 
-  I2C_SM_RESET_OUT  <= i2c_sm_reset_o;
-  I2C_REG_RESET_OUT <= i2c_reg_reset_o;
+  I2C_SM_RESET_OUT  <= not i2c_sm_reset_o;
+  I2C_REG_RESET_OUT <= not i2c_reg_reset_o;
 
 -------------------------------------------------------------------------------
 -- END

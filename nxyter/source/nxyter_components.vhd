@@ -119,10 +119,25 @@ component nx_i2c_sendbyte
     );
 end component;
 
+component nx_i2c_readbyte
+  generic (
+    i2c_speed : unsigned(11 downto 0)
+    );
+  port (
+    CLK_IN            : in  std_logic;
+    RESET_IN          : in  std_logic;
+    START_IN          : in  std_logic;
+    BYTE_OUT          : out std_logic_vector(7 downto 0);
+    SEQUENCE_DONE_OUT : out std_logic;
+    SDA_OUT           : out std_logic;
+    SCL_OUT           : out std_logic;
+    SDA_IN            : in  std_logic
+    );
+end component;
+
 -------------------------------------------------------------------------------
 -- TRBNet Registers
 -------------------------------------------------------------------------------
-
 
 component nxyter_registers
   port (
@@ -136,6 +151,8 @@ component nxyter_registers
     SLV_ACK_OUT          : out std_logic;
     SLV_NO_MORE_DATA_OUT : out std_logic;
     SLV_UNKNOWN_ADDR_OUT : out std_logic;
+    I2C_SM_RESET_OUT     : out std_logic;
+    I2C_REG_RESET_OUT    : out std_logic;
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
 end component;

@@ -79,7 +79,6 @@ begin
   
   PROC_START_STOP: process(STATE)
   begin
-
     sda_o             <= '1';
     scl_o             <= '1';
     wait_timer_init_x <= (others => '0');

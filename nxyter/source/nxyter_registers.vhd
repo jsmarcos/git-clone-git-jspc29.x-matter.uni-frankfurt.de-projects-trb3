@@ -4,6 +4,7 @@ use IEEE.STD_LOGIC_ARITH.ALL;
 use IEEE.STD_LOGIC_UNSIGNED.ALL;
 
 library work;
+use work.nxyter_components.all;
 
 entity nxyter_registers is
   port(
@@ -19,6 +20,11 @@ entity nxyter_registers is
     SLV_ACK_OUT          : out std_logic;
     SLV_NO_MORE_DATA_OUT : out std_logic;
     SLV_UNKNOWN_ADDR_OUT : out std_logic;
+
+    -- Signals
+    I2C_SM_RESET_OUT     : out std_logic;
+    I2C_REG_RESET_OUT    : out std_logic;
+
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
 end entity;
@@ -30,40 +36,140 @@ architecture Behavioral of nxyter_registers is
   signal slv_unknown_addr_o : std_logic;
   signal slv_ack_o          : std_logic;
 
+
+  -- I2C Reset
+  signal i2c_sm_reset_start  : std_logic;
+  signal i2c_reg_reset_start : std_logic;
+  signal wait_timer_init_x   : unsigned(7 downto 0);
+  signal i2c_sm_reset_o      : std_logic;
+  signal i2c_reg_reset_o     : std_logic;
+  
+  type STATES is (S_IDLE,
+                  S_I2C_SM_RESET,
+                  S_I2C_SM_RESET_WAIT,
+                  S_I2C_REG_RESET,
+                  S_I2C_REG_RESET_WAIT
+                  );
+  
+  signal STATE, NEXT_STATE : STATES;
+  
+  -- Wait Timer
+  signal wait_timer_init    : unsigned(7 downto 0);
+  signal wait_timer_done    : std_logic;
+  
   type reg_32bit_t is array (0 to 7) of std_logic_vector(31 downto 0);
   signal reg_data   : reg_32bit_t;
   
 begin
 
   DEBUG_OUT  <= reg_data(0)(15 downto 0);
+
+  nx_i2c_timer_1: nx_i2c_timer
+    port map (
+      CLK_IN                      => CLK_IN,
+      RESET_IN                    => RESET_IN,
+      TIMER_START_IN(7 downto 0)  => wait_timer_init,
+      TIMER_START_IN(11 downto 8) => open,
+      TIMER_DONE_OUT              => wait_timer_done
+      );
+  -----------------------------------------------------------------------------
+  -- I2C SM Reset
+  -----------------------------------------------------------------------------
+
+  PROC_I2C_SM_RESET_TRANSFER: process(CLK_IN)
+  begin 
+    if( rising_edge(CLK_IN) ) then
+      if( RESET_IN = '1' ) then
+        wait_timer_init  <= (others => '0');
+        STATE            <= S_IDLE;
+      else
+        wait_timer_init  <= wait_timer_init_x;
+        STATE            <= NEXT_STATE;
+      end if;
+    end if;
+  end process PROC_I2C_SM_RESET_TRANSFER;
+
+  PROC_I2C_SM_RESET: process(STATE)
+  begin
+    i2c_sm_reset_o     <= '0';
+    i2c_reg_reset_o    <= '0';
+    wait_timer_init_x  <= (others => '0');
+    
+    case STATE is
+      when S_IDLE =>
+        if (i2c_sm_reset_start = '1') then
+          NEXT_STATE       <= S_I2C_SM_RESET;
+        elsif (i2c_reg_reset_start = '1') then
+          NEXT_STATE       <= S_I2C_REG_RESET;
+        else
+          NEXT_STATE       <= S_IDLE;
+        end if;
+        
+      when S_I2C_SM_RESET =>
+        i2c_sm_reset_o     <= '1';
+        wait_timer_init_x  <= x"8f";
+        NEXT_STATE         <= S_I2C_SM_RESET_WAIT;
+
+      when S_I2C_SM_RESET_WAIT =>
+        i2c_sm_reset_o    <= '1';
+        if (wait_timer_done = '0') then
+          NEXT_STATE       <= S_I2C_SM_RESET_WAIT;
+        else
+          NEXT_STATE       <= S_IDLE;
+        end if;
+
+      when S_I2C_REG_RESET =>
+        i2c_reg_reset_o    <= '1';
+        wait_timer_init_x  <= x"8f";
+        NEXT_STATE         <= S_I2C_REG_RESET_WAIT;
+
+      when S_I2C_REG_RESET_WAIT =>
+        i2c_reg_reset_o    <= '1';
+        if (wait_timer_done = '0') then
+          NEXT_STATE       <= S_I2C_REG_RESET_WAIT;
+        else
+          NEXT_STATE       <= S_IDLE;
+        end if;
+
+    end case;
+  end process PROC_I2C_SM_RESET;
+
+  -----------------------------------------------------------------------------
+  -- Slave Bus
+  -----------------------------------------------------------------------------
   
   PROC_NX_REGISTERS: process(CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        reg_data(0) <= x"babe_0000";
-        reg_data(1) <= x"babe_0001";
-        reg_data(2) <= x"babe_0002";
-        reg_data(3) <= x"babe_0003";
-        reg_data(4) <= x"babe_0004";
-        reg_data(5) <= x"babe_0005";
-        reg_data(6) <= x"babe_0006";
-        reg_data(7) <= x"babe_0007";
+        reg_data(0)         <= x"babe_0000";
+        reg_data(1)         <= x"babe_0001";
+        reg_data(2)         <= x"babe_0002";
+        reg_data(3)         <= x"babe_0003";
+        reg_data(4)         <= x"babe_0004";
+        reg_data(5)         <= x"babe_0005";
+        reg_data(6)         <= x"babe_0006";
+        reg_data(7)         <= x"babe_0007";
 
-        slv_data_out_o     <= (others => '0');
-        slv_no_more_data_o <= '0';
-        slv_unknown_addr_o <= '0';
-        slv_ack_o          <= '0';
+        slv_data_out_o      <= (others => '0');
+        slv_no_more_data_o  <= '0';
+        slv_unknown_addr_o  <= '0';
+        slv_ack_o           <= '0';
+        
+        i2c_sm_reset_start  <= '0';
+        i2c_reg_reset_start <= '0';
       else
         slv_ack_o <= '1';
-        slv_unknown_addr_o <= '0';
-        slv_no_more_data_o <= '0';
-        slv_data_out_o     <= (others => '0');    
+        slv_unknown_addr_o  <= '0';
+        slv_no_more_data_o  <= '0';
+        slv_data_out_o      <= (others => '0');    
+        i2c_sm_reset_start  <= '0';
+        i2c_reg_reset_start <= '0';
 
         if (SLV_WRITE_IN  = '1') then
           case SLV_ADDR_IN is
-            when x"0000" => reg_data(0) <= SLV_DATA_IN;
-            when x"0001" => reg_data(1) <= SLV_DATA_IN;
+            when x"0000" => i2c_sm_reset_start <= '1';
+            when x"0001" => i2c_reg_reset_start <= '1';
             when x"0002" => reg_data(2) <= SLV_DATA_IN;
             when x"0003" => reg_data(3) <= SLV_DATA_IN;
             when x"0004" => reg_data(4) <= SLV_DATA_IN;
@@ -100,5 +206,8 @@ begin
   SLV_NO_MORE_DATA_OUT <= slv_no_more_data_o; 
   SLV_UNKNOWN_ADDR_OUT <= slv_unknown_addr_o;
   SLV_ACK_OUT          <= slv_ack_o;          
+
+  I2C_SM_RESET_OUT     <= i2c_sm_reset_o;
+  I2C_REG_RESET_OUT    <= i2c_reg_reset_o;
 
 end Behavioral;
