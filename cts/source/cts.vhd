@@ -578,7 +578,7 @@ begin
       if rising_edge(CLK) then
          TIME_REFERENCE_OUT <= '0';
          if RESET = '1' then
-            time_reference_counter_v := TIME_REFERENCE_COUNT;
+            time_reference_counter_v := TIME_REFERENCE_COUNT - 1;
          else
             if time_reference_start_i = '1' then
                -- start
