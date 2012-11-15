@@ -169,8 +169,10 @@ entity trb3_central is
     attribute syn_useioff of FPGA2_COMM         : signal is true;
     attribute syn_useioff of FPGA3_COMM         : signal is true;
     attribute syn_useioff of FPGA4_COMM         : signal is true;
-
-
+    attribute syn_useioff of CLK_MNGR1_USER     : signal is false;
+    attribute syn_useioff of CLK_MNGR2_USER     : signal is false;
+    attribute syn_useioff of TRIGGER_SELECT     : signal is false;
+    attribute syn_useioff of CLOCK_SELECT       : signal is false;
 end entity;
 
 architecture trb3_central_arch of trb3_central is
@@ -309,6 +311,7 @@ architecture trb3_central_arch of trb3_central is
    signal cts_ext_trigger             : std_logic;
    signal cts_ext_status              : std_logic_vector(31 downto 0) := (others => '0');
    signal cts_ext_control             : std_logic_vector(31 downto 0);
+   signal cts_ext_debug               : std_logic_vector(31 downto 0);
 
    signal cts_rdo_additional_data     : std_logic_vector(31 downto 0);
    signal cts_rdo_additional_write    : std_logic := '0';
@@ -347,6 +350,12 @@ architecture trb3_central_arch of trb3_central is
    signal trigger_busy_i              : std_logic;
    signal trigger_in_buf_i            : std_logic_vector(3 downto 0);
 
+   signal select_tc                   : std_logic_vector(31 downto 0);
+   signal select_tc_data_in           : std_logic_vector(31 downto 0);
+   signal select_tc_write             : std_logic;
+   signal select_tc_read              : std_logic;
+   signal select_tc_ack               : std_logic;
+   
    component mbs_vulom_recv is
    port(
       CLK        : in std_logic;  -- e.g. 100 MHz
@@ -394,9 +403,9 @@ begin
       FINISHED_OUT   => cts_rdo_additional_finished,
 
       CONTROL_REG_IN => cts_ext_control,
-      STATUS_REG_OUT => cts_ext_status
+      STATUS_REG_OUT => cts_ext_status,
       
-      -- DEBUG => ''
+      DEBUG => cts_ext_debug
    );
 
    trigger_in_buf_i(1 downto 0) <= CLK_EXT;
@@ -496,14 +505,14 @@ THE_RESET_HANDLER : trb_net_reset_handler
     SYSCLK_IN       => clk_100_i,       -- PLL/DLL remastered clock
     PLL_LOCKED_IN   => pll_lock,        -- master PLL lock signal (async)
     RESET_IN        => '0',             -- general reset signal (SYSCLK)
-    TRB_RESET_IN    => '0',             -- TRBnet reset signal (SYSCLK)
+    TRB_RESET_IN    => trb_reset_in,    -- TRBnet reset signal (SYSCLK)
     CLEAR_OUT       => clear_i,         -- async reset out, USE WITH CARE!
     RESET_OUT       => reset_i_temp,    -- synchronous reset out (SYSCLK)
     DEBUG_OUT       => open
   );
 
-trb_reset_in <= reset_via_gbe_delayed(2) or MED_STAT_OP(4*16+13);
-reset_i <= reset_i_temp or trb_reset_in;
+trb_reset_in <= reset_via_gbe or MED_STAT_OP(4*16+13); --_delayed(2)
+reset_i <= reset_i_temp; -- or trb_reset_in;
 
 process begin
   wait until rising_edge(clk_100_i);
@@ -646,9 +655,9 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
     BROADCAST_SPECIAL_ADDR           => x"35",
     RDO_ADDITIONAL_PORT              => c_YES,
     RDO_DATA_BUFFER_DEPTH            => 9,
-    RDO_DATA_BUFFER_FULL_THRESH      => 2**8,
+    RDO_DATA_BUFFER_FULL_THRESH      => 2**9-128,
     RDO_HEADER_BUFFER_DEPTH          => 9,
-    RDO_HEADER_BUFFER_FULL_THRESH    => 2**8	  
+    RDO_HEADER_BUFFER_FULL_THRESH    => 2**9-128	  
     )
   port map( 
 	  CLK                     => clk_100_i,
@@ -874,9 +883,9 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
 ---------------------------------------------------------------------------
 THE_BUS_HANDLER : trb_net16_regio_bus_handler
   generic map(
-    PORT_NUMBER    => 5,
-    PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"8100", 3 => x"8300", 4 => x"a000", others => x"0000"),
-    PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 8,       3 => 8,       4 => 9,       others => 0)
+    PORT_NUMBER    => 6,
+    PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"8100", 3 => x"8300", 4 => x"a000", 5 => x"d300", others => x"0000"),
+    PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 8,       3 => 8,       4 => 9,       5 => 0,       others => 0)
     )
   port map(
     CLK                   => clk_100_i,
@@ -954,6 +963,18 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
    BUS_WRITE_ACK_IN(4)              => cts_regio_write_ack,
    BUS_NO_MORE_DATA_IN(4)           => '0',
    BUS_UNKNOWN_ADDR_IN(4)           => cts_regio_unknown_addr,
+
+  -- Trigger and Clock Manager Settings
+   BUS_ADDR_OUT(6*16-1 downto 5*16) => open,
+   BUS_DATA_OUT(6*32-1 downto 5*32) => select_tc_data_in,
+   BUS_READ_ENABLE_OUT(5)           => select_tc_read,
+   BUS_WRITE_ENABLE_OUT(5)          => select_tc_write,
+   BUS_TIMEOUT_OUT(5)               => open,
+   BUS_DATA_IN(6*32-1 downto 5*32)  => select_tc,
+   BUS_DATAREADY_IN(5)              => select_tc_ack,
+   BUS_WRITE_ACK_IN(5)              => select_tc_ack,
+   BUS_NO_MORE_DATA_IN(5)           => '0',
+   BUS_UNKNOWN_ADDR_IN(5)           => '0',   
    
    STAT_DEBUG  => open
     );
@@ -1024,10 +1045,22 @@ THE_FPGA_REBOOT : fpga_reboot
 ---------------------------------------------------------------------------
 -- Clock and Trigger Configuration
 ---------------------------------------------------------------------------
-  TRIGGER_SELECT <= '1'; --always internal trigger source
-  CLOCK_SELECT   <= '0'; --use on-board oscillator
-  CLK_MNGR1_USER <= (others => '0');
-  CLK_MNGR2_USER <= (others => '0'); 
+
+process begin
+  wait until rising_edge(clk_100_i);
+  if reset_i = '1' then
+    select_tc <= x"00000001"; --always internal trigger source
+  elsif select_tc_write = '1' then
+    select_tc <= select_tc_data_in;
+  end if;
+  select_tc_ack <= select_tc_read or select_tc_write;
+end process;
+
+  TRIGGER_SELECT <= select_tc(0);
+  CLOCK_SELECT   <= select_tc(8); --use on-board oscillator
+  CLK_MNGR1_USER <= select_tc(19 downto 16);
+  CLK_MNGR2_USER <= select_tc(27 downto 24); 
+
 
   TRIGGER_OUT    <= cts_trigger_out;
   TRIGGER_OUT2   <= cts_trigger_out;
@@ -1090,6 +1123,7 @@ LED_YELLOW <= link_ok; --debug(3);
 
   
   TEST_LINE(31 downto 0) <= (others => '0');
+--   TEST_LINE(31 downto 0) <= cts_ext_debug;
 
 
 ---------------------------------------------------------------------------
