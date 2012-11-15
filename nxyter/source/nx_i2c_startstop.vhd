@@ -54,7 +54,10 @@ architecture Behavioral of nx_i2c_startstop is
 begin
 
   -- Timer
-  nx_i2c_timer_1: nx_i2c_timer
+  nx_timer_1: nx_timer
+    generic map (
+      CTR_WIDTH => 12
+      )
     port map (
       CLK_IN         => CLK_IN,
       RESET_IN       => RESET_IN,

@@ -97,6 +97,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal spi_sdo              : std_logic;        
 
   -- FIFO Read
+  signal nx_ts_reset_o        : std_logic;
   signal nx_frame_clock_o     : std_logic;
   signal nx_frame_sync_o      : std_logic;
   
@@ -110,12 +111,15 @@ begin
 -------------------------------------------------------------------------------
 -- DEBUG
 -------------------------------------------------------------------------------
---   DEBUG_LINE_OUT(0)           <= CLK_IN;
---   DEBUG_LINE_OUT(1)           <= clk_256_o;
---   DEBUG_LINE_OUT(2)           <= NX_CLK128_IN;
+--   DEBUG_LINE_OUT(2)           <= CLK_IN;
+--   DEBUG_LINE_OUT(1)           <= NX_CLK256A_OUT;
+--   DEBUG_LINE_OUT(0)           <= NX_CLK128_IN;
 --   DEBUG_LINE_OUT(3)           <= nx_frame_clock_o;
 --   DEBUG_LINE_OUT(4)           <= nx_frame_sync_o;
---   DEBUG_LINE_OUT(7 downto 5)  <= (others => '0');
+--   DEBUG_LINE_OUT(5)           <= NX_RESET_OUT;
+--   DEBUG_LINE_OUT(7 downto 6)  <= (others => '0');
+--   
+--   DEBUG_LINE_OUT(15 downto 8) <= NX_TIMESTAMP_IN;
 --   DEBUG_LINE_OUT(15 downto 8) <= NX_TIMESTAMP_IN;
 --   DEBUG_LINE_OUT(8)            <= i2c_sda_o;
 --   DEBUG_LINE_OUT(9)            <= i2c_sda_i;
@@ -144,6 +148,9 @@ begin
       LOCK  => open
       );
 
+  NX_CLK256A_OUT     <= clk_256_o;
+  NX_TESTPULSE_OUT   <= '0';
+
   -- pll_25_1: pll_25
   --   port map (
   --     CLK   => CLK_IN,
@@ -151,10 +158,6 @@ begin
   --     LOCK  => open
   --     );
   -- clk_256_o      <= CLK_128_IN;
-
-  NX_RESET_OUT       <= '0';
-  NX_CLK256A_OUT     <= clk_256_o;
-  NX_TESTPULSE_OUT   <= '0';
 
   -- TRBNet Bus Handler
   THE_BUS_HANDLER: trb_net16_regio_bus_handler
@@ -274,20 +277,22 @@ begin
 -------------------------------------------------------------------------------
   nxyter_registers_1: nxyter_registers
     port map (
-      CLK_IN               => CLK_IN,
-      RESET_IN             => RESET_IN,
-
-      SLV_READ_IN          => slv_read(0),
-      SLV_WRITE_IN         => slv_write(0),
-      SLV_DATA_OUT         => slv_data_rd(0*32+31 downto 0*32),
-      SLV_DATA_IN          => slv_data_wr(0*32+31 downto 0*32),
-      SLV_ADDR_IN          => slv_addr(0*16+15 downto 0*16),
-      SLV_ACK_OUT          => slv_ack(0),
-      SLV_NO_MORE_DATA_OUT => slv_no_more_data(0),
-      SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(0),
-      I2C_SM_RESET_OUT     => i2c_sm_reset_o,
-      I2C_REG_RESET_OUT    => i2c_reg_reset_o,
-      DEBUG_OUT            => open
+      CLK_IN                 => CLK_IN,
+      RESET_IN               => RESET_IN,
+                             
+      SLV_READ_IN            => slv_read(0),
+      SLV_WRITE_IN           => slv_write(0),
+      SLV_DATA_OUT           => slv_data_rd(0*32+31 downto 0*32),
+      SLV_DATA_IN            => slv_data_wr(0*32+31 downto 0*32),
+      SLV_ADDR_IN            => slv_addr(0*16+15 downto 0*16),
+      SLV_ACK_OUT            => slv_ack(0),
+      SLV_NO_MORE_DATA_OUT   => slv_no_more_data(0),
+      SLV_UNKNOWN_ADDR_OUT   => slv_unknown_addr(0),
+      I2C_SM_RESET_OUT       => i2c_sm_reset_o,
+      I2C_REG_RESET_OUT      => i2c_reg_reset_o,
+      NX_TS_RESET_OUT        => nx_ts_reset_o,
+      -- DEBUG_OUT(7 downto 0)  => DEBUG_LINE_OUT(15 downto 8)
+      DEBUG_OUT              => open
       );
 
 -------------------------------------------------------------------------------
@@ -310,11 +315,8 @@ begin
       SLV_ACK_OUT           => slv_ack(1), 
       SLV_NO_MORE_DATA_OUT  => slv_no_more_data(1),
       SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(1),
-      DEBUG_OUT(13 downto 0) => DEBUG_LINE_OUT(13 downto 0)
-      --DEBUG_OUT             => open
+      DEBUG_OUT             => open
       );
-  DEBUG_LINE_OUT(14) <= I2C_SDA_INOUT;
-  DEBUG_LINE_OUT(15) <= I2C_SCL_INOUT;
   
 -------------------------------------------------------------------------------
 -- nXyter TimeStamp Read
@@ -340,10 +342,10 @@ begin
       SLV_NO_MORE_DATA_OUT => slv_no_more_data(2),
       SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(2),
 
---      DEBUG_OUT           => DEBUG_LINE_OUT(7 downto 0)
-      DEBUG_OUT           => open
+      DEBUG_OUT            => DEBUG_LINE_OUT
+      -- DEBUG_OUT           => open
       );
-
+   
 -------------------------------------------------------------------------------
 -- Data Buffer FIFO
 -------------------------------------------------------------------------------
@@ -370,6 +372,7 @@ begin
 -------------------------------------------------------------------------------
 -- nXyter Signals
 -------------------------------------------------------------------------------
+  NX_RESET_OUT      <= not nx_ts_reset_o;
   
 -------------------------------------------------------------------------------
 -- I2C Signals
@@ -377,7 +380,7 @@ begin
 
   I2C_SM_RESET_OUT  <= not i2c_sm_reset_o;
   I2C_REG_RESET_OUT <= not i2c_reg_reset_o;
-
+     
 -------------------------------------------------------------------------------
 -- END
 -------------------------------------------------------------------------------

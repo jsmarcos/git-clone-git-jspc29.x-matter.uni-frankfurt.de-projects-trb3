@@ -2,23 +2,26 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity nx_i2c_timer is
+entity nx_timer is
+  generic (
+    CTR_WIDTH : integer := 12
+    );
   port(
     CLK_IN               : in    std_logic;
     RESET_IN             : in    std_logic;
 
-    TIMER_START_IN       : in unsigned(11 downto 0);
+    TIMER_START_IN       : in unsigned(CTR_WIDTH - 1 downto 0);
     TIMER_DONE_OUT       : out std_logic
     );
 end entity;
 
-architecture Behavioral of nx_i2c_timer is
+architecture Behavioral of nx_timer is
 
   -- Timer
-  signal timer_ctr       : unsigned(11 downto 0);
+  signal timer_ctr       : unsigned(CTR_WIDTH - 1 downto 0);
   signal timer_done_o    : std_logic;
 
-  signal timer_ctr_x     : unsigned(11 downto 0);
+  signal timer_ctr_x     : unsigned(CTR_WIDTH - 1 downto 0);
   signal timer_done_o_x  : std_logic;
 
   type STATES is (S_IDLE,

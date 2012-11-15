@@ -78,7 +78,10 @@ component nx_i2c_master
     );
 end component;
 
-component nx_i2c_timer
+component nx_timer
+  generic (
+    CTR_WIDTH : integer
+    );
   port (
     CLK_IN         : in  std_logic;
     RESET_IN       : in  std_logic;
@@ -153,7 +156,23 @@ component nxyter_registers
     SLV_UNKNOWN_ADDR_OUT : out std_logic;
     I2C_SM_RESET_OUT     : out std_logic;
     I2C_REG_RESET_OUT    : out std_logic;
+    NX_TS_RESET_OUT      : out std_logic;
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
+    );
+end component;
+
+component fifo_dc_9to36
+  port (
+    Data    : in  std_logic_vector(8 downto 0);
+    WrClock : in  std_logic;
+    RdClock : in  std_logic;
+    WrEn    : in  std_logic;
+    RdEn    : in  std_logic;
+    Reset   : in  std_logic;
+    RPReset : in  std_logic;
+    Q       : out std_logic_vector(35 downto 0);
+    Empty   : out std_logic;
+    Full    : out std_logic
     );
 end component;
 
@@ -168,7 +187,8 @@ component fifo_dc_8to32
     RPReset : in  std_logic;
     Q       : out std_logic_vector(31 downto 0);
     Empty   : out std_logic;
-    Full    : out std_logic);
+    Full    : out std_logic
+    );
 end component;
 
 component nx_timestamp_fifo_read
@@ -191,7 +211,7 @@ component nx_timestamp_fifo_read
     SLV_NO_MORE_DATA_OUT : out std_logic;
     SLV_UNKNOWN_ADDR_OUT : out std_logic;
 
-    DEBUG_OUT            : out std_logic_vector(7 downto 0)
+    DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
 end component;
 

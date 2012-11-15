@@ -24,7 +24,8 @@ entity nxyter_registers is
     -- Signals
     I2C_SM_RESET_OUT     : out std_logic;
     I2C_REG_RESET_OUT    : out std_logic;
-
+    NX_TS_RESET_OUT      : out std_logic;
+    
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
 end entity;
@@ -40,15 +41,20 @@ architecture Behavioral of nxyter_registers is
   -- I2C Reset
   signal i2c_sm_reset_start  : std_logic;
   signal i2c_reg_reset_start : std_logic;
-  signal wait_timer_init_x   : unsigned(7 downto 0);
+  signal nx_ts_reset_start   : std_logic;
+  
   signal i2c_sm_reset_o      : std_logic;
   signal i2c_reg_reset_o     : std_logic;
-  
+  signal nx_ts_reset_o       : std_logic;
+  signal wait_timer_init_x   : unsigned(7 downto 0);
+
   type STATES is (S_IDLE,
                   S_I2C_SM_RESET,
                   S_I2C_SM_RESET_WAIT,
                   S_I2C_REG_RESET,
-                  S_I2C_REG_RESET_WAIT
+                  S_I2C_REG_RESET_WAIT,
+                  S_NX_TS_RESET,
+                  S_NX_TS_RESET_WAIT
                   );
   
   signal STATE, NEXT_STATE : STATES;
@@ -62,16 +68,23 @@ architecture Behavioral of nxyter_registers is
   
 begin
 
-  DEBUG_OUT  <= reg_data(0)(15 downto 0);
+  DEBUG_OUT(0) <=  I2C_SM_RESET_OUT ;
+  DEBUG_OUT(1) <=  I2C_REG_RESET_OUT;
+  DEBUG_OUT(2) <=  NX_TS_RESET_OUT;
 
-  nx_i2c_timer_1: nx_i2c_timer
+  DEBUG_OUT(15 downto 3) <= (others => '0');
+  
+  nx_timer_1: nx_timer
+    generic map (
+      CTR_WIDTH => 8
+      )
     port map (
-      CLK_IN                      => CLK_IN,
-      RESET_IN                    => RESET_IN,
-      TIMER_START_IN(7 downto 0)  => wait_timer_init,
-      TIMER_START_IN(11 downto 8) => open,
-      TIMER_DONE_OUT              => wait_timer_done
+      CLK_IN         => CLK_IN,
+      RESET_IN       => RESET_IN,
+      TIMER_START_IN => wait_timer_init,
+      TIMER_DONE_OUT => wait_timer_done
       );
+  
   -----------------------------------------------------------------------------
   -- I2C SM Reset
   -----------------------------------------------------------------------------
@@ -93,6 +106,7 @@ begin
   begin
     i2c_sm_reset_o     <= '0';
     i2c_reg_reset_o    <= '0';
+    nx_ts_reset_o      <= '0';
     wait_timer_init_x  <= (others => '0');
     
     case STATE is
@@ -101,6 +115,8 @@ begin
           NEXT_STATE       <= S_I2C_SM_RESET;
         elsif (i2c_reg_reset_start = '1') then
           NEXT_STATE       <= S_I2C_REG_RESET;
+        elsif (nx_ts_reset_start = '1') then
+          NEXT_STATE       <= S_NX_TS_RESET;
         else
           NEXT_STATE       <= S_IDLE;
         end if;
@@ -131,6 +147,20 @@ begin
           NEXT_STATE       <= S_IDLE;
         end if;
 
+      when S_NX_TS_RESET =>
+        nx_ts_reset_o      <= '1';
+        wait_timer_init_x  <= x"8f";
+        NEXT_STATE         <= S_NX_TS_RESET_WAIT;
+
+      when S_NX_TS_RESET_WAIT =>
+        nx_ts_reset_o      <= '1';
+        if (wait_timer_done = '0') then
+          NEXT_STATE       <= S_NX_TS_RESET_WAIT;
+        else
+          NEXT_STATE       <= S_IDLE;
+        end if;
+
+        
     end case;
   end process PROC_I2C_SM_RESET;
 
@@ -158,6 +188,7 @@ begin
         
         i2c_sm_reset_start  <= '0';
         i2c_reg_reset_start <= '0';
+        nx_ts_reset_start   <= '0';
       else
         slv_ack_o <= '1';
         slv_unknown_addr_o  <= '0';
@@ -165,12 +196,13 @@ begin
         slv_data_out_o      <= (others => '0');    
         i2c_sm_reset_start  <= '0';
         i2c_reg_reset_start <= '0';
+        nx_ts_reset_start   <= '0';
 
         if (SLV_WRITE_IN  = '1') then
           case SLV_ADDR_IN is
-            when x"0000" => i2c_sm_reset_start <= '1';
+            when x"0000" => i2c_sm_reset_start  <= '1';
             when x"0001" => i2c_reg_reset_start <= '1';
-            when x"0002" => reg_data(2) <= SLV_DATA_IN;
+            when x"0002" => nx_ts_reset_start   <= '1';
             when x"0003" => reg_data(3) <= SLV_DATA_IN;
             when x"0004" => reg_data(4) <= SLV_DATA_IN;
             when x"0005" => reg_data(5) <= SLV_DATA_IN;
@@ -209,5 +241,6 @@ begin
 
   I2C_SM_RESET_OUT     <= i2c_sm_reset_o;
   I2C_REG_RESET_OUT    <= i2c_reg_reset_o;
+  NX_TS_RESET_OUT      <= nx_ts_reset_o;
 
 end Behavioral;
