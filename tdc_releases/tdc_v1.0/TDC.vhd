@@ -53,7 +53,7 @@ entity TDC is
     HCB_DATAREADY_OUT     : out std_logic;
     HCB_UNKNOWN_ADDR_OUT  : out std_logic;
 --
-    TDC_DEBUG             : out std_logic_vector(32*2**STATUS_REG_NR-1 downto 0);
+    SLOW_CONTROL_REG_OUT  : out std_logic_vector(32*2**STATUS_REG_NR-1 downto 0);
     LOGIC_ANALYSER_OUT    : out std_logic_vector(15 downto 0);
     CONTROL_REG_IN        : in  std_logic_vector(32*2**CONTROL_REG_NR-1 downto 0)
     );
@@ -318,7 +318,7 @@ begin
   end generate GEN_Channels;
   channel_data_i(CHANNEL_NUMBER) <= x"FFFFFFFF";
 
-  GenCoarseCounter: for i in 1 to 4 generate
+  GenCoarseCounter : for i in 1 to 4 generate
     -- Common Coarse counter
     TheCoarseCounter : up_counter
       generic map (
@@ -345,7 +345,7 @@ begin
   -- Bus handler for the hit counter signals
   TheHitCounterBus : BusHandler
     generic map (
-      CHANNEL_NUMBER => CHANNEL_NUMBER-1)
+      BUS_LENGTH => CHANNEL_NUMBER-1)
     port map (
       RESET            => RESET,
       CLK              => CLK_READOUT,
@@ -433,8 +433,8 @@ begin
     end if;
   end process Coarse_Counter_Reset;
 
-  GenCoarseCounterReset: for i in 1 to 4 generate
-    coarse_cntr_reset_r(i) <= coarse_cntr_reset when rising_edge(CLK_TDC);    
+  GenCoarseCounterReset : for i in 1 to 4 generate
+    coarse_cntr_reset_r(i) <= coarse_cntr_reset when rising_edge(CLK_TDC);
   end generate GenCoarseCounterReset;
 
   GENFifoFullHistory : for i in 0 to CHANNEL_NUMBER - 1 generate
@@ -1246,87 +1246,87 @@ begin
 -------------------------------------------------------------------------------
 
 -- Register 0x80
-  TDC_DEBUG(7 downto 0)  <= fsm_debug_reg;
-  TDC_DEBUG(15 downto 8) <= std_logic_vector(to_unsigned(CHANNEL_NUMBER-1, 8));
-  TDC_DEBUG(16)          <= REFERENCE_TIME when rising_edge(CLK_READOUT);
+  SLOW_CONTROL_REG_OUT(7 downto 0)  <= fsm_debug_reg;
+  SLOW_CONTROL_REG_OUT(15 downto 8) <= std_logic_vector(to_unsigned(CHANNEL_NUMBER-1, 8));
+  SLOW_CONTROL_REG_OUT(16)          <= REFERENCE_TIME when rising_edge(CLK_READOUT);
 --
---  TDC_DEBUG(27 downto 24)          <= 
+--  SLOW_CONTROL_REG_OUT(27 downto 24)          <= 
 --
---  TDC_DEBUG(31 downto 28)          <= 
+--  SLOW_CONTROL_REG_OUT(31 downto 28)          <= 
 
 -- Register 0x81 & 0x82
-  TDC_DEBUG(1*32+CHANNEL_NUMBER-2 downto 1*32+0) <= channel_empty_2reg(CHANNEL_NUMBER-1 downto 1);
+  SLOW_CONTROL_REG_OUT(1*32+CHANNEL_NUMBER-2 downto 1*32+0) <= channel_empty_2reg(CHANNEL_NUMBER-1 downto 1);
 
 -- Register 0x83
-  TDC_DEBUG(3*32+31 downto 3*32+0) <= "00000" & TRG_WIN_POST & "00000" & TRG_WIN_PRE;
+  SLOW_CONTROL_REG_OUT(3*32+31 downto 3*32+0) <= "00000" & TRG_WIN_POST & "00000" & TRG_WIN_PRE;
 
 -- Register 0x84
-  TDC_DEBUG(4*32+23 downto 4*32+0) <= std_logic_vector(trig_number);
+  SLOW_CONTROL_REG_OUT(4*32+23 downto 4*32+0) <= std_logic_vector(trig_number);
 
 -- Register 0x85
-  TDC_DEBUG(5*32+23 downto 5*32+0) <= std_logic_vector(valid_tmg_trig_number);
+  SLOW_CONTROL_REG_OUT(5*32+23 downto 5*32+0) <= std_logic_vector(valid_tmg_trig_number);
 
 -- Register 0x86
-  TDC_DEBUG(6*32+23 downto 6*32+0) <= std_logic_vector(valid_NOtmg_trig_number);
+  SLOW_CONTROL_REG_OUT(6*32+23 downto 6*32+0) <= std_logic_vector(valid_NOtmg_trig_number);
 
 -- Register 0x87
-  TDC_DEBUG(7*32+23 downto 7*32+0) <= std_logic_vector(invalid_trig_number);
+  SLOW_CONTROL_REG_OUT(7*32+23 downto 7*32+0) <= std_logic_vector(invalid_trig_number);
 
 -- Register 0x88
-  TDC_DEBUG(8*32+23 downto 8*32+0) <= std_logic_vector(multi_tmg_trig_number);
+  SLOW_CONTROL_REG_OUT(8*32+23 downto 8*32+0) <= std_logic_vector(multi_tmg_trig_number);
 
 -- Register 0x89
-  TDC_DEBUG(9*32+23 downto 9*32+0) <= std_logic_vector(spurious_trig_number);
+  SLOW_CONTROL_REG_OUT(9*32+23 downto 9*32+0) <= std_logic_vector(spurious_trig_number);
 
 -- Register 0x8a
-  TDC_DEBUG(10*32+23 downto 10*32+0) <= std_logic_vector(wrong_readout_number);
+  SLOW_CONTROL_REG_OUT(10*32+23 downto 10*32+0) <= std_logic_vector(wrong_readout_number);
 
 -- Register 0x8b
-  TDC_DEBUG(11*32+23 downto 11*32+0) <= std_logic_vector(spike_number);
+  SLOW_CONTROL_REG_OUT(11*32+23 downto 11*32+0) <= std_logic_vector(spike_number);
 
 -- Register 0x8c
-  TDC_DEBUG(12*32+23 downto 12*32+0) <= std_logic_vector(idle_time);
+  SLOW_CONTROL_REG_OUT(12*32+23 downto 12*32+0) <= std_logic_vector(idle_time);
 
 -- Register 0x8d
-  TDC_DEBUG(13*32+23 downto 13*32+0) <= std_logic_vector(wait_time);
+  SLOW_CONTROL_REG_OUT(13*32+23 downto 13*32+0) <= std_logic_vector(wait_time);
 
 -- Register 0x8e
-  TDC_DEBUG(14*32+23 downto 14*32+0) <= std_logic_vector(total_empty_channel);
+  SLOW_CONTROL_REG_OUT(14*32+23 downto 14*32+0) <= std_logic_vector(total_empty_channel);
 
 -- Register 0x8f
-  TDC_DEBUG(15*32+23 downto 15*32+0) <= std_logic_vector(release_number);
+  SLOW_CONTROL_REG_OUT(15*32+23 downto 15*32+0) <= std_logic_vector(release_number);
 
 -- Register 0x90
-  TDC_DEBUG(16*32+23 downto 16*32+0) <= std_logic_vector(readout_time);
+  SLOW_CONTROL_REG_OUT(16*32+23 downto 16*32+0) <= std_logic_vector(readout_time);
 
 -- Register 0x91
-  TDC_DEBUG(17*32+23 downto 17*32+0) <= std_logic_vector(timeout_number);
+  SLOW_CONTROL_REG_OUT(17*32+23 downto 17*32+0) <= std_logic_vector(timeout_number);
 
 ---- Register 0x93
---  TDC_DEBUG(19*32+7 downto 19*32+0) <= scaler_number_i;
+--  SLOW_CONTROL_REG_OUT(19*32+7 downto 19*32+0) <= scaler_number_i;
 
 ---- Register 0x94
---  TDC_DEBUG(20*32+23 downto 20*32+0) <= channel_hit_detect_number(1);
+--  SLOW_CONTROL_REG_OUT(20*32+23 downto 20*32+0) <= channel_hit_detect_number(1);
 
 ---- Register 0x95
---  TDC_DEBUG(21*32+23 downto 21*32+0) <= channel_hit_detect_number(2);
+--  SLOW_CONTROL_REG_OUT(21*32+23 downto 21*32+0) <= channel_hit_detect_number(2);
 
 ---- Register 0x96
---TDC_DEBUG(22*32+23 downto 22*32+0) <= channel_hit_detect_number(3);
+--SLOW_CONTROL_REG_OUT(22*32+23 downto 22*32+0) <= channel_hit_detect_number(3);
 
 ---- Register 0x97
---TDC_DEBUG(23*32+23 downto 23*32+0) <= channel_hit_detect_number(4);
+--SLOW_CONTROL_REG_OUT(23*32+23 downto 23*32+0) <= channel_hit_detect_number(4);
 
 ---- Register 0x98
---  TDC_DEBUG(24*32+23 downto 24*32+0) <= channel_hit_detect_number(5);
+--  SLOW_CONTROL_REG_OUT(24*32+23 downto 24*32+0) <= channel_hit_detect_number(5);
 
 ---- Register 0x99
---  TDC_DEBUG(25*32+23 downto 25*32+0) <= channel_hit_detect_number(6);
+--  SLOW_CONTROL_REG_OUT(25*32+23 downto 25*32+0) <= channel_hit_detect_number(6);
 
 ---- Register 0x9a
---  TDC_DEBUG(26*32+23 downto 26*32+0) <= channel_hit_detect_number(7);
+--  SLOW_CONTROL_REG_OUT(26*32+23 downto 26*32+0) <= channel_hit_detect_number(7);
 
 ---- Register 0x9f
---  TDC_DEBUG(27*32+23 downto 27*32+0) <= channel_hit_detect_number(8);
+--  SLOW_CONTROL_REG_OUT(27*32+23 downto 27*32+0) <= channel_hit_detect_number(8);
 
 end TDC;

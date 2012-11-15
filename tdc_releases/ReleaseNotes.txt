@@ -1,5 +1,15 @@
 Version		Release Date	Release Notes
 -------------------------------------------------------------------------------------
+tdc_v2.0	12.11.2012	Double edge detection is implemented.
+
+tdc_v1.2	12.11.2012	First strecher prototype is successfully
+				implemented. Some bugs are fixed.
+
+tdc_v1.1.1	07.11.2012	The status registers are moved to the bus
+				address 0xc100. Also debug registers (encoder
+				start, fifo write, lost hits) are included in
+				the bus - 0xc200 0xc300 0xc400
+
 tdc_v1.1	26.10.2012	Readout process is collected in an individual entity.
 
 tdc_v1.0	25.10.2012	The time measurement interval is extended with

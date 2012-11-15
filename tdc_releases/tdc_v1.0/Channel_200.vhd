@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2012-10-23
+-- Last update: 2012-11-07
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -38,6 +38,8 @@ entity Channel_200 is
     RESET_COUNTERS        : in  std_logic;  -- reset for internal counters
 --
     HIT_IN                : in  std_logic;  -- hit in
+    HIT_DETECT_OUT        : out std_logic;
+    TIME_STAMP_IN         : in  std_logic_vector(10 downto 0);
     SCALER_IN             : in  std_logic;  -- input for the scaler counter
     EPOCH_COUNTER_IN      : in  std_logic_vector(27 downto 0);  -- system coarse counter
     TRIGGER_WINDOW_END_IN : in  std_logic;
@@ -50,6 +52,8 @@ entity Channel_200 is
     FIFO_FULL_OUT         : out std_logic;  -- fifo full signal
     FIFO_ALMOST_FULL_OUT  : out std_logic;
 --
+    FIFO_WR_OUT           : out std_logic;
+    ENCODER_START_OUT     : out std_logic;
     LOST_HIT_NUMBER       : out std_logic_vector(23 downto 0);
     HIT_DETECT_NUMBER     : out std_logic_vector(23 downto 0);
     ENCODER_START_NUMBER  : out std_logic_vector(23 downto 0);
@@ -405,5 +409,10 @@ begin  -- Channel_200
   end process FIFO_WR_Counter;
 
   FIFO_WR_NUMBER <= std_logic_vector(fifo_wr_cntr) when rising_edge(CLK_100);
+
+-- Unused ports
+  HIT_DETECT_OUT    <= '0';
+  FIFO_WR_OUT       <= '0';
+  ENCODER_START_OUT <= '0';
 
 end Channel_200;
