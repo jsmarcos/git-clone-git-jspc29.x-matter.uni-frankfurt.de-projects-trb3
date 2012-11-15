@@ -10,12 +10,12 @@ use work.version.all;
 
 entity BusHandler is
   generic (
-    CHANNEL_NUMBER : integer range 0 to 64 := 2);
+    BUS_LENGTH : integer range 0 to 64 := 2);
   port (
     RESET            : in  std_logic;
     CLK              : in  std_logic;
 --
-    DATA_IN          : in  std_logic_vector_array_32(0 to CHANNEL_NUMBER);
+    DATA_IN          : in  std_logic_vector_array_32(0 to BUS_LENGTH);
     READ_EN_IN       : in  std_logic;
     WRITE_EN_IN      : in  std_logic;
     ADDR_IN          : in  std_logic_vector(6 downto 0);
@@ -48,7 +48,7 @@ begin
         data_ready_reg   <= '0';
         unknown_addr_reg <= '0';
       elsif READ_EN_IN = '1' then
-        if to_integer(unsigned(ADDR_IN)) > CHANNEL_NUMBER then  -- if bigger than 64
+        if to_integer(unsigned(ADDR_IN)) > BUS_LENGTH then  -- if bigger than 64
           data_out_reg     <= (others => '0');
           data_ready_reg   <= '0';
           unknown_addr_reg <= '1';
