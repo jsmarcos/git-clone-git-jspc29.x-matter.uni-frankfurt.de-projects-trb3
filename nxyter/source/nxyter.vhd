@@ -151,15 +151,7 @@ begin
   NX_CLK256A_OUT     <= clk_256_o;
   NX_TESTPULSE_OUT   <= '0';
 
-  -- pll_25_1: pll_25
-  --   port map (
-  --     CLK   => CLK_IN,
-  --     CLKOP => clk_256_o,
-  --     LOCK  => open
-  --     );
-  -- clk_256_o      <= CLK_128_IN;
 
-  -- TRBNet Bus Handler
   THE_BUS_HANDLER: trb_net16_regio_bus_handler
     generic map(
       PORT_NUMBER         => 4,

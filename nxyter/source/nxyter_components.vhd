@@ -287,13 +287,6 @@ component pll_nx_clk256
     LOCK  : out std_logic);
 end component;
 
-component pll_25
-  port (
-    CLK   : in  std_logic;
-    CLKOP : out std_logic;
-    LOCK  : out std_logic);
-end component;
-
 -------------------------------------------------------------------------------
 -- Simulations
 -------------------------------------------------------------------------------
