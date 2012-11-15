@@ -332,7 +332,7 @@ begin
       NX_FRAME_CLOCK_OUT   => nx_frame_clock_o,
       NX_FRAME_SYNC_OUT    => nx_frame_sync_o,
       NX_TIMESTAMP_OUT     => nx_timestamp_o,
-      
+      NX_NEW_FRAME_OUT     => open,
       SLV_READ_IN          => slv_read(2),
       SLV_WRITE_IN         => slv_write(2),
       SLV_DATA_OUT         => slv_data_rd(2*32+31 downto 2*32),

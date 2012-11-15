@@ -17,6 +17,7 @@ entity nx_timestamp_fifo_read is
     NX_FRAME_CLOCK_OUT   : out std_logic;
     NX_FRAME_SYNC_OUT    : out std_logic;
     NX_TIMESTAMP_OUT     : out std_logic_vector(31 downto 0);
+    NX_NEW_FRAME_OUT     : out std_logic;
     
     -- Slave bus         
     SLV_READ_IN          : in  std_logic;
@@ -34,6 +35,10 @@ end entity;
 
 architecture Behavioral of nx_timestamp_fifo_read is
 
+  -----------------------------------------------------------------------------
+  -- NX_TIMESTAMP_CLK Domain
+  -----------------------------------------------------------------------------
+
   -- FIFO Input Handler
   signal fifo_full                : std_logic;
   signal fifo_write_enable        : std_logic;
@@ -47,73 +52,75 @@ architecture Behavioral of nx_timestamp_fifo_read is
   signal frame_clock_ctr_inc_l    : std_logic;
   signal frame_clock_ctr_inc      : std_logic;
 
+
+  -----------------------------------------------------------------------------
+  -- CLK_IN Domain
+  -----------------------------------------------------------------------------
+
   -- FIFO Output Handler
+  type STATES is (S_IDLE,
+                  S_READ_FIFO
+                  );
+
+  signal STATE, NEXT_STATE : STATES;
+
   signal fifo_out                 : std_logic_vector(35 downto 0);
   signal fifo_empty               : std_logic;
   signal fifo_read_enable_x       : std_logic;
   signal fifo_read_enable         : std_logic;
   signal register_fifo_data_x     : std_logic_vector(31 downto 0);
   signal register_fifo_data       : std_logic_vector(31 downto 0);
-  signal fifo_new_data_x          : std_logic;
-  signal fifo_new_data            : std_logic;
+  signal fifo_new_frame_x         : std_logic;
+  signal fifo_new_frame_o         : std_logic;
 
-  signal frame_clock_ctr_inc_r    : std_logic;
-  signal frame_clock_ctr_inc_s    : std_logic;
   signal frame_clock_ctr_inc_o    : std_logic;
   
-  -- Sync NX Frame Process
-
   -- RS Sync FlipFlop
-  signal nx_frame_synced_o     : std_logic;
-  signal rs_sync_set           : std_logic;
-  signal rs_sync_reset         : std_logic;
-  
-  -- Sync Process
-  signal nx_frame_resync_ctr   : unsigned(7 downto 0);
-  signal frame_sync_wait_ctr   : unsigned (7 downto 0);
-  
-  -- Slave Bus
-  signal slv_data_out_o        : std_logic_vector(31 downto 0);
-  signal slv_no_more_data_o    : std_logic;
-  signal slv_unknown_addr_o    : std_logic;
-  signal slv_ack_o             : std_logic;
-  signal register_fifo_status  : std_logic_vector(31 downto 0);
+  signal nx_frame_synced_o        : std_logic;
 
-  type STATES is (S_IDLE,
-                  S_READ_FIFO
-                  );
-  signal STATE, NEXT_STATE : STATES;
-
+  -- Frame Sync Process                 
   type STATES_SYNC is (S_SYNC_CHECK,
                        S_SYNC_RESYNC,
                        S_SYNC_WAIT
                        );
-  signal STATE_SYNC : STATES_SYNC;
 
+  signal STATE_SYNC, NEXT_STATE_SYNC: STATES_SYNC;
+
+  signal rs_sync_set              : std_logic;
+  signal rs_sync_reset            : std_logic;
+  signal frame_clock_ctr_inc_s    : std_logic;
+  signal frame_sync_wait_ctr      : unsigned(7 downto 0);
+  signal nx_frame_resync_ctr      : unsigned(7 downto 0);
+  signal frame_sync_wait_done     : std_logic;
+  
+  signal rs_sync_set_x            : std_logic;
+  signal rs_sync_reset_x          : std_logic;
+  signal frame_clock_ctr_inc_s_x  : std_logic;
+  signal frame_sync_wait_ctr_x    : unsigned(7 downto 0);
+  signal nx_frame_resync_ctr_x    : unsigned(7 downto 0);
+
+  -- Slave Bus                    
+  signal slv_data_out_o           : std_logic_vector(31 downto 0);
+  signal slv_no_more_data_o       : std_logic;
+  signal slv_unknown_addr_o       : std_logic;
+  signal slv_ack_o                : std_logic;
+  signal register_fifo_status     : std_logic_vector(31 downto 0);
+  signal frame_clock_ctr_inc_r    : std_logic;
 
 begin
   
   DEBUG_OUT(0)           <= CLK_IN;
   
-  DEBUG_OUT(1)           <= NX_TIMESTAMP_CLK_IN; -- fifo_write_enable;
---    DEBUG_OUT(2)           <= fifo_full;
---    DEBUG_OUT(3)           <= fifo_write_enable;
---    DEBUG_OUT(4)           <= fifo_empty;
---    DEBUG_OUT(5)           <= fifo_read_enable;
-  
- -- DEBUG_OUT(2)           <= NX_FRAME_CLOCK_OUT;
- -- DEBUG_OUT(3)           <= ;
- -- DEBUG_OUT(5)           <= ;
- -- DEBUG_OUT(6)           <= ;
- -- DEBUG_OUT(7)           <= '0';
-  DEBUG_OUT(6)             <= NX_FRAME_CLOCK_OUT;
-  DEBUG_OUT(7)             <= frame_clock_ctr_inc;
---   DEBUG_OUT(15 downto 8) <= NX_TIMESTAMP_OUT(7 downto 0);
-  --DEBUG_OUT(15 downto 8) <= NX_TIMESTAMP_IN(7 downto 0);
-  DEBUG_OUT(9 downto 8) <= frame_clock_ctr;
+  DEBUG_OUT(1)           <= NX_TIMESTAMP_CLK_IN;
+  DEBUG_OUT(2)           <= NX_FRAME_CLOCK_OUT;
+  DEBUG_OUT(3)           <= NX_FRAME_SYNC_OUT;
+  DEBUG_OUT(4)           <= NX_NEW_FRAME_OUT;
+  DEBUG_OUT(5)           <= frame_clock_ctr_inc_o;
+  DEBUG_OUT(7 downto 6)  <= (others => '0');
+  DEBUG_OUT(15 downto 8) <= NX_TIMESTAMP_IN(7 downto 0);
   
   -----------------------------------------------------------------------------
-  -- Dual Clock FIFO 8bit to 32bit
+  -- Dual Clock FIFO 9bit to 36bit
   -----------------------------------------------------------------------------
 
   -- Send data to FIFO
@@ -208,13 +215,13 @@ begin
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
         fifo_read_enable    <= '0';
-        fifo_new_data       <= '0';
+        fifo_new_frame_o    <= '0';
         register_fifo_data  <= (others => '0');
         STATE               <= S_IDLE;
         register_fifo_data  <= (others => '0');
       else
         fifo_read_enable    <= fifo_read_enable_x;
-        fifo_new_data       <= fifo_new_data_x;
+        fifo_new_frame_o    <= fifo_new_frame_x;
         register_fifo_data  <= register_fifo_data_x;
         STATE               <= NEXT_STATE;
       end if;
@@ -228,7 +235,7 @@ begin
 
   begin
     fifo_read_enable_x   <= '0';
-    fifo_new_data_x      <= '0';
+    fifo_new_frame_x     <= '0';
     register_fifo_data_x <= register_fifo_data;
 
     frame_tag := fifo_out(35) & fifo_out(26) &
@@ -245,32 +252,32 @@ begin
         end if;
         
       when S_READ_FIFO =>
-        fifo_new_data_x  <= '1';
+        fifo_new_frame_x  <= '1';
         case frame_tag is
           when "1000" =>
             register_fifo_data_x(31 downto 24) <= fifo_out(34 downto 27);
             register_fifo_data_x(23 downto 16) <= fifo_out(25 downto 18);
-            register_fifo_data_x(15 downto 8)  <= fifo_out(16 downto  9);
-            register_fifo_data_x(7 downto 0)   <= fifo_out(7  downto  0);
+            register_fifo_data_x(15 downto  8) <= fifo_out(16 downto  9);
+            register_fifo_data_x( 7 downto  0) <= fifo_out( 7 downto  0);
           when "0100" => 
             register_fifo_data_x(31 downto 24) <= fifo_out( 7 downto  0);
             register_fifo_data_x(23 downto 16) <= fifo_out(34 downto 27);
-            register_fifo_data_x(15 downto 8)  <= fifo_out(25 downto 18);
-            register_fifo_data_x(7 downto 0)   <= fifo_out(16 downto  9);
+            register_fifo_data_x(15 downto  8) <= fifo_out(25 downto 18);
+            register_fifo_data_x( 7 downto  0) <= fifo_out(16 downto  9);
           when "0010" => 
             register_fifo_data_x(31 downto 24) <= fifo_out(16 downto  9);
-            register_fifo_data_x(23 downto 16) <= fifo_out(7  downto  0);
-            register_fifo_data_x(15 downto 8)  <= fifo_out(34 downto 27);
-            register_fifo_data_x(7 downto 0)   <= fifo_out(25 downto 18);
+            register_fifo_data_x(23 downto 16) <= fifo_out( 7 downto  0);
+            register_fifo_data_x(15 downto  8) <= fifo_out(34 downto 27);
+            register_fifo_data_x( 7 downto  0) <= fifo_out(25 downto 18);
           when "0001" => 
-            register_fifo_data_x(31 downto 24) <= fifo_out(25  downto 18);
-            register_fifo_data_x(23 downto 16) <= fifo_out(16  downto  9);
-            register_fifo_data_x(15 downto 8)  <= fifo_out(7   downto  0);
-            register_fifo_data_x(7 downto 0)   <= fifo_out(34  downto 27);
+            register_fifo_data_x(31 downto 24) <= fifo_out(25 downto 18);
+            register_fifo_data_x(23 downto 16) <= fifo_out(16 downto  9);
+            register_fifo_data_x(15 downto  8) <= fifo_out( 7 downto  0);
+            register_fifo_data_x( 7 downto  0) <= fifo_out(34 downto 27);
 
           when others =>
             register_fifo_data_x <= (others => '1');
-            fifo_new_data_x      <= '0';
+            fifo_new_frame_x     <= '0';
         end case;
         NEXT_STATE <= S_IDLE;
         
@@ -279,6 +286,10 @@ begin
   end process PROC_FIFO_READ;
   
 
+  -----------------------------------------------------------------------------
+  -- Sync to NX_DATA FRAME
+  -----------------------------------------------------------------------------
+  
   -- RS FlipFlop to hold Sync Status
   PROC_RS_FRAME_SYNCED: process(CLK_IN)
   begin
@@ -291,119 +302,101 @@ begin
     end if;
   end process PROC_RS_FRAME_SYNCED;
 
-  -- Sync to NX_DATA FRAME 
-  PROC_SYNC_TO_NO_DATA: process(CLK_IN)
+  -- Frame Resync Timer_done Timer
+  nx_timer_1: nx_timer
+    generic map (
+      CTR_WIDTH => 8
+      )
+    port map (
+      CLK_IN         => CLK_IN,
+      RESET_IN       => RESET_IN,
+      TIMER_START_IN => frame_sync_wait_ctr,
+      TIMER_DONE_OUT => frame_sync_wait_done
+      );
 
-    variable fifo_tag_given : std_logic_vector(3 downto 0);
-  
+  -- Frame Sync process
+  PROC_SYNC_TO_NX_FRAME_TRANSFER: process(CLK_IN)
   begin
-    fifo_tag_given := fifo_out(35) & fifo_out(26) &
-                      fifo_out(17) & fifo_out(8);
+    
 
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
         rs_sync_set           <= '0';
         rs_sync_reset         <= '1';
+        frame_clock_ctr_inc_s <= '0';
         nx_frame_resync_ctr   <= (others => '0');
         frame_sync_wait_ctr   <= (others => '0');
-        frame_clock_ctr_inc_s <= '0';
         STATE_SYNC            <= S_SYNC_CHECK;
       else
-        rs_sync_set           <= '0';
-        rs_sync_reset         <= '0';
-        frame_clock_ctr_inc_s <= '0';
-
-        DEBUG_OUT(5 downto 2) <= fifo_tag_given;
-        
-        case STATE_SYNC is
-
-          when S_SYNC_CHECK =>
-            case register_fifo_data is
-              when x"7f7f7f06" =>
-                rs_sync_set <= '1';
-                STATE_SYNC  <= S_SYNC_CHECK;
-
-              when x"067f7f7f" =>
-                STATE_SYNC <= S_SYNC_RESYNC;
-
-              when x"7f067f7f" =>
-                STATE_SYNC <= S_SYNC_RESYNC;
-                
-              when x"7f7f067f" =>
-                STATE_SYNC <= S_SYNC_RESYNC;
-
-              when others =>
-                STATE_SYNC <= S_SYNC_CHECK;
-                
-            end case;
-
-          when S_SYNC_RESYNC =>
-            rs_sync_reset         <= '1';
-            frame_clock_ctr_inc_s <= '1';
-            nx_frame_resync_ctr   <= nx_frame_resync_ctr + 1;
-            frame_sync_wait_ctr   <= x"ff";
-            STATE_SYNC            <= S_SYNC_WAIT;
-
-          when S_SYNC_WAIT =>
-            if (frame_sync_wait_ctr > 0) then
-              frame_sync_wait_ctr <= frame_sync_wait_ctr -1;
-              STATE_SYNC          <= S_SYNC_WAIT;
-            else
-              STATE_SYNC          <= S_SYNC_CHECK;
-            end if;
-
-        end case;
-
+        rs_sync_set           <= rs_sync_set_x;
+        rs_sync_reset         <= rs_sync_reset_x;
+        frame_clock_ctr_inc_s <= frame_clock_ctr_inc_s_x;
+        nx_frame_resync_ctr   <= nx_frame_resync_ctr_x;
+        frame_sync_wait_ctr   <= frame_sync_wait_ctr_x;
+        STATE_SYNC            <= NEXT_STATE_SYNC;
       end if;
     end if;
-  end process PROC_SYNC_TO_NO_DATA;
+  end process PROC_SYNC_TO_NX_FRAME_TRANSFER;
+
+  PROC_SYNC_TO_NX_FRAME: process(STATE_SYNC)
+
+    variable fifo_tag_given : std_logic_vector(3 downto 0);
+
+  begin
+    rs_sync_set_x           <= '0';
+    rs_sync_reset_x         <= '0';
+    frame_clock_ctr_inc_s_x <= '0';
+    nx_frame_resync_ctr_x   <= nx_frame_resync_ctr;
+    frame_sync_wait_ctr_x   <= (others => '0');
+
+    fifo_tag_given := fifo_out(35) & fifo_out(26) &
+                      fifo_out(17) & fifo_out(8);
+    
+    case STATE_SYNC is
+      
+      when S_SYNC_CHECK =>
+        case register_fifo_data is
+          when x"7f7f7f06" =>
+            rs_sync_set_x <= '1';
+            NEXT_STATE_SYNC  <= S_SYNC_CHECK;
+
+          when x"067f7f7f" =>
+            NEXT_STATE_SYNC <= S_SYNC_RESYNC;
+            
+          when x"7f067f7f" =>
+            NEXT_STATE_SYNC <= S_SYNC_RESYNC;
+            
+          when x"7f7f067f" =>
+            NEXT_STATE_SYNC <= S_SYNC_RESYNC;
+            
+          when others =>
+            NEXT_STATE_SYNC <= S_SYNC_CHECK;
+            
+        end case;
+
+      when S_SYNC_RESYNC =>
+        rs_sync_reset_x         <= '1';
+        frame_clock_ctr_inc_s_x <= '1';
+        nx_frame_resync_ctr_x   <= nx_frame_resync_ctr + 1;
+        frame_sync_wait_ctr_x   <= x"ff";
+        NEXT_STATE_SYNC         <= S_SYNC_WAIT;
+
+      when S_SYNC_WAIT =>
+        if (frame_sync_wait_done = '0') then
+          NEXT_STATE_SYNC       <= S_SYNC_WAIT;
+        else
+          NEXT_STATE_SYNC       <= S_SYNC_CHECK;
+        end if;
+        
+    end case;
+  end process PROC_SYNC_TO_NX_FRAME;
 
   NX_FRAME_SYNC_OUT <= nx_frame_synced_o;
 
--- 
--- -------------------------------------------------------------------------------
--- -- TRBNet Slave Bus
--- -------------------------------------------------------------------------------
--- 
---   -- Cross ClockDomain NX_TIMESTAMP_CLK_IN --> CLK_IN, for simplicity just
---   -- cross all signals, even the CLK_IN ones
--- --   PROC_SYNC_FIFO_SIGNALS: process(CLK_IN)
--- --   begin
--- --     if( rising_edge(CLK_IN) ) then
--- --       if( RESET_IN = '1' ) then
--- --         fifo_empty_x          <= '0';
--- --         fifo_empty            <= '0';
--- -- 
--- --         fifo_full_x           <= '0';
--- --         fifo_full             <= '0';
--- -- 
--- --         fifo_write_enable_x   <= '0';
--- --         fifo_write_enable     <= '0';
--- --         
--- --         fifo_read_enable_x    <= '0';
--- --         fifo_read_enable      <= '0';
--- -- 
--- --         fifo_write_skip_ctr_x <= (others => '0');
--- --         fifo_write_skip_ctr_o <= (others => '0');
--- --       else
--- --         fifo_empty_x        <= fifo_empty_i;
--- --         fifo_empty          <= fifo_empty_x;
--- -- 
--- --         fifo_full_x         <= fifo_full_i;
--- --         fifo_full           <= fifo_full_x;
--- -- 
--- --         fifo_write_enable_x <= fifo_write_enable;
--- --         fifo_write_enable   <= fifo_write_enable_x;
--- -- 
--- --         fifo_read_enable_x  <= fifo_read_enable_o;
--- --         fifo_read_enable    <= fifo_read_enable_x;
--- -- 
--- --         fifo_write_skip_ctr_x <= fifo_write_skip_ctr;
--- --         fifo_write_skip_ctr_o <= fifo_write_skip_ctr_x;
--- --       end if;
--- --     end if;
--- --   end process PROC_SYNC_FIFO_SIGNALS;
--- 
+ 
+  -----------------------------------------------------------------------------
+  -- TRBNet Slave Bus
+  -----------------------------------------------------------------------------
 
   register_fifo_status(0)            <= fifo_write_enable;
   register_fifo_status(1)            <= fifo_full;
@@ -411,7 +404,7 @@ begin
   register_fifo_status(4)            <= fifo_read_enable;
   register_fifo_status(5)            <= fifo_empty;
   register_fifo_status(7 downto 6)   <= (others => '0');
-  register_fifo_status(15 downto 8)  <= (others => '0');-- fifo_write_skip_ctr;
+  register_fifo_status(15 downto 8)  <= (others => '0');
   register_fifo_status(23 downto 16) <= nx_frame_resync_ctr;
   register_fifo_status(30 downto 24) <= (others => '0');
   register_fifo_status(31)           <= nx_frame_synced_o;
@@ -436,17 +429,25 @@ begin
 
         if (SLV_READ_IN  = '1') then
           case SLV_ADDR_IN is
-            when x"0000" => slv_data_out_o     <= register_fifo_data;
-            when x"0001" => slv_data_out_o     <= register_fifo_status;
-            when others  => slv_unknown_addr_o <= '1';
-                            slv_ack_o          <= '0';          
+            when x"0000" =>
+              slv_data_out_o     <= register_fifo_data;
+
+            when x"0001" =>
+              slv_data_out_o     <= register_fifo_status;
+
+            when others  =>
+              slv_unknown_addr_o <= '1';
+              slv_ack_o          <= '0';          
           end case;
           
         elsif (SLV_WRITE_IN  = '1') then
           case SLV_ADDR_IN is
-            when x"0001" => frame_clock_ctr_inc_r <= '1';
-            when others  => slv_unknown_addr_o    <= '1';              
-                            slv_ack_o             <= '0';
+            when x"0001" =>
+              frame_clock_ctr_inc_r <= '1';
+
+            when others  =>
+              slv_unknown_addr_o    <= '1';              
+              slv_ack_o             <= '0';
           end case;                
         else
           slv_ack_o <= '0';
@@ -458,12 +459,13 @@ begin
   frame_clock_ctr_inc_o <= frame_clock_ctr_inc_r or frame_clock_ctr_inc_s;
   
   -- Output Signals
-  SLV_DATA_OUT         <= slv_data_out_o;    
-  SLV_NO_MORE_DATA_OUT <= slv_no_more_data_o; 
-  SLV_UNKNOWN_ADDR_OUT <= slv_unknown_addr_o;
-  SLV_ACK_OUT          <= slv_ack_o;
+  SLV_DATA_OUT          <= slv_data_out_o;    
+  SLV_NO_MORE_DATA_OUT  <= slv_no_more_data_o; 
+  SLV_UNKNOWN_ADDR_OUT  <= slv_unknown_addr_o;
+  SLV_ACK_OUT           <= slv_ack_o;
 
-  NX_FRAME_CLOCK_OUT   <= nx_frame_clock_o;
-  NX_TIMESTAMP_OUT     <= register_fifo_data;
-
+  NX_FRAME_CLOCK_OUT    <= nx_frame_clock_o;
+  NX_TIMESTAMP_OUT      <= register_fifo_data;
+  NX_NEW_FRAME_OUT      <= fifo_new_frame_o;
+    
 end Behavioral;

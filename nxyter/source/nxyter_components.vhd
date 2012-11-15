@@ -201,6 +201,7 @@ component nx_timestamp_fifo_read
     NX_FRAME_CLOCK_OUT   : out std_logic;
     NX_FRAME_SYNC_OUT    : out std_logic;
     NX_TIMESTAMP_OUT     : out std_logic_vector(31 downto 0);
+    NX_NEW_FRAME_OUT     : out std_logic;
 
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
