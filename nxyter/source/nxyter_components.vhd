@@ -176,21 +176,6 @@ component fifo_dc_9to36
     );
 end component;
 
-component fifo_dc_8to32
-  port (
-    Data    : in  std_logic_vector(7 downto 0);
-    WrClock : in  std_logic;
-    RdClock : in  std_logic;
-    WrEn    : in  std_logic;
-    RdEn    : in  std_logic;
-    Reset   : in  std_logic;
-    RPReset : in  std_logic;
-    Q       : out std_logic_vector(31 downto 0);
-    Empty   : out std_logic;
-    Full    : out std_logic
-    );
-end component;
-
 component nx_timestamp_fifo_read
   port (
     CLK_IN               : in  std_logic;

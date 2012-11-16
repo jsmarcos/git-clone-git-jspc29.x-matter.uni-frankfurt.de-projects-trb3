@@ -111,13 +111,17 @@ begin
 -------------------------------------------------------------------------------
 -- DEBUG
 -------------------------------------------------------------------------------
---   DEBUG_LINE_OUT(2)           <= CLK_IN;
---   DEBUG_LINE_OUT(1)           <= NX_CLK256A_OUT;
---   DEBUG_LINE_OUT(0)           <= NX_CLK128_IN;
---   DEBUG_LINE_OUT(3)           <= nx_frame_clock_o;
---   DEBUG_LINE_OUT(4)           <= nx_frame_sync_o;
---   DEBUG_LINE_OUT(5)           <= NX_RESET_OUT;
---   DEBUG_LINE_OUT(7 downto 6)  <= (others => '0');
+  DEBUG_LINE_OUT(0)           <= CLK_IN;
+  DEBUG_LINE_OUT(1)           <= NX_CLK128_IN;
+  DEBUG_LINE_OUT(2)           <= ADC_SC_CLK32_OUT;
+  DEBUG_LINE_OUT(3)           <= ADC_FCLK_IN;
+  DEBUG_LINE_OUT(4)           <= ADC_DCLK_IN;
+  DEBUG_LINE_OUT(5)           <= ADC_NX_IN;
+  DEBUG_LINE_OUT(6)           <= ADC_A_IN;
+  DEBUG_LINE_OUT(7)           <= ADC_B_IN;
+  DEBUG_LINE_OUT(8)           <= ADC_D_IN;
+    
+  DEBUG_LINE_OUT(15 downto 9)  <= (others => '0');
 --   
 --   DEBUG_LINE_OUT(15 downto 8) <= NX_TIMESTAMP_IN;
 --   DEBUG_LINE_OUT(15 downto 8) <= NX_TIMESTAMP_IN;
@@ -334,8 +338,8 @@ begin
       SLV_NO_MORE_DATA_OUT => slv_no_more_data(2),
       SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(2),
 
-      DEBUG_OUT            => DEBUG_LINE_OUT
-      -- DEBUG_OUT           => open
+      -- DEBUG_OUT            => DEBUG_LINE_OUT
+      DEBUG_OUT           => open
       );
    
 -------------------------------------------------------------------------------
@@ -372,7 +376,9 @@ begin
 
   I2C_SM_RESET_OUT  <= not i2c_sm_reset_o;
   I2C_REG_RESET_OUT <= not i2c_reg_reset_o;
-     
+
+
+  ADC_SC_CLK32_OUT  <= nx_frame_clock_o;
 -------------------------------------------------------------------------------
 -- END
 -------------------------------------------------------------------------------

@@ -116,7 +116,8 @@ begin
   DEBUG_OUT(3)           <= NX_FRAME_SYNC_OUT;
   DEBUG_OUT(4)           <= NX_NEW_FRAME_OUT;
   DEBUG_OUT(5)           <= frame_clock_ctr_inc_o;
-  DEBUG_OUT(7 downto 6)  <= (others => '0');
+  DEBUG_OUT(6)           <= frame_tag_o;
+  DEBUG_OUT(7)           <= '0';
   DEBUG_OUT(15 downto 8) <= NX_TIMESTAMP_IN(7 downto 0);
   
   -----------------------------------------------------------------------------
@@ -181,13 +182,13 @@ begin
         case frame_clock_ctr is
 
           when "00" =>
-            nx_frame_clock_o  <= '1';
+            nx_frame_clock_o  <= '0';
             frame_tag_o       <= '1';
           when "01" =>
             nx_frame_clock_o  <= '1';
             frame_tag_o       <= '0';
           when "10" =>
-            nx_frame_clock_o  <= '0';
+            nx_frame_clock_o  <= '1';
             frame_tag_o       <= '0';
           when "11" =>
             nx_frame_clock_o  <= '0';
