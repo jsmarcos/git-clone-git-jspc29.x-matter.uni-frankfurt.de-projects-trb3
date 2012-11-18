@@ -39,11 +39,11 @@ entity trb3_periph is
 
     NX1_RESET_OUT              : out   std_logic;     
     NX1_I2C_SDA_INOUT          : inout std_logic;
-    NX1_I2C_SCL_OUT            : out   std_logic;
+    NX1_I2C_SCL_INOUT          : inout std_logic;
     NX1_I2C_SM_RESET_OUT       : out   std_logic;
     NX1_I2C_REG_RESET_OUT      : out   std_logic;
     NX1_SPI_SCLK_OUT           : out   std_logic;
-    NX1_SPI_SDIO_INOUT         : in    std_logic;
+    NX1_SPI_SDIO_INOUT         : inout std_logic;
     NX1_SPI_CSB_OUT            : out   std_logic;
     NX1_CLK128_IN              : in    std_logic;
     NX1_TIMESTAMP_IN           : in    std_logic_vector (7 downto 0);
@@ -61,14 +61,14 @@ entity trb3_periph is
 
     NX2_RESET_OUT              : out   std_logic;     
     NX2_I2C_SDA_INOUT          : inout std_logic;
-    NX2_I2C_SCL_OUT            : out   std_logic;
+    NX2_I2C_SCL_INOUT          : inout std_logic;
     NX2_I2C_SM_RESET_OUT       : out   std_logic;
     NX2_I2C_REG_RESET_OUT      : out   std_logic;
     NX2_SPI_SCLK_OUT           : out   std_logic;
-    NX2_SPI_SDIO_INOUT         : in    std_logic;
+    NX2_SPI_SDIO_INOUT         : inout std_logic;
     NX2_SPI_CSB_OUT            : out   std_logic;
     NX2_CLK128_IN              : in    std_logic;
-    NX2_IN                     : in    std_logic_vector (7 downto 0);
+    NX2_TIMESTAMP_IN           : in    std_logic_vector (7 downto 0);
     NX2_CLK256A_OUT            : out   std_logic;
     NX2_TESTPULSE_OUT          : out   std_logic;
     NX2_ADC_FCLK_IN            : in    std_logic;
@@ -263,6 +263,9 @@ architecture trb3_periph_arch of trb3_periph is
   signal nx1_regio_write_ack_out     : std_logic;
   signal nx1_regio_no_more_data_out  : std_logic;
   signal nx1_regio_unknown_addr_out  : std_logic;
+
+  signal nx1_timestamp_sim_o         : std_logic_vector(7 downto 0);
+  signal nx1_clk128_sim_o            : std_logic;
 
   -- nXyter 1 Regio Bus
   signal nx2_regio_addr_in           : std_logic_vector (15 downto 0);
@@ -480,16 +483,16 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 4,
+      PORT_NUMBER    => 3,
       PORT_ADDRESSES => (0 => x"d000",
                          1 => x"d100",
                          2 => x"8000",
-                         3 => x"9000", 
+                     --    3 => x"9000", 
                          others => x"0000"),
       PORT_ADDR_MASK => (0 => 1,
                          1 => 6,
-                         2 => 15,
-                         3 => 15,
+                         2 => 12,
+                     --    3 => 12,
                          others => 0)
       )
     port map(
@@ -508,54 +511,55 @@ begin
       DAT_UNKNOWN_ADDR_OUT => regio_unknown_addr_in,
 
       --Bus Handler (SPI CTRL)
-      BUS_READ_ENABLE_OUT(0)              => spictrl_read_en,
-      BUS_WRITE_ENABLE_OUT(0)             => spictrl_write_en,
-      BUS_DATA_OUT(0*32+31 downto 0*32)   => spictrl_data_in,
-      BUS_ADDR_OUT(0*16)                  => spictrl_addr,
-      BUS_ADDR_OUT(0*16+15 downto 0*16+1) => open,
-      BUS_TIMEOUT_OUT(0)                  => open,
-      BUS_DATA_IN(0*32+31 downto 0*32)    => spictrl_data_out,
-      BUS_DATAREADY_IN(0)                 => spictrl_ack,
-      BUS_WRITE_ACK_IN(0)                 => spictrl_ack,
-      BUS_NO_MORE_DATA_IN(0)              => spictrl_busy,
-      BUS_UNKNOWN_ADDR_IN(0)              => '0',
-
-      --Bus Handler (SPI Memory)
-      BUS_READ_ENABLE_OUT(1)              => spimem_read_en,
-      BUS_WRITE_ENABLE_OUT(1)             => spimem_write_en,
-      BUS_DATA_OUT(1*32+31 downto 1*32)   => spimem_data_in,
-      BUS_ADDR_OUT(1*16+5 downto 1*16)    => spimem_addr,
-      BUS_ADDR_OUT(1*16+15 downto 1*16+6) => open,
-      BUS_TIMEOUT_OUT(1)                  => open,
-      BUS_DATA_IN(1*32+31 downto 1*32)    => spimem_data_out,
-      BUS_DATAREADY_IN(1)                 => spimem_ack,
-      BUS_WRITE_ACK_IN(1)                 => spimem_ack,
-      BUS_NO_MORE_DATA_IN(1)              => '0',
-      BUS_UNKNOWN_ADDR_IN(1)              => '0',
+      BUS_READ_ENABLE_OUT(0)               => spictrl_read_en,
+      BUS_WRITE_ENABLE_OUT(0)              => spictrl_write_en,
+      BUS_DATA_OUT(0*32+31 downto 0*32)    => spictrl_data_in,
+      BUS_ADDR_OUT(0*16)                   => spictrl_addr,
+      BUS_ADDR_OUT(0*16+15 downto 0*16+1)  => open,
+      BUS_TIMEOUT_OUT(0)                   => open,
+      BUS_DATA_IN(0*32+31 downto 0*32)     => spictrl_data_out,
+      BUS_DATAREADY_IN(0)                  => spictrl_ack,
+      BUS_WRITE_ACK_IN(0)                  => spictrl_ack,
+      BUS_NO_MORE_DATA_IN(0)               => spictrl_busy,
+      BUS_UNKNOWN_ADDR_IN(0)               => '0',
+                                           
+      --Bus Handler (SPI Memory)           
+      BUS_READ_ENABLE_OUT(1)               => spimem_read_en,
+      BUS_WRITE_ENABLE_OUT(1)              => spimem_write_en,
+      BUS_DATA_OUT(1*32+31 downto 1*32)    => spimem_data_in,
+      BUS_ADDR_OUT(1*16+5 downto 1*16)     => spimem_addr,
+      BUS_ADDR_OUT(1*16+15 downto 1*16+6)  => open,
+      BUS_TIMEOUT_OUT(1)                   => open,
+      BUS_DATA_IN(1*32+31 downto 1*32)     => spimem_data_out,
+      BUS_DATAREADY_IN(1)                  => spimem_ack,
+      BUS_WRITE_ACK_IN(1)                  => spimem_ack,
+      BUS_NO_MORE_DATA_IN(1)               => '0',
+      BUS_UNKNOWN_ADDR_IN(1)               => '0',
 
       --Bus Handler (nXyter1 trb_net16_regio_bus_handler)
-      BUS_READ_ENABLE_OUT(2)              => nx1_regio_read_enable_in,
-      BUS_WRITE_ENABLE_OUT(2)             => nx1_regio_write_enable_in,
-      BUS_DATA_OUT(2*32+31 downto 2*32)   => nx1_regio_data_in,
-      BUS_ADDR_OUT(2*16+15 downto 2*16)   => nx1_regio_addr_in,
-      BUS_TIMEOUT_OUT(2)                  => nx1_regio_timeout_in,
-      BUS_DATA_IN(2*32+31 downto 2*32)    => nx1_regio_data_out,
-      BUS_DATAREADY_IN(2)                 => nx1_regio_dataready_out,
-      BUS_WRITE_ACK_IN(2)                 => nx1_regio_write_ack_out,
-      BUS_NO_MORE_DATA_IN(2)              => nx1_regio_no_more_data_out,
-      BUS_UNKNOWN_ADDR_IN(2)              => nx1_regio_unknown_addr_out,
+      BUS_READ_ENABLE_OUT(2)               => nx1_regio_read_enable_in,
+      BUS_WRITE_ENABLE_OUT(2)              => nx1_regio_write_enable_in,
+      BUS_DATA_OUT(2*32+31 downto 2*32)    => nx1_regio_data_in,
+      BUS_ADDR_OUT(2*16+11 downto 2*16)    => nx1_regio_addr_in(11 downto 0),
+      BUS_ADDR_OUT(2*16+15 downto 2*16+12) => open,
+      BUS_TIMEOUT_OUT(2)                   => open,  --nx1_regio_timeout_in,
+      BUS_DATA_IN(2*32+31 downto 2*32)     => nx1_regio_data_out,
+      BUS_DATAREADY_IN(2)                  => nx1_regio_dataready_out,
+      BUS_WRITE_ACK_IN(2)                  => nx1_regio_write_ack_out,
+      BUS_NO_MORE_DATA_IN(2)               => nx1_regio_no_more_data_out,
+      BUS_UNKNOWN_ADDR_IN(2)               => nx1_regio_unknown_addr_out,
 
-      --Bus Handler (nXyter2 trb_net16_regio_bus_handler)
-      BUS_READ_ENABLE_OUT(3)              => nx2_regio_read_enable_in,
-      BUS_WRITE_ENABLE_OUT(3)             => nx2_regio_write_enable_in,
-      BUS_DATA_OUT(3*32+31 downto 3*32)   => nx2_regio_data_in,
-      BUS_ADDR_OUT(3*16+15 downto 3*16)   => nx2_regio_addr_in,
-      BUS_TIMEOUT_OUT(3)                  => nx2_regio_timeout_in,
-      BUS_DATA_IN(3*32+31 downto 3*32)    => nx2_regio_data_out,
-      BUS_DATAREADY_IN(3)                 => nx2_regio_dataready_out,
-      BUS_WRITE_ACK_IN(3)                 => nx2_regio_write_ack_out,
-      BUS_NO_MORE_DATA_IN(3)              => nx2_regio_no_more_data_out,
-      BUS_UNKNOWN_ADDR_IN(3)              => nx2_regio_unknown_addr_out,
+ --      --Bus Handler (nXyter2 trb_net16_regio_bus_handler)
+ --      BUS_READ_ENABLE_OUT(3)              => nx2_regio_read_enable_in,
+ --      BUS_WRITE_ENABLE_OUT(3)             => nx2_regio_write_enable_in,
+ --      BUS_DATA_OUT(3*32+31 downto 3*32)   => nx2_regio_data_in,
+ --      BUS_ADDR_OUT(3*16+15 downto 3*16)   => nx2_regio_addr_in,
+ --      BUS_TIMEOUT_OUT(3)                  => nx2_regio_timeout_in,
+ --      BUS_DATA_IN(3*32+31 downto 3*32)    => nx2_regio_data_out,
+ --      BUS_DATAREADY_IN(3)                 => nx2_regio_dataready_out,
+ --      BUS_WRITE_ACK_IN(3)                 => nx2_regio_write_ack_out,
+ --      BUS_NO_MORE_DATA_IN(3)              => nx2_regio_no_more_data_out,
+ --      BUS_UNKNOWN_ADDR_IN(3)              => nx2_regio_unknown_addr_out,
       
       STAT_DEBUG => open
       );
@@ -643,7 +647,7 @@ begin
       RESET_IN               => reset_i,
 
       I2C_SDA_INOUT          => NX1_I2C_SDA_INOUT,
-      I2C_SCL_OUT            => NX1_I2C_SCL_OUT,
+      I2C_SCL_INOUT          => NX1_I2C_SCL_INOUT,
       I2C_SM_RESET_OUT       => NX1_I2C_SM_RESET_OUT,
       I2C_REG_RESET_OUT      => NX1_I2C_REG_RESET_OUT,
 
@@ -653,6 +657,9 @@ begin
 
       NX_CLK128_IN           => NX1_CLK128_IN,
       NX_TIMESTAMP_IN        => NX1_TIMESTAMP_IN,
+--     NX_CLK128_IN           => nx1_clk128_sim_o,
+--     NX_TIMESTAMP_IN        => nx1_timestamp_sim_o,
+      
       NX_RESET_OUT           => NX1_RESET_OUT,
       NX_CLK256A_OUT         => NX1_CLK256A_OUT,
       NX_TESTPULSE_OUT       => NX1_TESTPULSE_OUT,
@@ -674,15 +681,41 @@ begin
       REGIO_DATAREADY_OUT    => nx1_regio_dataready_out,
       REGIO_WRITE_ACK_OUT    => nx1_regio_write_ack_out,
       REGIO_NO_MORE_DATA_OUT => nx1_regio_no_more_data_out,
-      REGIO_UNKNOWN_ADDR_OUT => nx1_regio_unknown_addr_out
+      REGIO_UNKNOWN_ADDR_OUT => nx1_regio_unknown_addr_out,
+
+      CLK_128_IN             => CLK_GPLL_LEFT,
+      DEBUG_LINE_OUT         => TEST_LINE
+      -- DEBUG_LINE_OUT         => open
       );
+
+  -- TEST_LINE(0) <= clk_100_i;
+  -- TEST_LINE(1) <= clk_200_i;
+  -- TEST_LINE(2) <= NX1_CLK128_IN;
+  -- TEST_LINE(3) <= NX2_CLK128_IN;
+  -- TEST_LINE(7 downto 4) <= (others => '0');
+  -- TEST_LINE(11 downto 8)  <= NX1_TIMESTAMP_IN(3 downto 0);
+  -- TEST_LINE(15 downto 12) <= NX2_TIMESTAMP_IN(3 downto 0);
+
+  
+  
+-------------------------------------------------------------------------------
+-- Timestamp Simulator
+-------------------------------------------------------------------------------
+--   nxyter_timestamp_sim_1: nxyter_timestamp_sim
+--     port map (
+--       CLK_IN        => CLK_GPLL_LEFT,
+--       RESET_IN      => reset_i,
+--       TIMESTAMP_OUT => nx1_timestamp_sim_o,
+--       CLK128_OUT    => nx1_clk128_sim_o
+--       );
+
   
 ---------------------------------------------------------------------------
 -- Test Connector - Logic Analyser
 ---------------------------------------------------------------------------
 
   
-  TEST_LINE(15 downto 0) <= (others => '0');
-
+  -- TEST_LINE(15 downto 0) <= (others => '0');
+  
 
 end architecture;

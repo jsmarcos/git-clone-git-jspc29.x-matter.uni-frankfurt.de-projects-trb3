@@ -85,10 +85,6 @@ architecture Behavioral of nXyter_FEE_board is
   signal slv_unknown_addr     : std_logic_vector(8-1 downto 0);
 
   -- I2C Master
--- ADCM   signal i2c_sda_o            : std_logic;
--- ADCM   signal i2c_sda_i            : std_logic;
--- ADCM   signal i2c_scl_o            : std_logic;
--- ADCM   signal i2c_scl_i            : std_logic;
   signal i2c_sm_reset_o       : std_logic;   
   signal i2c_reg_reset_o      : std_logic;
   
@@ -111,17 +107,17 @@ begin
 -------------------------------------------------------------------------------
 -- DEBUG
 -------------------------------------------------------------------------------
-  DEBUG_LINE_OUT(0)           <= CLK_IN;
-  DEBUG_LINE_OUT(1)           <= NX_CLK128_IN;
-  DEBUG_LINE_OUT(2)           <= ADC_SC_CLK32_OUT;
-  DEBUG_LINE_OUT(3)           <= ADC_FCLK_IN;
-  DEBUG_LINE_OUT(4)           <= ADC_DCLK_IN;
-  DEBUG_LINE_OUT(5)           <= ADC_NX_IN;
-  DEBUG_LINE_OUT(6)           <= ADC_A_IN;
-  DEBUG_LINE_OUT(7)           <= ADC_B_IN;
-  DEBUG_LINE_OUT(8)           <= ADC_D_IN;
-    
-  DEBUG_LINE_OUT(15 downto 9)  <= (others => '0');
+--   DEBUG_LINE_OUT(0)           <= CLK_IN;
+--   DEBUG_LINE_OUT(1)           <= NX_CLK128_IN;
+--   DEBUG_LINE_OUT(2)           <= ADC_SC_CLK32_OUT;
+--   DEBUG_LINE_OUT(3)           <= ADC_FCLK_IN;
+--   DEBUG_LINE_OUT(4)           <= ADC_DCLK_IN;
+--   DEBUG_LINE_OUT(5)           <= ADC_NX_IN;
+--   DEBUG_LINE_OUT(6)           <= ADC_A_IN;
+--   DEBUG_LINE_OUT(7)           <= ADC_B_IN;
+--   DEBUG_LINE_OUT(8)           <= ADC_D_IN;
+--     
+--   DEBUG_LINE_OUT(15 downto 9)  <= (others => '0');
 --   
 --   DEBUG_LINE_OUT(15 downto 8) <= NX_TIMESTAMP_IN;
 --   DEBUG_LINE_OUT(15 downto 8) <= NX_TIMESTAMP_IN;
@@ -143,8 +139,6 @@ begin
 -- Port Maps
 -------------------------------------------------------------------------------
 
-
-
   pll_nx_clk256_1: pll_nx_clk256
     port map (
       CLK   => CLK_IN,
@@ -158,18 +152,18 @@ begin
 
   THE_BUS_HANDLER: trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER         => 4,
+      PORT_NUMBER         => 5,
       PORT_ADDRESSES      => ( 0 => x"0000",    -- Control Register Handler
                                1 => x"0040",    -- I2C master
                                2 => x"0100",    -- Timestamp Fifo
                                3 => x"0200",    -- Data Buffer
-                               -- 3 => x"d100",   -- SPI data memory
+                               4 => x"0060",    -- SPI Master
                                others => x"0000"),
       PORT_ADDR_MASK      => ( 0 => 3,          -- Control Register Handler
                                1 => 0,          -- I2C master
                                2 => 1,          -- Timestamp Fifo
                                3 => 1,          -- Data Buffer
-                               -- 3 => 6,         -- SPI data memory
+                               4 => 0,          -- Master
                                others => 0)
       )
     port map(
@@ -238,7 +232,19 @@ begin
       BUS_WRITE_ACK_IN(3)                 => slv_ack(3),
       BUS_NO_MORE_DATA_IN(3)              => slv_no_more_data(3),
       BUS_UNKNOWN_ADDR_IN(3)              => slv_unknown_addr(3),
-      
+
+      -- SPI master
+      BUS_READ_ENABLE_OUT(4)              => slv_read(4),
+      BUS_WRITE_ENABLE_OUT(4)             => slv_write(4),
+      BUS_DATA_OUT(4*32+31 downto 4*32)   => slv_data_wr(4*32+31 downto 4*32),
+      BUS_DATA_IN(4*32+31 downto 4*32)    => slv_data_rd(4*32+31 downto 4*32),
+      BUS_ADDR_OUT(4*16+15 downto 4*16)   => open,
+      BUS_TIMEOUT_OUT(4)                  => open,
+      BUS_DATAREADY_IN(4)                 => slv_ack(4),
+      BUS_WRITE_ACK_IN(4)                 => slv_ack(4),
+      BUS_NO_MORE_DATA_IN(4)              => slv_no_more_data(4),
+      BUS_UNKNOWN_ADDR_IN(4)              => slv_unknown_addr(4),
+
       ---- SPI control registers
       --BUS_READ_ENABLE_OUT(4)              => slv_read(4),
       --BUS_WRITE_ENABLE_OUT(4)             => slv_write(4),
@@ -297,7 +303,7 @@ begin
 
   nx_i2c_master_1: nx_i2c_master
     generic map (
-      i2c_speed => x"3e8"
+      I2C_SPEED => x"3e8"
       )
     port map (
       CLK_IN                => CLK_IN,
@@ -313,7 +319,32 @@ begin
       SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(1),
       DEBUG_OUT             => open
       );
+
+-------------------------------------------------------------------------------
+-- SPI master block to access the ADC
+-------------------------------------------------------------------------------
   
+  adc_spi_master_1: adc_spi_master
+    generic map (
+      SPI_SPEED => x"32"
+      )
+    port map (
+      CLK_IN               => CLK_IN,
+      RESET_IN             => RESET_IN,
+      SCLK_OUT             => SPI_SCLK_OUT,
+      SDIO_INOUT           => SPI_SDIO_INOUT,
+      CSB_OUT              => SPI_CSB_OUT,
+      SLV_READ_IN          => slv_read(4),
+      SLV_WRITE_IN         => slv_write(4),
+      SLV_DATA_OUT         => slv_data_rd(4*32+31 downto 4*32),
+      SLV_DATA_IN          => slv_data_wr(4*32+31 downto 4*32),
+      SLV_ACK_OUT          => slv_ack(4), 
+      SLV_NO_MORE_DATA_OUT => slv_no_more_data(4), 
+      SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(4),
+      DEBUG_OUT            => DEBUG_LINE_OUT
+      -- DEBUG_OUT            => open
+      );
+
 -------------------------------------------------------------------------------
 -- nXyter TimeStamp Read
 -------------------------------------------------------------------------------

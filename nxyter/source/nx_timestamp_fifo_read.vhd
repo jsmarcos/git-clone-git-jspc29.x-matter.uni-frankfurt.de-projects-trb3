@@ -177,7 +177,7 @@ begin
       if( RESET_IN = '1' ) then
         frame_clock_ctr   <= (others => '0');
         nx_frame_clock_o  <= '0';
-        frame_tag_o       <= '1';
+        frame_tag_o       <= '0';
       else
         case frame_clock_ctr is
 

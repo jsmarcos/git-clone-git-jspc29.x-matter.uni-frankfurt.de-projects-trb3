@@ -7,7 +7,7 @@ use work.nxyter_components.all;
 
 entity nx_i2c_startstop is
   generic (
-    i2c_speed : unsigned(11 downto 0) := x"3e8"
+    I2C_SPEED : unsigned(11 downto 0) := x"3e8"
     );
   port(
     CLK_IN               : in  std_logic;
@@ -103,14 +103,14 @@ begin
         
         -- I2C START Sequence 
       when S_START =>
-        wait_timer_init_x <= i2c_speed srl 1;
+        wait_timer_init_x <= I2C_SPEED srl 1;
         NEXT_STATE <= S_WAIT_START_1;
 
       when S_WAIT_START_1 =>
         if (wait_timer_done = '0') then
           NEXT_STATE <= S_WAIT_START_1;
         else
-          wait_timer_init_x <= i2c_speed srl 1;
+          wait_timer_init_x <= I2C_SPEED srl 1;
           NEXT_STATE <= S_WAIT_START_2;
         end if;
 
@@ -119,7 +119,7 @@ begin
         if (wait_timer_done = '0') then
           NEXT_STATE <= S_WAIT_START_2;
         else
-          wait_timer_init_x <= i2c_speed srl 1;
+          wait_timer_init_x <= I2C_SPEED srl 1;
           NEXT_STATE <= S_WAIT_START_3;
         end if;
 
@@ -137,7 +137,7 @@ begin
       when S_STOP =>
         sda_o           <= '0';
         scl_o           <= '0';
-        wait_timer_init_x <= i2c_speed srl 1;
+        wait_timer_init_x <= I2C_SPEED srl 1;
         NEXT_STATE <= S_WAIT_STOP_1;
 
       when S_WAIT_STOP_1 =>
@@ -146,7 +146,7 @@ begin
         if (wait_timer_done = '0') then
           NEXT_STATE <= S_WAIT_STOP_1;
         else
-          wait_timer_init_x <= i2c_speed srl 1;
+          wait_timer_init_x <= I2C_SPEED srl 1;
           NEXT_STATE <= S_WAIT_STOP_2;
         end if;
 
@@ -155,7 +155,7 @@ begin
         if (wait_timer_done = '0') then
           NEXT_STATE <= S_WAIT_STOP_2;
         else
-          wait_timer_init_x <= i2c_speed srl 1;
+          wait_timer_init_x <= I2C_SPEED srl 1;
           NEXT_STATE <= S_WAIT_STOP_3;
         end if;
 

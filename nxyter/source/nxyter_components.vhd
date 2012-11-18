@@ -60,7 +60,7 @@ end component;
 
 component nx_i2c_master
   generic (
-    i2c_speed : unsigned(11 downto 0)
+    I2C_SPEED : unsigned(11 downto 0)
     );
   port (
     CLK_IN               : in    std_logic;
@@ -78,21 +78,10 @@ component nx_i2c_master
     );
 end component;
 
-component nx_timer
-  generic (
-    CTR_WIDTH : integer
-    );
-  port (
-    CLK_IN         : in  std_logic;
-    RESET_IN       : in  std_logic;
-    TIMER_START_IN : in  unsigned(11 downto 0);
-    TIMER_DONE_OUT : out std_logic
-    );
-end component;
-
 component nx_i2c_startstop
   generic (
-    i2c_speed : unsigned(11 downto 0));
+    I2C_SPEED : unsigned(11 downto 0)
+    );
   port (
     CLK_IN            : in  std_logic;
     RESET_IN          : in  std_logic;
@@ -107,7 +96,7 @@ end component;
 
 component nx_i2c_sendbyte
   generic (
-    i2c_speed : unsigned(11 downto 0)
+    I2C_SPEED : unsigned(11 downto 0)
     );
   port (
     CLK_IN            : in  std_logic;
@@ -124,7 +113,7 @@ end component;
 
 component nx_i2c_readbyte
   generic (
-    i2c_speed : unsigned(11 downto 0)
+    I2C_SPEED : unsigned(11 downto 0)
     );
   port (
     CLK_IN            : in  std_logic;
@@ -135,6 +124,61 @@ component nx_i2c_readbyte
     SDA_OUT           : out std_logic;
     SCL_OUT           : out std_logic;
     SDA_IN            : in  std_logic
+    );
+end component;
+
+-------------------------------------------------------------------------------
+-- ADC SPI Interface
+-------------------------------------------------------------------------------
+
+component adc_spi_master
+  generic (
+    SPI_SPEED : unsigned(7 downto 0)
+    );
+  port (
+    CLK_IN               : in    std_logic;
+    RESET_IN             : in    std_logic;
+    SCLK_OUT             : out   std_logic;
+    SDIO_INOUT           : inout std_logic;
+    CSB_OUT              : out   std_logic;
+    SLV_READ_IN          : in    std_logic;
+    SLV_WRITE_IN         : in    std_logic;
+    SLV_DATA_OUT         : out   std_logic_vector(31 downto 0);
+    SLV_DATA_IN          : in    std_logic_vector(31 downto 0);
+    SLV_ACK_OUT          : out   std_logic;
+    SLV_NO_MORE_DATA_OUT : out   std_logic;
+    SLV_UNKNOWN_ADDR_OUT : out   std_logic;
+    DEBUG_OUT            : out   std_logic_vector(15 downto 0)
+    );
+end component;
+
+component adc_spi_sendbyte
+  generic (
+    SPI_SPEED : unsigned(7 downto 0)
+    );
+  port (
+    CLK_IN            : in  std_logic;
+    RESET_IN          : in  std_logic;
+    START_IN          : in  std_logic;
+    BYTE_IN           : in  std_logic_vector(7 downto 0);
+    SEQUENCE_DONE_OUT : out std_logic;
+    SCLK_OUT          : out std_logic;
+    SDIO_OUT          : out std_logic
+    );
+end component;
+
+component adc_spi_readbyte
+  generic (
+    SPI_SPEED : unsigned(7 downto 0)
+    );
+  port (
+    CLK_IN            : in  std_logic;
+    RESET_IN          : in  std_logic;
+    START_IN          : in  std_logic;
+    BYTE_OUT          : out std_logic_vector(7 downto 0);
+    SEQUENCE_DONE_OUT : out std_logic;
+    SDIO_IN           : in  std_logic;
+    SCLK_OUT          : out std_logic
     );
 end component;
 
@@ -212,7 +256,8 @@ end component;
 
 component Gray_Decoder
   generic (
-    WIDTH : integer);
+    WIDTH : integer
+    );
   port (
     CLK_IN     : in  std_logic;
     RESET_IN   : in  std_logic;
@@ -224,7 +269,8 @@ end component;
 
 component Gray_Encoder
   generic (
-    WIDTH : integer);
+    WIDTH : integer
+    );
   port (
     CLK_IN    : in  std_logic;
     RESET_IN  : in  std_logic;
@@ -273,6 +319,22 @@ component pll_nx_clk256
 end component;
 
 -------------------------------------------------------------------------------
+-- Misc Tools
+-------------------------------------------------------------------------------
+
+component nx_timer
+  generic (
+    CTR_WIDTH : integer
+    );
+  port (
+    CLK_IN         : in  std_logic;
+    RESET_IN       : in  std_logic;
+    TIMER_START_IN : in  unsigned(CTR_WIDTH - 1 downto 0);
+    TIMER_DONE_OUT : out std_logic
+    );
+end component;
+
+-------------------------------------------------------------------------------
 -- Simulations
 -------------------------------------------------------------------------------
 
@@ -284,6 +346,5 @@ component nxyter_timestamp_sim
     CLK128_OUT    : out std_logic
     );
 end component;
-
 
 end package;

@@ -7,7 +7,7 @@ use work.nxyter_components.all;
 
 entity nx_i2c_master is
   generic (
-    i2c_speed : unsigned(11 downto 0) := x"3e8"
+    I2C_SPEED : unsigned(11 downto 0) := x"3e8"
     );
   port(
     CLK_IN               : in    std_logic;
@@ -58,7 +58,6 @@ architecture Behavioral of nx_i2c_master is
   signal i2c_busy_x            : std_logic;
   signal startstop_select_x    : std_logic;
   signal startstop_seq_start_x : std_logic;
-  signal wait_timer_init_x     : std_logic_vector(11 downto 0);
   signal sendbyte_seq_start_x  : std_logic;
   signal sendbyte_byte_x       : std_logic_vector(7 downto 0);
   signal readbyte_seq_start_x  : std_logic;
@@ -99,11 +98,6 @@ architecture Behavioral of nx_i2c_master is
                   );
   signal STATE, NEXT_STATE : STATES;
 
-  
-  -- I2C Timer
-  signal wait_timer_init         : unsigned(11 downto 0);
-  signal wait_timer_done         : std_logic;
-                                 
   -- TRBNet Slave Bus            
   signal slv_data_out_o          : std_logic_vector(31 downto 0);
   signal slv_no_more_data_o      : std_logic;
@@ -117,22 +111,10 @@ architecture Behavioral of nx_i2c_master is
 
 begin
 
-  -- Timer
-  nx_timer_1: nx_timer
-    generic map (
-      CTR_WIDTH => 12
-      )
-    port map (
-      CLK_IN         => CLK_IN,
-      RESET_IN       => RESET_IN,
-      TIMER_START_IN => wait_timer_init,
-      TIMER_DONE_OUT => wait_timer_done
-      );
-
   -- Start / Stop Sequence
   nx_i2c_startstop_1: nx_i2c_startstop
     generic map (
-      i2c_speed => i2c_speed
+      I2C_SPEED => I2C_SPEED
       )
     port map (
       CLK_IN            => CLK_IN,
@@ -147,7 +129,7 @@ begin
 
   nx_i2c_sendbyte_1: nx_i2c_sendbyte
     generic map (
-      i2c_speed => i2c_speed
+      I2C_SPEED => I2C_SPEED
       )
     port map (
       CLK_IN            => CLK_IN,
@@ -163,7 +145,7 @@ begin
 
   nx_i2c_readbyte_1: nx_i2c_readbyte
     generic map (
-      i2c_speed => i2c_speed
+      I2C_SPEED => I2C_SPEED
       )
     port map (
       CLK_IN            => CLK_IN,
@@ -228,7 +210,6 @@ begin
         sendbyte_seq_start    <= '0';
         readbyte_seq_start    <= '0';
         sendbyte_byte         <= (others => '0');
-        wait_timer_init       <= (others => '0');
         reg_data              <= (others => '0');
         read_seq_ctr          <= '0';
         STATE                 <= S_RESET;
@@ -239,7 +220,6 @@ begin
         sendbyte_seq_start    <= sendbyte_seq_start_x;
         readbyte_seq_start    <= readbyte_seq_start_x;
         sendbyte_byte         <= sendbyte_byte_x;
-        wait_timer_init       <= wait_timer_init_x;
         reg_data              <= reg_data_x;
         read_seq_ctr          <= read_seq_ctr_x;
         STATE                 <= NEXT_STATE;
@@ -260,7 +240,6 @@ begin
     sendbyte_seq_start_x    <= '0';
     sendbyte_byte_x         <= (others => '0');
     readbyte_seq_start_x    <= '0';
-    wait_timer_init_x       <= (others => '0');
     reg_data_x              <= reg_data;
     read_seq_ctr_x          <= read_seq_ctr;
     
@@ -416,12 +395,10 @@ begin
   --   D[23:16] I2C_ADDRESS     address of I2C chip
   --   D[15:8]  I2C_CMD         command byte for access
   --   D[7:0]   I2C_DATA        data to be written
-  -- 
   --   
   --   Read bit definition
   --   ===================
   --   
-  --   D[31:24] status          status information
   --   D[31]    RUNNING         whatever
   --   D[30]    I2C_DONE        whatever
   --   D[29]    ERROR_RADDACK   no acknowledge for repeated address byte
