@@ -35,3 +35,13 @@ cbmrich_20121010.bit	33 channel version of the cbmrich_20121009.bit
 
 cbmrich_20121025.bit	65 channel version of the new design with the epoch
 			counter.
+
+cbmrich_20121107.bit	The status registers are moved to the 0xc100 bus. Also
+			some debug counters are written to the bus 0xc200
+			0xc300 0xc400.
+
+cbmrich_20121122.bit	The channels are separated to be used for rising and
+			falling edge detection. Odd channels are for the
+			rising edge, even channels are for the falling
+			edge. Channel 0 is for the rising edge of the
+			reference signal.
