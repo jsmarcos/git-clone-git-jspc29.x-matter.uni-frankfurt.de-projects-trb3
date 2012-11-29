@@ -125,3 +125,37 @@ BROADCAST_SPECIAL_ADDR has to be set to address all FPGA of a given type within 
 - 0x44   for FPGA 4 only
 - 0x50   for CBM RICH
 
+
+
+
+
+
+HOWTO Program TRB3
+
+0) diamond: program all FPGAs + clocks
+1) get MAC-address in logfile of hadeb05:/var/log/messages
+2) insert MAC-address via emacs -nw /etc/dhcpd.conf
+3) restart dhcpserver: /etc/init.d/dhcpd restart
+
+control terminal on kp1pc105:
+
+1)
+pkill -f "trbnetd -i 40"; export TRB3_SERVER=trb034; trbnetd -i 40
+      	 	     	  	 		^^^
+						change serial number     	     
+
+2)
+trbcmd i 0xfff
+# 5 entries must show up
+
+3)
+generate_serial_table.pl 034 >> ~/trb3/base/serials_trb3.db
+                         ^^^
+                         change serial number
+
+4)
+merge_serial_address.pl ~/trb3/base/serials_trb3.db ~/trb3/base/addresses_trb3.db
+
+5)
+trbflash -y program 0x8000 ~/trb3_michael/bitfiles/trb3_central_cts_20121116.bit; trbflash -y program 0xfe48 ~/trb3_michael/bitfiles/trb3_periph_padiwa_20121022.bit
+
