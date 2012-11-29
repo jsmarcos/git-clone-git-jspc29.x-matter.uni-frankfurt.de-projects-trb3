@@ -1160,15 +1160,11 @@ LOCATE UGROUP "LL_Coarse_Counter" REGION "REGION_LL_CC" ;
 #############################################################################
 ##                         Unimportant Data Lines                          ##
 #############################################################################
-#MULTICYCLE TO PORT "TEST_LINE_*" 2.000000 X ;
-#MULTICYCLE TO CELL "THE_TDC/GEN_Channels_*_Channels/lost_hit_cntr_*" 3.000000 X ;
-#MULTICYCLE TO CELL "THE_TDC/GEN_Channels_*_Channels/hit_detect_cntr_*" 3.000000 X ;
-#MULTICYCLE TO CELL "THE_TDC/GEN_Channels_*_Channels/encoder_start_cntr_*" 3.000000 X ;
-#MULTICYCLE TO CELL "THE_TDC/GEN_Channels_*_Channels/fifo_wr_cntr_*" 3.000000 X ;
 
 BLOCK NET "THE_TDC/reset_tdc*" ;
 BLOCK NET "THE_TDC/hit_in_i_*" ;
 BLOCK PATH TO CELL "THE_TDC/GEN_Channels_*_Channels/Channel_200_1/FC/FF_*" ;
+BLOCK NET "THE_TDC/reset_counters_200*" ;
 
 MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter_*" TO CELL "THE_TDC/GEN_Channels_*_Channels/Channel_200_1/epoch_cntr_*" 6.000000 X ;
 MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter_*" TO CELL "THE_TDC/The_Reference_Time/Reference_Channel_200_1/epoch_cntr_*" 6.000000 X ;
@@ -1180,5 +1176,6 @@ MULTICYCLE FROM CELL "THE_TDC/The_Reference_Time/Reference_Channel_200_1/FIFO_AL
 MULTICYCLE FROM CELL "THE_TDC/The_Reference_Time/Reference_Channel_200_1/FIFO_FULL_OUT" TO CELL "THE_TDC/TheReadout/data_out_reg_*" 2.000000 X ;
 MULTICYCLE FROM CELL "THE_TDC/GEN_Channels_*_Channels/Channel_200_1/FIFO_FULL_OUT" TO CELL "THE_TDC/TheReadout/data_out_reg*" 2.000000 X ;
 MULTICYCLE FROM CELL "THE_TDC/GEN_Channels_*_Channels/Channel_200_1/FIFO_ALMOST_FULL_OUT" TO CELL "THE_TDC/TheReadout/data_out_reg*" 2.000000 X ;
-MULTICYCLE TO CELL "THE_TDC/GEN_Channels_*_Channels/reset_counters_200" 4.000000 X ;
-MULTICYCLE FROM CELL "THE_TDC/GEN_Channels_*_Channels/reset_counters_200" 4.000000 X ;
+
+MULTICYCLE FROM CELL "THE_TDC/GEN_Channels_*_Channels/Channel_200_1/fifo_wr_en_i" TO CELL "THE_TDC/GEN_Channels_*_Channels/fifo_wr_en_reg" 4.000000 X ;
+MULTICYCLE FROM CELL "THE_TDC/GEN_Channels_*_Channels/Channel_200_1/hit_detect_reg" TO CELL "THE_TDC/GEN_Channels_*_Channels/encoder_start_reg" 4.000000 X ;
