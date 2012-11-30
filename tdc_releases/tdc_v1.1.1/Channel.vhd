@@ -61,6 +61,7 @@ architecture Channel of Channel is
   -- debug
   signal sync_q             : std_logic_vector(2 downto 0);
   signal hit_pulse          : std_logic;
+  signal hit_pulse_r        : std_logic;
   signal fifo_wr_en_i       : std_logic;
   signal fifo_wr_en_reg     : std_logic;
   signal encoder_start_i    : std_logic;
@@ -144,13 +145,15 @@ begin
       signal_in => sync_q(2),
       pulse     => hit_pulse);
 
+  hit_pulse_r <= hit_pulse when rising_edge(CLK_200);
+
   --purpose: Counts the detected but unwritten hits
   Lost_Hit_Counter : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
       if RESET_200 = '1' or reset_counters_200 = '1' then
         lost_hit_cntr <= (others => '0');
-      elsif hit_pulse = '1' then
+      elsif hit_pulse_r = '1' then
         lost_hit_cntr <= lost_hit_cntr + to_unsigned(1, 1);
       elsif fifo_wr_en_reg = '1' then
         lost_hit_cntr <= lost_hit_cntr - to_unsigned(1, 1);
@@ -161,12 +164,12 @@ begin
   LOST_HIT_NUMBER <= std_logic_vector(lost_hit_cntr) when rising_edge(CLK_100);
 
   --purpose: Counts the detected hits
-  Hit_Detect_Counter : process (CLK_200, RESET_200, hit_pulse)
+  Hit_Detect_Counter : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
       if RESET_200 = '1' or reset_counters_200 = '1' then
         hit_detect_cntr <= (others => '0');
-      elsif hit_pulse = '1' then
+      elsif hit_pulse_r = '1' then
         hit_detect_cntr <= hit_detect_cntr + to_unsigned(1, 1);
       end if;
     end if;
