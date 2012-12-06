@@ -80,7 +80,11 @@ begin
     end if;
   end process PROC_START_STOP_TRANSFER;
   
-  PROC_START_STOP: process(STATE)
+  PROC_START_STOP: process(STATE,
+                           START_IN,
+                           SELECT_IN,
+                           wait_timer_done
+                           )
   begin
     sda_o             <= '1';
     scl_o             <= '1';

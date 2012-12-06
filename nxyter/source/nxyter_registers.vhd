@@ -1,7 +1,6 @@
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.STD_LOGIC_ARITH.ALL;
-use IEEE.STD_LOGIC_UNSIGNED.ALL;
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 
 library work;
 use work.nxyter_components.all;
@@ -102,7 +101,12 @@ begin
     end if;
   end process PROC_I2C_SM_RESET_TRANSFER;
 
-  PROC_I2C_SM_RESET: process(STATE)
+  PROC_I2C_SM_RESET: process(STATE,
+                             i2c_sm_reset_start,
+                             i2c_reg_reset_start,
+                             nx_ts_reset_start,
+                             wait_timer_done
+                             )
   begin
     i2c_sm_reset_o     <= '0';
     i2c_reg_reset_o    <= '0';

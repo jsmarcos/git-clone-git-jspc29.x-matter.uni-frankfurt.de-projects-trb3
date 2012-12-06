@@ -1,7 +1,6 @@
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.STD_LOGIC_ARITH.ALL;
-use IEEE.STD_LOGIC_UNSIGNED.ALL;
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 
 library work;
 use work.nxyter_components.all;
@@ -52,25 +51,21 @@ architecture Behavioral of nx_timestamp_fifo_read is
   signal frame_clock_ctr_inc_l    : std_logic;
   signal frame_clock_ctr_inc      : std_logic;
 
-
   -----------------------------------------------------------------------------
   -- CLK_IN Domain
   -----------------------------------------------------------------------------
 
   -- FIFO Output Handler
-  type STATES is (S_IDLE,
-                  S_READ_FIFO
-                  );
-
-  signal STATE, NEXT_STATE : STATES;
-
   signal fifo_out                 : std_logic_vector(35 downto 0);
   signal fifo_empty               : std_logic;
-  signal fifo_read_enable_x       : std_logic;
+  signal fifo_empty_prev          : std_logic;
   signal fifo_read_enable         : std_logic;
+  signal fifo_data_valid_x1       : std_logic;
+  signal fifo_data_valid_x        : std_logic;
+  signal fifo_data_valid          : std_logic;
+  
   signal register_fifo_data_x     : std_logic_vector(31 downto 0);
   signal register_fifo_data       : std_logic_vector(31 downto 0);
-  signal fifo_new_frame_x         : std_logic;
   signal fifo_new_frame_o         : std_logic;
 
   signal frame_clock_ctr_inc_o    : std_logic;
@@ -108,17 +103,29 @@ architecture Behavioral of nx_timestamp_fifo_read is
   signal frame_clock_ctr_inc_r    : std_logic;
 
 begin
-  
+
   DEBUG_OUT(0)           <= CLK_IN;
-  
   DEBUG_OUT(1)           <= NX_TIMESTAMP_CLK_IN;
-  DEBUG_OUT(2)           <= NX_FRAME_CLOCK_OUT;
-  DEBUG_OUT(3)           <= NX_FRAME_SYNC_OUT;
-  DEBUG_OUT(4)           <= NX_NEW_FRAME_OUT;
-  DEBUG_OUT(5)           <= frame_clock_ctr_inc_o;
-  DEBUG_OUT(6)           <= frame_tag_o;
-  DEBUG_OUT(7)           <= '0';
-  DEBUG_OUT(15 downto 8) <= NX_TIMESTAMP_IN(7 downto 0);
+  DEBUG_OUT(2)           <= fifo_empty;
+  DEBUG_OUT(3)           <= fifo_read_enable;
+  DEBUG_OUT(4)           <= fifo_data_valid;
+  DEBUG_OUT(5)           <= fifo_new_frame_o;
+  DEBUG_OUT(6)           <= NX_NEW_FRAME_OUT;
+  DEBUG_OUT(7)           <= frame_tag_o;
+  -- DEBUG_OUT(15 downto 8) <= NX_TIMESTAMP_IN;
+  DEBUG_OUT(15 downto 8) <= fifo_out(7 downto 0);
+  
+--   DEBUG_OUT(0)           <= CLK_IN;
+--   
+--   DEBUG_OUT(1)           <= NX_TIMESTAMP_CLK_IN;
+--   DEBUG_OUT(2)           <= NX_FRAME_CLOCK_OUT;
+--   DEBUG_OUT(3)           <= NX_FRAME_SYNC_OUT;
+--   -- DEBUG_OUT(4)           <= NX_NEW_FRAME_OUT;
+--   -- DEBUG_OUT(5)           <= frame_clock_ctr_inc_o;
+--   -- DEBUG_OUT(6)           <= frame_tag_o;
+--   -- DEBUG_OUT(7)           <= '0';
+--    DEBUG_OUT(7 downto 4) <= fifo_out(3 downto 0);
+--   DEBUG_OUT(15 downto 8) <= fifo_out(34 downto 27);
   
   -----------------------------------------------------------------------------
   -- Dual Clock FIFO 9bit to 36bit
@@ -140,15 +147,14 @@ begin
       Full             => fifo_full
       );
 
-  -- Write only in case FIFO is not full
-  fifo_write_enable <= '0' when fifo_full = '1' else '1';
+  fifo_write_enable <= not RESET_IN;
   
   -----------------------------------------------------------------------------
   -- FIFO Input Handler
   -----------------------------------------------------------------------------
   
   -- Cross ClockDomain CLK_IN --> NX_TIMESTAMP_CLK_IN for signal
-  -- fifo_skip_write
+  -- frame_clock_ctr_inc
   PROC_FIFO_IN_HANDLER_SYNC: process(NX_TIMESTAMP_CLK_IN)
   begin
     if( rising_edge(NX_TIMESTAMP_CLK_IN) ) then
@@ -170,7 +176,7 @@ begin
       LEVEL_IN  => frame_clock_ctr_inc_l,
       PULSE_OUT => frame_clock_ctr_inc
       );
-
+      
   PROC_FRAME_CLOCK_GENERATOR: process(NX_TIMESTAMP_CLK_IN)
   begin
     if( rising_edge(NX_TIMESTAMP_CLK_IN) ) then
@@ -202,88 +208,100 @@ begin
         else
           frame_clock_ctr <= frame_clock_ctr + 1;
         end if;
-
+        
       end if;
     end if;
   end process PROC_FRAME_CLOCK_GENERATOR;
+
   
   -----------------------------------------------------------------------------
   -- FIFO Output Handler and Sync FIFO
   -----------------------------------------------------------------------------
 
-  PROC_FIFO_READ_TRANSFER: process (CLK_IN)
-  begin 
+  PROC_FIFO_READ_ENABLE: process(CLK_IN)
+  begin
     if( rising_edge(CLK_IN) ) then
-      if (RESET_IN = '1') then
-        fifo_read_enable    <= '0';
-        fifo_new_frame_o    <= '0';
-        register_fifo_data  <= (others => '0');
-        STATE               <= S_IDLE;
-        register_fifo_data  <= (others => '0');
+      if( RESET_IN = '1' ) then
+        fifo_empty_prev    <= '0';
+        fifo_read_enable   <= '0';
+        --fifo_data_valid_x1 <= '0';
+        fifo_data_valid_x  <= '0';
+        fifo_data_valid    <= '0';
       else
-        fifo_read_enable    <= fifo_read_enable_x;
-        fifo_new_frame_o    <= fifo_new_frame_x;
-        register_fifo_data  <= register_fifo_data_x;
-        STATE               <= NEXT_STATE;
+        if (fifo_empty = '0' and fifo_empty_prev = '1') then
+          fifo_read_enable <= '1';
+        else
+          fifo_read_enable <= '0';
+        end if;
+        fifo_empty_prev   <= fifo_empty; 
+        fifo_data_valid_x <= fifo_read_enable;
+        --fifo_data_valid_x  <= fifo_data_valid_x1; 
+        fifo_data_valid   <= fifo_data_valid_x;
       end if;
     end if;
-  end process PROC_FIFO_READ_TRANSFER;
+  end process PROC_FIFO_READ_ENABLE;
+  
+  -- Read only in case FIFO is not empty, i.e. data_valid is set
+  PROC_FIFO_READ: process(CLK_IN)
 
-  -- Read only in case FIFO is not empty
-  PROC_FIFO_READ: process(STATE)
-
-    variable frame_tag : std_logic_vector(3 downto 0);
-
-  begin
-    fifo_read_enable_x   <= '0';
-    fifo_new_frame_x     <= '0';
-    register_fifo_data_x <= register_fifo_data;
-
-    frame_tag := fifo_out(35) & fifo_out(26) &
-                 fifo_out(17) & fifo_out(8);
+    variable frame_tag  : std_logic_vector(3 downto 0);
+    variable frame_data : std_logic_vector(31 downto 0);
     
-    case STATE is
+  begin
+    
+    frame_tag  := fifo_out( 8) & fifo_out(17) &
+                  fifo_out(26) & fifo_out(35);
 
-      when S_IDLE =>
-        if (fifo_empty = '1') then
-          NEXT_STATE <= S_IDLE;
-        else
-          fifo_read_enable_x <= '1';
-          NEXT_STATE         <= S_READ_FIFO;
+    frame_data := fifo_out( 7 downto  0) & fifo_out(16 downto   9) &
+                  fifo_out(25 downto 18) & fifo_out(34 downto  27);
+    
+    if( rising_edge(CLK_IN) ) then
+      if (RESET_IN = '1') then
+        fifo_new_frame_o   <= '0';
+        register_fifo_data <= (others => '0');
+      else
+        fifo_new_frame_o   <= '0';
+        register_fifo_data <= x"deadbeef";
+
+        if (fifo_data_valid = '1') then
+
+          case frame_tag is
+
+            when "1000" =>
+              register_fifo_data(31 downto 24) <= fifo_out( 7 downto  0);
+              register_fifo_data(23 downto 16) <= fifo_out(16 downto  9);
+              register_fifo_data(15 downto  8) <= fifo_out(25 downto 18);
+              register_fifo_data( 7 downto  0) <= fifo_out(34 downto 27);
+              fifo_new_frame_o                 <= '1';          
+
+            when "0100" => 
+              register_fifo_data(31 downto 24) <= fifo_out(16 downto  9);
+              register_fifo_data(23 downto 16) <= fifo_out(25 downto 18);
+              register_fifo_data(15 downto  8) <= fifo_out(34 downto 27);
+              register_fifo_data( 7 downto  0) <= fifo_out( 7 downto  0);
+              fifo_new_frame_o                 <= '1';          
+
+            when "0010" => 
+              register_fifo_data(31 downto 24) <= fifo_out(25 downto 18);
+              register_fifo_data(23 downto 16) <= fifo_out(34 downto 27);
+              register_fifo_data(15 downto  8) <= fifo_out( 7 downto  0);
+              register_fifo_data( 7 downto  0) <= fifo_out(16 downto  9);
+              fifo_new_frame_o                 <= '1';          
+
+            when "0001" => 
+              register_fifo_data(31 downto 24) <= fifo_out(34 downto 27);
+              register_fifo_data(23 downto 16) <= fifo_out( 7 downto  0);
+              register_fifo_data(15 downto  8) <= fifo_out(16 downto  9);
+              register_fifo_data( 7 downto  0) <= fifo_out(25 downto 18);
+              fifo_new_frame_o                 <= '1';          
+
+            when others => null;
+                           
+          end case;
+
         end if;
-        
-      when S_READ_FIFO =>
-        fifo_new_frame_x  <= '1';
-        case frame_tag is
-          when "1000" =>
-            register_fifo_data_x(31 downto 24) <= fifo_out(34 downto 27);
-            register_fifo_data_x(23 downto 16) <= fifo_out(25 downto 18);
-            register_fifo_data_x(15 downto  8) <= fifo_out(16 downto  9);
-            register_fifo_data_x( 7 downto  0) <= fifo_out( 7 downto  0);
-          when "0100" => 
-            register_fifo_data_x(31 downto 24) <= fifo_out( 7 downto  0);
-            register_fifo_data_x(23 downto 16) <= fifo_out(34 downto 27);
-            register_fifo_data_x(15 downto  8) <= fifo_out(25 downto 18);
-            register_fifo_data_x( 7 downto  0) <= fifo_out(16 downto  9);
-          when "0010" => 
-            register_fifo_data_x(31 downto 24) <= fifo_out(16 downto  9);
-            register_fifo_data_x(23 downto 16) <= fifo_out( 7 downto  0);
-            register_fifo_data_x(15 downto  8) <= fifo_out(34 downto 27);
-            register_fifo_data_x( 7 downto  0) <= fifo_out(25 downto 18);
-          when "0001" => 
-            register_fifo_data_x(31 downto 24) <= fifo_out(25 downto 18);
-            register_fifo_data_x(23 downto 16) <= fifo_out(16 downto  9);
-            register_fifo_data_x(15 downto  8) <= fifo_out( 7 downto  0);
-            register_fifo_data_x( 7 downto  0) <= fifo_out(34 downto 27);
-
-          when others =>
-            register_fifo_data_x <= (others => '1');
-            fifo_new_frame_x     <= '0';
-        end case;
-        NEXT_STATE <= S_IDLE;
-        
-      when others => null;
-    end case;
+      end if;
+    end if;
   end process PROC_FIFO_READ;
   
 
@@ -318,8 +336,6 @@ begin
   -- Frame Sync process
   PROC_SYNC_TO_NX_FRAME_TRANSFER: process(CLK_IN)
   begin
-    
-
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
         rs_sync_set           <= '0';
@@ -339,7 +355,15 @@ begin
     end if;
   end process PROC_SYNC_TO_NX_FRAME_TRANSFER;
 
-  PROC_SYNC_TO_NX_FRAME: process(STATE_SYNC)
+  PROC_SYNC_TO_NX_FRAME: process(STATE_SYNC,
+                                 fifo_out(35),
+                                 fifo_out(26),
+                                 fifo_out(17),
+                                 fifo_out(8),
+                                 fifo_new_frame_o,
+                                 register_fifo_data,
+                                 frame_sync_wait_done
+                                 )
 
     variable fifo_tag_given : std_logic_vector(3 downto 0);
 
@@ -352,28 +376,31 @@ begin
 
     fifo_tag_given := fifo_out(35) & fifo_out(26) &
                       fifo_out(17) & fifo_out(8);
-    
-    case STATE_SYNC is
-      
-      when S_SYNC_CHECK =>
-        case register_fifo_data is
-          when x"7f7f7f06" =>
-            rs_sync_set_x <= '1';
-            NEXT_STATE_SYNC  <= S_SYNC_CHECK;
 
-          when x"067f7f7f" =>
-            NEXT_STATE_SYNC <= S_SYNC_RESYNC;
+    case STATE_SYNC is
+      when S_SYNC_CHECK =>
+        if (fifo_new_frame_o = '1') then      
+          case register_fifo_data is
+            when x"7f7f7f06" =>
+              rs_sync_set_x <= '1';
+              NEXT_STATE_SYNC  <= S_SYNC_CHECK;
+
+            when x"067f7f7f" =>
+              NEXT_STATE_SYNC <= S_SYNC_RESYNC;
             
-          when x"7f067f7f" =>
-            NEXT_STATE_SYNC <= S_SYNC_RESYNC;
+            when x"7f067f7f" =>
+              NEXT_STATE_SYNC <= S_SYNC_RESYNC;
             
-          when x"7f7f067f" =>
-            NEXT_STATE_SYNC <= S_SYNC_RESYNC;
+            when x"7f7f067f" =>
+              NEXT_STATE_SYNC <= S_SYNC_RESYNC;
             
-          when others =>
-            NEXT_STATE_SYNC <= S_SYNC_CHECK;
+            when others =>
+              NEXT_STATE_SYNC <= S_SYNC_CHECK;
             
-        end case;
+          end case;
+        else
+          NEXT_STATE_SYNC <= S_SYNC_CHECK;
+        end if;
 
       when S_SYNC_RESYNC =>
         rs_sync_reset_x         <= '1';
@@ -399,13 +426,11 @@ begin
   -- TRBNet Slave Bus
   -----------------------------------------------------------------------------
 
-  register_fifo_status(0)            <= fifo_write_enable;
-  register_fifo_status(1)            <= fifo_full;
-  register_fifo_status(3 downto 2)   <= (others => '0');
-  register_fifo_status(4)            <= fifo_read_enable;
-  register_fifo_status(5)            <= fifo_empty;
-  register_fifo_status(7 downto 6)   <= (others => '0');
-  register_fifo_status(15 downto 8)  <= (others => '0');
+  register_fifo_status(0)            <= fifo_full;
+  register_fifo_status(1)            <= fifo_empty;
+  register_fifo_status(2)            <= fifo_data_valid;
+  register_fifo_status(3)            <= fifo_new_frame_o;
+  register_fifo_status(15 downto 4)  <= (others => '0');
   register_fifo_status(23 downto 16) <= nx_frame_resync_ctr;
   register_fifo_status(30 downto 24) <= (others => '0');
   register_fifo_status(31)           <= nx_frame_synced_o;
@@ -467,6 +492,9 @@ begin
 
   NX_FRAME_CLOCK_OUT    <= nx_frame_clock_o;
   NX_TIMESTAMP_OUT      <= register_fifo_data;
-  NX_NEW_FRAME_OUT      <= fifo_new_frame_o;
+  NX_NEW_FRAME_OUT      <= '1' when (fifo_new_frame_o = '1'
+                                     and register_fifo_data /= x"7f7f7f06"
+                                     )
+                           else '0';
     
 end Behavioral;

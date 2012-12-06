@@ -228,7 +228,14 @@ begin
   end process PROC_I2C_MASTER_TRANSFER;
   
         
-  PROC_I2C_MASTER: process(STATE)
+  PROC_I2C_MASTER: process(STATE,
+                           i2c_start,
+                           startstop_done,
+                           read_seq_ctr,
+                           sendbyte_done,
+                           sendbyte_ack,
+                           readbyte_done,
+                           startstop_done)
 
   begin
     -- Defaults

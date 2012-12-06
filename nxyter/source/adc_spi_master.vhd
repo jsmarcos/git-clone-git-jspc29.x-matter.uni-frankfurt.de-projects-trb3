@@ -202,7 +202,12 @@ begin
   end process PROC_I2C_MASTER_TRANSFER;
   
         
-  PROC_I2C_MASTER: process(STATE)
+  PROC_I2C_MASTER: process(STATE,
+                           spi_start,
+                           wait_timer_done,
+                           sendbyte_done,
+                           readbyte_done
+                           )
 
   begin
     -- Defaults

@@ -1,7 +1,6 @@
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.STD_LOGIC_ARITH.ALL;
-use IEEE.STD_LOGIC_UNSIGNED.ALL;
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 
 package nxyter_components is
 
@@ -296,9 +295,10 @@ component nx_data_buffer
   port (
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
-    FIFO_DATA_IN         :     std_logic_vector(31 downto 0);
-    FIFO_WRITE_ENABLE_IN :     std_logic;
-    FIFO_READ_ENABLE_IN  :     std_logic;
+    DATA_IN              : in  std_logic_vector(31 downto 0);
+    NEW_DATA_IN          : in  std_logic;
+    FIFO_WRITE_ENABLE_IN : in  std_logic;
+    FIFO_READ_ENABLE_IN  : in  std_logic;
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
     SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
@@ -306,16 +306,67 @@ component nx_data_buffer
     SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
     SLV_ACK_OUT          : out std_logic;
     SLV_NO_MORE_DATA_OUT : out std_logic;
-    SLV_UNKNOWN_ADDR_OUT : out std_logic
+    SLV_UNKNOWN_ADDR_OUT : out std_logic;
+    DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
 end component;
 
+component nx_timestamp_decode
+  port (
+    CLK_IN              : in  std_logic;
+    RESET_IN            : in  std_logic;
+    NX_NEW_FRAME_IN     : in  std_logic;
+    NX_TIMESTAMP_IN     : in  std_logic_vector(31 downto 0);
+    TIMESTAMP_DATA_OUT  : out std_logic_vector(27 downto 0);
+    TIMESTAMP_VALID_OUT : out std_logic;
+    DEBUG_OUT           : out std_logic_vector(15 downto 0)
+    );
+end component;
 
 component pll_nx_clk256
   port (
     CLK   : in  std_logic;
     CLKOP : out std_logic;
     LOCK  : out std_logic);
+end component;
+
+component nx_fpga_timestamp
+  port (
+    CLK_IN                : in  std_logic;
+    RESET_IN              : in  std_logic;
+    TIMESTAMP_CLK_IN      : in  std_logic;
+    TIMESTAMP_SYNC_IN     : in  std_logic;
+    LATCH_IN              : in  std_logic;
+    TIMESTAMP_OUT         : out unsigned(13 downto 0);
+    NX_TIMESTAMP_SYNC_OUT : in    std_logic;
+    SLV_READ_IN           : in  std_logic;
+    SLV_WRITE_IN          : in  std_logic;
+    SLV_DATA_OUT          : out std_logic_vector(31 downto 0);
+    SLV_DATA_IN           : in  std_logic_vector(31 downto 0);
+    SLV_ACK_OUT           : out std_logic;
+    SLV_NO_MORE_DATA_OUT  : out std_logic;
+    SLV_UNKNOWN_ADDR_OUT  : out std_logic;
+    DEBUG_OUT             : out std_logic_vector(15 downto 0)
+    );
+end component;
+
+component nx_trigger_generator
+  generic (
+    TRIGGER_SPEED : unsigned(15 downto 0)
+    );
+  port (
+    CLK_IN               : in  std_logic;
+    RESET_IN             : in  std_logic;
+    TRIGGER_OUT          : out std_logic;
+    SLV_READ_IN          : in  std_logic;
+    SLV_WRITE_IN         : in  std_logic;
+    SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
+    SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
+    SLV_ACK_OUT          : out std_logic;
+    SLV_NO_MORE_DATA_OUT : out std_logic;
+    SLV_UNKNOWN_ADDR_OUT : out std_logic;
+    DEBUG_OUT            : out std_logic_vector(15 downto 0)
+    );
 end component;
 
 -------------------------------------------------------------------------------

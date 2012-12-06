@@ -85,7 +85,11 @@ begin
     end if;
   end process PROC_SEND_BYTE_TRANSFER;  
   
-  PROC_SEND_BYTE: process(STATE)
+  PROC_SEND_BYTE: process(STATE,
+                          START_IN,
+                          wait_timer_done,
+                          bit_ctr
+                          )
   begin 
     sdio_o             <= '0';
     sclk_o             <= '0';

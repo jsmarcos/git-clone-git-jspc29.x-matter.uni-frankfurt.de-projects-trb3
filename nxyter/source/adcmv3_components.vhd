@@ -1,6 +1,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
-use IEEE.numeric_std.ALL;
+use ieee.numeric_std.all;
 
 package adcmv3_components is
 

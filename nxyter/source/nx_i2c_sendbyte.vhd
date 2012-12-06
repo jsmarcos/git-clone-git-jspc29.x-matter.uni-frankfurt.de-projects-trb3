@@ -100,7 +100,11 @@ begin
     end if;
   end process PROC_SEND_BYTE_TRANSFER;  
   
-  PROC_SEND_BYTE: process(STATE)
+  PROC_SEND_BYTE: process(STATE,
+                          START_IN,
+                          wait_timer_done,
+                          bit_ctr
+                          )
   begin 
     sda_o              <= '1';
     scl_o              <= '1';

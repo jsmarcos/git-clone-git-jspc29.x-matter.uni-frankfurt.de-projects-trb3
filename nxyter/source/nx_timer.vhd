@@ -47,7 +47,10 @@ begin
     end if;
   end process PROC_TIMER_TRANSFER;
   
-  PROC_TIMER: process(STATE)
+  PROC_TIMER: process(STATE,
+                      TIMER_START_IN,
+                      timer_ctr
+                      )
   begin 
 
     timer_done_o_x <= '0';

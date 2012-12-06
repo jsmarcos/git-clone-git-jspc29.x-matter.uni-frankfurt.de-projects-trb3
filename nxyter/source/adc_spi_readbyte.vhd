@@ -90,7 +90,11 @@ begin
     end if;
   end process PROC_READ_BYTE_TRANSFER;  
   
-  PROC_READ_BYTE: process(STATE)
+  PROC_READ_BYTE: process(STATE,
+                          START_IN,
+                          wait_timer_done,
+                          bit_ctr
+                          )
   begin 
     sclk_o             <= '0';
     sequence_done_o_x  <= '0';
