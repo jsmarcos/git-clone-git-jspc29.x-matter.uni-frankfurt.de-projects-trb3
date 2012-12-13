@@ -278,9 +278,9 @@ begin
       DATAREADY_OUT    => HCB_DATAREADY_OUT,
       UNKNOWN_ADDR_OUT => HCB_UNKNOWN_ADDR_OUT);
 
-  GenHitCounterLevelSignals : for i in 1 to CHANNEL_NUMBER-1 generate
+  GenHitDetectNumber : for i in 1 to CHANNEL_NUMBER-1 generate
     ch_level_hit_number(i) <= scaler_in_i(i) & "0000000" & ch_hit_detect_number_i(i) when rising_edge(CLK_READOUT);
-  end generate GenHitCounterLevelSignals;
+  end generate GenHitDetectNumber;
 
   TheStatusRegistersBus: BusHandler
     generic map (
@@ -310,9 +310,9 @@ begin
       DATAREADY_OUT    => LHB_DATAREADY_OUT,
       UNKNOWN_ADDR_OUT => LHB_UNKNOWN_ADDR_OUT);
 
-  GenHitCounterLevelSignals : for i in 1 to CHANNEL_NUMBER-1 generate
+  GenLostHitNumber : for i in 1 to CHANNEL_NUMBER-1 generate
     ch_lost_hit_bus_i(i) <= x"00" & ch_lost_hit_number_i(i) when rising_edge(CLK_READOUT);
-  end generate GenHitCounterLevelSignals;
+  end generate GenLostHitNumber;
 
   TheEncoderStartBus : BusHandler
     generic map (
@@ -328,9 +328,9 @@ begin
       DATAREADY_OUT    => ESB_DATAREADY_OUT,
       UNKNOWN_ADDR_OUT => ESB_UNKNOWN_ADDR_OUT);
 
-  GenHitCounterLevelSignals : for i in 1 to CHANNEL_NUMBER-1 generate
+  GenEncoderStartNumber : for i in 1 to CHANNEL_NUMBER-1 generate
     ch_encoder_start_bus_i(i) <= x"00" & ch_encoder_start_number_i(i) when rising_edge(CLK_READOUT);
-  end generate GenHitCounterLevelSignals;
+  end generate GenEncoderStartNumber;
 
   TheFifoWriteBus : BusHandler
     generic map (
@@ -346,9 +346,9 @@ begin
       DATAREADY_OUT    => FWB_DATAREADY_OUT,
       UNKNOWN_ADDR_OUT => FWB_UNKNOWN_ADDR_OUT);
 
-  GenHitCounterLevelSignals : for i in 1 to CHANNEL_NUMBER-1 generate
+  GenFifoWriteNumber : for i in 1 to CHANNEL_NUMBER-1 generate
     ch_fifo_wr_bus_i(i) <= x"00" & ch_fifo_wr_number_i(i) when rising_edge(CLK_READOUT);
-  end generate GenHitCounterLevelSignals;
+  end generate GenFifoWriteNumber;
 
 
 -- Readout

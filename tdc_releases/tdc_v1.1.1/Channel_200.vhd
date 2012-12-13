@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2012-11-07
+-- Last update: 2012-12-13
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -72,13 +72,8 @@ architecture Channel_200 of Channel_200 is
   signal encoder_data_out_i : std_logic_vector(9 downto 0);
   signal encoder_debug_i    : std_logic_vector(31 downto 0);
 
-  -- coarse counter overflow
-  signal coarse_cntr_overflow_release : std_logic;
-  signal coarse_cntr_overflow_flag    : std_logic;
-
   -- epoch counter
   signal epoch_cntr         : std_logic_vector(27 downto 0);
-  signal epoch_word_first   : std_logic_vector(31 downto 0);
   signal epoch_cntr_up      : std_logic;
   signal epoch_capture_time : std_logic_vector(10 downto 0);
 
@@ -87,28 +82,24 @@ architecture Channel_200 of Channel_200 is
   signal fifo_data_in_i     : std_logic_vector(31 downto 0);
   signal fifo_empty_i       : std_logic;
   signal fifo_full_i        : std_logic;
-  signal fifo_was_full_i    : std_logic;
   signal fifo_almost_full_i : std_logic;
   signal fifo_wr_en_i       : std_logic;
   signal fifo_rd_en_i       : std_logic;
 
-  -- other
-  signal read_en_reg   : std_logic;
-  signal read_en_2reg  : std_logic;
-  signal first_read_i  : std_logic;
-  signal trg_win_end_i : std_logic;
+  -- fsm
+  type   FSM is (WRITE_EPOCH, WRITE_DATA, WAIT_FOR_HIT);
+  signal FSM_CURRENT, FSM_NEXT : FSM;
+  signal write_epoch_fsm       : std_logic;
+  signal write_epoch_i         : std_logic;
+  signal write_data_fsm        : std_logic;
+  signal write_data_i          : std_logic;
+  signal fsm_debug_fsm         : std_logic_vector(1 downto 0);
+  signal fsm_debug_i           : std_logic_vector(1 downto 0);
 
   attribute syn_keep                      : boolean;
   attribute syn_keep of ff_array_en_i     : signal is true;
-  attribute syn_keep of trg_win_end_i     : signal is true;
-  attribute syn_preserve                  : boolean;
-  attribute syn_preserve of trg_win_end_i : signal is true;
-  
-
 
 begin  -- Channel_200
-
-  trg_win_end_i <= TRIGGER_WINDOW_END_IN when rising_edge(CLK_200);
 
   --purpose: Tapped Delay Line 304 (Carry Chain) with wave launcher (21) double transition
   FC : Adder_304
@@ -153,9 +144,11 @@ begin  -- Channel_200
       if RESET_200 = '1' then
         epoch_cntr    <= (others => '0');
         epoch_cntr_up <= '0';
-      elsif coarse_cntr_reg = epoch_capture_time then
+      elsif coarse_cntr_reg = epoch_capture_time or DATA_FINISHED_IN = '1' then
         epoch_cntr    <= EPOCH_COUNTER_IN;
         epoch_cntr_up <= '1';
+      elsif write_epoch_i = '1' then
+        epoch_cntr_up <= '0';
       end if;
     end if;
   end process EpochCounterCapture;
@@ -187,109 +180,99 @@ begin  -- Channel_200
 
   fifo_rd_en_i <= READ_EN_IN or fifo_full_i;
 
-  -- purpose: Sets the Overflow Flag
-  CoarseCounterOverflowFlag : process (CLK_200)
+  -- Readout fsm
+  FSM_CLK : process (CLK_200, RESET_200)
   begin
     if rising_edge(CLK_200) then
       if RESET_200 = '1' then
-        coarse_cntr_overflow_flag <= '0';
-      elsif epoch_cntr_up = '1' or trg_win_end_i = '1' then
-        coarse_cntr_overflow_flag <= '1';
-      elsif coarse_cntr_overflow_release = '1' then
-        coarse_cntr_overflow_flag <= '0';
+        FSM_CURRENT   <= WRITE_EPOCH;
+        write_epoch_i <= '0';
+        write_data_i  <= '0';
+        fsm_debug_i   <= "00";
+      else
+        FSM_CURRENT   <= FSM_NEXT;
+        write_epoch_i <= write_epoch_fsm;
+        write_data_i  <= write_data_fsm;
+        fsm_debug_i   <= fsm_debug_fsm;
       end if;
     end if;
-  end process CoarseCounterOverflowFlag;
+  end process FSM_CLK;
+
+  FSM_PROC : process (FSM_CURRENT, encoder_finished_i, epoch_cntr_up)
+  begin
+
+    FSM_NEXT        <= WAIT_FOR_HIT;
+    write_epoch_fsm <= '0';
+    write_data_fsm  <= '0';
+    fsm_debug_fsm   <= "00";
+
+    case (FSM_CURRENT) is
+      when WRITE_EPOCH =>
+        if encoder_finished_i = '1' then
+          write_epoch_fsm <= '1';
+          FSM_NEXT        <= WRITE_DATA;
+        else
+          write_epoch_fsm <= '0';
+          FSM_NEXT        <= WRITE_EPOCH;
+        end if;
+        fsm_debug_fsm <= "01";
+
+      when WRITE_DATA =>
+        write_data_fsm <= '1';
+        FSM_NEXT       <= WAIT_FOR_HIT;
+        fsm_debug_fsm  <= "10";
+
+      when WAIT_FOR_HIT =>
+        if epoch_cntr_up = '1' then
+          FSM_NEXT <= WRITE_EPOCH;
+        else
+          if encoder_finished_i = '1' and epoch_cntr_up = '1' then
+            write_epoch_fsm <= '1';
+            FSM_NEXT        <= WRITE_DATA;
+          elsif encoder_finished_i = '1' and epoch_cntr_up = '0' then
+            write_data_fsm <= '1';
+            FSM_NEXT       <= WAIT_FOR_HIT;
+          else
+            write_data_fsm <= '0';
+            FSM_NEXT       <= WAIT_FOR_HIT;
+          end if;
+        end if;
+        fsm_debug_fsm <= "11";
+
+      when others =>
+        FSM_NEXT      <= WRITE_EPOCH;
+        fsm_debug_fsm <= "00";
+    end case;
+  end process FSM_PROC;
 
   -- purpose: Generate Fifo Wr Signal
   FifoWriteSignal : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
       if RESET_200 = '1' then
-        fifo_data_in_i               <= (others => '0');
-        coarse_cntr_overflow_release <= '0';
-        fifo_wr_en_i                 <= '0';
-      elsif encoder_finished_i = '1' then
-        --if coarse_cntr_overflow_flag = '0' then
-        --  fifo_data_in_i(31)           <= '1';               -- data marker
-        --  fifo_data_in_i(30 downto 29) <= "00";              -- reserved bits
-        --  fifo_data_in_i(28 downto 22) <= std_logic_vector(to_unsigned(CHANNEL_ID, 7));  -- channel number
-        --  fifo_data_in_i(21 downto 12) <= encoder_data_out_i;  -- fine time from the encoder
-        --  fifo_data_in_i(11)           <= '1';  --edge_type_i;  -- rising '1' or falling '0' edge
-        ----  fifo_data_in_i(10 downto 0)  <= time_stamp_reg;    -- hit time stamp
-        --  fifo_data_in_i(10 downto 0)  <= time_stamp_i;    -- hit time stamp
-        --  coarse_cntr_overflow_release <= '0';
-        --  fifo_wr_en_i                 <= '1';
-        --else
-        --if and_all(TIME_STAMP_IN(10 downto 3)) = '1' then  -- for the hits after 0x7f8
-        --if and_all(time_stamp_i(10 downto 3)) = '1' then  -- for the hits after 0x7f8
-        --  fifo_data_in_i(31)           <= '1';             -- data marker
-        --  fifo_data_in_i(30 downto 29) <= "00";            -- reserved bits
-        --  fifo_data_in_i(28 downto 22) <= std_logic_vector(to_unsigned(CHANNEL_ID, 7));  -- channel number
-        --  fifo_data_in_i(21 downto 12) <= encoder_data_out_i;  -- fine time from the encoder
-        --  fifo_data_in_i(11)           <= '1';  --edge_type_i;  -- rising '1' or falling '0' edge
-        --  --fifo_data_in_i(10 downto 0)  <= time_stamp_reg;  -- hit time stamp
-        --  fifo_data_in_i(10 downto 0)  <= time_stamp_i;  -- hit time stamp
-        --  coarse_cntr_overflow_release <= '0';
-        --  fifo_wr_en_i                 <= '1';
-        --else
-        
+        fifo_data_in_i <= (others => '0');
+        fifo_wr_en_i   <= '0';
+      elsif write_epoch_i = '1' then
         fifo_data_in_i(31 downto 29) <= "011";
         fifo_data_in_i(28)           <= '0';
         fifo_data_in_i(27 downto 0)  <= epoch_cntr;
-        coarse_cntr_overflow_release <= '1';
         fifo_wr_en_i                 <= '1';
-        --end if;
-        --end if;
-      elsif coarse_cntr_overflow_release = '1' then
+      elsif write_data_i = '1' then
         fifo_data_in_i(31)           <= '1';                 -- data marker
         fifo_data_in_i(30 downto 29) <= "00";                -- reserved bits
         fifo_data_in_i(28 downto 22) <= std_logic_vector(to_unsigned(CHANNEL_ID, 7));  -- channel number
         fifo_data_in_i(21 downto 12) <= encoder_data_out_i;  -- fine time from the encoder
         fifo_data_in_i(11)           <= '1';  --edge_type_i;  -- rising '1' or falling '0' edge
-        --fifo_data_in_i(10 downto 0)  <= time_stamp_reg;      -- hit time stamp
         fifo_data_in_i(10 downto 0)  <= time_stamp_i;        -- hit time stamp
-        coarse_cntr_overflow_release <= '0';
         fifo_wr_en_i                 <= '1';
       else
-        fifo_data_in_i               <= (others => '0');
-        coarse_cntr_overflow_release <= '0';
-        fifo_wr_en_i                 <= '0';
+        fifo_data_in_i <= (others => '0');
+        fifo_wr_en_i   <= '0';
       end if;
     end if;
   end process FifoWriteSignal;
 
   FIFO_WR_OUT <= fifo_wr_en_i;
-
-  EpochCounterCaptureFirstWord : process (CLK_100, RESET_100)
-  begin
-    if rising_edge(CLK_100) then
-      if RESET_100 = '1' then
-        epoch_word_first <= x"60000000";
-      elsif DATA_FINISHED_IN = '1' and RUN_MODE = '0' then
-        epoch_word_first <= x"60000000";
-      elsif fifo_data_out_i(31 downto 29) = "011" then
-        epoch_word_first <= fifo_data_out_i;
-      end if;
-    end if;
-  end process EpochCounterCaptureFirstWord;
-
-  read_en_reg  <= READ_EN_IN                        when rising_edge(CLK_100);
-  read_en_2reg <= read_en_reg                       when rising_edge(CLK_100);
-  first_read_i <= read_en_reg and not(read_en_2reg) when rising_edge(CLK_100);
-
-  FifoWasFull : process (CLK_100, RESET_100)
-  begin
-    if rising_edge(CLK_100) then
-      if RESET_100 = '1' then
-        fifo_was_full_i <= '0';
-      elsif fifo_full_i = '1' then
-        fifo_was_full_i <= '1';
-      elsif fifo_empty_i = '1' then
-        fifo_was_full_i <= '0';
-      end if;
-    end if;
-  end process FifoWasFull;
 
   RegisterOutputs : process (CLK_100)
   begin
@@ -300,11 +283,11 @@ begin  -- Channel_200
         FIFO_FULL_OUT        <= '0';
         FIFO_ALMOST_FULL_OUT <= '0';
       else
-        if first_read_i = '1' and fifo_was_full_i = '1' then
-          FIFO_DATA_OUT <= epoch_word_first;
-        else
+        --if first_read_i = '1' and fifo_was_full_i = '1' then
+        --  FIFO_DATA_OUT <= epoch_word_first;
+        --else
           FIFO_DATA_OUT <= fifo_data_out_i;
-        end if;
+        --end if;
         FIFO_EMPTY_OUT       <= fifo_empty_i;
         FIFO_FULL_OUT        <= fifo_full_i;
         FIFO_ALMOST_FULL_OUT <= fifo_almost_full_i;
