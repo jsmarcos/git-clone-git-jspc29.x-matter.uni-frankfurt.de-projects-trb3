@@ -61,6 +61,7 @@ signal first_bits_fast : std_logic;
 signal first_bits_slow : std_logic;
 signal reg_MBS_IN      : std_logic;
 signal done            : std_logic;
+signal done_slow       : std_logic;
 
 signal number_reg      : std_logic_vector(23 downto 0);
 signal status_reg      : std_logic_vector(1 downto 0);
@@ -72,7 +73,7 @@ signal trg_sync        : std_logic;
 type state_t is (IDLE, WAIT1,WAIT2,WAIT3,WAIT4, FINISH);
 signal state           : state_t;
 
-type rdo_state_t is (RDO_IDLE, RDO_WRITE, RDO_FINISH);
+type rdo_state_t is (RDO_IDLE, RDO_WAIT, RDO_WRITE, RDO_FINISH);
 signal rdostate        : rdo_state_t;
 
 signal config_rdo_disable_i : std_logic;
@@ -104,6 +105,7 @@ PROC_FSM: process begin
   case state is
     when IDLE =>
       bitcnt <= 37;
+      done <= '1';
       if reg_MBS_IN = '0' then
         done  <= '0';
         state <= WAIT1;
@@ -139,9 +141,11 @@ PROC_FSM: process begin
   end if;
 end process;
 
+done_slow <= done when rising_edge(CLK);
+
 PROC_REG_INFO : process begin
   wait until rising_edge(CLK);
-  if done = '1' then
+  if done_slow = '1' then
     number_reg <= shift_reg(31 downto 8);
     status_reg <= shift_reg(7 downto 6);
 
@@ -162,10 +166,21 @@ PROC_RDO : process begin
   case rdostate is
     when RDO_IDLE =>
       if TRIGGER_IN = '1' and config_rdo_disable_i = '0' then
-        rdostate <= RDO_FINISH;
-        DATA_OUT <= error_reg & status_reg & "00000" & number_reg;
-        WRITE_OUT <= '1';
+        if done_slow = '0' then
+          rdostate <= RDO_WAIT;
+        else
+          rdostate <= RDO_WRITE;
+        end if;
       end if;
+    when RDO_WAIT =>
+      if done_slow = '1' then
+        rdostate <= RDO_WRITE;
+      end if;
+    when RDO_WRITE =>
+      rdostate <= RDO_FINISH;
+      DATA_OUT <= error_reg & status_reg & "00000" & number_reg;
+      WRITE_OUT <= '1';
+    
     when RDO_FINISH =>
       FINISHED_OUT <= '1';
       rdostate     <= RDO_IDLE;
@@ -174,7 +189,7 @@ end process;
 
 config_rdo_disable_i <= CONTROL_REG_IN(0);
 
-STATUS_REG_OUT <= error_reg & reg_MBS_IN & std_logic_vector(to_unsigned(bitcnt,6)) & number_reg;
-DEBUG <= x"0000" & done & reg_MBS_IN & shift_reg(13 downto 0);
+STATUS_REG_OUT <= error_reg & '0' & std_logic_vector(to_unsigned(bitcnt,6)) & number_reg;
+DEBUG <= x"00000000"; -- & done & '0' & shift_reg(13 downto 0);
 
 end architecture;

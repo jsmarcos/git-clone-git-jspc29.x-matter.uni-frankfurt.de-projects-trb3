@@ -213,18 +213,25 @@ signal inp_hold    : std_logic_vector(15 downto 0);
 signal inp_gated   : std_logic_vector(15 downto 0);
 signal inp_hold_reg: std_logic_vector(15 downto 0);
 signal last_inp_hold_reg: std_logic_vector(15 downto 0);
+signal flash_go_tmp : std_logic_vector(5 downto 0);
+signal flash_reset_n : std_logic;
+
+signal pwm_data_i  : std_logic_vector(15 downto 0);
+signal pwm_data_o  : std_logic_vector(15 downto 0);
+signal pwm_write_i : std_logic;
+signal pwm_addr_i  : std_logic_vector(3 downto 0);
+type fsm_state is (IDLE, PWM_WRITE_GET_1, PWM_WRITE_GET_2, PWM_WRITE, PWM_WAIT);
+signal fsm_copydat : fsm_state;
+
+signal pwm_fsm_data_i : std_logic_vector(15 downto 0);
+signal pwm_fsm_addr   : std_logic_vector(3 downto 0);
+signal pwm_fsm_write  : std_logic;
+signal fsm_job        : std_logic_vector(1 downto 0);
+signal ram_fsm_data_i : std_logic_vector(7 downto 0);
+signal ram_fsm_addr_i : std_logic_vector(3 downto 0);
+signal ram_fsm_write_i: std_logic;
 
 begin
-
--- PROC_RESET : process begin
---   wait until rising_edge(clk_osc);
---   reset_i <= not pll_lock;
--- --   if reset_cnt /= x"F" then
--- --     reset_cnt <= reset_cnt + 1;
--- --     reset_i   <= '1';
--- --   end if;
--- end process;
-
 
 
 THE_PLL : pll
@@ -275,12 +282,26 @@ SPI_OUT <= buf_SPI_OUT;
 -- RAM Interface
 ---------------------------------------------------------------------------  
 
-ram_write_i <= spi_write_i(4);                      --or signal from Flash entity
-ram_data_i  <= spi_data_i(7 downto 0);                          --or signal from Flash entity
-ram_addr_i  <= spi_channel_i(3 downto 0); --or signal from Flash entity
 
-spi_reg40_i <= x"00" & ram_data_o;
+spi_reg40_i <= flash_busy & flash_err & "000000" & ram_data_o;
 
+
+
+PROC_CTRL_FLASH : process begin
+  wait until rising_edge(clk_i);
+  if(spi_write_i(5) = '1' and spi_channel_i(7 downto 4) = x"0") then
+    flash_command <= spi_data_i(14 downto 12);
+    flash_page    <= spi_data_i(10 downto 0);
+    flash_go_tmp(0)<= '1';
+  else
+    flash_go_tmp(5 downto 0) <= flash_go_tmp(4 downto 0) & '0';
+  end if;
+  if flash_reset_n = '0' then
+    flash_go_tmp <= (others => '0');
+  end if;
+end process;
+
+ flash_go <= or_all(flash_go_tmp);
 
 THE_FLASH_RAM : flashram
   port map(
@@ -304,26 +325,68 @@ THE_FLASH_RAM : flashram
 -- Flash Controller
 ---------------------------------------------------------------------------  
 
--- THE_FLASH : UFM_WB
---   port map(
---     clk_i => clk_26,
---     rst_n => '1',
---     cmd       => flash_command,
---     ufm_page  => flash_page,
---     GO        => flash_go,
---     BUSY      => flash_busy,
---     ERR       => flash_err,
---     mem_clk    => open,
---     mem_we      => flashram_write_i,
---     mem_ce      => flashram_cen_i,
---     mem_addr    => flashram_addr_i,
---     mem_wr_data => flashram_data_i,
---     mem_rd_data => flashram_data_o
---     );
+THE_FLASH : UFM_WB
+  port map(
+    clk_i => clk_26,
+    rst_n => flash_reset_n,
+    cmd       => flash_command,
+    ufm_page  => flash_page,
+    GO        => flash_go,
+    BUSY      => flash_busy,
+    ERR       => flash_err,
+    mem_clk    => open,
+    mem_we      => flashram_write_i,
+    mem_ce      => flashram_cen_i,
+    mem_addr    => flashram_addr_i,
+    mem_wr_data => flashram_data_i,
+    mem_rd_data => flashram_data_o
+    );
 
-    
---     PUR_INST : PUR port map(PUR=>'1');
---     GSR_INST : GSR port map(GSR=>'1');
+PROC_DATA_COPY : process 
+  variable count : integer range 0 to 31 := 0;
+  variable tmp   : std_logic_vector(7 downto 0);
+begin
+  wait until rising_edge(clk_i);
+  pwm_fsm_write   <= '0';
+  ram_fsm_write_i <= '0';
+  case fsm_copydat is
+    when IDLE => 
+      count := 0;
+      if spi_write_i(5) = '1' and spi_channel_i(7 downto 4) = x"1" then
+        fsm_copydat    <= PWM_WRITE_GET_1;
+        ram_fsm_addr_i <= std_logic_vector(to_unsigned(count,4));
+        fsm_job        <= spi_channel_i(1 downto 0);
+        count := count + 1;
+      end if;
+    when PWM_WRITE_GET_1 =>
+      ram_fsm_addr_i <= std_logic_vector(to_unsigned(count,4));
+      count := count + 1;
+      fsm_copydat <= PWM_WRITE_GET_2;
+    when PWM_WRITE_GET_2 =>
+      fsm_copydat <= PWM_WRITE;
+      tmp := ram_data_o;
+    when PWM_WRITE =>
+      pwm_fsm_data_i <= tmp & ram_data_o;
+      pwm_fsm_write  <= '1';
+      pwm_fsm_addr   <= fsm_job(0) & std_logic_vector(to_unsigned(count/2-1,3));
+     
+      if(count < 15) then
+        fsm_copydat <= PWM_WRITE_GET_1;
+      else
+        fsm_copydat <= PWM_WAIT;
+      end if;
+      
+      ram_fsm_addr_i <= std_logic_vector(to_unsigned(count,4));
+      count := count + 1;
+      
+    when PWM_WAIT =>
+      fsm_copydat <= IDLE;
+  end case;
+  if onewire_reset = '1' then
+    fsm_copydat <= IDLE;
+  end if;
+end process;
+
 ---------------------------------------------------------------------------
 -- PWM
 ---------------------------------------------------------------------------  
@@ -331,27 +394,40 @@ THE_FLASH_RAM : flashram
 THE_PWM_GEN : pwm_generator
   port map(
     CLK        => clk_i,
-    DATA_IN    => spi_data_i,
-    DATA_OUT   => spi_reg00_i,
-    WRITE_IN   => spi_write_i(0),
-    ADDR_IN    => spi_channel_i(3 downto 0),
+    DATA_IN    => pwm_data_i,
+    DATA_OUT   => pwm_data_o,
+    WRITE_IN   => pwm_write_i,
+    ADDR_IN    => pwm_addr_i,
     PWM        => pwm_i
     );
 
     PWM <= pwm_i(15 downto 0);
 
--- PWM_ODDR : oddr16
---   port map(
---     clk    => clk_i,
---     clkout => open,
---     reset  => '0',
---     sclk   => open,
---     dataout => pwm_i,
---     dout    => PWM
---     );
+spi_reg00_i <= pwm_data_o;
+
+PROC_PWM_DATA_MUX : process(fsm_copydat, spi_data_i, spi_write_i, spi_channel_i,
+                            pwm_fsm_addr, pwm_fsm_data_i, pwm_fsm_write,
+                            ram_fsm_addr_i, ram_fsm_data_i, ram_fsm_write_i)
+begin
+  if(fsm_copydat = IDLE) then
+    pwm_data_i  <= spi_data_i;
+    pwm_write_i <= spi_write_i(0);
+    pwm_addr_i  <= spi_channel_i(3 downto 0);
+    ram_write_i <= spi_write_i(4);
+    ram_data_i  <= spi_data_i(7 downto 0);
+    ram_addr_i  <= spi_channel_i(3 downto 0);
+  else
+    pwm_data_i  <= pwm_fsm_data_i;
+    pwm_write_i <= pwm_fsm_write;
+    pwm_addr_i  <= pwm_fsm_addr;
+    ram_write_i <= ram_fsm_write_i;
+    ram_data_i  <= ram_fsm_data_i;
+    ram_addr_i  <= ram_fsm_addr_i;
+  end if;
+end process;
 
 
-    
+
 ---------------------------------------------------------------------------
 -- Temperature Sensor
 ---------------------------------------------------------------------------  
@@ -391,7 +467,7 @@ PROC_IDMEM : process begin
   end if;
 end process;
 
-
+flash_reset_n <= not onewire_reset;
 
 ---------------------------------------------------------------------------
 -- I/O Register 0x20
@@ -434,6 +510,8 @@ end process;
 
 inp_status <= INP when rising_edge(clk_i);
 last_inp <= inp_status(3 downto 0) when rising_edge(clk_i);
+
+
 ---------------------------------------------------------------------------
 -- LED blinking when activity on inputs
 ---------------------------------------------------------------------------
@@ -460,17 +538,6 @@ SPARE_LINE(1) <= '0'; --clk_i;
 SPARE_LINE(2) <= '0'; --timer(18);
 SPARE_LINE(3) <= '0';
 
-
-
--- process(inp_gated,clk_i); 
---   begin
---     if inp_gated(i) then
---       inp_hold(i) <= inp_gated(i);
---     elsif rising_edge(clk_i) then
---       inp_hold(i) <= inp_hold(i) and not inp_hold_reg(i);
---     end if;
---   end process;
--- 
 
 inp_hold <= (inp_gated or inp_hold) and not inp_hold_reg;
 inp_hold_reg <= inp_hold when rising_edge(clk_i);
@@ -504,11 +571,18 @@ last_inp_long_reg <= inp_long_reg when rising_edge(clk_i);
 -- TEST_LINE(0) <= '0';
 -- TEST_LINE(15 downto 1) <= (others => '0');
 
-TEST_LINE(7 downto 0) <= spi_debug_i(7 downto 0);
-TEST_LINE(10 downto 8) <= id_addr_i(2 downto 0);
-TEST_LINE(11) <= onewire_monitor;
-TEST_LINE(12) <= id_write_i;
-TEST_LINE(15 downto 13) <= id_data_i(2 downto 0);
+-- TEST_LINE(0)            <= '0';
+-- TEST_LINE(1)            <= spi_write_i(5);
+-- TEST_LINE(2)            <= pwm_write_i;
+-- TEST_LINE(3)            <= ram_write_i;
+-- TEST_LINE(7 downto 4)   <= pwm_addr_i;
+-- TEST_LINE(11 downto 8)  <= ram_addr_i;
+-- TEST_LINE(12)           <= spi_write_i(4);
+-- TEST_LINE(13)           <= ;
+-- TEST_LINE(14)           <= '1' when fsm_copydat = PWM_WRITE_GET_1 or fsm_copydat = PWM_WRITE_GET_2 else '0';
+-- TEST_LINE(15)           <= '1' when fsm_copydat = PWM_WRITE_GET_2 or fsm_copydat = PWM_WRITE else '0';
+-- 
+
 
 LED_GREEN  <= not leds(0) when led_status(4) = '0' else not led_status(0);
 LED_ORANGE <= not leds(1) when led_status(4) = '0' else not led_status(1);
@@ -517,3 +591,35 @@ LED_YELLOW <= not leds(3) when led_status(4) = '0' else not led_status(3);
 
 end architecture;
 
+
+
+
+-- PWM_ODDR : oddr16
+--   port map(
+--     clk    => clk_i,
+--     clkout => open,
+--     reset  => '0',
+--     sclk   => open,
+--     dataout => pwm_i,
+--     dout    => PWM
+--     );
+
+-- PROC_RESET : process begin
+--   wait until rising_edge(clk_osc);
+--   reset_i <= not pll_lock;
+-- --   if reset_cnt /= x"F" then
+-- --     reset_cnt <= reset_cnt + 1;
+-- --     reset_i   <= '1';
+-- --   end if;
+-- end process;
+
+
+-- process(inp_gated,clk_i); 
+--   begin
+--     if inp_gated(i) then
+--       inp_hold(i) <= inp_gated(i);
+--     elsif rising_edge(clk_i) then
+--       inp_hold(i) <= inp_hold(i) and not inp_hold_reg(i);
+--     end if;
+--   end process;
+-- 

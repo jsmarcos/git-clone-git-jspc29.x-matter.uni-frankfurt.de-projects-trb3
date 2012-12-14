@@ -15,7 +15,7 @@ use work.trb_net_gbe_components.all;
 
 entity trb3_central is
   generic (
-    USE_ETHERNET : integer range c_NO to c_YES := c_YES
+    USE_ETHERNET : integer range c_NO to c_YES := c_NO
   );
   port(
     --Clocks
@@ -419,10 +419,10 @@ gen_normal_hub : if USE_ETHERNET = c_NO generate
       MII_IS_DOWNLINK   => (4 => 0, others => 1),
       MII_IS_UPLINK_ONLY=> (4 => 1, others => 0),
       INT_NUMBER        => 0,
-      INT_CHANNELS      => (0,1,3,3,3,3,3,3),
+      INT_CHANNELS      => (others => 0),
       USE_ONEWIRE       => c_YES,
       COMPILE_TIME      => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME,32)),
-      HARDWARE_VERSION  => x"90000000",
+      HARDWARE_VERSION  => x"90000030",
       INIT_ENDPOINT_ID  => x"0005",
       INIT_ADDRESS      => x"F305",
       BROADCAST_SPECIAL_ADDR => x"40"
@@ -468,6 +468,8 @@ gen_normal_hub : if USE_ETHERNET = c_NO generate
       CTRL_DEBUG            => (others => '0'),
       STAT_DEBUG            => open
       );
+      
+  reset_via_gbe <= '0';    
 end generate;
 
 gen_ethernet_hub : if USE_ETHERNET = c_YES generate

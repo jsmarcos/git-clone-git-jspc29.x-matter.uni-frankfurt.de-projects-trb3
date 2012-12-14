@@ -13,6 +13,7 @@ entity pwm_generator is
     WRITE_IN   : in  std_logic := '0';
     ADDR_IN    : in  std_logic_vector(3 downto 0) := (others => '0');
     
+    
     PWM        : out std_logic_vector(31 downto 0)
     
     );

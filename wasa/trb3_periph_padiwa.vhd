@@ -311,7 +311,7 @@ begin
       BROADCAST_BITMASK         => x"FF",
       BROADCAST_SPECIAL_ADDR    => x"48",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
-      REGIO_HARDWARE_VERSION    => x"91004060",
+      REGIO_HARDWARE_VERSION    => x"91004950",
       REGIO_INIT_ADDRESS        => x"f306",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
       CLOCK_FREQUENCY           => 100,
@@ -654,14 +654,14 @@ padiwa_sdi <= or_all(IN_SDI and not padiwa_cs(3 downto 0));
       CONTROL_REG_IN        => ctrl_reg);
 
 
-  hit_in_i  <= INP;
+--   hit_in_i  <= INP;
   
   -- to detect rising & falling edges
   --hit_in_i(1) <= not timing_trg_received_i;
   
-  --Gen_Hit_In_Signals : for i in 1 to 15 generate
-  --  hit_in_i(i*2)   <= INPUT(i-1);
-  --  hit_in_i(i*2+1) <= not INPUT(i-1);
-  --end generate Gen_Hit_In_Signals;
+  Gen_Hit_In_Signals : for i in 0 to 31 generate
+   hit_in_i(i*2)     <= INP(i);
+   hit_in_i(i*2+1)   <= not INP(i);
+  end generate Gen_Hit_In_Signals;
 
 end architecture;

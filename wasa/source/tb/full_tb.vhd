@@ -70,7 +70,7 @@ reset <= '0' after 30 ns;
 process begin
   wait for 101 ns;
   bus_addr  <= "00000";
-  bus_data  <= x"0010abcd";
+  bus_data  <= x"51800000";
   bus_write <= '1';
   wait for 10 ns;
   bus_write <= '0';
@@ -91,7 +91,7 @@ process begin
 
   wait for 10010 ns;
   bus_addr  <= "00000";
-  bus_data  <= x"0013cd46";
+  bus_data  <= x"51810000";
   bus_write <= '1';
   wait for 10 ns;
   bus_write <= '0';

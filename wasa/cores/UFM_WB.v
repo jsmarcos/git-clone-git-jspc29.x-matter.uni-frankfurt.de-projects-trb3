@@ -44,6 +44,8 @@
 
 `timescale 1ns / 100ps
 `include "efb_define_def.v"
+`include "/d/jspc29/lattice/diamond/2.0/ispfpga/verilog/data/machxo2/GSR.v"
+`include "/d/jspc29/lattice/diamond/2.0/ispfpga/verilog/data/machxo2/PUR.v"
 
 module UFM_WB(
 				  input clk_i
@@ -127,6 +129,9 @@ reg n_wr_en_ufm;
 reg[4:0] n_count;
 reg n_ufm_addr_MSB;
 
+    PUR PUR_INST   (.PUR(1'b1));
+    GSR GSR_INST   (.GSR(1'b1));
+
 flash inst1 (	.wb_clk_i(clk_i ),					// EFB with UFM enabled
 				.wb_rst_i(!rst_n ),
 				.wb_cyc_i(wb_cyc_i ),
@@ -159,6 +164,7 @@ always @ (*)
   begin
     sm_rd_data <= mem_rd_data;
     mem_we <= sm_we;
+    mem_ce <= sm_ce;
     mem_clk <= clk_i;
     mem_addr <= sm_addr;
     mem_wr_data <= sm_wr_data;
