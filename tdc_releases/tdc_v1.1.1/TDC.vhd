@@ -77,7 +77,6 @@ entity TDC is
     LHB_DATAREADY_OUT     : out std_logic;
     LHB_UNKNOWN_ADDR_OUT  : out std_logic;
 --
-    SLOW_CONTROL_REG_OUT  : out std_logic_vector(32*2**STATUS_REG_NR-1 downto 0);
     LOGIC_ANALYSER_OUT    : out std_logic_vector(15 downto 0);
     CONTROL_REG_IN        : in  std_logic_vector(32*2**CONTROL_REG_NR-1 downto 0)
     );
@@ -393,7 +392,6 @@ begin
       READOUT_BUSY_OUT         => readout_busy_i,
       READ_EN_OUT              => rd_en_i,
       TRIGGER_WIN_END_OUT      => trg_win_end_i,
-      SLOW_CONTROL_REG_OUT     => SLOW_CONTROL_REG_OUT,
       STATUS_REGISTERS_BUS_OUT => status_registers_bus_i,
       READOUT_DEBUG            => readout_debug_i);
   DATA_FINISHED_OUT <= data_finished_i;

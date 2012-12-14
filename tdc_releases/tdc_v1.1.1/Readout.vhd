@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2012-12-08
+-- Last update: 2012-12-14
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -71,7 +71,6 @@ entity Readout is
     READ_EN_OUT              : out std_logic_vector(CHANNEL_NUMBER-1 downto 0);
     TRIGGER_WIN_END_OUT      : out std_logic;
 --
-    SLOW_CONTROL_REG_OUT     : out std_logic_vector(32*2**STATUS_REG_NR-1 downto 0);
     STATUS_REGISTERS_BUS_OUT : out std_logic_vector_array_32(0 to 23);
     READOUT_DEBUG            : out std_logic_vector(31 downto 0)
     );
@@ -980,67 +979,6 @@ begin  -- behavioral
       end if;
     end if;
   end process Statistics_Empty_Channel_Number;
-
--------------------------------------------------------------------------------
--- SLOW CONTROL REGISTERS
--------------------------------------------------------------------------------
-
----- Register 0x80
---  SLOW_CONTROL_REG_OUT(31 downto 0)             <=
----- Register 0x81
---  SLOW_CONTROL_REG_OUT(1*32+31 downto 1*32+0)   <=
----- Register 0x82
---  SLOW_CONTROL_REG_OUT(2*32+31 downto 2*32+0)   <=
----- Register 0x83
---  SLOW_CONTROL_REG_OUT(3*32+31 downto 3*32+0)   <=
----- Register 0x84
---  SLOW_CONTROL_REG_OUT(4*32+31 downto 4*32+0)   <=
----- Register 0x85
---  SLOW_CONTROL_REG_OUT(5*32+31 downto 5*32+0)   <=
----- Register 0x86
---  SLOW_CONTROL_REG_OUT(6*32+31 downto 6*32+0)   <=
----- Register 0x87
---  SLOW_CONTROL_REG_OUT(7*32+31 downto 7*32+0)   <=
----- Register 0x88
---  SLOW_CONTROL_REG_OUT(8*32+31 downto 8*32+0)   <=
----- Register 0x89
---  SLOW_CONTROL_REG_OUT(9*32+31 downto 9*32+0)   <=
----- Register 0x8a
---  SLOW_CONTROL_REG_OUT(10*32+31 downto 10*32+0) <=
----- Register 0x8b
---  SLOW_CONTROL_REG_OUT(11*32+31 downto 11*32+0) <=
----- Register 0x8c
---  SLOW_CONTROL_REG_OUT(12*32+31 downto 12*32+0) <=
----- Register 0x8d
---  SLOW_CONTROL_REG_OUT(13*32+31 downto 13*32+0) <=
----- Register 0x8e
---  SLOW_CONTROL_REG_OUT(14*32+31 downto 14*32+0) <=
----- Register 0x8f
---  SLOW_CONTROL_REG_OUT(15*32+31 downto 15*32+0) <=
----- Register 0x90
---  SLOW_CONTROL_REG_OUT(16*32+31 downto 16*32+0) <=
----- Register 0x91
---  SLOW_CONTROL_REG_OUT(17*32+31 downto 17*32+0) <=
----- Register 0x93
---  SLOW_CONTROL_REG_OUT(19*32+31 downto 19*32+0) <=
----- Register 0x94
---  SLOW_CONTROL_REG_OUT(20*32+31 downto 20*32+0) <=
----- Register 0x95
---  SLOW_CONTROL_REG_OUT(21*32+31 downto 21*32+0) <=
----- Register 0x96
---  SLOW_CONTROL_REG_OUT(22*32+31 downto 22*32+0) <=
----- Register 0x97
---  SLOW_CONTROL_REG_OUT(23*32+31 downto 23*32+0) <=
----- Register 0x98
---  SLOW_CONTROL_REG_OUT(24*32+31 downto 24*32+0) <=
----- Register 0x99
---  SLOW_CONTROL_REG_OUT(25*32+31 downto 25*32+0) <=
----- Register 0x9a
---  SLOW_CONTROL_REG_OUT(26*32+31 downto 26*32+0) <=
----- Register 0x9f
---  SLOW_CONTROL_REG_OUT(27*32+31 downto 27*32+0) <=
-
-  SLOW_CONTROL_REG_OUT(32*2**STATUS_REG_NR-1 downto 0) <= (others => '0');
 
 -------------------------------------------------------------------------------
 -- STATUS REGISTERS BUS
