@@ -745,7 +745,6 @@ begin
       LHB_DATAREADY_OUT     => open, -- lhb_data_ready,    -- bus data ready strobe
       LHB_UNKNOWN_ADDR_OUT  => open, -- lhb_invalid,   -- bus invalid addr
       --
-      SLOW_CONTROL_REG_OUT  => stat_reg,
       LOGIC_ANALYSER_OUT    => TEST_LINE,
       CONTROL_REG_IN        => ctrl_reg);
 
