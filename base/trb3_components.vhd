@@ -88,7 +88,6 @@ package trb3_components is
       LHB_DATA_OUT          : out std_logic_vector(31 downto 0);
       LHB_DATAREADY_OUT     : out std_logic;
       LHB_UNKNOWN_ADDR_OUT  : out std_logic;
-      SLOW_CONTROL_REG_OUT  : out std_logic_vector(32*2**STATUS_REG_NR-1 downto 0);
       LOGIC_ANALYSER_OUT    : out std_logic_vector(15 downto 0);
       CONTROL_REG_IN        : in  std_logic_vector(32*2**CONTROL_REG_NR-1 downto 0));
   end component;
@@ -237,7 +236,6 @@ package trb3_components is
       READOUT_BUSY_OUT         : out std_logic;
       READ_EN_OUT              : out std_logic_vector(CHANNEL_NUMBER-1 downto 0);
       TRIGGER_WIN_END_OUT      : out std_logic;
-      SLOW_CONTROL_REG_OUT     : out std_logic_vector(32*2**STATUS_REG_NR-1 downto 0);
       STATUS_REGISTERS_BUS_OUT : out std_logic_vector_array_32(0 to 23);
       READOUT_DEBUG            : out std_logic_vector(31 downto 0));
   end component;
