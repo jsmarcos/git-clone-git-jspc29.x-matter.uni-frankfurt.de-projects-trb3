@@ -64,6 +64,30 @@ package trb3_components is
       HCB_DATA_OUT          : out std_logic_vector(31 downto 0);
       HCB_DATAREADY_OUT     : out std_logic;
       HCB_UNKNOWN_ADDR_OUT  : out std_logic;
+      SRB_READ_EN_IN        : in  std_logic;
+      SRB_WRITE_EN_IN       : in  std_logic;
+      SRB_ADDR_IN           : in  std_logic_vector(6 downto 0);
+      SRB_DATA_OUT          : out std_logic_vector(31 downto 0);
+      SRB_DATAREADY_OUT     : out std_logic;
+      SRB_UNKNOWN_ADDR_OUT  : out std_logic;
+      ESB_READ_EN_IN        : in  std_logic;
+      ESB_WRITE_EN_IN       : in  std_logic;
+      ESB_ADDR_IN           : in  std_logic_vector(6 downto 0);
+      ESB_DATA_OUT          : out std_logic_vector(31 downto 0);
+      ESB_DATAREADY_OUT     : out std_logic;
+      ESB_UNKNOWN_ADDR_OUT  : out std_logic;
+      FWB_READ_EN_IN        : in  std_logic;
+      FWB_WRITE_EN_IN       : in  std_logic;
+      FWB_ADDR_IN           : in  std_logic_vector(6 downto 0);
+      FWB_DATA_OUT          : out std_logic_vector(31 downto 0);
+      FWB_DATAREADY_OUT     : out std_logic;
+      FWB_UNKNOWN_ADDR_OUT  : out std_logic;
+      LHB_READ_EN_IN        : in  std_logic;
+      LHB_WRITE_EN_IN       : in  std_logic;
+      LHB_ADDR_IN           : in  std_logic_vector(6 downto 0);
+      LHB_DATA_OUT          : out std_logic_vector(31 downto 0);
+      LHB_DATAREADY_OUT     : out std_logic;
+      LHB_UNKNOWN_ADDR_OUT  : out std_logic;
       SLOW_CONTROL_REG_OUT  : out std_logic_vector(32*2**STATUS_REG_NR-1 downto 0);
       LOGIC_ANALYSER_OUT    : out std_logic_vector(15 downto 0);
       CONTROL_REG_IN        : in  std_logic_vector(32*2**CONTROL_REG_NR-1 downto 0));
@@ -156,11 +180,7 @@ package trb3_components is
       RESET_200             : in  std_logic;
       CLK_100               : in  std_logic;
       RESET_100             : in  std_logic;
-      RESET_COUNTERS        : in  std_logic;
       HIT_IN                : in  std_logic;
---      HIT_DETECT_OUT        : out std_logic;
---      TIME_STAMP_IN         : in  std_logic_vector(10 downto 0);
-      SCALER_IN             : in  std_logic;
       EPOCH_COUNTER_IN      : in  std_logic_vector(27 downto 0);
       TRIGGER_WINDOW_END_IN : in  std_logic;
       DATA_FINISHED_IN      : in  std_logic;
@@ -171,12 +191,8 @@ package trb3_components is
       FIFO_EMPTY_OUT        : out std_logic;
       FIFO_FULL_OUT         : out std_logic;
       FIFO_ALMOST_FULL_OUT  : out std_logic;
---      FIFO_WR_OUT           : out std_logic;
---      ENCODER_START_OUT     : out std_logic;
-      LOST_HIT_NUMBER       : out std_logic_vector(23 downto 0);
-      HIT_DETECT_NUMBER     : out std_logic_vector(23 downto 0);
-      ENCODER_START_NUMBER  : out std_logic_vector(23 downto 0);
-      FIFO_WR_NUMBER        : out std_logic_vector(23 downto 0));
+      FIFO_WR_OUT           : out std_logic;
+      ENCODER_START_OUT     : out std_logic);
   end component;
 
   component Readout
@@ -197,32 +213,33 @@ package trb3_components is
       DEBUG_MODE_EN_IN  : in std_logic;
       TRIGGER_WIN_EN_IN : in std_logic;
 
-      CH_DATA_IN            : in  std_logic_vector_array_32(0 to CHANNEL_NUMBER);
-      CH_EMPTY_IN           : in  std_logic_vector(CHANNEL_NUMBER downto 0);
-      CH_FULL_IN            : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-      CH_ALMOST_FULL_IN     : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-      TRG_DATA_VALID_IN     : in  std_logic;
-      VALID_TIMING_TRG_IN   : in  std_logic;
-      VALID_NOTIMING_TRG_IN : in  std_logic;
-      INVALID_TRG_IN        : in  std_logic;
-      TMGTRG_TIMEOUT_IN     : in  std_logic;
-      SPIKE_DETECTED_IN     : in  std_logic;
-      MULTI_TMG_TRG_IN      : in  std_logic;
-      SPURIOUS_TRG_IN       : in  std_logic;
-      TRG_NUMBER_IN         : in  std_logic_vector(15 downto 0);
-      TRG_CODE_IN           : in  std_logic_vector(7 downto 0);
-      TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0);
-      TRG_TYPE_IN           : in  std_logic_vector(3 downto 0);
-      TRG_RELEASE_OUT       : out std_logic;
-      TRG_STATUSBIT_OUT     : out std_logic_vector(31 downto 0);
-      DATA_OUT              : out std_logic_vector(31 downto 0);
-      DATA_WRITE_OUT        : out std_logic;
-      DATA_FINISHED_OUT     : out std_logic;
-      READOUT_BUSY_OUT      : out std_logic;
-      READ_EN_OUT           : out std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-      TRIGGER_WIN_END_OUT   : out std_logic;
-      SLOW_CONTROL_REG_OUT  : out std_logic_vector(32*2**STATUS_REG_NR-1 downto 0);
-      READOUT_DEBUG         : out std_logic_vector(31 downto 0));
+      CH_DATA_IN               : in  std_logic_vector_array_32(0 to CHANNEL_NUMBER);
+      CH_EMPTY_IN              : in  std_logic_vector(CHANNEL_NUMBER downto 0);
+      CH_FULL_IN               : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+      CH_ALMOST_FULL_IN        : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+      TRG_DATA_VALID_IN        : in  std_logic;
+      VALID_TIMING_TRG_IN      : in  std_logic;
+      VALID_NOTIMING_TRG_IN    : in  std_logic;
+      INVALID_TRG_IN           : in  std_logic;
+      TMGTRG_TIMEOUT_IN        : in  std_logic;
+      SPIKE_DETECTED_IN        : in  std_logic;
+      MULTI_TMG_TRG_IN         : in  std_logic;
+      SPURIOUS_TRG_IN          : in  std_logic;
+      TRG_NUMBER_IN            : in  std_logic_vector(15 downto 0);
+      TRG_CODE_IN              : in  std_logic_vector(7 downto 0);
+      TRG_INFORMATION_IN       : in  std_logic_vector(23 downto 0);
+      TRG_TYPE_IN              : in  std_logic_vector(3 downto 0);
+      TRG_RELEASE_OUT          : out std_logic;
+      TRG_STATUSBIT_OUT        : out std_logic_vector(31 downto 0);
+      DATA_OUT                 : out std_logic_vector(31 downto 0);
+      DATA_WRITE_OUT           : out std_logic;
+      DATA_FINISHED_OUT        : out std_logic;
+      READOUT_BUSY_OUT         : out std_logic;
+      READ_EN_OUT              : out std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+      TRIGGER_WIN_END_OUT      : out std_logic;
+      SLOW_CONTROL_REG_OUT     : out std_logic_vector(32*2**STATUS_REG_NR-1 downto 0);
+      STATUS_REGISTERS_BUS_OUT : out std_logic_vector_array_32(0 to 23);
+      READOUT_DEBUG            : out std_logic_vector(31 downto 0));
   end component;
 
   component LogicAnalyser
@@ -239,11 +256,11 @@ package trb3_components is
 
   component BusHandler
     generic (
-      CHANNEL_NUMBER : integer range 0 to 64 := 2);
+      BUS_LENGTH : integer range 0 to 64 := 2);
     port (
       RESET            : in  std_logic;
       CLK              : in  std_logic;
-      DATA_IN          : in  std_logic_vector_array_32(0 to CHANNEL_NUMBER);
+      DATA_IN          : in  std_logic_vector_array_32(0 to BUS_LENGTH);
       READ_EN_IN       : in  std_logic;
       WRITE_EN_IN      : in  std_logic;
       ADDR_IN          : in  std_logic_vector(6 downto 0);
@@ -379,6 +396,12 @@ package trb3_components is
       RESET : in  std_logic;
       D_IN  : in  std_logic_vector(WIDTH-1 downto 0);
       D_OUT : out std_logic_vector(WIDTH-1 downto 0));
+  end component;
+
+  component Stretcher
+    port (
+      PULSE_IN  : in  std_logic;
+      PULSE_OUT : out std_logic);
   end component;
 
   component adc_ad9222
