@@ -24,19 +24,19 @@ entity TDC is
     TRG_WIN_POST          : in  std_logic_vector(10 downto 0);
 --
     -- Trigger signals from handler
-    TRG_DATA_VALID_IN     : in  std_logic;
-    VALID_TIMING_TRG_IN   : in  std_logic;
-    VALID_NOTIMING_TRG_IN : in  std_logic;
-    INVALID_TRG_IN        : in  std_logic;
-    TMGTRG_TIMEOUT_IN     : in  std_logic;
-    SPIKE_DETECTED_IN     : in  std_logic;
-    MULTI_TMG_TRG_IN      : in  std_logic;
-    SPURIOUS_TRG_IN       : in  std_logic;
+    TRG_DATA_VALID_IN     : in  std_logic := '0';
+    VALID_TIMING_TRG_IN   : in  std_logic := '0';
+    VALID_NOTIMING_TRG_IN : in  std_logic := '0';
+    INVALID_TRG_IN        : in  std_logic := '0';
+    TMGTRG_TIMEOUT_IN     : in  std_logic := '0';
+    SPIKE_DETECTED_IN     : in  std_logic := '0';
+    MULTI_TMG_TRG_IN      : in  std_logic := '0';
+    SPURIOUS_TRG_IN       : in  std_logic := '0';
 --
-    TRG_NUMBER_IN         : in  std_logic_vector(15 downto 0);
-    TRG_CODE_IN           : in  std_logic_vector(7 downto 0);
-    TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0);
-    TRG_TYPE_IN           : in  std_logic_vector(3 downto 0);
+    TRG_NUMBER_IN         : in  std_logic_vector(15 downto 0) := (others => '0');
+    TRG_CODE_IN           : in  std_logic_vector(7 downto 0) := (others => '0');
+    TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0) := (others => '0');
+    TRG_TYPE_IN           : in  std_logic_vector(3 downto 0) := (others => '0');
 --
     --Response to handler
     TRG_RELEASE_OUT       : out std_logic;

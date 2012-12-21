@@ -88,8 +88,8 @@ end entity;
 
 architecture trb3_periph_padiwa_arch of trb3_periph_padiwa is
   --Constants
-  constant REGIO_NUM_STAT_REGS : integer := 5;
-  constant REGIO_NUM_CTRL_REGS : integer := 3;
+  constant REGIO_NUM_STAT_REGS : integer := 0;
+  constant REGIO_NUM_CTRL_REGS : integer := 2;
 
   attribute syn_keep     : boolean;
   attribute syn_preserve : boolean;
@@ -343,7 +343,7 @@ begin
       BROADCAST_BITMASK         => x"FF",
       BROADCAST_SPECIAL_ADDR    => x"48",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
-      REGIO_HARDWARE_VERSION    => x"91004950",
+      REGIO_HARDWARE_VERSION    => x"91004120",
       REGIO_INIT_ADDRESS        => x"f306",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
       CLOCK_FREQUENCY           => 100,
@@ -675,7 +675,7 @@ begin
 -------------------------------------------------------------------------------
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 65,             -- Number of TDC channels
+      CHANNEL_NUMBER => 5,             -- Number of TDC channels
       STATUS_REG_NR  => REGIO_NUM_STAT_REGS,
       CONTROL_REG_NR => REGIO_NUM_CTRL_REGS)
     port map (

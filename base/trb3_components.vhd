@@ -13,6 +13,7 @@ package trb3_components is
   component pll_in200_out100
     port (
       CLK   : in  std_logic;
+      RESET : in  std_logic := '0';
       CLKOP : out std_logic;            --100 MHz
       CLKOK : out std_logic;            --200 MHz, bypass
       LOCK  : out std_logic

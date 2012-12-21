@@ -138,19 +138,28 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.v
 
 add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
 
+
+
+
+###############
+#Change path to tdc release also in compile script!
+###############
+#add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.1.1/Adder_304.vhd"
+add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.1.1/bit_sync.vhd"
+add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.1.1/BusHandler.vhd"
+add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.1.1/Channel.vhd"
+add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.1.1/Channel_200.vhd"
+add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.1.1/Encoder_304_Bit.vhd"
+add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.1.1/FIFO_32x32_OutReg.vhd"
+add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.1.1/LogicAnalyser.vhd"
+add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.1.1/Readout.vhd"
+add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.1.1/Reference_Channel_200.vhd"
+add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.1.1/Reference_Channel.vhd"
+add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.1.1/ROM_encoder_3.vhd"
+add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.1.1/ROM_FIFO.vhd"
+add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.1.1/ShiftRegisterSISO.vhd"
+add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.1.1/TDC.vhd"
+add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.1.1/up_counter.vhd"
+
 add_file -vhdl -lib "work" "trb3_periph_padiwa.vhd"
-
-add_file -vhdl -lib "work" "../tdc_releases/tdc_v0.5/Adder_304.vhd"
-add_file -vhdl -lib "work" "../tdc_releases/tdc_v0.5/bit_sync.vhd"
-add_file -vhdl -lib "work" "../tdc_releases/tdc_v0.5/Channel.vhd"
-add_file -vhdl -lib "work" "../tdc_releases/tdc_v0.5/Channel_200.vhd"
-add_file -vhdl -lib "work" "../tdc_releases/tdc_v0.5/Encoder_304_Bit.vhd"
-add_file -vhdl -lib "work" "../tdc_releases/tdc_v0.5/FIFO_32x32_OutReg.vhd"
-add_file -vhdl -lib "work" "../tdc_releases/tdc_v0.5/Reference_channel.vhd"
-add_file -vhdl -lib "work" "../tdc_releases/tdc_v0.5/ROM_encoder_3.vhd"
-add_file -vhdl -lib "work" "../tdc_releases/tdc_v0.5/ROM_FIFO.vhd"
-add_file -vhdl -lib "work" "../tdc_releases/tdc_v0.5/TDC.vhd"
-add_file -vhdl -lib "work" "../tdc_releases/tdc_v0.5/up_counter.vhd"
-
-
 

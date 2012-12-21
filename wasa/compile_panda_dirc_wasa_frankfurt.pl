@@ -16,7 +16,7 @@ my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
 ###################################################################################
 
 
-
+$ENV{'PAR_DESIGN_NAME'}=$TOPNAME;
 
 # 
 # set_option -technology MACHXO2
