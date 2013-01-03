@@ -150,8 +150,8 @@ DEBUG_OUT(1) <= spi_cs_reg;
 DEBUG_OUT(2) <= spi_in_reg;
 DEBUG_OUT(3) <= buf_SPI_OUT;
 DEBUG_OUT(7 downto 4) <= std_logic_vector(to_unsigned(bitcnt,4));
--- DEBUG_OUT(8) <= 
-DEBUG_OUT(15 downto 8) <= input(31 downto 24);
+DEBUG_OUT(14 downto 8) <= input(30 downto 24);
+DEBUG_OUT(15) <= write_i(4);
 
 
 

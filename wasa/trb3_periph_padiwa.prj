@@ -23,8 +23,8 @@ set_option -retiming 0
 set_option -pipe 0
 #set_option -force_gsr 
 set_option -force_gsr false
-set_option -fixgatedclocks 3
-set_option -fixgeneratedclocks 3
+set_option -fixgatedclocks false #3
+set_option -fixgeneratedclocks false #3
 set_option -compiler_compatible true
 
 

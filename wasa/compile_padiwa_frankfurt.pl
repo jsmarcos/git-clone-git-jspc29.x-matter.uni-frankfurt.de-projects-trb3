@@ -12,10 +12,11 @@ my $TOPNAME                      = "trb3_periph_padiwa";  #Name of top-level ent
 my $lattice_path                 = '/d/jspc29/lattice/diamond/2.0';
 my $synplify_path                = '/d/jspc29/lattice/synplify/F-2012.03-SP1/';
 my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
-my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
+#my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
+my $lm_license_file_for_par      = "1710\@cronos.e12.physik.tu-muenchen.de";
 ###################################################################################
 
-
+$ENV{'PAR_DESIGN_NAME'}=$TOPNAME;
 
 
 

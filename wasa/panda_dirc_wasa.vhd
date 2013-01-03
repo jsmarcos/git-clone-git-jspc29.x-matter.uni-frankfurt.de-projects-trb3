@@ -13,6 +13,9 @@ use machxo2.all;
 
 
 entity panda_dirc_wasa is
+  generic(
+    SAME_ORDER : integer := 0
+    );
   port(
     CON        : out std_logic_vector(16 downto 1);
     INP        : in  std_logic_vector(16 downto 1);
@@ -161,7 +164,7 @@ type ram_t is array(0 to 15) of std_logic_vector(15 downto 0);
 signal ram   : ram_t;
 
 signal pwm_i : std_logic_vector(31 downto 0);
-
+signal tmp_con     : std_logic_vector(15 downto 0);
 signal spi_reg00_i : std_logic_vector(15 downto 0);
 signal spi_reg10_i : std_logic_vector(15 downto 0);
 signal spi_reg20_i : std_logic_vector(15 downto 0);
@@ -531,7 +534,16 @@ end process;
 ---------------------------------------------------------------------------
 
 inp_gated <= (INP xor inp_invert) and not input_enable;
-CON <= inp_gated or (inp_stretched and inp_stretch);
+tmp_con <= inp_gated or (inp_stretched and inp_stretch);
+
+gen_outputs_1 : if SAME_ORDER = 1 generate
+  CON <= tmp_con;
+end generate;
+gen_outputs_2 : if SAME_ORDER = 0 generate
+  CON <= tmp_con;
+end generate;
+
+
 
 SPARE_LINE(0) <= '0'; --clk_26;
 SPARE_LINE(1) <= '0'; --clk_i;
@@ -581,7 +593,9 @@ last_inp_long_reg <= inp_long_reg when rising_edge(clk_i);
 -- TEST_LINE(13)           <= ;
 -- TEST_LINE(14)           <= '1' when fsm_copydat = PWM_WRITE_GET_1 or fsm_copydat = PWM_WRITE_GET_2 else '0';
 -- TEST_LINE(15)           <= '1' when fsm_copydat = PWM_WRITE_GET_2 or fsm_copydat = PWM_WRITE else '0';
--- 
+
+
+TEST_LINE               <= spi_debug_i;
 
 
 LED_GREEN  <= not leds(0) when led_status(4) = '0' else not led_status(0);
