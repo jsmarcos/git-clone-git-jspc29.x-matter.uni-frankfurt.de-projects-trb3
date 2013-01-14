@@ -14,7 +14,7 @@ use machxo2.all;
 
 entity panda_dirc_wasa is
   generic(
-    SAME_ORDER : integer := 0
+    NORMAL_ORDER : integer := 1
     );
   port(
     CON        : out std_logic_vector(16 downto 1);
@@ -164,7 +164,7 @@ type ram_t is array(0 to 15) of std_logic_vector(15 downto 0);
 signal ram   : ram_t;
 
 signal pwm_i : std_logic_vector(31 downto 0);
-signal tmp_con     : std_logic_vector(15 downto 0);
+signal INP_i     : std_logic_vector(15 downto 0);
 signal spi_reg00_i : std_logic_vector(15 downto 0);
 signal spi_reg10_i : std_logic_vector(15 downto 0);
 signal spi_reg20_i : std_logic_vector(15 downto 0);
@@ -258,7 +258,24 @@ clk_source: OSCH
     SEDSTDBY => open
   );
 
+---------------------------------------------------------------------------
+-- Input re-ordering
+---------------------------------------------------------------------------
+gen_outputs_1 : if NORMAL_ORDER = 1 generate
+  INP_i <= INP;
+  PWM <= pwm_i(15 downto 0);
+end generate;
 
+gen_outputs_2 : if NORMAL_ORDER = 0 generate
+  INP_i <= INP(15) & INP(7) & INP(14) & INP(6) & INP(13) & INP(5) & INP(12) & INP(4) & 
+           INP(11) & INP(3) & INP(10) & INP(2) & INP(9)  & INP(1) & INP(8)  & INP(0);
+  PWM <= pwm_i(15) & pwm_i(7) & pwm_i(14) & pwm_i(6) & pwm_i(13) & pwm_i(5) & pwm_i(12) & pwm_i(4) & 
+         pwm_i(11) & pwm_i(3) & pwm_i(10) & pwm_i(2) & pwm_i(9)  & pwm_i(1) & pwm_i(8)  & pwm_i(0);
+end generate;
+
+  
+  
+  
 ---------------------------------------------------------------------------
 -- SPI Interface
 ---------------------------------------------------------------------------  
@@ -281,13 +298,14 @@ THE_SPI_SLAVE : spi_slave
     );
 
 SPI_OUT <= buf_SPI_OUT;    
+
+spi_reg00_i <= pwm_data_o;
+spi_reg10_i <= idram(to_integer(unsigned(spi_channel_i(2 downto 0))));
+spi_reg40_i <= flash_busy & flash_err & "000000" & ram_data_o;
+
 ---------------------------------------------------------------------------
 -- RAM Interface
 ---------------------------------------------------------------------------  
-
-
-spi_reg40_i <= flash_busy & flash_err & "000000" & ram_data_o;
-
 
 
 PROC_CTRL_FLASH : process begin
@@ -404,9 +422,7 @@ THE_PWM_GEN : pwm_generator
     PWM        => pwm_i
     );
 
-    PWM <= pwm_i(15 downto 0);
 
-spi_reg00_i <= pwm_data_o;
 
 PROC_PWM_DATA_MUX : process(fsm_copydat, spi_data_i, spi_write_i, spi_channel_i,
                             pwm_fsm_addr, pwm_fsm_data_i, pwm_fsm_write,
@@ -463,7 +479,6 @@ PROC_IDMEM : process begin
   else
     idram(4) <= "0000" & temperature_i;
   end if;
-  spi_reg10_i <= idram(to_integer(unsigned(spi_channel_i(2 downto 0))));
   
   if spi_write_i(1) = '1' then
     onewire_reset <= spi_data_i(0);
@@ -511,7 +526,7 @@ THE_IO_REG_WRITE : process begin
   end if;
 end process;
 
-inp_status <= INP when rising_edge(clk_i);
+inp_status <= INP_i when rising_edge(clk_i);
 last_inp <= inp_status(3 downto 0) when rising_edge(clk_i);
 
 
@@ -533,15 +548,8 @@ end process;
 -- Rest of the I/O
 ---------------------------------------------------------------------------
 
-inp_gated <= (INP xor inp_invert) and not input_enable;
-tmp_con <= inp_gated or (inp_stretched and inp_stretch);
-
-gen_outputs_1 : if SAME_ORDER = 1 generate
-  CON <= tmp_con;
-end generate;
-gen_outputs_2 : if SAME_ORDER = 0 generate
-  CON <= tmp_con;
-end generate;
+inp_gated <= (INP_i xor inp_invert) and not input_enable;
+CON <= inp_gated or (inp_stretched and inp_stretch);
 
 
 
@@ -560,10 +568,10 @@ inp_stretched <= inp_hold_reg or last_inp_hold_reg or inp_hold;
 
 
 
-SPARE_OUTPUT : process(INP, inp_select, inp_or, inp_long_or, inp_long_reg, last_inp_long_reg)
+SPARE_OUTPUT : process(INP_i, inp_select, inp_or, inp_long_or, inp_long_reg, last_inp_long_reg)
   begin
     if inp_select < 16 then
-      SPARE_LVDS <= INP(inp_select+1);
+      SPARE_LVDS <= INP_i(inp_select);
     elsif inp_select < 24 then
       SPARE_LVDS <= inp_or;
     else
@@ -571,12 +579,11 @@ SPARE_OUTPUT : process(INP, inp_select, inp_or, inp_long_or, inp_long_reg, last_
     end if;
   end process;
 
-inp_or <= or_all((INP xor inp_invert) and not input_enable);
-
+inp_or <= or_all((INP_i xor inp_invert) and not input_enable);
 inp_long_or <= (inp_or or inp_long_or) and not inp_long_reg;
-
 inp_long_reg      <= inp_long_or when rising_edge(clk_i);
 last_inp_long_reg <= inp_long_reg when rising_edge(clk_i);
+
 -- ll_inp_long_reg   <= last_inp_long_reg when rising_edge(clk_i);
 
 
@@ -595,7 +602,7 @@ last_inp_long_reg <= inp_long_reg when rising_edge(clk_i);
 -- TEST_LINE(15)           <= '1' when fsm_copydat = PWM_WRITE_GET_2 or fsm_copydat = PWM_WRITE else '0';
 
 
-TEST_LINE               <= spi_debug_i;
+TEST_LINE               <= (others => '0');
 
 
 LED_GREEN  <= not leds(0) when led_status(4) = '0' else not led_status(0);

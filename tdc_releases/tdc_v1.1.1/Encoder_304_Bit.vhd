@@ -99,6 +99,7 @@ architecture behavioral of Encoder_304_Bit is
   signal proc_finished_3 : std_logic;
   signal proc_finished_4 : std_logic;
   signal conv_finished_i : std_logic;
+  signal thermocode_i    : std_logic_vector(303 downto -1);
 
   attribute syn_keep                     : boolean;
   attribute syn_keep of mux_control      : signal is true;
@@ -109,6 +110,11 @@ architecture behavioral of Encoder_304_Bit is
 -------------------------------------------------------------------------------
 begin
 
+
+ thermocode_i(303 downto 0)   <= THERMOCODE_IN;
+ thermocode_i(-1)             <= '1';
+ 
+ 
   --purpose : Register signals
   Register_Signals : process (CLK, RESET)
   begin
@@ -201,11 +207,19 @@ begin
   end process Interval_Number_to_Binary;
 
   Interval_Selection : process (CLK, RESET)
+  variable tmp : std_logic_vector(8 downto 0);
   begin  -- The interval with the 0-1 transition is selected.
     if rising_edge(CLK) then
       if RESET = '1' then
         interval_reg  <= (others => '0');
       else
+--       tmp := (others => '0');
+--       make_mux : for i in 0 to 37 loop
+--         make_mux_2 : for j in 0 to 8 loop
+--           tmp(j) := tmp(j) or (thermocode_i(i*8-1+j) and P_one(j));
+--         end loop;
+--       end loop;
+--       interval_reg <= tmp;
         case mux_control is
           when "000001" => interval_reg <= THERMOCODE_IN(7 downto 0) & '1';
           when "000010" => interval_reg <= THERMOCODE_IN(15 downto 7);

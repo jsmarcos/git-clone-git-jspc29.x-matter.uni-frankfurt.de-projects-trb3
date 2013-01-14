@@ -12,6 +12,9 @@ use work.version.all;
 
 
 entity trb3_periph_hub is
+  generic(
+    SYNC_MODE : integer range 0 to 1 := c_NO   --use the RX clock for internal logic and transmission. 4 SFP links only.
+    );
   port(
     --Clocks
     CLK_GPLL_LEFT  : in std_logic;      --Clock Manager 1/(2468), 125 MHz
@@ -121,6 +124,10 @@ architecture trb3_periph_hub_arch of trb3_periph_hub is
   signal GSR_N                    : std_logic;
   attribute syn_keep of GSR_N     : signal is true;
   attribute syn_preserve of GSR_N : signal is true;
+  signal clk_100_internal         : std_logic;
+  signal clk_200_internal         : std_logic;
+  signal rx_clock_100             : std_logic;
+  signal rx_clock_200             : std_logic;
 
   --Media Interface
   signal med_stat_op        : std_logic_vector (7*16-1 downto 0);
@@ -218,7 +225,7 @@ begin
     port map(
       CLEAR_IN      => '0',              -- reset input (high active, async)
       CLEAR_N_IN    => '1',              -- reset input (low active, async)
-      CLK_IN        => clk_200_i,        -- raw master clock, NOT from PLL/DLL!
+      CLK_IN        => clk_200_internal, -- raw master clock, NOT from PLL/DLL!
       SYSCLK_IN     => clk_100_i,        -- PLL/DLL remastered clock
       PLL_LOCKED_IN => pll_lock,         -- master PLL lock signal (async)
       RESET_IN      => '0',              -- general reset signal (SYSCLK)
@@ -236,15 +243,26 @@ begin
   THE_MAIN_PLL : pll_in200_out100
     port map(
       CLK   => CLK_GPLL_RIGHT,
-      CLKOP => clk_100_i,
-      CLKOK => clk_200_i,
+      CLKOP => clk_100_internal,
+      CLKOK => clk_200_internal,
       LOCK  => pll_lock
       );
+      
+gen_sync_clocks : if SYNC_MODE = c_YES generate
+  clk_100_i <= rx_clock_100;
+  clk_200_i <= rx_clock_200;
+end generate;
+
+gen_local_clocks : if SYNC_MODE = c_NO generate
+  clk_100_i <= clk_100_internal;
+  clk_200_i <= clk_200_internal;
+end generate;
 
 
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (to other FPGA)
 ---------------------------------------------------------------------------
+gen_full_media : if SYNC_MODE = c_NO generate
   THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp_4
     generic map(
       REVERSE_ORDER => c_NO,              --order of ports
@@ -339,48 +357,62 @@ begin
       STAT_DEBUG         => open,
       CTRL_DEBUG         => (others => '0')
       );
+end generate; 
+ 
+gen_sync_media : if SYNC_MODE = c_YES generate 
+  med_stat_op(3*16+15 downto 3*16) <= x"0007";
+  med_stat_op(5*16+15 downto 5*16) <= x"0007";  
   
-  
-  
---   trb_net16_med_ecp3_sfp
---     generic map(
---       SERDES_NUM  => 1,                 --number of serdes in quad
---       EXT_CLOCK   => c_NO,              --use internal clock
---       USE_200_MHZ => c_YES              --run on 200 MHz clock
---       )
---     port map(
---       CLK                => clk_200_i,
---       SYSCLK             => clk_100_i,
---       RESET              => reset_i,
---       CLEAR              => clear_i,
---       CLK_EN             => '1',
---       --Internal Connection
---       MED_DATA_IN        => med_data_out(15 downto 0),
---       MED_PACKET_NUM_IN  => med_packet_num_out(2 downto 0),
---       MED_DATAREADY_IN   => med_dataready_out(0),
---       MED_READ_OUT       => med_read_in(0),
---       MED_DATA_OUT       => med_data_in(15 downto 0),
---       MED_PACKET_NUM_OUT => med_packet_num_in(2 downto 0),
---       MED_DATAREADY_OUT  => med_dataready_in(0),
---       MED_READ_IN        => med_read_out(0),
---       REFCLK2CORE_OUT    => open,
---       --SFP Connection
---       SD_RXD_P_IN        => SERDES_INT_RX(2),
---       SD_RXD_N_IN        => SERDES_INT_RX(3),
---       SD_TXD_P_OUT       => SERDES_INT_TX(2),
---       SD_TXD_N_OUT       => SERDES_INT_TX(3),
---       SD_REFCLK_P_IN     => open,
---       SD_REFCLK_N_IN     => open,
---       SD_PRSNT_N_IN      => FPGA5_COMM(0),
---       SD_LOS_IN          => FPGA5_COMM(0),
---       SD_TXDIS_OUT       => FPGA5_COMM(2),
---       -- Status and control port
---       STAT_OP            => med_stat_op(15 downto 0),
---       CTRL_OP            => med_ctrl_op(15 downto 0),
---       STAT_DEBUG         => med_stat_debug(63 downto 0),
---       CTRL_DEBUG         => (others => '0')
---       );
-
+  THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
+  generic map(
+      SERDES_NUM  => 1,     --number of serdes in quad
+      EXT_CLOCK   => c_NO,  --use internal clock
+      USE_200_MHZ => c_YES, --run on 200 MHz clock
+      USE_CTC     => c_NO,
+      USE_SLAVE   =>  c_YES
+      )
+    port map(
+      CLK                => clk_200_internal,
+      SYSCLK             => clk_100_i,
+      RESET              => reset_i,
+      CLEAR              => clear_i,
+      CLK_EN             => '1',
+      --Internal Connection
+      MED_DATA_IN        => med_data_out(15 downto 0),
+      MED_PACKET_NUM_IN  => med_packet_num_out(2 downto 0),
+      MED_DATAREADY_IN   => med_dataready_out(0),
+      MED_READ_OUT       => med_read_in(0),
+      MED_DATA_OUT       => med_data_in(15 downto 0),
+      MED_PACKET_NUM_OUT => med_packet_num_in(2 downto 0),
+      MED_DATAREADY_OUT  => med_dataready_in(0),
+      MED_READ_IN        => med_read_out(0),
+      REFCLK2CORE_OUT    => open,
+      CLK_RX_HALF_OUT    => rx_clock_100,
+      CLK_RX_FULL_OUT    => rx_clock_200,
+      --SFP Connection
+      SD_RXD_P_IN        => SERDES_ADDON_RX(8),
+      SD_RXD_N_IN        => SERDES_ADDON_RX(9),
+      SD_TXD_P_OUT       => SERDES_ADDON_TX(8),
+      SD_TXD_N_OUT       => SERDES_ADDON_TX(9),
+      SD_REFCLK_P_IN     => open,
+      SD_REFCLK_N_IN     => open,
+      SD_PRSNT_N_IN      => FPGA5_COMM(0),
+      SD_LOS_IN          => FPGA5_COMM(0),
+      SD_TXDIS_OUT       => FPGA5_COMM(2),
+      
+      SCI_DATA_IN        => sci1_data_in,
+      SCI_DATA_OUT       => sci1_data_out,
+      SCI_ADDR           => sci1_addr,
+      SCI_READ           => sci1_read,
+      SCI_WRITE          => sci1_write,
+      SCI_ACK            => sci1_ack,      
+      -- Status and control port
+      STAT_OP            => med_stat_op(15 downto 0),
+      CTRL_OP            => med_ctrl_op(15 downto 0),
+      STAT_DEBUG         => med_stat_debug(63 downto 0),
+      CTRL_DEBUG         => (others => '0')
+      );
+end generate;
       
 THE_MEDIA_DOWNLINK : trb_net16_med_ecp3_sfp_4
     generic map(
@@ -477,8 +509,7 @@ THE_MEDIA_DOWNLINK : trb_net16_med_ecp3_sfp_4
       CTRL_DEBUG         => (others => '0')
       );
 
--- med_stat_op(3*16+15 downto 3*16) <= x"0007";
--- med_stat_op(5*16+15 downto 5*16) <= x"0007";
+
       
 ---------------------------------------------------------------------------
 -- Hub

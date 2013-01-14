@@ -64,9 +64,10 @@ entity trb3_central is
     --Trigger
     TRIGGER_LEFT                   : in  std_logic;  --left side trigger input from fan-out
     TRIGGER_RIGHT                  : in  std_logic;  --right side trigger input from fan-out
-    TRIGGER_EXT                    : in  std_logic_vector(4 downto 2); --additional trigger from RJ45
+    TRIGGER_EXT                    : in  std_logic_vector(2 downto 2); --additional trigger from RJ45
     TRIGGER_OUT                    : out std_logic;  --trigger to second input of fan-out
     TRIGGER_OUT2                   : out std_logic;
+    RXCLK_OUT                      : out std_logic;
     
     --Serdes
     CLK_SERDES_INT_LEFT            : in  std_logic;  --Clock Manager 2/0, 200 MHz, only in case of problems
@@ -190,7 +191,7 @@ architecture trb3_central_arch of trb3_central is
 
   --FPGA Test
   signal time_counter, time_counter2 : unsigned(31 downto 0);
-
+  signal rx_clock : std_logic;
   --Media Interface
   signal med_stat_op             : std_logic_vector (5*16-1  downto 0);
   signal med_ctrl_op             : std_logic_vector (5*16-1  downto 0);
@@ -302,8 +303,7 @@ architecture trb3_central_arch of trb3_central is
   signal cts_rdo_invalid_trg         : std_logic;
 
   signal cts_rdo_trg_status_bits,
-    cts_rdo_trg_status_bits_cts,
-    cts_rdo_trg_status_bits_additional: std_logic_vector(31 downto 0) := (others => '0');
+    cts_rdo_trg_status_bits_cts      : std_logic_vector(31 downto 0) := (others => '0');
   signal cts_rdo_data                : std_logic_vector(31 downto 0);
   signal cts_rdo_write               : std_logic;
   signal cts_rdo_finished            : std_logic;
@@ -313,10 +313,17 @@ architecture trb3_central_arch of trb3_central is
   signal cts_ext_control             : std_logic_vector(31 downto 0);
   signal cts_ext_debug               : std_logic_vector(31 downto 0);
 
-  signal cts_rdo_additional_data     : std_logic_vector(31 downto 0);
-  signal cts_rdo_additional_write    : std_logic := '0';
-  signal cts_rdo_additional_finished : std_logic := '0';
-
+  signal cts_rdo_additional_data            : std_logic_vector(63 downto 0);
+  signal cts_rdo_additional_write           : std_logic_vector(1 downto 0) := "00";
+  signal cts_rdo_additional_finished        : std_logic_vector(1 downto 0) := "00";
+  signal cts_rdo_trg_status_bits_additional : std_logic_vector(63 downto 0) := (others => '0');
+  signal cts_rdo_trg_type                   : std_logic_vector(3 downto 0);
+  signal cts_rdo_trg_code                   : std_logic_vector(7 downto 0);
+  signal cts_rdo_trg_information            : std_logic_vector(23 downto 0);
+  signal cts_rdo_trg_number                 : std_logic_vector(15 downto 0);
+      
+  
+  
   signal cts_trg_send                : std_logic;
   signal cts_trg_type                : std_logic_vector(3 downto 0);
   signal cts_trg_number              : std_logic_vector(15 downto 0);
@@ -446,10 +453,10 @@ begin
       TRG_SYNC_OUT => cts_ext_trigger,
       
       TRIGGER_IN     => cts_rdo_trg_data_valid,
-      DATA_OUT       => cts_rdo_additional_data,
-      WRITE_OUT      => cts_rdo_additional_write,
-      STATUSBIT_OUT  => cts_rdo_trg_status_bits_additional,
-      FINISHED_OUT   => cts_rdo_additional_finished,
+      DATA_OUT       => cts_rdo_additional_data(31 downto 0),
+      WRITE_OUT      => cts_rdo_additional_write(0),
+      STATUSBIT_OUT  => cts_rdo_trg_status_bits_additional(31 downto 0),
+      FINISHED_OUT   => cts_rdo_additional_finished(0),
 
       CONTROL_REG_IN => cts_ext_control,
       STATUS_REG_OUT => cts_ext_status,
@@ -458,7 +465,8 @@ begin
    );
 
    trigger_in_buf_i(1 downto 0) <= CLK_EXT;
-   trigger_in_buf_i(3 downto 2) <= TRIGGER_EXT(3 downto 2);
+   trigger_in_buf_i(2 downto 2) <= TRIGGER_EXT(2 downto 2);
+   trigger_in_buf_i(3)          <= '0';
 
  THE_CTS: CTS 
    generic map (
@@ -611,7 +619,7 @@ THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
     MED_PACKET_NUM_OUT => med_packet_num_in(14 downto 12),
     MED_DATAREADY_OUT  => med_dataready_in(4),
     MED_READ_IN        => med_read_out(4),
-    REFCLK2CORE_OUT    => open,
+    REFCLK2CORE_OUT    => rx_clock,
     --SFP Connection
     SD_RXD_P_IN        => SFP_RX_P(1),
     SD_RXD_N_IN        => SFP_RX_N(1),
@@ -703,18 +711,18 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
     CLOCK_FREQUENCY                  => 100,
     USE_ONEWIRE                      => c_YES,
     BROADCAST_SPECIAL_ADDR           => x"35",
-    RDO_ADDITIONAL_PORT              => c_YES,
+    RDO_ADDITIONAL_PORT              => 2,
     RDO_DATA_BUFFER_DEPTH            => 9,
     RDO_DATA_BUFFER_FULL_THRESH      => 2**9-128,
     RDO_HEADER_BUFFER_DEPTH          => 9,
-    RDO_HEADER_BUFFER_FULL_THRESH    => 2**9-128	  
+    RDO_HEADER_BUFFER_FULL_THRESH    => 2**9-16  
     )
   port map( 
 	  CLK                     => clk_100_i,
 	  RESET                   => reset_i,
 	  CLK_EN                  => '1',
  
-	  --Media interfacces
+-- Media interfacces ---------------------------------------------------------------
 	  MED_DATAREADY_OUT(5*1-1 downto 0)   => med_dataready_out,
 	  MED_DATA_OUT(5*16-1 downto 0)       => med_data_out,
 	  MED_PACKET_NUM_OUT(5*3-1 downto 0)  => med_packet_num_out,
@@ -763,23 +771,29 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
     CTS_IPU_BUSY_OUT               => cts_ipu_busy,
     
 -- CTS Data Readout ----------------------------------------------------------------
-    --Trigger In
+    --Trigger to CTS out
     RDO_TRIGGER_IN                 => cts_rdo_trigger,
     RDO_TRG_DATA_VALID_OUT         => cts_rdo_trg_data_valid,
     RDO_VALID_TIMING_TRG_OUT       => cts_rdo_valid_timing_trg,
     RDO_VALID_NOTIMING_TRG_OUT     => cts_rdo_valid_notiming_trg,
     RDO_INVALID_TRG_OUT            => cts_rdo_invalid_trg,
-    --Data out
+    RDO_TRG_TYPE_OUT               => cts_rdo_trg_type,
+    RDO_TRG_CODE_OUT               => cts_rdo_trg_code,
+    RDO_TRG_INFORMATION_OUT        => cts_rdo_trg_information,
+    RDO_TRG_NUMBER_OUT             => cts_rdo_trg_number,
+          
+    --Data from CTS in
     RDO_TRG_STATUSBITS_IN          => cts_rdo_trg_status_bits_cts,
     RDO_DATA_IN                    => cts_rdo_data,
     RDO_DATA_WRITE_IN              => cts_rdo_write,
     RDO_DATA_FINISHED_IN           => cts_rdo_finished,
-    
+    --Data from additional modules
     RDO_ADDITIONAL_STATUSBITS_IN   => cts_rdo_trg_status_bits_additional,
     RDO_ADDITIONAL_DATA            => cts_rdo_additional_data,
     RDO_ADDITIONAL_WRITE           => cts_rdo_additional_write,
     RDO_ADDITIONAL_FINISHED        => cts_rdo_additional_finished,
     
+-- Slow Control --------------------------------------------------------------------
 	  COMMON_STAT_REGS        => common_stat_regs, --open,
 	  COMMON_CTRL_REGS        => common_ctrl_regs, --open,
 	  ONEWIRE                 => TEMPSENS,
@@ -1091,12 +1105,15 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
     );
 
 
-PROC_TDC_CTRL_REG : process begin
+PROC_TDC_CTRL_REG : process 
+  variable pos : integer;
+begin
   wait until rising_edge(clk_100_i);
-  tdc_ctrl_data_out <= tdc_ctrl_reg(to_integer(unsigned(tdc_ctrl_addr))*32+31 downto to_integer(unsigned(tdc_ctrl_addr))*32);
+  pos := to_integer(unsigned(tdc_ctrl_addr))*32;
+  tdc_ctrl_data_out <= tdc_ctrl_reg(pos+31 downto pos);
   last_tdc_ctrl_read <= tdc_ctrl_read;
-  if tdc_ctrl_read = '1' then
-    tdc_ctrl_reg(to_integer(unsigned(tdc_ctrl_addr))*32+31 downto to_integer(unsigned(tdc_ctrl_addr))*32) <= tdc_ctrl_data_in;
+  if tdc_ctrl_write = '1' then
+    tdc_ctrl_reg(pos+31 downto pos) <= tdc_ctrl_data_in;
   end if;
 end process;
     
@@ -1180,27 +1197,27 @@ THE_FPGA_REBOOT : fpga_reboot
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --
+      
       -- Trigger signals from handler
---       TRG_DATA_VALID_IN     => trg_data_valid_i,  -- trig data valid signal from trbnet
---       VALID_TIMING_TRG_IN   => trg_timing_valid_i,  -- valid timing trigger signal from trbnet
---       VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,  -- valid notiming signal from trbnet
---       INVALID_TRG_IN        => trg_invalid_i,  -- invalid trigger signal from trbnet
---       TMGTRG_TIMEOUT_IN     => trg_timeout_detected_i,  -- timing trigger timeout signal from trbnet
---       SPIKE_DETECTED_IN     => trg_spike_detected_i,
---       MULTI_TMG_TRG_IN      => trg_multiple_trg_i,
---       SPURIOUS_TRG_IN       => trg_spurious_trg_i,
---       --
---       TRG_NUMBER_IN         => trg_number_i,  -- LVL1 trigger information package
---       TRG_CODE_IN           => trg_code_i,  --
---       TRG_INFORMATION_IN    => trg_information_i,   --
---       TRG_TYPE_IN           => trg_type_i,  -- LVL1 trigger information package
---       --
+      TRG_DATA_VALID_IN     => cts_rdo_trg_data_valid,  -- trig data valid signal from trbnet
+      VALID_TIMING_TRG_IN   => cts_rdo_valid_timing_trg,  -- valid timing trigger signal from trbnet
+      VALID_NOTIMING_TRG_IN => cts_rdo_valid_notiming_trg,  -- valid notiming signal from trbnet
+      INVALID_TRG_IN        => cts_rdo_invalid_trg,  -- invalid trigger signal from trbnet
+      TMGTRG_TIMEOUT_IN     => '0',  -- timing trigger timeout signal from trbnet
+      SPIKE_DETECTED_IN     => '0',
+      MULTI_TMG_TRG_IN      => '0',
+      SPURIOUS_TRG_IN       => '0',
+      --
+      TRG_NUMBER_IN         => cts_rdo_trg_number,  -- LVL1 trigger information package
+      TRG_CODE_IN           => cts_rdo_trg_code,  --
+      TRG_INFORMATION_IN    => cts_rdo_trg_information,   --
+      TRG_TYPE_IN           => cts_rdo_trg_type,  -- LVL1 trigger information package
       --Response to handler
 --       TRG_RELEASE_OUT       => fee_trg_release_i,   -- trigger release signal
---       TRG_STATUSBIT_OUT     => fee_trg_statusbits_i,  -- status information of the tdc
---       DATA_OUT              => fee_data_i,  -- tdc data
---       DATA_WRITE_OUT        => fee_data_write_i,  -- data valid signal
---       DATA_FINISHED_OUT     => fee_data_finished_i,  -- readout finished signal
+      TRG_STATUSBIT_OUT     => cts_rdo_trg_status_bits_additional(63 downto 32),  -- status information of the tdc
+      DATA_OUT              => cts_rdo_additional_data(63 downto 32),  -- tdc data
+      DATA_WRITE_OUT        => cts_rdo_additional_write(1),  -- data valid signal
+      DATA_FINISHED_OUT     => cts_rdo_additional_finished(1),  -- readout finished signal
       --
       --Hit Counter Bus
       HCB_READ_EN_IN        => hitreg_read_en,    -- bus read en strobe
@@ -1264,7 +1281,7 @@ end process;
 
   TRIGGER_OUT    <= cts_trigger_out;
   TRIGGER_OUT2   <= cts_trigger_out;
-
+  cts_rdo_trigger <= cts_trigger_out;
 ---------------------------------------------------------------------------
 -- FPGA communication
 ---------------------------------------------------------------------------
@@ -1312,7 +1329,7 @@ LED_ORANGE <= debug(1);
 LED_RED <= debug(2);
 LED_YELLOW <= link_ok; --debug(3);
 
-
+RXCLK_OUT <= rx_clock;
 ---------------------------------------------------------------------------
 -- Test Connector
 ---------------------------------------------------------------------------    

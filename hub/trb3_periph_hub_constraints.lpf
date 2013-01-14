@@ -24,8 +24,10 @@ GSR_NET NET "GSR_N";
 #################################################################
 # Locate Serdes and media interfaces
 #################################################################
-LOCATE COMP   "THE_MEDIA_UPLINK/gen_serdes_1_200_THE_SERDES/PCSD_INST" SITE "PCSA" ;
-LOCATE COMP   "THE_MEDIA_UPLINK/gen_serdes_200/PCSD_INST" SITE "PCSA" ;
+LOCATE COMP   "gen_sync_media_THE_MEDIA_UPLINK/gen_serdes_1_200_THE_SERDES/PCSD_INST" SITE "PCSA" ;
+LOCATE COMP   "gen_sync_media_THE_MEDIA_UPLINK/gen_serdes_1_200_ctc_THE_SERDES/PCSD_INST" SITE "PCSA" ;
+LOCATE COMP   "gen_full_media_THE_MEDIA_UPLINK/gen_serdes_200/PCSD_INST" SITE "PCSA" ;
+
 LOCATE COMP   "THE_MEDIA_DOWNLINK/gen_serdes_200/PCSD_INST" SITE "PCSB" ;
 
 
@@ -37,7 +39,8 @@ REGION "REGION_IOBUF" "R10C43D"  88 86 DEVSIZE;
 LOCATE UGROUP "THE_SPI_MASTER/SPI_group" REGION "REGION_SPI" ; 
 LOCATE UGROUP "THE_SPI_MEMORY/SPI_group" REGION "REGION_SPI" ;
 
-LOCATE UGROUP "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLINK" ;
+LOCATE UGROUP "gen_sync_media_THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLINK" ;
+LOCATE UGROUP "gen_full_media_THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLINK" ;
 LOCATE UGROUP "THE_MEDIA_DOWNLINK/media_interface_group" REGION "MEDIA_DOWNLINK" ;
 
 #LOCATE UGROUP "THE_HUB/gen_muxes_0_MPLEX/MUX_group" REGION "REGION_IOBUF" ;
@@ -126,5 +129,6 @@ LOCATE UGROUP "THE_HUB/gen_bufs_0_gen_iobufs_3_gen_iobuf_IOBUF/genINITOBUF2_gen_
 
 
 MULTICYCLE TO CELL "THE_MEDIA_DOWNLINK/SCI_DATA_OUT*" 50 ns;
-MULTICYCLE TO CELL "THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
+MULTICYCLE TO CELL "gen_full_media_THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
+MULTICYCLE TO CELL "gen_sync_media_THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
 

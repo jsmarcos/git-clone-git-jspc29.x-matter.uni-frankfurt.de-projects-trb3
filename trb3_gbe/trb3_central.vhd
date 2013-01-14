@@ -15,22 +15,23 @@ use work.trb_net_gbe_components.all;
 
 entity trb3_central is
   generic (
-    USE_ETHERNET : integer range c_NO to c_YES := c_NO
+    USE_ETHERNET : integer range c_NO to c_YES := c_NO;
+    SYNC_MODE    : integer range c_NO to c_YES := c_NO
   );
   port(
     --Clocks
-    CLK_EXT                        : in  std_logic_vector(4 downto 3); --from RJ45
+--     CLK_EXT                        : in  std_logic_vector(4 downto 3); --from RJ45
     CLK_GPLL_LEFT                  : in  std_logic;  --Clock Manager 2/9, 200 MHz  <-- MAIN CLOCK
     CLK_GPLL_RIGHT                 : in  std_logic;  --Clock Manager 1/9, 125 MHz  <-- for GbE
     CLK_PCLK_LEFT                  : in  std_logic;  --Clock Fan-out, 200/400 MHz 
     CLK_PCLK_RIGHT                 : in  std_logic;  --Clock Fan-out, 200/400 MHz 
+    CLK_TEST_OUT                   : out std_logic_vector(2 downto 0);
 
     --Trigger
     TRIGGER_LEFT                   : in  std_logic;  --left side trigger input from fan-out
     TRIGGER_RIGHT                  : in  std_logic;  --right side trigger input from fan-out
-    TRIGGER_EXT                    : in  std_logic_vector(4 downto 2); --additional trigger from RJ45
+--     TRIGGER_EXT                    : in  std_logic_vector(4 downto 2); --additional trigger from RJ45
     TRIGGER_OUT                    : out std_logic;  --trigger to second input of fan-out
-    
     --Serdes
     CLK_SERDES_INT_LEFT            : in  std_logic;  --Clock Manager 2/0, 200 MHz, only in case of problems
     CLK_SERDES_INT_RIGHT           : in  std_logic;  --Clock Manager 1/0, off, 125 MHz possible
@@ -151,6 +152,11 @@ architecture trb3_central_arch of trb3_central is
   
   --FPGA Test
   signal time_counter, time_counter2 : unsigned(31 downto 0);
+  signal rx_clock : std_logic;
+  signal rx_clock_100 : std_logic;
+  signal rx_clock_200 : std_logic;
+  signal clk_100_internal : std_logic;
+  signal clk_200_internal : std_logic;
   
   --Media Interface
   signal med_stat_op             : std_logic_vector (5*16-1  downto 0);
@@ -194,7 +200,20 @@ architecture trb3_central_arch of trb3_central is
   signal spimem_addr             : std_logic_vector(5 downto 0);
   signal spimem_data_out         : std_logic_vector(31 downto 0);
   signal spimem_ack              : std_logic;
+  signal sci1_ack      : std_logic;
+  signal sci1_write    : std_logic;
+  signal sci1_read     : std_logic;
+  signal sci1_data_in  : std_logic_vector(7 downto 0);
+  signal sci1_data_out : std_logic_vector(7 downto 0);
+  signal sci1_addr     : std_logic_vector(8 downto 0);
 
+  signal sci2_ack      : std_logic;
+  signal sci2_write    : std_logic;
+  signal sci2_read     : std_logic;
+  signal sci2_data_in  : std_logic_vector(7 downto 0);
+  signal sci2_data_out : std_logic_vector(7 downto 0);
+  signal sci2_addr     : std_logic_vector(8 downto 0);  
+  
   signal spi_bram_addr           : std_logic_vector(7 downto 0);
   signal spi_bram_wr_d           : std_logic_vector(7 downto 0);
   signal spi_bram_rd_d           : std_logic_vector(7 downto 0);
@@ -275,7 +294,7 @@ THE_RESET_HANDLER : trb_net_reset_handler
   port map(
     CLEAR_IN        => '0',             -- reset input (high active, async)
     CLEAR_N_IN      => '1',             -- reset input (low active, async)
-    CLK_IN          => clk_200_i,       -- raw master clock, NOT from PLL/DLL!
+    CLK_IN          => clk_200_internal,-- raw master clock, NOT from PLL/DLL!
     SYSCLK_IN       => clk_100_i,       -- PLL/DLL remastered clock
     PLL_LOCKED_IN   => pll_lock,        -- master PLL lock signal (async)
     RESET_IN        => '0',             -- general reset signal (SYSCLK)
@@ -303,11 +322,20 @@ process begin
 THE_MAIN_PLL : pll_in200_out100
   port map(
     CLK    => CLK_GPLL_LEFT,
-    CLKOP  => clk_100_i,
-    CLKOK  => clk_200_i,
+    CLKOP  => clk_100_internal,--clk_100_i
+    CLKOK  => clk_200_internal,   --clk_200_i
     LOCK   => pll_lock
     );
 
+gen_sync_clocks : if SYNC_MODE = c_YES generate
+  clk_100_i <= rx_clock_100;
+  clk_200_i <= rx_clock_200;
+end generate;
+
+gen_local_clocks : if SYNC_MODE = c_NO generate
+  clk_100_i <= clk_100_internal;
+  clk_200_i <= clk_200_internal;
+end generate;
 
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (Uplink)
@@ -317,10 +345,11 @@ THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
     SERDES_NUM  => 0,     --number of serdes in quad
     EXT_CLOCK   => c_NO,  --use internal clock
     USE_200_MHZ => c_YES, --run on 200 MHz clock
-    USE_CTC     => c_YES
+    USE_CTC     => c_NO,
+    USE_SLAVE   =>  SYNC_MODE
     )
   port map(
-    CLK                => clk_200_i,
+    CLK                => clk_200_internal, --clk_200_i,
     SYSCLK             => clk_100_i,
     RESET              => reset_i,
     CLEAR              => clear_i,
@@ -335,6 +364,8 @@ THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
     MED_DATAREADY_OUT  => med_dataready_in(4),
     MED_READ_IN        => med_read_out(4),
     REFCLK2CORE_OUT    => open,
+    CLK_RX_HALF_OUT    => rx_clock_100,
+    CLK_RX_FULL_OUT    => rx_clock_200,
     --SFP Connection
     SD_RXD_P_IN        => SFP_RX_P(1),
     SD_RXD_N_IN        => SFP_RX_N(1),
@@ -345,6 +376,13 @@ THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
     SD_PRSNT_N_IN      => SFP_MOD0(1),
     SD_LOS_IN          => SFP_LOS(1),
     SD_TXDIS_OUT       => SFP_TXDIS(1),
+    
+    SCI_DATA_IN        => sci1_data_in,
+    SCI_DATA_OUT       => sci1_data_out,
+    SCI_ADDR           => sci1_addr,
+    SCI_READ           => sci1_read,
+    SCI_WRITE          => sci1_write,
+    SCI_ACK            => sci1_ack,    
     -- Status and control port
     STAT_OP            => med_stat_op(79 downto 64),
     CTRL_OP            => med_ctrl_op(79 downto 64),
@@ -360,7 +398,7 @@ SFP_TXDIS(7 downto 2) <= (others => '1');
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (to other FPGA)
 ---------------------------------------------------------------------------
-THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
+THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4
   port map(
     CLK                => clk_200_i,
     SYSCLK             => clk_100_i,
@@ -396,6 +434,13 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
     SD_TXDIS_OUT(1)    => FPGA2_COMM(0),
     SD_TXDIS_OUT(2)    => FPGA3_COMM(0),
     SD_TXDIS_OUT(3)    => FPGA4_COMM(0),
+    
+    SCI_DATA_IN       => sci2_data_in,
+    SCI_DATA_OUT      => sci2_data_out,
+    SCI_ADDR          => sci2_addr,
+    SCI_READ          => sci2_read,
+    SCI_WRITE         => sci2_write,
+    SCI_ACK           => sci2_ack,    
     -- Status and control port
     STAT_OP            => med_stat_op(63 downto 0),
     CTRL_OP            => med_ctrl_op(63 downto 0),
@@ -695,9 +740,9 @@ end generate;
 ---------------------------------------------------------------------------
 THE_BUS_HANDLER : trb_net16_regio_bus_handler
   generic map(
-    PORT_NUMBER    => 4,
-    PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"8100", 3 => x"8300", others => x"0000"),
-    PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 8,       3 => 8,       others => 0)
+    PORT_NUMBER    => 6,
+    PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"8100", 3 => x"8300", 4 => x"b000", 5 => x"b200", others => x"0000"),
+    PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 8,       3 => 8,       4 => 9,       5 => 9,       others => 0)
     )
   port map(
     CLK                   => clk_100_i,
@@ -739,31 +784,58 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
     BUS_NO_MORE_DATA_IN(1)              => '0',
     BUS_UNKNOWN_ADDR_IN(1)              => '0',
 
-	-- third one - IP config memory
-	BUS_ADDR_OUT(3*16-1 downto 2*16) => mb_ip_mem_addr,
-	BUS_DATA_OUT(3*32-1 downto 2*32) => mb_ip_mem_data_wr,
-	BUS_READ_ENABLE_OUT(2)           => mb_ip_mem_read,
-	BUS_WRITE_ENABLE_OUT(2)          => mb_ip_mem_write,
-	BUS_TIMEOUT_OUT(2)               => open,
-	BUS_DATA_IN(3*32-1 downto 2*32)  => mb_ip_mem_data_rd,
-	BUS_DATAREADY_IN(2)              => mb_ip_mem_ack,
-	BUS_WRITE_ACK_IN(2)              => mb_ip_mem_ack,
-	BUS_NO_MORE_DATA_IN(2)           => '0',
-	BUS_UNKNOWN_ADDR_IN(2)           => '0',
+    -- third one - IP config memory
+    BUS_ADDR_OUT(3*16-1 downto 2*16) => mb_ip_mem_addr,
+    BUS_DATA_OUT(3*32-1 downto 2*32) => mb_ip_mem_data_wr,
+    BUS_READ_ENABLE_OUT(2)           => mb_ip_mem_read,
+    BUS_WRITE_ENABLE_OUT(2)          => mb_ip_mem_write,
+    BUS_TIMEOUT_OUT(2)               => open,
+    BUS_DATA_IN(3*32-1 downto 2*32)  => mb_ip_mem_data_rd,
+    BUS_DATAREADY_IN(2)              => mb_ip_mem_ack,
+    BUS_WRITE_ACK_IN(2)              => mb_ip_mem_ack,
+    BUS_NO_MORE_DATA_IN(2)           => '0',
+    BUS_UNKNOWN_ADDR_IN(2)           => '0',
 
-	-- gk 22.04.10
-	-- gbe setup
-	BUS_ADDR_OUT(4*16-1 downto 3*16) => gbe_stp_reg_addr,
-	BUS_DATA_OUT(4*32-1 downto 3*32) => gbe_stp_reg_data_wr,
-	BUS_READ_ENABLE_OUT(3)           => gbe_stp_reg_read,
-	BUS_WRITE_ENABLE_OUT(3)          => gbe_stp_reg_write,
-	BUS_TIMEOUT_OUT(3)               => open,
-	BUS_DATA_IN(4*32-1 downto 3*32)  => gbe_stp_reg_data_rd,
-	BUS_DATAREADY_IN(3)              => gbe_stp_reg_ack,
-	BUS_WRITE_ACK_IN(3)              => gbe_stp_reg_ack,
-	BUS_NO_MORE_DATA_IN(3)           => '0',
-	BUS_UNKNOWN_ADDR_IN(3)           => '0',
-
+    -- gk 22.04.10
+    -- gbe setup
+    BUS_ADDR_OUT(4*16-1 downto 3*16) => gbe_stp_reg_addr,
+    BUS_DATA_OUT(4*32-1 downto 3*32) => gbe_stp_reg_data_wr,
+    BUS_READ_ENABLE_OUT(3)           => gbe_stp_reg_read,
+    BUS_WRITE_ENABLE_OUT(3)          => gbe_stp_reg_write,
+    BUS_TIMEOUT_OUT(3)               => open,
+    BUS_DATA_IN(4*32-1 downto 3*32)  => gbe_stp_reg_data_rd,
+    BUS_DATAREADY_IN(3)              => gbe_stp_reg_ack,
+    BUS_WRITE_ACK_IN(3)              => gbe_stp_reg_ack,
+    BUS_NO_MORE_DATA_IN(3)           => '0',
+    BUS_UNKNOWN_ADDR_IN(3)           => '0',
+	
+    --SCI first Media Interface
+    BUS_READ_ENABLE_OUT(4)              => sci1_read,
+    BUS_WRITE_ENABLE_OUT(4)             => sci1_write,
+    BUS_DATA_OUT(4*32+7 downto 4*32)    => sci1_data_in,
+    BUS_DATA_OUT(4*32+31 downto 4*32+8) => open,
+    BUS_ADDR_OUT(4*16+8 downto 4*16)    => sci1_addr,
+    BUS_ADDR_OUT(4*16+15 downto 4*16+9) => open,
+    BUS_TIMEOUT_OUT(4)                  => open,
+    BUS_DATA_IN(4*32+7 downto 4*32)     => sci1_data_out,
+    BUS_DATAREADY_IN(4)                 => sci1_ack,
+    BUS_WRITE_ACK_IN(4)                 => sci1_ack,
+    BUS_NO_MORE_DATA_IN(4)              => '0',
+    BUS_UNKNOWN_ADDR_IN(4)              => '0',
+    --SCI second Media Interface
+    BUS_READ_ENABLE_OUT(5)              => sci2_read,
+    BUS_WRITE_ENABLE_OUT(5)             => sci2_write,
+    BUS_DATA_OUT(5*32+7 downto 5*32)    => sci2_data_in,
+    BUS_DATA_OUT(5*32+31 downto 5*32+8) => open,
+    BUS_ADDR_OUT(5*16+8 downto 5*16)    => sci2_addr,
+    BUS_ADDR_OUT(5*16+15 downto 5*16+9) => open,
+    BUS_TIMEOUT_OUT(5)                  => open,
+    BUS_DATA_IN(5*32+7 downto 5*32)     => sci2_data_out,
+    BUS_DATAREADY_IN(5)                 => sci2_ack,
+    BUS_WRITE_ACK_IN(5)                 => sci2_ack,
+    BUS_NO_MORE_DATA_IN(5)              => '0',
+    BUS_UNKNOWN_ADDR_IN(5)              => '0',
+    
     STAT_DEBUG  => open
     );
 
@@ -904,6 +976,8 @@ LED_YELLOW <= link_ok; --debug(3);
   
   TEST_LINE(31 downto 10) <= (others => '0');
 
+  CLK_TEST_OUT <= clk_200_i & rx_clock & clk_100_i;
+  
 
 --   FPGA1_CONNECTOR(0) <= '0';
   FPGA2_CONNECTOR(0) <= '0';
@@ -916,7 +990,7 @@ LED_YELLOW <= link_ok; --debug(3);
 ---------------------------------------------------------------------------
   process
     begin
-      wait until rising_edge(clk_100_i);
+      wait until rising_edge(clk_100_internal);
       time_counter <= time_counter + 1;
     end process;
 
