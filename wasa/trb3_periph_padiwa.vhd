@@ -110,6 +110,7 @@ architecture trb3_periph_padiwa_arch of trb3_periph_padiwa is
   signal clk_200_internal         : std_logic;
   signal rx_clock_100             : std_logic;
   signal rx_clock_200             : std_logic;
+  signal clk_tdc                  : std_logic;
   
   --Media Interface
   signal med_stat_op        : std_logic_vector (1*16-1 downto 0);
@@ -295,11 +296,13 @@ begin
   gen_sync_clocks : if SYNC_MODE = c_YES generate
     clk_100_i <= rx_clock_100;
     clk_200_i <= rx_clock_200;
+    clk_tdc   <= rx_clock_200;
   end generate;
 
   gen_local_clocks : if SYNC_MODE = c_NO generate
     clk_100_i <= clk_100_internal;
     clk_200_i <= clk_200_internal;
+    clk_tdc   <= CLK_PCLK_LEFT;
   end generate;
 
 ---------------------------------------------------------------------------
@@ -695,7 +698,7 @@ begin
       CONTROL_REG_NR => REGIO_NUM_CTRL_REGS)
     port map (
       RESET                 => reset_i,
-      CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
+      CLK_TDC               => clk_tdc,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
       HIT_IN                => hit_in_i(3 downto 0),  -- Channel start signals
