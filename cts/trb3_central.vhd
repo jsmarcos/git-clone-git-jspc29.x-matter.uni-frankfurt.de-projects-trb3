@@ -64,10 +64,9 @@ entity trb3_central is
     --Trigger
     TRIGGER_LEFT                   : in  std_logic;  --left side trigger input from fan-out
     TRIGGER_RIGHT                  : in  std_logic;  --right side trigger input from fan-out
-    TRIGGER_EXT                    : in  std_logic_vector(2 downto 2); --additional trigger from RJ45
+    TRIGGER_EXT                    : in  std_logic_vector(4 downto 2); --additional trigger from RJ45
     TRIGGER_OUT                    : out std_logic;  --trigger to second input of fan-out
     TRIGGER_OUT2                   : out std_logic;
-    RXCLK_OUT                      : out std_logic;
     
     --Serdes
     CLK_SERDES_INT_LEFT            : in  std_logic;  --Clock Manager 2/0, 200 MHz, only in case of problems
@@ -191,7 +190,7 @@ architecture trb3_central_arch of trb3_central is
 
   --FPGA Test
   signal time_counter, time_counter2 : unsigned(31 downto 0);
-  signal rx_clock : std_logic;
+
   --Media Interface
   signal med_stat_op             : std_logic_vector (5*16-1  downto 0);
   signal med_ctrl_op             : std_logic_vector (5*16-1  downto 0);
@@ -410,7 +409,7 @@ architecture trb3_central_arch of trb3_central is
   signal tdc_ctrl_data_in   : std_logic_vector(31 downto 0);
   signal tdc_ctrl_data_out  : std_logic_vector(31 downto 0);
   signal tdc_ctrl_reg   : std_logic_vector(4*32-1 downto 0);
-  
+  signal tdc_debug      : std_logic_vector(15 downto 0);  
    
    component mbs_vulom_recv is
    port(
@@ -465,8 +464,7 @@ begin
    );
 
    trigger_in_buf_i(1 downto 0) <= CLK_EXT;
-   trigger_in_buf_i(2 downto 2) <= TRIGGER_EXT(2 downto 2);
-   trigger_in_buf_i(3)          <= '0';
+   trigger_in_buf_i(3 downto 2) <= TRIGGER_EXT(3 downto 2);
 
  THE_CTS: CTS 
    generic map (
@@ -602,7 +600,8 @@ THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
     SERDES_NUM  => 0,     --number of serdes in quad
     EXT_CLOCK   => c_NO,  --use internal clock
     USE_200_MHZ => c_YES, --run on 200 MHz clock
-    USE_CTC     => c_YES
+    USE_CTC     => c_YES,
+    USE_SLAVE   => c_NO
     )
   port map(
     CLK                => clk_200_i,
@@ -619,7 +618,7 @@ THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
     MED_PACKET_NUM_OUT => med_packet_num_in(14 downto 12),
     MED_DATAREADY_OUT  => med_dataready_in(4),
     MED_READ_IN        => med_read_out(4),
-    REFCLK2CORE_OUT    => rx_clock,
+    REFCLK2CORE_OUT    => open,
     --SFP Connection
     SD_RXD_P_IN        => SFP_RX_P(1),
     SD_RXD_N_IN        => SFP_RX_N(1),
@@ -1255,7 +1254,7 @@ THE_FPGA_REBOOT : fpga_reboot
       LHB_DATAREADY_OUT     => open, -- lhb_data_ready,    -- bus data ready strobe
       LHB_UNKNOWN_ADDR_OUT  => open, -- lhb_invalid,   -- bus invalid addr
       --
-      LOGIC_ANALYSER_OUT    => open,
+      LOGIC_ANALYSER_OUT    => tdc_debug,
       CONTROL_REG_IN        => tdc_ctrl_reg);
     
     
@@ -1329,7 +1328,7 @@ LED_ORANGE <= debug(1);
 LED_RED <= debug(2);
 LED_YELLOW <= link_ok; --debug(3);
 
-RXCLK_OUT <= rx_clock;
+
 ---------------------------------------------------------------------------
 -- Test Connector
 ---------------------------------------------------------------------------    
@@ -1338,8 +1337,8 @@ RXCLK_OUT <= rx_clock;
 --   TEST_LINE(8)            <= med_dataready_in(0);
 --   TEST_LINE(9)            <= med_dataready_out(0);
 
-  
-  TEST_LINE(31 downto 0) <= (others => '0');
+  TEST_LINE(15 downto 0)  <= tdc_debug;
+  TEST_LINE(31 downto 16) <= (others => '0');
 --   TEST_LINE(31 downto 0) <= cts_ext_debug;
 
 
