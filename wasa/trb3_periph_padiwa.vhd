@@ -11,7 +11,7 @@ use work.version.all;
 
 entity trb3_periph_padiwa is
   generic(
-    SYNC_MODE : integer range 0 to 1 := c_NO   --use the RX clock for internal logic and transmission.
+    SYNC_MODE : integer range 0 to 1 := c_YES   --use the RX clock for internal logic and transmission.
     );
   port(
     --Clocks
@@ -111,7 +111,7 @@ architecture trb3_periph_padiwa_arch of trb3_periph_padiwa is
   signal rx_clock_100             : std_logic;
   signal rx_clock_200             : std_logic;
   signal clk_tdc                  : std_logic;
-  
+  signal time_counter, time_counter2 : unsigned(31 downto 0);
   --Media Interface
   signal med_stat_op        : std_logic_vector (1*16-1 downto 0);
   signal med_ctrl_op        : std_logic_vector (1*16-1 downto 0);
@@ -248,6 +248,13 @@ architecture trb3_periph_padiwa_arch of trb3_periph_padiwa is
   signal spi_bram_rd_d : std_logic_vector(7 downto 0);
   signal spi_bram_we   : std_logic;
 
+  signal sci1_ack      : std_logic;
+  signal sci1_write    : std_logic;
+  signal sci1_read     : std_logic;
+  signal sci1_data_in  : std_logic_vector(7 downto 0);
+  signal sci1_data_out : std_logic_vector(7 downto 0);
+  signal sci1_addr     : std_logic_vector(8 downto 0);  
+  
   signal padiwa_cs  : std_logic_vector(3 downto 0);
   signal padiwa_sck : std_logic;
   signal padiwa_sdi : std_logic;
@@ -332,6 +339,9 @@ begin
       MED_DATAREADY_OUT  => med_dataready_in,
       MED_READ_IN        => med_read_out,
       REFCLK2CORE_OUT    => open,
+      CLK_RX_HALF_OUT    => rx_clock_100,
+      CLK_RX_FULL_OUT    => rx_clock_200,
+      
       --SFP Connection
       SD_RXD_P_IN        => SERDES_RX(2),
       SD_RXD_N_IN        => SERDES_RX(3),
@@ -342,6 +352,13 @@ begin
       SD_PRSNT_N_IN      => FPGA5_COMM(0),
       SD_LOS_IN          => FPGA5_COMM(0),
       SD_TXDIS_OUT       => FPGA5_COMM(2),
+      
+      SCI_DATA_IN        => sci1_data_in,
+      SCI_DATA_OUT       => sci1_data_out,
+      SCI_ADDR           => sci1_addr,
+      SCI_READ           => sci1_read,
+      SCI_WRITE          => sci1_write,
+      SCI_ACK            => sci1_ack,        
       -- Status and control port
       STAT_OP            => med_stat_op,
       CTRL_OP            => med_ctrl_op,
@@ -472,9 +489,9 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 7,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, others => 0)
+      PORT_NUMBER    => 8,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"b000", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 9, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -576,7 +593,19 @@ begin
       BUS_WRITE_ACK_IN(6)                 => '0',
       BUS_NO_MORE_DATA_IN(6)              => '0',
       BUS_UNKNOWN_ADDR_IN(6)              => fwb_invalid,
-
+      --SCI first Media Interface
+      BUS_READ_ENABLE_OUT(7)              => sci1_read,
+      BUS_WRITE_ENABLE_OUT(7)             => sci1_write,
+      BUS_DATA_OUT(7*32+7 downto 7*32)    => sci1_data_in,
+      BUS_DATA_OUT(7*32+31 downto 7*32+8) => open,
+      BUS_ADDR_OUT(7*16+8 downto 7*16)    => sci1_addr,
+      BUS_ADDR_OUT(7*16+15 downto 7*16+9) => open,
+      BUS_TIMEOUT_OUT(7)                  => open,
+      BUS_DATA_IN(7*32+7 downto 7*32)     => sci1_data_out,
+      BUS_DATAREADY_IN(7)                 => sci1_ack,
+      BUS_WRITE_ACK_IN(7)                 => sci1_ack,
+      BUS_NO_MORE_DATA_IN(7)              => '0',
+      BUS_UNKNOWN_ADDR_IN(7)              => '0',
       STAT_DEBUG => open
       );
 
@@ -675,7 +704,7 @@ begin
 ---------------------------------------------------------------------------
 -- LED
 ---------------------------------------------------------------------------
-  LED_ORANGE <= '1';
+  LED_ORANGE <= not reset_i when rising_edge(clk_100_internal);
   LED_YELLOW <= '1';
   LED_GREEN  <= not med_stat_op(9);
   LED_RED    <= not (med_stat_op(10) or med_stat_op(11));
@@ -684,7 +713,14 @@ begin
 -- Test Connector
 ---------------------------------------------------------------------------    
 --  TEST_LINE(15 downto 0) <= (others => '0');
-
+---------------------------------------------------------------------------
+-- Test Circuits
+---------------------------------------------------------------------------
+  process
+    begin
+      wait until rising_edge(clk_100_internal);
+      time_counter <= time_counter + 1;
+    end process;
 
 
 
