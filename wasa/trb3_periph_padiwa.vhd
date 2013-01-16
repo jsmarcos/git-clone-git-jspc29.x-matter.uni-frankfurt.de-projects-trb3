@@ -10,6 +10,9 @@ use work.version.all;
 
 
 entity trb3_periph_padiwa is
+  generic(
+    SYNC_MODE : integer range 0 to 1 := c_NO   --use the RX clock for internal logic and transmission.
+    );
   port(
     --Clocks
     CLK_GPLL_LEFT  : in std_logic;      --Clock Manager 6
@@ -103,7 +106,11 @@ architecture trb3_periph_padiwa_arch of trb3_periph_padiwa is
   signal GSR_N                    : std_logic;
   attribute syn_keep of GSR_N     : signal is true;
   attribute syn_preserve of GSR_N : signal is true;
-
+  signal clk_100_internal         : std_logic;
+  signal clk_200_internal         : std_logic;
+  signal rx_clock_100             : std_logic;
+  signal rx_clock_200             : std_logic;
+  
   --Media Interface
   signal med_stat_op        : std_logic_vector (1*16-1 downto 0);
   signal med_ctrl_op        : std_logic_vector (1*16-1 downto 0);
@@ -262,7 +269,7 @@ begin
     port map(
       CLEAR_IN      => '0',              -- reset input (high active, async)
       CLEAR_N_IN    => '1',              -- reset input (low active, async)
-      CLK_IN        => clk_200_i,        -- raw master clock, NOT from PLL/DLL!
+      CLK_IN        => clk_200_internal, -- raw master clock, NOT from PLL/DLL!
       SYSCLK_IN     => clk_100_i,        -- PLL/DLL remastered clock
       PLL_LOCKED_IN => pll_lock,         -- master PLL lock signal (async)
       RESET_IN      => '0',              -- general reset signal (SYSCLK)
@@ -280,24 +287,32 @@ begin
   THE_MAIN_PLL : pll_in200_out100
     port map(
       CLK   => CLK_GPLL_RIGHT,
-      CLKOP => clk_100_i,
-      CLKOK => clk_200_i,
+      CLKOP => clk_100_internal,
+      CLKOK => clk_200_internal,
       LOCK  => pll_lock
       );
 
+  gen_sync_clocks : if SYNC_MODE = c_YES generate
+    clk_100_i <= rx_clock_100;
+    clk_200_i <= rx_clock_200;
+  end generate;
 
+  gen_local_clocks : if SYNC_MODE = c_NO generate
+    clk_100_i <= clk_100_internal;
+    clk_200_i <= clk_200_internal;
+  end generate;
 
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (to other FPGA)
 ---------------------------------------------------------------------------
   THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
     generic map(
-      SERDES_NUM  => 1,                 --number of serdes in quad
-      EXT_CLOCK   => c_NO,              --use internal clock
-      USE_200_MHZ => c_YES,             --run on 200 MHz clock
-      USE_125_MHZ => c_NO,
-      USE_CTC     => c_NO
-      )
+      SERDES_NUM  => 1,     --number of serdes in quad
+      EXT_CLOCK   => c_NO,  --use internal clock
+      USE_200_MHZ => c_YES, --run on 200 MHz clock
+      USE_CTC     => c_NO,
+      USE_SLAVE   => SYNC_MODE
+      )      
     port map(
       CLK                => clk_200_i,
       SYSCLK             => clk_100_i,
