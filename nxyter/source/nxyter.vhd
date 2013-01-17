@@ -1,4 +1,4 @@
------------------------------------------------------------------------------
+----------------------------------------------------------------------------
 --
 -- One  nXyter FEB 
 --
@@ -75,76 +75,66 @@ architecture Behavioral of nXyter_FEE_board is
   signal clk_256_o            : std_logic;
   
   -- Bus Handler
-  signal slv_read             : std_logic_vector(8-1 downto 0);
-  signal slv_write            : std_logic_vector(8-1 downto 0);
-  signal slv_no_more_data     : std_logic_vector(8-1 downto 0);
-  signal slv_ack              : std_logic_vector(8-1 downto 0);
-  signal slv_addr             : std_logic_vector(8*16-1 downto 0);
-  signal slv_data_rd          : std_logic_vector(8*32-1 downto 0);
-  signal slv_data_wr          : std_logic_vector(8*32-1 downto 0);
-  signal slv_unknown_addr     : std_logic_vector(8-1 downto 0);
+  signal slv_read             : std_logic_vector(10-1 downto 0);
+  signal slv_write            : std_logic_vector(10-1 downto 0);
+  signal slv_no_more_data     : std_logic_vector(10-1 downto 0);
+  signal slv_ack              : std_logic_vector(10-1 downto 0);
+  signal slv_addr             : std_logic_vector(10*16-1 downto 0);
+  signal slv_data_rd          : std_logic_vector(10*32-1 downto 0);
+  signal slv_data_wr          : std_logic_vector(10*32-1 downto 0);
+  signal slv_unknown_addr     : std_logic_vector(10-1 downto 0);
 
-  -- I2C Master
+  -- TRB Register
   signal i2c_sm_reset_o       : std_logic;   
+  signal nx_ts_reset_1        : std_logic;
+  signal nx_ts_reset_2        : std_logic;
+  signal nx_ts_reset_o        : std_logic;
   signal i2c_reg_reset_o      : std_logic;
   
   -- SPI Interface ADC
   signal spi_sdi              : std_logic;
   signal spi_sdo              : std_logic;        
 
-  -- FIFO Read
-  signal nx_ts_reset_o        : std_logic;
+  -- Timestamp FIFO Read
+  signal nx_timestamp         : std_logic_vector(31 downto 0);
+  signal nx_new_timestamp     : std_logic;
   signal nx_frame_clock_o     : std_logic;
-  signal nx_frame_sync_o      : std_logic;
-     
-  -- Timestamp Handlers
-  signal nx_timestamp_o       : std_logic_vector(31 downto 0);
-  signal nx_new_frame         : std_logic;
-  
-  -- FPGA Timestamp
-  signal timestamp_latched    : unsigned(13 downto 0);
-  signal nx_timestamp_sync_o  : std_logic;
+       
+  -- Timestamp Decode Handlers
+  signal timestamp_data       : std_logic_vector(31 downto 0);
+  signal timestamp_valid      : std_logic;
+  signal nx_token_return      : std_logic;
+  signal nx_nomore_data       : std_logic;
 
+  -- FPGA Timestamp
+  signal timestamp_trigger    : unsigned(11 downto 0);
+  signal nx_timestamp_sync    : std_logic;
+
+  -- Trigger Handler
+  signal trigger_release      : std_logic;
+  signal trigger_ack          : std_logic;
+  signal timestamp_hold       : std_logic;
+  signal trigger_busy         : std_logic;
+  
   -- Testpulse Generator
   signal nx_testpulse_o       : std_logic;
   
 begin
-
+  trigger_release <= '1';
 -------------------------------------------------------------------------------
 -- DEBUG
 -------------------------------------------------------------------------------
-  DEBUG_LINE_OUT(0)           <= CLK_IN;
-  DEBUG_LINE_OUT(1)           <= NX_CLK128_IN;
-  DEBUG_LINE_OUT(2)           <= NX_RESET_OUT;
-  DEBUG_LINE_OUT(3)           <= NX_TESTPULSE_OUT;
-  DEBUG_LINE_OUT(4)           <= clk_256_o;
---  DEBUG_LINE_OUT(5)           <= clk_lock;
-
-
-
-  
---   DEBUG_LINE_OUT(4)           <= ADC_DCLK_IN;
---   DEBUG_LINE_OUT(5)           <= ADC_NX_IN;
---   DEBUG_LINE_OUT(6)           <= ADC_A_IN;
---   DEBUG_LINE_OUT(7)           <= ADC_B_IN;
---   DEBUG_LINE_OUT(8)           <= ADC_D_IN;
---     
---   DEBUG_LINE_OUT(15 downto 9)  <= (others => '0');
---   
-   DEBUG_LINE_OUT(15 downto 8) <= NX_TIMESTAMP_IN;
---   DEBUG_LINE_OUT(8)            <= i2c_sda_o;
---   DEBUG_LINE_OUT(9)            <= i2c_sda_i;
---   DEBUG_LINE_OUT(10)           <= i2c_scl_o;
---   DEBUG_LINE_OUT(11)           <= i2c_scl_i;
---   DEBUG_LINE_OUT(15 downto 12) <= (others => '0');
-
---   DEBUG_LINE_OUT(0) <= CLK_IN;
---   DEBUG_LINE_OUT(1) <= I2C_SDA_INOUT;
---   DEBUG_LINE_OUT(2) <= I2C_SCL_INOUT;
---   DEBUG_LINE_OUT(3) <= i2c_sm_reset_o;
---   DEBUG_LINE_OUT(4) <= i2c_reg_reset_o;
---   
---   DEBUG_LINE_OUT(5 downto 5) <= (others => '0');
+  DEBUG_LINE_OUT(0)            <= CLK_IN;
+  DEBUG_LINE_OUT(1)            <= trigger_ack;
+  DEBUG_LINE_OUT(2)            <= nx_ts_reset_o;
+  DEBUG_LINE_OUT(3)            <= nx_testpulse_o;
+  DEBUG_LINE_OUT(4)            <= nx_new_timestamp;
+  DEBUG_LINE_OUT(5)            <= timestamp_valid;
+  DEBUG_LINE_OUT(6)            <= timestamp_hold;
+  DEBUG_LINE_OUT(7)            <= nx_token_return;
+  DEBUG_LINE_OUT(8)            <= nx_nomore_data;
+  DEBUG_LINE_OUT(9)            <= trigger_busy;
+  DEBUG_LINE_OUT(15 downto 10) <= (others => '0');
 
 -------------------------------------------------------------------------------
 -- Port Maps
@@ -162,20 +152,26 @@ begin
 
   THE_BUS_HANDLER: trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER         => 6,
-      PORT_ADDRESSES      => ( 0 => x"0000",    -- Control Register Handler
-                               1 => x"0040",    -- I2C master
-                               2 => x"0100",    -- Timestamp Fifo
-                               3 => x"0200",    -- Data Buffer
+      PORT_NUMBER         => 8,
+
+      PORT_ADDRESSES      => ( 0 => x"0100",    -- Control Register Handler
+                               1 => x"0040",    -- I2C Master
+                               2 => x"0500",    -- Timestamp Fifo
+                               3 => x"0600",    -- Data Buffer
                                4 => x"0060",    -- SPI Master
-                               5 => x"0080",    -- Trigger Generator
+                               5 => x"0140",    -- Trigger Generator
+                               6 => x"0120",    -- Timestamp Decode
+                               7 => x"0160",    -- Trigger Handler
                                others => x"0000"),
+
       PORT_ADDR_MASK      => ( 0 => 3,          -- Control Register Handler
                                1 => 0,          -- I2C master
                                2 => 1,          -- Timestamp Fifo
-                               3 => 1,          -- Data Buffer
+                               3 => 0,          -- Data Buffer
                                4 => 0,          -- SPI Master
-                               5 => 0,          -- Trigger Generator
+                               5 => 3,          -- Trigger Generator
+                               6 => 4,          -- Timestamp Decode
+                               7 => 1,          -- Trigger Handler
                                others => 0)
       )
     port map(
@@ -222,7 +218,6 @@ begin
       BUS_WRITE_ENABLE_OUT(2)             => slv_write(2),
       BUS_DATA_OUT(2*32+31 downto 2*32)   => slv_data_wr(2*32+31 downto 2*32),
       BUS_DATA_IN(2*32+31 downto 2*32)    => slv_data_rd(2*32+31 downto 2*32),
---      BUS_ADDR_OUT(2*16+0 downto 2*16)    => slv_addr(2*16+0 downto 0*16),
       BUS_ADDR_OUT(2*16+0)                => slv_addr(2*16+0),
       BUS_ADDR_OUT(2*16+15 downto 2*16+1) => open,
       BUS_TIMEOUT_OUT(2)                  => open,
@@ -236,7 +231,6 @@ begin
       BUS_WRITE_ENABLE_OUT(3)             => slv_write(3),
       BUS_DATA_OUT(3*32+31 downto 3*32)   => slv_data_wr(3*32+31 downto 3*32),
       BUS_DATA_IN(3*32+31 downto 3*32)    => slv_data_rd(3*32+31 downto 3*32),
---      BUS_ADDR_OUT(3*16+0 downto 2*16)    => slv_addr(3*16+0 downto 0*16),
       BUS_ADDR_OUT(3*16+0)                => slv_addr(3*16+0),
       BUS_ADDR_OUT(3*16+15 downto 3*16+1) => open,
       BUS_TIMEOUT_OUT(3)                  => open,
@@ -262,36 +256,39 @@ begin
       BUS_WRITE_ENABLE_OUT(5)             => slv_write(5),
       BUS_DATA_OUT(5*32+31 downto 5*32)   => slv_data_wr(5*32+31 downto 5*32),
       BUS_DATA_IN(5*32+31 downto 5*32)    => slv_data_rd(5*32+31 downto 5*32),
-      BUS_ADDR_OUT(5*16+15 downto 5*16)   => open,
+      BUS_ADDR_OUT(5*16+2 downto 5*16)    => slv_addr(5*16+2 downto 5*16),
+      BUS_ADDR_OUT(5*16+15 downto 5*16+3) => open,
       BUS_TIMEOUT_OUT(5)                  => open,
       BUS_DATAREADY_IN(5)                 => slv_ack(5),
       BUS_WRITE_ACK_IN(5)                 => slv_ack(5),
       BUS_NO_MORE_DATA_IN(5)              => slv_no_more_data(5),
       BUS_UNKNOWN_ADDR_IN(5)              => slv_unknown_addr(5),
 
-      ---- SPI control registers
-      --BUS_READ_ENABLE_OUT(4)              => slv_read(4),
-      --BUS_WRITE_ENABLE_OUT(4)             => slv_write(4),
-      --BUS_DATA_OUT(4*32+31 downto 4*32)   => slv_data_wr(4*32+31 downto 4*32),
-      --BUS_DATA_IN(4*32+31 downto 4*32)    => slv_data_rd(4*32+31 downto 4*32),
-      --BUS_ADDR_OUT(4*16+15 downto 4*16)   => slv_addr(4*16+15 downto 4*16),
-      --BUS_TIMEOUT_OUT(4)                  => open,
-      --BUS_DATAREADY_IN(4)                 => slv_ack(4),
-      --BUS_WRITE_ACK_IN(4)                 => slv_ack(4),
-      --BUS_NO_MORE_DATA_IN(4)              => slv_no_more_data(4),
-      --BUS_UNKNOWN_ADDR_IN(4)              => '0',
+      -- Timestamp Decode
+      BUS_READ_ENABLE_OUT(6)              => slv_read(6),
+      BUS_WRITE_ENABLE_OUT(6)             => slv_write(6),
+      BUS_DATA_OUT(6*32+31 downto 6*32)   => slv_data_wr(6*32+31 downto 6*32),
+      BUS_DATA_IN(6*32+31 downto 6*32)    => slv_data_rd(6*32+31 downto 6*32),
+      BUS_ADDR_OUT(6*16+4 downto 6*16)    => slv_addr(6*16+4 downto 6*16),
+      BUS_ADDR_OUT(6*16+15 downto 6*16+5) => open,
+      BUS_TIMEOUT_OUT(6)                  => open,
+      BUS_DATAREADY_IN(6)                 => slv_ack(6),
+      BUS_WRITE_ACK_IN(6)                 => slv_ack(6),
+      BUS_NO_MORE_DATA_IN(6)              => slv_no_more_data(6),
+      BUS_UNKNOWN_ADDR_IN(6)              => slv_unknown_addr(6),
 
-      ---- SPI data memory
-      --BUS_READ_ENABLE_OUT(5)              => slv_read(5),
-      --BUS_WRITE_ENABLE_OUT(5)             => slv_write(5),
-      --BUS_DATA_OUT(5*32+31 downto 5*32)   => slv_data_wr(5*32+31 downto 5*32),
-      --BUS_DATA_IN(5*32+31 downto 5*32)    => slv_data_rd(5*32+31 downto 5*32),
-      --BUS_ADDR_OUT(5*16+15 downto 5*16)   => slv_addr(5*16+15 downto 5*16),
-      --BUS_TIMEOUT_OUT(5)                  => open,
-      --BUS_DATAREADY_IN(5)                 => slv_ack(5),
-      --BUS_WRITE_ACK_IN(5)                 => slv_ack(5),
-      --BUS_NO_MORE_DATA_IN(5)              => slv_no_more_data(5),
-      --BUS_UNKNOWN_ADDR_IN(5)              => '0',
+      -- Trigger Handler
+      BUS_READ_ENABLE_OUT(7)              => slv_read(7),
+      BUS_WRITE_ENABLE_OUT(7)             => slv_write(7),
+      BUS_DATA_OUT(7*32+31 downto 7*32)   => slv_data_wr(7*32+31 downto 7*32),
+      BUS_DATA_IN(7*32+31 downto 7*32)    => slv_data_rd(7*32+31 downto 7*32),
+      BUS_ADDR_OUT(7*16+0)                => slv_addr(7*16+0),
+      BUS_ADDR_OUT(7*16+15 downto 7*16+1) => open,
+      BUS_TIMEOUT_OUT(7)                  => open,
+      BUS_DATAREADY_IN(7)                 => slv_ack(7),
+      BUS_WRITE_ACK_IN(7)                 => slv_ack(7),
+      BUS_NO_MORE_DATA_IN(7)              => slv_no_more_data(7),
+      BUS_UNKNOWN_ADDR_IN(7)              => slv_unknown_addr(7),
 
       ---- debug
       STAT_DEBUG          => open
@@ -316,7 +313,7 @@ begin
       SLV_UNKNOWN_ADDR_OUT   => slv_unknown_addr(0),
       I2C_SM_RESET_OUT       => i2c_sm_reset_o,
       I2C_REG_RESET_OUT      => i2c_reg_reset_o,
-      NX_TS_RESET_OUT        => nx_ts_reset_o,
+      NX_TS_RESET_OUT        => nx_ts_reset_1,
       --DEBUG_OUT(7 downto 0)  => DEBUG_LINE_OUT(15 downto 8)
       DEBUG_OUT              => open
       );
@@ -341,6 +338,7 @@ begin
       SLV_ACK_OUT           => slv_ack(1), 
       SLV_NO_MORE_DATA_OUT  => slv_no_more_data(1),
       SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(1),
+      -- DEBUG_OUT          => DEBUG_LINE_OUT
       DEBUG_OUT             => open
       );
 
@@ -356,9 +354,8 @@ begin
       NX_TIMESTAMP_CLK_IN  => NX_CLK128_IN,
       NX_TIMESTAMP_IN      => NX_TIMESTAMP_IN,
       NX_FRAME_CLOCK_OUT   => nx_frame_clock_o,
-      NX_FRAME_SYNC_OUT    => nx_frame_sync_o,
-      NX_TIMESTAMP_OUT     => nx_timestamp_o,
-      NX_NEW_FRAME_OUT     => nx_new_frame,
+      NX_TIMESTAMP_OUT     => nx_timestamp,
+      NX_NEW_TIMESTAMP_OUT => nx_new_timestamp,
       SLV_READ_IN          => slv_read(2),
       SLV_WRITE_IN         => slv_write(2),
       SLV_DATA_OUT         => slv_data_rd(2*32+31 downto 2*32),
@@ -368,7 +365,7 @@ begin
       SLV_NO_MORE_DATA_OUT => slv_no_more_data(2),
       SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(2),
 
-      --DEBUG_OUT(7 downto 0)  => DEBUG_LINE_OUT(7 downto 0)
+      -- DEBUG_OUT            => DEBUG_LINE_OUT
       DEBUG_OUT            => open
       );
 
@@ -379,44 +376,56 @@ begin
 
   nx_timestamp_decode_1: nx_timestamp_decode
     port map (
-      CLK_IN              => CLK_IN,
-      RESET_IN            => RESET_IN,
-      NX_NEW_FRAME_IN     => nx_new_frame,
-      NX_TIMESTAMP_IN     => nx_timestamp_o,
-      TIMESTAMP_DATA_OUT  => open,
-      TIMESTAMP_VALID_OUT => open,
+      CLK_IN               => CLK_IN,
+      RESET_IN             => RESET_IN,
+      NX_NEW_TIMESTAMP_IN  => nx_new_timestamp,
+      NX_TIMESTAMP_IN      => nx_timestamp,
+      TIMESTAMP_REF_IN     => timestamp_trigger,
+      TIMESTAMP_DATA_OUT   => timestamp_data,
+      TIMESTAMP_VALID_OUT  => timestamp_valid,
+      NX_TOKEN_RETURN      => nx_token_return,
+      NX_NOMORE_DATA       => nx_nomore_data,
+
+      SLV_READ_IN          => slv_read(6),
+      SLV_WRITE_IN         => slv_write(6),
+      SLV_DATA_OUT         => slv_data_rd(6*32+31 downto 6*32),
+      SLV_DATA_IN          => slv_data_wr(6*32+31 downto 6*32),
+      SLV_ADDR_IN          => slv_addr(6*16+15 downto 6*16),
+      SLV_ACK_OUT          => slv_ack(6),
+      SLV_NO_MORE_DATA_OUT => slv_no_more_data(6),
+      SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(6),
       
-      -- DEBUG_OUT           => DEBUG_LINE_OUT
+      -- DEBUG_OUT(14 downto 0) => DEBUG_LINE_OUT(14 downto 0)
       DEBUG_OUT           => open
       );
 
+--  DEBUG_LINE_OUT(15) <= nx_testpulse_o;
   
 -------------------------------------------------------------------------------
 -- Data Buffer FIFO
 -------------------------------------------------------------------------------
 
-
-  nx_data_buffer_2: nx_data_buffer
+  nx_data_buffer_1: nx_data_buffer
     port map (
-      CLK_IN               => CLK_IN,
-      RESET_IN             => RESET_IN,
-      DATA_IN              => nx_timestamp_o,
-      NEW_DATA_IN          => nx_new_frame,
+      CLK_IN                => CLK_IN,
+      RESET_IN              => RESET_IN,
+      DATA_IN               => timestamp_data,
+      NEW_DATA_IN           => timestamp_valid,
       
-      FIFO_WRITE_ENABLE_IN => '1',
-      FIFO_READ_ENABLE_IN  => '1',
+      FIFO_WRITE_ENABLE_IN  => '1',
+      FIFO_READ_ENABLE_IN   => '1',
 
-      SLV_READ_IN          => slv_read(3),
-      SLV_WRITE_IN         => slv_write(3),
-      SLV_DATA_OUT         => slv_data_rd(3*32+31 downto 3*32),
-      SLV_DATA_IN          => slv_data_wr(3*32+31 downto 3*32),
-      SLV_ADDR_IN          => slv_addr(3*16+15 downto 3*16),
-      SLV_ACK_OUT          => slv_ack(3),
-      SLV_NO_MORE_DATA_OUT => slv_no_more_data(3),
-      SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(3),
+      SLV_READ_IN           => slv_read(3),
+      SLV_WRITE_IN          => slv_write(3),
+      SLV_DATA_OUT          => slv_data_rd(3*32+31 downto 3*32),
+      SLV_DATA_IN           => slv_data_wr(3*32+31 downto 3*32),
+      SLV_ADDR_IN           => slv_addr(3*16+15 downto 3*16),
+      SLV_ACK_OUT           => slv_ack(3),
+      SLV_NO_MORE_DATA_OUT  => slv_no_more_data(3),
+      SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(3),
 
-      -- DEBUG_OUT           => DEBUG_LINE_OUT
-      DEBUG_OUT           => open
+      --DEBUG_OUT            => DEBUG_LINE_OUT
+      DEBUG_OUT            => open
       );
 
 -------------------------------------------------------------------------------
@@ -450,13 +459,12 @@ begin
 
   nx_fpga_timestamp_1: nx_fpga_timestamp
     port map (
-      CLK_IN                => CLK_IN,
+      CLK_IN                => clk_256_o,
       RESET_IN              => RESET_IN,
-      TIMESTAMP_CLK_IN      => clk_256_o,
-      TIMESTAMP_SYNC_IN     => RESET_IN,
-      LATCH_IN              => nx_testpulse_o,
-      TIMESTAMP_OUT         => timestamp_latched,
-      NX_TIMESTAMP_SYNC_OUT => nx_timestamp_sync_o,
+      TIMESTAMP_SYNC_IN     => nx_ts_reset_o,
+      TRIGGER_IN            => timestamp_hold,
+      TIMESTAMP_OUT         => timestamp_trigger,
+      NX_TIMESTAMP_SYNC_OUT => nx_timestamp_sync,
       SLV_READ_IN           => open,
       SLV_WRITE_IN          => open,
       SLV_DATA_OUT          => open,
@@ -465,7 +473,32 @@ begin
       SLV_NO_MORE_DATA_OUT  => open,
       SLV_UNKNOWN_ADDR_OUT  => open,
       -- DEBUG_OUT             => DEBUG_LINE_OUT
-      DEBUG_OUT            => open
+      DEBUG_OUT             => open
+      );
+
+-------------------------------------------------------------------------------
+-- Trigger Handler
+-------------------------------------------------------------------------------
+
+  nx_trigger_handler_1: nx_trigger_handler
+    port map (
+      CLK_IN                => CLK_IN,
+      RESET_IN              => RESET_IN,
+      TRIGGER_IN            => nx_testpulse_o,
+      TRIGGER_RELEASE_IN    => trigger_release,
+      TRIGGER_OUT           => trigger_ack,
+      TIMESTAMP_HOLD_OUT    => timestamp_hold,
+      TRIGGER_BUSY_OUT      => trigger_busy,
+      SLV_READ_IN           => slv_read(7),
+      SLV_WRITE_IN          => slv_write(7),
+      SLV_DATA_OUT          => slv_data_rd(7*32+31 downto 7*32),
+      SLV_DATA_IN           => slv_data_wr(7*32+31 downto 7*32),
+      SLV_ADDR_IN           => slv_addr(7*16+15 downto 7*16),
+      SLV_ACK_OUT           => slv_ack(7),
+      SLV_NO_MORE_DATA_OUT  => slv_no_more_data(7),
+      SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(7),
+      -- DEBUG_OUT(14 downto 0) => DEBUG_LINE_OUT(14 downto 0)
+      DEBUG_OUT             => open
       );
   
 -------------------------------------------------------------------------------
@@ -473,17 +506,16 @@ begin
 -------------------------------------------------------------------------------
 
   nx_trigger_generator_1: nx_trigger_generator
-    generic map (
-      TRIGGER_SPEED => x"ffff"
-      )
     port map (
       CLK_IN               => CLK_IN,
       RESET_IN             => RESET_IN,
       TRIGGER_OUT          => nx_testpulse_o,
+      TS_RESET_OUT         => nx_ts_reset_2,
       SLV_READ_IN          => slv_read(5),
       SLV_WRITE_IN         => slv_write(5),
       SLV_DATA_OUT         => slv_data_rd(5*32+31 downto 5*32),
       SLV_DATA_IN          => slv_data_wr(5*32+31 downto 5*32),
+      SLV_ADDR_IN          => slv_addr(5*16+15 downto 5*16),
       SLV_ACK_OUT          => slv_ack(5),
       SLV_NO_MORE_DATA_OUT => slv_no_more_data(5),
       SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(5),
@@ -495,8 +527,10 @@ begin
 -------------------------------------------------------------------------------
 -- nXyter Signals
 -------------------------------------------------------------------------------
-  NX_RESET_OUT      <= '1';--nx_ts_reset_o;
-  NX_TESTPULSE_OUT  <= nx_testpulse_o;
+  nx_ts_reset_o     <= nx_ts_reset_1 or nx_ts_reset_2; 
+  NX_RESET_OUT      <= not nx_ts_reset_o;
+  NX_TESTPULSE_OUT  <= not nx_testpulse_o;
+
 -------------------------------------------------------------------------------
 -- I2C Signals
 -------------------------------------------------------------------------------
@@ -506,10 +540,6 @@ begin
 
 
   ADC_SC_CLK32_OUT  <= nx_frame_clock_o;
-
-
-
-
   
 -------------------------------------------------------------------------------
 -- END

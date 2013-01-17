@@ -227,9 +227,8 @@ component nx_timestamp_fifo_read
 
     NX_TIMESTAMP_IN      : in  std_logic_vector (7 downto 0);
     NX_FRAME_CLOCK_OUT   : out std_logic;
-    NX_FRAME_SYNC_OUT    : out std_logic;
     NX_TIMESTAMP_OUT     : out std_logic_vector(31 downto 0);
-    NX_NEW_FRAME_OUT     : out std_logic;
+    NX_NEW_TIMESTAMP_OUT : out std_logic;
 
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
@@ -313,15 +312,27 @@ end component;
 
 component nx_timestamp_decode
   port (
-    CLK_IN              : in  std_logic;
-    RESET_IN            : in  std_logic;
-    NX_NEW_FRAME_IN     : in  std_logic;
-    NX_TIMESTAMP_IN     : in  std_logic_vector(31 downto 0);
-    TIMESTAMP_DATA_OUT  : out std_logic_vector(27 downto 0);
-    TIMESTAMP_VALID_OUT : out std_logic;
-    DEBUG_OUT           : out std_logic_vector(15 downto 0)
+    CLK_IN               : in  std_logic;
+    RESET_IN             : in  std_logic;
+    NX_NEW_TIMESTAMP_IN  : in  std_logic;
+    NX_TIMESTAMP_IN      : in  std_logic_vector(31 downto 0);
+    TIMESTAMP_REF_IN     : in  unsigned(11 downto 0);
+    TIMESTAMP_DATA_OUT   : out std_logic_vector(31 downto 0);
+    TIMESTAMP_VALID_OUT  : out std_logic;
+    NX_TOKEN_RETURN      : out std_logic;
+    NX_NOMORE_DATA       : out std_logic;
+    SLV_READ_IN          : in  std_logic;
+    SLV_WRITE_IN         : in  std_logic;
+    SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
+    SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
+    SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
+    SLV_ACK_OUT          : out std_logic;
+    SLV_NO_MORE_DATA_OUT : out std_logic;
+    SLV_UNKNOWN_ADDR_OUT : out std_logic;
+    DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
 end component;
+
 
 component pll_nx_clk256
   port (
@@ -334,11 +345,10 @@ component nx_fpga_timestamp
   port (
     CLK_IN                : in  std_logic;
     RESET_IN              : in  std_logic;
-    TIMESTAMP_CLK_IN      : in  std_logic;
     TIMESTAMP_SYNC_IN     : in  std_logic;
-    LATCH_IN              : in  std_logic;
-    TIMESTAMP_OUT         : out unsigned(13 downto 0);
-    NX_TIMESTAMP_SYNC_OUT : in    std_logic;
+    TRIGGER_IN            : in  std_logic;
+    TIMESTAMP_OUT         : out unsigned(11 downto 0);
+    NX_TIMESTAMP_SYNC_OUT : in  std_logic;
     SLV_READ_IN           : in  std_logic;
     SLV_WRITE_IN          : in  std_logic;
     SLV_DATA_OUT          : out std_logic_vector(31 downto 0);
@@ -351,22 +361,41 @@ component nx_fpga_timestamp
 end component;
 
 component nx_trigger_generator
-  generic (
-    TRIGGER_SPEED : unsigned(15 downto 0)
-    );
   port (
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
     TRIGGER_OUT          : out std_logic;
+    TS_RESET_OUT         : out std_logic;
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
     SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
     SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
+    SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
     SLV_ACK_OUT          : out std_logic;
     SLV_NO_MORE_DATA_OUT : out std_logic;
     SLV_UNKNOWN_ADDR_OUT : out std_logic;
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
+end component;
+
+component nx_trigger_handler
+  port (
+    CLK_IN               : in  std_logic;
+    RESET_IN             : in  std_logic;
+    TRIGGER_IN           : in  std_logic;
+    TRIGGER_RELEASE_IN   : in  std_logic;
+    TRIGGER_OUT          : out std_logic;
+    TIMESTAMP_HOLD_OUT   : out std_logic;
+    TRIGGER_BUSY_OUT     : out std_logic;
+    SLV_READ_IN          : in  std_logic;
+    SLV_WRITE_IN         : in  std_logic;
+    SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
+    SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
+    SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
+    SLV_ACK_OUT          : out std_logic;
+    SLV_NO_MORE_DATA_OUT : out std_logic;
+    SLV_UNKNOWN_ADDR_OUT : out std_logic;
+    DEBUG_OUT            : out std_logic_vector(15 downto 0));
 end component;
 
 -------------------------------------------------------------------------------

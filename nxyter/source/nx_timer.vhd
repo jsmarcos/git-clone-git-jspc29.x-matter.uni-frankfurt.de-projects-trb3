@@ -63,7 +63,7 @@ begin
           timer_ctr_x <= TIMER_START_IN;
           NEXT_STATE <= S_COUNT;
         end if;
-            
+        
       when S_COUNT =>
         if (timer_ctr > 0) then
           timer_ctr_x <= timer_ctr - 1;

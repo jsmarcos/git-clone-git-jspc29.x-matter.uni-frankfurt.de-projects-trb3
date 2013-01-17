@@ -52,8 +52,7 @@ architecture Behavioral of nxyter_registers is
                   S_I2C_SM_RESET_WAIT,
                   S_I2C_REG_RESET,
                   S_I2C_REG_RESET_WAIT,
-                  S_NX_TS_RESET,
-                  S_NX_TS_RESET_WAIT
+                  S_NX_TS_RESET
                   );
   
   signal STATE, NEXT_STATE : STATES;
@@ -153,18 +152,8 @@ begin
 
       when S_NX_TS_RESET =>
         nx_ts_reset_o      <= '1';
-        wait_timer_init_x  <= x"8f";
-        NEXT_STATE         <= S_NX_TS_RESET_WAIT;
+        NEXT_STATE         <= S_IDLE;
 
-      when S_NX_TS_RESET_WAIT =>
-        nx_ts_reset_o      <= '1';
-        if (wait_timer_done = '0') then
-          NEXT_STATE       <= S_NX_TS_RESET_WAIT;
-        else
-          NEXT_STATE       <= S_IDLE;
-        end if;
-
-        
     end case;
   end process PROC_I2C_SM_RESET;
 
@@ -176,9 +165,9 @@ begin
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        reg_data(0)         <= x"babe_0000";
-        reg_data(1)         <= x"babe_0001";
-        reg_data(2)         <= x"babe_0002";
+        reg_data(0)         <= x"0000_0000";
+        reg_data(1)         <= x"0000_0000";
+        reg_data(2)         <= x"0000_0000";
         reg_data(3)         <= x"babe_0003";
         reg_data(4)         <= x"babe_0004";
         reg_data(5)         <= x"babe_0005";
@@ -204,9 +193,15 @@ begin
 
         if (SLV_WRITE_IN  = '1') then
           case SLV_ADDR_IN is
-            when x"0000" => i2c_sm_reset_start  <= '1';
-            when x"0001" => i2c_reg_reset_start <= '1';
-            when x"0002" => nx_ts_reset_start   <= '1';
+            when x"0000" =>
+              i2c_sm_reset_start <= '1';
+              reg_data(0)        <= std_logic_vector(unsigned(reg_data(0)) + 1);
+            when x"0001" =>
+              i2c_reg_reset_start <= '1';
+              reg_data(1)        <= std_logic_vector(unsigned(reg_data(1)) + 1);
+            when x"0002" =>
+              nx_ts_reset_start  <= '1';
+              reg_data(2)        <= std_logic_vector(unsigned(reg_data(2)) + 1);
             when x"0003" => reg_data(3) <= SLV_DATA_IN;
             when x"0004" => reg_data(4) <= SLV_DATA_IN;
             when x"0005" => reg_data(5) <= SLV_DATA_IN;
