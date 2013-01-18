@@ -211,7 +211,6 @@ begin
         COARSE_COUNTER_IN     => coarse_cntr(integer(ceil(real(i)/real(16)))),
         EPOCH_COUNTER_IN      => epoch_cntr,
         DATA_FINISHED_IN      => data_finished_i,
-        RUN_MODE              => run_mode_i,
         LOST_HIT_NUMBER       => ch_lost_hit_number_i(i),
         HIT_DETECT_NUMBER     => ch_hit_detect_number_i(i),
         ENCODER_START_NUMBER  => ch_encoder_start_number_i(i),

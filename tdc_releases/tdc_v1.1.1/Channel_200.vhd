@@ -33,7 +33,6 @@ entity Channel_200 is
     HIT_IN                : in  std_logic;  -- hit in
     EPOCH_COUNTER_IN      : in  std_logic_vector(27 downto 0);  -- system coarse counter
     DATA_FINISHED_IN      : in  std_logic;
-    RUN_MODE              : in  std_logic;
     COARSE_COUNTER_IN     : in  std_logic_vector(10 downto 0);
     READ_EN_IN            : in  std_logic;  -- read en signal
     FIFO_DATA_OUT         : out std_logic_vector(31 downto 0);  -- fifo data out

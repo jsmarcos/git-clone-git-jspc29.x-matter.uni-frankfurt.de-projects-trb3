@@ -29,7 +29,6 @@ entity Channel is
     COARSE_COUNTER_IN     : in  std_logic_vector(10 downto 0);
     EPOCH_COUNTER_IN      : in  std_logic_vector(27 downto 0);
     DATA_FINISHED_IN      : in  std_logic;
-    RUN_MODE              : in  std_logic;
 --
     LOST_HIT_NUMBER       : out std_logic_vector(23 downto 0);
     HIT_DETECT_NUMBER     : out std_logic_vector(23 downto 0);
@@ -72,7 +71,6 @@ architecture Channel of Channel is
 
   -- other
   signal data_finished_i : std_logic;
-  signal run_mode_i      : std_logic;
 
 -------------------------------------------------------------------------------
 
@@ -99,7 +97,6 @@ begin
       HIT_IN                => hit_buf,
       EPOCH_COUNTER_IN      => EPOCH_COUNTER_IN,
       DATA_FINISHED_IN      => data_finished_i,
-      RUN_MODE              => run_mode_i,
       COARSE_COUNTER_IN     => coarse_cntr_reg,
       READ_EN_IN            => READ_EN_IN,
       FIFO_DATA_OUT         => FIFO_DATA_OUT,
@@ -110,7 +107,6 @@ begin
       ENCODER_START_OUT     => encoder_start_i);
 
   data_finished_i   <= DATA_FINISHED_IN      when rising_edge(CLK_100);
-  run_mode_i        <= RUN_MODE              when rising_edge(CLK_100);
   encoder_start_reg <= encoder_start_i       when rising_edge(CLK_200);
   fifo_wr_en_reg    <= fifo_wr_en_i          when rising_edge(CLK_200);
 
