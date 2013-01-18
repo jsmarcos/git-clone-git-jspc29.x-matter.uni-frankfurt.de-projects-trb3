@@ -163,7 +163,6 @@ package trb3_components is
       COARSE_COUNTER_IN     : in  std_logic_vector(10 downto 0);
       EPOCH_COUNTER_IN      : in  std_logic_vector(27 downto 0);
       DATA_FINISHED_IN      : in  std_logic;
-      RUN_MODE              : in  std_logic;
       LOST_HIT_NUMBER       : out std_logic_vector(23 downto 0);
       HIT_DETECT_NUMBER     : out std_logic_vector(23 downto 0);
       ENCODER_START_NUMBER  : out std_logic_vector(23 downto 0);
@@ -182,7 +181,6 @@ package trb3_components is
       HIT_IN                : in  std_logic;
       EPOCH_COUNTER_IN      : in  std_logic_vector(27 downto 0);
       DATA_FINISHED_IN      : in  std_logic;
-      RUN_MODE              : in  std_logic;
       COARSE_COUNTER_IN     : in  std_logic_vector(10 downto 0);
       READ_EN_IN            : in  std_logic;
       FIFO_DATA_OUT         : out std_logic_vector(31 downto 0);
