@@ -673,7 +673,7 @@ begin  -- behavioral
         if TRIGGER_WIN_EN_IN = '1' then  -- if the trigger window is enabled
           if ch_data_2reg(fifo_nr)(31 downto 29) = "011" then
             data_out_reg <= ch_data_2reg(fifo_nr);
-            data_wr_reg  <= '0';
+            data_wr_reg  <= '1';
             --elsif (TW_pre(10) = '1' and ref_time_coarse(10) = '0') or (TW_post(10) = '0' and ref_time_coarse(10) = '1') then  -- if one of the trigger window edges has an overflow
             --  if (trg_win_l = '0' and trg_win_r = '1') or (trg_win_l = '1' and trg_win_r = '0') then
             --    data_out_reg <= ch_data_2reg(fifo_nr);

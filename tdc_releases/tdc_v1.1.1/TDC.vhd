@@ -210,7 +210,6 @@ begin
         FIFO_ALMOST_FULL_OUT  => ch_almost_full_i(i),
         COARSE_COUNTER_IN     => coarse_cntr(integer(ceil(real(i)/real(16)))),
         EPOCH_COUNTER_IN      => epoch_cntr,
-        TRIGGER_WINDOW_END_IN => trg_win_end_i,
         DATA_FINISHED_IN      => data_finished_i,
         RUN_MODE              => run_mode_i,
         LOST_HIT_NUMBER       => ch_lost_hit_number_i(i),

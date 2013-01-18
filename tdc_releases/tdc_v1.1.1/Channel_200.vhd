@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2012-12-13
+-- Last update: 2013-01-18
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -32,7 +32,6 @@ entity Channel_200 is
 --
     HIT_IN                : in  std_logic;  -- hit in
     EPOCH_COUNTER_IN      : in  std_logic_vector(27 downto 0);  -- system coarse counter
-    TRIGGER_WINDOW_END_IN : in  std_logic;
     DATA_FINISHED_IN      : in  std_logic;
     RUN_MODE              : in  std_logic;
     COARSE_COUNTER_IN     : in  std_logic_vector(10 downto 0);

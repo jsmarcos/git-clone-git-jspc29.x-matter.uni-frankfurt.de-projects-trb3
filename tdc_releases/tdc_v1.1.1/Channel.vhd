@@ -28,7 +28,6 @@ entity Channel is
     FIFO_ALMOST_FULL_OUT  : out std_logic;
     COARSE_COUNTER_IN     : in  std_logic_vector(10 downto 0);
     EPOCH_COUNTER_IN      : in  std_logic_vector(27 downto 0);
-    TRIGGER_WINDOW_END_IN : in  std_logic;
     DATA_FINISHED_IN      : in  std_logic;
     RUN_MODE              : in  std_logic;
 --
@@ -72,7 +71,6 @@ architecture Channel of Channel is
   signal fifo_wr_cntr       : unsigned(23 downto 0);
 
   -- other
-  signal trg_win_end_i   : std_logic;
   signal data_finished_i : std_logic;
   signal run_mode_i      : std_logic;
 
@@ -100,7 +98,6 @@ begin
       RESET_100             => RESET_100,
       HIT_IN                => hit_buf,
       EPOCH_COUNTER_IN      => EPOCH_COUNTER_IN,
-      TRIGGER_WINDOW_END_IN => trg_win_end_i,
       DATA_FINISHED_IN      => data_finished_i,
       RUN_MODE              => run_mode_i,
       COARSE_COUNTER_IN     => coarse_cntr_reg,
@@ -112,7 +109,6 @@ begin
       FIFO_WR_OUT           => fifo_wr_en_i,
       ENCODER_START_OUT     => encoder_start_i);
 
-  trg_win_end_i     <= TRIGGER_WINDOW_END_IN when rising_edge(CLK_200);
   data_finished_i   <= DATA_FINISHED_IN      when rising_edge(CLK_100);
   run_mode_i        <= RUN_MODE              when rising_edge(CLK_100);
   encoder_start_reg <= encoder_start_i       when rising_edge(CLK_200);
