@@ -96,7 +96,8 @@ architecture Behavioral of nx_timestamp_fifo_read is
   signal slv_no_more_data_o       : std_logic;
   signal slv_unknown_addr_o       : std_logic;
   signal slv_ack_o                : std_logic;
-  signal register_fifo_status     : std_logic_vector(31 downto 0);
+
+  signal reset_ctr                : std_logic;
   signal frame_clock_ctr_inc_r    : std_logic;
 
 begin
@@ -353,7 +354,8 @@ begin
                                  fifo_out(8),
                                  fifo_new_frame,
                                  register_fifo_data,
-                                 frame_sync_wait_done
+                                 frame_sync_wait_done,
+                                 reset_ctr
                                  )
 
     variable fifo_tag_given : std_logic_vector(3 downto 0);
@@ -396,7 +398,10 @@ begin
       when S_SYNC_RESYNC =>
         rs_sync_reset_x         <= '1';
         frame_clock_ctr_inc_s_x <= '1';
-        nx_frame_resync_ctr_x   <= nx_frame_resync_ctr + 1;
+        if (reset_ctr = '0') then
+          nx_frame_resync_ctr_x   <= nx_frame_resync_ctr + 1;          
+        end if;
+
         frame_sync_wait_ctr_x   <= x"14";
         NEXT_STATE_SYNC         <= S_SYNC_WAIT;
 
@@ -408,20 +413,16 @@ begin
         end if;
         
     end case;
+
+    if (reset_ctr = '1') then
+      nx_frame_resync_ctr_x   <= (others => '0');       
+    end if;
+
   end process PROC_SYNC_TO_NX_FRAME;
 
   -----------------------------------------------------------------------------
   -- TRBNet Slave Bus
   -----------------------------------------------------------------------------
-
-  register_fifo_status(0)            <= fifo_full;
-  register_fifo_status(1)            <= fifo_empty;
-  register_fifo_status(2)            <= fifo_data_valid;
-  register_fifo_status(3)            <= fifo_new_frame;
-  register_fifo_status(15 downto 4)  <= (others => '0');
-  register_fifo_status(23 downto 16) <= nx_frame_resync_ctr;
-  register_fifo_status(30 downto 24) <= (others => '0');
-  register_fifo_status(31)           <= nx_frame_synced;
 
   -- Give status info to the TRB Slow Control Channel
   PROC_FIFO_REGISTERS: process(CLK_IN)
@@ -433,37 +434,53 @@ begin
         slv_unknown_addr_o     <= '0';
         slv_no_more_data_o     <= '0';
         frame_clock_ctr_inc_r  <= '0';
+        reset_ctr              <= '0';
       else
         slv_data_out_o         <= (others => '0');
-        slv_ack_o              <= '1';
+        slv_ack_o              <= '0';
         slv_unknown_addr_o     <= '0';
         slv_no_more_data_o     <= '0';
         frame_clock_ctr_inc_r  <= '0';
+        reset_ctr              <= '0';
 
         if (SLV_READ_IN  = '1') then
           case SLV_ADDR_IN is
             when x"0000" =>
-              slv_data_out_o     <= register_fifo_data;
+              slv_data_out_o               <= register_fifo_data;
+              slv_ack_o                    <= '1';
 
             when x"0001" =>
-              slv_data_out_o     <= register_fifo_status;
+              slv_data_out_o(0)            <= fifo_full;
+              slv_data_out_o(1)            <= fifo_empty;
+              slv_data_out_o(3 downto 2)   <= (others => '0');
+              slv_data_out_o(4)            <= fifo_data_valid;
+              slv_data_out_o(5)            <= fifo_new_frame;
+              slv_data_out_o(30 downto 6)  <= (others => '0');
+              slv_data_out_o(31)           <= nx_frame_synced;
+              slv_ack_o                    <= '1'; 
+
+            when x"0002" =>
+              slv_data_out_o(7 downto 0)   <= nx_frame_resync_ctr;
+              slv_data_out_o(31 downto 8)  <= (others => '0');
+              slv_ack_o                    <= '1'; 
 
             when others  =>
-              slv_unknown_addr_o <= '1';
-              slv_ack_o          <= '0';          
+              slv_unknown_addr_o           <= '1';
           end case;
           
         elsif (SLV_WRITE_IN  = '1') then
           case SLV_ADDR_IN is
             when x"0001" =>
               frame_clock_ctr_inc_r <= '1';
+              slv_ack_o             <= '1'; 
+
+            when x"0002" => 
+              reset_ctr             <= '1';
+              slv_ack_o             <= '1'; 
 
             when others  =>
               slv_unknown_addr_o    <= '1';              
-              slv_ack_o             <= '0';
           end case;                
-        else
-          slv_ack_o <= '0';
         end if;
       end if;
     end if;

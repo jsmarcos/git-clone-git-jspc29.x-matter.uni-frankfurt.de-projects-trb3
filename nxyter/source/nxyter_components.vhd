@@ -366,6 +366,7 @@ component nx_trigger_generator
     RESET_IN             : in  std_logic;
     TRIGGER_OUT          : out std_logic;
     TS_RESET_OUT         : out std_logic;
+    TESTPULSE_OUT        : out std_logic;
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
     SLV_DATA_OUT         : out std_logic_vector(31 downto 0);

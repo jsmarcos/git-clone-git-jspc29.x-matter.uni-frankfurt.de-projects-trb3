@@ -116,7 +116,8 @@ architecture Behavioral of nXyter_FEE_board is
   signal timestamp_hold       : std_logic;
   signal trigger_busy         : std_logic;
   
-  -- Testpulse Generator
+  -- Trigger Generator
+  signal trigger              : std_logic;
   signal nx_testpulse_o       : std_logic;
   
 begin
@@ -133,8 +134,9 @@ begin
   DEBUG_LINE_OUT(6)            <= timestamp_hold;
   DEBUG_LINE_OUT(7)            <= nx_token_return;
   DEBUG_LINE_OUT(8)            <= nx_nomore_data;
-  DEBUG_LINE_OUT(9)            <= trigger_busy;
-  DEBUG_LINE_OUT(15 downto 10) <= (others => '0');
+  DEBUG_LINE_OUT(9)            <= trigger;
+  DEBUG_LINE_OUT(10)           <= trigger_busy;
+  DEBUG_LINE_OUT(15 downto 11) <= (others => '0');
 
 -------------------------------------------------------------------------------
 -- Port Maps
@@ -166,7 +168,7 @@ begin
 
       PORT_ADDR_MASK      => ( 0 => 3,          -- Control Register Handler
                                1 => 0,          -- I2C master
-                               2 => 1,          -- Timestamp Fifo
+                               2 => 2,          -- Timestamp Fifo
                                3 => 0,          -- Data Buffer
                                4 => 0,          -- SPI Master
                                5 => 3,          -- Trigger Generator
@@ -218,8 +220,8 @@ begin
       BUS_WRITE_ENABLE_OUT(2)             => slv_write(2),
       BUS_DATA_OUT(2*32+31 downto 2*32)   => slv_data_wr(2*32+31 downto 2*32),
       BUS_DATA_IN(2*32+31 downto 2*32)    => slv_data_rd(2*32+31 downto 2*32),
-      BUS_ADDR_OUT(2*16+0)                => slv_addr(2*16+0),
-      BUS_ADDR_OUT(2*16+15 downto 2*16+1) => open,
+      BUS_ADDR_OUT(2*16+1 downto 2*16)    => slv_addr(2*16+1 downto 2*16),
+      BUS_ADDR_OUT(2*16+15 downto 2*16+2) => open,
       BUS_TIMEOUT_OUT(2)                  => open,
       BUS_DATAREADY_IN(2)                 => slv_ack(2),
       BUS_WRITE_ACK_IN(2)                 => slv_ack(2),
@@ -399,8 +401,6 @@ begin
       DEBUG_OUT           => open
       );
 
---  DEBUG_LINE_OUT(15) <= nx_testpulse_o;
-  
 -------------------------------------------------------------------------------
 -- Data Buffer FIFO
 -------------------------------------------------------------------------------
@@ -484,7 +484,7 @@ begin
     port map (
       CLK_IN                => CLK_IN,
       RESET_IN              => RESET_IN,
-      TRIGGER_IN            => nx_testpulse_o,
+      TRIGGER_IN            => trigger,
       TRIGGER_RELEASE_IN    => trigger_release,
       TRIGGER_OUT           => trigger_ack,
       TIMESTAMP_HOLD_OUT    => timestamp_hold,
@@ -497,7 +497,7 @@ begin
       SLV_ACK_OUT           => slv_ack(7),
       SLV_NO_MORE_DATA_OUT  => slv_no_more_data(7),
       SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(7),
-      -- DEBUG_OUT(14 downto 0) => DEBUG_LINE_OUT(14 downto 0)
+      -- DEBUG_OUT           => DEBUG_LINE_OUT
       DEBUG_OUT             => open
       );
   
@@ -509,8 +509,9 @@ begin
     port map (
       CLK_IN               => CLK_IN,
       RESET_IN             => RESET_IN,
-      TRIGGER_OUT          => nx_testpulse_o,
+      TRIGGER_OUT          => trigger,
       TS_RESET_OUT         => nx_ts_reset_2,
+      TESTPULSE_OUT        => nx_testpulse_o,
       SLV_READ_IN          => slv_read(5),
       SLV_WRITE_IN         => slv_write(5),
       SLV_DATA_OUT         => slv_data_rd(5*32+31 downto 5*32),
@@ -529,7 +530,7 @@ begin
 -------------------------------------------------------------------------------
   nx_ts_reset_o     <= nx_ts_reset_1 or nx_ts_reset_2; 
   NX_RESET_OUT      <= not nx_ts_reset_o;
-  NX_TESTPULSE_OUT  <= not nx_testpulse_o;
+  NX_TESTPULSE_OUT  <= nx_testpulse_o;
 
 -------------------------------------------------------------------------------
 -- I2C Signals

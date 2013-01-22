@@ -12,6 +12,7 @@ entity nx_trigger_generator is
 
     TRIGGER_OUT          : out   std_logic;
     TS_RESET_OUT         : out   std_logic;
+    TESTPULSE_OUT        : out   std_logic;
     
     -- Slave bus         
     SLV_READ_IN          : in    std_logic;
@@ -40,12 +41,13 @@ architecture Behavioral of nx_trigger_generator is
   signal trigger_o_x         : std_logic;
   signal ts_reset_o          : std_logic;
   signal ts_reset_o_x        : std_logic;
+  signal testpulse_o_x       : std_logic;
+  signal testpulse_o         : std_logic;
   
   type STATES is (S_IDLE,
-                  S_WAIT_TS_RESET,
                   S_NEXT_CYCLE,
-                  S_SET_TRIGGER,
-                  S_WAIT_TRIGGER
+                  S_SET_TESTPULSE,
+                  S_WAIT_TRIGGER_END
                   );
   signal STATE, NEXT_STATE : STATES;
   
@@ -56,7 +58,7 @@ architecture Behavioral of nx_trigger_generator is
   signal slv_ack_o               : std_logic;
 
   signal reg_trigger_period      : unsigned(15 downto 0);
-  signal reg_trigger_length      : unsigned(15 downto 0);
+  signal reg_testpulse_length    : unsigned(15 downto 0);
   signal reg_trigger_num_cycles  : unsigned(7 downto 0);      
   signal reg_reset_on            : std_logic;
   
@@ -92,12 +94,14 @@ begin
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
         trigger_o         <= '0';
+        testpulse_o       <= '0';
         ts_reset_o        <= '0';
         wait_timer_init   <= (others => '0');
         trigger_cycle_ctr <= (others => '0');
         STATE             <= S_IDLE;
       else
         trigger_o         <= trigger_o_x;
+        testpulse_o       <= testpulse_o_x;
         ts_reset_o        <= ts_reset_o_x;
         wait_timer_init   <= wait_timer_init_x;
         trigger_cycle_ctr <= trigger_cycle_ctr_x;
@@ -109,10 +113,14 @@ begin
   PROC_TRIGGER_OUT: process(STATE,
                             start_cycle,
                             reg_trigger_num_cycles,
+                            reg_trigger_period,
+                            reg_reset_on,
+                            reg_testpulse_length,
                             wait_timer_done
                             )
   begin
     trigger_o_x         <= '0';
+    testpulse_o_x       <= '0';
     ts_reset_o_x        <= '0';
     wait_timer_init_x   <= (others => '0');
     trigger_cycle_ctr_x <= trigger_cycle_ctr;
@@ -121,10 +129,10 @@ begin
       when  S_IDLE =>
         if (start_cycle = '1') then
           trigger_cycle_ctr_x   <= reg_trigger_num_cycles;
-          if reg_reset_on = '1' then
+          if (reg_reset_on = '1') then
             ts_reset_o_x        <= '1';
             wait_timer_init_x   <= reg_trigger_period;
-            NEXT_STATE          <= S_WAIT_TS_RESET;
+            NEXT_STATE          <= S_WAIT_TRIGGER_END;
           else
             NEXT_STATE          <= S_NEXT_CYCLE;
           end if;
@@ -132,34 +140,33 @@ begin
           NEXT_STATE            <= S_IDLE;
         end if;
 
-      when S_WAIT_TS_RESET =>
-        if (wait_timer_done = '0') then
-          NEXT_STATE        <= S_WAIT_TS_RESET;
-        else
-          NEXT_STATE        <= S_NEXT_CYCLE;
-        end if;
-        
       when S_NEXT_CYCLE =>
         if (trigger_cycle_ctr > 0) then
+          trigger_o_x           <= '1';
           trigger_cycle_ctr_x <= trigger_cycle_ctr - 1;
-          wait_timer_init_x   <= reg_trigger_length;
-          NEXT_STATE          <= S_SET_TRIGGER;
+          if (reg_testpulse_length > 0) then
+            wait_timer_init_x   <= reg_testpulse_length;
+            NEXT_STATE          <= S_SET_TESTPULSE;
+          else
+            wait_timer_init_x   <= reg_trigger_period;
+            NEXT_STATE          <= S_WAIT_TRIGGER_END;
+          end if;
         else
-          NEXT_STATE          <= S_IDLE;
+          NEXT_STATE            <= S_IDLE;
         end if;
 
-      when S_SET_TRIGGER =>
-        trigger_o_x <= '1';
+      when S_SET_TESTPULSE =>
+        testpulse_o_x         <= '1';
         if (wait_timer_done = '0') then
-          NEXT_STATE          <= S_SET_TRIGGER;
+          NEXT_STATE          <= S_SET_TESTPULSE;
         else
-          wait_timer_init_x   <= reg_trigger_period - reg_trigger_length;
-          NEXT_STATE          <= S_WAIT_TRIGGER;
+          wait_timer_init_x   <= reg_trigger_period - reg_testpulse_length;
+          NEXT_STATE          <= S_WAIT_TRIGGER_END;
         end if;
         
-      when S_WAIT_TRIGGER =>
+      when S_WAIT_TRIGGER_END =>
         if (wait_timer_done = '0') then
-          NEXT_STATE        <= S_WAIT_TRIGGER;
+          NEXT_STATE        <= S_WAIT_TRIGGER_END;
         else
           NEXT_STATE        <= S_NEXT_CYCLE;
         end if;
@@ -177,7 +184,7 @@ begin
       if( RESET_IN = '1' ) then
         reg_trigger_period     <= x"00ff";
         reg_trigger_num_cycles <= x"01";
-        reg_trigger_length     <= x"000a";
+        reg_testpulse_length   <= (others => '0');
         reg_reset_on           <= '0';
         slv_data_out_o         <= (others => '0');
         slv_no_more_data_o     <= '0';
@@ -203,7 +210,7 @@ begin
               reg_trigger_num_cycles   <= unsigned(SLV_DATA_IN(7 downto 0));
               slv_ack_o                <= '1';
             when x"0003" =>
-              reg_trigger_length       <= unsigned(SLV_DATA_IN(15 downto 0));
+              reg_testpulse_length     <= unsigned(SLV_DATA_IN(15 downto 0));
               slv_ack_o                <= '1';
             when x"0004" =>
               reg_reset_on             <=  SLV_DATA_IN(0);
@@ -225,7 +232,7 @@ begin
               slv_ack_o                   <= '1';
             when x"0003" =>
               slv_data_out_o(15 downto 0) <=
-                std_logic_vector(reg_trigger_length);
+                std_logic_vector(reg_testpulse_length);
               slv_ack_o                   <= '1';
             when x"0004" =>
               slv_data_out_o(0)           <= reg_reset_on;
@@ -249,6 +256,7 @@ begin
   -- Trigger Output
   TRIGGER_OUT          <= trigger_o;
   TS_RESET_OUT         <= ts_reset_o;
+  TESTPULSE_OUT        <= testpulse_o;
 
   -- Slave Bus
   SLV_DATA_OUT         <= slv_data_out_o;    

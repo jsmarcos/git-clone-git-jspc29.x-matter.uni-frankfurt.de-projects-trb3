@@ -37,10 +37,8 @@ end entity;
 architecture Behavioral of nx_trigger_handler is
 
   signal start_cycle         : std_logic;
-  signal trigger_cycle_ctr   : unsigned(7 downto 0);
-  signal trigger_cycle_ctr_x : unsigned(7 downto 0);
-  signal wait_timer_init     : unsigned(15 downto 0);
-  signal wait_timer_init_x   : unsigned(15 downto 0);
+  signal wait_timer_init     : unsigned(9 downto 0);
+  signal wait_timer_init_x   : unsigned(9 downto 0);
   signal wait_timer_done     : std_logic;
   signal trigger_o           : std_logic;
   signal trigger_o_x         : std_logic;
@@ -61,7 +59,7 @@ architecture Behavioral of nx_trigger_handler is
   signal slv_unknown_addr_o       : std_logic;
   signal slv_ack_o                : std_logic;
 
-  signal reg_timestamp_hold_delay : unsigned(15 downto 0);
+  signal reg_timestamp_hold_delay : unsigned(9 downto 0);
   
 begin
 
@@ -76,7 +74,7 @@ begin
   -- Timer
   nx_timer_1: nx_timer
     generic map (
-      CTR_WIDTH => 16
+      CTR_WIDTH => 10
       )
     port map (
       CLK_IN         => CLK_IN,
@@ -123,8 +121,12 @@ begin
       when  S_IDLE =>
         if (TRIGGER_IN = '1') then
           trigger_o_x         <= '1';
-          wait_timer_init_x   <= reg_timestamp_hold_delay;
-          NEXT_STATE          <= S_WAIT_HOLD;
+          if (reg_timestamp_hold_delay > 0) then
+            wait_timer_init_x   <= reg_timestamp_hold_delay;
+            NEXT_STATE          <= S_WAIT_HOLD;
+          else
+            NEXT_STATE          <= S_WAIT_TRIGGER_RELEASE;
+          end if;
         else
            trigger_busy_o_x   <= '0';
            NEXT_STATE         <= S_IDLE;
@@ -133,7 +135,7 @@ begin
       when S_WAIT_HOLD =>
         if (wait_timer_done = '1') then
           timestamp_hold_o_x  <= '1';
-          NEXT_STATE          <= S_IDLE;
+          NEXT_STATE          <= S_WAIT_TRIGGER_RELEASE;
         else
           NEXT_STATE          <= S_WAIT_HOLD ;
         end if;
@@ -161,37 +163,39 @@ begin
         slv_unknown_addr_o       <= '0';
         start_cycle              <= '0';
         slv_ack_o                <= '0';
-        reg_timestamp_hold_delay <= x"00ff";
+        reg_timestamp_hold_delay <= (others => '0');
       else
         slv_unknown_addr_o <= '0';
         slv_no_more_data_o <= '0';
         slv_data_out_o     <= (others => '0');
+        slv_ack_o          <= '0';
         start_cycle        <= '0';
-
+        
         if (SLV_WRITE_IN  = '1') then
           case SLV_ADDR_IN is
             when x"0000" =>
-              reg_timestamp_hold_delay <= SLV_DATA_IN(15 downto 0);
+              reg_timestamp_hold_delay <= SLV_DATA_IN(9 downto 0);
               slv_ack_o                <= '1';
+              
             when others =>
               slv_unknown_addr_o       <= '1';
-              slv_ack_o                <= '0';
+
           end case;
 
         elsif (SLV_READ_IN = '1') then
           case SLV_ADDR_IN is
+
             when x"0000" =>
-              slv_data_out_o(15 downto 0)  <=
+              slv_data_out_o(9 downto 0)   <=
                 std_logic_vector(reg_timestamp_hold_delay);
-              slv_data_out_o(31 downto 16) <= (others => '0');
+              slv_data_out_o(31 downto 10) <= (others => '0');
               slv_ack_o                    <= '1';
+
             when others =>
               slv_unknown_addr_o           <= '1';
-              slv_ack_o                    <= '0';
+
           end case;
 
-        else
-          slv_ack_o            <= '0';
         end if;
       end if;
     end if;           
