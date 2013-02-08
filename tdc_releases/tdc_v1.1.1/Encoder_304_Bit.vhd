@@ -354,159 +354,159 @@ begin
     end case;
   end process FSM_PROC;
 
-  --purpose : Conversion number 1
-  Conv_1 : process (CLK, RESET)
-  begin
-    if rising_edge(CLK) then
-      if RESET = '1' then
-        proc_cnt_1      <= x"6";
-        proc_finished_1 <= '0';
-      elsif start_cnt_1_i = '1' then
-        proc_cnt_1      <= x"1";
-        proc_finished_1 <= '0';
-      elsif proc_cnt_1 = x"5" then
-        proc_cnt_1      <= proc_cnt_1 + 1;
-        proc_finished_1 <= '1';
-      elsif proc_cnt_1 = x"6" then
-        proc_cnt_1      <= x"6";
-        proc_finished_1 <= '0';
-      else
-        proc_cnt_1      <= proc_cnt_1 + 1;
-        proc_finished_1 <= '0';
-      end if;
-    end if;
-  end process Conv_1;
-
-  --purpose : Conversion number 2
-  Conv_2 : process (CLK, RESET)
-  begin
-    if rising_edge(CLK) then
-      if RESET = '1' then
-        proc_cnt_2      <= x"6";
-        proc_finished_2 <= '0';
-      elsif start_cnt_2_i = '1' then
-        proc_cnt_2      <= x"1";
-        proc_finished_2 <= '0';
-      elsif proc_cnt_2 = x"5" then
-        proc_cnt_2      <= proc_cnt_2 + 1;
-        proc_finished_2 <= '1';
-      elsif proc_cnt_2 = x"6" then
-        proc_cnt_2      <= x"6";
-        proc_finished_2 <= '0';
-      else
-        proc_cnt_2      <= proc_cnt_2 + 1;
-        proc_finished_2 <= '0';
-      end if;
-    end if;
-  end process Conv_2;
-
-  --purpose : Conversion number 3
-  Conv_3 : process (CLK, RESET)
-  begin
-    if rising_edge(CLK) then
-      if RESET = '1' then
-        proc_cnt_3      <= x"6";
-        proc_finished_3 <= '0';
-      elsif start_cnt_3_i = '1' then
-        proc_cnt_3      <= x"1";
-        proc_finished_3 <= '0';
-      elsif proc_cnt_3 = x"5" then
-        proc_cnt_3      <= proc_cnt_3 + 1;
-        proc_finished_3 <= '1';
-      elsif proc_cnt_3 = x"6" then
-        proc_cnt_3      <= x"6";
-        proc_finished_3 <= '0';
-      else
-        proc_cnt_3      <= proc_cnt_3 + 1;
-        proc_finished_3 <= '0';
-      end if;
-    end if;
-  end process Conv_3;
-
-  --purpose : Conversion number 4
-  Conv_4 : process (CLK, RESET)
-  begin
-    if rising_edge(CLK) then
-      if RESET = '1' then
-        proc_cnt_4      <= x"6";
-        proc_finished_4 <= '0';
-      elsif start_cnt_4_i = '1' then
-        proc_cnt_4      <= x"1";
-        proc_finished_4 <= '0';
-      elsif proc_cnt_4 = x"5" then
-        proc_cnt_4      <= proc_cnt_4 + 1;
-        proc_finished_4 <= '1';
-      elsif proc_cnt_4 = x"6" then
-        proc_cnt_4      <= x"6";
-        proc_finished_4 <= '0';
-      else
-        proc_cnt_4      <= proc_cnt_4 + 1;
-        proc_finished_4 <= '0';
-      end if;
-    end if;
-  end process Conv_4;
-
-  Binary_Code_Calculation : process (CLK, RESET)
-  begin
-    if rising_edge(CLK) then
-      if RESET = '1' then
-        BINARY_CODE_OUT <= (others => '0');
-        FINISHED_OUT    <= '0';
-      elsif conv_finished_i = '1' and interval_detected_i = '1' then
-        BINARY_CODE_OUT <= ('0' & binary_code_r) + ('0' & binary_code_f);
-        FINISHED_OUT    <= '1';
-      else
---        BINARY_CODE_OUT <= (others => '0');
-        FINISHED_OUT    <= '0';
-      end if;
-    end if;
-  end process Binary_Code_Calculation;
-
-  conv_finished_i <= proc_finished_1 or proc_finished_2 or proc_finished_3 or proc_finished_4;
+--   --purpose : Conversion number 1
+--   Conv_1 : process (CLK, RESET)
+--   begin
+--     if rising_edge(CLK) then
+--       if RESET = '1' then
+--         proc_cnt_1      <= x"6";
+--         proc_finished_1 <= '0';
+--       elsif start_cnt_1_i = '1' then
+--         proc_cnt_1      <= x"1";
+--         proc_finished_1 <= '0';
+--       elsif proc_cnt_1 = x"5" then
+--         proc_cnt_1      <= proc_cnt_1 + 1;
+--         proc_finished_1 <= '1';
+--       elsif proc_cnt_1 = x"6" then
+--         proc_cnt_1      <= x"6";
+--         proc_finished_1 <= '0';
+--       else
+--         proc_cnt_1      <= proc_cnt_1 + 1;
+--         proc_finished_1 <= '0';
+--       end if;
+--     end if;
+--   end process Conv_1;
+-- 
+--   --purpose : Conversion number 2
+--   Conv_2 : process (CLK, RESET)
+--   begin
+--     if rising_edge(CLK) then
+--       if RESET = '1' then
+--         proc_cnt_2      <= x"6";
+--         proc_finished_2 <= '0';
+--       elsif start_cnt_2_i = '1' then
+--         proc_cnt_2      <= x"1";
+--         proc_finished_2 <= '0';
+--       elsif proc_cnt_2 = x"5" then
+--         proc_cnt_2      <= proc_cnt_2 + 1;
+--         proc_finished_2 <= '1';
+--       elsif proc_cnt_2 = x"6" then
+--         proc_cnt_2      <= x"6";
+--         proc_finished_2 <= '0';
+--       else
+--         proc_cnt_2      <= proc_cnt_2 + 1;
+--         proc_finished_2 <= '0';
+--       end if;
+--     end if;
+--   end process Conv_2;
+-- 
+--   --purpose : Conversion number 3
+--   Conv_3 : process (CLK, RESET)
+--   begin
+--     if rising_edge(CLK) then
+--       if RESET = '1' then
+--         proc_cnt_3      <= x"6";
+--         proc_finished_3 <= '0';
+--       elsif start_cnt_3_i = '1' then
+--         proc_cnt_3      <= x"1";
+--         proc_finished_3 <= '0';
+--       elsif proc_cnt_3 = x"5" then
+--         proc_cnt_3      <= proc_cnt_3 + 1;
+--         proc_finished_3 <= '1';
+--       elsif proc_cnt_3 = x"6" then
+--         proc_cnt_3      <= x"6";
+--         proc_finished_3 <= '0';
+--       else
+--         proc_cnt_3      <= proc_cnt_3 + 1;
+--         proc_finished_3 <= '0';
+--       end if;
+--     end if;
+--   end process Conv_3;
+-- 
+--   --purpose : Conversion number 4
+--   Conv_4 : process (CLK, RESET)
+--   begin
+--     if rising_edge(CLK) then
+--       if RESET = '1' then
+--         proc_cnt_4      <= x"6";
+--         proc_finished_4 <= '0';
+--       elsif start_cnt_4_i = '1' then
+--         proc_cnt_4      <= x"1";
+--         proc_finished_4 <= '0';
+--       elsif proc_cnt_4 = x"5" then
+--         proc_cnt_4      <= proc_cnt_4 + 1;
+--         proc_finished_4 <= '1';
+--       elsif proc_cnt_4 = x"6" then
+--         proc_cnt_4      <= x"6";
+--         proc_finished_4 <= '0';
+--       else
+--         proc_cnt_4      <= proc_cnt_4 + 1;
+--         proc_finished_4 <= '0';
+--       end if;
+--     end if;
+--   end process Conv_4;
+-- 
+--   Binary_Code_Calculation : process (CLK, RESET)
+--   begin
+--     if rising_edge(CLK) then
+--       if RESET = '1' then
+--         BINARY_CODE_OUT <= (others => '0');
+--         FINISHED_OUT    <= '0';
+--       elsif conv_finished_i = '1' and interval_detected_i = '1' then
+--         BINARY_CODE_OUT <= ('0' & binary_code_r) + ('0' & binary_code_f);
+--         FINISHED_OUT    <= '1';
+--       else
+-- --        BINARY_CODE_OUT <= (others => '0');
+--         FINISHED_OUT    <= '0';
+--       end if;
+--     end if;
+--   end process Binary_Code_Calculation;
+-- 
+--   conv_finished_i <= proc_finished_1 or proc_finished_2 or proc_finished_3 or proc_finished_4;
 
 
 -------------------------------------------------------------------------------
 -- DEBUG
 -------------------------------------------------------------------------------
-  ----purpose : Conversion number 1
-  --Conv_1 : process (CLK, RESET)
-  --begin
-  --  if rising_edge(CLK) then
-  --    if RESET = '1' then
-  --      proc_cnt_1      <= x"3";
-  --      proc_finished_1 <= '0';
-  --    elsif START_IN = '1' then
-  --      proc_cnt_1      <= x"1";
-  --      proc_finished_1 <= '0';
-  --    elsif proc_cnt_1 = x"1" or proc_cnt_1 = x"2" then
-  --      proc_cnt_1      <= proc_cnt_1 + 1;
-  --      proc_finished_1 <= '1';
-  --    elsif proc_cnt_1 = x"3" then
-  --      proc_cnt_1      <= x"3";
-  --      proc_finished_1 <= '0';
-  --    else
-  --      proc_cnt_1      <= proc_cnt_1 + 1;
-  --      proc_finished_1 <= '0';
-  --    end if;
-  --  end if;
-  --end process Conv_1;
+  --purpose : Conversion number 1
+  Conv_1 : process (CLK, RESET)
+  begin
+   if rising_edge(CLK) then
+     if RESET = '1' then
+       proc_cnt_1      <= x"3";
+       proc_finished_1 <= '0';
+     elsif START_IN = '1' then
+       proc_cnt_1      <= x"1";
+       proc_finished_1 <= '0';
+     elsif proc_cnt_1 = x"1" or proc_cnt_1 = x"2" then
+       proc_cnt_1      <= proc_cnt_1 + 1;
+       proc_finished_1 <= '1';
+     elsif proc_cnt_1 = x"3" then
+       proc_cnt_1      <= x"3";
+       proc_finished_1 <= '0';
+     else
+       proc_cnt_1      <= proc_cnt_1 + 1;
+       proc_finished_1 <= '0';
+     end if;
+   end if;
+  end process Conv_1;
 
-  --Binary_Code_Calculation : process (CLK, RESET)
-  --begin
-  --  if rising_edge(CLK) then
-  --    if RESET = '1' then
-  --      BINARY_CODE_OUT <= (others => '0');
-  --      FINISHED_OUT    <= '0';
-  --    elsif proc_finished_1 = '1' then
-  --      BINARY_CODE_OUT <= address_i; --'0' & interval_reg;
-  --      FINISHED_OUT    <= '1';
-  --    else
-  --      BINARY_CODE_OUT <= (others => '0');
-  --      FINISHED_OUT    <= '0';
-  --    end if;
-  --  end if;
-  --end process Binary_Code_Calculation;
+  Binary_Code_Calculation : process (CLK, RESET)
+  begin
+   if rising_edge(CLK) then
+     if RESET = '1' then
+       BINARY_CODE_OUT <= (others => '0');
+       FINISHED_OUT    <= '0';
+     elsif proc_finished_1 = '1' then
+       BINARY_CODE_OUT <= address_i; --'0' & interval_reg;
+       FINISHED_OUT    <= '1';
+     else
+       BINARY_CODE_OUT <= (others => '0');
+       FINISHED_OUT    <= '0';
+     end if;
+   end if;
+  end process Binary_Code_Calculation;
 
-  --ENCODER_DEBUG(8 downto 0) <= interval_reg;
+  ENCODER_DEBUG(8 downto 0) <= interval_reg;
 
 end behavioral;

@@ -11,7 +11,7 @@ use work.version.all;
 
 entity trb3_periph_padiwa is
   generic(
-    SYNC_MODE : integer range 0 to 1 := c_YES   --use the RX clock for internal logic and transmission.
+    SYNC_MODE : integer range 0 to 1 := c_NO   --use the RX clock for internal logic and transmission.
     );
   port(
     --Clocks
@@ -324,7 +324,7 @@ begin
       USE_SLAVE   => SYNC_MODE
       )      
     port map(
-      CLK                => clk_200_i,
+      CLK                => clk_200_internal,
       SYSCLK             => clk_100_i,
       RESET              => reset_i,
       CLEAR              => clear_i,
