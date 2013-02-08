@@ -1,0 +1,58 @@
+# This file is used by the simulation model as well as the ispLEVER bitstream
+# generation process to automatically initialize the PCSD quad to the mode
+# selected in the IPexpress. This file is expected to be modified by the
+# end user to adjust the PCSD quad to the final design requirements.
+
+DEVICE_NAME "LFE3-150EA"
+CH0_PROTOCOL            "G8B10B"
+CH0_MODE                "RXTX"
+CH1_MODE                "DISABLED"
+CH2_MODE                "DISABLED"
+CH3_MODE                "DISABLED"
+CH0_CDR_SRC       "REFCLK_CORE"
+PLL_SRC                 "REFCLK_CORE"
+TX_DATARATE_RANGE       "MEDHIGH"
+CH0_RX_DATARATE_RANGE   "MEDHIGH"
+REFCK_MULT              "10X"
+#REFCLK_RATE            200
+CH0_RX_DATA_RATE        "FULL"
+CH0_TX_DATA_RATE        "FULL"
+CH0_TX_DATA_WIDTH       "8"
+CH0_RX_DATA_WIDTH        "8"
+CH0_TX_FIFO       "DISABLED"
+CH0_RX_FIFO        "ENABLED"
+CH0_TDRV      "0"
+#CH0_TX_FICLK_RATE      200
+#CH0_RXREFCLK_RATE        "200"
+#CH0_RX_FICLK_RATE      200
+CH0_TX_PRE              "DISABLED"
+CH0_RTERM_TX            "50"
+CH0_RX_EQ               "DISABLED"
+CH0_RTERM_RX            "50"
+CH0_RX_DCC              "DC"
+CH0_LOS_THRESHOLD_LO       "2"
+PLL_TERM                "50"
+PLL_DCC                 "AC"
+PLL_LOL_SET             "0"
+CH0_TX_SB               "DISABLED"
+CH0_RX_SB               "DISABLED"
+CH0_TX_8B10B            "ENABLED"
+CH0_RX_8B10B            "ENABLED"
+CH0_COMMA_A             "1100000101"
+CH0_COMMA_B             "0011111010"
+CH0_COMMA_M             "1111111100"
+CH0_RXWA                "ENABLED"
+CH0_ILSM                "ENABLED"
+CH0_CTC                 "DISABLED"
+CH0_CC_MATCH4           "0100011100"
+CH0_CC_MATCH_MODE       "1"
+CH0_CC_MIN_IPG          "3"
+CCHMARK                 "9"
+CCLMARK                 "7"
+CH0_SSLB                "DISABLED"
+CH0_SPLBPORTS           "DISABLED"
+CH0_PCSLBPORTS          "DISABLED"
+INT_ALL                 "DISABLED"
+QD_REFCK2CORE           "DISABLED"
+
+
