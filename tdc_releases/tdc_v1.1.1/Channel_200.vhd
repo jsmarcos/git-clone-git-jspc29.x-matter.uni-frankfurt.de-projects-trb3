@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2013-01-18
+-- Last update: 2013-01-30
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -23,25 +23,26 @@ use work.version.all;
 entity Channel_200 is
 
   generic (
-    CHANNEL_ID : integer range 1 to 64);  
+    CHANNEL_ID : integer range 0 to 64);  
   port (
-    CLK_200               : in  std_logic;  -- 200 MHz clk
-    RESET_200             : in  std_logic;  -- reset sync with 200Mhz clk
-    CLK_100               : in  std_logic;  -- 100 MHz clk
-    RESET_100             : in  std_logic;  -- reset sync with 100Mhz clk
+    CLK_200              : in  std_logic;  -- 200 MHz clk
+    RESET_200            : in  std_logic;  -- reset sync with 200Mhz clk
+    CLK_100              : in  std_logic;  -- 100 MHz clk
+    RESET_100            : in  std_logic;  -- reset sync with 100Mhz clk
 --
-    HIT_IN                : in  std_logic;  -- hit in
-    EPOCH_COUNTER_IN      : in  std_logic_vector(27 downto 0);  -- system coarse counter
-    DATA_FINISHED_IN      : in  std_logic;
-    COARSE_COUNTER_IN     : in  std_logic_vector(10 downto 0);
-    READ_EN_IN            : in  std_logic;  -- read en signal
-    FIFO_DATA_OUT         : out std_logic_vector(31 downto 0);  -- fifo data out
-    FIFO_EMPTY_OUT        : out std_logic;  -- fifo empty signal
-    FIFO_FULL_OUT         : out std_logic;  -- fifo full signal
-    FIFO_ALMOST_FULL_OUT  : out std_logic;
+    HIT_IN               : in  std_logic;  -- hit in
+    TRIGGER_IN           : in  std_logic;  -- trigger in
+    EPOCH_COUNTER_IN     : in  std_logic_vector(27 downto 0);  -- system coarse counter
+    DATA_FINISHED_IN     : in  std_logic;
+    COARSE_COUNTER_IN    : in  std_logic_vector(10 downto 0);
+    READ_EN_IN           : in  std_logic;  -- read en signal
+    FIFO_DATA_OUT        : out std_logic_vector(31 downto 0);  -- fifo data out
+    FIFO_EMPTY_OUT       : out std_logic;  -- fifo empty signal
+    FIFO_FULL_OUT        : out std_logic;  -- fifo full signal
+    FIFO_ALMOST_FULL_OUT : out std_logic;
 --
-    FIFO_WR_OUT           : out std_logic;
-    ENCODER_START_OUT     : out std_logic);
+    FIFO_WR_OUT          : out std_logic;
+    ENCODER_START_OUT    : out std_logic);
 
 
 end Channel_200;
@@ -196,7 +197,7 @@ begin  -- Channel_200
     end if;
   end process FSM_CLK;
 
-  FSM_PROC : process (FSM_CURRENT, encoder_finished_i, epoch_cntr_up)
+  FSM_PROC : process (FSM_CURRENT, encoder_finished_i, epoch_cntr_up, TRIGGER_IN)
   begin
 
     FSM_NEXT        <= WAIT_FOR_HIT;
@@ -221,7 +222,7 @@ begin  -- Channel_200
         fsm_debug_fsm  <= "10";
 
       when WAIT_FOR_HIT =>
-        if epoch_cntr_up = '1' then
+        if epoch_cntr_up = '1' or TRIGGER_IN = '1' then
           FSM_NEXT <= WRITE_EPOCH;
         else
           if encoder_finished_i = '1' and epoch_cntr_up = '1' then
