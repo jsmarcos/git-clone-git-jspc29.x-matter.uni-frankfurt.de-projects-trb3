@@ -84,6 +84,7 @@
 <Source name="../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.vhd"        type="VHDL" type_short="VHDL"><Options/></Source>
 <Source name="../base/cores/pll_in200_out100.vhd"                              type="VHDL" type_short="VHDL"><Options/></Source>
 <Source name="trb3_periph_sodasource.vhd"                                      type="VHDL" type_short="VHDL"><Options/></Source>
-</Implementation>
-    <Strategy name="Strategy1" file="SODA_source1.sty"/>
+        <Source name="trb3_periph_sodasource.lpf" type="Logic Preference" type_short="LPF">
+            <Options/></Implementation>
+        </Source>    <Strategy name="Strategy1" file="SODA_source1.sty"/>
 </BaliProject>
