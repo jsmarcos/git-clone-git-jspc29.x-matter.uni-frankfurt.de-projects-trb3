@@ -4,7 +4,7 @@
 -- File       : Encoder_304_Bit.vhd
 -- Author     : Cahit Ugur
 -- Created    : 2011-11-28
--- Last update: 2012-09-20
+-- Last update: 2013-01-21
 -------------------------------------------------------------------------------
 -- Description: Encoder for 304 bits
 -------------------------------------------------------------------------------
@@ -99,7 +99,8 @@ architecture behavioral of Encoder_304_Bit is
   signal proc_finished_3 : std_logic;
   signal proc_finished_4 : std_logic;
   signal conv_finished_i : std_logic;
-  signal thermocode_i    : std_logic_vector(303 downto -1);
+  signal thermocode_i    : std_logic_vector(303 downto 0);
+--  signal thermocode_i    : std_logic_vector(303 downto -1);
 
   attribute syn_keep                     : boolean;
   attribute syn_keep of mux_control      : signal is true;
@@ -112,7 +113,7 @@ begin
 
 
  thermocode_i(303 downto 0)   <= THERMOCODE_IN;
- thermocode_i(-1)             <= '1';
+ --thermocode_i(-1)             <= '1';
  
  
   --purpose : Register signals
