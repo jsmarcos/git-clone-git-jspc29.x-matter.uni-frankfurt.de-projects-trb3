@@ -11,31 +11,32 @@ use work.version.all;
 entity Channel is
 
   generic (
-    CHANNEL_ID : integer range 1 to 64);
+    CHANNEL_ID : integer range 0 to 64);
   port (
-    RESET_200             : in  std_logic;
-    RESET_100             : in  std_logic;
-    RESET_COUNTERS        : in  std_logic;
-    CLK_200               : in  std_logic;
-    CLK_100               : in  std_logic;
+    RESET_200            : in  std_logic;
+    RESET_100            : in  std_logic;
+    RESET_COUNTERS       : in  std_logic;
+    CLK_200              : in  std_logic;
+    CLK_100              : in  std_logic;
 --
-    HIT_IN                : in  std_logic;
-    SCALER_IN             : in  std_logic;
-    READ_EN_IN            : in  std_logic;
-    FIFO_DATA_OUT         : out std_logic_vector(31 downto 0);
-    FIFO_EMPTY_OUT        : out std_logic;
-    FIFO_FULL_OUT         : out std_logic;
-    FIFO_ALMOST_FULL_OUT  : out std_logic;
-    COARSE_COUNTER_IN     : in  std_logic_vector(10 downto 0);
-    EPOCH_COUNTER_IN      : in  std_logic_vector(27 downto 0);
-    DATA_FINISHED_IN      : in  std_logic;
+    HIT_IN               : in  std_logic;
+    TRIGGER_IN           : in  std_logic;
+    SCALER_IN            : in  std_logic;
+    READ_EN_IN           : in  std_logic;
+    FIFO_DATA_OUT        : out std_logic_vector(31 downto 0);
+    FIFO_EMPTY_OUT       : out std_logic;
+    FIFO_FULL_OUT        : out std_logic;
+    FIFO_ALMOST_FULL_OUT : out std_logic;
+    COARSE_COUNTER_IN    : in  std_logic_vector(10 downto 0);
+    EPOCH_COUNTER_IN     : in  std_logic_vector(27 downto 0);
+    DATA_FINISHED_IN     : in  std_logic;
 --
-    LOST_HIT_NUMBER       : out std_logic_vector(23 downto 0);
-    HIT_DETECT_NUMBER     : out std_logic_vector(23 downto 0);
-    ENCODER_START_NUMBER  : out std_logic_vector(23 downto 0);
-    FIFO_WR_NUMBER        : out std_logic_vector(23 downto 0);
+    LOST_HIT_NUMBER      : out std_logic_vector(23 downto 0);
+    HIT_DETECT_NUMBER    : out std_logic_vector(23 downto 0);
+    ENCODER_START_NUMBER : out std_logic_vector(23 downto 0);
+    FIFO_WR_NUMBER       : out std_logic_vector(23 downto 0);
 --
-    Channel_DEBUG         : out std_logic_vector(31 downto 0)
+    Channel_DEBUG        : out std_logic_vector(31 downto 0)
     );
 
 end Channel;
@@ -78,6 +79,9 @@ architecture Channel of Channel is
   attribute syn_keep of hit_buf             : signal is true;
   attribute syn_preserve                    : boolean;
   attribute syn_preserve of coarse_cntr_reg : signal is true;
+  attribute syn_preserve of hit_buf         : signal is true;
+  attribute nomerge                         : string;
+  attribute nomerge of hit_buf              : signal is "true";
 
 -------------------------------------------------------------------------------
 
@@ -90,21 +94,22 @@ begin
     generic map (
       CHANNEL_ID => CHANNEL_ID)
     port map (
-      CLK_200               => CLK_200,
-      RESET_200             => RESET_200,
-      CLK_100               => CLK_100,
-      RESET_100             => RESET_100,
-      HIT_IN                => hit_buf,
-      EPOCH_COUNTER_IN      => EPOCH_COUNTER_IN,
-      DATA_FINISHED_IN      => data_finished_i,
-      COARSE_COUNTER_IN     => coarse_cntr_reg,
-      READ_EN_IN            => READ_EN_IN,
-      FIFO_DATA_OUT         => FIFO_DATA_OUT,
-      FIFO_EMPTY_OUT        => FIFO_EMPTY_OUT,
-      FIFO_FULL_OUT         => FIFO_FULL_OUT,
-      FIFO_ALMOST_FULL_OUT  => FIFO_ALMOST_FULL_OUT,
-      FIFO_WR_OUT           => fifo_wr_en_i,
-      ENCODER_START_OUT     => encoder_start_i);
+      CLK_200              => CLK_200,
+      RESET_200            => RESET_200,
+      CLK_100              => CLK_100,
+      RESET_100            => RESET_100,
+      HIT_IN               => hit_buf,
+      TRIGGER_IN           => TRIGGER_IN,
+      EPOCH_COUNTER_IN     => EPOCH_COUNTER_IN,
+      DATA_FINISHED_IN     => data_finished_i,
+      COARSE_COUNTER_IN    => coarse_cntr_reg,
+      READ_EN_IN           => READ_EN_IN,
+      FIFO_DATA_OUT        => FIFO_DATA_OUT,
+      FIFO_EMPTY_OUT       => FIFO_EMPTY_OUT,
+      FIFO_FULL_OUT        => FIFO_FULL_OUT,
+      FIFO_ALMOST_FULL_OUT => FIFO_ALMOST_FULL_OUT,
+      FIFO_WR_OUT          => fifo_wr_en_i,
+      ENCODER_START_OUT    => encoder_start_i);
 
   data_finished_i   <= DATA_FINISHED_IN      when rising_edge(CLK_100);
   encoder_start_reg <= encoder_start_i       when rising_edge(CLK_200);
