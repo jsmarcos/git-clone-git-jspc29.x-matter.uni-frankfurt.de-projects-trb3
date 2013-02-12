@@ -196,26 +196,27 @@ begin
       generic map (
         CHANNEL_ID => i)
       port map (
-        RESET_200             => reset_tdc,
-        RESET_100             => RESET,
-        RESET_COUNTERS        => reset_counters_i,
-        CLK_200               => CLK_TDC,
-        CLK_100               => CLK_READOUT,
-        HIT_IN                => hit_in_i(i),
-        SCALER_IN             => scaler_in_i(i),
-        READ_EN_IN            => rd_en_i(i),
-        FIFO_DATA_OUT         => ch_data_i(i),
-        FIFO_EMPTY_OUT        => ch_empty_i(i),
-        FIFO_FULL_OUT         => ch_full_i(i),
-        FIFO_ALMOST_FULL_OUT  => ch_almost_full_i(i),
-        COARSE_COUNTER_IN     => coarse_cntr(integer(ceil(real(i)/real(16)))),
-        EPOCH_COUNTER_IN      => epoch_cntr,
-        DATA_FINISHED_IN      => data_finished_i,
-        LOST_HIT_NUMBER       => ch_lost_hit_number_i(i),
-        HIT_DETECT_NUMBER     => ch_hit_detect_number_i(i),
-        ENCODER_START_NUMBER  => ch_encoder_start_number_i(i),
-        FIFO_WR_NUMBER        => ch_fifo_wr_number_i(i),
-        Channel_DEBUG         => ch_debug_i(i));
+        RESET_200            => reset_tdc,
+        RESET_100            => RESET,
+        RESET_COUNTERS       => reset_counters_i,
+        CLK_200              => CLK_TDC,
+        CLK_100              => CLK_READOUT,
+        HIT_IN               => hit_in_i(i),
+        TRIGGER_IN           => '0',    -- input for the febex design
+        SCALER_IN            => scaler_in_i(i),
+        READ_EN_IN           => rd_en_i(i),
+        FIFO_DATA_OUT        => ch_data_i(i),
+        FIFO_EMPTY_OUT       => ch_empty_i(i),
+        FIFO_FULL_OUT        => ch_full_i(i),
+        FIFO_ALMOST_FULL_OUT => ch_almost_full_i(i),
+        COARSE_COUNTER_IN    => coarse_cntr(integer(ceil(real(i)/real(16)))),
+        EPOCH_COUNTER_IN     => epoch_cntr,
+        DATA_FINISHED_IN     => data_finished_i,
+        LOST_HIT_NUMBER      => ch_lost_hit_number_i(i),
+        HIT_DETECT_NUMBER    => ch_hit_detect_number_i(i),
+        ENCODER_START_NUMBER => ch_encoder_start_number_i(i),
+        FIFO_WR_NUMBER       => ch_fifo_wr_number_i(i),
+        Channel_DEBUG        => ch_debug_i(i));
   end generate GEN_Channels;
   ch_data_i(CHANNEL_NUMBER) <= x"FFFFFFFF";
 
