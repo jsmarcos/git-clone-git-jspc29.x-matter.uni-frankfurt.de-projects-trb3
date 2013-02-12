@@ -351,7 +351,7 @@ begin
       DATA_INTERFACE_NUMBER     => 1,
       DATA_BUFFER_DEPTH         => 13,           --13
       DATA_BUFFER_WIDTH         => 32,
-      DATA_BUFFER_FULL_THRESH   => 2**13-800,    --2**13-1024
+      DATA_BUFFER_FULL_THRESH   => 2**13-800,    --2**13-(maximal 2**12) 
       TRG_RELEASE_AFTER_DATA    => c_YES,
       HEADER_BUFFER_DEPTH       => 9,
       HEADER_BUFFER_FULL_THRESH => 2**9-16
@@ -751,7 +751,6 @@ begin
       LHB_DATAREADY_OUT     => lhb_data_ready,    -- bus data ready strobe
       LHB_UNKNOWN_ADDR_OUT  => lhb_invalid,   -- bus invalid addr
       --
-      SLOW_CONTROL_REG_OUT  => stat_reg,
       LOGIC_ANALYSER_OUT    => logic_analyser_i,
       CONTROL_REG_IN        => ctrl_reg);
 
