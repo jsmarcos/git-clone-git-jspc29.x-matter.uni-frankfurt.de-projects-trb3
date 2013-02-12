@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BaliProject version="2.0" title="SODA_source" device="LFE3-150EA-8FN672C" synthesis="synplify" default_implementation="SODA_source">
+    <Options/>
+    <Implementation title="SODA_source" dir="SODA_source" description="SODA_source" default_strategy="Strategy1">
+        <Options/>
+        <Source name="SODA_source.lpf" type="Logic Preference" type_short="LPF">
+            <Options/>
+        </Source>
+    </Implementation>
+    <Strategy name="Strategy1" file="SODA_source1.sty"/>
+</BaliProject>
