@@ -9,8 +9,8 @@ use strict;
 ###################################################################################
 #Settings for this project
 my $TOPNAME                      = "trb3_periph_padiwa";  #Name of top-level entity
-my $lattice_path                 = '/d/jspc29/lattice/diamond/2.0';
-my $synplify_path                = '/d/jspc29/lattice/synplify/F-2012.03-SP1/';
+my $lattice_path                 = '/d/jspc29/lattice/diamond/2.1_x64';
+my $synplify_path                = '/d/jspc29/lattice/synplify/G-2012.09-SP1/';
 my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
 #my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
 my $lm_license_file_for_par      = "1710\@cronos.e12.physik.tu-muenchen.de";
@@ -115,7 +115,8 @@ execute($c);
 system("rm $TOPNAME.ncd");
 
 
-$c=qq|$lattice_path/ispfpga/bin/lin/multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
+#$c=qq|$lattice_path/ispfpga/bin/lin/multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
+$c=qq|$lattice_path/ispfpga/bin/lin/par -f "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
 
 # IOR IO Timing Report

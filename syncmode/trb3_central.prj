@@ -34,6 +34,12 @@ set_option -write_vhdl 1
 # automatic place and route (vendor) options
 set_option -write_apr_constraint 0
 
+set_option -max_parallel_jobs 3
+#set_option -automatic_compile_point 1
+#set_option -continue_on_error 1
+set_option -resolve_multiple_driver 1
+   
+
 # set result format/file last
 project -result_format "edif"
 project -result_file "workdir/trb3_central.edf"
@@ -218,7 +224,7 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4
 
 add_file -vhdl -lib work "../base/cores/pll_in200_out100.vhd"
 add_file -vhdl -lib work "./trb3_central.vhd"
-
+add_file -fpga_constraint "./project/full/full.fdc"
 
 
 

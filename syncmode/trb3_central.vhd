@@ -377,7 +377,6 @@ THE_MEDIA_UPLINK : med_ecp3_sfp_sync
     MED_PACKET_NUM_OUT => med_packet_num_in(2 downto 0),
     MED_DATAREADY_OUT  => med_dataready_in(0),
     MED_READ_IN        => med_read_out(0),
-    REFCLK2CORE_OUT    => open,
     CLK_RX_HALF_OUT    => rx_clock_100,
     CLK_RX_FULL_OUT    => rx_clock_200,
     
@@ -876,7 +875,7 @@ LED_YELLOW <= link_ok; --debug(3);
   TEST_LINE(16)           <= 'Z';
   TEST_LINE(31 downto 17) <= med_stat_debug(31 downto 17);
   
-  CLK_TEST_OUT <= clk_200_i & clk_100_internal & clk_100_i;
+  CLK_TEST_OUT <= clk_100_internal & clk_200_i & clk_100_i;
   
 
 --   FPGA1_CONNECTOR(0) <= '0';
