@@ -10,15 +10,16 @@ package trb3_components is
   type std_logic_vector_array_24 is array (integer range <>) of std_logic_vector(23 downto 0);
   type std_logic_vector_array_11 is array (integer range <>) of std_logic_vector(10 downto 0);
 
-  component pll_in200_out100
-    port (
-      CLK   : in  std_logic;
-      RESET : in  std_logic := '0';
-      CLKOP : out std_logic;            --100 MHz
-      CLKOK : out std_logic;            --200 MHz, bypass
-      LOCK  : out std_logic
-      );
-  end component;
+  --already in trb_net_components
+--   component pll_in200_out100
+--     port (
+--       CLK   : in  std_logic;
+--       RESET : in  std_logic := '0';
+--       CLKOP : out std_logic;            --100 MHz
+--       CLKOK : out std_logic;            --200 MHz, bypass
+--       LOCK  : out std_logic
+--       );
+--   end component;
 
   component pll_in125_out125
     port (
@@ -154,6 +155,7 @@ package trb3_components is
       CLK_200               : in  std_logic;
       CLK_100               : in  std_logic;
       HIT_IN                : in  std_logic;
+      TRIGGER_IN                : in  std_logic;
       SCALER_IN             : in  std_logic;
       READ_EN_IN            : in  std_logic;
       FIFO_DATA_OUT         : out std_logic_vector(31 downto 0);
@@ -179,6 +181,7 @@ package trb3_components is
       CLK_100               : in  std_logic;
       RESET_100             : in  std_logic;
       HIT_IN                : in  std_logic;
+      TRIGGER_IN                : in  std_logic;
       EPOCH_COUNTER_IN      : in  std_logic_vector(27 downto 0);
       DATA_FINISHED_IN      : in  std_logic;
       COARSE_COUNTER_IN     : in  std_logic_vector(10 downto 0);
