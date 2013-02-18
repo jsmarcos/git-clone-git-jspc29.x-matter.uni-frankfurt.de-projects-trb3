@@ -8,51 +8,53 @@ use work.trb_net_components.all;
 use work.trb3_components.all;
 use work.version.all;
 
-
-entity trb3_periph_padiwa is
+entity trb3_periph_sodasource is
   generic(
-    SYNC_MODE : integer range 0 to 1 := c_NO   --use the RX clock for internal logic and transmission.
+    SYNC_MODE : integer range 0 to 1 := c_NO   --use the RX clock for internal logic and transmission. 4 SFP links only.
     );
   port(
     --Clocks
-    CLK_GPLL_LEFT  : in std_logic;      --Clock Manager 6
-    CLK_GPLL_RIGHT : in std_logic;  --Clock Manager 4  <-- MAIN CLOCK for FPGA
-    CLK_PCLK_LEFT  : in std_logic;      --Clock Manager 3
-    CLK_PCLK_RIGHT : in std_logic;      --Clock Manager 1
-    --CLK_PCLK_RIGHT is the only clock with external termination !?
-    CLK_EXTERNAL   : in std_logic;      --Clock Manager 9
+    CLK_GPLL_LEFT  : in std_logic;      --Clock Manager 1/(2468), 125 MHz
+    CLK_GPLL_RIGHT : in std_logic;  --Clock Manager 2/(2468), 200 MHz  <-- MAIN CLOCK for FPGA
+    CLK_PCLK_LEFT  : in std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
+    CLK_PCLK_RIGHT : in std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
 
-
---     --Trigger
-    TRIGGER_LEFT : in std_logic;        --left side trigger input from fan-out
---     TRIGGER_RIGHT : in std_logic;       --right side trigger input from fan-out
+    --Trigger
+    TRIGGER_LEFT  : in std_logic;       --left side trigger input from fan-out
+    TRIGGER_RIGHT : in std_logic;       --right side trigger input from fan-out
 
     --Serdes
-    CLK_SERDES_INT_RIGHT : in  std_logic;  --Clock Manager 0, not used
-    SERDES_TX            : out std_logic_vector(3 downto 2);
-    SERDES_RX            : in  std_logic_vector(3 downto 2);
+    CLK_SERDES_INT_LEFT  : in  std_logic;  --Clock Manager 1/(1357), off, 125 MHz possible
+    CLK_SERDES_INT_RIGHT : in  std_logic;  --Clock Manager 2/(1357), 200 MHz, only in case of problems
+--     SERDES_INT_TX        : out std_logic_vector(3 downto 0);
+--     SERDES_INT_RX        : in  std_logic_vector(3 downto 0);
+    SERDES_ADDON_TX      : out std_logic_vector(15 downto 0);
+    SERDES_ADDON_RX      : in  std_logic_vector(15 downto 0);
 
+    --Inter-FPGA Communication
     FPGA5_COMM : inout std_logic_vector(11 downto 0);
-                                        --Bit 0/1 input, serial link RX active
-                                        --Bit 2/3 output, serial link TX active
-
-
-    --Connections
-    SPARE_LINE : inout std_logic_vector(3 downto 0);
-    INP        : in    std_logic_vector(63 downto 0);
+                                                      --Bit 0/1 input, serial link RX active
+                                                      --Bit 2/3 output, serial link TX active
+                                                      --others yet undefined
+    --Connection to AddOn
+    LED_LINKOK : out std_logic_vector(6 downto 1);
+    LED_RX     : out std_logic_vector(6 downto 1); 
+    LED_TX     : out std_logic_vector(6 downto 1);
+    SFP_MOD0   : in  std_logic_vector(6 downto 1);
+    SFP_TXDIS  : out std_logic_vector(6 downto 1); 
+    SFP_LOS    : in  std_logic_vector(6 downto 1);
+--     SFP_MOD1   : inout std_logic_vector(6 downto 1); 
+--     SFP_MOD2   : inout std_logic_vector(6 downto 1); 
+--     SFP_RATESEL : out std_logic_vector(6 downto 1);
+--     SFP_TXFAULT : in  std_logic_vector(6 downto 1);
 
     --Flash ROM & Reboot
-    FLASH_CLK  : out std_logic;
-    FLASH_CS   : out std_logic;
-    FLASH_DIN  : out std_logic;
-    FLASH_DOUT : in  std_logic;
-    PROGRAMN   : out std_logic;         --reboot FPGA
+    FLASH_CLK  : out   std_logic;
+    FLASH_CS   : out   std_logic;
+    FLASH_DIN  : out   std_logic;
+    FLASH_DOUT : in    std_logic;
+    PROGRAMN   : out   std_logic;                     --reboot FPGA
 
-    --DAC
-    OUT_SDO    : out   std_logic_vector(4 downto 1);
-    IN_SDI     : in    std_logic_vector(4 downto 1);
-    OUT_SCK    : out   std_logic_vector(4 downto 1);
-    OUT_CS     : out   std_logic_vector(4 downto 1);
     --Misc
     TEMPSENS   : inout std_logic;       --Temperature Sensor
     CODE_LINE  : in    std_logic_vector(1 downto 0);
@@ -60,36 +62,49 @@ entity trb3_periph_padiwa is
     LED_ORANGE : out   std_logic;
     LED_RED    : out   std_logic;
     LED_YELLOW : out   std_logic;
+    SUPPL      : in    std_logic;       --terminated diff pair, PCLK, Pads
 
     --Test Connectors
     TEST_LINE : out std_logic_vector(15 downto 0)
     );
 
 
-  attribute syn_useioff               : boolean;
+  attribute syn_useioff                  : boolean;
   --no IO-FF for LEDs relaxes timing constraints
-  attribute syn_useioff of LED_GREEN  : signal is false;
-  attribute syn_useioff of LED_ORANGE : signal is false;
-  attribute syn_useioff of LED_RED    : signal is false;
-  attribute syn_useioff of LED_YELLOW : signal is false;
-  attribute syn_useioff of TEMPSENS   : signal is false;
-  attribute syn_useioff of PROGRAMN   : signal is false;
+  attribute syn_useioff of LED_GREEN     : signal is false;
+  attribute syn_useioff of LED_ORANGE    : signal is false;
+  attribute syn_useioff of LED_RED       : signal is false;
+  attribute syn_useioff of LED_YELLOW    : signal is false;
+  attribute syn_useioff of TEMPSENS      : signal is false;
+  attribute syn_useioff of PROGRAMN      : signal is false;
+  attribute syn_useioff of CODE_LINE     : signal is false;
+  attribute syn_useioff of TRIGGER_LEFT  : signal is false;
+  attribute syn_useioff of TRIGGER_RIGHT : signal is false;
+  attribute syn_useioff of LED_LINKOK    : signal is false;
+  attribute syn_useioff of LED_TX        : signal is false;
+  attribute syn_useioff of LED_RX        : signal is false;
+  attribute syn_useioff of SFP_MOD0      : signal is false;
+  attribute syn_useioff of SFP_TXDIS     : signal is false;
+  attribute syn_useioff of SFP_LOS       : signal is false;
 
+  
   --important signals _with_ IO-FF
-  attribute syn_useioff of OUT_SCK    : signal is true;
-  attribute syn_useioff of OUT_CS     : signal is true;
-  attribute syn_useioff of OUT_SDO    : signal is true;
   attribute syn_useioff of FLASH_CLK  : signal is true;
   attribute syn_useioff of FLASH_CS   : signal is true;
   attribute syn_useioff of FLASH_DIN  : signal is true;
   attribute syn_useioff of FLASH_DOUT : signal is true;
-  attribute syn_useioff of TEST_LINE  : signal is true;
-  attribute syn_useioff of SPARE_LINE : signal is true;
+  attribute syn_useioff of FPGA5_COMM : signal is true;
+  attribute syn_useioff of TEST_LINE  : signal is false;
+--   attribute syn_useioff of DQLL       : signal is true;
+--   attribute syn_useioff of DQUL       : signal is true;
+--   attribute syn_useioff of DQLR       : signal is true;
+--   attribute syn_useioff of DQUR       : signal is true;
+--   attribute syn_useioff of SPARE_LINE : signal is true;
 
 
 end entity;
 
-architecture trb3_periph_padiwa_arch of trb3_periph_padiwa is
+architecture trb3_periph_sodasource_arch of trb3_periph_sodasource is
   --Constants
   constant REGIO_NUM_STAT_REGS : integer := 0;
   constant REGIO_NUM_CTRL_REGS : integer := 2;
@@ -343,10 +358,10 @@ begin
       CLK_RX_FULL_OUT    => rx_clock_200,
       
       --SFP Connection
-      SD_RXD_P_IN        => SERDES_RX(2),
-      SD_RXD_N_IN        => SERDES_RX(3),
-      SD_TXD_P_OUT       => SERDES_TX(2),
-      SD_TXD_N_OUT       => SERDES_TX(3),
+      SD_RXD_P_IN        => SERDES_ADDON_RX(2),
+      SD_RXD_N_IN        => SERDES_ADDON_RX(3),
+      SD_TXD_P_OUT       => SERDES_ADDON_TX(2),
+      SD_TXD_N_OUT       => SERDES_ADDON_TX(3),
       SD_REFCLK_P_IN     => open,
       SD_REFCLK_N_IN     => open,
       SD_PRSNT_N_IN      => FPGA5_COMM(0),
@@ -660,33 +675,8 @@ begin
       STAT          => open
       );
 
----------------------------------------------------------------------------
--- DAC
----------------------------------------------------------------------------      
-  THE_DAC_SPI : spi_ltc2600
-    port map(
-      CLK_IN                 => clk_100_i,
-      RESET_IN               => reset_i,
-      -- Slave bus
-      BUS_ADDR_IN            => dac_addr,
-      BUS_READ_IN            => dac_read_en,
-      BUS_WRITE_IN           => dac_write_en,
-      BUS_ACK_OUT            => dac_ack,
-      BUS_BUSY_OUT           => dac_busy,
-      BUS_DATA_IN            => dac_data_in,
-      BUS_DATA_OUT           => dac_data_out,
-      -- SPI connections
-      SPI_CS_OUT(3 downto 0) => padiwa_cs,
-      SPI_SDI_IN             => padiwa_sdi,
-      SPI_SDO_OUT            => padiwa_sdo,
-      SPI_SCK_OUT            => padiwa_sck
-      );
 
 
-  OUT_CS     <= padiwa_cs(3 downto 0);
-  OUT_SCK    <= padiwa_sck & padiwa_sck & padiwa_sck & padiwa_sck;
-  OUT_SDO    <= padiwa_sdo & padiwa_sdo & padiwa_sdo & padiwa_sdo;
-  padiwa_sdi <= or_all(IN_SDI and not padiwa_cs(3 downto 0));
 
 ---------------------------------------------------------------------------
 -- Reboot FPGA
@@ -727,83 +717,83 @@ begin
 -------------------------------------------------------------------------------
 -- TDC
 -------------------------------------------------------------------------------
-  THE_TDC : TDC
-    generic map (
-      CHANNEL_NUMBER => 5,             -- Number of TDC channels
-      STATUS_REG_NR  => REGIO_NUM_STAT_REGS,
-      CONTROL_REG_NR => REGIO_NUM_CTRL_REGS)
-    port map (
-      RESET                 => reset_i,
-      CLK_TDC               => clk_tdc,  -- Clock used for the time measurement
-      CLK_READOUT           => clk_100_i,   -- Clock for the readout
-      REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
-      HIT_IN                => hit_in_i(3 downto 0),  -- Channel start signals
-      TRG_WIN_PRE           => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
-      TRG_WIN_POST          => ctrl_reg(58 downto 48),  -- Post-Trigger window width
-      --
-      -- Trigger signals from handler
-      TRG_DATA_VALID_IN     => trg_data_valid_i,  -- trig data valid signal from trbnet
-      VALID_TIMING_TRG_IN   => trg_timing_valid_i,  -- valid timing trigger signal from trbnet
-      VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,  -- valid notiming signal from trbnet
-      INVALID_TRG_IN        => trg_invalid_i,  -- invalid trigger signal from trbnet
-      TMGTRG_TIMEOUT_IN     => trg_timeout_detected_i,  -- timing trigger timeout signal from trbnet
-      SPIKE_DETECTED_IN     => trg_spike_detected_i,
-      MULTI_TMG_TRG_IN      => trg_multiple_trg_i,
-      SPURIOUS_TRG_IN       => trg_spurious_trg_i,
-      --
-      TRG_NUMBER_IN         => trg_number_i,  -- LVL1 trigger information package
-      TRG_CODE_IN           => trg_code_i,  --
-      TRG_INFORMATION_IN    => trg_information_i,   --
-      TRG_TYPE_IN           => trg_type_i,  -- LVL1 trigger information package
-      --
-      --Response to handler
-      TRG_RELEASE_OUT       => fee_trg_release_i,   -- trigger release signal
-      TRG_STATUSBIT_OUT     => fee_trg_statusbits_i,  -- status information of the tdc
-      DATA_OUT              => fee_data_i,  -- tdc data
-      DATA_WRITE_OUT        => fee_data_write_i,  -- data valid signal
-      DATA_FINISHED_OUT     => fee_data_finished_i,  -- readout finished signal
-      --
-      --Hit Counter Bus
-      HCB_READ_EN_IN        => hitreg_read_en,    -- bus read en strobe
-      HCB_WRITE_EN_IN       => hitreg_write_en,   -- bus write en strobe
-      HCB_ADDR_IN           => hitreg_addr,   -- bus address
-      HCB_DATA_OUT          => hitreg_data_out,   -- bus data
-      HCB_DATAREADY_OUT     => hitreg_data_ready,   -- bus data ready strobe
-      HCB_UNKNOWN_ADDR_OUT  => hitreg_invalid,    -- bus invalid addr
-      --Status Registers Bus
-      SRB_READ_EN_IN        => srb_read_en,   -- bus read en strobe
-      SRB_WRITE_EN_IN       => srb_write_en,  -- bus write en strobe
-      SRB_ADDR_IN           => srb_addr,    -- bus address
-      SRB_DATA_OUT          => srb_data_out,  -- bus data
-      SRB_DATAREADY_OUT     => srb_data_ready,    -- bus data ready strobe
-      SRB_UNKNOWN_ADDR_OUT  => srb_invalid,   -- bus invalid addr
-      --Encoder Start Registers Bus
-      ESB_READ_EN_IN        => esb_read_en,   -- bus read en strobe
-      ESB_WRITE_EN_IN       => esb_write_en,  -- bus write en strobe
-      ESB_ADDR_IN           => esb_addr,    -- bus address
-      ESB_DATA_OUT          => esb_data_out,  -- bus data
-      ESB_DATAREADY_OUT     => esb_data_ready,    -- bus data ready strobe
-      ESB_UNKNOWN_ADDR_OUT  => esb_invalid,   -- bus invalid addr
-      --Fifo Write Registers Bus
-      FWB_READ_EN_IN        => fwb_read_en,   -- bus read en strobe
-      FWB_WRITE_EN_IN       => fwb_write_en,  -- bus write en strobe
-      FWB_ADDR_IN           => fwb_addr,    -- bus address
-      FWB_DATA_OUT          => fwb_data_out,  -- bus data
-      FWB_DATAREADY_OUT     => fwb_data_ready,    -- bus data ready strobe
-      FWB_UNKNOWN_ADDR_OUT  => fwb_invalid,   -- bus invalid addr
-      --Lost Hit Registers Bus
-      LHB_READ_EN_IN        => '0', -- lhb_read_en,   -- bus read en strobe
-      LHB_WRITE_EN_IN       => '0', -- lhb_write_en,  -- bus write en strobe
-      LHB_ADDR_IN           => (others => '0'), -- lhb_addr,    -- bus address
-      LHB_DATA_OUT          => open, -- lhb_data_out,  -- bus data
-      LHB_DATAREADY_OUT     => open, -- lhb_data_ready,    -- bus data ready strobe
-      LHB_UNKNOWN_ADDR_OUT  => open, -- lhb_invalid,   -- bus invalid addr
-      --
-      LOGIC_ANALYSER_OUT    => TEST_LINE,
-      CONTROL_REG_IN        => ctrl_reg);
+  --THE_TDC : TDC
+    --generic map (
+      --CHANNEL_NUMBER => 5,             -- Number of TDC channels
+      --STATUS_REG_NR  => REGIO_NUM_STAT_REGS,
+      --CONTROL_REG_NR => REGIO_NUM_CTRL_REGS)
+    --port map (
+      --RESET                 => reset_i,
+      --CLK_TDC               => clk_tdc,  -- Clock used for the time measurement
+      --CLK_READOUT           => clk_100_i,   -- Clock for the readout
+      --REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
+      --HIT_IN                => hit_in_i(3 downto 0),  -- Channel start signals
+      --TRG_WIN_PRE           => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
+      --TRG_WIN_POST          => ctrl_reg(58 downto 48),  -- Post-Trigger window width
+      ----
+      ---- Trigger signals from handler
+      --TRG_DATA_VALID_IN     => trg_data_valid_i,  -- trig data valid signal from trbnet
+      --VALID_TIMING_TRG_IN   => trg_timing_valid_i,  -- valid timing trigger signal from trbnet
+      --VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,  -- valid notiming signal from trbnet
+      --INVALID_TRG_IN        => trg_invalid_i,  -- invalid trigger signal from trbnet
+      --TMGTRG_TIMEOUT_IN     => trg_timeout_detected_i,  -- timing trigger timeout signal from trbnet
+      --SPIKE_DETECTED_IN     => trg_spike_detected_i,
+      --MULTI_TMG_TRG_IN      => trg_multiple_trg_i,
+      --SPURIOUS_TRG_IN       => trg_spurious_trg_i,
+      ----
+      --TRG_NUMBER_IN         => trg_number_i,  -- LVL1 trigger information package
+      --TRG_CODE_IN           => trg_code_i,  --
+      --TRG_INFORMATION_IN    => trg_information_i,   --
+      --TRG_TYPE_IN           => trg_type_i,  -- LVL1 trigger information package
+      ----
+      ----Response to handler
+      --TRG_RELEASE_OUT       => fee_trg_release_i,   -- trigger release signal
+      --TRG_STATUSBIT_OUT     => fee_trg_statusbits_i,  -- status information of the tdc
+      --DATA_OUT              => fee_data_i,  -- tdc data
+      --DATA_WRITE_OUT        => fee_data_write_i,  -- data valid signal
+      --DATA_FINISHED_OUT     => fee_data_finished_i,  -- readout finished signal
+      ----
+      ----Hit Counter Bus
+      --HCB_READ_EN_IN        => hitreg_read_en,    -- bus read en strobe
+      --HCB_WRITE_EN_IN       => hitreg_write_en,   -- bus write en strobe
+      --HCB_ADDR_IN           => hitreg_addr,   -- bus address
+      --HCB_DATA_OUT          => hitreg_data_out,   -- bus data
+      --HCB_DATAREADY_OUT     => hitreg_data_ready,   -- bus data ready strobe
+      --HCB_UNKNOWN_ADDR_OUT  => hitreg_invalid,    -- bus invalid addr
+      ----Status Registers Bus
+      --SRB_READ_EN_IN        => srb_read_en,   -- bus read en strobe
+      --SRB_WRITE_EN_IN       => srb_write_en,  -- bus write en strobe
+      --SRB_ADDR_IN           => srb_addr,    -- bus address
+      --SRB_DATA_OUT          => srb_data_out,  -- bus data
+      --SRB_DATAREADY_OUT     => srb_data_ready,    -- bus data ready strobe
+      --SRB_UNKNOWN_ADDR_OUT  => srb_invalid,   -- bus invalid addr
+      ----Encoder Start Registers Bus
+      --ESB_READ_EN_IN        => esb_read_en,   -- bus read en strobe
+      --ESB_WRITE_EN_IN       => esb_write_en,  -- bus write en strobe
+      --ESB_ADDR_IN           => esb_addr,    -- bus address
+      --ESB_DATA_OUT          => esb_data_out,  -- bus data
+      --ESB_DATAREADY_OUT     => esb_data_ready,    -- bus data ready strobe
+      --ESB_UNKNOWN_ADDR_OUT  => esb_invalid,   -- bus invalid addr
+      ----Fifo Write Registers Bus
+      --FWB_READ_EN_IN        => fwb_read_en,   -- bus read en strobe
+      --FWB_WRITE_EN_IN       => fwb_write_en,  -- bus write en strobe
+      --FWB_ADDR_IN           => fwb_addr,    -- bus address
+      --FWB_DATA_OUT          => fwb_data_out,  -- bus data
+      --FWB_DATAREADY_OUT     => fwb_data_ready,    -- bus data ready strobe
+      --FWB_UNKNOWN_ADDR_OUT  => fwb_invalid,   -- bus invalid addr
+      ----Lost Hit Registers Bus
+      --LHB_READ_EN_IN        => '0', -- lhb_read_en,   -- bus read en strobe
+      --LHB_WRITE_EN_IN       => '0', -- lhb_write_en,  -- bus write en strobe
+      --LHB_ADDR_IN           => (others => '0'), -- lhb_addr,    -- bus address
+      --LHB_DATA_OUT          => open, -- lhb_data_out,  -- bus data
+      --LHB_DATAREADY_OUT     => open, -- lhb_data_ready,    -- bus data ready strobe
+      --LHB_UNKNOWN_ADDR_OUT  => open, -- lhb_invalid,   -- bus invalid addr
+      ----
+      --LOGIC_ANALYSER_OUT    => TEST_LINE,
+      --CONTROL_REG_IN        => ctrl_reg);
 
 
-  hit_in_i <= INP;
+  hit_in_i <= (others => '0');
 
   --Gen_Hit_In_Signals : for i in 0 to 31 generate
   -- hit_in_i(i*2)     <= INP(i);
