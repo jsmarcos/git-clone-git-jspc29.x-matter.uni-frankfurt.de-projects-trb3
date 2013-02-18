@@ -6,11 +6,12 @@ library work;
 use work.trb_net_std.all;
 use work.trb_net_components.all;
 use work.trb3_components.all;
+use work.med_sync_define.all;
 use work.version.all;
 
 entity trb3_periph_sodasource is
   generic(
-    SYNC_MODE : integer range 0 to 1 := c_NO   --use the RX clock for internal logic and transmission. 4 SFP links only.
+    SYNC_MODE : integer range 0 to 1 := c_NO   --use the RX clock for internal logic and transmission. Should be NO for soda tests!
     );
   port(
     --Clocks
@@ -23,11 +24,11 @@ entity trb3_periph_sodasource is
     TRIGGER_LEFT  : in std_logic;       --left side trigger input from fan-out
     TRIGGER_RIGHT : in std_logic;       --right side trigger input from fan-out
 
-    --Serdes
+    --Serdes Clocks - do not use
     CLK_SERDES_INT_LEFT  : in  std_logic;  --Clock Manager 1/(1357), off, 125 MHz possible
     CLK_SERDES_INT_RIGHT : in  std_logic;  --Clock Manager 2/(1357), 200 MHz, only in case of problems
---     SERDES_INT_TX        : out std_logic_vector(3 downto 0);
---     SERDES_INT_RX        : in  std_logic_vector(3 downto 0);
+
+    --serdes I/O - connect as you like, no real use
     SERDES_ADDON_TX      : out std_logic_vector(15 downto 0);
     SERDES_ADDON_RX      : in  std_logic_vector(15 downto 0);
 
@@ -269,6 +270,13 @@ architecture trb3_periph_sodasource_arch of trb3_periph_sodasource is
   signal sci1_data_in  : std_logic_vector(7 downto 0);
   signal sci1_data_out : std_logic_vector(7 downto 0);
   signal sci1_addr     : std_logic_vector(8 downto 0);  
+  signal sci2_ack      : std_logic;
+  signal sci2_nack     : std_logic;
+  signal sci2_write    : std_logic;
+  signal sci2_read     : std_logic;
+  signal sci2_data_in  : std_logic_vector(7 downto 0);
+  signal sci2_data_out : std_logic_vector(7 downto 0);
+  signal sci2_addr     : std_logic_vector(8 downto 0);  
   
   signal padiwa_cs  : std_logic_vector(3 downto 0);
   signal padiwa_sck : std_logic;
@@ -277,6 +285,13 @@ architecture trb3_periph_sodasource_arch of trb3_periph_sodasource is
 
   --TDC
   signal hit_in_i : std_logic_vector(63 downto 0);
+      
+  signal soda_rx_clock_100 : std_logic;
+  signal soda_rx_clock_200 : std_logic;
+  signal tx_dlm_i          : std_logic;
+  signal rx_dlm_i          : std_logic;
+  signal tx_dlm_word       : std_logic_vector(7 downto 0);
+  signal rx_dlm_word       : std_logic_vector(7 downto 0);
 
 begin
 ---------------------------------------------------------------------------
@@ -391,21 +406,21 @@ begin
       REGIO_NUM_CTRL_REGS       => REGIO_NUM_CTRL_REGS,  --3,    --8 cotrol reg
       ADDRESS_MASK              => x"FFFF",
       BROADCAST_BITMASK         => x"FF",
-      BROADCAST_SPECIAL_ADDR    => x"48",
+      BROADCAST_SPECIAL_ADDR    => x"45",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
-      REGIO_HARDWARE_VERSION    => x"91004120",
+      REGIO_HARDWARE_VERSION    => x"91000000",
       REGIO_INIT_ADDRESS        => x"f306",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
       CLOCK_FREQUENCY           => 100,
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
       DATA_INTERFACE_NUMBER     => 1,
-      DATA_BUFFER_DEPTH         => 13,  --13
+      DATA_BUFFER_DEPTH         => 9,  --13
       DATA_BUFFER_WIDTH         => 32,
-      DATA_BUFFER_FULL_THRESH   => 2**13-800,
+      DATA_BUFFER_FULL_THRESH   => 256,
       TRG_RELEASE_AFTER_DATA    => c_YES,
       HEADER_BUFFER_DEPTH       => 9,
-      HEADER_BUFFER_FULL_THRESH => 2**9-16
+      HEADER_BUFFER_FULL_THRESH => 256
       )
     port map(
       CLK                => clk_100_i,
@@ -504,9 +519,9 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 8,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"b000", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 9, others => 0)
+      PORT_NUMBER    => 9,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"b000", 8 => x"b800", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 9, 8 => 9, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -621,6 +636,19 @@ begin
       BUS_WRITE_ACK_IN(7)                 => sci1_ack,
       BUS_NO_MORE_DATA_IN(7)              => '0',
       BUS_UNKNOWN_ADDR_IN(7)              => '0',
+      --SCI soda test Media Interface
+      BUS_READ_ENABLE_OUT(8)              => sci2_read,
+      BUS_WRITE_ENABLE_OUT(8)             => sci2_write,
+      BUS_DATA_OUT(8*32+7 downto 8*32)    => sci2_data_in,
+      BUS_DATA_OUT(8*32+31 downto 8*32+8) => open,
+      BUS_ADDR_OUT(8*16+8 downto 8*16)    => sci2_addr,
+      BUS_ADDR_OUT(8*16+15 downto 8*16+9) => open,
+      BUS_TIMEOUT_OUT(8)                  => open,
+      BUS_DATA_IN(8*32+7 downto 8*32)     => sci2_data_out,
+      BUS_DATAREADY_IN(8)                 => sci2_ack,
+      BUS_WRITE_ACK_IN(8)                 => sci2_ack,
+      BUS_NO_MORE_DATA_IN(8)              => '0',
+      BUS_UNKNOWN_ADDR_IN(8)              => sci2_nack,
       STAT_DEBUG => open
       );
 
@@ -688,6 +716,67 @@ begin
       DO_REBOOT => common_ctrl_reg(15),
       PROGRAMN  => PROGRAMN
       );
+
+
+      
+---------------------------------------------------------------------------
+-- The synchronous interface for Soda tests
+---------------------------------------------------------------------------      
+---------------------------------------------------------------------------
+-- The TrbNet media interface (Uplink)
+---------------------------------------------------------------------------
+THE_SODA_SOURCE : med_ecp3_sfp_sync
+  generic map(
+    SERDES_NUM  => 0     --number of serdes in quad
+    )
+  port map(
+    CLK                => clk_200_internal, --clk_200_i,
+    SYSCLK             => clk_100_i,
+    RESET              => reset_i,
+    CLEAR              => clear_i,
+    CLK_EN             => '1',
+    --Internal Connection for TrbNet data -> not used a.t.m.
+    MED_DATA_IN        => (others => '0'),
+    MED_PACKET_NUM_IN  => (others => '0'),
+    MED_DATAREADY_IN   => '0',
+    MED_READ_OUT       => open,
+    MED_DATA_OUT       => open,
+    MED_PACKET_NUM_OUT => open,
+    MED_DATAREADY_OUT  => open,
+    MED_READ_IN        => open,
+    CLK_RX_HALF_OUT    => soda_rx_clock_100,
+    CLK_RX_FULL_OUT    => soda_rx_clock_200,
+    
+    IS_SLAVE           => '0',   --will be generic soon
+    RX_DLM             => rx_dlm_i,
+    RX_DLM_WORD        => rx_dlm_word,
+    TX_DLM             => tx_dlm_i,
+    TX_DLM_WORD        => tx_dlm_word,
+    --SFP Connection
+    SD_RXD_P_IN        => SERDES_ADDON_RX(0),
+    SD_RXD_N_IN        => SERDES_ADDON_RX(1),
+    SD_TXD_P_OUT       => SERDES_ADDON_TX(0),
+    SD_TXD_N_OUT       => SERDES_ADDON_TX(1),
+    SD_REFCLK_P_IN     => open,
+    SD_REFCLK_N_IN     => open,
+    SD_PRSNT_N_IN      => SFP_MOD0(1),
+    SD_LOS_IN          => SFP_LOS(1),
+    SD_TXDIS_OUT       => SFP_TXDIS(1),
+    
+    SCI_DATA_IN        => sci2_data_in,
+    SCI_DATA_OUT       => sci2_data_out,
+    SCI_ADDR           => sci2_addr,
+    SCI_READ           => sci2_read,
+    SCI_WRITE          => sci2_write,
+    SCI_ACK            => sci2_ack,  
+    SCI_NACK           => sci2_nack,
+    -- Status and control port
+    STAT_OP            => open,
+    CTRL_OP            => (others => '0'),
+    STAT_DEBUG         => open,
+    CTRL_DEBUG         => (others => '0')
+   );      
+      
 
 
 
