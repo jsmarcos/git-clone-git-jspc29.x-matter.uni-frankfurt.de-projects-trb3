@@ -355,12 +355,15 @@ gen_local_clocks : if SYNC_MODE = c_NO generate
   clk_200_i <= clk_200_internal;
 end generate;
 
+
+
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (Uplink)
 ---------------------------------------------------------------------------
 THE_MEDIA_UPLINK : med_ecp3_sfp_sync
   generic map(
-    SERDES_NUM  => 0     --number of serdes in quad
+    SERDES_NUM  => 0,     --number of serdes in quad
+    MASTER_CLOCK_SWITCH => 1
     )
   port map(
     CLK                => clk_200_internal, --clk_200_i,
@@ -434,15 +437,9 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
 	  INIT_ADDRESS        => x"F305",
 	  MII_NUMBER          => 2,
     
-    --optical link SFP1 is uplink on all channels  (e.g. connect a Hub)
 	  MII_IS_UPLINK       => (0,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0),
 	  MII_IS_DOWNLINK     => (1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0),
 	  MII_IS_UPLINK_ONLY  => (0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0),
-
-    --optical link SFP1 is uplink on TRG & IPU and downlink on sctrl  (e.g. connect a CTS, sctrl via GbE)
---     MII_IS_UPLINK       => (0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0),
---     MII_IS_DOWNLINK     => (1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0),
---     MII_IS_UPLINK_ONLY  => (0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0),
 
 	  USE_ONEWIRE         => c_YES,
 	  HARDWARE_VERSION    => x"90000E35",

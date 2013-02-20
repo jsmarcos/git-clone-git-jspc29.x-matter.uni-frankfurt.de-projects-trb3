@@ -9,8 +9,8 @@ use strict;
 ###################################################################################
 #Settings for this project
 my $TOPNAME                      = "trb3_central";  #Name of top-level entity
-my $lattice_path                 = '/d/jspc29/lattice/diamond/2.1_x64';
-#my $lattice_path                 = '/d/jspc29/lattice/diamond/2.01';
+#my $lattice_path                 = '/d/jspc29/lattice/diamond/2.1_x64';
+my $lattice_path                 = '/d/jspc29/lattice/diamond/2.01';
 # my $synplify_path                = '/d/jspc29/lattice/synplify/fpga_e201103/';
 my $synplify_path                = '/d/jspc29/lattice/synplify/G-2012.09-SP1/';
 my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";

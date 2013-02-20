@@ -216,7 +216,7 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_ctc.v
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_int.vhd"
 
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_lsm_sfp.vhd"
-#add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.vhd"
+add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.vhd"
 
 add_file -vhdl -lib work "../../trbnet/media_interfaces/med_ecp3_sfp_sync.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4_onboard.vhd"
@@ -224,7 +224,7 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4
 
 add_file -vhdl -lib work "../base/cores/pll_in200_out100.vhd"
 add_file -vhdl -lib work "./trb3_central.vhd"
-add_file -fpga_constraint "./project/full/full.fdc"
+#add_file -fpga_constraint "./project/full/full.fdc"
 
 
 
