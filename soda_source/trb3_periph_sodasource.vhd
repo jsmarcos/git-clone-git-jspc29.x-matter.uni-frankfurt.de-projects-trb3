@@ -727,14 +727,15 @@ begin
 ---------------------------------------------------------------------------
 THE_SODA_SOURCE : med_ecp3_sfp_sync
   generic map(
-    SERDES_NUM  => 0     --number of serdes in quad
+    SERDES_NUM  => 0,    --number of serdes in quad
+    MASTER_CLOCK_SWITCH => c_NO,
+    IS_SYNC_SLAVE => c_NO
     )
   port map(
     CLK                => clk_200_internal, --clk_200_i,
     SYSCLK             => clk_100_i,
     RESET              => reset_i,
     CLEAR              => clear_i,
-    CLK_EN             => '1',
     --Internal Connection for TrbNet data -> not used a.t.m.
     MED_DATA_IN        => (others => '0'),
     MED_PACKET_NUM_IN  => (others => '0'),
