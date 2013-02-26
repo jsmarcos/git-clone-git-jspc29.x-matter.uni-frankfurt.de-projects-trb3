@@ -31,13 +31,6 @@ architecture Behavioral of BusHandler is
   signal data_ready_reg   : std_logic;
   signal unknown_addr_reg : std_logic;
 
-  --FSM signals
-  type   FSM is (IDLE, READ_A, WRITE_A);
-  signal FSM_CURRENT, FSM_NEXT : FSM;
-  signal fsm_data_out          : std_logic_vector(31 downto 0);
-  signal fsm_data_ready        : std_logic;
-  signal fsm_unknown_addr      : std_logic;
-  
 begin
 
   READ_WRITE_RESPONSE : process (CLK, RESET)
