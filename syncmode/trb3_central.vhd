@@ -296,7 +296,20 @@ signal tx_dlm_i      : std_logic;
   attribute syn_preserve of spictrl_addr : signal is true;
   attribute syn_keep of spimem_addr : signal is true;
   attribute syn_preserve of spimem_addr : signal is true;
+component DCS
+-- synthesis translate_off
+generic
+ (
+DCSMODE : string :=“POS”
+);
+-- synthesis translate_on
 
+port (
+CLK0 :in std_logic ;
+CLK1 :in std_logic ;
+SEL :in std_logic ;
+DCSOUT :out std_logic) ;
+end component;
 begin
 
 ---------------------------------------------------------------------------
@@ -345,17 +358,45 @@ THE_MAIN_PLL : pll_in200_out100
     LOCK   => pll_lock
     );
 
-gen_sync_clocks : if SYNC_MODE = c_YES generate
-  clk_100_i <= rx_clock_100;
-  clk_200_i <= rx_clock_200;
-end generate;
+--Temporary clock switch for debugging, should be not used!
+  DCSInst0: DCS
+    -- synthesis translate_off
+    generic map (
+      DCSMODE => “POS”
+      );
+    -- synthesis translate_on
+    port map (
+      SEL    => TEST_LINE(16),
+      CLK0   => clk_100_internal,
+      CLK1   => rx_clock_100,
+      DCSOUT => clk_100_i
+      );
 
-gen_local_clocks : if SYNC_MODE = c_NO generate
-  clk_100_i <= clk_100_internal;
-  clk_200_i <= clk_200_internal;
-end generate;
-
-
+  DCSInst1: DCS
+    -- synthesis translate_off
+    generic map (
+      DCSMODE => “POS”
+      );
+    -- synthesis translate_on
+    port map (
+      SEL    => TEST_LINE(16),
+      CLK0   => clk_200_internal,
+      CLK1   => rx_clock_200,
+      DCSOUT => clk_200_i
+      );
+      
+--       
+-- gen_sync_clocks : if SYNC_MODE = c_YES generate
+--   clk_100_i <= rx_clock_100;
+--   clk_200_i <= rx_clock_200;
+-- end generate;
+-- 
+-- gen_local_clocks : if SYNC_MODE = c_NO generate
+--   clk_100_i <= clk_100_internal;
+--   clk_200_i <= clk_200_internal;
+-- end generate;
+-- 
+-- 
 
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (Uplink)
@@ -370,7 +411,6 @@ THE_MEDIA_UPLINK : med_ecp3_sfp_sync
     SYSCLK             => clk_100_i,
     RESET              => reset_i,
     CLEAR              => clear_i,
-    CLK_EN             => '1',
     --Internal Connection
     MED_DATA_IN        => med_data_out(15 downto 0),
     MED_PACKET_NUM_IN  => med_packet_num_out(2 downto 0),
@@ -418,7 +458,7 @@ SFP_TXDIS(7 downto 2) <= (others => '1');
 --SFP_TXDIS(8 downto 6) <= (others => '1');
 
 
-
+tx_dlm_i <= common_ctrl_regs(31);
 
 
 -- Be careful when setting the MII_NUMBER and MII_IS_* generics!
@@ -872,7 +912,7 @@ LED_YELLOW <= link_ok; --debug(3);
   TEST_LINE(16)           <= 'Z';
   TEST_LINE(31 downto 17) <= med_stat_debug(31 downto 17);
   
-  CLK_TEST_OUT <= clk_100_internal & clk_200_i & clk_100_i;
+  CLK_TEST_OUT <= clk_100_internal & tx_dlm_i & rx_dlm_i;
   
 
 --   FPGA1_CONNECTOR(0) <= '0';

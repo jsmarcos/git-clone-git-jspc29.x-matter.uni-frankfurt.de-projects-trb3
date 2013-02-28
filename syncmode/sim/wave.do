@@ -267,8 +267,8 @@ add wave -noupdate -radix hexadecimal /med_ecp3_sfp_sync_tb/THE_MASTER/THE_RX_FS
 add wave -noupdate -radix hexadecimal /med_ecp3_sfp_sync_tb/THE_MASTER/THE_RX_FSM/timer2
 add wave -noupdate -radix hexadecimal /med_ecp3_sfp_sync_tb/THE_MASTER/THE_RX_FSM/tx_pll_lol_qd_s_int
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {0 ps} 0}
-configure wave -namecolwidth 416
+WaveRestoreCursors {{Cursor 1} {3980337070 ps} 0}
+configure wave -namecolwidth 218
 configure wave -valuecolwidth 40
 configure wave -justifyvalue left
 configure wave -signalnamewidth 1
@@ -282,4 +282,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 ps} {13780 ps}
+WaveRestoreZoom {3980233620 ps} {3980498420 ps}
