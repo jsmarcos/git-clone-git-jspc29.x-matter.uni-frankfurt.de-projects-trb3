@@ -6,9 +6,12 @@ use work.trb_net_std.all;
 
 package trb3_components is
 
+  type std_logic_vector_array_36 is array (integer range <>) of std_logic_vector(35 downto 0);
   type std_logic_vector_array_32 is array (integer range <>) of std_logic_vector(31 downto 0);
   type std_logic_vector_array_24 is array (integer range <>) of std_logic_vector(23 downto 0);
   type std_logic_vector_array_11 is array (integer range <>) of std_logic_vector(10 downto 0);
+  type std_logic_vector_array_8 is array (integer range <>) of std_logic_vector(7 downto 0);
+  type unsigned_array_8 is array (integer range <>) of unsigned(7 downto 0);
 
   --already in trb_net_components
 --   component pll_in200_out100
@@ -33,7 +36,6 @@ package trb3_components is
   component TDC
     generic (
       CHANNEL_NUMBER : integer range 2 to 65;
-      STATUS_REG_NR  : integer range 0 to 6;
       CONTROL_REG_NR : integer range 0 to 6);
     port (
       RESET                 : in  std_logic;
@@ -78,12 +80,12 @@ package trb3_components is
       ESB_DATA_OUT          : out std_logic_vector(31 downto 0);
       ESB_DATAREADY_OUT     : out std_logic;
       ESB_UNKNOWN_ADDR_OUT  : out std_logic;
-      FWB_READ_EN_IN        : in  std_logic;
-      FWB_WRITE_EN_IN       : in  std_logic;
-      FWB_ADDR_IN           : in  std_logic_vector(6 downto 0);
-      FWB_DATA_OUT          : out std_logic_vector(31 downto 0);
-      FWB_DATAREADY_OUT     : out std_logic;
-      FWB_UNKNOWN_ADDR_OUT  : out std_logic;
+      EFB_READ_EN_IN        : in  std_logic;
+      EFB_WRITE_EN_IN       : in  std_logic;
+      EFB_ADDR_IN           : in  std_logic_vector(6 downto 0);
+      EFB_DATA_OUT          : out std_logic_vector(31 downto 0);
+      EFB_DATAREADY_OUT     : out std_logic;
+      EFB_UNKNOWN_ADDR_OUT  : out std_logic;
       LHB_READ_EN_IN        : in  std_logic;
       LHB_WRITE_EN_IN       : in  std_logic;
       LHB_ADDR_IN           : in  std_logic_vector(6 downto 0);
@@ -91,7 +93,7 @@ package trb3_components is
       LHB_DATAREADY_OUT     : out std_logic;
       LHB_UNKNOWN_ADDR_OUT  : out std_logic;
       LOGIC_ANALYSER_OUT    : out std_logic_vector(15 downto 0);
-      CONTROL_REG_IN        : in  std_logic_vector(32*2**CONTROL_REG_NR-1 downto 0));
+      CONTROL_REG_IN        : in  std_logic_vector(32*CONTROL_REG_NR-1 downto 0));
   end component;
 
   component Reference_Channel
@@ -107,7 +109,8 @@ package trb3_components is
       VALID_TMG_TRG_IN       : in  std_logic;
       SPIKE_DETECTED_IN      : in  std_logic;
       MULTI_TMG_TRG_IN       : in  std_logic;
-      FIFO_DATA_OUT          : out std_logic_vector(31 downto 0);
+      FIFO_DATA_OUT          : out std_logic_vector(35 downto 0);
+      FIFO_WCNT_OUT          : out unsigned(7 downto 0);
       FIFO_EMPTY_OUT         : out std_logic;
       FIFO_FULL_OUT          : out std_logic;
       FIFO_ALMOST_FULL_OUT   : out std_logic;
@@ -133,7 +136,8 @@ package trb3_components is
       MULTI_TMG_TRG_IN       : in  std_logic;
       HIT_IN                 : in  std_logic;
       READ_EN_IN             : in  std_logic;
-      FIFO_DATA_OUT          : out std_logic_vector(31 downto 0);
+      FIFO_DATA_OUT          : out std_logic_vector(35 downto 0);
+      FIFO_WCNT_OUT          : out unsigned(7 downto 0);
       FIFO_EMPTY_OUT         : out std_logic;
       FIFO_FULL_OUT          : out std_logic;
       FIFO_ALMOST_FULL_OUT   : out std_logic;
@@ -147,72 +151,72 @@ package trb3_components is
 
   component Channel
     generic (
-      CHANNEL_ID : integer range 1 to 64);
+      CHANNEL_ID : integer range 0 to 64);
     port (
-      RESET_200             : in  std_logic;
-      RESET_100             : in  std_logic;
-      RESET_COUNTERS        : in  std_logic;
-      CLK_200               : in  std_logic;
-      CLK_100               : in  std_logic;
-      HIT_IN                : in  std_logic;
-      TRIGGER_IN                : in  std_logic;
-      SCALER_IN             : in  std_logic;
-      READ_EN_IN            : in  std_logic;
-      FIFO_DATA_OUT         : out std_logic_vector(31 downto 0);
-      FIFO_EMPTY_OUT        : out std_logic;
-      FIFO_FULL_OUT         : out std_logic;
-      FIFO_ALMOST_FULL_OUT  : out std_logic;
-      COARSE_COUNTER_IN     : in  std_logic_vector(10 downto 0);
-      EPOCH_COUNTER_IN      : in  std_logic_vector(27 downto 0);
-      DATA_FINISHED_IN      : in  std_logic;
-      LOST_HIT_NUMBER       : out std_logic_vector(23 downto 0);
-      HIT_DETECT_NUMBER     : out std_logic_vector(23 downto 0);
-      ENCODER_START_NUMBER  : out std_logic_vector(23 downto 0);
-      FIFO_WR_NUMBER        : out std_logic_vector(23 downto 0);
-      Channel_DEBUG         : out std_logic_vector(31 downto 0));
+      RESET_200               : in  std_logic;
+      RESET_100               : in  std_logic;
+      RESET_COUNTERS          : in  std_logic;
+      CLK_200                 : in  std_logic;
+      CLK_100                 : in  std_logic;
+      HIT_IN                  : in  std_logic;
+      TRIGGER_IN              : in  std_logic;
+      READ_EN_IN              : in  std_logic;
+      FIFO_DATA_OUT           : out std_logic_vector(35 downto 0);
+      FIFO_WCNT_OUT           : out unsigned(7 downto 0);
+      FIFO_EMPTY_OUT          : out std_logic;
+      FIFO_FULL_OUT           : out std_logic;
+      FIFO_ALMOST_FULL_OUT    : out std_logic;
+      COARSE_COUNTER_IN       : in  std_logic_vector(10 downto 0);
+      EPOCH_COUNTER_IN        : in  std_logic_vector(27 downto 0);
+      DATA_FINISHED_IN        : in  std_logic;
+      LOST_HIT_NUMBER         : out std_logic_vector(23 downto 0);
+      HIT_DETECT_NUMBER       : out std_logic_vector(23 downto 0);
+      ENCODER_START_NUMBER    : out std_logic_vector(23 downto 0);
+      ENCODER_FINISHED_NUMBER : out std_logic_vector(23 downto 0);
+      Channel_DEBUG           : out std_logic_vector(31 downto 0));
   end component;
 
   component Channel_200
     generic (
-      CHANNEL_ID : integer range 1 to 64);
+      CHANNEL_ID : integer range 0 to 64);
     port (
-      CLK_200               : in  std_logic;
-      RESET_200             : in  std_logic;
-      CLK_100               : in  std_logic;
-      RESET_100             : in  std_logic;
-      HIT_IN                : in  std_logic;
-      TRIGGER_IN                : in  std_logic;
-      EPOCH_COUNTER_IN      : in  std_logic_vector(27 downto 0);
-      DATA_FINISHED_IN      : in  std_logic;
-      COARSE_COUNTER_IN     : in  std_logic_vector(10 downto 0);
-      READ_EN_IN            : in  std_logic;
-      FIFO_DATA_OUT         : out std_logic_vector(31 downto 0);
-      FIFO_EMPTY_OUT        : out std_logic;
-      FIFO_FULL_OUT         : out std_logic;
-      FIFO_ALMOST_FULL_OUT  : out std_logic;
-      FIFO_WR_OUT           : out std_logic;
-      ENCODER_START_OUT     : out std_logic);
+      CLK_200              : in  std_logic;
+      RESET_200            : in  std_logic;
+      CLK_100              : in  std_logic;
+      RESET_100            : in  std_logic;
+      HIT_IN               : in  std_logic;
+      TRIGGER_IN           : in  std_logic;
+      EPOCH_COUNTER_IN     : in  std_logic_vector(27 downto 0);
+      DATA_FINISHED_IN     : in  std_logic;
+      COARSE_COUNTER_IN    : in  std_logic_vector(10 downto 0);
+      READ_EN_IN           : in  std_logic;
+      FIFO_DATA_OUT        : out std_logic_vector(35 downto 0);
+      FIFO_WCNT_OUT        : out unsigned(7 downto 0);
+      FIFO_EMPTY_OUT       : out std_logic;
+      FIFO_FULL_OUT        : out std_logic;
+      FIFO_ALMOST_FULL_OUT : out std_logic;
+      ENCODER_START_OUT    : out std_logic;
+      ENCODER_FINISHED_OUT : out std_logic);
   end component;
 
   component Readout
     generic (
-      CHANNEL_NUMBER : integer range 2 to 65;
-      STATUS_REG_NR  : integer range 0 to 6);
+      CHANNEL_NUMBER : integer range 2 to 65);
     port (
-      CLK_200           : in std_logic;
-      RESET_200         : in std_logic;
-      CLK_100           : in std_logic;
-      RESET_100         : in std_logic;
-      RESET_COUNTERS    : in std_logic;
-      HIT_IN            : in std_logic_vector(CHANNEL_NUMBER-1 downto 1);
-      REFERENCE_TIME    : in std_logic;
-      TRIGGER_TIME_IN   : in std_logic_vector(38 downto 0);
-      TRG_WIN_PRE       : in std_logic_vector(10 downto 0);
-      TRG_WIN_POST      : in std_logic_vector(10 downto 0);
-      DEBUG_MODE_EN_IN  : in std_logic;
-      TRIGGER_WIN_EN_IN : in std_logic;
-
-      CH_DATA_IN               : in  std_logic_vector_array_32(0 to CHANNEL_NUMBER);
+      CLK_200                  : in  std_logic;
+      RESET_200                : in  std_logic;
+      CLK_100                  : in  std_logic;
+      RESET_100                : in  std_logic;
+      RESET_COUNTERS           : in  std_logic;
+      HIT_IN                   : in  std_logic_vector(CHANNEL_NUMBER-1 downto 1);
+      REFERENCE_TIME           : in  std_logic;
+      TRIGGER_TIME_IN          : in  std_logic_vector(38 downto 0);
+      TRG_WIN_PRE              : in  std_logic_vector(10 downto 0);
+      TRG_WIN_POST             : in  std_logic_vector(10 downto 0);
+      DEBUG_MODE_EN_IN         : in  std_logic;
+      TRIGGER_WIN_EN_IN        : in  std_logic;
+      CH_DATA_IN               : in  std_logic_vector_array_36(0 to CHANNEL_NUMBER);
+      CH_WCNT_IN               : in  unsigned_array_8(0 to CHANNEL_NUMBER-1);
       CH_EMPTY_IN              : in  std_logic_vector(CHANNEL_NUMBER downto 0);
       CH_FULL_IN               : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
       CH_ALMOST_FULL_IN        : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
@@ -233,7 +237,6 @@ package trb3_components is
       DATA_OUT                 : out std_logic_vector(31 downto 0);
       DATA_WRITE_OUT           : out std_logic;
       DATA_FINISHED_OUT        : out std_logic;
-      READOUT_BUSY_OUT         : out std_logic;
       READ_EN_OUT              : out std_logic_vector(CHANNEL_NUMBER-1 downto 0);
       TRIGGER_WIN_END_OUT      : out std_logic;
       STATUS_REGISTERS_BUS_OUT : out std_logic_vector_array_32(0 to 23);
@@ -242,8 +245,7 @@ package trb3_components is
 
   component LogicAnalyser
     generic (
-      CHANNEL_NUMBER : integer range 2 to 65;
-      STATUS_REG_NR  : integer range 0 to 6);
+      CHANNEL_NUMBER : integer range 2 to 65);
     port (
       CLK        : in  std_logic;
       RESET      : in  std_logic;
@@ -296,28 +298,28 @@ package trb3_components is
       Result : out std_logic_vector(303 downto 0));
   end component;
 
-  component Encoder_304_Bit
+  component Encoder_304_Bit is
     port (
-      RESET           : in  std_logic;
-      CLK             : in  std_logic;
-      START_IN        : in  std_logic;
-      THERMOCODE_IN   : in  std_logic_vector(303 downto 0);
-      FINISHED_OUT    : out std_logic;
-      BINARY_CODE_OUT : out std_logic_vector(9 downto 0);
-      ENCODER_DEBUG   : out std_logic_vector(31 downto 0));
-  end component;
+      RESET            : in  std_logic;
+      CLK              : in  std_logic;
+      START_IN         : in  std_logic;
+      THERMOCODE_IN    : in  std_logic_vector(303 downto 0);
+      FINISHED_OUT     : out std_logic;
+      BINARY_CODE_OUT  : out std_logic_vector(9 downto 0);
+      ENCODER_INFO_OUT : out std_logic_vector(1 downto 0);
+      ENCODER_DEBUG    : out std_logic_vector(31 downto 0));
+  end component Encoder_304_Bit;
 
-  component Encoder_304_ROMsuz
-    port (
-      RESET           : in  std_logic;
-      CLK             : in  std_logic;
-      START_IN        : in  std_logic;
-      THERMOCODE_IN   : in  std_logic_vector(303 downto 0);
-      FINISHED_OUT    : out std_logic;
-      BINARY_CODE_OUT : out std_logic_vector(9 downto 0);
-      BUSY_OUT        : out std_logic;
-      ENCODER_DEBUG   : out std_logic_vector(31 downto 0)); 
-  end component;
+  --component Encoder_304_Bit
+  --  port (
+  --    RESET           : in  std_logic;
+  --    CLK             : in  std_logic;
+  --    START_IN        : in  std_logic;
+  --    THERMOCODE_IN   : in  std_logic_vector(303 downto 0);
+  --    FINISHED_OUT    : out std_logic;
+  --    BINARY_CODE_OUT : out std_logic_vector(9 downto 0);
+  --    ENCODER_DEBUG   : out std_logic_vector(31 downto 0));
+  --end component;
 
   component FIFO_32x32_OutReg
     port (
@@ -333,6 +335,21 @@ package trb3_components is
       Full       : out std_logic;
       AlmostFull : out std_logic);
   end component;
+
+  component FIFO_36x128_OutReg_Counter is
+    port (
+      Data    : in  std_logic_vector(35 downto 0);
+      WrClock : in  std_logic;
+      RdClock : in  std_logic;
+      WrEn    : in  std_logic;
+      RdEn    : in  std_logic;
+      Reset   : in  std_logic;
+      RPReset : in  std_logic;
+      Q       : out std_logic_vector(35 downto 0);
+      WCNT    : out std_logic_vector(7 downto 0);
+      Empty   : out std_logic;
+      Full    : out std_logic);
+  end component FIFO_36x128_OutReg_Counter;
 
   component FIFO_24x2_OutReg
     port (
@@ -357,14 +374,14 @@ package trb3_components is
       Q          : out std_logic_vector(7 downto 0));
   end component;
 
-  component ROM_encoder_4
+  component ROM4_Encoder is
     port (
       Address    : in  std_logic_vector(9 downto 0);
       OutClock   : in  std_logic;
       OutClockEn : in  std_logic;
       Reset      : in  std_logic;
       Q          : out std_logic_vector(7 downto 0));
-  end component;
+  end component ROM4_Encoder;
 
   component bit_sync
     generic (
@@ -384,6 +401,20 @@ package trb3_components is
       signal_in : in  std_logic;
       pulse     : out std_logic);
   end component;
+
+  component risingEdgeDetect is
+    port (
+      CLK       : in  std_logic;
+      SIGNAL_IN : in  std_logic;
+      PULSE_OUT : out std_logic);
+  end component risingEdgeDetect;
+
+  component fallingEdgeDetect is
+    port (
+      CLK       : in  std_logic;
+      SIGNAL_IN : in  std_logic;
+      PULSE_OUT : out std_logic);
+  end component fallingEdgeDetect;
 
   component ShiftRegisterSISO
     generic (
