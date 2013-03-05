@@ -5,7 +5,7 @@
 -- File       : Reference_channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-09-04
--- Last update: 2013-03-04
+-- Last update: 2013-03-05
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -77,8 +77,8 @@ architecture Reference_Channel_200 of Reference_Channel_200 is
   signal encoder_debug_i    : std_logic_vector(31 downto 0);
 
   -- fifo
-  signal fifo_data_out_i    : std_logic_vector(35 downto 0);
   signal fifo_data_in_i     : std_logic_vector(35 downto 0);
+  signal fifo_data_out_i    : std_logic_vector(35 downto 0);
   signal fifo_wcnt_i        : std_logic_vector(7 downto 0);
   signal fifo_empty_i       : std_logic;
   signal fifo_full_i        : std_logic;
@@ -149,7 +149,6 @@ begin  -- Reference_Channel_200
   hit_detect_reg  <= hit_detect_i      when rising_edge(CLK_200);
   hit_detect_2reg <= hit_detect_reg    when rising_edge(CLK_200);
   coarse_cntr_reg <= COARSE_COUNTER_IN when rising_edge(CLK_200);
---  encoder_start_i <= hit_detect_reg;
   encoder_start_i <= hit_detect_i;
 
   TimeStampCapture : process (CLK_200)
@@ -257,7 +256,6 @@ begin  -- Reference_Channel_200
         else
           fifo_data_in_i(21 downto 12) <= encoder_data_out_i;  -- fine time from the encoder
         end if;
---        fifo_data_in_i(21 downto 12) <= encoder_data_out_i;  -- fine time from the encoder
         fifo_data_in_i(11)           <= '1';  --edge_type_i;  -- rising '1' or falling '0' edge
         fifo_data_in_i(10 downto 0)  <= time_stamp_i;       -- hit time stamp
         coarse_cntr_overflow_release <= '0';

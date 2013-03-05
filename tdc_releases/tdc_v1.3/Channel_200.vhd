@@ -37,12 +37,11 @@ entity Channel_200 is
     COARSE_COUNTER_IN    : in  std_logic_vector(10 downto 0);
     READ_EN_IN           : in  std_logic;  -- read en signal
     FIFO_DATA_OUT        : out std_logic_vector(35 downto 0);  -- fifo data out
-    FIFO_WCNT_OUT        : out unsigned(7 downto 0);
+    FIFO_WCNT_OUT        : out unsigned(7 downto 0);  -- fifo write counter out
     FIFO_EMPTY_OUT       : out std_logic;  -- fifo empty signal
     FIFO_FULL_OUT        : out std_logic;  -- fifo full signal
     FIFO_ALMOST_FULL_OUT : out std_logic;
 --
---  FIFO_WR_OUT          : out std_logic;
     ENCODER_START_OUT    : out std_logic;
     ENCODER_FINISHED_OUT : out std_logic);
 
@@ -125,7 +124,6 @@ begin  -- Channel_200
   hit_detect_reg    <= hit_detect_i      when rising_edge(CLK_200);
   hit_detect_2reg   <= hit_detect_reg    when rising_edge(CLK_200);
   coarse_cntr_reg   <= COARSE_COUNTER_IN when rising_edge(CLK_200);
---  encoder_start_i   <= hit_detect_reg;
   encoder_start_i   <= hit_detect_i;
   ENCODER_START_OUT <= encoder_start_i;
 
@@ -282,7 +280,6 @@ begin  -- Channel_200
     end if;
   end process FifoWriteSignal;
 
---FIFO_WR_OUT          <= fifo_wr_en_i;
   ENCODER_FINISHED_OUT <= encoder_finished_i;
 
   RegisterOutputs : process (CLK_100)
@@ -303,6 +300,5 @@ begin  -- Channel_200
       end if;
     end if;
   end process RegisterOutputs;
-  
 
 end Channel_200;
