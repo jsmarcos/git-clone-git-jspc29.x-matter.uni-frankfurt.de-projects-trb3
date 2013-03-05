@@ -1,7 +1,0 @@
-// nodes file for parallel place&route
-
-[lxhadeb05]
-SYSTEM = linux
-CORENUM = 24
-ENV = /home/cugur/kp1pc105/bin/diamond_setup.sh
-WORKDIR = /home/cugur/kp1pc105/Projects/TDC_on_TRB3/trb3/tdc_test/diamond/trb3_periph
