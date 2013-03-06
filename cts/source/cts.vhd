@@ -72,6 +72,10 @@ library work;
 --      09 : 00   Maximal number of events accepted per millisecond
 --        10      Throttle enabled
 --        31      Stop Trigger
+--   
+--    0x0d        Event Builder selection
+--      15 : 00   Event Builder mask (default: 0x1)
+--      23 : 16   Number of events before selecting next builder (useful to aggregate events to support large data packets) 
 -- </address_table>
 
 -- Header of data packet written to event builder
@@ -225,6 +229,8 @@ architecture RTL of CTS is
    signal td_fsm_i : td_fsm_t := TD_FSM_IDLE;
    signal td_trigger_id_i : std_logic_vector(15 downto 0);
    signal td_random_number_i : std_logic_vector(7 downto 0) := (others => '0');
+   signal td_next_event_i : std_logic := '0';
+   
    
    type td_fsm_encode_t is array(td_fsm_t) of std_logic_vector(31 downto 0);
    constant TD_FSM_ENCODE : td_fsm_encode_t := (
@@ -254,6 +260,7 @@ architecture RTL of CTS is
       
    );
    signal ro_fsm_i : ro_fsm_t;
+   signal ro_next_cycle_i : std_logic := '0';
 
    type ro_fsm_encode_t is array(ro_fsm_t) of std_logic_vector(31 downto 0);
    constant RO_FSM_ENCODE : ro_fsm_encode_t := (
@@ -267,7 +274,7 @@ architecture RTL of CTS is
    signal ro_configuration_i, ro_configuration_buf_i : std_logic_vector(4 downto 0);
    
 -- Debug and statistics
-   type cts_status_registers_t is array(0 to 16#0c#) of std_logic_vector(31 downto 0);
+   type cts_status_registers_t is array(0 to 16#0d#) of std_logic_vector(31 downto 0);
    signal cts_status_registers_i : cts_status_registers_t := (others => (others => '0'));
    
    signal debug_lvl1_limit_i, debug_ipu_limit_i, 
@@ -296,6 +303,10 @@ architecture RTL of CTS is
           
    signal timestamp_i : unsigned(31 downto 0) := (others => '0');
    
+   signal eb_mask_i,
+          eb_mask_buf_i : std_logic_vector(15 downto 0) := (0 => '1', others => '0');
+   signal eb_aggr_threshold_i, eb_aggr_counter_i : unsigned(7 downto 0) := x"00";
+   signal eb_selection_i : std_logic_vector(3 downto 0) := x"0";
 begin
 -- Trigger Distribution
 -----------------------------------------
@@ -328,7 +339,8 @@ begin
          if td_fsm_i /= TD_FSM_FEE_ENQUEUE_CHANNEL_COUNTER then
             fee_channel_counter_v := 0;
          end if;
-      
+
+         td_next_event_i <= '0';
          
          if RESET = '1' then
             td_fsm_i <= TD_FSM_IDLE;
@@ -367,7 +379,8 @@ begin
                      if to_integer(debug_lvl1_limit_i) /= 2**debug_lvl1_limit_i'length-1 then
                         debug_lvl1_limit_i <= debug_lvl1_limit_i - 1;
                      end if;
-                     
+
+                     td_next_event_i <= '1';
                   end if;
                
                when TD_FSM_SEND_TRIGGER =>
@@ -513,6 +526,7 @@ begin
       if rising_edge(CLK) then
          fifo_dequeue_i <= '0';
          CTS_IPU_SEND_OUT <= '0';
+         ro_next_cycle_i <= '0';
 
          if RESET = '1' then
             ro_fsm_i <= RO_FSM_IDLE;
@@ -533,11 +547,12 @@ begin
                   end if;
                   
                when RO_FSM_SEND_REQUEST =>
+                  ro_next_cycle_i <= '1';
                   -- TODO: Check whether this can be directly assigned outside of the process
                   CTS_IPU_NUMBER_OUT <= fifo_data_out_i(15 downto 0);
                   CTS_IPU_RND_CODE_OUT <= fifo_data_out_i(23 downto 16);
                   CTS_IPU_TYPE_OUT  <= fifo_data_out_i(27 downto 24);
-                  CTS_IPU_INFORMATION_OUT <= X"00";
+                  CTS_IPU_INFORMATION_OUT <= X"0" & eb_selection_i;
 
                   
                   CTS_IPU_SEND_OUT <= '1';
@@ -622,6 +637,39 @@ begin
       FULL_OUT => fifo_full_i,
       EMPTY_OUT => fifo_empty_i
    ); 
+
+-- Event Builder Selection
+-----------------------------------------
+   eb_proc: process(CLK) is
+   begin
+      if rising_edge(CLK) then
+         if RESET='1' then
+            eb_mask_i     <= (0 => '1', others => '0');
+            eb_mask_buf_i <= (0 => '1', others => '0');
+            eb_aggr_threshold_i <= x"00";
+            eb_aggr_counter_i   <= x"00";
+         elsif eb_aggr_threshold_i /= x"00" and ro_next_cycle_i = '1' then
+            if eb_aggr_threshold_i = eb_aggr_counter_i then
+               eb_aggr_counter_i <= (others => '0');
+
+               -- let's waste some logic to save some lines of code. if we run out of area,
+               -- we can switch to a sequential process instead of a parallel priority encoder
+               for i in 0 to 15 loop
+                  if eb_mask_buf_i(i) = '1' then
+                     eb_mask_buf_i(i) <= '0';
+                     eb_selection_i <= STD_LOGIC_VECTOR(TO_UNSIGNED(i, 4));
+                  end if;
+               end loop;
+            else
+               eb_aggr_counter_i <= eb_aggr_counter_i + TO_UNSIGNED(1,1);
+            end if;
+
+         elsif eb_mask_buf_i = x"00" then
+            -- we already unmasked all active ebs, so let's start over and again select all active ebs
+            eb_mask_buf_i <= eb_mask_i;
+         end if;
+      end if;
+   end process;
    
 -- Trigger
 -----------------------------------------
@@ -692,8 +740,7 @@ begin
                stat_trigger_edges_i <= stat_trigger_edges_i + 1;
             end if;
             
-            if td_fsm_i /= TD_FSM_IDLE and td_fsm_i /= TD_FSM_DEBUG_LIMIT_REACHED
-               and last_td_fsm_v = TD_FSM_IDLE then
+            if td_next_event_i = '1' then
                
                stat_trigger_accepted_i <= stat_trigger_accepted_i + 1;
             end if;
@@ -758,6 +805,8 @@ begin
    cts_status_registers_i(16#0c#)(throttle_threshold_i'RANGE) <= STD_LOGIC_VECTOR(throttle_threshold_i);
    cts_status_registers_i(16#0c#)(throttle_threshold_i'LENGTH) <= throttle_enabled_i;
    cts_status_registers_i(16#0c#)(31) <= stop_triggers_i;
+   cts_status_registers_i(16#0d#)(15 downto 0) <= eb_mask_i;
+   cts_status_registers_i(16#0d#)(23 downto 16) <= STD_LOGIC_VECTOR(eb_aggr_threshold_i);
    
    regio_proc: process(CLK) is
       variable addr : integer range 0 to 15;
@@ -806,6 +855,11 @@ begin
                stop_triggers_i      <= cts_regio_data_in_i(31);
                cts_regio_write_ack_out_i   <= '1';
             end if;
+
+            if addr = 16#0d# and cts_regio_write_enable_in_i = '1' then
+               eb_mask_i <= cts_regio_data_in_i(15 downto 0);
+               eb_aggr_threshold_i <= UNSIGNED(cts_regio_data_in_i(23 downto 16));
+            end if;
          end if;
       end if;
    end process;
@@ -813,20 +867,17 @@ begin
 -- Throttle
 -----------------------------------------
    process(CLK) is
-      variable last_td_fsm_v  : td_fsm_t := TD_FSM_IDLE;
    begin
       if rising_edge(CLK) then
       -- counter
          if clk_1khz_i = '1' then
          
             throttle_counter_i <= (others => '0');
-         elsif td_fsm_i /= TD_FSM_IDLE and td_fsm_i /= TD_FSM_DEBUG_LIMIT_REACHED
-               and last_td_fsm_v = TD_FSM_IDLE then
+         elsif td_next_event_i = '1' then
             -- increment each time a new trigger is accepted
             throttle_counter_i <= throttle_counter_i + "1";
          
          end if;
-         last_td_fsm_v := td_fsm_i;
 
       -- throttle decision
          throttle_active_i <= '0';
