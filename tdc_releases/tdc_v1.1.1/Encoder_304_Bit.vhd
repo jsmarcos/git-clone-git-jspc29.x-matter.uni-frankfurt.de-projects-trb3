@@ -4,7 +4,7 @@
 -- File       : Encoder_304_Bit.vhd
 -- Author     : Cahit Ugur
 -- Created    : 2011-11-28
--- Last update: 2013-01-21
+-- Last update: 2013-03-13
 -------------------------------------------------------------------------------
 -- Description: Encoder for 304 bits
 -------------------------------------------------------------------------------
@@ -90,10 +90,10 @@ architecture behavioral of Encoder_304_Bit is
   signal start_cnt_3_i   : std_logic;
   signal start_cnt_4_i   : std_logic;
 --
-  signal proc_cnt_1      : std_logic_vector(3 downto 0);
-  signal proc_cnt_2      : std_logic_vector(3 downto 0);
-  signal proc_cnt_3      : std_logic_vector(3 downto 0);
-  signal proc_cnt_4      : std_logic_vector(3 downto 0);
+  signal proc_cnt_1      : std_logic_vector(3 downto 0) := x"6";
+  signal proc_cnt_2      : std_logic_vector(3 downto 0) := x"6";
+  signal proc_cnt_3      : std_logic_vector(3 downto 0) := x"6";
+  signal proc_cnt_4      : std_logic_vector(3 downto 0) := x"6";
   signal proc_finished_1 : std_logic;
   signal proc_finished_2 : std_logic;
   signal proc_finished_3 : std_logic;
@@ -112,37 +112,37 @@ architecture behavioral of Encoder_304_Bit is
 begin
 
 
- thermocode_i(303 downto 0)   <= THERMOCODE_IN;
- --thermocode_i(-1)             <= '1';
- 
- 
+  thermocode_i(303 downto 0) <= THERMOCODE_IN;
+  --thermocode_i(-1)             <= '1';
+
+
   --purpose : Register signals
-  Register_Signals : process (CLK, RESET)
+  Register_Signals : process (CLK)
   begin
     if rising_edge(CLK) then
-      if RESET = '1' then
-        start_reg           <= '0';
-        start_2reg          <= '0';
-        start_3reg          <= '0';
-        mux_control_reg     <= (others => '0');
-        mux_control_2reg    <= (others => '0');
-        mux_control_3reg    <= (others => '0');
-        mux_control_4reg    <= (others => '0');
-        q_2reg              <= (others => '0');
-        rom_done_reg        <= '0';
-        interval_detected_i <= '0';
-      else
-        start_reg           <= START_IN;
-        start_2reg          <= start_reg;
-        start_3reg          <= start_2reg;
-        mux_control_reg     <= mux_control;
-        mux_control_2reg    <= mux_control_reg;
-        mux_control_3reg    <= mux_control_2reg;
-        mux_control_4reg    <= mux_control_3reg;
-        q_2reg              <= q_reg;
-        rom_done_reg        <= rom_done_i;
-        interval_detected_i <= rom_done_i and rom_done_reg;
-      end if;
+      --if RESET = '1' then
+      --  start_reg           <= '0';
+      --  start_2reg          <= '0';
+      --  start_3reg          <= '0';
+      --  mux_control_reg     <= (others => '0');
+      --  mux_control_2reg    <= (others => '0');
+      --  mux_control_3reg    <= (others => '0');
+      --  mux_control_4reg    <= (others => '0');
+      --  q_2reg              <= (others => '0');
+      --  rom_done_reg        <= '0';
+      --  interval_detected_i <= '0';
+      --else
+      start_reg           <= START_IN;
+      start_2reg          <= start_reg;
+      start_3reg          <= start_2reg;
+      mux_control_reg     <= mux_control;
+      mux_control_2reg    <= mux_control_reg;
+      mux_control_3reg    <= mux_control_2reg;
+      mux_control_4reg    <= mux_control_3reg;
+      q_2reg              <= q_reg;
+      rom_done_reg        <= rom_done_i;
+      interval_detected_i <= rom_done_i and rom_done_reg;
+      --end if;
     end if;
   end process Register_Signals;
 
@@ -166,7 +166,7 @@ begin
   P_one_assign : process (CLK, START_IN, P_lut)
   begin
     if rising_edge(CLK) then
-      if RESET = '1' or START_IN = '0' then
+      if RESET = '1' or START_IN = '0' then  -- if RESET = '1' or START_IN = '0' then
         P_one(37) <= '0';
       else
         P_one(37) <= P_lut(37);
@@ -178,9 +178,9 @@ begin
   begin  -- The interval number with the 0-1 transition is converted from 1-of-N code to binary
     -- code for the control of the MUX.
     if rising_edge(CLK) then
-      if RESET = '1' then
-        mux_control <= (others => '0');
-      elsif START_IN = '1' or start_reg = '1' then
+      --if RESET = '1' then
+      --  mux_control <= (others => '0');
+      if START_IN = '1' or start_reg = '1' then
         mux_control(0) <= P_one(0) or P_one(2) or P_one(4) or P_one(6) or P_one(8) or P_one(10) or
                           P_one(12) or P_one(14) or P_one(16) or P_one(18) or P_one(20) or P_one(22) or
                           P_one(24) or P_one(26) or P_one(28) or P_one(30) or P_one(32) or P_one(34) or
@@ -207,13 +207,13 @@ begin
     end if;
   end process Interval_Number_to_Binary;
 
-  Interval_Selection : process (CLK, RESET)
-  variable tmp : std_logic_vector(8 downto 0);
+  Interval_Selection : process (CLK)
+    variable tmp : std_logic_vector(8 downto 0);
   begin  -- The interval with the 0-1 transition is selected.
     if rising_edge(CLK) then
-      if RESET = '1' then
-        interval_reg  <= (others => '0');
-      else
+      --if RESET = '1' then
+      --  interval_reg  <= (others => '0');
+      --else
 --       tmp := (others => '0');
 --       make_mux : for i in 0 to 37 loop
 --         make_mux_2 : for j in 0 to 8 loop
@@ -221,48 +221,48 @@ begin
 --         end loop;
 --       end loop;
 --       interval_reg <= tmp;
-        case mux_control is
-          when "000001" => interval_reg <= THERMOCODE_IN(7 downto 0) & '1';
-          when "000010" => interval_reg <= THERMOCODE_IN(15 downto 7);
-          when "000011" => interval_reg <= THERMOCODE_IN(23 downto 15);
-          when "000100" => interval_reg <= THERMOCODE_IN(31 downto 23);
-          when "000101" => interval_reg <= THERMOCODE_IN(39 downto 31);
-          when "000110" => interval_reg <= THERMOCODE_IN(47 downto 39);
-          when "000111" => interval_reg <= THERMOCODE_IN(55 downto 47);
-          when "001000" => interval_reg <= THERMOCODE_IN(63 downto 55);
-          when "001001" => interval_reg <= THERMOCODE_IN(71 downto 63);
-          when "001010" => interval_reg <= THERMOCODE_IN(79 downto 71);
-          when "001011" => interval_reg <= THERMOCODE_IN(87 downto 79);
-          when "001100" => interval_reg <= THERMOCODE_IN(95 downto 87);
-          when "001101" => interval_reg <= THERMOCODE_IN(103 downto 95);
-          when "001110" => interval_reg <= THERMOCODE_IN(111 downto 103);
-          when "001111" => interval_reg <= THERMOCODE_IN(119 downto 111);
-          when "010000" => interval_reg <= THERMOCODE_IN(127 downto 119);
-          when "010001" => interval_reg <= THERMOCODE_IN(135 downto 127);
-          when "010010" => interval_reg <= THERMOCODE_IN(143 downto 135);
-          when "010011" => interval_reg <= THERMOCODE_IN(151 downto 143);
-          when "010100" => interval_reg <= THERMOCODE_IN(159 downto 151);
-          when "010101" => interval_reg <= THERMOCODE_IN(167 downto 159);
-          when "010110" => interval_reg <= THERMOCODE_IN(175 downto 167);
-          when "010111" => interval_reg <= THERMOCODE_IN(183 downto 175);
-          when "011000" => interval_reg <= THERMOCODE_IN(191 downto 183);
-          when "011001" => interval_reg <= THERMOCODE_IN(199 downto 191);
-          when "011010" => interval_reg <= THERMOCODE_IN(207 downto 199);
-          when "011011" => interval_reg <= THERMOCODE_IN(215 downto 207);
-          when "011100" => interval_reg <= THERMOCODE_IN(223 downto 215);
-          when "011101" => interval_reg <= THERMOCODE_IN(231 downto 223);
-          when "011110" => interval_reg <= THERMOCODE_IN(239 downto 231);
-          when "011111" => interval_reg <= THERMOCODE_IN(247 downto 239);
-          when "100000" => interval_reg <= THERMOCODE_IN(255 downto 247);
-          when "100001" => interval_reg <= THERMOCODE_IN(263 downto 255);
-          when "100010" => interval_reg <= THERMOCODE_IN(271 downto 263);
-          when "100011" => interval_reg <= THERMOCODE_IN(279 downto 271);
-          when "100100" => interval_reg <= THERMOCODE_IN(287 downto 279);
-          when "100101" => interval_reg <= THERMOCODE_IN(295 downto 287);
-          when "100110" => interval_reg <= THERMOCODE_IN(303 downto 295);
-          when others   => interval_reg <= (others => '0');
-        end case;
-      end if;
+      case mux_control is
+        when "000001" => interval_reg <= THERMOCODE_IN(7 downto 0) & '1';
+        when "000010" => interval_reg <= THERMOCODE_IN(15 downto 7);
+        when "000011" => interval_reg <= THERMOCODE_IN(23 downto 15);
+        when "000100" => interval_reg <= THERMOCODE_IN(31 downto 23);
+        when "000101" => interval_reg <= THERMOCODE_IN(39 downto 31);
+        when "000110" => interval_reg <= THERMOCODE_IN(47 downto 39);
+        when "000111" => interval_reg <= THERMOCODE_IN(55 downto 47);
+        when "001000" => interval_reg <= THERMOCODE_IN(63 downto 55);
+        when "001001" => interval_reg <= THERMOCODE_IN(71 downto 63);
+        when "001010" => interval_reg <= THERMOCODE_IN(79 downto 71);
+        when "001011" => interval_reg <= THERMOCODE_IN(87 downto 79);
+        when "001100" => interval_reg <= THERMOCODE_IN(95 downto 87);
+        when "001101" => interval_reg <= THERMOCODE_IN(103 downto 95);
+        when "001110" => interval_reg <= THERMOCODE_IN(111 downto 103);
+        when "001111" => interval_reg <= THERMOCODE_IN(119 downto 111);
+        when "010000" => interval_reg <= THERMOCODE_IN(127 downto 119);
+        when "010001" => interval_reg <= THERMOCODE_IN(135 downto 127);
+        when "010010" => interval_reg <= THERMOCODE_IN(143 downto 135);
+        when "010011" => interval_reg <= THERMOCODE_IN(151 downto 143);
+        when "010100" => interval_reg <= THERMOCODE_IN(159 downto 151);
+        when "010101" => interval_reg <= THERMOCODE_IN(167 downto 159);
+        when "010110" => interval_reg <= THERMOCODE_IN(175 downto 167);
+        when "010111" => interval_reg <= THERMOCODE_IN(183 downto 175);
+        when "011000" => interval_reg <= THERMOCODE_IN(191 downto 183);
+        when "011001" => interval_reg <= THERMOCODE_IN(199 downto 191);
+        when "011010" => interval_reg <= THERMOCODE_IN(207 downto 199);
+        when "011011" => interval_reg <= THERMOCODE_IN(215 downto 207);
+        when "011100" => interval_reg <= THERMOCODE_IN(223 downto 215);
+        when "011101" => interval_reg <= THERMOCODE_IN(231 downto 223);
+        when "011110" => interval_reg <= THERMOCODE_IN(239 downto 231);
+        when "011111" => interval_reg <= THERMOCODE_IN(247 downto 239);
+        when "100000" => interval_reg <= THERMOCODE_IN(255 downto 247);
+        when "100001" => interval_reg <= THERMOCODE_IN(263 downto 255);
+        when "100010" => interval_reg <= THERMOCODE_IN(271 downto 263);
+        when "100011" => interval_reg <= THERMOCODE_IN(279 downto 271);
+        when "100100" => interval_reg <= THERMOCODE_IN(287 downto 279);
+        when "100101" => interval_reg <= THERMOCODE_IN(295 downto 287);
+        when "100110" => interval_reg <= THERMOCODE_IN(303 downto 295);
+        when others   => interval_reg <= (others => '0');
+      end case;
+      --end if;
     end if;
   end process Interval_Selection;
 
@@ -277,13 +277,13 @@ begin
   rom_done_i      <= q_2reg(7);
   interval_binary <= q_2reg(2 downto 0);
 
-  Binary_Code_Calculation_rf : process (CLK, RESET)
+  Binary_Code_Calculation_rf : process (CLK)
   begin
     if rising_edge(CLK) then
-      if RESET = '1' then
-        binary_code_f <= (others => '0');
-        binary_code_r <= (others => '0');
-      elsif rom_done_i = '1' then
+      --if RESET = '1' then
+      --  binary_code_f <= (others => '0');
+      --  binary_code_r <= (others => '0');
+      if rom_done_i = '1' then
         binary_code_r <= (mux_control_4reg - 1) & interval_binary;
         binary_code_f <= binary_code_r;
       end if;
@@ -291,22 +291,22 @@ begin
   end process Binary_Code_Calculation_rf;
 
   --purpose: FSMs the encoder
-  FSM_CLK : process (CLK, RESET)
+  FSM_CLK : process (CLK)
   begin
     if rising_edge(CLK) then
-      if RESET = '1' then
-        FSM_CURRENT   <= IDLE;
-        start_cnt_1_i <= '0';
-        start_cnt_2_i <= '0';
-        start_cnt_3_i <= '0';
-        start_cnt_4_i <= '0';
-      else
-        FSM_CURRENT   <= FSM_NEXT;
-        start_cnt_1_i <= start_cnt_1_fsm;
-        start_cnt_2_i <= start_cnt_2_fsm;
-        start_cnt_3_i <= start_cnt_3_fsm;
-        start_cnt_4_i <= start_cnt_4_fsm;
-      end if;
+      --if RESET = '1' then
+      --  FSM_CURRENT   <= IDLE;
+      --  start_cnt_1_i <= '0';
+      --  start_cnt_2_i <= '0';
+      --  start_cnt_3_i <= '0';
+      --  start_cnt_4_i <= '0';
+      --else
+      FSM_CURRENT   <= FSM_NEXT;
+      start_cnt_1_i <= start_cnt_1_fsm;
+      start_cnt_2_i <= start_cnt_2_fsm;
+      start_cnt_3_i <= start_cnt_3_fsm;
+      start_cnt_4_i <= start_cnt_4_fsm;
+      --end if;
     end if;
   end process FSM_CLK;
 
@@ -355,159 +355,150 @@ begin
     end case;
   end process FSM_PROC;
 
---   --purpose : Conversion number 1
---   Conv_1 : process (CLK, RESET)
---   begin
---     if rising_edge(CLK) then
---       if RESET = '1' then
---         proc_cnt_1      <= x"6";
---         proc_finished_1 <= '0';
---       elsif start_cnt_1_i = '1' then
---         proc_cnt_1      <= x"1";
---         proc_finished_1 <= '0';
---       elsif proc_cnt_1 = x"5" then
---         proc_cnt_1      <= proc_cnt_1 + 1;
---         proc_finished_1 <= '1';
---       elsif proc_cnt_1 = x"6" then
---         proc_cnt_1      <= x"6";
---         proc_finished_1 <= '0';
---       else
---         proc_cnt_1      <= proc_cnt_1 + 1;
---         proc_finished_1 <= '0';
---       end if;
---     end if;
---   end process Conv_1;
--- 
---   --purpose : Conversion number 2
---   Conv_2 : process (CLK, RESET)
---   begin
---     if rising_edge(CLK) then
---       if RESET = '1' then
---         proc_cnt_2      <= x"6";
---         proc_finished_2 <= '0';
---       elsif start_cnt_2_i = '1' then
---         proc_cnt_2      <= x"1";
---         proc_finished_2 <= '0';
---       elsif proc_cnt_2 = x"5" then
---         proc_cnt_2      <= proc_cnt_2 + 1;
---         proc_finished_2 <= '1';
---       elsif proc_cnt_2 = x"6" then
---         proc_cnt_2      <= x"6";
---         proc_finished_2 <= '0';
---       else
---         proc_cnt_2      <= proc_cnt_2 + 1;
---         proc_finished_2 <= '0';
---       end if;
---     end if;
---   end process Conv_2;
--- 
---   --purpose : Conversion number 3
---   Conv_3 : process (CLK, RESET)
---   begin
---     if rising_edge(CLK) then
---       if RESET = '1' then
---         proc_cnt_3      <= x"6";
---         proc_finished_3 <= '0';
---       elsif start_cnt_3_i = '1' then
---         proc_cnt_3      <= x"1";
---         proc_finished_3 <= '0';
---       elsif proc_cnt_3 = x"5" then
---         proc_cnt_3      <= proc_cnt_3 + 1;
---         proc_finished_3 <= '1';
---       elsif proc_cnt_3 = x"6" then
---         proc_cnt_3      <= x"6";
---         proc_finished_3 <= '0';
---       else
---         proc_cnt_3      <= proc_cnt_3 + 1;
---         proc_finished_3 <= '0';
---       end if;
---     end if;
---   end process Conv_3;
--- 
---   --purpose : Conversion number 4
---   Conv_4 : process (CLK, RESET)
---   begin
---     if rising_edge(CLK) then
---       if RESET = '1' then
---         proc_cnt_4      <= x"6";
---         proc_finished_4 <= '0';
---       elsif start_cnt_4_i = '1' then
---         proc_cnt_4      <= x"1";
---         proc_finished_4 <= '0';
---       elsif proc_cnt_4 = x"5" then
---         proc_cnt_4      <= proc_cnt_4 + 1;
---         proc_finished_4 <= '1';
---       elsif proc_cnt_4 = x"6" then
---         proc_cnt_4      <= x"6";
---         proc_finished_4 <= '0';
---       else
---         proc_cnt_4      <= proc_cnt_4 + 1;
---         proc_finished_4 <= '0';
---       end if;
---     end if;
---   end process Conv_4;
--- 
---   Binary_Code_Calculation : process (CLK, RESET)
---   begin
---     if rising_edge(CLK) then
---       if RESET = '1' then
---         BINARY_CODE_OUT <= (others => '0');
---         FINISHED_OUT    <= '0';
---       elsif conv_finished_i = '1' and interval_detected_i = '1' then
---         BINARY_CODE_OUT <= ('0' & binary_code_r) + ('0' & binary_code_f);
---         FINISHED_OUT    <= '1';
---       else
--- --        BINARY_CODE_OUT <= (others => '0');
---         FINISHED_OUT    <= '0';
---       end if;
---     end if;
---   end process Binary_Code_Calculation;
--- 
---   conv_finished_i <= proc_finished_1 or proc_finished_2 or proc_finished_3 or proc_finished_4;
+  --purpose : Conversion number 1
+  Conv_1 : process (CLK)
+  begin
+    if rising_edge(CLK) then
+      if start_cnt_1_i = '1' then
+        proc_cnt_1      <= x"1";
+        proc_finished_1 <= '0';
+      elsif proc_cnt_1 = x"5" then
+        proc_cnt_1      <= proc_cnt_1 + 1;
+        proc_finished_1 <= '1';
+      elsif proc_cnt_1 = x"6" then
+        proc_cnt_1      <= x"6";
+        proc_finished_1 <= '0';
+      else
+        proc_cnt_1      <= proc_cnt_1 + 1;
+        proc_finished_1 <= '0';
+      end if;
+    end if;
+  end process Conv_1;
+
+  --purpose : Conversion number 2
+  Conv_2 : process (CLK)
+  begin
+    if rising_edge(CLK) then
+      if start_cnt_2_i = '1' then
+        proc_cnt_2      <= x"1";
+        proc_finished_2 <= '0';
+      elsif proc_cnt_2 = x"5" then
+        proc_cnt_2      <= proc_cnt_2 + 1;
+        proc_finished_2 <= '1';
+      elsif proc_cnt_2 = x"6" then
+        proc_cnt_2      <= x"6";
+        proc_finished_2 <= '0';
+      else
+        proc_cnt_2      <= proc_cnt_2 + 1;
+        proc_finished_2 <= '0';
+      end if;
+    end if;
+  end process Conv_2;
+
+  --purpose : Conversion number 3
+  Conv_3 : process (CLK)
+  begin
+    if rising_edge(CLK) then
+      if start_cnt_3_i = '1' then
+        proc_cnt_3      <= x"1";
+        proc_finished_3 <= '0';
+      elsif proc_cnt_3 = x"5" then
+        proc_cnt_3      <= proc_cnt_3 + 1;
+        proc_finished_3 <= '1';
+      elsif proc_cnt_3 = x"6" then
+        proc_cnt_3      <= x"6";
+        proc_finished_3 <= '0';
+      else
+        proc_cnt_3      <= proc_cnt_3 + 1;
+        proc_finished_3 <= '0';
+      end if;
+    end if;
+  end process Conv_3;
+
+  --purpose : Conversion number 4
+  Conv_4 : process (CLK)
+  begin
+    if rising_edge(CLK) then
+      --if RESET = '1' then
+      --  proc_cnt_4      <= x"6";
+      --  proc_finished_4 <= '0';
+      if start_cnt_4_i = '1' then
+        proc_cnt_4      <= x"1";
+        proc_finished_4 <= '0';
+      elsif proc_cnt_4 = x"5" then
+        proc_cnt_4      <= proc_cnt_4 + 1;
+        proc_finished_4 <= '1';
+      elsif proc_cnt_4 = x"6" then
+        proc_cnt_4      <= x"6";
+        proc_finished_4 <= '0';
+      else
+        proc_cnt_4      <= proc_cnt_4 + 1;
+        proc_finished_4 <= '0';
+      end if;
+    end if;
+  end process Conv_4;
+
+  Binary_Code_Calculation : process (CLK)
+  begin
+    if rising_edge(CLK) then
+      if conv_finished_i = '1' then
+        if interval_detected_i = '1' then
+          BINARY_CODE_OUT <= ('0' & binary_code_r) + ('0' & binary_code_f);
+        else
+          BINARY_CODE_OUT <= (others => '1');
+        end if;
+        FINISHED_OUT <= '1';
+      else
+        FINISHED_OUT <= '0';
+      end if;
+    end if;
+  end process Binary_Code_Calculation;
+
+  conv_finished_i <= proc_finished_1 or proc_finished_2 or proc_finished_3 or proc_finished_4;
 
 
 -------------------------------------------------------------------------------
 -- DEBUG
 -------------------------------------------------------------------------------
-  --purpose : Conversion number 1
-  Conv_1 : process (CLK, RESET)
-  begin
-   if rising_edge(CLK) then
-     if RESET = '1' then
-       proc_cnt_1      <= x"3";
-       proc_finished_1 <= '0';
-     elsif START_IN = '1' then
-       proc_cnt_1      <= x"1";
-       proc_finished_1 <= '0';
-     elsif proc_cnt_1 = x"1" or proc_cnt_1 = x"2" then
-       proc_cnt_1      <= proc_cnt_1 + 1;
-       proc_finished_1 <= '1';
-     elsif proc_cnt_1 = x"3" then
-       proc_cnt_1      <= x"3";
-       proc_finished_1 <= '0';
-     else
-       proc_cnt_1      <= proc_cnt_1 + 1;
-       proc_finished_1 <= '0';
-     end if;
-   end if;
-  end process Conv_1;
+  ----purpose : Conversion number 1
+  --Conv_1 : process (CLK, RESET)
+  --begin
+  --  if rising_edge(CLK) then
+  --    if RESET = '1' then
+  --      proc_cnt_1      <= x"3";
+  --      proc_finished_1 <= '0';
+  --    elsif START_IN = '1' then
+  --      proc_cnt_1      <= x"1";
+  --      proc_finished_1 <= '0';
+  --    elsif proc_cnt_1 = x"1" or proc_cnt_1 = x"2" then
+  --      proc_cnt_1      <= proc_cnt_1 + 1;
+  --      proc_finished_1 <= '1';
+  --    elsif proc_cnt_1 = x"3" then
+  --      proc_cnt_1      <= x"3";
+  --      proc_finished_1 <= '0';
+  --    else
+  --      proc_cnt_1      <= proc_cnt_1 + 1;
+  --      proc_finished_1 <= '0';
+  --    end if;
+  --  end if;
+  --end process Conv_1;
 
-  Binary_Code_Calculation : process (CLK, RESET)
-  begin
-   if rising_edge(CLK) then
-     if RESET = '1' then
-       BINARY_CODE_OUT <= (others => '0');
-       FINISHED_OUT    <= '0';
-     elsif proc_finished_1 = '1' then
-       BINARY_CODE_OUT <= address_i; --'0' & interval_reg;
-       FINISHED_OUT    <= '1';
-     else
-       BINARY_CODE_OUT <= (others => '0');
-       FINISHED_OUT    <= '0';
-     end if;
-   end if;
-  end process Binary_Code_Calculation;
+  --Binary_Code_Calculation : process (CLK, RESET)
+  --begin
+  --  if rising_edge(CLK) then
+  --    if RESET = '1' then
+  --      BINARY_CODE_OUT <= (others => '0');
+  --      FINISHED_OUT    <= '0';
+  --    elsif proc_finished_1 = '1' then
+  --      BINARY_CODE_OUT <= address_i; --'0' & interval_reg;
+  --      FINISHED_OUT    <= '1';
+  --    else
+  --      BINARY_CODE_OUT <= (others => '0');
+  --      FINISHED_OUT    <= '0';
+  --    end if;
+  --  end if;
+  --end process Binary_Code_Calculation;
 
-  ENCODER_DEBUG(8 downto 0) <= interval_reg;
+  --ENCODER_DEBUG(8 downto 0) <= interval_reg;
 
 end behavioral;
