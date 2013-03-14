@@ -7,10 +7,11 @@ use work.trb_net_std.all;
 use work.trb_net_components.all;
 use work.trb3_components.all;
 use work.version.all;
-
+use work.jtag_constants.all;
 
 entity trb3_periph_mvdjtag is
   generic(
+    NUM_CHAINS : integer := 1;
     SYNC_MODE : integer range 0 to 1 := c_NO   --use the RX clock for internal logic and transmission.
     );
   port(
@@ -22,10 +23,9 @@ entity trb3_periph_mvdjtag is
     --CLK_PCLK_RIGHT is the only clock with external termination !?
     CLK_EXTERNAL   : in std_logic;      --Clock Manager 9
 
-
---     --Trigger
-    TRIGGER_LEFT : in std_logic;        --left side trigger input from fan-out
---     TRIGGER_RIGHT : in std_logic;       --right side trigger input from fan-out
+    --Trigger
+    TRIGGER_LEFT   : in std_logic;       --left side trigger input from fan-out
+    TRIGGER_RIGHT  : in std_logic;       --right side trigger input from fan-out
 
     --Serdes
     CLK_SERDES_INT_RIGHT : in  std_logic;  --Clock Manager 0, not used
@@ -36,11 +36,15 @@ entity trb3_periph_mvdjtag is
                                         --Bit 0/1 input, serial link RX active
                                         --Bit 2/3 output, serial link TX active
 
-
     --Connections
-    SPARE_LINE : inout std_logic_vector(3 downto 0);
-    INP        : in    std_logic_vector(63 downto 0);
-
+    MAPS_CLK_OUT    : out std_logic_vector(NUM_CHAINS-1 downto 0);
+    MAPS_START_OUT  : out std_logic_vector(NUM_CHAINS-1 downto 0);
+    MAPS_RESET_OUT  : out std_logic_vector(NUM_CHAINS-1 downto 0);
+    JTAG_TCK_OUT    : out std_logic_vector(NUM_CHAINS-1 downto 0);
+    JTAG_TMS_OUT    : out std_logic_vector(NUM_CHAINS-1 downto 0);
+    JTAG_TDI_OUT    : out std_logic_vector(NUM_CHAINS-1 downto 0);
+    JTAG_TDO_IN     : in  std_logic_vector(NUM_CHAINS-1 downto 0);
+    
     --Flash ROM & Reboot
     FLASH_CLK  : out std_logic;
     FLASH_CS   : out std_logic;
@@ -48,11 +52,6 @@ entity trb3_periph_mvdjtag is
     FLASH_DOUT : in  std_logic;
     PROGRAMN   : out std_logic;         --reboot FPGA
 
-    --DAC
---     OUT_SDO    : out   std_logic_vector(4 downto 1);
---     IN_SDI     : in    std_logic_vector(4 downto 1);
---     OUT_SCK    : out   std_logic_vector(4 downto 1);
---     OUT_CS     : out   std_logic_vector(4 downto 1);
     --Misc
     TEMPSENS   : inout std_logic;       --Temperature Sensor
     CODE_LINE  : in    std_logic_vector(1 downto 0);
@@ -81,14 +80,17 @@ entity trb3_periph_mvdjtag is
   attribute syn_useioff of FLASH_DIN  : signal is true;
   attribute syn_useioff of FLASH_DOUT : signal is true;
   attribute syn_useioff of TEST_LINE  : signal is true;
-  attribute syn_useioff of SPARE_LINE : signal is true;
+  attribute syn_useioff of JTAG_TCK_OUT  : signal is true;
+  attribute syn_useioff of JTAG_TDI_OUT  : signal is true;
+  attribute syn_useioff of JTAG_TMS_OUT  : signal is true;
+  attribute syn_useioff of JTAG_TDO_IN  : signal is true;
 
 
 end entity;
 
 architecture trb3_periph_mvdjtag_arch of trb3_periph_mvdjtag is
   --Constants
-  constant REGIO_NUM_STAT_REGS : integer := 0;
+  constant REGIO_NUM_STAT_REGS : integer := 4;
   constant REGIO_NUM_CTRL_REGS : integer := 2;
 
   attribute syn_keep     : boolean;
@@ -197,14 +199,37 @@ architecture trb3_periph_mvdjtag_arch of trb3_periph_mvdjtag is
   signal spi_bram_rd_d : std_logic_vector(7 downto 0);
   signal spi_bram_we   : std_logic;
 
+  --Serdes registers
   signal sci1_ack      : std_logic;
   signal sci1_write    : std_logic;
   signal sci1_read     : std_logic;
   signal sci1_data_in  : std_logic_vector(7 downto 0);
   signal sci1_data_out : std_logic_vector(7 downto 0);
   signal sci1_addr     : std_logic_vector(8 downto 0);  
-  
 
+  -- JTAG_CMD_M26C connection signals
+  signal jtag_addr_in          : std_logic_vector(12 downto 0);
+  signal jtag_data_in          : std_logic_vector(31 downto 0);
+  signal jtag_read_enable_in   : std_logic;
+  signal jtag_write_enable_in  : std_logic;
+  signal jtag_data_out         : std_logic_vector(31 downto 0);
+  signal jtag_dataready_out    : std_logic;
+  signal jtag_write_ack_out    : std_logic;
+  signal jtag_no_more_data_out : std_logic;
+  signal jtag_unknown_addr_out : std_logic;
+  
+  signal jtag_status           : std_logic_vector(256*NUM_CHAINS-1 downto 0);
+  signal jtag_tck              : std_logic_vector(NUM_CHAINS-1 downto 0);
+  signal jtag_tms              : std_logic_vector(NUM_CHAINS-1 downto 0);
+  signal jtag_tdi              : std_logic_vector(NUM_CHAINS-1 downto 0);
+  signal jtag_tdo              : std_logic_vector(NUM_CHAINS-1 downto 0);  
+  signal maps_clk              : std_logic_vector(NUM_CHAINS-1 downto 0);  
+  signal maps_start            : std_logic_vector(NUM_CHAINS-1 downto 0);  
+  signal maps_reset            : std_logic_vector(NUM_CHAINS-1 downto 0);  
+
+
+  
+  
 begin
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -431,9 +456,9 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 3,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"b000", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 9, others => 0)
+      PORT_NUMBER    => 4,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"b000", 3 => x"a000", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 9, 3 => 13, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -488,6 +513,20 @@ begin
       BUS_WRITE_ACK_IN(2)                 => sci1_ack,
       BUS_NO_MORE_DATA_IN(2)              => '0',
       BUS_UNKNOWN_ADDR_IN(2)              => '0',
+
+      --First JTAG Chain
+      BUS_ADDR_OUT(3*16+12 downto 3*16)    => jtag_addr_in,
+      BUS_ADDR_OUT(3*16+15 downto 3*16+13) => open,
+      BUS_DATA_OUT(3*32+31 downto 3*32)    => jtag_data_in,
+      BUS_READ_ENABLE_OUT(3)               => jtag_read_enable_in,
+      BUS_WRITE_ENABLE_OUT(3)              => jtag_write_enable_in,
+      BUS_TIMEOUT_OUT(3)                   => open,
+      BUS_DATA_IN(3*32+31 downto 3*32)     => jtag_data_out,
+      BUS_DATAREADY_IN(3)                  => jtag_dataready_out,
+      BUS_WRITE_ACK_IN(3)                  => jtag_write_ack_out,
+      BUS_NO_MORE_DATA_IN(3)               => jtag_no_more_data_out,
+      BUS_UNKNOWN_ADDR_IN(3)               => jtag_unknown_addr_out,
+      
       STAT_DEBUG => open
       );
 
@@ -554,7 +593,55 @@ begin
       );
 
 
-
+---------------------------------------------------------------------------
+-- JTAG Chain
+---------------------------------------------------------------------------
+THE_JTAG : entity work.jtag_mvd
+  generic map(
+    NUM_CHAINS => NUM_CHAINS
+    )
+  port map(
+    CLK_IN            => clk_100_i,
+    RESET             => reset_i,
+    
+    MAPS_CLK_OUT      => maps_clk,
+    MAPS_START_OUT    => maps_start,
+    MAPS_RESET_OUT    => maps_reset,
+    
+    JTAG_TDI_OUT      => jtag_tdi,
+    JTAG_TMS_OUT      => jtag_tms,
+    JTAG_TCK_OUT      => jtag_tck,
+    JTAG_TDO_IN       => jtag_tdo,
+    
+    BUS_DATA_IN          => jtag_data_in,
+    BUS_DATA_OUT         => jtag_data_out,
+    BUS_ADDR_IN          => jtag_addr_in,
+    BUS_WRITE_IN         => jtag_write_enable_in,
+    BUS_READ_IN          => jtag_read_enable_in,
+    BUS_DATAREADY_OUT    => jtag_dataready_out,
+    BUS_WRITE_ACK_OUT    => jtag_write_ack_out,
+    BUS_NO_MORE_DATA_OUT => jtag_no_more_data_out,
+    BUS_UNKNOWN_OUT      => jtag_unknown_addr_out,
+    
+    STATUS_OUT        => jtag_status,
+    DEBUG_OUT         => open
+    );
+    
+  stat_reg(255 downto 0)   <= (others => '0');  
+  stat_reg(511 downto 256) <= jtag_status;    
+    
+---------------------------------------------------------------------------
+-- I/O connections
+---------------------------------------------------------------------------
+  JTAG_TDI_OUT <= jtag_tdi;
+  JTAG_TMS_OUT <= jtag_tms;
+  JTAG_TCK_OUT <= jtag_tck;
+  jtag_tdo  <= JTAG_TDO_IN;  
+  
+  MAPS_CLK_OUT   <= maps_clk;
+  MAPS_START_OUT <= maps_start;
+  MAPS_RESET_OUT <= maps_reset;
+    
 ---------------------------------------------------------------------------
 -- LED
 ---------------------------------------------------------------------------

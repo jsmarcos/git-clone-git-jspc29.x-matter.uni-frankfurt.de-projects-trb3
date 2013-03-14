@@ -136,8 +136,32 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_lsm_sfp.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.vhd"
 
 add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
+add_file -vhdl -lib "work" "../base/cores/pll_in100_out80.vhd"
 
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_constants.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_misc.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_mvd.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_cmd_m26c.vhd"
 
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/blank_ram.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/copy_ram.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/crc_32.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_bypassreg_testchain_m10.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_check_crc_ram1a.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_delay_expected_values.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_init_ram1b.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_mux_buffer_tms_tdi_out_and_metainfo.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_pulses.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_read_m26devid_m10.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_tdo_compare_count_m10.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_tdo_compare_counttotal_noram_m10.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_tdo_data_to_ram_m10.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_tdo_sample.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_update_error_counts_ram3a.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_write_m10.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/ram_mux2to1_readport.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/ram_mux2to1_writeport.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/ram_mux4to1_readport.vhd"
 
 
 
