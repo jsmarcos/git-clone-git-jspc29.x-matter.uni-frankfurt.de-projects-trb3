@@ -592,7 +592,7 @@ begin
 -- Test Connector - Logic Analyser
 ---------------------------------------------------------------------------
 
-  TEST_LINE <= logic_analyser_i;
+  TEST_LINE             <= logic_analyser_i; -- don't forget to activate the
 
 -------------------------------------------------------------------------------
 -- TDC
@@ -647,26 +647,15 @@ begin
       CONTROL_REG_IN        => ctrl_reg);
 
   -- For single edge measurements
-
-  
   hit_in_i <= INP;
 
+  -- !!!!! v1.1 doesn't function with rising&falling edge detection
+  
   ---- For ToT Measurements
-  --hit_in_i(1) <= not timing_trg_received_i;
-  --Gen_Hit_In_Signals : for i in 1 to 16 generate
-  --  hit_in_i(i*2)   <= INP(i-1);
-  --  hit_in_i(i*2+1) <= not INP(i-1);
+  --Gen_Hit_In_Signals : for i in 1 to 32 generate
+  --  hit_in_i(i*2-1) <= INP(i-1);
+  --  hit_in_i(i*2)   <= not INP(i-1);
   --end generate Gen_Hit_In_Signals;
 
-  --regio_hardware_version_i <= x"9100" & addOn_type_i & edge_type_i & tdc_channel_no_i & x"0";
-
-  --addOn_type_i     <= x"0";             -- x"0" - ADA AddOn version 1
-  --                                      -- x"1" - ADA AddOn version 2
-  --                                      -- x"2" - multi purpose test AddOn
-  --                                      -- x"3" - SFP hub AddOn
-  --                                      -- x"4" - Wasa AddOn
-  --edge_type_i      <= x"0";             -- x"0" - single edge
-  --                                      -- x"1" - double edge
-  --tdc_channel_no_i <= x"6";             -- 2^n channels
-  
+  -- !!!!! IMPORTANT !!!!! Don't forget to set the REGIO_HARDWARE_VERSION !!!!!
 end architecture;

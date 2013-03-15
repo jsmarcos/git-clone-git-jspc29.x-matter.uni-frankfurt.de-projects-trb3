@@ -32,22 +32,22 @@ REGION "REGION_TRBNET" "R35C109D"  70 22 DEVSIZE;
 #  BLKNAME THE_ENDPOINT/THE_ENDPOINT
 #LOCATE UGROUP "TrbNet" REGION "REGION_TRBNET";
 LOCATE UGROUP "THE_BUS_HANDLER/Bus_handler_group" REGION "REGION_TRBNET";
-LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers_0_geniobuf_IOBUF/genINITOBUF2_gen_INITOBUF3_INITOBUF/OBUF_group" REGION "REGION_TRBNET";
-LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers_1_geniobuf_IOBUF/genINITOBUF2_gen_INITOBUF3_INITOBUF/OBUF_group" REGION "REGION_TRBNET";
-LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers_2_gentermbuf_termbuf/TRMBUF_group" REGION "REGION_TRBNET";
-LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers_3_geniobuf_IOBUF/genINITOBUF2_gen_INITOBUF3_INITOBUF/OBUF_group" REGION "REGION_TRBNET";
+LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers.0.geniobuf.IOBUF/genINITOBUF2.gen_INITOBUF3.INITOBUF/OBUF_group" REGION "REGION_TRBNET";
+LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers.1.geniobuf.IOBUF/genINITOBUF2.gen_INITOBUF3.INITOBUF/OBUF_group" REGION "REGION_TRBNET";
+LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers.2.gentermbuf.termbuf/TRMBUF_group" REGION "REGION_TRBNET";
+LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers.3.geniobuf.IOBUF/genINITOBUF2.gen_INITOBUF3.INITOBUF/OBUF_group" REGION "REGION_TRBNET";
 LOCATE UGROUP "THE_ENDPOINT/THE_INTERNAL_BUS_HANDLER/Bus_handler_group" REGION "REGION_TRBNET";
 LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/MPLEX/MUX_group" REGION "REGION_TRBNET";
-LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers_3_geniobuf_gen_regio_regIO/the_addresses/HUBLOGIC_group" REGION "REGION_TRBNET";
-LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers_3_geniobuf_gen_regio_regIO/RegIO_group" REGION "REGION_TRBNET";
-LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers_3_geniobuf_gen_api_DAT_PASSIVE_API/API_group" REGION "REGION_TRBNET";
-LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers_1_geniobuf_gen_api_DAT_PASSIVE_API/API_group" REGION "REGION_TRBNET";
-LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers_3_geniobuf_IOBUF/genREPLYOBUF1_REPLYOBUF/OBUF_group" REGION "REGION_TRBNET";
-LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers_3_geniobuf_IOBUF/GEN_IBUF_THE_IBUF/IBUF_group" REGION "REGION_TRBNET";
-LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers_1_geniobuf_IOBUF/genREPLYOBUF1_REPLYOBUF/OBUF_group" REGION "REGION_TRBNET";
-LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers_1_geniobuf_IOBUF/GEN_IBUF_THE_IBUF/IBUF_group" REGION "REGION_TRBNET";
-LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers_0_geniobuf_IOBUF/genREPLYOBUF1_REPLYOBUF/OBUF_group" REGION "REGION_TRBNET";
-LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers_0_geniobuf_IOBUF/GEN_IBUF_THE_IBUF/IBUF_group" REGION "REGION_TRBNET";
+LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers.3.geniobuf.gen_regio.regIO/the_addresses/HUBLOGIC_group" REGION "REGION_TRBNET";
+LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers.3.geniobuf.gen_regio.regIO/RegIO_group" REGION "REGION_TRBNET";
+LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers.3.geniobuf.gen_api.DAT_PASSIVE_API/API_group" REGION "REGION_TRBNET";
+LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers.1.geniobuf.gen_api.DAT_PASSIVE_API/API_group" REGION "REGION_TRBNET";
+LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers.3.geniobuf.IOBUF/genREPLYOBUF1.REPLYOBUF/OBUF_group" REGION "REGION_TRBNET";
+LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers.3.geniobuf.IOBUF/GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_TRBNET";
+LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers.1.geniobuf.IOBUF/genREPLYOBUF1.REPLYOBUF/OBUF_group" REGION "REGION_TRBNET";
+LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers.1.geniobuf.IOBUF/GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_TRBNET";
+LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers.0.geniobuf.IOBUF/genREPLYOBUF1.REPLYOBUF/OBUF_group" REGION "REGION_TRBNET";
+LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers.0.geniobuf.IOBUF/GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_TRBNET";
 
 
 #################################################################
@@ -74,14 +74,6 @@ REGION "Coarse_Cntr_1" "R26C109D" 8 22 DEVSIZE;
 #REGION "Epoch_Cntr_4" "R51C53D"  10 10 DEVSIZE;
 #REGION "Epoch_Cntr_5" "R62C53D"  10 10 DEVSIZE;
 #REGION "Epoch_Cntr_6" "R85C53D"  3 30 DEVSIZE;
-
-
-
-
-
-PROHIBIT SECONDARY NET "THE_TDC/The_Reference_Time/ff_array_en_i";
-PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels_*_Channels/Channel_200_1/ff_array_en_i";
-
 
 ##############################################################################
 ##		        REFERENCE CHANNEL PLACEMENT                         ##
@@ -956,232 +948,31 @@ UGROUP "LL_Coarse_Counter"
 LOCATE UGROUP "LL_Coarse_Counter" REGION "REGION_LL_CC" ;
 
 
-#UGROUP "Coarse_Cntr_Group_Ref"
-#        BLKNAME THE_TDC/The_Reference_Time/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_Ref" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_1"
-#	BLKNAME THE_TDC/GEN_Channels_1_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_1" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_2"
-#	BLKNAME THE_TDC/GEN_Channels_2_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_2" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_3"
-#	BLKNAME THE_TDC/GEN_Channels_3_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_3" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_4"
-#	BLKNAME THE_TDC/GEN_Channels_4_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_4" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_5"
-#	BLKNAME THE_TDC/GEN_Channels_5_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_5" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_6"
-#	BLKNAME THE_TDC/GEN_Channels_6_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_6" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_7"
-#	BLKNAME THE_TDC/GEN_Channels_7_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_7" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_8"
-#	BLKNAME THE_TDC/GEN_Channels_8_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_8" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_9"
-#	BLKNAME THE_TDC/GEN_Channels_9_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_9" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_10"
-#	BLKNAME THE_TDC/GEN_Channels_10_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_10" REGION "REGION_TRBNET" ;
-#UGROUP "Coarse_Cntr_Group_11"
-#	BLKNAME THE_TDC/GEN_Channels_1_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_11" REGION "REGION_TRBNET" ;
-#UGROUP "Coarse_Cntr_Group_12"
-#	BLKNAME THE_TDC/GEN_Channels_2_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_12" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_13"
-#	BLKNAME THE_TDC/GEN_Channels_3_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_13" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_14"
-#	BLKNAME THE_TDC/GEN_Channels_4_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_14" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_15"
-#	BLKNAME THE_TDC/GEN_Channels_5_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_15" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_16"
-#	BLKNAME THE_TDC/GEN_Channels_6_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_16" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_17"
-#	BLKNAME THE_TDC/GEN_Channels_7_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_17" REGION "REGION_TRBNET" ;
-#UGROUP "Coarse_Cntr_Group_18"
-#	BLKNAME THE_TDC/GEN_Channels_8_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_18" REGION "REGION_TRBNET" ;
-#UGROUP "Coarse_Cntr_Group_19"
-#	BLKNAME THE_TDC/GEN_Channels_9_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_19" REGION "REGION_TRBNET" ;
-#UGROUP "Coarse_Cntr_Group_20"
-#	BLKNAME THE_TDC/GEN_Channels_10_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_20" REGION "REGION_TRBNET" ;
-#UGROUP "Coarse_Cntr_Group_21"
-#	BLKNAME THE_TDC/GEN_Channels_1_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_21" REGION "REGION_TRBNET" ;
-#UGROUP "Coarse_Cntr_Group_22"
-#	BLKNAME THE_TDC/GEN_Channels_2_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_22" REGION "REGION_TRBNET" ;
-#UGROUP "Coarse_Cntr_Group_23"
-#	BLKNAME THE_TDC/GEN_Channels_3_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_23" REGION "REGION_TRBNET" ;
-#UGROUP "Coarse_Cntr_Group_24"
-#	BLKNAME THE_TDC/GEN_Channels_4_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_24" REGION "REGION_TRBNET" ;
-#UGROUP "Coarse_Cntr_Group_25"
-#	BLKNAME THE_TDC/GEN_Channels_5_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_25" REGION "REGION_TRBNET" ;
-#UGROUP "Coarse_Cntr_Group_26"
-#	BLKNAME THE_TDC/GEN_Channels_6_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_26" REGION "REGION_TRBNET" ;
-#UGROUP "Coarse_Cntr_Group_27"
-#	BLKNAME THE_TDC/GEN_Channels_7_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_27" REGION "REGION_TRBNET" ;
-#UGROUP "Coarse_Cntr_Group_28"
-#	BLKNAME THE_TDC/GEN_Channels_8_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_28" REGION "REGION_TRBNET" ;
-#UGROUP "Coarse_Cntr_Group_29"
-#	BLKNAME THE_TDC/GEN_Channels_9_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_29" REGION "REGION_TRBNET" ;
-#UGROUP "Coarse_Cntr_Group_30"
-#	BLKNAME THE_TDC/GEN_Channels_10_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_30" REGION "REGION_TRBNET" ;
-#UGROUP "Coarse_Cntr_Group_31"
-#	BLKNAME THE_TDC/GEN_Channels_1_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_31" REGION "REGION_TRBNET" ;
-#
-#
-#UGROUP "Coarse_Cntr_Group_32"
-#	BLKNAME THE_TDC/GEN_Channels_2_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_32" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_33"
-#	BLKNAME THE_TDC/GEN_Channels_3_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_33" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_34"
-#	BLKNAME THE_TDC/GEN_Channels_4_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_34" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_35"
-#	BLKNAME THE_TDC/GEN_Channels_5_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_35" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_36"
-#	BLKNAME THE_TDC/GEN_Channels_6_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_36" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_37"
-#	BLKNAME THE_TDC/GEN_Channels_7_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_37" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_38"
-#	BLKNAME THE_TDC/GEN_Channels_8_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_38" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_39"
-#	BLKNAME THE_TDC/GEN_Channels_9_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_39" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_40"
-#	BLKNAME THE_TDC/GEN_Channels_10_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_410" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_41"
-#	BLKNAME THE_TDC/GEN_Channels_1_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_41" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_42"
-#	BLKNAME THE_TDC/GEN_Channels_2_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_42" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_43"
-#	BLKNAME THE_TDC/GEN_Channels_3_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_43" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_44"
-#	BLKNAME THE_TDC/GEN_Channels_4_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_44" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_45"
-#	BLKNAME THE_TDC/GEN_Channels_5_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_45" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_46"
-#	BLKNAME THE_TDC/GEN_Channels_6_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_46" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_47"
-#	BLKNAME THE_TDC/GEN_Channels_7_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_47" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_48"
-#	BLKNAME THE_TDC/GEN_Channels_8_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_48" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_49"
-#	BLKNAME THE_TDC/GEN_Channels_9_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_49" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_50"
-#	BLKNAME THE_TDC/GEN_Channels_10_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_510" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_51"
-#	BLKNAME THE_TDC/GEN_Channels_1_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_51" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_52"
-#	BLKNAME THE_TDC/GEN_Channels_2_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_52" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_53"
-#	BLKNAME THE_TDC/GEN_Channels_3_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_53" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_54"
-#	BLKNAME THE_TDC/GEN_Channels_4_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_54" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_55"
-#	BLKNAME THE_TDC/GEN_Channels_5_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_55" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_56"
-#	BLKNAME THE_TDC/GEN_Channels_6_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_56" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_57"
-#	BLKNAME THE_TDC/GEN_Channels_7_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_57" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_58"
-#	BLKNAME THE_TDC/GEN_Channels_8_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_58" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_59"
-#	BLKNAME THE_TDC/GEN_Channels_9_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_59" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_60"
-#	BLKNAME THE_TDC/GEN_Channels_10_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_610" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_61"
-#	BLKNAME THE_TDC/GEN_Channels_1_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_61" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_62"
-#	BLKNAME THE_TDC/GEN_Channels_2_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_62" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_63"
-#	BLKNAME THE_TDC/GEN_Channels_3_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_63" REGION "Coarse_Cntr_1" ;
-#UGROUP "Coarse_Cntr_Group_64"
-#	BLKNAME THE_TDC/GEN_Channels_4_Channels/CoarseCounter;
-#LOCATE UGROUP "Coarse_Cntr_Group_64" REGION "Coarse_Cntr_1" ;
-
-
-
 
 #############################################################################
 ##                         Unimportant Data Lines                          ##
 #############################################################################
-#MULTICYCLE TO PORT "TEST_LINE_*" 2.000000 X ;
-
-#MULTICYCLE TO CELL "THE_TDC/GEN_Channels_*_Channels/lost_hit_cntr_*" 3.000000 X ;
-#MULTICYCLE TO CELL "THE_TDC/GEN_Channels_*_Channels/hit_detect_cntr_*" 3.000000 X ;
-#MULTICYCLE TO CELL "THE_TDC/GEN_Channels_*_Channels/encoder_start_cntr_*" 3.000000 X ;
-#MULTICYCLE TO CELL "THE_TDC/GEN_Channels_*_Channels/fifo_wr_cntr_*" 3.000000 X ;
 
 BLOCK NET "THE_TDC/reset_tdc*" ;
 BLOCK NET "THE_TDC/hit_in_i_*" ;
-BLOCK PATH TO CELL "THE_TDC/GEN_Channels_*_Channels/Channel_200_1/FC/FF_*" ;
+#BLOCK PATH TO CELL "THE_TDC/GEN_Channels.*.Channels/Channel_200_1/FC/FF_*" ;
+BLOCK PATH FROM CELL
+"THE_TDC/TheReadout/TriggerWinEndPulse200/current_state[0]" TO CELL "THE_TDC/GEN_Channels.*.Channels/Channel_200_1/FC/FF_*" ;
+
+PROHIBIT SECONDARY NET "THE_TDC/The_Reference_Time/Reference_Channel_200_1/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.*.Channels/Channel_200_1/ff_array_en_i";
 
 
-MULTICYCLE FROM CELL "THE_TDC/GEN_Channels_*_Channels/Channel_200_1/reset_counters_200" 4.000000 X ;
-MULTICYCLE TO CELL "THE_TDC/GEN_Channels_*_Channels/Channel_200_1/reset_counters_200" 4.000000 X;
+MULTICYCLE FROM CELL "THE_TDC/GEN_Channels.*.Channels/Channel_200_1/reset_counters_200" 4.000000 X ;
+MULTICYCLE TO CELL "THE_TDC/GEN_Channels.*.Channels/Channel_200_1/reset_counters_200" 4.000000 X;
 
-MULTICYCLE FROM CELL "THE_TDC/The_Reference_Time/Reference_Channel_200_1/FIFO_ALMOST_FULL_OUT" TO CELL "THE_TDC/data_out_reg_*" 2.000000 X ;
-MULTICYCLE FROM CELL "THE_TDC/The_Reference_Time/Reference_Channel_200_1/FIFO_FULL_OUT" TO CELL "THE_TDC/data_out_reg_*" 2.000000 X ;
-MULTICYCLE FROM CELL "THE_TDC/GEN_Channels_*_Channels/Channel_200_1/FIFO_ALMOST_FULL_OUT" TO CELL "THE_TDC/data_out_reg_*" 2.000000 X ;
-MULTICYCLE FROM CELL "THE_TDC/GEN_Channels_*_Channels/Channel_200_1/FIFO_FULL_OUT" TO CELL "THE_TDC/data_out_reg_*" 2.000000 X ;
+MULTICYCLE FROM CELL "THE_TDC/The_Reference_Time/Reference_Channel_200_1/FIFO_ALMOST_FULL_OUT" TO CELL "THE_TDC/TheReadout/data_out_reg[*]" 2.000000 X ;
+MULTICYCLE FROM CELL "THE_TDC/The_Reference_Time/Reference_Channel_200_1/FIFO_FULL_OUT" TO CELL "THE_TDC/TheReadout/data_out_reg[*]" 2.000000 X ;
+MULTICYCLE FROM CELL "THE_TDC/GEN_Channels.*.Channels/Channel_200_1/FIFO_ALMOST_FULL_OUT" TO CELL "THE_TDC/TheReadout/data_out_reg[*]" 2.000000 X ;
+MULTICYCLE FROM CELL "THE_TDC/GEN_Channels.*.Channels/Channel_200_1/FIFO_FULL_OUT" TO CELL "THE_TDC/TheReadout/data_out_reg[*]" 2.000000 X ;
 
-MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter_*" TO CELL "THE_TDC/GEN_Channels_*_Channels/Channel_200_1/epoch_cntr_*" 6.000000 X ;
-MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter_*" TO CELL "THE_TDC/The_Reference_Time/Reference_Channel_200_1/epoch_cntr_*" 6.000000 X ;
+MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter[*]" TO CELL "THE_TDC/GEN_Channels.*.Channels/Channel_200_1/epoch_cntr_*" 6.000000 X ;
+MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter[*]" TO CELL "THE_TDC/The_Reference_Time/Reference_Channel_200_1/epoch_cntr_*" 6.000000 X ;
 
 MAXDELAY NET "THE_TDC/The_Reference_Time/hit_buf" 0.700000 nS DATAPATH_ONLY ;
-MAXDELAY NET "THE_TDC/GEN_Channels_*_Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels.*.Channels/hit_buf" 0.700000 nS DATAPATH_ONLY ;

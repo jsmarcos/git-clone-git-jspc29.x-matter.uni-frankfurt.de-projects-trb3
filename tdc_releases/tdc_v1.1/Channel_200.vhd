@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2012-11-06
+-- Last update: 2013-03-15
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -105,12 +105,14 @@ architecture Channel_200 of Channel_200 is
   signal trg_win_end_i : std_logic;
 
   -- debug
-  signal sync_q             : std_logic_vector(2 downto 0);
-  signal hit_pulse          : std_logic;
-  signal lost_hit_cntr      : unsigned(23 downto 0);
-  signal hit_detect_cntr    : unsigned(23 downto 0);
-  signal encoder_start_cntr : unsigned(23 downto 0);
-  signal fifo_wr_cntr       : unsigned(23 downto 0);
+  signal sync_q                : std_logic_vector(2 downto 0);
+  signal hit_pulse             : std_logic;
+  signal lost_hit_cntr         : unsigned(23 downto 0);
+  signal hit_detect_cntr       : unsigned(23 downto 0);
+  signal encoder_start_cntr    : unsigned(23 downto 0);
+  signal fifo_wr_cntr          : unsigned(23 downto 0);
+  signal debug_cntr            : unsigned(16 downto 0);
+  signal debug_cntr_risingedge : std_logic;
 
   attribute syn_keep                      : boolean;
   attribute syn_keep of ff_array_en_i     : signal is true;

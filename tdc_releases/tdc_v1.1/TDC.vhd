@@ -74,8 +74,8 @@ architecture TDC of TDC is
   signal logic_anal_control        : std_logic_vector(3 downto 0);
   signal debug_mode_en_i           : std_logic;
   signal reset_counters_i          : std_logic;
-  signal run_mode_i                : std_logic;  -- 1: cc reset every trigger
-                                                 -- 0: free running mode
+  signal run_mode_i                : std_logic;  -- 0: cc reset every trigger
+                                                 -- 1: free running mode
   signal run_mode_200              : std_logic;
   signal trigger_win_en_i          : std_logic;
   signal ch_en_i                   : std_logic_vector(64 downto 1);
@@ -173,7 +173,7 @@ begin
         RESET_COUNTERS        => reset_counters_i,
         CLK_200               => CLK_TDC,
         CLK_100               => CLK_READOUT,
-        HIT_IN                => hit_in_i(i),
+        HIT_IN                => HIT_IN(i), --hit_in_i(i),
         SCALER_IN             => scaler_in_i(i),
         READ_EN_IN            => rd_en_i(i),
         FIFO_DATA_OUT         => ch_data_i(i),

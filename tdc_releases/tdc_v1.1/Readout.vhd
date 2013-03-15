@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2012-10-26
+-- Last update: 2013-03-15
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -402,11 +402,12 @@ begin  -- behavioral
           start_trg_win_cnt_fsm <= '1';
         elsif VALID_NOTIMING_TRG_IN = '1' then
           if TRG_TYPE_IN = x"E" then
-            FSM_NEXT <= SEND_STATUS;
+            wr_header_fsm <= '1';
+            FSM_NEXT      <= SEND_STATUS;
           else
-            FSM_NEXT <= SEND_TRG_RELEASE_A;
+            data_finished_fsm <= '1';
+            FSM_NEXT          <= SEND_TRG_RELEASE_A;
           end if;
-          wr_header_fsm <= '1';
         elsif INVALID_TRG_IN = '1' then
           FSM_NEXT          <= SEND_TRG_RELEASE_A;
           data_finished_fsm <= '1';
