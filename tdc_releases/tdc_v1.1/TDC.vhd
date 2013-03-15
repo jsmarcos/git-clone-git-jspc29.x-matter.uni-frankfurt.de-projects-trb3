@@ -173,7 +173,7 @@ begin
         RESET_COUNTERS        => reset_counters_i,
         CLK_200               => CLK_TDC,
         CLK_100               => CLK_READOUT,
-        HIT_IN                => HIT_IN(i), --hit_in_i(i),
+        HIT_IN                => hit_in_i(i),
         SCALER_IN             => scaler_in_i(i),
         READ_EN_IN            => rd_en_i(i),
         FIFO_DATA_OUT         => ch_data_i(i),
