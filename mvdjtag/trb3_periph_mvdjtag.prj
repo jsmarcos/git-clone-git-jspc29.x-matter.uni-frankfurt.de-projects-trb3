@@ -137,6 +137,7 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.v
 
 add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
 add_file -vhdl -lib "work" "../base/cores/pll_in100_out80.vhd"
+add_file -vhdl -lib "work" "../base/cores/oddr.vhd"
 
 add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_constants.vhd"
 add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_misc.vhd"
@@ -153,6 +154,7 @@ add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_init_ram1b.vhd"
 add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_mux_buffer_tms_tdi_out_and_metainfo.vhd"
 add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_pulses.vhd"
 add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_read_m26devid_m10.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_tck_out_component.vhd"
 add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_tdo_compare_count_m10.vhd"
 add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_tdo_compare_counttotal_noram_m10.vhd"
 add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_tdo_data_to_ram_m10.vhd"

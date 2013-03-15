@@ -9,6 +9,18 @@ use work.trb3_components.all;
 use work.version.all;
 use work.jtag_constants.all;
 
+
+--Connector pinout, INP_n is the number of wire pair
+-- LOCATE COMP  "MAPS_CLK_OUT_0"     #9  INP_2
+-- LOCATE COMP  "MAPS_START_OUT_0"   #17 INP_4
+-- LOCATE COMP  "MAPS_RESET_OUT_0"   #21 INP_5
+-- LOCATE COMP  "JTAG_TCK_OUT_0"     #29 INP_7
+-- LOCATE COMP  "JTAG_TMS_OUT_0"     #41 INP_10
+-- LOCATE COMP  "JTAG_TDI_OUT_0"     #45 INP_11
+-- LOCATE COMP  "JTAG_TDO_IN_0"      #33 INP_8
+
+
+
 entity trb3_periph_mvdjtag is
   generic(
     NUM_CHAINS : integer := 1;
@@ -109,7 +121,7 @@ architecture trb3_periph_mvdjtag_arch of trb3_periph_mvdjtag is
   signal clk_200_internal         : std_logic;
   signal rx_clock_100             : std_logic;
   signal rx_clock_200             : std_logic;
-  signal clk_tdc                  : std_logic;
+--   signal clk_tdc                  : std_logic;
   signal time_counter, time_counter2 : unsigned(31 downto 0);
   --Media Interface
   signal med_stat_op        : std_logic_vector (1*16-1 downto 0);
@@ -124,31 +136,6 @@ architecture trb3_periph_mvdjtag_arch of trb3_periph_mvdjtag is
   signal med_packet_num_in  : std_logic_vector (1*3-1 downto 0);
   signal med_dataready_in   : std_logic;
   signal med_read_in        : std_logic;
-
-  --LVL1 channel
-  signal timing_trg_received_i  : std_logic;
-  signal trg_data_valid_i       : std_logic;
-  signal trg_timing_valid_i     : std_logic;
-  signal trg_notiming_valid_i   : std_logic;
-  signal trg_invalid_i          : std_logic;
-  signal trg_type_i             : std_logic_vector(3 downto 0);
-  signal trg_number_i           : std_logic_vector(15 downto 0);
-  signal trg_code_i             : std_logic_vector(7 downto 0);
-  signal trg_information_i      : std_logic_vector(23 downto 0);
-  signal trg_int_number_i       : std_logic_vector(15 downto 0);
-  signal trg_multiple_trg_i     : std_logic;
-  signal trg_timeout_detected_i : std_logic;
-  signal trg_spurious_trg_i     : std_logic;
-  signal trg_missing_tmg_trg_i  : std_logic;
-  signal trg_spike_detected_i   : std_logic;
-
-  --Data channel
-  signal fee_trg_release_i    : std_logic;
-  signal fee_trg_statusbits_i : std_logic_vector(31 downto 0);
-  signal fee_data_i           : std_logic_vector(31 downto 0);
-  signal fee_data_write_i     : std_logic;
-  signal fee_data_finished_i  : std_logic;
-  signal fee_almost_full_i    : std_logic;
 
   --Slow Control channel
   signal common_stat_reg        : std_logic_vector(std_COMSTATREG*32-1 downto 0);
@@ -261,7 +248,7 @@ begin
 
   THE_MAIN_PLL : pll_in200_out100
     port map(
-      CLK   => CLK_GPLL_RIGHT,
+      CLK   => CLK_PCLK_LEFT,
       CLKOP => clk_100_internal,
       CLKOK => clk_200_internal,
       LOCK  => pll_lock
@@ -270,13 +257,13 @@ begin
   gen_sync_clocks : if SYNC_MODE = c_YES generate
     clk_100_i <= rx_clock_100;
     clk_200_i <= rx_clock_200;
-    clk_tdc   <= rx_clock_200;
+--     clk_tdc   <= rx_clock_200;
   end generate;
 
   gen_local_clocks : if SYNC_MODE = c_NO generate
     clk_100_i <= clk_100_internal;
     clk_200_i <= clk_200_internal;
-    clk_tdc   <= CLK_PCLK_LEFT;
+--     clk_tdc   <= CLK_PCLK_LEFT;
   end generate;
 
 ---------------------------------------------------------------------------
@@ -446,10 +433,6 @@ begin
       DEBUG_LVL1_HANDLER_OUT      => open
       );
 
----------------------------------------------------------------------------
--- I/O
----------------------------------------------------------------------------
-  timing_trg_received_i <= TRIGGER_LEFT;
 
 ---------------------------------------------------------------------------
 -- Bus Handler
@@ -602,6 +585,7 @@ THE_JTAG : entity work.jtag_mvd
     )
   port map(
     CLK_IN            => clk_100_i,
+    CLK_MAPS_IN       => CLK_PCLK_LEFT,
     RESET             => reset_i,
     
     MAPS_CLK_OUT      => maps_clk,

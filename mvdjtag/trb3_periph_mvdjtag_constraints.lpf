@@ -54,3 +54,18 @@ LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers_0_geniobuf_IOBUF/genREPLYOBU
 LOCATE UGROUP "THE_ENDPOINT/THE_ENDPOINT/genbuffers_0_geniobuf_IOBUF/GEN_IBUF_THE_IBUF/IBUF_group" REGION "REGION_TRBNET";
 
 
+USE PRIMARY NET "CLK_PCLK_LEFT_c";
+MULTICYCLE FROM CELL "THE_JTAG/com_settings_all_signals_invert*" 30 ns;
+MULTICYCLE FROM CELL "THE_JTAG/com_settings_all_signals_invert*" 30 ns;
+MULTICYCLE FROM CELL "THE_JTAG/com_settings_all_waitbeforestart*" 30 ns;
+MULTICYCLE FROM CELL "THE_JTAG/com_settings_all_resetbeforeinit*" 30 ns;
+MULTICYCLE FROM CELL "THE_JTAG/com_settings_all_resetafterfirstwrite*" 30 ns;
+MULTICYCLE FROM CELL "THE_JTAG/signals_invert*" 30 ns;
+MULTICYCLE FROM CELL "THE_JTAG/signals_invert*" 30 ns;
+MULTICYCLE FROM CELL "THE_JTAG/waitbeforestart*" 30 ns;
+MULTICYCLE FROM CELL "THE_JTAG/resetbeforeinit*" 30 ns;
+MULTICYCLE FROM CELL "THE_JTAG/resetafterfirstwrite*" 30 ns;
+MULTICYCLE TO CELL "THE_JTAG/reset_i_mclk" 30 ns;
+MULTICYCLE TO CELL "THE_JTAG/idle_out_mclk*" 30 ns;
+MULTICYCLE TO CELL "THE_JTAG/*ps*/sync_q" 30 ns;
+
