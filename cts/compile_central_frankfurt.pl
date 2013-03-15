@@ -12,6 +12,7 @@ my $TOPNAME                      = "trb3_central";  #Name of top-level entity
 my $lattice_path                 = '/d/jspc29/lattice/diamond/2.01';
 #my $lattice_path                 = '/d/jspc29/lattice/diamond/2.0';
 #my $lattice_path                 = '/d/jspc29/lattice/diamond/1.4.2.105';
+#my $synplify_path                = '/d/jspc29/lattice/synplify/G-2012.09-SP1/';
 my $synplify_path                = '/d/jspc29/lattice/synplify/F-2012.03-SP1/';
 my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
 my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
@@ -43,7 +44,9 @@ my $SPEEDGRADE="8";
 system("cp ../base/$TOPNAME.lpf workdir/$TOPNAME.lpf");
 system("cat ../tdc_releases/tdc_v1.1.1/tdc_constraints.lpf >> workdir/$TOPNAME.lpf");
 system("cat ".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
+system("sed -i 's#THE_TDC/#gen_TDC_THE_TDC/#g' workdir/$TOPNAME.lpf");
 
+if($ENV{'LPF_ONLY'} == 1) {exit;}
 
 #set -e
 #set -o errexit
@@ -117,11 +120,13 @@ execute($c);
 
 
 $c=qq|multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
+#$c=qq|$lattice_path/ispfpga/bin/lin/par -f "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd" "$TOPNAME.prf"|;
+#$c=qq|$lattice_path/ispfpga/bin/lin/par -f "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.dir" "$TOPNAME.prf"|;
 execute($c);
 
 # IOR IO Timing Report
 $c=qq|$lattice_path/ispfpga/bin/lin/iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;
-execute($c);
+#execute($c);
 
 # TWR Timing Report
 $c=qq|$lattice_path/ispfpga/bin/lin/trce -c -v 15 -o "$TOPNAME.twr.setup" "$TOPNAME.ncd" "$TOPNAME.prf"|;

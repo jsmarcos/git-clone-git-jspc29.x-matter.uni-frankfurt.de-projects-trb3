@@ -448,7 +448,7 @@
             <Options/>
         </Source>
         <Source name="../trb3_central.vhd" type="VHDL" type_short="VHDL">
-            <Options/>
+            <Options top_module="trb3_central"/>
         </Source>
         <Source name="../../tdc_releases/tdc_v1.1.1/bit_sync.vhd" type="VHDL" type_short="VHDL">
             <Options/>
@@ -496,6 +496,15 @@
             <Options/>
         </Source>
         <Source name="../../../trbnet/optical_link/f_divider.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
+        <Source name="../../../trbnet/media_interfaces/ecp3_sfp/serdes_full_ctc.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
+        <Source name="../../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
+        <Source name="../config.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
         <Source name="../workdir/trb3_central.lpf" type="Logic Preference" type_short="LPF">

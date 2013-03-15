@@ -26,6 +26,10 @@ set_option -fixgatedclocks 3
 set_option -fixgeneratedclocks 3
 set_option -compiler_compatible true
 
+set_option -max_parallel_jobs 3
+#set_option -automatic_compile_point 1
+#set_option -continue_on_error 1
+set_option -resolve_multiple_driver 1
 
 # simulation options
 set_option -write_verilog 0
@@ -50,8 +54,9 @@ impl -active "workdir"
 
 #add_file options
 
-add_file -vhdl -lib work "version.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_std.vhd"
+add_file -vhdl -lib work "version.vhd"
+add_file -vhdl -lib work "config.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_components.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net16_hub_func.vhd"
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/lattice_ecp2m_fifo.vhd"
@@ -215,12 +220,14 @@ add_file -vhdl -lib work "../../trbnet/lattice/ecp3/trb_net16_fifo_arch.vhd"
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/trb_net_fifo_16bit_bram_dualport.vhd"
 
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/serdes_onboard_full.vhd"
+add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/serdes_full_ctc.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_ctc.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_int.vhd"
 
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_lsm_sfp.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4_onboard.vhd"
+add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4.vhd"
 
 add_file -vhdl -lib work "../base/cores/pll_in200_out100.vhd"
 add_file -vhdl -lib work "../../trbnet/optical_link/f_divider.vhd"
@@ -253,6 +260,5 @@ add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.1.1/TDC.vhd"
 add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.1.1/up_counter.vhd"
 
 add_file -vhdl -lib work "./trb3_central.vhd"
-
-
+#add_file -fpga_constraint "./cts.fdc"
 

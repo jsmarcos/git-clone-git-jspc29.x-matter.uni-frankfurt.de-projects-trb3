@@ -1,7 +1,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-USE IEEE.std_logic_UNSIGNED.ALL;
+use ieee.std_logic_unsigned.all;
 
 library work;
    use work.trb_net_std.all;
@@ -12,7 +12,12 @@ library work;
    use work.trb_net_gbe_components.all;
    
    use work.cts_pkg.all;
-
+   
+--Configuration is done in this file:   
+   use work.config.all;
+-- The description of hub ports is also there!
+   
+   
 --Ports:
 --        LVL1/IPU       SCtrl
 --  0     FPGA 1         FPGA 1
@@ -20,23 +25,10 @@ library work;
 --  2     FPGA 3         FPGA 3
 --  3     FPGA 4         FPGA 4
 --  4     opt. link      opt. link
---  5     CTS read-out   internal         0 1 -   X X O   --downlink only
---  6     CTS TRG        Sctrl GbE        2 3 4   X X X   --uplink only
+--  5-7   SFP 2-4
+--  5(8)  CTS read-out   internal         0 1 -   X X O   --downlink only
+--  6(9)  CTS TRG        Sctrl GbE        2 3 4   X X X   --uplink only
 
--- MII_NUMBER        => 5,
--- INT_NUMBER        => 5,
--- INT_CHANNELS      => (0,1,0,1,3),
-
--- No trigger / sctrl sent to optical link, slow control receiving possible
--- MII_IS_UPLINK        => (0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0);
--- MII_IS_DOWNLINK      => (1,1,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0);
--- MII_IS_UPLINK_ONLY   => (0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0);
-
--- Trigger / sctrl sent to optical link, slow control receiving possible
--- MII_IS_UPLINK        => (0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0);
--- MII_IS_DOWNLINK      => (1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0);
--- MII_IS_UPLINK_ONLY   => (0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0);
--- & disable port 4 in c0 and c1 -- no triggers from/to optical link
 
 --Slow Control
 --    0 -    7  Readout endpoint common status
@@ -52,7 +44,6 @@ library work;
 
 
 entity trb3_central is
-
   port(
     --Clocks
     CLK_EXT                        : in  std_logic_vector(4 downto 3); --from RJ45
@@ -73,10 +64,10 @@ entity trb3_central is
     CLK_SERDES_INT_RIGHT           : in  std_logic;  --Clock Manager 1/0, off, 125 MHz possible
     
     --SFP
-    SFP_RX_P                       : in  std_logic_vector(6 downto 1); 
-    SFP_RX_N                       : in  std_logic_vector(6 downto 1); 
-    SFP_TX_P                       : out std_logic_vector(6 downto 1); 
-    SFP_TX_N                       : out std_logic_vector(6 downto 1); 
+    SFP_RX_P                       : in  std_logic_vector(9 downto 1); 
+    SFP_RX_N                       : in  std_logic_vector(9 downto 1); 
+    SFP_TX_P                       : out std_logic_vector(9 downto 1); 
+    SFP_TX_N                       : out std_logic_vector(9 downto 1); 
     SFP_TX_FAULT                   : in  std_logic_vector(8 downto 1); --TX broken
     SFP_RATE_SEL                   : out std_logic_vector(8 downto 1); --not supported by our SFP
     SFP_LOS                        : in  std_logic_vector(8 downto 1); --Loss of signal
@@ -188,22 +179,24 @@ architecture trb3_central_arch of trb3_central is
   attribute syn_keep of GSR_N : signal is true;
   attribute syn_preserve of GSR_N : signal is true;
 
+  
+
   --FPGA Test
   signal time_counter, time_counter2 : unsigned(31 downto 0);
 
   --Media Interface
-  signal med_stat_op             : std_logic_vector (5*16-1  downto 0);
-  signal med_ctrl_op             : std_logic_vector (5*16-1  downto 0);
-  signal med_stat_debug          : std_logic_vector (5*64-1  downto 0);
-  signal med_ctrl_debug          : std_logic_vector (5*64-1  downto 0);
-  signal med_data_out            : std_logic_vector (5*16-1  downto 0);
-  signal med_packet_num_out      : std_logic_vector (5*3-1   downto 0);
-  signal med_dataready_out       : std_logic_vector (5*1-1   downto 0);
-  signal med_read_out            : std_logic_vector (5*1-1   downto 0);
-  signal med_data_in             : std_logic_vector (5*16-1  downto 0);
-  signal med_packet_num_in       : std_logic_vector (5*3-1   downto 0);
-  signal med_dataready_in        : std_logic_vector (5*1-1   downto 0);
-  signal med_read_in             : std_logic_vector (5*1-1   downto 0);
+  signal med_stat_op             : std_logic_vector (INTERFACE_NUM*16-1  downto 0);
+  signal med_ctrl_op             : std_logic_vector (INTERFACE_NUM*16-1  downto 0);
+  signal med_stat_debug          : std_logic_vector (INTERFACE_NUM*64-1  downto 0);
+  signal med_ctrl_debug          : std_logic_vector (INTERFACE_NUM*64-1  downto 0);
+  signal med_data_out            : std_logic_vector (INTERFACE_NUM*16-1  downto 0);
+  signal med_packet_num_out      : std_logic_vector (INTERFACE_NUM*3-1   downto 0);
+  signal med_dataready_out       : std_logic_vector (INTERFACE_NUM*1-1   downto 0);
+  signal med_read_out            : std_logic_vector (INTERFACE_NUM*1-1   downto 0);
+  signal med_data_in             : std_logic_vector (INTERFACE_NUM*16-1  downto 0);
+  signal med_packet_num_in       : std_logic_vector (INTERFACE_NUM*3-1   downto 0);
+  signal med_dataready_in        : std_logic_vector (INTERFACE_NUM*1-1   downto 0);
+  signal med_read_in             : std_logic_vector (INTERFACE_NUM*1-1   downto 0);
 
   --Hub
   signal common_stat_regs        : std_logic_vector (std_COMSTATREG*32-1 downto 0);
@@ -312,10 +305,10 @@ architecture trb3_central_arch of trb3_central is
   signal cts_ext_control             : std_logic_vector(31 downto 0);
   signal cts_ext_debug               : std_logic_vector(31 downto 0);
 
-  signal cts_rdo_additional_data            : std_logic_vector(63 downto 0);
-  signal cts_rdo_additional_write           : std_logic_vector(1 downto 0) := "00";
-  signal cts_rdo_additional_finished        : std_logic_vector(1 downto 0) := "00";
-  signal cts_rdo_trg_status_bits_additional : std_logic_vector(63 downto 0) := (others => '0');
+  signal cts_rdo_additional_data            : std_logic_vector(31+INCLUDE_TDC*32 downto 0);
+  signal cts_rdo_additional_write           : std_logic_vector(0+INCLUDE_TDC downto 0) := (others => '0');
+  signal cts_rdo_additional_finished        : std_logic_vector(0+INCLUDE_TDC downto 0) := (others => '0');
+  signal cts_rdo_trg_status_bits_additional : std_logic_vector(31+INCLUDE_TDC*32 downto 0) := (others => '0');
   signal cts_rdo_trg_type                   : std_logic_vector(3 downto 0);
   signal cts_rdo_trg_code                   : std_logic_vector(7 downto 0);
   signal cts_rdo_trg_information            : std_logic_vector(23 downto 0);
@@ -410,37 +403,11 @@ architecture trb3_central_arch of trb3_central is
   signal tdc_ctrl_data_out  : std_logic_vector(31 downto 0);
   signal tdc_ctrl_reg   : std_logic_vector(4*32-1 downto 0);
   signal tdc_debug      : std_logic_vector(15 downto 0);  
-   
-   component mbs_vulom_recv is
-   port(
-      CLK        : in std_logic;  -- e.g. 100 MHz
-      RESET_IN   : in std_logic;  -- could be used after busy_release to make sure entity is in correct state
 
-      --Module inputs
-      MBS_IN     : in std_logic;  -- raw input
-      CLK_200    : in std_logic;  -- internal sampling clock
-      
-      --trigger outputs
-      TRG_ASYNC_OUT  : out std_logic;  -- asynchronous rising edge, length varying, here: approx. 110 ns
-      TRG_SYNC_OUT   : out std_logic;  -- sync. to CLK
-
-      --data output for read-out
-      TRIGGER_IN   : in  std_logic;
-      DATA_OUT     : out std_logic_vector(31 downto 0);
-      WRITE_OUT    : out std_logic;
-      STATUSBIT_OUT: out std_logic_vector(31 downto 0);
-      FINISHED_OUT : out std_logic;
-      
-      --Registers / Debug    
-      CONTROL_REG_IN : in  std_logic_vector(31 downto 0);
-      STATUS_REG_OUT : out std_logic_vector(31 downto 0);
-      DEBUG          : out std_logic_vector(31 downto 0)    
-      );
-   end component;
 
 begin
 -- MBS Module
- THE_MBS: mbs_vulom_recv
+ THE_MBS: entity work.mbs_vulom_recv
    port map (
       CLK => clk_100_i,
       RESET_IN => reset_i,
@@ -593,8 +560,10 @@ THE_MAIN_PLL : pll_in200_out100
 
 
 ---------------------------------------------------------------------------
--- The TrbNet media interface (Uplink)
+-- The TrbNet media interface (SFP)
 ---------------------------------------------------------------------------
+
+gen_single_sfp : if USE_4_SFP = c_NO generate
 THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
   generic map(
     SERDES_NUM  => 0,     --number of serdes in quad
@@ -620,10 +589,10 @@ THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
     MED_READ_IN        => med_read_out(4),
     REFCLK2CORE_OUT    => open,
     --SFP Connection
-    SD_RXD_P_IN        => SFP_RX_P(1),
-    SD_RXD_N_IN        => SFP_RX_N(1),
-    SD_TXD_P_OUT       => SFP_TX_P(1),
-    SD_TXD_N_OUT       => SFP_TX_N(1),
+    SD_RXD_P_IN        => SFP_RX_P(5),
+    SD_RXD_N_IN        => SFP_RX_N(5),
+    SD_TXD_P_OUT       => SFP_TX_P(5),
+    SD_TXD_N_OUT       => SFP_TX_N(5),
     SD_REFCLK_P_IN     => open,
     SD_REFCLK_N_IN     => open,
     SD_PRSNT_N_IN      => SFP_MOD0(1),
@@ -635,9 +604,59 @@ THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
     STAT_DEBUG         => med_stat_debug(4*64+63 downto 4*64),
     CTRL_DEBUG         => (others => '0')
    );
-
-
 SFP_TXDIS(7 downto 2) <= (others => '1');
+end generate;
+
+gen_four_sfp : if USE_4_SFP = c_YES generate
+  THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp_4
+    generic map(
+      REVERSE_ORDER => c_NO,              --order of ports
+      FREQUENCY     => 200                --run on 200 MHz clock
+      )
+    port map(
+      CLK                => clk_200_i,
+      SYSCLK             => clk_100_i,
+      RESET              => reset_i,
+      CLEAR              => clear_i,
+      CLK_EN             => '1',
+      --Internal Connection
+      MED_DATA_IN => med_data_out(127 downto 64),
+      MED_PACKET_NUM_IN  => med_packet_num_out(23 downto 12),
+      MED_DATAREADY_IN => med_dataready_out(7 downto 4),
+      MED_READ_OUT => med_read_in(7 downto 4),
+      MED_DATA_OUT => med_data_in(127 downto 64),
+      MED_PACKET_NUM_OUT  => med_packet_num_in(23 downto 12),
+      MED_DATAREADY_OUT => med_dataready_in(7 downto 4),
+      MED_READ_IN => med_read_out(7 downto 4),
+
+      REFCLK2CORE_OUT    => open,
+      --SFP Connection
+      SD_RXD_P_IN        => SFP_RX_P(8 downto 5),
+      SD_RXD_N_IN        => SFP_RX_N(8 downto 5),
+      SD_TXD_P_OUT       => SFP_TX_P(8 downto 5),
+      SD_TXD_N_OUT       => SFP_TX_N(8 downto 5),
+      SD_REFCLK_P_IN     => open,
+      SD_REFCLK_N_IN     => open,
+      SD_PRSNT_N_IN      => SFP_MOD0(4 downto 1),
+      SD_LOS_IN          => SFP_LOS(4 downto 1),
+      SD_TXDIS_OUT       => SFP_TXDIS(4 downto 1),
+      
+--       SCI_DATA_IN       => sci1_data_in,
+--       SCI_DATA_OUT      => sci1_data_out,
+--       SCI_ADDR          => sci1_addr,
+--       SCI_READ          => sci1_read,
+--       SCI_WRITE         => sci1_write,
+--       SCI_ACK           => sci1_ack,
+      -- Status and control port
+      
+      STAT_OP => med_stat_op(7*16+15 downto 4*16),
+      CTRL_OP => med_ctrl_op(7*16+15 downto 4*16),
+      
+      STAT_DEBUG         => open,
+      CTRL_DEBUG         => (others => '0')
+      );
+SFP_TXDIS(7 downto 5) <= (others => '1');      
+end generate; 
 
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (to other FPGA)
@@ -660,10 +679,10 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
     MED_READ_IN        => med_read_out(3 downto 0),
     REFCLK2CORE_OUT    => open,
     --SFP Connection
-    SD_RXD_P_IN        => SFP_RX_P(5 downto 2),
-    SD_RXD_N_IN        => SFP_RX_N(5 downto 2),
-    SD_TXD_P_OUT       => SFP_TX_P(5 downto 2),
-    SD_TXD_N_OUT       => SFP_TX_N(5 downto 2),
+    SD_RXD_P_IN        => SFP_RX_P(4 downto 1),
+    SD_RXD_N_IN        => SFP_RX_N(4 downto 1),
+    SD_TXD_P_OUT       => SFP_TX_P(4 downto 1),
+    SD_TXD_N_OUT       => SFP_TX_N(4 downto 1),
     SD_REFCLK_P_IN     => open,
     SD_REFCLK_N_IN     => open,
     SD_PRSNT_N_IN(0)   => FPGA1_COMM(2),
@@ -695,14 +714,10 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
   THE_HUB: trb_net16_hub_streaming_port_sctrl_cts
   generic map( 
 	  INIT_ADDRESS        => x"F3C0",
-	  MII_NUMBER          => 5,
--- 	  MII_IS_UPLINK       => (0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0),
--- 	  MII_IS_DOWNLINK     => (1,1,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0),
--- 	  MII_IS_UPLINK_ONLY  => (0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0),
-    MII_IS_UPLINK        => (0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0),
-    MII_IS_DOWNLINK      => (1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0),
-    MII_IS_UPLINK_ONLY   => (0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0),	  
-    COMPILE_TIME                     => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME,32)),
+	  MII_NUMBER           => INTERFACE_NUM,
+    MII_IS_UPLINK        => IS_UPLINK,
+    MII_IS_DOWNLINK      => IS_DOWNLINK,
+    MII_IS_UPLINK_ONLY   => IS_UPLINK_ONLY,	
     COMPILE_VERSION                  => x"0001",
     HARDWARE_VERSION                 => x"9000CEE0",
     INIT_ENDPOINT_ID                 => x"0005",
@@ -710,7 +725,7 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
     CLOCK_FREQUENCY                  => 100,
     USE_ONEWIRE                      => c_YES,
     BROADCAST_SPECIAL_ADDR           => x"35",
-    RDO_ADDITIONAL_PORT              => 2,
+    RDO_ADDITIONAL_PORT              => cts_rdo_additional_ports,
     RDO_DATA_BUFFER_DEPTH            => 9,
     RDO_DATA_BUFFER_FULL_THRESH      => 2**9-128,
     RDO_HEADER_BUFFER_DEPTH          => 9,
@@ -722,16 +737,16 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
 	  CLK_EN                  => '1',
  
 -- Media interfacces ---------------------------------------------------------------
-	  MED_DATAREADY_OUT(5*1-1 downto 0)   => med_dataready_out,
-	  MED_DATA_OUT(5*16-1 downto 0)       => med_data_out,
-	  MED_PACKET_NUM_OUT(5*3-1 downto 0)  => med_packet_num_out,
-	  MED_READ_IN(5*1-1 downto 0)         => med_read_in,
-	  MED_DATAREADY_IN(5*1-1 downto 0)    => med_dataready_in,
-	  MED_DATA_IN(5*16-1 downto 0)        => med_data_in,
-	  MED_PACKET_NUM_IN(5*3-1 downto 0)   => med_packet_num_in,
-	  MED_READ_OUT(5*1-1 downto 0)        => med_read_out,
-	  MED_STAT_OP(5*16-1 downto 0)        => med_stat_op,
-	  MED_CTRL_OP(5*16-1 downto 0)        => med_ctrl_op,
+	  MED_DATAREADY_OUT(INTERFACE_NUM*1-1 downto 0)   => med_dataready_out,
+	  MED_DATA_OUT(INTERFACE_NUM*16-1 downto 0)       => med_data_out,
+	  MED_PACKET_NUM_OUT(INTERFACE_NUM*3-1 downto 0)  => med_packet_num_out,
+	  MED_READ_IN(INTERFACE_NUM*1-1 downto 0)         => med_read_in,
+	  MED_DATAREADY_IN(INTERFACE_NUM*1-1 downto 0)    => med_dataready_in,
+	  MED_DATA_IN(INTERFACE_NUM*16-1 downto 0)        => med_data_in,
+	  MED_PACKET_NUM_IN(INTERFACE_NUM*3-1 downto 0)   => med_packet_num_in,
+	  MED_READ_OUT(INTERFACE_NUM*1-1 downto 0)        => med_read_out,
+	  MED_STAT_OP(INTERFACE_NUM*16-1 downto 0)        => med_stat_op,
+	  MED_CTRL_OP(INTERFACE_NUM*16-1 downto 0)        => med_ctrl_op,
 
 -- Gbe Read-out Path ---------------------------------------------------------------
     --Event information coming from CTS for GbE
@@ -907,10 +922,10 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
     FEE_STATUS_BITS_IN          => gbe_fee_status_bits,
     FEE_BUSY_IN                 => gbe_fee_busy,
 	  --SFP   Connection
-	  SFP_RXD_P_IN                => SFP_RX_P(6), --these ports are don't care
-	  SFP_RXD_N_IN                => SFP_RX_N(6),
-	  SFP_TXD_P_OUT               => SFP_TX_P(6),
-	  SFP_TXD_N_OUT               => SFP_TX_N(6),
+	  SFP_RXD_P_IN                => SFP_RX_P(9), --these ports are don't care
+	  SFP_RXD_N_IN                => SFP_RX_N(9),
+	  SFP_TXD_P_OUT               => SFP_TX_P(9),
+	  SFP_TXD_N_OUT               => SFP_TX_N(9),
 	  SFP_REFCLK_P_IN             => open, --SFP_REFCLKP(2),
 	  SFP_REFCLK_N_IN             => open, --SFP_REFCLKN(2),
 	  SFP_PRSNT_N_IN              => SFP_MOD0(8), -- SFP Present ('0' = SFP in place, '1' = no SFP mounted)
@@ -1182,6 +1197,7 @@ THE_FPGA_REBOOT : fpga_reboot
 -------------------------------------------------------------------------------
 -- TDC
 -------------------------------------------------------------------------------
+gen_TDC : if INCLUDE_TDC = c_YES generate
   THE_TDC : TDC
     generic map (
       CHANNEL_NUMBER => 5,             -- Number of TDC channels
@@ -1255,9 +1271,19 @@ THE_FPGA_REBOOT : fpga_reboot
       LHB_UNKNOWN_ADDR_OUT  => open, -- lhb_invalid,   -- bus invalid addr
       --
       LOGIC_ANALYSER_OUT    => tdc_debug,
-      CONTROL_REG_IN        => tdc_ctrl_reg);
-    
-    
+      CONTROL_REG_IN        => tdc_ctrl_reg
+      );
+end generate;    
+
+gen_no_TDC : if INCLUDE_TDC = c_NO generate
+  
+  srb_invalid <= '1';
+  esb_invalid <= '1';
+  fwb_invalid <= '1';
+  hitreg_invalid  <= '1';
+end generate;
+
+
 ---------------------------------------------------------------------------
 -- Clock and Trigger Configuration
 ---------------------------------------------------------------------------

@@ -99,6 +99,33 @@ package cts_pkg is
       );
    end component;
 
+   component mbs_vulom_recv is
+   port(
+      CLK        : in std_logic;  -- e.g. 100 MHz
+      RESET_IN   : in std_logic;  -- could be used after busy_release to make sure entity is in correct state
+
+      --Module inputs
+      MBS_IN     : in std_logic;  -- raw input
+      CLK_200    : in std_logic;  -- internal sampling clock
+      
+      --trigger outputs
+      TRG_ASYNC_OUT  : out std_logic;  -- asynchronous rising edge, length varying, here: approx. 110 ns
+      TRG_SYNC_OUT   : out std_logic;  -- sync. to CLK
+
+      --data output for read-out
+      TRIGGER_IN   : in  std_logic;
+      DATA_OUT     : out std_logic_vector(31 downto 0);
+      WRITE_OUT    : out std_logic;
+      STATUSBIT_OUT: out std_logic_vector(31 downto 0);
+      FINISHED_OUT : out std_logic;
+      
+      --Registers / Debug    
+      CONTROL_REG_IN : in  std_logic_vector(31 downto 0);
+      STATUS_REG_OUT : out std_logic_vector(31 downto 0);
+      DEBUG          : out std_logic_vector(31 downto 0)    
+      );
+   end component;   
+   
    component CTS_TRIGGER is
       generic (
          TRIGGER_INPUT_COUNT  : integer range 1 to  8 := 4;
