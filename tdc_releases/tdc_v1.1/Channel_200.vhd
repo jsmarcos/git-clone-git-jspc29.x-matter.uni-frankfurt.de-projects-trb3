@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2013-03-15
+-- Last update: 2013-03-18
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -53,9 +53,6 @@ end Channel_200;
 
 architecture Channel_200 of Channel_200 is
 
-  -- reset
-  signal reset_counters_200 : std_logic;
-
   -- carry chain
   signal data_a_i      : std_logic_vector(303 downto 0);
   signal data_b_i      : std_logic_vector(303 downto 0);
@@ -74,6 +71,7 @@ architecture Channel_200 of Channel_200 is
 
   -- encoder
   signal encoder_start_i    : std_logic;
+  signal encoder_start_100  : std_logic;
   signal encoder_finished_i : std_logic;
   signal encoder_data_out_i : std_logic_vector(9 downto 0);
   signal encoder_debug_i    : std_logic_vector(31 downto 0);
@@ -96,6 +94,7 @@ architecture Channel_200 of Channel_200 is
   signal fifo_was_full_i    : std_logic;
   signal fifo_almost_full_i : std_logic;
   signal fifo_wr_en_i       : std_logic;
+  signal fifo_wr_en_100     : std_logic;
   signal fifo_rd_en_i       : std_logic;
 
   -- other
@@ -107,6 +106,7 @@ architecture Channel_200 of Channel_200 is
   -- debug
   signal sync_q                : std_logic_vector(2 downto 0);
   signal hit_pulse             : std_logic;
+  signal hit_pulse_100         : std_logic;
   signal lost_hit_cntr         : unsigned(23 downto 0);
   signal hit_detect_cntr       : unsigned(23 downto 0);
   signal encoder_start_cntr    : unsigned(23 downto 0);
@@ -124,7 +124,6 @@ architecture Channel_200 of Channel_200 is
 
 begin  -- Channel_200
 
-  reset_counters_200 <= RESET_COUNTERS        when rising_edge(CLK_200);
   trg_win_end_i      <= TRIGGER_WINDOW_END_IN when rising_edge(CLK_200);
 
   --purpose: Tapped Delay Line 304 (Carry Chain) with wave launcher (21) double transition
@@ -341,65 +340,92 @@ begin  -- Channel_200
       signal_in => sync_q(2),
       pulse     => hit_pulse);
 
+  HitPulse : pulse_sync
+    port map (
+      CLK_A_IN    => CLK_200,
+      RESET_A_IN  => RESET_200,
+      PULSE_A_IN  => hit_pulse,
+      CLK_B_IN    => CLK_100,
+      RESET_B_IN  => RESET_100,
+      PULSE_B_OUT => hit_pulse_100);
+
+  FifoWrite : pulse_sync
+    port map (
+      CLK_A_IN    => CLK_200,
+      RESET_A_IN  => RESET_200,
+      PULSE_A_IN  => fifo_wr_en_i,
+      CLK_B_IN    => CLK_100,
+      RESET_B_IN  => RESET_100,
+      PULSE_B_OUT => fifo_wr_en_100);
+
+  EmcpderStart : pulse_sync
+    port map (
+      CLK_A_IN    => CLK_200,
+      RESET_A_IN  => RESET_200,
+      PULSE_A_IN  => encoder_start_i,
+      CLK_B_IN    => CLK_100,
+      RESET_B_IN  => RESET_100,
+      PULSE_B_OUT => encoder_start_100);
+
   --purpose: Counts the detected but unwritten hits
-  Lost_Hit_Counter : process (CLK_200)
+  Lost_Hit_Counter : process (CLK_100)
   begin
-    if rising_edge(CLK_200) then
-      if RESET_200 = '1' or reset_counters_200 = '1' then
+    if rising_edge(CLK_100) then
+      if RESET_COUNTERS = '1' then
         lost_hit_cntr <= (others => '0');
-      elsif hit_pulse = '1' then
+      elsif hit_pulse_100 = '1' then
         lost_hit_cntr <= lost_hit_cntr + to_unsigned(1, 1);
-      elsif fifo_wr_en_i = '1' then
+      elsif fifo_wr_en_100 = '1' then
         lost_hit_cntr <= lost_hit_cntr - to_unsigned(1, 1);
       end if;
     end if;
   end process Lost_Hit_Counter;
 
-  LOST_HIT_NUMBER <= std_logic_vector(lost_hit_cntr) when rising_edge(CLK_100);
+  LOST_HIT_NUMBER <= lost_hit_cntr;
 
 -------------------------------------------------------------------------------
 -- DEBUG
 -------------------------------------------------------------------------------
   --purpose: Counts the detected hits
-  Hit_Detect_Counter : process (CLK_200, RESET_200, hit_pulse)
+  Hit_Detect_Counter : process (CLK_100)
   begin
-    if rising_edge(CLK_200) then
-      if RESET_200 = '1' or reset_counters_200 = '1' then
+    if rising_edge(CLK_100) then
+      if RESET_COUNTERS = '1' then
         hit_detect_cntr <= (others => '0');
-      elsif hit_pulse = '1' then
+      elsif hit_pulse_100 = '1' then
         hit_detect_cntr <= hit_detect_cntr + to_unsigned(1, 1);
       end if;
     end if;
   end process Hit_Detect_Counter;
 
-  HIT_DETECT_NUMBER <= std_logic_vector(hit_detect_cntr) when rising_edge(CLK_100);
+  HIT_DETECT_NUMBER <= hit_detect_cntr;
 
   --purpose: Counts the encoder start times
-  Encoder_Start_Counter : process (CLK_200)
+  Encoder_Start_Counter : process (CLK_100)
   begin
-    if rising_edge(CLK_200) then
-      if RESET_200 = '1' or reset_counters_200 = '1' then
+    if rising_edge(CLK_100) then
+      if RESET_COUNTERS = '1' then
         encoder_start_cntr <= (others => '0');
-      elsif encoder_start_i = '1' then
+      elsif encoder_start_100 = '1' then
         encoder_start_cntr <= encoder_start_cntr + to_unsigned(1, 1);
       end if;
     end if;
   end process Encoder_Start_Counter;
 
-  ENCODER_START_NUMBER <= std_logic_vector(encoder_start_cntr) when rising_edge(CLK_100);
+  ENCODER_START_NUMBER <= encoder_start_cntr;
 
   --purpose: Counts the written hits
-  FIFO_WR_Counter : process (CLK_200)
+  FIFO_WR_Counter : process (CLK_100)
   begin
-    if rising_edge(CLK_200) then
-      if RESET_200 = '1' or reset_counters_200 = '1' then
+    if rising_edge(CLK_100) then
+      if RESET_COUNTERS = '1' then
         fifo_wr_cntr <= (others => '0');
-      elsif fifo_wr_en_i = '1' then
+      elsif fifo_wr_en_100 = '1' then
         fifo_wr_cntr <= fifo_wr_cntr + to_unsigned(1, 1);
       end if;
     end if;
   end process FIFO_WR_Counter;
 
-  FIFO_WR_NUMBER <= std_logic_vector(fifo_wr_cntr) when rising_edge(CLK_100);
+  FIFO_WR_NUMBER <= fifo_wr_cntr;
 
 end Channel_200;

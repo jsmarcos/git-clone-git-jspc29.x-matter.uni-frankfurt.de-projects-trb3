@@ -600,7 +600,7 @@ begin
 
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 5,              -- Number of TDC channels
+      CHANNEL_NUMBER => 65,              -- Number of TDC channels
       STATUS_REG_NR  => REGIO_NUM_STAT_REGS,
       CONTROL_REG_NR => REGIO_NUM_CTRL_REGS)
     port map (
@@ -608,7 +608,7 @@ begin
       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
-      HIT_IN                => hit_in_i(4 downto 1),  -- Channel start signals
+      HIT_IN                => hit_in_i(64 downto 1),  -- Channel start signals
       TRG_WIN_PRE           => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --
