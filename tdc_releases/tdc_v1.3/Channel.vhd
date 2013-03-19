@@ -20,7 +20,7 @@ entity Channel is
     CLK_100                 : in  std_logic;
 --
     HIT_IN                  : in  std_logic;
-    TRIGGER_IN              : in  std_logic;
+    TRIGGER_WIN_END_IN      : in  std_logic;
     READ_EN_IN              : in  std_logic;
     FIFO_DATA_OUT           : out std_logic_vector(35 downto 0);
     FIFO_WCNT_OUT           : out unsigned(7 downto 0);
@@ -29,7 +29,7 @@ entity Channel is
     FIFO_ALMOST_FULL_OUT    : out std_logic;
     COARSE_COUNTER_IN       : in  std_logic_vector(10 downto 0);
     EPOCH_COUNTER_IN        : in  std_logic_vector(27 downto 0);
-    DATA_FINISHED_IN        : in  std_logic;
+--    DATA_FINISHED_IN        : in  std_logic;
 --
     LOST_HIT_NUMBER         : out std_logic_vector(23 downto 0);
     HIT_DETECT_NUMBER       : out std_logic_vector(23 downto 0);
@@ -61,13 +61,13 @@ architecture Channel of Channel is
   signal encoder_start_100     : std_logic;
   signal encoder_finished_i    : std_logic;
   signal encoder_finished_100  : std_logic;
-  signal lost_hit_cntr         : unsigned(23 downto 0);
-  signal hit_detect_cntr       : unsigned(23 downto 0);
-  signal encoder_start_cntr    : unsigned(23 downto 0);
-  signal encoder_finished_cntr : unsigned(23 downto 0);
+  signal lost_hit_cntr         : unsigned(23 downto 0) := (others => '0');
+  signal hit_detect_cntr       : unsigned(23 downto 0) := (others => '0');
+  signal encoder_start_cntr    : unsigned(23 downto 0) := (others => '0');
+  signal encoder_finished_cntr : unsigned(23 downto 0) := (others => '0');
 
   -- other
-  signal data_finished_i : std_logic;
+-- signal data_finished_i : std_logic;
 
 -------------------------------------------------------------------------------
 
@@ -95,9 +95,9 @@ begin
       CLK_100              => CLK_100,
       RESET_100            => RESET_100,
       HIT_IN               => hit_buf,
-      TRIGGER_IN           => TRIGGER_IN,
+      TRIGGER_WIN_END_IN   => TRIGGER_WIN_END_IN,
       EPOCH_COUNTER_IN     => EPOCH_COUNTER_IN,
-      DATA_FINISHED_IN     => data_finished_i,
+--      DATA_FINISHED_IN     => data_finished_i,
       COARSE_COUNTER_IN    => coarse_cntr_reg,
       READ_EN_IN           => READ_EN_IN,
       FIFO_DATA_OUT        => FIFO_DATA_OUT,
@@ -108,7 +108,7 @@ begin
       ENCODER_START_OUT    => encoder_start_i,
       ENCODER_FINISHED_OUT => encoder_finished_i);
 
-  data_finished_i <= DATA_FINISHED_IN when rising_edge(CLK_100);
+--  data_finished_i <= DATA_FINISHED_IN when rising_edge(CLK_100);
 
   pulse_sync_encoder_start : pulse_sync
     port map (
@@ -134,7 +134,6 @@ begin
       WIDTH => 11)
     port map (
       CLK   => CLK_200,
-      RESET => RESET_200,
       D_IN  => COARSE_COUNTER_IN,
       D_OUT => coarse_cntr_reg);
 
@@ -166,7 +165,7 @@ begin
   Lost_Hit_Counter : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
+      if RESET_COUNTERS = '1' then
         lost_hit_cntr <= (others => '0');
       elsif hit_pulse_100 = '1' then
         lost_hit_cntr <= lost_hit_cntr + to_unsigned(1, 1);
@@ -182,7 +181,7 @@ begin
   Hit_Detect_Counter : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
+      if RESET_COUNTERS = '1' then
         hit_detect_cntr <= (others => '0');
       elsif hit_pulse_100 = '1' then
         hit_detect_cntr <= hit_detect_cntr + to_unsigned(1, 1);
@@ -196,7 +195,7 @@ begin
   Encoder_Start_Counter : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
+      if RESET_COUNTERS = '1' then
         encoder_start_cntr <= (others => '0');
       elsif encoder_start_100 = '1' then
         encoder_start_cntr <= encoder_start_cntr + to_unsigned(1, 1);
@@ -210,7 +209,7 @@ begin
   Encoder_Finished_Counter : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
+      if RESET_COUNTERS = '1' then
         encoder_finished_cntr <= (others => '0');
       elsif encoder_finished_100 = '1' then
         encoder_finished_cntr <= encoder_finished_cntr + to_unsigned(1, 1);

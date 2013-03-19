@@ -4,7 +4,7 @@
 -- File       : Encoder_304_Bit.vhd
 -- Author     : Cahit Ugur
 -- Created    : 2011-11-28
--- Last update: 2013-03-04
+-- Last update: 2013-03-17
 -------------------------------------------------------------------------------
 -- Description: Encoder for 304 bits
 -------------------------------------------------------------------------------
@@ -75,7 +75,7 @@ architecture behavioral of Encoder_304_Bit is
   signal info_2reg        : std_logic_vector(1 downto 0);
   signal info_3reg        : std_logic_vector(1 downto 0);
   signal info_4reg        : std_logic_vector(1 downto 0);
-  
+
 -- FSM signals
   type   FSM is (IDLE, START_CNT_2, START_CNT_3, START_CNT_4);
   signal FSM_CURRENT, FSM_NEXT : FSM;
@@ -99,7 +99,7 @@ architecture behavioral of Encoder_304_Bit is
   signal proc_finished_4 : std_logic;
   signal conv_finished_i : std_logic;
   signal thermocode_i    : std_logic_vector(304 downto 0);
-  
+
   attribute syn_keep                     : boolean;
   attribute syn_keep of mux_control      : signal is true;
   attribute syn_keep of mux_control_reg  : signal is true;
@@ -190,21 +190,21 @@ begin
     end if;
   end process Interval_Selection;
 
-  --ROM_Encoder_1 : ROM_Encoder
-  --  port map (
-  --    Address    => address_i,
-  --    OutClock   => CLK,
-  --    OutClockEn => '1',
-  --    Reset      => RESET,
-  --    Q          => q_reg);
-
-  ROM4_Encoder_1 : ROM4_Encoder
+  ROM_Encoder_1 : ROM_Encoder
     port map (
       Address    => address_i,
       OutClock   => CLK,
       OutClockEn => '1',
       Reset      => RESET,
       Q          => q_reg);
+
+  --ROM4_Encoder_1 : ROM4_Encoder
+  --  port map (
+  --    Address    => address_i,
+  --    OutClock   => CLK,
+  --    OutClockEn => '1',
+  --    Reset      => RESET,
+  --    Q          => q_reg);
   address_i       <= start_2reg & interval_reg;
   interval_binary <= q_reg(2 downto 0) when rising_edge(CLK);
   info            <= q_reg(7 downto 6) when rising_edge(CLK);
@@ -365,8 +365,12 @@ begin
   begin
     if rising_edge(CLK) then
       if conv_finished_i = '1' then
-        BINARY_CODE_OUT  <= ('0' & binary_code_r) + ('0' & binary_code_f);
-        ENCODER_INFO_OUT <= info_reg or info_2reg;
+        if info_reg(1) = '1' and info_2reg(1) = '1' then
+          BINARY_CODE_OUT <= ('0' & binary_code_r) + ('0' & binary_code_f);
+        else
+          BINARY_CODE_OUT <= (others => '1');
+        end if;
+        ENCODER_INFO_OUT <= (others => '0'); --info_reg or info_2reg;
         FINISHED_OUT     <= '1';
       else
         FINISHED_OUT <= '0';

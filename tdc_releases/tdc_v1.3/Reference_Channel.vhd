@@ -104,7 +104,6 @@ begin
       WIDTH => 11)
     port map (
       CLK   => CLK_200,
-      RESET => RESET_200,
       D_IN  => COARSE_COUNTER_IN,
       D_OUT => coarse_cntr_reg);
 

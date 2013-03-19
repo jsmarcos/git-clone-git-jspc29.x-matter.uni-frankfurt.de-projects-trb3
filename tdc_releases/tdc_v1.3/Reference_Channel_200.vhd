@@ -5,7 +5,7 @@
 -- File       : Reference_channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-09-04
--- Last update: 2013-03-05
+-- Last update: 2013-03-18
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -55,8 +55,8 @@ architecture Reference_Channel_200 of Reference_Channel_200 is
   -- carry chain
   signal data_a_i      : std_logic_vector(303 downto 0);
   signal data_b_i      : std_logic_vector(303 downto 0);
-  signal result_i      : std_logic_vector(303 downto 0);
-  signal ff_array_en_i : std_logic;
+  signal result_i      : std_logic_vector(303 downto 0) := (others => '1');
+  signal ff_array_en_i : std_logic := '0';
 
   -- hit detection
   signal result_2_reg    : std_logic;
@@ -82,9 +82,9 @@ architecture Reference_Channel_200 of Reference_Channel_200 is
   signal fifo_wcnt_i        : std_logic_vector(7 downto 0);
   signal fifo_empty_i       : std_logic;
   signal fifo_full_i        : std_logic;
-  signal fifo_was_full_i    : std_logic;
+  signal fifo_was_full_i    : std_logic := '0';
   signal fifo_almost_full_i : std_logic;
-  signal fifo_wr_en_i       : std_logic;
+  signal fifo_wr_en_i       : std_logic := '0';
   signal fifo_rd_en_i       : std_logic;
 
   -- timing trigger
@@ -93,14 +93,14 @@ architecture Reference_Channel_200 of Reference_Channel_200 is
   signal spike_detected_i : std_logic;
 
   -- coarse counter overflow
-  signal coarse_cntr_overflow_release : std_logic;
-  signal coarse_cntr_overflow_flag    : std_logic;
+  signal coarse_cntr_overflow_release : std_logic := '0';
+  signal coarse_cntr_overflow_flag    : std_logic := '0';
 
   -- epoch counter
   signal epoch_cntr         : std_logic_vector(27 downto 0);
   signal epoch_time         : std_logic_vector(27 downto 0);
   signal epoch_word_first   : std_logic_vector(35 downto 0);
-  signal epoch_cntr_up      : std_logic;
+  signal epoch_cntr_up      : std_logic := '0';
   signal epoch_capture_time : std_logic_vector(10 downto 0);
 
   -- other
@@ -111,11 +111,12 @@ architecture Reference_Channel_200 of Reference_Channel_200 is
 
   -- fsm
   type   FSM is (IDLE, LOOK_FOR_VALIDITY, ENCODER_FINISHED, WAIT_FOR_FALLING_EDGE);
-  signal FSM_CURRENT, FSM_NEXT : FSM;
-  signal valid_trigger_i       : std_logic;
-  signal valid_trigger_fsm     : std_logic;
-  signal fsm_debug_i           : std_logic_vector(3 downto 0);
-  signal fsm_debug_fsm         : std_logic_vector(3 downto 0);
+  signal FSM_CURRENT       : FSM := IDLE;
+  signal FSM_NEXT          : FSM;
+  signal valid_trigger_i   : std_logic;
+  signal valid_trigger_fsm : std_logic;
+  signal fsm_debug_i       : std_logic_vector(3 downto 0);
+  signal fsm_debug_fsm     : std_logic_vector(3 downto 0);
 
   attribute syn_keep                      : boolean;
   attribute syn_keep of ff_array_en_i     : signal is true;
@@ -154,9 +155,7 @@ begin  -- Reference_Channel_200
   TimeStampCapture : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
-      if RESET_200 = '1' then
-        time_stamp_i <= (others => '0');
-      elsif hit_detect_reg = '1' then
+      if hit_detect_reg = '1' then
         time_stamp_i <= coarse_cntr_reg;
       end if;
     end if;
@@ -167,10 +166,7 @@ begin  -- Reference_Channel_200
   EpochCounterUpdate : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
-      if RESET_200 = '1' then
-        epoch_cntr    <= (others => '0');
-        epoch_cntr_up <= '0';
-      elsif coarse_cntr_reg = epoch_capture_time then
+      if coarse_cntr_reg = epoch_capture_time then
         epoch_cntr    <= EPOCH_COUNTER_IN;
         epoch_cntr_up <= '1';
       end if;
@@ -180,9 +176,7 @@ begin  -- Reference_Channel_200
   EpochCounterCapture : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
-      if RESET_200 = '1' then
-        epoch_time <= (others => '0');
-      elsif encoder_finished_i = '1' then
+      if encoder_finished_i = '1' then
         epoch_time <= epoch_cntr;
       end if;
     end if;
@@ -220,9 +214,7 @@ begin  -- Reference_Channel_200
   CoarseCounterOverflowFlag : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
-      if RESET_200 = '1' then
-        coarse_cntr_overflow_flag <= '0';
-      elsif epoch_cntr_up = '1' or trg_win_end_i = '1' then
+      if epoch_cntr_up = '1' or trg_win_end_i = '1' then
         coarse_cntr_overflow_flag <= '1';
       elsif coarse_cntr_overflow_release = '1' then
         coarse_cntr_overflow_flag <= '0';
@@ -234,12 +226,7 @@ begin  -- Reference_Channel_200
   FifoWriteSignal : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
-      if RESET_200 = '1' then
-        fifo_data_in_i               <= (others => '0');
-        coarse_cntr_overflow_release <= '0';
-        fifo_wr_en_i                 <= '0';
-        time_stamp_epoch_bits        <= (others => '0');
-      elsif valid_trigger_i = '1' then
+      if valid_trigger_i = '1' then
         fifo_data_in_i(31 downto 29) <= "011";
         fifo_data_in_i(28)           <= '0';
         fifo_data_in_i(27 downto 0)  <= epoch_time;
@@ -272,12 +259,10 @@ begin  -- Reference_Channel_200
 
   TRIGGER_TIME_STAMP_OUT <= time_stamp_epoch_bits & time_stamp_i;
 
-  EpochCounterCaptureFirstWord : process (CLK_100, RESET_100)
+  EpochCounterCaptureFirstWord : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' then
-        epoch_word_first <= x"060000000";
-      elsif DATA_FINISHED_IN = '1' and RUN_MODE = '0' then
+      if DATA_FINISHED_IN = '1' and RUN_MODE = '0' then
         epoch_word_first <= x"060000000";
       elsif fifo_data_out_i(31 downto 29) = "011" then
         epoch_word_first <= fifo_data_out_i;
@@ -289,12 +274,10 @@ begin  -- Reference_Channel_200
   read_en_2reg <= read_en_reg                       when rising_edge(CLK_100);
   first_read_i <= read_en_reg and not(read_en_2reg) when rising_edge(CLK_100);
 
-  FifoWasFull : process (CLK_100, RESET_100)
+  FifoWasFull : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' then
-        fifo_was_full_i <= '0';
-      elsif fifo_full_i = '1' then
+      if fifo_full_i = '1' then
         fifo_was_full_i <= '1';
       elsif fifo_empty_i = '1' then
         fifo_was_full_i <= '0';
@@ -305,39 +288,25 @@ begin  -- Reference_Channel_200
   RegisterOutputs : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' then
-        FIFO_DATA_OUT        <= (others => '1');
-        FIFO_WCNT_OUT        <= (others => '0');
-        FIFO_EMPTY_OUT       <= '0';
-        FIFO_FULL_OUT        <= '0';
-        FIFO_ALMOST_FULL_OUT <= '0';
+      if first_read_i = '1' and fifo_was_full_i = '1' then
+        FIFO_DATA_OUT <= epoch_word_first;
       else
-        if first_read_i = '1' and fifo_was_full_i = '1' then
-          FIFO_DATA_OUT <= epoch_word_first;
-        else
-          FIFO_DATA_OUT <= fifo_data_out_i;
-        end if;
-        FIFO_WCNT_OUT        <= unsigned(fifo_wcnt_i);
-        FIFO_EMPTY_OUT       <= fifo_empty_i;
-        FIFO_FULL_OUT        <= fifo_full_i;
-        FIFO_ALMOST_FULL_OUT <= fifo_almost_full_i;
+        FIFO_DATA_OUT <= fifo_data_out_i;
       end if;
+      FIFO_WCNT_OUT        <= unsigned(fifo_wcnt_i);
+      FIFO_EMPTY_OUT       <= fifo_empty_i;
+      FIFO_FULL_OUT        <= fifo_full_i;
+      FIFO_ALMOST_FULL_OUT <= fifo_almost_full_i;
     end if;
   end process RegisterOutputs;
 
   --purpose: FSM for controlling the validity of the timing signal
-  FSM_CLK : process (CLK_200, RESET_200)
+  FSM_CLK : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
-      if RESET_200 = '1' then
-        FSM_CURRENT     <= IDLE;
-        valid_trigger_i <= '0';
-        fsm_debug_i     <= (others => '0');
-      else
-        FSM_CURRENT     <= FSM_NEXT;
-        valid_trigger_i <= valid_trigger_fsm;
-        fsm_debug_i     <= fsm_debug_fsm;
-      end if;
+      FSM_CURRENT     <= FSM_NEXT;
+      valid_trigger_i <= valid_trigger_fsm;
+      fsm_debug_i     <= fsm_debug_fsm;
     end if;
   end process FSM_CLK;
 

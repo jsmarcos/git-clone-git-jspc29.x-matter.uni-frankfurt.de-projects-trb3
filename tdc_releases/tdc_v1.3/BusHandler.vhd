@@ -30,9 +30,16 @@ architecture Behavioral of BusHandler is
   signal data_out_reg     : std_logic_vector(31 downto 0);
   signal data_ready_reg   : std_logic;
   signal unknown_addr_reg : std_logic;
-
+  signal read_en_i        : std_logic;
+  signal write_en_i       : std_logic;
+  signal addr_i           : std_logic_vector(6 downto 0);
+  
 begin
 
+  read_en_i  <= READ_EN_IN  when rising_edge(CLK);
+  write_en_i <= WRITE_EN_IN when rising_edge(CLK);
+  addr_i     <= ADDR_IN     when rising_edge(CLK);
+  
   READ_WRITE_RESPONSE : process (CLK, RESET)
   begin
     if rising_edge(CLK) then
@@ -40,17 +47,17 @@ begin
         data_out_reg     <= (others => '0');
         data_ready_reg   <= '0';
         unknown_addr_reg <= '0';
-      elsif READ_EN_IN = '1' then
-        if to_integer(unsigned(ADDR_IN)) > BUS_LENGTH then  -- if bigger than 64
+      elsif read_en_i = '1' then
+        if to_integer(unsigned(addr_i)) > BUS_LENGTH then  -- if bigger than 64
           data_out_reg     <= (others => '0');
           data_ready_reg   <= '0';
           unknown_addr_reg <= '1';
         else
-          data_out_reg     <= DATA_IN(to_integer(unsigned(ADDR_IN)));
+          data_out_reg     <= DATA_IN(to_integer(unsigned(addr_i)));
           data_ready_reg   <= '1';
           unknown_addr_reg <= '0';
         end if;
-      elsif WRITE_EN_IN = '1' then
+      elsif write_en_i = '1' then
         data_out_reg     <= (others => '0');
         data_ready_reg   <= '0';
         unknown_addr_reg <= '1';

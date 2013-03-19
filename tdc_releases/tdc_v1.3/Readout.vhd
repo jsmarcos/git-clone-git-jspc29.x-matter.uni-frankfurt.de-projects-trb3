@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2013-03-01
+-- Last update: 2013-03-07
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -32,7 +32,6 @@ entity Readout is
     RESET_100         : in std_logic;
     RESET_COUNTERS    : in std_logic;
 --
-    HIT_IN            : in std_logic_vector(CHANNEL_NUMBER-1 downto 1);
     REFERENCE_TIME    : in std_logic;
     TRIGGER_TIME_IN   : in std_logic_vector(38 downto 0);
     TRG_WIN_PRE       : in std_logic_vector(10 downto 0);
@@ -70,7 +69,7 @@ entity Readout is
     READ_EN_OUT              : out std_logic_vector(CHANNEL_NUMBER-1 downto 0);
     TRIGGER_WIN_END_OUT      : out std_logic;
 --
-    STATUS_REGISTERS_BUS_OUT : out std_logic_vector_array_32(0 to 23);
+    STATUS_REGISTERS_BUS_OUT : out std_logic_vector_array_32(0 to 18);
     READOUT_DEBUG            : out std_logic_vector(31 downto 0)
     );
 
@@ -86,11 +85,11 @@ architecture behavioral of Readout is
   signal slow_control_ch_empty_i : std_logic_vector(63 downto 0);
 
   -- trigger window
-  signal start_trg_win_cnt       : std_logic;
+  signal start_trg_win_cnt       : std_logic                               := '0';
   signal start_trg_win_cnt_200_p : std_logic;
   signal trg_win_post_200        : std_logic_vector(10 downto 0);
   signal trg_win_cnt             : std_logic_vector(11 downto 0);
-  signal trg_win_end_200         : std_logic;
+  signal trg_win_end_200         : std_logic                               := '0';
   signal trg_win_end_200_p       : std_logic;
   signal trg_win_end_100_p       : std_logic;
   signal trg_win_end_100_reg     : std_logic;
@@ -116,9 +115,11 @@ architecture behavioral of Readout is
   -- readout fsm
   type FSM_READ is (IDLE, WAIT_FOR_TRG_WIND_END, RD_CH, WAIT_FOR_LVL1_TRG_A, WAIT_FOR_LVL1_TRG_B,
                     WAIT_FOR_LVL1_TRG_C, SEND_STATUS, SEND_TRG_RELEASE_A, SEND_TRG_RELEASE_B);
-  signal RD_CURRENT, RD_NEXT : FSM_READ;
+  signal RD_CURRENT : FSM_READ  := IDLE;
+  signal RD_NEXT    : FSM_READ;
   type   FSM_WRITE is (IDLE, WR_CH);
-  signal WR_CURRENT, WR_NEXT : FSM_WRITE;
+  signal WR_CURRENT : FSM_WRITE := IDLE;
+  signal WR_NEXT    : FSM_WRITE;
 
   signal start_trg_win_cnt_fsm : std_logic;
   signal rd_fsm_debug_fsm      : std_logic_vector(3 downto 0);
@@ -203,11 +204,6 @@ architecture behavioral of Readout is
   signal ch_almost_full_i        : std_logic;
   signal rd_fsm_debug            : std_logic_vector(3 downto 0);
   signal wr_fsm_debug            : std_logic_vector(3 downto 0);
-  -- delme
-  signal win_end_200_cnt         : unsigned(7 downto 0)              := (others => '0');
-  signal win_end_100_cnt         : unsigned(7 downto 0)              := (others => '0');
-  signal start_trg_win_counter   : unsigned(7 downto 0)              := (others => '0');
-  signal wr_finished_cnt         : unsigned(7 downto 0)              := (others => '0');
 
 begin  -- behavioral
 -------------------------------------------------------------------------------
@@ -228,7 +224,6 @@ begin  -- behavioral
   begin
     if rising_edge(CLK_200) then
       if RESET_200 = '1' then
-        trg_win_end_200 <= '0';
         trg_win_cnt     <= '1' & trg_win_post_200;
       elsif start_trg_win_cnt_200_p = '1' then
         trg_win_end_200 <= '0';
@@ -265,16 +260,11 @@ begin  -- behavioral
   trg_win_end_100_4reg <= trg_win_end_100_3reg when rising_edge(CLK_100);
 
 -- Trigger window borders
-  Trg_Win_Calculation : process (CLK_100, RESET_100)
+  Trg_Win_Calculation : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' then
-        TW_pre <= (others => '0');
---        TW_post <= (others => '0');
-      else
-        TW_pre <= std_logic_vector(to_unsigned(to_integer(unsigned(TRIGGER_TIME_IN))-to_integer(unsigned(TRG_WIN_PRE)), 39));
---        TW_post <= std_logic_vector(to_unsigned(to_integer(unsigned(TRIGGER_TIME_IN))+to_integer(unsigned(TRG_WIN_POST)), 39));
-      end if;
+      TW_pre <= std_logic_vector(to_unsigned(to_integer(unsigned(TRIGGER_TIME_IN))-to_integer(unsigned(TRG_WIN_PRE)), 39));
+--    TW_post <= std_logic_vector(to_unsigned(to_integer(unsigned(TRIGGER_TIME_IN))+to_integer(unsigned(TRG_WIN_POST)), 39));
     end if;
   end process Trg_Win_Calculation;
 
@@ -292,11 +282,7 @@ begin  -- behavioral
   ChannelEpochCounter : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' then
-        ch_epoch_cntr_i <= (others => '0');
-        --elsif  then
-        --  ch_epoch_cntr_i <= (others => '0');
-      elsif ch_data_reg(fifo_nr_wr_2reg)(31 downto 29) = "011" then
+      if ch_data_reg(fifo_nr_wr_2reg)(31 downto 29) = "011" then
         ch_epoch_cntr_i <= ch_data_reg(fifo_nr_wr_2reg)(27 downto 0);
       end if;
     end if;
@@ -305,9 +291,7 @@ begin  -- behavioral
   ChannelHitTime : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' then
-        ch_hit_time <= (others => '0');
-      elsif ch_data_reg(fifo_nr_wr_2reg)(31) = '1' then
+      if ch_data_reg(fifo_nr_wr_2reg)(31) = '1' then
         ch_hit_time <= ch_epoch_cntr_i & ch_data_reg(fifo_nr_wr_2reg)(10 downto 0);
       elsif ch_data_reg(fifo_nr_wr_2reg)(31 downto 29) = "011" then
         ch_hit_time <= (others => '0');
@@ -316,12 +300,10 @@ begin  -- behavioral
   end process ChannelHitTime;
 
 -- Controls if the data coming from the channel is greater than the trigger window pre-edge
-  Check_Trg_Win_Left : process (RESET_100, TW_pre, ch_hit_time)
+  Check_Trg_Win_Left : process (TW_pre, ch_hit_time)
   begin
     --if rising_edge(CLK_100) then
-    if RESET_100 = '1' then
-      trg_win_l <= '0';
-    elsif to_integer(unsigned(TW_pre)) <= to_integer(unsigned(ch_hit_time)) then
+    if to_integer(unsigned(TW_pre)) <= to_integer(unsigned(ch_hit_time)) then
       trg_win_l <= '1';
     else
       trg_win_l <= '0';
@@ -350,37 +332,20 @@ begin  -- behavioral
   RD_FSM_CLK : process (CLK_100, RESET_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' then
-        RD_CURRENT        <= IDLE;
-        start_trg_win_cnt <= '0';
-        rd_en             <= (others => '0');
-        wr_header         <= '0';
-        wr_status         <= '0';
-        data_finished     <= '0';
-        trg_release_reg   <= '0';
-        wrong_readout_up  <= '0';
-        idle_time_up      <= '0';
-        readout_time_up   <= '0';
-        wait_time_up      <= '0';
-        rd_number         <= (others => '0');
-        fifo_nr_rd        <= 0;
-        rd_fsm_debug      <= x"0";
-      else
-        RD_CURRENT        <= RD_NEXT;
-        start_trg_win_cnt <= start_trg_win_cnt_fsm;
-        rd_en             <= rd_en_fsm;
-        wr_header         <= wr_header_fsm;
-        wr_status         <= wr_status_fsm;
-        data_finished     <= data_finished_fsm;
-        trg_release_reg   <= trg_release_fsm;
-        wrong_readout_up  <= wrong_readout_fsm;
-        idle_time_up      <= idle_fsm;
-        readout_time_up   <= readout_fsm;
-        wait_time_up      <= wait_fsm;
-        rd_number         <= rd_number_fsm;
-        fifo_nr_rd        <= fifo_nr_rd_fsm;
-        rd_fsm_debug      <= rd_fsm_debug_fsm;
-      end if;
+      RD_CURRENT        <= RD_NEXT;
+      start_trg_win_cnt <= start_trg_win_cnt_fsm;
+      rd_en             <= rd_en_fsm;
+      wr_header         <= wr_header_fsm;
+      wr_status         <= wr_status_fsm;
+      data_finished     <= data_finished_fsm;
+      trg_release_reg   <= trg_release_fsm;
+      wrong_readout_up  <= wrong_readout_fsm;
+      idle_time_up      <= idle_fsm;
+      readout_time_up   <= readout_fsm;
+      wait_time_up      <= wait_fsm;
+      rd_number         <= rd_number_fsm;
+      fifo_nr_rd        <= fifo_nr_rd_fsm;
+      rd_fsm_debug      <= rd_fsm_debug_fsm;
     end if;
   end process RD_FSM_CLK;
   READ_EN_OUT <= rd_en;
@@ -526,21 +491,12 @@ begin  -- behavioral
   WR_FSM_CLK : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' then
-        WR_CURRENT   <= IDLE;
-        wr_ch_data_i <= '0';
-        wr_number    <= (others => '0');
-        fifo_nr_wr   <= 0;
-        wr_finished  <= '0';
-        wr_fsm_debug <= x"0";
-      else
-        WR_CURRENT   <= WR_NEXT;
-        wr_ch_data_i <= wr_ch_data_fsm;
-        wr_number    <= wr_number_fsm;
-        fifo_nr_wr   <= fifo_nr_wr_fsm;
-        wr_finished  <= wr_finished_fsm;
-        wr_fsm_debug <= wr_fsm_debug_fsm;
-      end if;
+      WR_CURRENT   <= WR_NEXT;
+      wr_ch_data_i <= wr_ch_data_fsm;
+      wr_number    <= wr_number_fsm;
+      fifo_nr_wr   <= fifo_nr_wr_fsm;
+      wr_finished  <= wr_finished_fsm;
+      wr_fsm_debug <= wr_fsm_debug_fsm;
     end if;
   end process WR_FSM_CLK;
 
@@ -600,15 +556,11 @@ begin  -- behavioral
 -------------------------------------------------------------------------------
 -- Data out mux
 -------------------------------------------------------------------------------
-  Data_Out_MUX : process (CLK_100, RESET_100)
+  Data_Out_MUX : process (CLK_100)
     variable i : integer := 0;
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' then
-        data_out_reg  <= (others => '1');
-        data_wr_reg   <= '0';
-        stop_status_i <= '0';
-      elsif wr_header = '1' then
+      if wr_header = '1' then
         data_out_reg  <= "001" & "0" & TRG_TYPE_IN & TRG_CODE_IN & header_error_bits;
         data_wr_reg   <= '1';
         stop_status_i <= '0';
@@ -758,10 +710,10 @@ begin  -- behavioral
       pulse     => timeout_detected_p);
 
 -- Internal trigger number counter (only valid triggers)
-  Statistics_Trigger_Number : process (CLK_100, RESET_100)
+  Statistics_Trigger_Number : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
+      if RESET_COUNTERS = '1' then
         trig_number <= (others => '0');
       elsif valid_timing_trg_p = '1' or valid_notiming_trg_p = '1' then
         trig_number <= trig_number + to_unsigned(1, 1);
@@ -770,10 +722,10 @@ begin  -- behavioral
   end process Statistics_Trigger_Number;
 
 -- Internal release number counter
-  Statistics_Release_Number : process (CLK_100, RESET_100)
+  Statistics_Release_Number : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
+      if RESET_COUNTERS = '1' then
         release_number <= (others => '0');
       elsif trg_release_reg = '1' then
         release_number <= release_number + to_unsigned(1, 1);
@@ -782,10 +734,10 @@ begin  -- behavioral
   end process Statistics_Release_Number;
 
 -- Internal valid timing trigger number counter
-  Statistics_Valid_Timing_Trigger_Number : process (CLK_100, RESET_100)
+  Statistics_Valid_Timing_Trigger_Number : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
+      if RESET_COUNTERS = '1' then
         valid_tmg_trig_number <= (others => '0');
       elsif valid_timing_trg_p = '1' then
         valid_tmg_trig_number <= valid_tmg_trig_number + to_unsigned(1, 1);
@@ -794,10 +746,10 @@ begin  -- behavioral
   end process Statistics_Valid_Timing_Trigger_Number;
 
 -- Internal valid NOtiming trigger number counter
-  Statistics_Valid_NoTiming_Trigger_Number : process (CLK_100, RESET_100)
+  Statistics_Valid_NoTiming_Trigger_Number : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
+      if RESET_COUNTERS = '1' then
         valid_NOtmg_trig_number <= (others => '0');
       elsif valid_notiming_trg_p = '1' then
         valid_NOtmg_trig_number <= valid_NOtmg_trig_number + to_unsigned(1, 1);
@@ -806,10 +758,10 @@ begin  -- behavioral
   end process Statistics_Valid_NoTiming_Trigger_Number;
 
 -- Internal invalid trigger number counter
-  Statistics_Invalid_Trigger_Number : process (CLK_100, RESET_100)
+  Statistics_Invalid_Trigger_Number : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
+      if RESET_COUNTERS = '1' then
         invalid_trig_number <= (others => '0');
       elsif invalid_trg_p = '1' then
         invalid_trig_number <= invalid_trig_number + to_unsigned(1, 1);
@@ -818,10 +770,10 @@ begin  -- behavioral
   end process Statistics_Invalid_Trigger_Number;
 
 -- Internal multi timing trigger number counter
-  Statistics_Multi_Timing_Trigger_Number : process (CLK_100, RESET_100)
+  Statistics_Multi_Timing_Trigger_Number : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
+      if RESET_COUNTERS = '1' then
         multi_tmg_trig_number <= (others => '0');
       elsif multi_tmg_trg_p = '1' then
         multi_tmg_trig_number <= multi_tmg_trig_number + to_unsigned(1, 1);
@@ -830,10 +782,10 @@ begin  -- behavioral
   end process Statistics_Multi_Timing_Trigger_Number;
 
 -- Internal spurious trigger number counter
-  Statistics_Spurious_Trigger_Number : process (CLK_100, RESET_100)
+  Statistics_Spurious_Trigger_Number : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
+      if RESET_COUNTERS = '1' then
         spurious_trig_number <= (others => '0');
       elsif spurious_trg_p = '1' then
         spurious_trig_number <= spurious_trig_number + to_unsigned(1, 1);
@@ -842,10 +794,10 @@ begin  -- behavioral
   end process Statistics_Spurious_Trigger_Number;
 
 -- Number of wrong readout becasue of spurious trigger
-  Statistics_Wrong_Readout_Number : process (CLK_100, RESET_100)
+  Statistics_Wrong_Readout_Number : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
+      if RESET_COUNTERS = '1' then
         wrong_readout_number <= (others => '0');
       elsif wrong_readout_up = '1' then
         wrong_readout_number <= wrong_readout_number + to_unsigned(1, 1);
@@ -854,10 +806,10 @@ begin  -- behavioral
   end process Statistics_Wrong_Readout_Number;
 
 -- Internal spike number counter
-  Statistics_Spike_Number : process (CLK_100, RESET_100)
+  Statistics_Spike_Number : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
+      if RESET_COUNTERS = '1' then
         spike_number <= (others => '0');
       elsif spike_detected_p = '1' then
         spike_number <= spike_number + to_unsigned(1, 1);
@@ -866,10 +818,10 @@ begin  -- behavioral
   end process Statistics_Spike_Number;
 
 -- Internal timeout number counter
-  Statistics_Timeout_Number : process (CLK_100, RESET_100)
+  Statistics_Timeout_Number : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
+      if RESET_COUNTERS = '1' then
         timeout_number <= (others => '0');
       elsif timeout_detected_p = '1' then
         timeout_number <= timeout_number + to_unsigned(1, 1);
@@ -878,10 +830,10 @@ begin  -- behavioral
   end process Statistics_Timeout_Number;
 
 -- IDLE time of the TDC readout
-  Statistics_Idle_Time : process (CLK_100, RESET_100)
+  Statistics_Idle_Time : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
+      if RESET_COUNTERS = '1' then
         idle_time <= (others => '0');
       elsif idle_time_up = '1' then
         idle_time <= idle_time + to_unsigned(1, 1);
@@ -890,10 +842,10 @@ begin  -- behavioral
   end process Statistics_Idle_Time;
 
 -- Readout and Wait time of the TDC readout
-  Statistics_Readout_Wait_Time : process (CLK_100, RESET_100)
+  Statistics_Readout_Wait_Time : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
+      if RESET_COUNTERS = '1' then
         readout_time <= (others => '0');
         wait_time    <= (others => '0');
       elsif readout_time_up = '1' then
@@ -905,11 +857,11 @@ begin  -- behavioral
   end process Statistics_Readout_Wait_Time;
 
 -- Empty channel number
-  Statistics_Empty_Channel_Number : process (CLK_100, RESET_100)
+  Statistics_Empty_Channel_Number : process (CLK_100)
     variable i : integer := CHANNEL_NUMBER;
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
+      if RESET_COUNTERS = '1' then
         total_empty_channel <= (others => '0');
         i                   := CHANNEL_NUMBER;
       elsif trg_win_end_100_p = '1' then
@@ -926,11 +878,11 @@ begin  -- behavioral
     end if;
   end process Statistics_Empty_Channel_Number;
 
-  -- Readout and Wait time of the TDC readout
+  -- Number of sent data finished
   Statistics_Finished_Number : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
+      if RESET_COUNTERS = '1' then
         finished_number <= (others => '0');
       elsif finished_i = '1' then
         finished_number <= finished_number + to_unsigned(1, 1);
@@ -971,88 +923,24 @@ begin  -- behavioral
   STATUS_REGISTERS_BUS_OUT(17)(23 downto 0)  <= std_logic_vector(timeout_number);
   STATUS_REGISTERS_BUS_OUT(18)(23 downto 0)  <= std_logic_vector(finished_number);
   STATUS_REGISTERS_BUS_OUT(18)(31 downto 24) <= std_logic_vector(wr_number);
-  STATUS_REGISTERS_BUS_OUT(19)(7 downto 0)   <= std_logic_vector(win_end_200_cnt);
-  STATUS_REGISTERS_BUS_OUT(19)(15 downto 8)  <= std_logic_vector(start_trg_win_counter);
-  STATUS_REGISTERS_BUS_OUT(19)(23 downto 16) <= std_logic_vector(win_end_100_cnt);
-  STATUS_REGISTERS_BUS_OUT(19)(31 downto 24) <= std_logic_vector(wr_finished_cnt);
-  STATUS_REGISTERS_BUS_OUT(20)(10 downto 0)  <= trg_win_post_200;
-  STATUS_REGISTERS_BUS_OUT(20)(27 downto 16) <= trg_win_cnt;
 
   FILL_BUS1 : for i in 4 to 17 generate
     STATUS_REGISTERS_BUS_OUT(i)(31 downto 24) <= (others => '0');
   end generate FILL_BUS1;
 
-  FILL_BUS2 : for i in 21 to 23 generate
-    STATUS_REGISTERS_BUS_OUT(i) <= (others => '0');
-  end generate FILL_BUS2;
-
   slow_control_ch_empty_i(63 downto CHANNEL_NUMBER-1) <= (others => '1');
   slow_control_ch_empty_i(CHANNEL_NUMBER-2 downto 0)  <= ch_empty_2reg(CHANNEL_NUMBER-1 downto 1);
 
 -------------------------------------------------------------------------------
--- delme
--------------------------------------------------------------------------------
-
-  debug1 : process (CLK_200)
-  begin
-    if rising_edge(CLK_200) then
-      if RESET_200 = '1' or RESET_COUNTERS = '1' then
-        win_end_200_cnt <= (others => '0');
-      elsif trg_win_end_200_p = '1' then
-        win_end_200_cnt <= win_end_200_cnt + to_unsigned(1,1);
-      end if;
-    end if;
-  end process debug1;
-
-  debug2 : process (CLK_200)
-  begin
-    if rising_edge(CLK_200) then
-      if RESET_200 = '1' or RESET_COUNTERS = '1' then
-        start_trg_win_counter <= (others => '0');
-      elsif start_trg_win_cnt_200_p = '1' then
-        start_trg_win_counter <= start_trg_win_counter + to_unsigned(1, 1);
-      end if;
-    end if;
-  end process debug2;
-
-  debug3 : process (CLK_100)
-  begin
-    if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
-        win_end_100_cnt <= (others => '0');
-      elsif trg_win_end_100_3reg = '1' then
-        win_end_100_cnt <= win_end_100_cnt + to_unsigned(1,1);
-      end if;
-    end if;
-  end process debug3;
-
-  debug4 : process (CLK_100)
-  begin
-    if rising_edge(CLK_100) then
-      if RESET_100 = '1' or RESET_COUNTERS = '1' then
-        wr_finished_cnt <= (others => '0');
-      elsif wr_finished_2reg = '1' then
-        wr_finished_cnt <= wr_finished_cnt + to_unsigned(1,1);
-      end if;
-    end if;
-  end process debug4;
-
-
--------------------------------------------------------------------------------
 -- Registering
 -------------------------------------------------------------------------------
--- 100 MHz
---  updt_index_reg    <= updt_index    when rising_edge(CLK_100);
---  data_finished_reg <= data_finished when rising_edge(CLK_100);
   ch_data_reg   <= CH_DATA_IN    when rising_edge(CLK_100);
   ch_data_2reg  <= ch_data_reg   when rising_edge(CLK_100);
---  ch_data_3reg      <= ch_data_2reg   when rising_edge(CLK_100);
   ch_empty_reg  <= CH_EMPTY_IN   when rising_edge(CLK_100);
   ch_empty_2reg <= ch_empty_reg  when rising_edge(CLK_100);
   ch_empty_3reg <= ch_empty_2reg when rising_edge(CLK_100);
   ch_empty_4reg <= ch_empty_3reg when rising_edge(CLK_100);
 
--- 200 MHz
   trg_win_post_200 <= std_logic_vector(unsigned(TRG_WIN_POST)-8) when rising_edge(CLK_200);
 
 end behavioral;

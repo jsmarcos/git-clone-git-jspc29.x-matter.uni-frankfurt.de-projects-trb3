@@ -134,7 +134,7 @@ architecture TDC of TDC is
   signal ch_debug_i                   : std_logic_vector_array_32(0 to CHANNEL_NUMBER-1);
   signal readout_debug_i              : std_logic_vector(31 downto 0);
 -- Bus signals
-  signal status_registers_bus_i       : std_logic_vector_array_32(0 to 23);
+  signal status_registers_bus_i       : std_logic_vector_array_32(0 to 18);
 
   attribute syn_keep                    : boolean;
   attribute syn_keep of reset_tdc       : signal is true;
@@ -202,7 +202,7 @@ begin
         CLK_200                 => CLK_TDC,
         CLK_100                 => CLK_READOUT,
         HIT_IN                  => hit_in_i(i),
-        TRIGGER_IN              => '0',  -- input for the febex design
+        TRIGGER_WIN_END_IN      => trg_win_end_i,
         READ_EN_IN              => rd_en_i(i),
         FIFO_DATA_OUT           => ch_data_i(i),
         FIFO_WCNT_OUT           => ch_wcnt_i(i),
@@ -211,7 +211,7 @@ begin
         FIFO_ALMOST_FULL_OUT    => ch_almost_full_i(i),
         COARSE_COUNTER_IN       => coarse_cntr(integer(ceil(real(i)/real(16)))),
         EPOCH_COUNTER_IN        => epoch_cntr,
-        DATA_FINISHED_IN        => data_finished_i,
+--        DATA_FINISHED_IN        => data_finished_i,
         LOST_HIT_NUMBER         => ch_lost_hit_number_i(i),
         HIT_DETECT_NUMBER       => ch_hit_detect_number_i(i),
         ENCODER_START_NUMBER    => ch_encoder_start_number_i(i),
@@ -230,7 +230,6 @@ begin
       CLK_100                  => CLK_READOUT,
       RESET_100                => RESET,
       RESET_COUNTERS           => reset_counters_i,
-      HIT_IN                   => hit_in_i,
       REFERENCE_TIME           => REFERENCE_TIME,
       TRIGGER_TIME_IN          => trg_time_i,
       TRG_WIN_PRE              => TRG_WIN_PRE,
@@ -327,7 +326,7 @@ begin
 
   TheStatusRegistersBus : BusHandler
     generic map (
-      BUS_LENGTH => 23)
+      BUS_LENGTH => 18)
     port map (
       RESET            => RESET,
       CLK              => CLK_READOUT,
@@ -357,41 +356,49 @@ begin
     ch_lost_hit_bus_i(i) <= x"00" & ch_lost_hit_number_i(i) when rising_edge(CLK_READOUT);
   end generate GenLostHitNumber;
 
-  TheEncoderStartBus : BusHandler
-    generic map (
-      BUS_LENGTH => CHANNEL_NUMBER-1)
-    port map (
-      RESET            => RESET,
-      CLK              => CLK_READOUT,
-      DATA_IN          => ch_encoder_start_bus_i,
-      READ_EN_IN       => ESB_READ_EN_IN,
-      WRITE_EN_IN      => ESB_WRITE_EN_IN,
-      ADDR_IN          => ESB_ADDR_IN,
-      DATA_OUT         => ESB_DATA_OUT,
-      DATAREADY_OUT    => ESB_DATAREADY_OUT,
-      UNKNOWN_ADDR_OUT => ESB_UNKNOWN_ADDR_OUT);
+  --TheEncoderStartBus : BusHandler
+  --  generic map (
+  --    BUS_LENGTH => CHANNEL_NUMBER-1)
+  --  port map (
+  --    RESET            => RESET,
+  --    CLK              => CLK_READOUT,
+  --    DATA_IN          => ch_encoder_start_bus_i,
+  --    READ_EN_IN       => ESB_READ_EN_IN,
+  --    WRITE_EN_IN      => ESB_WRITE_EN_IN,
+  --    ADDR_IN          => ESB_ADDR_IN,
+  --    DATA_OUT         => ESB_DATA_OUT,
+  --    DATAREADY_OUT    => ESB_DATAREADY_OUT,
+  --    UNKNOWN_ADDR_OUT => ESB_UNKNOWN_ADDR_OUT);
 
-  GenEncoderStartNumber : for i in 1 to CHANNEL_NUMBER-1 generate
-    ch_encoder_start_bus_i(i) <= x"00" & ch_encoder_start_number_i(i) when rising_edge(CLK_READOUT);
-  end generate GenEncoderStartNumber;
+  --GenEncoderStartNumber : for i in 1 to CHANNEL_NUMBER-1 generate
+  --  ch_encoder_start_bus_i(i) <= x"00" & ch_encoder_start_number_i(i) when rising_edge(CLK_READOUT);
+  --end generate GenEncoderStartNumber;
 
-  TheEncoderFinishedBus : BusHandler
-    generic map (
-      BUS_LENGTH => CHANNEL_NUMBER-1)
-    port map (
-      RESET            => RESET,
-      CLK              => CLK_READOUT,
-      DATA_IN          => ch_encoder_finished_bus_i,
-      READ_EN_IN       => EFB_READ_EN_IN,
-      WRITE_EN_IN      => EFB_WRITE_EN_IN,
-      ADDR_IN          => EFB_ADDR_IN,
-      DATA_OUT         => EFB_DATA_OUT,
-      DATAREADY_OUT    => EFB_DATAREADY_OUT,
-      UNKNOWN_ADDR_OUT => EFB_UNKNOWN_ADDR_OUT);
+  ESB_DATA_OUT         <= (others => '0');
+  ESB_DATAREADY_OUT    <= '0';
+  ESB_UNKNOWN_ADDR_OUT <= '0';
 
-  GenFifoWriteNumber : for i in 1 to CHANNEL_NUMBER-1 generate
-    ch_encoder_finished_bus_i(i) <= x"00" & ch_encoder_finished_number_i(i) when rising_edge(CLK_READOUT);
-  end generate GenFifoWriteNumber;
+  --TheEncoderFinishedBus : BusHandler
+  --  generic map (
+  --    BUS_LENGTH => CHANNEL_NUMBER-1)
+  --  port map (
+  --    RESET            => RESET,
+  --    CLK              => CLK_READOUT,
+  --    DATA_IN          => ch_encoder_finished_bus_i,
+  --    READ_EN_IN       => EFB_READ_EN_IN,
+  --    WRITE_EN_IN      => EFB_WRITE_EN_IN,
+  --    ADDR_IN          => EFB_ADDR_IN,
+  --    DATA_OUT         => EFB_DATA_OUT,
+  --    DATAREADY_OUT    => EFB_DATAREADY_OUT,
+  --    UNKNOWN_ADDR_OUT => EFB_UNKNOWN_ADDR_OUT);
+
+  --GenFifoWriteNumber : for i in 1 to CHANNEL_NUMBER-1 generate
+  --  ch_encoder_finished_bus_i(i) <= x"00" & ch_encoder_finished_number_i(i) when rising_edge(CLK_READOUT);
+  --end generate GenFifoWriteNumber;
+
+  EFB_DATA_OUT         <= (others => '0');
+  EFB_DATAREADY_OUT    <= '0';
+  EFB_UNKNOWN_ADDR_OUT <= '0';
 
 -- Logic Analyser
   TheLogicAnalyser : LogicAnalyser
