@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2013-03-07
+-- Last update: 2013-03-20
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -224,7 +224,7 @@ begin  -- behavioral
   begin
     if rising_edge(CLK_200) then
       if RESET_200 = '1' then
-        trg_win_cnt     <= '1' & trg_win_post_200;
+        trg_win_cnt <= '1' & trg_win_post_200;
       elsif start_trg_win_cnt_200_p = '1' then
         trg_win_end_200 <= '0';
         trg_win_cnt     <= "000000000001";
@@ -379,11 +379,12 @@ begin  -- behavioral
           readout_fsm           <= '1';
         elsif VALID_NOTIMING_TRG_IN = '1' then
           if TRG_TYPE_IN = x"E" then
-            RD_NEXT <= SEND_STATUS;
+            wr_header_fsm <= '1';
+            RD_NEXT       <= SEND_STATUS;
           else
-            RD_NEXT <= SEND_TRG_RELEASE_A;
+            data_finished_fsm <= '1';
+            RD_NEXT           <= SEND_TRG_RELEASE_A;
           end if;
-          wr_header_fsm <= '1';
         elsif INVALID_TRG_IN = '1' then
           RD_NEXT           <= SEND_TRG_RELEASE_A;
           data_finished_fsm <= '1';

@@ -52,6 +52,7 @@ architecture Channel of Channel is
 
   -- time stamp
   signal coarse_cntr_reg : std_logic_vector(10 downto 0);
+  signal trig_win_end_i  : std_logic;
 
   -- debug
   signal sync_q                : std_logic_vector(2 downto 0);
@@ -76,6 +77,7 @@ architecture Channel of Channel is
   attribute syn_preserve                    : boolean;
   attribute syn_preserve of coarse_cntr_reg : signal is true;
   attribute syn_preserve of hit_buf         : signal is true;
+  attribute syn_preserve of trig_win_end_i  : signal is true;
   attribute nomerge                         : string;
   attribute nomerge of hit_buf              : signal is "true";
 
@@ -95,7 +97,7 @@ begin
       CLK_100              => CLK_100,
       RESET_100            => RESET_100,
       HIT_IN               => hit_buf,
-      TRIGGER_WIN_END_IN   => TRIGGER_WIN_END_IN,
+      TRIGGER_WIN_END_IN   => trig_win_end_i,
       EPOCH_COUNTER_IN     => EPOCH_COUNTER_IN,
 --      DATA_FINISHED_IN     => data_finished_i,
       COARSE_COUNTER_IN    => coarse_cntr_reg,
@@ -108,6 +110,7 @@ begin
       ENCODER_START_OUT    => encoder_start_i,
       ENCODER_FINISHED_OUT => encoder_finished_i);
 
+  trig_win_end_i <= TRIGGER_WIN_END_IN when rising_edge(CLK_200);
 --  data_finished_i <= DATA_FINISHED_IN when rising_edge(CLK_100);
 
   pulse_sync_encoder_start : pulse_sync
