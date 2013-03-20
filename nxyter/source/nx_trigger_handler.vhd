@@ -37,8 +37,8 @@ end entity;
 architecture Behavioral of nx_trigger_handler is
 
   signal start_cycle         : std_logic;
-  signal wait_timer_init     : unsigned(9 downto 0);
-  signal wait_timer_init_x   : unsigned(9 downto 0);
+  signal wait_timer_init     : unsigned(7 downto 0);
+  signal wait_timer_init_x   : unsigned(7 downto 0);
   signal wait_timer_done     : std_logic;
   signal trigger_o           : std_logic;
   signal trigger_o_x         : std_logic;
@@ -48,7 +48,7 @@ architecture Behavioral of nx_trigger_handler is
   signal trigger_busy_o_x    : std_logic;
   
   type STATES is (S_IDLE,
-                  S_WAIT_HOLD,
+                  S_START,
                   S_WAIT_TRIGGER_RELEASE
                   );
   signal STATE, NEXT_STATE : STATES;
@@ -59,7 +59,7 @@ architecture Behavioral of nx_trigger_handler is
   signal slv_unknown_addr_o       : std_logic;
   signal slv_ack_o                : std_logic;
 
-  signal reg_timestamp_hold_delay : unsigned(9 downto 0);
+  signal reg_timestamp_hold_delay : unsigned(7 downto 0);
   
 begin
 
@@ -74,7 +74,7 @@ begin
   -- Timer
   nx_timer_1: nx_timer
     generic map (
-      CTR_WIDTH => 10
+      CTR_WIDTH => 8
       )
     port map (
       CLK_IN         => CLK_IN,
@@ -108,8 +108,7 @@ begin
 
   PROC_TRIGGER_HANDLER: process(STATE,
                                 TRIGGER_IN,
-                                TRIGGER_RELEASE_IN,
-                                wait_timer_done
+                                TRIGGER_RELEASE_IN
                                 )
   begin
     trigger_o_x         <= '0';
@@ -121,25 +120,16 @@ begin
       when  S_IDLE =>
         if (TRIGGER_IN = '1') then
           trigger_o_x         <= '1';
-          if (reg_timestamp_hold_delay > 0) then
-            wait_timer_init_x   <= reg_timestamp_hold_delay;
-            NEXT_STATE          <= S_WAIT_HOLD;
-          else
-            NEXT_STATE          <= S_WAIT_TRIGGER_RELEASE;
-          end if;
-        else
-           trigger_busy_o_x   <= '0';
-           NEXT_STATE         <= S_IDLE;
-        end if;
-
-      when S_WAIT_HOLD =>
-        if (wait_timer_done = '1') then
           timestamp_hold_o_x  <= '1';
-          NEXT_STATE          <= S_WAIT_TRIGGER_RELEASE;
+          NEXT_STATE          <= S_START;
         else
-          NEXT_STATE          <= S_WAIT_HOLD ;
+          trigger_busy_o_x    <= '0';
+          NEXT_STATE          <= S_IDLE;
         end if;
 
+      when S_START =>
+        NEXT_STATE            <= S_WAIT_TRIGGER_RELEASE;
+        
       when S_WAIT_TRIGGER_RELEASE =>
         if (TRIGGER_RELEASE_IN = '0') then
           NEXT_STATE          <= S_WAIT_TRIGGER_RELEASE;
@@ -163,7 +153,7 @@ begin
         slv_unknown_addr_o       <= '0';
         start_cycle              <= '0';
         slv_ack_o                <= '0';
-        reg_timestamp_hold_delay <= (others => '0');
+        reg_timestamp_hold_delay <= x"01";
       else
         slv_unknown_addr_o <= '0';
         slv_no_more_data_o <= '0';
@@ -174,7 +164,7 @@ begin
         if (SLV_WRITE_IN  = '1') then
           case SLV_ADDR_IN is
             when x"0000" =>
-              reg_timestamp_hold_delay <= SLV_DATA_IN(9 downto 0);
+              reg_timestamp_hold_delay <= SLV_DATA_IN(7 downto 0);
               slv_ack_o                <= '1';
               
             when others =>
@@ -186,9 +176,9 @@ begin
           case SLV_ADDR_IN is
 
             when x"0000" =>
-              slv_data_out_o(9 downto 0)   <=
+              slv_data_out_o(7 downto 0)   <=
                 std_logic_vector(reg_timestamp_hold_delay);
-              slv_data_out_o(31 downto 10) <= (others => '0');
+              slv_data_out_o(31 downto 8) <= (others => '0');
               slv_ack_o                    <= '1';
 
             when others =>

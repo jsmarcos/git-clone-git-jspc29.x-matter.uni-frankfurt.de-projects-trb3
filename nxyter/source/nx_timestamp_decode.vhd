@@ -14,13 +14,14 @@ entity nx_timestamp_decode is
     -- Inputs
     NX_NEW_TIMESTAMP_IN  : in  std_logic;
     NX_TIMESTAMP_IN      : in  std_logic_vector(31 downto 0);
-    TIMESTAMP_REF_IN     : in  unsigned(11 downto 0);
 
     -- Outputs
-    TIMESTAMP_DATA_OUT   : out std_logic_vector(31 downto 0);
+    TIMESTAMP_OUT        : out unsigned(13 downto 0);
+    CHANNEL_OUT          : out unsigned(6 downto 0);
+    TIMESTAMP_STATUS_OUT : out std_logic_vector(1 downto 0);
     TIMESTAMP_VALID_OUT  : out std_logic;
-    NX_TOKEN_RETURN      : out std_logic;
-    NX_NOMORE_DATA       : out std_logic;
+    NX_TOKEN_RETURN_OUT  : out std_logic;
+    NX_NOMORE_DATA_OUT   : out std_logic;
 
     -- Slave bus         
     SLV_READ_IN          : in  std_logic;
@@ -39,10 +40,6 @@ end entity;
 
 architecture Behavioral of nx_timestamp_decode is
   
-  -- Sync Ref
-  signal timestamp_ref_x      : unsigned(11 downto 0);
-  signal timestamp_ref        : unsigned(11 downto 0);
-
   -- Gray Decoder
   signal nx_timestamp         : std_logic_vector(13 downto 0);
   signal nx_channel_id        : std_logic_vector( 6 downto 0);
@@ -56,16 +53,22 @@ architecture Behavioral of nx_timestamp_decode is
   signal timstamp_raw         : std_logic_vector(31 downto 0);
   
   -- Validate Timestamp
-  signal timestamp_data_o     : std_logic_vector(31 downto 0);
+  signal timestamp_o          : unsigned(13 downto 0);
+  signal channel_o            : unsigned(6 downto 0);
+  signal timestamp_status_o   : std_logic_vector(1 downto 0);
   signal timestamp_valid_o    : std_logic;
+
+  signal nx_notempty_ctr      : unsigned (1 downto 0);  
   signal nx_token_return_o    : std_logic;
   signal nx_nomore_data_o     : std_logic;
-  signal nx_data_notvalid_ctr : unsigned(1 downto 0);
+  
   signal invalid_frame_ctr    : unsigned(15 downto 0);
   signal overflow_ctr         : unsigned(15 downto 0);
   signal pileup_ctr           : unsigned(15 downto 0);
   signal parity_error_ctr     : unsigned(15 downto 0);
-  
+  signal nx_valid_ctr         : unsigned(19 downto 0);
+  signal nx_rate_timer        : unsigned(19 downto 0);
+
   -- Config
   signal readout_type         : std_logic_vector(1 downto 0);
 
@@ -75,9 +78,7 @@ architecture Behavioral of nx_timestamp_decode is
   signal slv_unknown_addr_o   : std_logic;
   signal slv_ack_o            : std_logic;
   signal clear_counters       : std_logic;
-  signal trigger_window_width : unsigned(13 downto 0);
-  signal trigger_window_delay : unsigned(13 downto 0);
-  signal readout_mode         : std_logic_vector(1 downto 0);
+  signal nx_trigger_rate      : unsigned(19 downto 0);
 
 begin
 
@@ -87,7 +88,6 @@ begin
   DEBUG_OUT(2)                    <= TIMESTAMP_VALID_OUT;
   DEBUG_OUT(3)                    <= new_timestamp;
   DEBUG_OUT(5 downto 4)           <= status_bits;
-
   DEBUG_OUT(6)                    <= parity;
   DEBUG_OUT(7)                    <= '0';
   
@@ -121,20 +121,6 @@ begin
       BINARY_OUT => nx_channel_id
       );
 
-  -- Sync Timestamp Ref
-  PROC_SYNC_TIMESTAMP_REF: process (CLK_IN)
-  begin
-    if( rising_edge(CLK_IN) ) then
-      if (RESET_IN = '1') then
-        timestamp_ref_x <= (others => '0');
-        timestamp_ref   <= (others => '0');
-      else
-        timestamp_ref_x <= TIMESTAMP_REF_IN;
-        timestamp_ref   <= timestamp_ref_x;
-      end if;
-    end if;
-  end process PROC_SYNC_TIMESTAMP_REF;
-  
   -- Separate Status-, Parity- and Frame-bits, calculate parity
   PROC_TIMESTAMP_BITS: process (CLK_IN)
     variable parity_bits : std_logic_vector(22 downto 0);
@@ -180,36 +166,40 @@ begin
   -----------------------------------------------------------------------------
 
   PROC_VALIDATE_TIMESTAMP: process (CLK_IN)
-    variable ref    : unsigned(13 downto 0);
-    variable deltaT : unsigned(13 downto 0);
   begin 
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
-        timestamp_data_o     <= (others => '0');
+        timestamp_o          <= (others => '0');
+        channel_o            <= (others => '0');
+        timestamp_status_o   <= (others => '0');
         timestamp_valid_o    <= '0';
+        nx_notempty_ctr      <= (others => '0');
         nx_token_return_o    <= '0';
         nx_nomore_data_o     <= '1';
-        nx_data_notvalid_ctr <= (others => '0');
+
         invalid_frame_ctr    <= (others => '0');
         overflow_ctr         <= (others => '0');
         pileup_ctr           <= (others => '0');
         parity_error_ctr     <= (others => '0');
+        nx_valid_ctr         <= (others => '0');
+        nx_trigger_rate      <= (others => '0');
+        nx_rate_timer        <= (others => '0');
       else
-        timestamp_data_o(31 downto 0)  <= (others => '0');
-        timestamp_valid_o              <= '0';
-        nx_token_return_o              <= '0';
-        nx_nomore_data_o               <= '0';
+        timestamp_o          <= (others => '0');
+        channel_o            <= (others => '0');
+        timestamp_status_o   <= (others => '0');
+        timestamp_valid_o    <= '0';
+        nx_token_return_o    <= '0';
+        nx_nomore_data_o     <= '0';
     
         if (new_timestamp = '1') then
           case valid_frame_bits is
             when "1000" =>
               ---- Check Overflow
-              if (status_bits(0) = '1') then
-                if (clear_counters = '0') then
-                  overflow_ctr <= overflow_ctr + 1;
-                end if;
+              if ((status_bits(0) = '1') and (clear_counters = '0')) then
+                overflow_ctr <= overflow_ctr + 1;
               end if;
-
+              
               ---- Check Parity
               if ((parity_bit /= parity) and (clear_counters = '0')) then
                 parity_error_ctr <= parity_error_ctr + 1;
@@ -221,51 +211,28 @@ begin
               end if;
               
               -- Take Timestamp
-              ref                 := timestamp_ref & "00";
-              deltaT              := ref - unsigned(nx_timestamp);
+              timestamp_o          <= unsigned(nx_timestamp);
+              channel_o            <= unsigned(nx_channel_id);
+              timestamp_status_o   <= status_bits;
+              timestamp_valid_o    <= '1';
               
-              case readout_mode is
-                
-                when "00" => 
-                  -- Raw
-                  timestamp_data_o(13 downto  0)   <= nx_timestamp;  
-                  timestamp_valid_o                <= '1';
-                
-                when "01" =>
-                  -- Ref
-                  timestamp_data_o(13 downto  0)   <= std_logic_vector(deltaT);
-                  timestamp_valid_o                <= '1';
+              nx_notempty_ctr      <= (others => '0');
 
-                when "10" =>
-                  -- Trigger Window
-                  if ((deltaT < trigger_window_delay) and
-                      (deltaT > (trigger_window_delay - trigger_window_width)))
-                  then
-                    timestamp_data_o(13 downto  0) <= std_logic_vector(deltaT);
-                    timestamp_valid_o              <= '1';
-                  end if;
-
-                when others => null;
-              end case;
-              
-              timestamp_data_o(15 downto 14) <= (others => '0');
-              timestamp_data_o(22 downto 16) <= nx_channel_id;
-              timestamp_data_o(23)           <= '0';
-              timestamp_data_o(24)           <= parity_bit;
-              timestamp_data_o(25)           <= parity;
-              timestamp_data_o(29 downto 26) <= (others => '0');
-              timestamp_data_o(31 downto 30) <= status_bits;
-
-              nx_data_notvalid_ctr           <= (others => '0');
+              -- Rate Counter
+              if (nx_rate_timer < x"186a0") then
+                nx_valid_ctr  <= nx_valid_ctr + 1;
+              end if;
                 
             when "0000" =>
-              case nx_data_notvalid_ctr is
+              case nx_notempty_ctr is
                 when "00"   =>
-                  nx_token_return_o    <= '1';
-                  nx_data_notvalid_ctr <= nx_data_notvalid_ctr + 1;
+                  nx_token_return_o <= '1';
+                  nx_notempty_ctr   <= nx_notempty_ctr + 1;
+
                 when "01"   =>
-                  nx_nomore_data_o     <= '1';
-                  nx_data_notvalid_ctr <= nx_data_notvalid_ctr + 1;
+                  nx_nomore_data_o  <= '1';
+                  nx_notempty_ctr   <= nx_notempty_ctr + 1;
+                  
                 when others => null;
               end case;
               
@@ -274,9 +241,19 @@ begin
               if (clear_counters = '0') then
                 invalid_frame_ctr <= invalid_frame_ctr + 1;
               end if;
+              nx_notempty_ctr      <= (others => '0');
           end case;
         end if;
 
+        -- Trigger Rate
+        if (nx_rate_timer < x"186a0") then
+          nx_rate_timer   <= nx_rate_timer + 1;
+        else
+          nx_rate_timer   <= (others => '0');
+          nx_trigger_rate <= nx_valid_ctr;
+          nx_valid_ctr    <= (others => '0');
+        end if;
+        
         -- Reset Counters
         if (clear_counters = '1') then
           invalid_frame_ctr   <= (others => '0');
@@ -301,10 +278,7 @@ begin
         slv_ack_o              <= '0';
         slv_unknown_addr_o     <= '0';
         slv_no_more_data_o     <= '0';
-        readout_mode           <= "00";
         clear_counters         <= '0';
-        trigger_window_width   <= (others => '0');
-        trigger_window_delay   <= (others => '0');
       else
         slv_data_out_o         <= (others => '0');
         slv_unknown_addr_o     <= '0';
@@ -313,45 +287,35 @@ begin
         
         if (SLV_READ_IN  = '1') then
           case SLV_ADDR_IN is
+
             when x"0000" =>
-              slv_data_out_o(1 downto 0)   <= readout_mode;
-              slv_data_out_o(31 downto 2)  <= (others => '0');
-              slv_ack_o                    <= '1';
-
-            when x"0001" =>
-              slv_data_out_o(13 downto 0)            <=
-                std_logic_vector(trigger_window_width);
-              slv_data_out_o(31 downto 14) <= (others => '0');
-              slv_ack_o                    <= '1';
-
-            when x"0002" =>
-              slv_data_out_o(13 downto 0)            <=
-                std_logic_vector(trigger_window_delay);
-              slv_data_out_o(31 downto 14) <= (others => '0');
-              slv_ack_o                    <= '1'; 
-              
-            when x"000a" =>
               slv_data_out_o(15 downto 0)  <=
                 std_logic_vector(invalid_frame_ctr);
               slv_data_out_o(31 downto 16) <= (others => '0');
               slv_ack_o                    <= '1';
 
-            when x"000b" =>
+            when x"0001" =>
               slv_data_out_o(15 downto 0)  <=
                 std_logic_vector(overflow_ctr);
               slv_data_out_o(31 downto 16) <= (others => '0');
               slv_ack_o                    <= '1';
 
-            when x"000c" =>
+            when x"0002" =>
               slv_data_out_o(15 downto 0)  <=
                 std_logic_vector(pileup_ctr);
               slv_data_out_o(31 downto 16) <= (others => '0');
               slv_ack_o                    <= '1';
 
-            when x"000d" =>
+            when x"0003" =>
               slv_data_out_o(15 downto 0)  <=
                 std_logic_vector(parity_error_ctr);
               slv_data_out_o(31 downto 16) <= (others => '0');
+              slv_ack_o                    <= '1';
+
+            when x"0004" =>
+              slv_data_out_o(19 downto 0)  <=
+                std_logic_vector(nx_trigger_rate);
+              slv_data_out_o(31 downto 20) <= (others => '0');
               slv_ack_o                    <= '1';
               
             when others  =>
@@ -362,20 +326,6 @@ begin
         elsif (SLV_WRITE_IN  = '1') then
           case SLV_ADDR_IN is
             when x"0000" =>
-              readout_mode                 <= SLV_DATA_IN(1 downto 0);
-              slv_ack_o                    <= '1';
-
-            when x"0001" =>
-              trigger_window_width         <=
-                unsigned(SLV_DATA_IN(13 downto 0));
-              slv_ack_o                    <= '1';
-
-            when x"0002" =>
-              trigger_window_delay         <=
-                unsigned(SLV_DATA_IN(13 downto 0));
-              slv_ack_o                    <= '1'; 
-
-            when x"000f" =>
               clear_counters               <= '1';
               slv_ack_o                    <= '1';
               
@@ -394,10 +344,12 @@ begin
   -- Output Signals
   -----------------------------------------------------------------------------
 
-  TIMESTAMP_DATA_OUT    <= timestamp_data_o;
+  TIMESTAMP_OUT         <= timestamp_o;
+  CHANNEL_OUT           <= channel_o;
+  TIMESTAMP_STATUS_OUT  <= timestamp_status_o;
   TIMESTAMP_VALID_OUT   <= timestamp_valid_o;
-  NX_TOKEN_RETURN       <= nx_token_return_o;
-  NX_NOMORE_DATA        <= nx_nomore_data_o;
+  NX_TOKEN_RETURN_OUT   <= nx_token_return_o;
+  NX_NOMORE_DATA_OUT    <= nx_nomore_data_o;
   
   -- Slave 
   SLV_DATA_OUT          <= slv_data_out_o;    

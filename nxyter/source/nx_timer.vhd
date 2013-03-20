@@ -55,28 +55,33 @@ begin
 
     timer_done_o_x <= '0';
 
-    case STATE is
-      when S_IDLE =>
-        if (TIMER_START_IN = 0) then
-          NEXT_STATE <= S_IDLE;
-        else
-          timer_ctr_x <= TIMER_START_IN;
-          NEXT_STATE <= S_COUNT;
-        end if;
+    if (TIMER_START_IN > 0) then
+      timer_ctr_x <= TIMER_START_IN;
+      NEXT_STATE  <= S_COUNT;
+    else
+      case STATE is
+        when S_IDLE =>
+          if (TIMER_START_IN = 0) then
+            NEXT_STATE <= S_IDLE;
+          else
+            timer_ctr_x <= TIMER_START_IN;
+            NEXT_STATE  <= S_COUNT;
+          end if;
         
-      when S_COUNT =>
-        if (timer_ctr > 0) then
-          timer_ctr_x <= timer_ctr - 1;
-          NEXT_STATE <= S_COUNT;
-        else
-          NEXT_STATE <= S_DONE;
-        end if;
+        when S_COUNT =>
+          if (timer_ctr > 0) then
+            timer_ctr_x <= timer_ctr - 1;
+            NEXT_STATE  <= S_COUNT;
+          else
+            NEXT_STATE  <= S_DONE;
+          end if;
         
-      when S_DONE =>
-        timer_done_o_x <= '1';
-        NEXT_STATE <= S_IDLE;
-        
-    end case;
+        when S_DONE =>
+          timer_done_o_x <= '1';
+          NEXT_STATE     <= S_IDLE;
+
+      end case;
+    end if;
   end process PROC_TIMER;
   
   -----------------------------------------------------------------------------

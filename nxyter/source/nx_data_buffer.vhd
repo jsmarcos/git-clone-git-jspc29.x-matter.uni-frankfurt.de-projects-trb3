@@ -12,12 +12,8 @@ entity nx_data_buffer is
 
     -- Data Buffer FIFO
     DATA_IN              : in std_logic_vector(31 downto 0);
-    NEW_DATA_IN          : in std_logic;
+    DATA_CLK_IN          : in std_logic;
 
-    -- Control
-    FIFO_WRITE_ENABLE_IN : in std_logic;
-    FIFO_READ_ENABLE_IN  : in std_logic;
-    
     -- Slave bus         
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
@@ -38,7 +34,6 @@ architecture Behavioral of nx_data_buffer is
   signal fifo_next_word     : std_logic_vector(31 downto 0);
   signal fifo_full          : std_logic;
   signal fifo_write_enable  : std_logic;
-  signal fifo_fill          : std_logic;
   
   -- FIFO Read Handler
   signal fifo_o             : std_logic_vector(31 downto 0);
@@ -72,14 +67,13 @@ architecture Behavioral of nx_data_buffer is
   signal slv_ack_o             : std_logic;
 
   signal register_fifo_status  : std_logic_vector(31 downto 0);
-  signal register_write_enable : std_logic;
 
   signal data_wait             : std_logic;
 
 begin
 
   DEBUG_OUT(0)     <= CLK_IN;
-  DEBUG_OUT(1)     <= fifo_fill;
+  DEBUG_OUT(1)     <= '0';
   DEBUG_OUT(2)     <= data_wait;
   DEBUG_OUT(3)     <= fifo_read_done;
   DEBUG_OUT(4)     <= fifo_read_busy;
@@ -114,23 +108,15 @@ begin
     if(rising_edge(CLK_IN)) then
       if(RESET_IN = '1') then
         fifo_write_enable  <= '0';
-        fifo_fill          <= '0';
       else
         fifo_write_enable <= '0';
         fifo_next_word    <= x"deadbeef";
         
-        if (NEW_DATA_IN = '1' and fifo_fill = '1') then
+        if (DATA_CLK_IN = '1' and fifo_full = '0') then
           fifo_next_word    <= DATA_IN;
           fifo_write_enable <= '1';
         end if;
         
-        if (fifo_empty = '1') then
-          fifo_fill <= '1';
-        end if;
-
-        if (fifo_full = '1') then
-          fifo_fill <= '0';
-        end if;
       end if;
     end if;
   end process PROC_FIFO_WRITE_HANDLER;
@@ -225,7 +211,6 @@ begin
         slv_ack_o             <= '0';
         slv_unknown_addr_o    <= '0';
         slv_no_more_data_o    <= '0';
-        register_write_enable <= '0';
 
         fifo_read_start       <= '0';
         data_wait             <= '0';
@@ -268,10 +253,6 @@ begin
             
         elsif (SLV_WRITE_IN  = '1') then
           case SLV_ADDR_IN is
-            when x"0001" =>
-              register_write_enable <= SLV_DATA_IN(0);
-              slv_ack_o <= '1';
-
             when others  =>
               slv_unknown_addr_o <= '1';              
               slv_ack_o <= '0';

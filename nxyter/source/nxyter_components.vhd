@@ -243,6 +243,33 @@ component nx_timestamp_fifo_read
     );
 end component;
 
+component nx_timestamp_process
+  port (
+    CLK_IN               : in  std_logic;
+    RESET_IN             : in  std_logic;
+    TIMESTAMP_CLK_IN     : in  std_logic;
+    NX_TOKEN_RETURN_IN   : in  std_logic;
+    NX_NOMORE_DATA_IN    : in  std_logic;
+    TIMESTAMP_IN         : in  unsigned(13 downto 0);
+    CHANNEL_IN           : in  unsigned(6 downto 0);
+    TIMESTAMP_STATUS_IN  : in  std_logic_vector(1 downto 0);
+    TIMESTAMP_REF_IN     : in  unsigned(11 downto 0);
+    TRIGGER_IN           : in  std_logic;
+    PROCESS_BUSY_OUT     : out std_logic;
+    DATA_OUT             : out std_logic_vector(31 downto 0);
+    DATA_CLK_OUT         : out std_logic;
+    DATA_FIFO_RESET_OUT  : out std_logic;
+    SLV_READ_IN          : in  std_logic;
+    SLV_WRITE_IN         : in  std_logic;
+    SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
+    SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
+    SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
+    SLV_ACK_OUT          : out std_logic;
+    SLV_NO_MORE_DATA_OUT : out std_logic;
+    SLV_UNKNOWN_ADDR_OUT : out std_logic;
+    DEBUG_OUT            : out std_logic_vector(15 downto 0));
+end component;
+
 component level_to_pulse
   port (
     CLK_IN         : in  std_logic;
@@ -295,9 +322,7 @@ component nx_data_buffer
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
     DATA_IN              : in  std_logic_vector(31 downto 0);
-    NEW_DATA_IN          : in  std_logic;
-    FIFO_WRITE_ENABLE_IN : in  std_logic;
-    FIFO_READ_ENABLE_IN  : in  std_logic;
+    DATA_CLK_IN          : in  std_logic;
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
     SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
@@ -316,11 +341,12 @@ component nx_timestamp_decode
     RESET_IN             : in  std_logic;
     NX_NEW_TIMESTAMP_IN  : in  std_logic;
     NX_TIMESTAMP_IN      : in  std_logic_vector(31 downto 0);
-    TIMESTAMP_REF_IN     : in  unsigned(11 downto 0);
-    TIMESTAMP_DATA_OUT   : out std_logic_vector(31 downto 0);
+    TIMESTAMP_OUT        : out unsigned(13 downto 0);
+    CHANNEL_OUT          : out unsigned(6 downto 0);
+    TIMESTAMP_STATUS_OUT : out std_logic_vector(1 downto 0);
     TIMESTAMP_VALID_OUT  : out std_logic;
-    NX_TOKEN_RETURN      : out std_logic;
-    NX_NOMORE_DATA       : out std_logic;
+    NX_TOKEN_RETURN_OUT  : out std_logic;
+    NX_NOMORE_DATA_OUT   : out std_logic;
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
     SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
@@ -329,10 +355,8 @@ component nx_timestamp_decode
     SLV_ACK_OUT          : out std_logic;
     SLV_NO_MORE_DATA_OUT : out std_logic;
     SLV_UNKNOWN_ADDR_OUT : out std_logic;
-    DEBUG_OUT            : out std_logic_vector(15 downto 0)
-    );
+    DEBUG_OUT            : out std_logic_vector(15 downto 0));
 end component;
-
 
 component pll_nx_clk256
   port (

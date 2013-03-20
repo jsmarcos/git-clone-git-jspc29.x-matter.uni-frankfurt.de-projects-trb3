@@ -1,0 +1,55 @@
+-- Control Register
+0x8100 :  r/w  w: reset I2C State Machine r: reset ctr
+0x8101 :  r/w  w: reset I2C all Register r: reset ctr
+0x8102 :  r/w  w: Reset and Sync Timestamps (nXyter and FPGA) r: reset ctr
+
+-- Timestamp Decode
+0x8120 :  rw   Invalid Frame Counter (16 bit) / w: clear all counters
+0x8121 :  r    Overflow Counter (16 bit)
+0x8122 :  r    Pileup Counter (16 bit)
+0x8123 :  r    Parity Error Counter (16 bit)
+0x8124 :  r    Trigger Rate (in kHz)
+
+-- Timestamp Process
+0x8180 :  r/w  Readout Mode (0:Ref + valid + window, 1: Ref + Valid 
+                             3: Raw and TimeStamp + valid,
+                             4: Raw,  5: Raw + Valid )
+0x8181 :  r/w  Trigger Window Delay (12 bit, in 3.9ns) 
+0x8182 :  r/w  Trigger Window Width (12 bit, in 3.9ns)
+0x8183 :  r/w  Readout Time Max (12 bit, in 10ns)
+0x8184 :  r    Busy Time Counter (12 bit, in 10ns)
+
+0x8185 :  r    done counter
+0x8186 :  r    done counter
+0x8187 :  r    done counter
+0x8188 :  r    done counter
+
+-- Trigger Generator
+0x8140 :  w    If writing just start trigger cycle, keep current setting
+0x8141 :  r/w  Bit 15-0 : periodic time (in 10ns) 
+0x8142 :  r/w  Bit0 7-0 : number of triggers to be sent consecutive
+0x8143 :  r/w  Bit 15-0 : Length of trigger pulse (in 10ns), if 0: skip it
+0x8144 :  r/w  Bit0     : 1: send timestamp-reset before trigger 
+
+-- Trigger Handler
+0x8160 :  r/w  Bit 15-0 : Delay Trigger in Timestamp Hold 
+
+-- Timestamp Fifo
+0x8500 :  r    current FIFO value
+0x8501 :  r/w  r: FIFO Status ......
+               w: trigger resync
+0x8502 :  r/w  r: get resync counter(8bit)
+               w: clear resync counter    
+
+-- Data Buffer
+0x8600 :  r    read FIFO buffer
+0x8601 :  r/w  r: read FIFO status
+               w: enable/disable FIFO write
+
+-- I2C Master
+0x8040 :     Access to I2C Interface
+
+-- SPI Master
+0x8060 :    Access to SPI Interface
+
+

@@ -102,14 +102,26 @@ architecture Behavioral of nXyter_FEE_board is
        
   -- Timestamp Decode Handlers
   signal timestamp_data       : std_logic_vector(31 downto 0);
+  signal timestamp            : unsigned(13 downto 0);
+  signal timestamp_channel_id : unsigned(6 downto 0);
+  signal timestamp_status     : std_logic_vector(1 downto 0);
   signal timestamp_valid      : std_logic;
+
   signal nx_token_return      : std_logic;
   signal nx_nomore_data       : std_logic;
 
+  -- Timestamp Process
+  signal ts_data              : std_logic_vector(31 downto 0);
+  signal ts_data_clk          : std_logic;
+  signal data_fifo_reset      : std_logic;
+  
   -- FPGA Timestamp
   signal timestamp_trigger    : unsigned(11 downto 0);
   signal nx_timestamp_sync    : std_logic;
 
+  -- Data Buffer
+  signal data_buffer_reset    : std_logic;
+    
   -- Trigger Handler
   signal trigger_release      : std_logic;
   signal trigger_ack          : std_logic;
@@ -121,22 +133,38 @@ architecture Behavioral of nXyter_FEE_board is
   signal nx_testpulse_o       : std_logic;
   
 begin
-  trigger_release <= '1';
+
 -------------------------------------------------------------------------------
 -- DEBUG
 -------------------------------------------------------------------------------
+--   DEBUG_LINE_OUT(0)            <= CLK_IN;
+--   DEBUG_LINE_OUT(1)            <= trigger_ack;
+--   DEBUG_LINE_OUT(2)            <= nx_ts_reset_o;
+--   DEBUG_LINE_OUT(3)            <= nx_testpulse_o;
+--   DEBUG_LINE_OUT(4)            <= nx_new_timestamp;
+--   DEBUG_LINE_OUT(5)            <= timestamp_valid;
+--   DEBUG_LINE_OUT(6)            <= timestamp_hold;
+--   DEBUG_LINE_OUT(7)            <= nx_token_return;
+--   DEBUG_LINE_OUT(8)            <= nx_nomore_data;
+--   DEBUG_LINE_OUT(9)            <= trigger;
+--   DEBUG_LINE_OUT(10)           <= trigger_busy;
+--   DEBUG_LINE_OUT(11)           <= ts_data_clk;
+--   DEBUG_LINE_OUT(12)           <= data_fifo_reset;
+-- 
+--   DEBUG_LINE_OUT(14 downto 13) <= timestamp_status;
+--   DEBUG_LINE_OUT(15)           <= slv_ack(3);
+
   DEBUG_LINE_OUT(0)            <= CLK_IN;
-  DEBUG_LINE_OUT(1)            <= trigger_ack;
-  DEBUG_LINE_OUT(2)            <= nx_ts_reset_o;
-  DEBUG_LINE_OUT(3)            <= nx_testpulse_o;
+  DEBUG_LINE_OUT(1)            <= trigger;
+  DEBUG_LINE_OUT(2)            <= trigger_ack;
+  DEBUG_LINE_OUT(3)            <= trigger_busy;
   DEBUG_LINE_OUT(4)            <= nx_new_timestamp;
   DEBUG_LINE_OUT(5)            <= timestamp_valid;
-  DEBUG_LINE_OUT(6)            <= timestamp_hold;
-  DEBUG_LINE_OUT(7)            <= nx_token_return;
-  DEBUG_LINE_OUT(8)            <= nx_nomore_data;
-  DEBUG_LINE_OUT(9)            <= trigger;
-  DEBUG_LINE_OUT(10)           <= trigger_busy;
-  DEBUG_LINE_OUT(15 downto 11) <= (others => '0');
+  DEBUG_LINE_OUT(6)            <= nx_token_return;
+  DEBUG_LINE_OUT(7)            <= nx_nomore_data;
+  
+  --DEBUG_LINE_OUT(15 downto 8) <= (others => '0');
+  
 
 -------------------------------------------------------------------------------
 -- Port Maps
@@ -154,7 +182,7 @@ begin
 
   THE_BUS_HANDLER: trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER         => 8,
+      PORT_NUMBER         => 9,
 
       PORT_ADDRESSES      => ( 0 => x"0100",    -- Control Register Handler
                                1 => x"0040",    -- I2C Master
@@ -164,16 +192,18 @@ begin
                                5 => x"0140",    -- Trigger Generator
                                6 => x"0120",    -- Timestamp Decode
                                7 => x"0160",    -- Trigger Handler
+                               8 => x"0180",    -- Timestamp Process
                                others => x"0000"),
 
       PORT_ADDR_MASK      => ( 0 => 3,          -- Control Register Handler
                                1 => 0,          -- I2C master
                                2 => 2,          -- Timestamp Fifo
-                               3 => 0,          -- Data Buffer
+                               3 => 1,          -- Data Buffer
                                4 => 0,          -- SPI Master
                                5 => 3,          -- Trigger Generator
                                6 => 4,          -- Timestamp Decode
                                7 => 1,          -- Trigger Handler
+                               8 => 4,          -- Timestamp Process
                                others => 0)
       )
     port map(
@@ -292,6 +322,19 @@ begin
       BUS_NO_MORE_DATA_IN(7)              => slv_no_more_data(7),
       BUS_UNKNOWN_ADDR_IN(7)              => slv_unknown_addr(7),
 
+      -- Timestamp Process
+      BUS_READ_ENABLE_OUT(8)              => slv_read(8),
+      BUS_WRITE_ENABLE_OUT(8)             => slv_write(8),
+      BUS_DATA_OUT(8*32+31 downto 8*32)   => slv_data_wr(8*32+31 downto 8*32),
+      BUS_DATA_IN(8*32+31 downto 8*32)    => slv_data_rd(8*32+31 downto 8*32),
+      BUS_ADDR_OUT(8*16+3 downto 8*16)    => slv_addr(8*16+3 downto 8*16),
+      BUS_ADDR_OUT(8*16+15 downto 8*16+4) => open,
+      BUS_TIMEOUT_OUT(8)                  => open,
+      BUS_DATAREADY_IN(8)                 => slv_ack(8),
+      BUS_WRITE_ACK_IN(8)                 => slv_ack(8),
+      BUS_NO_MORE_DATA_IN(8)              => slv_no_more_data(8),
+      BUS_UNKNOWN_ADDR_IN(8)              => slv_unknown_addr(8),
+
       ---- debug
       STAT_DEBUG          => open
       );
@@ -342,90 +385,6 @@ begin
       SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(1),
       -- DEBUG_OUT          => DEBUG_LINE_OUT
       DEBUG_OUT             => open
-      );
-
--------------------------------------------------------------------------------
--- nXyter TimeStamp Read
--------------------------------------------------------------------------------
-
-  nx_timestamp_fifo_read_1: nx_timestamp_fifo_read
-    port map (
-      CLK_IN               => CLK_IN,
-      RESET_IN             => RESET_IN,
-
-      NX_TIMESTAMP_CLK_IN  => NX_CLK128_IN,
-      NX_TIMESTAMP_IN      => NX_TIMESTAMP_IN,
-      NX_FRAME_CLOCK_OUT   => nx_frame_clock_o,
-      NX_TIMESTAMP_OUT     => nx_timestamp,
-      NX_NEW_TIMESTAMP_OUT => nx_new_timestamp,
-      SLV_READ_IN          => slv_read(2),
-      SLV_WRITE_IN         => slv_write(2),
-      SLV_DATA_OUT         => slv_data_rd(2*32+31 downto 2*32),
-      SLV_DATA_IN          => slv_data_wr(2*32+31 downto 2*32),
-      SLV_ADDR_IN          => slv_addr(2*16+15 downto 2*16),
-      SLV_ACK_OUT          => slv_ack(2),
-      SLV_NO_MORE_DATA_OUT => slv_no_more_data(2),
-      SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(2),
-
-      -- DEBUG_OUT            => DEBUG_LINE_OUT
-      DEBUG_OUT            => open
-      );
-
-
--------------------------------------------------------------------------------
--- Timestamp Decoder and Valid Data Filter
--------------------------------------------------------------------------------
-
-  nx_timestamp_decode_1: nx_timestamp_decode
-    port map (
-      CLK_IN               => CLK_IN,
-      RESET_IN             => RESET_IN,
-      NX_NEW_TIMESTAMP_IN  => nx_new_timestamp,
-      NX_TIMESTAMP_IN      => nx_timestamp,
-      TIMESTAMP_REF_IN     => timestamp_trigger,
-      TIMESTAMP_DATA_OUT   => timestamp_data,
-      TIMESTAMP_VALID_OUT  => timestamp_valid,
-      NX_TOKEN_RETURN      => nx_token_return,
-      NX_NOMORE_DATA       => nx_nomore_data,
-
-      SLV_READ_IN          => slv_read(6),
-      SLV_WRITE_IN         => slv_write(6),
-      SLV_DATA_OUT         => slv_data_rd(6*32+31 downto 6*32),
-      SLV_DATA_IN          => slv_data_wr(6*32+31 downto 6*32),
-      SLV_ADDR_IN          => slv_addr(6*16+15 downto 6*16),
-      SLV_ACK_OUT          => slv_ack(6),
-      SLV_NO_MORE_DATA_OUT => slv_no_more_data(6),
-      SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(6),
-      
-      -- DEBUG_OUT(14 downto 0) => DEBUG_LINE_OUT(14 downto 0)
-      DEBUG_OUT           => open
-      );
-
--------------------------------------------------------------------------------
--- Data Buffer FIFO
--------------------------------------------------------------------------------
-
-  nx_data_buffer_1: nx_data_buffer
-    port map (
-      CLK_IN                => CLK_IN,
-      RESET_IN              => RESET_IN,
-      DATA_IN               => timestamp_data,
-      NEW_DATA_IN           => timestamp_valid,
-      
-      FIFO_WRITE_ENABLE_IN  => '1',
-      FIFO_READ_ENABLE_IN   => '1',
-
-      SLV_READ_IN           => slv_read(3),
-      SLV_WRITE_IN          => slv_write(3),
-      SLV_DATA_OUT          => slv_data_rd(3*32+31 downto 3*32),
-      SLV_DATA_IN           => slv_data_wr(3*32+31 downto 3*32),
-      SLV_ADDR_IN           => slv_addr(3*16+15 downto 3*16),
-      SLV_ACK_OUT           => slv_ack(3),
-      SLV_NO_MORE_DATA_OUT  => slv_no_more_data(3),
-      SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(3),
-
-      --DEBUG_OUT            => DEBUG_LINE_OUT
-      DEBUG_OUT            => open
       );
 
 -------------------------------------------------------------------------------
@@ -485,7 +444,7 @@ begin
       CLK_IN                => CLK_IN,
       RESET_IN              => RESET_IN,
       TRIGGER_IN            => trigger,
-      TRIGGER_RELEASE_IN    => trigger_release,
+      TRIGGER_RELEASE_IN    => not trigger_release,
       TRIGGER_OUT           => trigger_ack,
       TIMESTAMP_HOLD_OUT    => timestamp_hold,
       TRIGGER_BUSY_OUT      => trigger_busy,
@@ -525,6 +484,125 @@ begin
       );
 
 
+-------------------------------------------------------------------------------
+-- nXyter TimeStamp Read
+-------------------------------------------------------------------------------
+
+  nx_timestamp_fifo_read_1: nx_timestamp_fifo_read
+    port map (
+      CLK_IN               => CLK_IN,
+      RESET_IN             => RESET_IN,
+
+      NX_TIMESTAMP_CLK_IN  => NX_CLK128_IN,
+      NX_TIMESTAMP_IN      => NX_TIMESTAMP_IN,
+      NX_FRAME_CLOCK_OUT   => nx_frame_clock_o,
+      NX_TIMESTAMP_OUT     => nx_timestamp,
+      NX_NEW_TIMESTAMP_OUT => nx_new_timestamp,
+      SLV_READ_IN          => slv_read(2),
+      SLV_WRITE_IN         => slv_write(2),
+      SLV_DATA_OUT         => slv_data_rd(2*32+31 downto 2*32),
+      SLV_DATA_IN          => slv_data_wr(2*32+31 downto 2*32),
+      SLV_ADDR_IN          => slv_addr(2*16+15 downto 2*16),
+      SLV_ACK_OUT          => slv_ack(2),
+      SLV_NO_MORE_DATA_OUT => slv_no_more_data(2),
+      SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(2),
+
+      -- DEBUG_OUT            => DEBUG_LINE_OUT
+      DEBUG_OUT            => open
+      );
+
+
+-------------------------------------------------------------------------------
+-- Timestamp Decoder and Valid Data Filter
+-------------------------------------------------------------------------------
+
+  nx_timestamp_decode_1: nx_timestamp_decode
+    port map (
+      CLK_IN                => CLK_IN,
+      RESET_IN              => RESET_IN,
+      NX_NEW_TIMESTAMP_IN   => nx_new_timestamp,
+      NX_TIMESTAMP_IN       => nx_timestamp,
+
+      TIMESTAMP_OUT         => timestamp,
+      CHANNEL_OUT           => timestamp_channel_id,
+      TIMESTAMP_STATUS_OUT  => timestamp_status,
+      TIMESTAMP_VALID_OUT   => timestamp_valid,
+      NX_TOKEN_RETURN_OUT   => nx_token_return,
+      NX_NOMORE_DATA_OUT    => nx_nomore_data,
+      
+      SLV_READ_IN           => slv_read(6),
+      SLV_WRITE_IN          => slv_write(6),
+      SLV_DATA_OUT          => slv_data_rd(6*32+31 downto 6*32),
+      SLV_DATA_IN           => slv_data_wr(6*32+31 downto 6*32),
+      SLV_ADDR_IN           => slv_addr(6*16+15 downto 6*16),
+      SLV_ACK_OUT           => slv_ack(6),
+      SLV_NO_MORE_DATA_OUT  => slv_no_more_data(6),
+      SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(6),
+      --DEBUG_OUT            => DEBUG_OUT
+      DEBUG_OUT           => open
+      );
+
+-------------------------------------------------------------------------------
+-- NX Timestamp Process
+-------------------------------------------------------------------------------
+
+  nx_timestamp_process_1: nx_timestamp_process
+    port map (
+      CLK_IN                 => CLK_IN,
+      RESET_IN               => RESET_IN,
+
+      TIMESTAMP_CLK_IN       => timestamp_valid,
+      NX_TOKEN_RETURN_IN     => nx_token_return,
+      NX_NOMORE_DATA_IN      => nx_nomore_data,
+      TIMESTAMP_IN           => timestamp,
+      CHANNEL_IN             => timestamp_channel_id,
+      TIMESTAMP_STATUS_IN    => timestamp_status,
+      TIMESTAMP_REF_IN       => timestamp_trigger,
+      TRIGGER_IN             => trigger_ack,
+
+      PROCESS_BUSY_OUT       => trigger_release,
+      DATA_OUT               => ts_data,
+      DATA_CLK_OUT           => ts_data_clk,
+      DATA_FIFO_RESET_OUT    => data_fifo_reset,
+
+      SLV_READ_IN            => slv_read(8),
+      SLV_WRITE_IN           => slv_write(8),
+      SLV_DATA_OUT           => slv_data_rd(8*32+31 downto 8*32),
+      SLV_DATA_IN            => slv_data_wr(8*32+31 downto 8*32),
+      SLV_ADDR_IN            => slv_addr(8*16+15 downto 8*16),
+      SLV_ACK_OUT            => slv_ack(8),
+      SLV_NO_MORE_DATA_OUT   => slv_no_more_data(8),
+      SLV_UNKNOWN_ADDR_OUT   => slv_unknown_addr(8),
+      DEBUG_OUT(7 downto 0)  => DEBUG_LINE_OUT(15 downto 8),
+      DEBUG_OUT(15 downto 8) => open
+      );
+
+-------------------------------------------------------------------------------
+-- Data Buffer FIFO
+-------------------------------------------------------------------------------
+
+  nx_data_buffer_1: nx_data_buffer
+    port map (
+      CLK_IN                => CLK_IN,
+      RESET_IN              => data_buffer_reset,
+      DATA_IN               => ts_data,
+      DATA_CLK_IN           => ts_data_clk,
+      
+      SLV_READ_IN           => slv_read(3),
+      SLV_WRITE_IN          => slv_write(3),
+      SLV_DATA_OUT          => slv_data_rd(3*32+31 downto 3*32),
+      SLV_DATA_IN           => slv_data_wr(3*32+31 downto 3*32),
+      SLV_ADDR_IN           => slv_addr(3*16+15 downto 3*16),
+      SLV_ACK_OUT           => slv_ack(3),
+      SLV_NO_MORE_DATA_OUT  => slv_no_more_data(3),
+      SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(3),
+
+      --DEBUG_OUT            => DEBUG_LINE_OUT
+      DEBUG_OUT            => open
+      );
+
+  data_buffer_reset <= RESET_IN or data_fifo_reset;
+  
 -------------------------------------------------------------------------------
 -- nXyter Signals
 -------------------------------------------------------------------------------
