@@ -52,6 +52,7 @@ impl -active "workdir"
 
 add_file -vhdl -lib work "version.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_std.vhd"
+add_file -vhdl -lib work "config.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_components.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net16_hub_func.vhd"
 add_file -vhdl -lib work "../base/trb3_components.vhd"
@@ -59,6 +60,7 @@ add_file -vhdl -lib work "../../trbnet/basics/signal_sync.vhd"
 add_file -vhdl -lib work "../../trbnet/basics/pulse_sync.vhd"
 add_file -vhdl -lib work "../../trbnet/basics/priority_arbiter.vhd"
 add_file -vhdl -lib work "../../trbnet/special/trb_net_reset_handler.vhd"
+add_file -vhdl -lib work "../../trbnet/special/spi_flash_and_fpga_reload.vhd"
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/lattice_ecp2m_fifo.vhd"
 #gbe files
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net_gbe_protocols.vhd"
@@ -197,6 +199,7 @@ add_file -vhdl -lib work "../../trbnet/lattice/ecp3/trb_net_fifo_16bit_bram_dual
 
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/serdes_onboard_full.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/serdes_full_ctc.vhd"
+add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/serdes_onboard_full_125.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_ctc.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_int.vhd"
 
