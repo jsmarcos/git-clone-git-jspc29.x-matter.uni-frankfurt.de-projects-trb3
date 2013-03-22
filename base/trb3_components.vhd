@@ -24,6 +24,17 @@ package trb3_components is
 --       );
 --   end component;
 
+
+component oddr is
+    port (
+        clk: in  std_logic; 
+        clkout: out  std_logic; 
+        da: in  std_logic_vector(0 downto 0); 
+        db: in  std_logic_vector(0 downto 0); 
+        q: out  std_logic_vector(0 downto 0));
+end component;
+
+
   component pll_in125_out125
     port (
       CLK   : in  std_logic;
