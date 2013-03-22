@@ -141,6 +141,7 @@ add_file -vhdl -lib "work" "../base/cores/oddr.vhd"
 
 add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_constants.vhd"
 add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_misc.vhd"
+add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/mathhelpers.vhd"
 add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_mvd.vhd"
 add_file -vhdl -lib "work" "../../jtag_mvd/vhdl/code/jtag_cmd_m26c.vhd"
 
