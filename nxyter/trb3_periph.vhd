@@ -369,7 +369,8 @@ begin
       REGIO_NUM_CTRL_REGS       => REGIO_NUM_CTRL_REGS,  --3,  --8 cotrol reg
       ADDRESS_MASK              => x"FFFF",
       BROADCAST_BITMASK         => x"FF",
-      BROADCAST_SPECIAL_ADDR    => x"45",
+      --BROADCAST_SPECIAL_ADDR    => x"45",
+      BROADCAST_SPECIAL_ADDR    => x"48",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
       REGIO_HARDWARE_VERSION    => x"91000003",
       REGIO_INIT_ADDRESS        => x"f305",
@@ -635,11 +636,49 @@ begin
   LED_YELLOW <= not med_stat_op(11);
 
 
+-------------------------------------------------------------------------------
+-- nXyter Data Handler
+-------------------------------------------------------------------------------
+  nXyter_data_handler_1: nXyter_data_handler
+    port map (
+      CLK_IN                     => clk_100_i,
+      RESET_IN                   => reset_i,
 
+      REGIO_ADDR_IN              => open,  --REGIO_ADDR_IN,
+      REGIO_DATA_IN              => open,  --REGIO_DATA_IN,
+      REGIO_DATA_OUT             => open,  --REGIO_DATA_OUT,
+      REGIO_READ_ENABLE_IN       => open,  --REGIO_READ_ENABLE_IN,
+      REGIO_WRITE_ENABLE_IN      => open,  --REGIO_WRITE_ENABLE_IN,
+      REGIO_TIMEOUT_IN           => open,  --REGIO_TIMEOUT_IN,
+      REGIO_DATAREADY_OUT        => open,  --REGIO_DATAREADY_OUT,
+      REGIO_WRITE_ACK_OUT        => open,  --REGIO_WRITE_ACK_OUT,
+      REGIO_NO_MORE_DATA_OUT     => open,  --REGIO_NO_MORE_DATA_OUT,
+      REGIO_UNKNOWN_ADDR_OUT     => open,  --REGIO_UNKNOWN_ADDR_OUT,
 
-  -----------------------------------------------------------------------------
-  -- The xXyter-FEB
-  -----------------------------------------------------------------------------
+      LVL1_TRG_DATA_VALID_IN     => trg_data_valid_i,
+      LVL1_VALID_TIMING_TRG_IN   => trg_timing_valid_i,
+      LVL1_VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,
+      LVL1_INVALID_TRG_IN        => trg_invalid_i,
+      LVL1_TRG_TYPE_IN           => trg_type_i,
+      LVL1_TRG_NUMBER_IN         => trg_number_i,
+      LVL1_TRG_CODE_IN           => trg_code_i,
+      LVL1_TRG_INFORMATION_IN    => trg_information_i,
+      LVL1_INT_TRG_NUMBER_IN     => trg_int_number_i,
+
+      FEE_TRG_RELEASE_OUT        => fee_trg_release_i,
+      FEE_TRG_STATUSBITS_OUT     => fee_trg_statusbits_i,
+      FEE_DATA_OUT               => fee_data_i,
+      FEE_DATA_WRITE_OUT         => fee_data_write_i,
+      FEE_DATA_FINISHED_OUT      => fee_data_finished_i,
+      FEE_DATA_ALMOST_FULL_IN    => fee_almost_full_i,
+  
+      -- DEBUG_LINE_OUT             => TEST_LINE
+      DEBUG_LINE_OUT             => open
+      );
+
+-----------------------------------------------------------------------------
+-- The xXyter-FEB
+-----------------------------------------------------------------------------
 
   nXyter_FEE_board_1: nXyter_FEE_board
     port map (
@@ -657,8 +696,8 @@ begin
 
       NX_CLK128_IN           => NX1_CLK128_IN,
       NX_TIMESTAMP_IN        => NX1_TIMESTAMP_IN,
---     NX_CLK128_IN           => nx1_clk128_sim_o,
---     NX_TIMESTAMP_IN        => nx1_timestamp_sim_o,
+      -- NX_CLK128_IN           => nx1_clk128_sim_o,
+      -- NX_TIMESTAMP_IN        => nx1_timestamp_sim_o,
       
       NX_RESET_OUT           => NX1_RESET_OUT,
       NX_CLK256A_OUT         => NX1_CLK256A_OUT,
@@ -688,26 +727,16 @@ begin
       -- DEBUG_LINE_OUT         => open
       );
 
-  -- TEST_LINE(0) <= clk_100_i;
-  -- TEST_LINE(1) <= clk_200_i;
-  -- TEST_LINE(2) <= NX1_CLK128_IN;
-  -- TEST_LINE(3) <= NX2_CLK128_IN;
-  -- TEST_LINE(7 downto 4) <= (others => '0');
-  -- TEST_LINE(11 downto 8)  <= NX1_TIMESTAMP_IN(3 downto 0);
-  -- TEST_LINE(15 downto 12) <= NX2_TIMESTAMP_IN(3 downto 0);
-
-  
-  
 -------------------------------------------------------------------------------
 -- Timestamp Simulator
 -------------------------------------------------------------------------------
---   nxyter_timestamp_sim_1: nxyter_timestamp_sim
---     port map (
---       CLK_IN        => CLK_GPLL_LEFT,
---       RESET_IN      => reset_i,
---       TIMESTAMP_OUT => nx1_timestamp_sim_o,
---       CLK128_OUT    => nx1_clk128_sim_o
---       );
+  nxyter_timestamp_sim_1: nxyter_timestamp_sim
+    port map (
+      CLK_IN        => CLK_GPLL_LEFT,
+      RESET_IN      => reset_i,
+      TIMESTAMP_OUT => nx1_timestamp_sim_o,
+      CLK128_OUT    => nx1_clk128_sim_o
+      );
 
   
 ---------------------------------------------------------------------------

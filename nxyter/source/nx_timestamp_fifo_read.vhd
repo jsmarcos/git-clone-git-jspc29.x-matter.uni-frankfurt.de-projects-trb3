@@ -41,7 +41,8 @@ architecture Behavioral of nx_timestamp_fifo_read is
   signal fifo_full                : std_logic;
   signal fifo_write_enable        : std_logic;
   signal frame_tag_o              : std_logic;
-
+  signal fifo_reset               : std_logic;
+  
   -- FRAME_CLOCK_GENERATOR  
   signal frame_clock_ctr          : unsigned(1 downto 0);
   signal nx_frame_clock_o         : std_logic;
@@ -49,7 +50,7 @@ architecture Behavioral of nx_timestamp_fifo_read is
   signal frame_clock_ctr_inc_x    : std_logic;
   signal frame_clock_ctr_inc_l    : std_logic;
   signal frame_clock_ctr_inc      : std_logic;
-
+  
   -----------------------------------------------------------------------------
   -- CLK_IN Domain
   -----------------------------------------------------------------------------
@@ -57,14 +58,14 @@ architecture Behavioral of nx_timestamp_fifo_read is
   -- FIFO Output Handler
   signal fifo_out                 : std_logic_vector(35 downto 0);
   signal fifo_empty               : std_logic;
-  signal fifo_empty_prev          : std_logic;
+  signal fifo_almost_empty        : std_logic;
+  signal fifo_almost_empty_prev   : std_logic;
   signal fifo_read_enable         : std_logic;
   signal fifo_data_valid_x        : std_logic;
   signal fifo_data_valid          : std_logic;
-  
   signal register_fifo_data       : std_logic_vector(31 downto 0);
   signal fifo_new_frame           : std_logic;
-
+  
   signal frame_clock_ctr_inc_o    : std_logic;
   
   -- RS Sync FlipFlop
@@ -99,7 +100,9 @@ architecture Behavioral of nx_timestamp_fifo_read is
 
   signal reset_ctr                : std_logic;
   signal frame_clock_ctr_inc_r    : std_logic;
-
+  signal fifo_delay_r             : std_logic_vector(5 downto 0);
+  signal fifo_reset_r             : std_logic;
+  
 begin
 
   DEBUG_OUT(0)           <= CLK_IN;
@@ -109,9 +112,8 @@ begin
   DEBUG_OUT(4)           <= fifo_data_valid;
   DEBUG_OUT(5)           <= fifo_new_frame;
   DEBUG_OUT(6)           <= NX_NEW_TIMESTAMP_OUT;
-  DEBUG_OUT(7)           <= frame_tag_o;
-  -- DEBUG_OUT(15 downto 8) <= NX_TIMESTAMP_IN;
-  DEBUG_OUT(15 downto 8) <= fifo_out(7 downto 0);
+  DEBUG_OUT(7)           <= fifo_almost_empty;
+  DEBUG_OUT(15 downto 8) <= (others => '0');
   
 --   DEBUG_OUT(0)           <= CLK_IN;
 --   
@@ -129,23 +131,26 @@ begin
   -- Dual Clock FIFO 9bit to 36bit
   -----------------------------------------------------------------------------
 
-  -- Send data to FIFO
-  fifo_dc_9to36_1: fifo_dc_9to36
+  -- Send data to FIFO, depth is 256
+  fifo_dc_9to36_dyn_1: fifo_dc_9to36_dyn
     port map (
-      Data(7 downto 0) => NX_TIMESTAMP_IN,
-      Data(8)          => frame_tag_o,
-      WrClock          => NX_TIMESTAMP_CLK_IN,
-      RdClock          => CLK_IN,
-      WrEn             => fifo_write_enable,
-      RdEn             => fifo_read_enable,
-      Reset            => RESET_IN,
-      RPReset          => RESET_IN,
-      Q                => fifo_out,
-      Empty            => fifo_empty,
-      Full             => fifo_full
+      Data(7 downto 0)         => NX_TIMESTAMP_IN,
+      Data(8)                  => frame_tag_o,
+      WrClock                  => NX_TIMESTAMP_CLK_IN,
+      RdClock                  => CLK_IN,
+      WrEn                     => fifo_write_enable,
+      RdEn                     => fifo_read_enable,
+      Reset                    => fifo_reset,
+      RPReset                  => fifo_reset,
+      AmEmptyThresh            => fifo_delay_r,
+      Q                        => fifo_out,
+      Empty                    => fifo_empty,
+      Full                     => fifo_full,
+      AlmostEmpty              => fifo_almost_empty
       );
 
   fifo_write_enable <= not RESET_IN;
+  fifo_reset        <= RESET_IN or fifo_reset_r;
   
   -----------------------------------------------------------------------------
   -- FIFO Input Handler
@@ -220,24 +225,24 @@ begin
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        fifo_empty_prev    <= '0';
-        fifo_read_enable   <= '0';
-        fifo_data_valid_x  <= '0';
-        fifo_data_valid    <= '0';
+        fifo_almost_empty_prev <= '0';
+        fifo_read_enable       <= '0';
+        fifo_data_valid_x      <= '0';
+        fifo_data_valid        <= '0';
       else
-        if (fifo_empty = '0' and fifo_empty_prev = '1') then
-          fifo_read_enable <= '1';
+        if (fifo_almost_empty = '0' and fifo_almost_empty_prev = '1') then
+          fifo_read_enable     <= '1';
         else
-          fifo_read_enable <= '0';
+          fifo_read_enable     <= '0';
+
         end if;
-        fifo_empty_prev   <= fifo_empty; 
-        fifo_data_valid_x <= fifo_read_enable;
-        fifo_data_valid   <= fifo_data_valid_x;
+        fifo_almost_empty_prev <= fifo_almost_empty;
+        fifo_data_valid_x      <= fifo_read_enable;
+        fifo_data_valid        <= fifo_data_valid_x;
       end if;
     end if;
   end process PROC_FIFO_READ_ENABLE;
   
-
   -- Read only in case FIFO is not empty, i.e. data_valid is set
 
   PROC_FIFO_READ: process(CLK_IN)
@@ -435,6 +440,8 @@ begin
         slv_no_more_data_o     <= '0';
         frame_clock_ctr_inc_r  <= '0';
         reset_ctr              <= '0';
+        fifo_delay_r           <= "000010";
+        fifo_reset_r           <= '0';
       else
         slv_data_out_o         <= (others => '0');
         slv_ack_o              <= '0';
@@ -442,6 +449,7 @@ begin
         slv_no_more_data_o     <= '0';
         frame_clock_ctr_inc_r  <= '0';
         reset_ctr              <= '0';
+        fifo_reset_r           <= '0';
 
         if (SLV_READ_IN  = '1') then
           case SLV_ADDR_IN is
@@ -464,6 +472,11 @@ begin
               slv_data_out_o(31 downto 8)  <= (others => '0');
               slv_ack_o                    <= '1'; 
 
+            when x"0003" =>
+              slv_data_out_o(5 downto 0)   <= fifo_delay_r;
+              slv_data_out_o(31 downto 6)  <= (others => '0');
+              slv_ack_o                    <= '1'; 
+              
             when others  =>
               slv_unknown_addr_o           <= '1';
           end case;
@@ -477,7 +490,15 @@ begin
             when x"0002" => 
               reset_ctr             <= '1';
               slv_ack_o             <= '1'; 
-
+              
+            when x"0003" => 
+              if (SLV_DATA_IN       < x"0000003c" and
+                  SLV_DATA_IN       > x"00000001") then
+                fifo_delay_r        <= SLV_DATA_IN(5 downto 0);
+                fifo_reset_r        <= '1';
+              end if;
+              slv_ack_o             <= '1';
+                
             when others  =>
               slv_unknown_addr_o    <= '1';              
           end case;                

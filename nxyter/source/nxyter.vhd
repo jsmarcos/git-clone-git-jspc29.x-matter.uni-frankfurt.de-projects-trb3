@@ -10,6 +10,7 @@ use ieee.numeric_std.all;
 library work;
 use work.trb_net_std.all;
 use work.trb_net_components.all;
+use work.trb3_components.all;
 use work.nxyter_components.all;
 -- ADCM use work.adcmv3_components.all;
 
@@ -57,7 +58,7 @@ entity nXyter_FEE_board is
     REGIO_WRITE_ACK_OUT     : out   std_logic;
     REGIO_NO_MORE_DATA_OUT  : out   std_logic;
     REGIO_UNKNOWN_ADDR_OUT  : out   std_logic;
-    
+
     -- Debug Signals
     CLK_128_IN              : in    std_logic;
     DEBUG_LINE_OUT          : out   std_logic_vector(15 downto 0)
@@ -131,7 +132,16 @@ architecture Behavioral of nXyter_FEE_board is
   -- Trigger Generator
   signal trigger              : std_logic;
   signal nx_testpulse_o       : std_logic;
-  
+
+
+  -- ADC FIFO
+  signal adc_ref_clk          : std_logic;
+  signal adc_dat_clk          : std_logic;
+  signal adc_data_word        : std_logic_vector(11 downto 0);
+  signal adc_data_valid       : std_logic;
+  signal adc_fco              : std_logic;
+  signal adc_restart          : std_logic;
+
 begin
 
 -------------------------------------------------------------------------------
@@ -153,15 +163,30 @@ begin
 -- 
 --   DEBUG_LINE_OUT(14 downto 13) <= timestamp_status;
 --   DEBUG_LINE_OUT(15)           <= slv_ack(3);
-
+  
   DEBUG_LINE_OUT(0)            <= CLK_IN;
   DEBUG_LINE_OUT(1)            <= trigger;
   DEBUG_LINE_OUT(2)            <= trigger_ack;
   DEBUG_LINE_OUT(3)            <= trigger_busy;
-  DEBUG_LINE_OUT(4)            <= nx_new_timestamp;
-  DEBUG_LINE_OUT(5)            <= timestamp_valid;
-  DEBUG_LINE_OUT(6)            <= nx_token_return;
-  DEBUG_LINE_OUT(7)            <= nx_nomore_data;
+  --DEBUG_LINE_OUT(4)            <= nx_new_timestamp;
+  --DEBUG_LINE_OUT(5)            <= timestamp_valid;
+  --DEBUG_LINE_OUT(6)            <= nx_token_return;
+  --DEBUG_LINE_OUT(7)            <= nx_nomore_data;
+
+  DEBUG_LINE_OUT(4)            <= '0';
+  DEBUG_LINE_OUT(5)            <= '0';
+  DEBUG_LINE_OUT(6)            <= adc_fco;
+  DEBUG_LINE_OUT(7)            <= adc_data_valid;
+
+  
+  DEBUG_LINE_OUT(8)            <= ADC_FCLK_IN;        
+  DEBUG_LINE_OUT(9)            <= ADC_DCLK_IN;        
+  DEBUG_LINE_OUT(10)           <= ADC_SC_CLK32_OUT;   
+  DEBUG_LINE_OUT(11)           <= ADC_A_IN;           
+  DEBUG_LINE_OUT(12)           <= ADC_B_IN;           
+  DEBUG_LINE_OUT(13)           <= ADC_NX_IN;          
+  DEBUG_LINE_OUT(14)           <= ADC_D_IN;
+  DEBUG_LINE_OUT(15)           <= '0';
   
   --DEBUG_LINE_OUT(15 downto 8) <= (others => '0');
   
@@ -179,6 +204,15 @@ begin
 
   NX_CLK256A_OUT     <= clk_256_o;
 
+
+  clock10MHz_1: clock10MHz
+    port map (
+      CLK   => CLK_IN,
+      CLKOP => adc_ref_clk,
+      LOCK  => open
+      );
+
+  
 
   THE_BUS_HANDLER: trb_net16_regio_bus_handler
     generic map(
@@ -573,8 +607,9 @@ begin
       SLV_ACK_OUT            => slv_ack(8),
       SLV_NO_MORE_DATA_OUT   => slv_no_more_data(8),
       SLV_UNKNOWN_ADDR_OUT   => slv_unknown_addr(8),
-      DEBUG_OUT(7 downto 0)  => DEBUG_LINE_OUT(15 downto 8),
-      DEBUG_OUT(15 downto 8) => open
+      -- DEBUG_OUT(7 downto 0)  => DEBUG_LINE_OUT(15 downto 8),
+      -- DEBUG_OUT(15 downto 8) => open
+      DEBUG_OUT(15 downto 0) => open
       );
 
 -------------------------------------------------------------------------------
@@ -602,6 +637,38 @@ begin
       );
 
   data_buffer_reset <= RESET_IN or data_fifo_reset;
+
+-------------------------------------------------------------------------------
+-- ADC 9228 Handler
+-------------------------------------------------------------------------------
+  adc_ad9222_1: adc_ad9222
+    generic map (
+      CHANNELS   => 4,
+      DEVICES    => 2,
+      RESOLUTION => 12
+      )
+    port map (
+      CLK                        => CLK_IN,
+      CLK_ADCREF                 => adc_ref_clk,
+      CLK_ADCDAT                 => adc_dat_clk,
+      RESTART_IN                 => adc_restart,
+      ADCCLK_OUT                 => ADC_SC_CLK32_OUT,
+      ADC_DATA(0)                => ADC_NX_IN,
+      ADC_DATA(7 downto 1)       => open,
+      ADC_DCO(0)                 => ADC_DCLK_IN,
+      ADC_DCO(1)                 => ADC_DCLK_IN,
+      ADC_FCO(0)                 => ADC_FCLK_IN,
+      ADC_FCO(1)                 => open,
+      DATA_OUT(11 downto 0)      => adc_data_word,
+      DATA_OUT(95 downto 12)     => open,
+      FCO_OUT                    => open,
+--      FCO_OUT(23 downto 1)        => open,
+      DATA_VALID_OUT(0)          => adc_data_valid,
+      DATA_VALID_OUT(1)          => open,
+      DEBUG                      => open
+      );
+  
+  adc_restart <= '0';
   
 -------------------------------------------------------------------------------
 -- nXyter Signals
@@ -611,6 +678,11 @@ begin
   NX_TESTPULSE_OUT  <= nx_testpulse_o;
 
 -------------------------------------------------------------------------------
+-- ADC Signals
+-------------------------------------------------------------------------------
+  
+  
+-------------------------------------------------------------------------------
 -- I2C Signals
 -------------------------------------------------------------------------------
 
@@ -618,7 +690,7 @@ begin
   I2C_REG_RESET_OUT <= not i2c_reg_reset_o;
 
 
-  ADC_SC_CLK32_OUT  <= nx_frame_clock_o;
+--  ADC_SC_CLK32_OUT  <= nx_frame_clock_o;
   
 -------------------------------------------------------------------------------
 -- END

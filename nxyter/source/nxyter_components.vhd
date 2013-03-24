@@ -53,6 +53,44 @@ component nXyter_FEE_board
 end component;
 
 -------------------------------------------------------------------------------
+-- TrbNet Data Interface
+-------------------------------------------------------------------------------
+
+component nXyter_data_handler
+  port (
+    CLK_IN                     : in  std_logic;
+    RESET_IN                   : in  std_logic;
+    REGIO_ADDR_IN              : in  std_logic_vector(15 downto 0);
+    REGIO_DATA_IN              : in  std_logic_vector(31 downto 0);
+    REGIO_DATA_OUT             : out std_logic_vector(31 downto 0);
+    REGIO_READ_ENABLE_IN       : in  std_logic;
+    REGIO_WRITE_ENABLE_IN      : in  std_logic;
+    REGIO_TIMEOUT_IN           : in  std_logic;
+    REGIO_DATAREADY_OUT        : out std_logic;
+    REGIO_WRITE_ACK_OUT        : out std_logic;
+    REGIO_NO_MORE_DATA_OUT     : out std_logic;
+    REGIO_UNKNOWN_ADDR_OUT     : out std_logic;
+    LVL1_TRG_DATA_VALID_IN     : in  std_logic;
+    LVL1_VALID_TIMING_TRG_IN   : in  std_logic;
+    LVL1_VALID_NOTIMING_TRG_IN : in  std_logic;
+    LVL1_INVALID_TRG_IN        : in  std_logic;
+    LVL1_TRG_TYPE_IN           : in  std_logic_vector(3 downto 0);
+    LVL1_TRG_NUMBER_IN         : in  std_logic_vector(15 downto 0);
+    LVL1_TRG_CODE_IN           : in  std_logic_vector(7 downto 0);
+    LVL1_TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0);
+    LVL1_INT_TRG_NUMBER_IN     : in  std_logic_vector(15 downto 0);
+    FEE_TRG_RELEASE_OUT        : out std_logic;
+    FEE_TRG_STATUSBITS_OUT     : out std_logic_vector(31 downto 0);
+    FEE_DATA_OUT               : out std_logic_vector(31 downto 0);
+    FEE_DATA_WRITE_OUT         : out std_logic;
+    FEE_DATA_FINISHED_OUT      : out std_logic;
+    FEE_DATA_ALMOST_FULL_IN    : in  std_logic;
+    DEBUG_LINE_OUT             : out std_logic_vector(15 downto 0)
+    );
+end component;
+
+
+-------------------------------------------------------------------------------
 -- nXyter I2C Interface
 -------------------------------------------------------------------------------
 
@@ -204,18 +242,28 @@ component nxyter_registers
     );
 end component;
 
-component fifo_dc_9to36
+component clock10MHz
   port (
-    Data    : in  std_logic_vector(8 downto 0);
-    WrClock : in  std_logic;
-    RdClock : in  std_logic;
-    WrEn    : in  std_logic;
-    RdEn    : in  std_logic;
-    Reset   : in  std_logic;
-    RPReset : in  std_logic;
-    Q       : out std_logic_vector(35 downto 0);
-    Empty   : out std_logic;
-    Full    : out std_logic
+    CLK   : in  std_logic;
+    CLKOP : out std_logic;
+    LOCK  : out std_logic
+    );
+end component;
+
+component fifo_dc_9to36_dyn
+  port (
+    Data         : in  std_logic_vector(8 downto 0);
+    WrClock      : in  std_logic;
+    RdClock      : in  std_logic;
+    WrEn         : in  std_logic;
+    RdEn         : in  std_logic;
+    Reset        : in  std_logic;
+    RPReset      : in  std_logic;
+    AmEmptyThresh: in  std_logic_vector(5 downto 0);
+    Q            : out std_logic_vector(35 downto 0);
+    Empty        : out std_logic;
+    Full         : out std_logic;
+    AlmostEmpty  : out  std_logic
     );
 end component;
 

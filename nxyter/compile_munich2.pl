@@ -9,7 +9,7 @@ use strict;
 ###################################################################################
 #Settings for this project
 my $TOPNAME                      = "trb3_periph";  #Name of top-level entity
-my $lattice_path                 = '/usr/local/opt/lattice_diamond/diamond/new';
+my $lattice_path                 = '/usr/local/opt/lattice_diamond/diamond/2.0';
 my $synplify_path                = '/usr/local/opt/synplify/F-2012.03-SP1/';
 my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
 my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";

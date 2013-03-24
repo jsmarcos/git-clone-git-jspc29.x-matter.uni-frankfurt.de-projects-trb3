@@ -40,6 +40,7 @@
                w: trigger resync
 0x8502 :  r/w  r: get resync counter(8bit)
                w: clear resync counter    
+0x8503 :  r/w  FIFO Delay, i.e. Trigger Delay (6bit, in 3.1ns, range 2 .. 60)
 
 -- Data Buffer
 0x8600 :  r    read FIFO buffer
