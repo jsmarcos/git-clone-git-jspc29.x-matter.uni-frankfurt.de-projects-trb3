@@ -134,14 +134,30 @@ architecture Behavioral of nXyter_FEE_board is
   signal nx_testpulse_o       : std_logic;
 
 
-  -- ADC FIFO
-  signal adc_ref_clk          : std_logic;
-  signal adc_dat_clk          : std_logic;
-  signal adc_data_word        : std_logic_vector(11 downto 0);
-  signal adc_data_valid       : std_logic;
-  signal adc_fco              : std_logic;
-  signal adc_restart          : std_logic;
+  -- ADC FIFO Entity
+  signal adc_fclk_i           : std_logic;
+  signal adc_dclk_i           : std_logic;
+  signal adc_sc_clk32_o       : std_logic;
+  signal adc_a_i              : std_logic;
+  signal adc_b_i              : std_logic;
+  signal adc_nx_i             : std_logic;
+  signal adc_d_i              : std_logic;
 
+  signal adc_ref_clk          : std_logic;
+  signal adc_10MHz_clock      : std_logic;
+
+  signal adc_dat_clk          : std_logic;
+  signal adc_restart          : std_logic;
+  signal adc_clk_o            : std_logic;
+
+  signal adc_data_i           : std_logic_vector(7 downto 0);
+  signal adc_dat_clk_i        : std_logic_vector(1 downto 0);
+  signal adc_fco_clk_i        : std_logic_vector(1 downto 0);
+  
+  signal adc_data_word        : std_logic_vector(95 downto 0);
+  signal adc_fco              : std_logic_vector(23 downto 0);
+  signal adc_data_valid       : std_logic_vector(1 downto 0);
+  
 begin
 
 -------------------------------------------------------------------------------
@@ -175,17 +191,17 @@ begin
 
   DEBUG_LINE_OUT(4)            <= '0';
   DEBUG_LINE_OUT(5)            <= '0';
-  DEBUG_LINE_OUT(6)            <= adc_fco;
-  DEBUG_LINE_OUT(7)            <= adc_data_valid;
-
+  DEBUG_LINE_OUT(6)            <= '0';
+  DEBUG_LINE_OUT(7)            <= adc_ref_clk;
   
-  DEBUG_LINE_OUT(8)            <= ADC_FCLK_IN;        
-  DEBUG_LINE_OUT(9)            <= ADC_DCLK_IN;        
-  DEBUG_LINE_OUT(10)           <= ADC_SC_CLK32_OUT;   
-  DEBUG_LINE_OUT(11)           <= ADC_A_IN;           
-  DEBUG_LINE_OUT(12)           <= ADC_B_IN;           
-  DEBUG_LINE_OUT(13)           <= ADC_NX_IN;          
-  DEBUG_LINE_OUT(14)           <= ADC_D_IN;
+  
+  DEBUG_LINE_OUT(8)            <= adc_fclk_i;        
+  DEBUG_LINE_OUT(9)            <= adc_dclk_i;        
+  DEBUG_LINE_OUT(10)           <= '0'; --adc_sc_clk32_o;   
+  DEBUG_LINE_OUT(11)           <= adc_a_i;           
+  DEBUG_LINE_OUT(12)           <= adc_b_i;           
+  DEBUG_LINE_OUT(13)           <= adc_nx_i;          
+  DEBUG_LINE_OUT(14)           <= adc_d_i;
   DEBUG_LINE_OUT(15)           <= '0';
   
   --DEBUG_LINE_OUT(15 downto 8) <= (others => '0');
@@ -208,7 +224,7 @@ begin
   clock10MHz_1: clock10MHz
     port map (
       CLK   => CLK_IN,
-      CLKOP => adc_ref_clk,
+      CLKOP => adc_10MHz_clock,
       LOCK  => open
       );
 
@@ -641,6 +657,34 @@ begin
 -------------------------------------------------------------------------------
 -- ADC 9228 Handler
 -------------------------------------------------------------------------------
+--   adc_ad9222_1: adc_ad9222
+--     generic map (
+--       CHANNELS   => 4,
+--       DEVICES    => 2,
+--       RESOLUTION => 12
+--       )
+--     port map (
+--       CLK                        => CLK_IN,
+--       CLK_ADCREF                 => adc_ref_clk,
+--       CLK_ADCDAT                 => adc_dat_clk,
+--       RESTART_IN                 => adc_restart,
+--       ADCCLK_OUT                 => ADC_SC_CLK32_OUT,
+--       ADC_DATA(0)                => ADC_NX_IN,
+--       ADC_DATA(7 downto 1)       => open,
+--       ADC_DCO(0)                 => ADC_DCLK_IN,
+--       ADC_DCO(1)                 => ADC_DCLK_IN,
+--       ADC_FCO(0)                 => ADC_FCLK_IN,
+--       ADC_FCO(1)                 => open,
+--       DATA_OUT(11 downto 0)      => adc_data_word,
+--       DATA_OUT(95 downto 12)     => open,
+--       FCO_OUT                    => open,
+-- --      FCO_OUT(23 downto 1)        => open,
+--       DATA_VALID_OUT(0)          => adc_data_valid,
+--       DATA_VALID_OUT(1)          => open,
+--       DEBUG                      => open
+--       );
+
+
   adc_ad9222_1: adc_ad9222
     generic map (
       CHANNELS   => 4,
@@ -652,24 +696,24 @@ begin
       CLK_ADCREF                 => adc_ref_clk,
       CLK_ADCDAT                 => adc_dat_clk,
       RESTART_IN                 => adc_restart,
-      ADCCLK_OUT                 => ADC_SC_CLK32_OUT,
-      ADC_DATA(0)                => ADC_NX_IN,
-      ADC_DATA(7 downto 1)       => open,
-      ADC_DCO(0)                 => ADC_DCLK_IN,
-      ADC_DCO(1)                 => ADC_DCLK_IN,
-      ADC_FCO(0)                 => ADC_FCLK_IN,
-      ADC_FCO(1)                 => open,
-      DATA_OUT(11 downto 0)      => adc_data_word,
-      DATA_OUT(95 downto 12)     => open,
-      FCO_OUT                    => open,
---      FCO_OUT(23 downto 1)        => open,
-      DATA_VALID_OUT(0)          => adc_data_valid,
-      DATA_VALID_OUT(1)          => open,
+      ADCCLK_OUT                 => adc_sc_clk32_o,
+      ADC_DATA                   => adc_data_i,
+      ADC_DCO                    => adc_dat_clk_i,
+      ADC_FCO                    => adc_fco_clk_i,
+      DATA_OUT                   => adc_data_word,
+      FCO_OUT                    => adc_fco,
+      DATA_VALID_OUT             => adc_data_valid,
       DEBUG                      => open
       );
   
-  adc_restart <= '0';
   
+  adc_ref_clk            <= adc_10MHz_clock;
+  adc_dat_clk            <= '0';
+  adc_restart            <= RESET_IN;
+  adc_data_i(0)          <= adc_nx_i;
+  adc_data_i(7 downto 1) <= (others => '0');
+  
+ 
 -------------------------------------------------------------------------------
 -- nXyter Signals
 -------------------------------------------------------------------------------
@@ -680,7 +724,14 @@ begin
 -------------------------------------------------------------------------------
 -- ADC Signals
 -------------------------------------------------------------------------------
-  
+  ADC_SC_CLK32_OUT  <= adc_sc_clk32_o;
+
+  adc_fclk_i        <= ADC_FCLK_IN;       
+  adc_dclk_i        <= ADC_DCLK_IN;       
+  adc_a_i           <= ADC_A_IN;          
+  adc_b_i           <= ADC_B_IN;          
+  adc_nx_i          <= ADC_NX_IN;         
+  adc_d_i           <= ADC_D_IN;          
   
 -------------------------------------------------------------------------------
 -- I2C Signals
