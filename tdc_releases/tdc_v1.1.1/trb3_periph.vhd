@@ -104,7 +104,6 @@ architecture trb3_periph_arch of trb3_periph is
   signal med_stat_op        : std_logic_vector (1*16-1 downto 0);
   signal med_ctrl_op        : std_logic_vector (1*16-1 downto 0);
   signal med_stat_debug     : std_logic_vector (1*64-1 downto 0);
-  signal med_ctrl_debug     : std_logic_vector (1*64-1 downto 0);
   signal med_data_out       : std_logic_vector (1*16-1 downto 0);
   signal med_packet_num_out : std_logic_vector (1*3-1 downto 0);
   signal med_dataready_out  : std_logic;
@@ -150,18 +149,16 @@ architecture trb3_periph_arch of trb3_periph is
   signal ctrl_reg_strobe        : std_logic_vector(2**REGIO_NUM_CTRL_REGS-1 downto 0);
 
   --RegIO
-  signal my_address               : std_logic_vector (15 downto 0);
-  signal regio_addr_out           : std_logic_vector (15 downto 0);
-  signal regio_read_enable_out    : std_logic;
-  signal regio_write_enable_out   : std_logic;
-  signal regio_data_out           : std_logic_vector (31 downto 0);
-  signal regio_data_in            : std_logic_vector (31 downto 0);
-  signal regio_dataready_in       : std_logic;
-  signal regio_no_more_data_in    : std_logic;
-  signal regio_write_ack_in       : std_logic;
-  signal regio_unknown_addr_in    : std_logic;
-  signal regio_timeout_out        : std_logic;
-  signal regio_hardware_version_i : std_logic_vector(31 downto 0);
+  signal regio_addr_out         : std_logic_vector (15 downto 0);
+  signal regio_read_enable_out  : std_logic;
+  signal regio_write_enable_out : std_logic;
+  signal regio_data_out         : std_logic_vector (31 downto 0);
+  signal regio_data_in          : std_logic_vector (31 downto 0);
+  signal regio_dataready_in     : std_logic;
+  signal regio_no_more_data_in  : std_logic;
+  signal regio_write_ack_in     : std_logic;
+  signal regio_unknown_addr_in  : std_logic;
+  signal regio_timeout_out      : std_logic;
 
   --Timer
   signal global_time         : std_logic_vector(31 downto 0);
@@ -197,7 +194,6 @@ architecture trb3_periph_arch of trb3_periph is
 
   signal hitreg_read_en    : std_logic;
   signal hitreg_write_en   : std_logic;
-  signal hitreg_data_in    : std_logic_vector(31 downto 0);
   signal hitreg_addr       : std_logic_vector(6 downto 0);
   signal hitreg_data_out   : std_logic_vector(31 downto 0);
   signal hitreg_data_ready : std_logic;
@@ -205,7 +201,6 @@ architecture trb3_periph_arch of trb3_periph is
 
   signal srb_read_en    : std_logic;
   signal srb_write_en   : std_logic;
-  signal srb_data_in    : std_logic_vector(31 downto 0);
   signal srb_addr       : std_logic_vector(6 downto 0);
   signal srb_data_out   : std_logic_vector(31 downto 0);
   signal srb_data_ready : std_logic;
@@ -213,7 +208,6 @@ architecture trb3_periph_arch of trb3_periph is
 
   signal lhb_read_en    : std_logic;
   signal lhb_write_en   : std_logic;
-  signal lhb_data_in    : std_logic_vector(31 downto 0);
   signal lhb_addr       : std_logic_vector(6 downto 0);
   signal lhb_data_out   : std_logic_vector(31 downto 0);
   signal lhb_data_ready : std_logic;
@@ -221,7 +215,6 @@ architecture trb3_periph_arch of trb3_periph is
 
   signal esb_read_en    : std_logic;
   signal esb_write_en   : std_logic;
-  signal esb_data_in    : std_logic_vector(31 downto 0);
   signal esb_addr       : std_logic_vector(6 downto 0);
   signal esb_data_out   : std_logic_vector(31 downto 0);
   signal esb_data_ready : std_logic;
@@ -235,20 +228,22 @@ architecture trb3_periph_arch of trb3_periph is
   signal fwb_data_ready : std_logic;
   signal fwb_invalid    : std_logic;
 
+  signal tdc_ctrl_read      : std_logic;
+  signal last_tdc_ctrl_read : std_logic;
+  signal tdc_ctrl_write     : std_logic;
+  signal tdc_ctrl_addr      : std_logic_vector(1 downto 0);
+  signal tdc_ctrl_data_in   : std_logic_vector(31 downto 0);
+  signal tdc_ctrl_data_out  : std_logic_vector(31 downto 0);
+  signal tdc_ctrl_reg       : std_logic_vector(5*32-1 downto 0);
+
   signal spi_bram_addr : std_logic_vector(7 downto 0);
   signal spi_bram_wr_d : std_logic_vector(7 downto 0);
   signal spi_bram_rd_d : std_logic_vector(7 downto 0);
   signal spi_bram_we   : std_logic;
 
-  --FPGA Test
-  signal time_counter : unsigned(31 downto 0);
-
   --TDC
   signal hit_in_i         : std_logic_vector(64 downto 1);
   signal logic_analyser_i : std_logic_vector(15 downto 0);
-  signal addOn_type_i     : std_logic_vector(3 downto 0);
-  signal edge_type_i      : std_logic_vector(3 downto 0);
-  signal tdc_channel_no_i : std_logic_vector(3 downto 0);
 
 begin
 ---------------------------------------------------------------------------
@@ -334,6 +329,17 @@ begin
 ---------------------------------------------------------------------------
 -- Endpoint
 ---------------------------------------------------------------------------
+  --regio_hardware_version_i <= x"9100" & addOn_type_i & edge_type_i & tdc_channel_no_i & x"0";
+
+  --addOn_type_i     <= x"0";             -- x"0" - ADA AddOn version 1
+  --                                      -- x"1" - ADA AddOn version 2
+  --                                      -- x"2" - multi purpose test AddOn
+  --                                      -- x"3" - SFP hub AddOn
+  --                                      -- x"4" - Wasa AddOn
+  --edge_type_i      <= x"0";             -- x"0" - single edge
+  --                                      -- x"1" - double edge
+  --tdc_channel_no_i <= x"6";             -- 2^n channels
+  
   THE_ENDPOINT : trb_net16_endpoint_hades_full_handler
     generic map(
       REGIO_NUM_STAT_REGS       => REGIO_NUM_STAT_REGS,  --4,  --16 stat reg
@@ -342,7 +348,7 @@ begin
       BROADCAST_BITMASK         => x"FF",
       BROADCAST_SPECIAL_ADDR    => x"48",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
-      REGIO_HARDWARE_VERSION    => x"91000000",  -- regio_hardware_version_i,
+      REGIO_HARDWARE_VERSION    => x"91000060",  -- regio_hardware_version_i,
       REGIO_INIT_ADDRESS        => x"f305",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
       CLOCK_FREQUENCY           => 125,
@@ -445,6 +451,7 @@ begin
 
   timing_trg_received_i <= TRIGGER_LEFT;
   common_stat_reg       <= (others => '0');
+  stat_reg              <= (others => '0');
 
 ---------------------------------------------------------------------------
 -- AddOn
@@ -455,9 +462,9 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 8,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"c400", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 7, others => 0)
+      PORT_NUMBER    => 9,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"c400", 8 => x"c800", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 7, 8 => 2, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -570,10 +577,34 @@ begin
       BUS_WRITE_ACK_IN(7)                 => '0',
       BUS_NO_MORE_DATA_IN(7)              => '0',
       BUS_UNKNOWN_ADDR_IN(7)              => lhb_invalid,
-
+      --TDC config registers
+      BUS_READ_ENABLE_OUT(8)              => tdc_ctrl_read,
+      BUS_WRITE_ENABLE_OUT(8)             => tdc_ctrl_write,
+      BUS_DATA_OUT(8*32+31 downto 8*32)   => tdc_ctrl_data_in,
+      BUS_ADDR_OUT(8*16+1 downto 8*16)    => tdc_ctrl_addr,
+      BUS_ADDR_OUT(8*16+15 downto 8*16+2) => open,
+      BUS_TIMEOUT_OUT(8)                  => open,
+      BUS_DATA_IN(8*32+31 downto 8*32)    => tdc_ctrl_data_out,
+      BUS_DATAREADY_IN(8)                 => last_tdc_ctrl_read,
+      BUS_WRITE_ACK_IN(8)                 => tdc_ctrl_write,
+      BUS_NO_MORE_DATA_IN(8)              => '0',
+      BUS_UNKNOWN_ADDR_IN(8)              => '0',
 
       STAT_DEBUG => open
       );
+
+  PROC_TDC_CTRL_REG : process(clk_100_i)
+    variable pos : integer;
+  begin
+    if rising_edge(clk_100_i) then
+      pos                := to_integer(unsigned(tdc_ctrl_addr))*32;
+      tdc_ctrl_data_out  <= tdc_ctrl_reg(pos+31 downto pos);
+      last_tdc_ctrl_read <= tdc_ctrl_read;
+      if tdc_ctrl_write = '1' then
+        tdc_ctrl_reg(pos+31 downto pos) <= tdc_ctrl_data_in;
+      end if;
+    end if;
+  end process;
 
 ---------------------------------------------------------------------------
 -- SPI / Flash
@@ -681,17 +712,16 @@ begin
 
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 5,              -- Number of TDC channels
-      STATUS_REG_NR  => REGIO_NUM_STAT_REGS,
-      CONTROL_REG_NR => REGIO_NUM_CTRL_REGS)
+      CHANNEL_NUMBER => 65,             -- Number of TDC channels
+      CONTROL_REG_NR => 5)
     port map (
       RESET                 => reset_i,
       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
-      REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
-      HIT_IN                => hit_in_i(4 downto 1),  -- Channel start signals
-      TRG_WIN_PRE           => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
-      TRG_WIN_POST          => ctrl_reg(58 downto 48),  -- Post-Trigger window width
+      REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
+      HIT_IN                => hit_in_i(64 downto 1),  -- Channel start signals
+      TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
+      TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --
       -- Trigger signals from handler
       TRG_DATA_VALID_IN     => trg_data_valid_i,  -- trig data valid signal from trbnet
@@ -752,29 +782,16 @@ begin
       LHB_UNKNOWN_ADDR_OUT  => lhb_invalid,   -- bus invalid addr
       --
       LOGIC_ANALYSER_OUT    => logic_analyser_i,
-      CONTROL_REG_IN        => ctrl_reg);
+      CONTROL_REG_IN        => tdc_ctrl_reg);
 
   -- For single edge measurements
+  -- hit_in_i <= INP;
 
-  
-  hit_in_i <= INP;
+  -- For ToT Measurements
+  Gen_Hit_In_Signals : for i in 1 to 32 generate
+    hit_in_i(i*2-1) <= INP(i-1);
+    hit_in_i(i*2)   <= not INP(i-1);
+  end generate Gen_Hit_In_Signals;
 
-  ---- For ToT Measurements
-  --hit_in_i(1) <= not timing_trg_received_i;
-  --Gen_Hit_In_Signals : for i in 1 to 16 generate
-  --  hit_in_i(i*2)   <= INP(i-1);
-  --  hit_in_i(i*2+1) <= not INP(i-1);
-  --end generate Gen_Hit_In_Signals;
-
-  --regio_hardware_version_i <= x"9100" & addOn_type_i & edge_type_i & tdc_channel_no_i & x"0";
-
-  --addOn_type_i     <= x"0";             -- x"0" - ADA AddOn version 1
-  --                                      -- x"1" - ADA AddOn version 2
-  --                                      -- x"2" - multi purpose test AddOn
-  --                                      -- x"3" - SFP hub AddOn
-  --                                      -- x"4" - Wasa AddOn
-  --edge_type_i      <= x"0";             -- x"0" - single edge
-  --                                      -- x"1" - double edge
-  --tdc_channel_no_i <= x"6";             -- 2^n channels
-  
+  -- !!!!! IMPORTANT !!!!! Don't forget to set the REGIO_HARDWARE_VERSION !!!!!
 end architecture;
