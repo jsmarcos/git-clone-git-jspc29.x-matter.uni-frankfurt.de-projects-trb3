@@ -186,8 +186,12 @@ end generate;
     end generate;
   end generate;
 
-gen_outputs : for i in 0 to DEVICES-1 generate  
-  FCO_OUT(i*CHANNELS*RESOLUTION+RESOLUTION-1 downto i*CHANNELS*RESOLUTION) <=  cdt_data_out(i)(CHANNELS*RESOLUTION+RESOLUTION-1 downto CHANNELS*RESOLUTION);
+gen_outputs_2 : if DEVICES = 2 generate  
+  FCO_OUT <=  cdt_data_out(1)(CHANNELS*12+11 downto CHANNELS*12) & cdt_data_out(0)(CHANNELS*12+11 downto CHANNELS*12);
+end generate;
+
+gen_outputs_1 : if DEVICES = 1 generate  
+  FCO_OUT <=   cdt_data_out(0)(CHANNELS*12+11 downto CHANNELS*12);
 end generate;
 
   DATA_OUT <= data_buffer;
