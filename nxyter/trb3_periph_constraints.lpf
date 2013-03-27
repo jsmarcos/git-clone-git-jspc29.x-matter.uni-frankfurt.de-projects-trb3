@@ -1,6 +1,6 @@
-BLOCK RESETPATHS ;
-BLOCK ASYNCPATHS ;
-BLOCK RD_DURING_WR_PATHS ;
+# BLOCK RESETPATHS ;
+# BLOCK ASYNCPATHS ;
+# BLOCK RD_DURING_WR_PATHS ;
 
 #################################################################
 # Basic Settings
@@ -14,12 +14,12 @@ BLOCK RD_DURING_WR_PATHS ;
   FREQUENCY PORT CLK_GPLL_LEFT  200 MHz;
     
 #Put the names of your DCO inputs here:  
-  FREQUENCY PORT NX1_ADC_SC_CLK32_OUT 360 MHz;   
-  FREQUENCY PORT NX2_ADC_SC_CLK32_OUT 360 MHz;
+  FREQUENCY PORT NX1_ADC_DCLK_IN 192 MHz;   
+  FREQUENCY PORT NX2_ADC_DCLK_IN 192 MHz;
 
 #Change the next two lines to the clk_fast signal of the ADC  
-  USE PRIMARY2EDGE NET "THE_ADC/clk_fast";
-  USE PRIMARY NET "THE_ADC/clk_fast";
+  USE PRIMARY2EDGE NET "nXyter_FEE_board_1/adc_ad9222_1/clk_fast";
+  USE PRIMARY NET "nXyter_FEE_board_1/adc_ad9222_1/clk_fast";
   
   USE PRIMARY NET "CLK_PCLK_LEFT";
   USE PRIMARY NET "CLK_PCLK_LEFT_c";
