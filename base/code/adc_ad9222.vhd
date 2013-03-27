@@ -167,10 +167,10 @@ end generate;
   end generate;  
   
   gen_shift_bits : for i in 0 to DEVICES-1 generate
-    mask(i) <= cdt_data_out(i)(CHANNELS*12+3 downto CHANNELS*12);
+    mask(i) <= cdt_data_out(i)(CHANNELS*RESOLUTION+3 downto CHANNELS*RESOLUTION);
     gen_shift_bits_2 : for j in 0 to CHANNELS-1 generate
 
-      curr_data(i)(j) <= cdt_data_out(i)(j*12+11 downto j*12);
+      curr_data(i)(j) <= cdt_data_out(i)(j*RESOLUTION+RESOLUTION-1 downto j*RESOLUTION);
 
       process begin
         wait until rising_edge(CLK);
@@ -185,17 +185,20 @@ end generate;
       end process;
     end generate;
   end generate;
-  
-  FCO_OUT <=  cdt_data_out(1)(CHANNELS*12+11 downto CHANNELS*12) & cdt_data_out(0)(CHANNELS*12+11 downto CHANNELS*12);
+
+gen_outputs : for i in 0 to DEVICES-1 generate  
+  FCO_OUT(i*CHANNELS*RESOLUTION+RESOLUTION-1 downto i*CHANNELS*RESOLUTION) <=  cdt_data_out(i)(CHANNELS*RESOLUTION+RESOLUTION-1 downto CHANNELS*RESOLUTION);
+end generate;
+
   DATA_OUT <= data_buffer;
   DATA_VALID_OUT <= valid_read when rising_edge(CLK);
   
-  DEBUG(3 downto 0)  <= std_logic_vector(to_unsigned(state(1),4));
-  DEBUG(7 downto 4)  <= data_block(1)(1);
-  DEBUG(11 downto 8) <= data_block(1)(4);
-  DEBUG(12)          <= fifo_empty(1);
-  DEBUG(13)          <= fifo_full(1);
+  DEBUG(3 downto 0)  <= std_logic_vector(to_unsigned(state(0),4));
+  DEBUG(7 downto 4)  <= data_block(0)(1);
+  DEBUG(11 downto 8) <= data_block(0)(4);
+  DEBUG(12)          <= fifo_empty(0);
+  DEBUG(13)          <= fifo_full(0);
   DEBUG(14)          <= clk_data;
-  DEBUG(15)          <= DATA_VALID_OUT(1);
+  DEBUG(15)          <= DATA_VALID_OUT(0);
   
 end architecture;
