@@ -137,6 +137,7 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_1_125_int.v
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_lsm_sfp.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.vhd"
 
+add_file -vhdl -lib "work" "cores/nxyter_input_pll.vhd"
 add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
 
 add_file -vhdl -lib "work" "trb3_periph.vhd"

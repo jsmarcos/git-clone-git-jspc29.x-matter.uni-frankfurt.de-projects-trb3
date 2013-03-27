@@ -13,13 +13,15 @@
   FREQUENCY PORT CLK_GPLL_RIGHT 125 MHz;
   FREQUENCY PORT CLK_GPLL_LEFT  200 MHz;
     
-#Put the names of your DCO inputs here:  
+#Put the names of your nxyter inputs here:  
   FREQUENCY PORT NX1_ADC_DCLK_IN 192 MHz;   
   FREQUENCY PORT NX2_ADC_DCLK_IN 192 MHz;
-
+  FREQUENCY PORT NX1_CLK128_IN 128 MHz;
+  FREQUENCY PORT NX2_CLK128_IN 128 MHz;
+  
 #Change the next two lines to the clk_fast signal of the ADC  
-  USE PRIMARY2EDGE NET "nXyter_FEE_board_1/adc_ad9222_1/clk_fast";
-  USE PRIMARY NET "nXyter_FEE_board_1/adc_ad9222_1/clk_fast";
+#   USE PRIMARY2EDGE NET "nXyter_FEE_board_1/adc_ad9222_1/clk_fast";
+#   USE PRIMARY NET "nXyter_FEE_board_1/adc_ad9222_1/clk_fast";
   
   USE PRIMARY NET "CLK_PCLK_LEFT";
   USE PRIMARY NET "CLK_PCLK_LEFT_c";
@@ -46,3 +48,21 @@ LOCATE UGROUP "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLINK" ;
 MULTICYCLE TO CELL "THE_MEDIA_DOWNLINK/SCI_DATA_OUT*" 50 ns;
 MULTICYCLE TO CELL "THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
 MULTICYCLE TO CELL "THE_ADC/restart_i" 20 ns;
+
+
+#################################################################
+# Constraints for nxyter inputs
+#################################################################
+
+USE PRIMARY NET "*nx_clk_in_delayed";
+DEFINE PORT GROUP "NX_IN" "NX1_TIMESTAMP_*";
+INPUT_SETUP GROUP "NX_IN" 3.0 ns HOLD 3.0 ns CLKPORT="NX1_CLK128_IN" ; 
+
+
+
+#DEFINE PORT GROUP "ADC7_INPUTS" "PRE_IN_17" "PRE_IN_18" "PRE_IN_19"
+#                  "PRE_IN_20" "PRE_IN_21" "PRE_IN_22" "PRE_IN_23" "PRE_IN_24" ;
+#INPUT_SETUP GROUP "ADC7_INPUTS" 1.500000 ns HOLD 1.500000 ns CLKPORT "DCO_IN_7" ;
+
+
+MULTICYCLE FROM CLKNET "NX1_CLK256A_OUT_c_c" 50 ns;

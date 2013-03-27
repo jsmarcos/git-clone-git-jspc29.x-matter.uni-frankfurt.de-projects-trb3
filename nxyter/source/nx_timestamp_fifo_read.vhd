@@ -97,10 +97,14 @@ architecture Behavioral of nx_timestamp_fifo_read is
   signal fifo_delay_r             : std_logic_vector(5 downto 0);
   signal fifo_reset_r             : std_logic;
   
+  signal pll_lock                 : std_logic;
+  signal nx_clk_in_delayed        : std_logic;
+  signal nx_timestamp_reg         : std_logic_vector(7 downto 0);
+  
 begin
 
-  DEBUG_OUT(0)           <= CLK_IN;
-  DEBUG_OUT(1)           <= NX_TIMESTAMP_CLK_IN;
+  DEBUG_OUT(0)           <= '0';
+  DEBUG_OUT(1)           <= '0';
   DEBUG_OUT(2)           <= fifo_empty;
   DEBUG_OUT(3)           <= fifo_read_enable;
   DEBUG_OUT(4)           <= fifo_data_valid;
@@ -121,6 +125,16 @@ begin
 --    DEBUG_OUT(7 downto 4) <= fifo_out(3 downto 0);
 --   DEBUG_OUT(15 downto 8) <= fifo_out(34 downto 27);
   
+  THE_INPUT_PLL : entity work.nxyter_input_pll
+    port map(
+      CLK    => NX_TIMESTAMP_CLK_IN,
+      CLKFB  => nx_clk_in_delayed,
+      CLKOP  => nx_clk_in_delayed,
+      LOCK   => pll_lock   --use this to generate FIFO reset!
+      );
+  
+  nx_timestamp_reg <= NX_TIMESTAMP_IN when rising_edge(nx_clk_in_delayed);
+  
   -----------------------------------------------------------------------------
   -- Dual Clock FIFO 9bit to 36bit
   -----------------------------------------------------------------------------
@@ -128,9 +142,9 @@ begin
   -- Send data to FIFO, depth is 256
   fifo_dc_9to36_dyn_1: fifo_dc_9to36_dyn
     port map (
-      Data(7 downto 0)         => NX_TIMESTAMP_IN,
+      Data(7 downto 0)         => nx_timestamp_reg,
       Data(8)                  => frame_tag_o,
-      WrClock                  => NX_TIMESTAMP_CLK_IN,
+      WrClock                  => nx_clk_in_delayed,
       RdClock                  => CLK_IN,
       WrEn                     => fifo_write_enable,
       RdEn                     => fifo_read_enable,
@@ -143,8 +157,8 @@ begin
       AlmostEmpty              => fifo_almost_empty
       );
 
-  fifo_write_enable <= not RESET_IN;
-  fifo_reset        <= RESET_IN or fifo_reset_r;
+  fifo_write_enable <= not RESET_IN and pll_lock;
+  fifo_reset        <= (RESET_IN or fifo_reset_r) and not pll_lock;
   
   -----------------------------------------------------------------------------
   -- FIFO Input Handler
@@ -152,9 +166,9 @@ begin
   
   -- Cross ClockDomain CLK_IN --> NX_TIMESTAMP_CLK_IN for signal
   -- frame_clock_ctr_inc
-  PROC_FIFO_IN_HANDLER_SYNC: process(NX_TIMESTAMP_CLK_IN)
+  PROC_FIFO_IN_HANDLER_SYNC: process(nx_clk_in_delayed)
   begin
-    if( rising_edge(NX_TIMESTAMP_CLK_IN) ) then
+    if( rising_edge(nx_clk_in_delayed) ) then
       if( RESET_IN = '1' ) then
         frame_clock_ctr_inc_x  <= '0';
         frame_clock_ctr_inc_l  <= '0';
@@ -168,15 +182,15 @@ begin
   -- Signal frame_tag_ctr_inc_l might be 2 clocks long --> I need 1
   level_to_pulse_1: level_to_pulse
     port map (
-      CLK_IN    => NX_TIMESTAMP_CLK_IN,
+      CLK_IN    => nx_clk_in_delayed,
       RESET_IN  => RESET_IN,
       LEVEL_IN  => frame_clock_ctr_inc_l,
       PULSE_OUT => frame_clock_ctr_inc
       );
       
-  PROC_FRAME_CLOCK_GENERATOR: process(NX_TIMESTAMP_CLK_IN)
+  PROC_FRAME_CLOCK_GENERATOR: process(nx_clk_in_delayed)
   begin
-    if( rising_edge(NX_TIMESTAMP_CLK_IN) ) then
+    if( rising_edge(nx_clk_in_delayed) ) then
       if( RESET_IN = '1' ) then
         frame_clock_ctr   <= (others => '0');
         nx_frame_clock_o  <= '0';
