@@ -135,28 +135,28 @@ architecture Behavioral of nXyter_FEE_board is
 
 
   -- ADC FIFO Entity
-  signal adc_fclk_i           : std_logic;
-  signal adc_dclk_i           : std_logic;
-  signal adc_sc_clk32_o       : std_logic;
-  signal adc_a_i              : std_logic;
-  signal adc_b_i              : std_logic;
-  signal adc_nx_i             : std_logic;
-  signal adc_d_i              : std_logic;
-
-  signal adc_ref_clk          : std_logic;
-  signal adc_10MHz_clock      : std_logic;
-
-  signal adc_dat_clk          : std_logic;
-  signal adc_restart          : std_logic;
-  signal adc_clk_o            : std_logic;
-
-  signal adc_data_i           : std_logic_vector(7 downto 0);
-  signal adc_dat_clk_i        : std_logic_vector(1 downto 0);
-  signal adc_fco_clk_i        : std_logic_vector(1 downto 0);
-  
-  signal adc_data_word        : std_logic_vector(95 downto 0);
-  signal adc_fco              : std_logic_vector(23 downto 0);
-  signal adc_data_valid       : std_logic_vector(1 downto 0);
+--  signal adc_fclk_i           : std_logic;
+--  signal adc_dclk_i           : std_logic;
+--  signal adc_sc_clk32_o       : std_logic;
+--  signal adc_a_i              : std_logic;
+--  signal adc_b_i              : std_logic;
+--  signal adc_nx_i             : std_logic;
+--  signal adc_d_i              : std_logic;
+--
+--  signal adc_ref_clk          : std_logic;
+--  signal adc_10MHz_clock      : std_logic;
+--
+--  signal adc_dat_clk          : std_logic;
+--  signal adc_restart          : std_logic;
+--  signal adc_clk_o            : std_logic;
+--
+--  signal adc_data_i           : std_logic_vector(7 downto 0);
+--  signal adc_dat_clk_i        : std_logic_vector(1 downto 0);
+--  signal adc_fco_clk_i        : std_logic_vector(1 downto 0);
+--  
+--  signal adc_data_word        : std_logic_vector(95 downto 0);
+--  signal adc_fco              : std_logic_vector(23 downto 0);
+--  signal adc_data_valid       : std_logic_vector(1 downto 0);
   
 begin
 
@@ -180,29 +180,29 @@ begin
 --   DEBUG_LINE_OUT(14 downto 13) <= timestamp_status;
 --   DEBUG_LINE_OUT(15)           <= slv_ack(3);
   
-  DEBUG_LINE_OUT(0)            <= CLK_IN;
-  DEBUG_LINE_OUT(1)            <= trigger;
-  DEBUG_LINE_OUT(2)            <= trigger_ack;
-  DEBUG_LINE_OUT(3)            <= trigger_busy;
+  --DEBUG_LINE_OUT(0)            <= CLK_IN;
+  --DEBUG_LINE_OUT(1)            <= trigger;
+  --DEBUG_LINE_OUT(2)            <= trigger_ack;
+  --DEBUG_LINE_OUT(3)            <= trigger_busy;
   --DEBUG_LINE_OUT(4)            <= nx_new_timestamp;
   --DEBUG_LINE_OUT(5)            <= timestamp_valid;
   --DEBUG_LINE_OUT(6)            <= nx_token_return;
   --DEBUG_LINE_OUT(7)            <= nx_nomore_data;
 
-  DEBUG_LINE_OUT(4)            <= '0';
-  DEBUG_LINE_OUT(5)            <= '0';
-  DEBUG_LINE_OUT(6)            <= '0';
-  DEBUG_LINE_OUT(7)            <= adc_ref_clk;
-  
-  
-  DEBUG_LINE_OUT(8)            <= adc_fclk_i;        
-  DEBUG_LINE_OUT(9)            <= adc_dclk_i;        
-  DEBUG_LINE_OUT(10)           <= '0'; --adc_sc_clk32_o;   
-  DEBUG_LINE_OUT(11)           <= adc_a_i;           
-  DEBUG_LINE_OUT(12)           <= adc_b_i;           
-  DEBUG_LINE_OUT(13)           <= adc_nx_i;          
-  DEBUG_LINE_OUT(14)           <= adc_d_i;
-  DEBUG_LINE_OUT(15)           <= '0';
+--  DEBUG_LINE_OUT(4)            <= '0';
+--  DEBUG_LINE_OUT(5)            <= '0';
+--  DEBUG_LINE_OUT(6)            <= '0';
+--  DEBUG_LINE_OUT(7)            <= '0';
+--  
+--  
+--  DEBUG_LINE_OUT(8)            <= ADC_FCLK_IN;        
+--  DEBUG_LINE_OUT(9)            <= ADC_DCLK_IN;        
+--  DEBUG_LINE_OUT(10)           <= ADC_SC_CLK32_OUT;
+--  DEBUG_LINE_OUT(11)           <= ADC_A_IN;
+--  DEBUG_LINE_OUT(12)           <= ADC_B_IN;
+--  DEBUG_LINE_OUT(13)           <= ADC_NX_IN;  
+--  DEBUG_LINE_OUT(14)           <= ADC_D_IN;  
+--  DEBUG_LINE_OUT(15)           <= '0';
   
   --DEBUG_LINE_OUT(15 downto 8) <= (others => '0');
   
@@ -220,15 +220,6 @@ begin
 
   NX_CLK256A_OUT     <= clk_256_o;
 
-
-  clock10MHz_1: clock10MHz
-    port map (
-      CLK   => CLK_IN,
-      CLKOP => adc_10MHz_clock,
-      LOCK  => open
-      );
-
-  
 
   THE_BUS_HANDLER: trb_net16_regio_bus_handler
     generic map(
@@ -683,35 +674,39 @@ begin
 --       DATA_VALID_OUT(1)          => open,
 --       DEBUG                      => open
 --       );
+-- nx_frame_clock_o
 
-
-  adc_ad9222_1: adc_ad9222
+  
+  adc_ad9222_1: entity work.adc_ad9222
     generic map (
-      CHANNELS   => 4,
-      DEVICES    => 2,
+      CHANNELS => 4,
+      DEVICES  => 1,
       RESOLUTION => 12
       )
     port map (
       CLK                        => CLK_IN,
-      CLK_ADCREF                 => adc_ref_clk,
-      CLK_ADCDAT                 => adc_dat_clk,
-      RESTART_IN                 => adc_restart,
-      ADCCLK_OUT                 => adc_sc_clk32_o,
-      ADC_DATA                   => adc_data_i,
-      ADC_DCO                    => adc_dat_clk_i,
-      ADC_FCO                    => adc_fco_clk_i,
-      DATA_OUT                   => adc_data_word,
-      FCO_OUT                    => adc_fco,
-      DATA_VALID_OUT             => adc_data_valid,
+      CLK_ADCREF                 => nx_frame_clock_o,  -- adc_ref_clk,
+      CLK_ADCDAT                 => nx_frame_clock_o, -- adc_dat_clk,
+      RESTART_IN                 => '0', -- adc_restart,
+      ADCCLK_OUT                 => ADC_SC_CLK32_OUT, -- adc_sc_clk32_o,
+      ADC_DATA(0)                => ADC_A_IN, -- adc_data_i,
+      ADC_DATA(1)                => ADC_B_IN, -- adc_data_i,
+      ADC_DATA(2)                => ADC_NX_IN, -- adc_data_i,
+      ADC_DATA(3)                => ADC_D_IN, -- adc_data_i,
+      ADC_DCO(0)                 => ADC_DCLK_IN, -- adc_dat_clk_i,
+      ADC_FCO(0)                 => ADC_FCLK_IN, -- adc_fco_clk_i,
+      DATA_OUT(0)                => DEBUG_LINE_OUT(0), -- adc_data_word,
+      FCO_OUT(0)                 => DEBUG_LINE_OUT(1), -- adc_fco,
+      DATA_VALID_OUT(0)          => DEBUG_LINE_OUT(2), -- adc_data_valid,
       DEBUG                      => open
       );
   
   
-  adc_ref_clk            <= adc_10MHz_clock;
-  adc_dat_clk            <= '0';
-  adc_restart            <= RESET_IN;
-  adc_data_i(0)          <= adc_nx_i;
-  adc_data_i(7 downto 1) <= (others => '0');
+--  adc_ref_clk            <= adc_10MHz_clock;
+--  adc_dat_clk            <= '0';
+--  adc_restart            <= RESET_IN;
+--  adc_data_i(0)          <= adc_nx_i;
+--  adc_data_i(7 downto 1) <= (others => '0');
   
  
 -------------------------------------------------------------------------------
@@ -724,15 +719,16 @@ begin
 -------------------------------------------------------------------------------
 -- ADC Signals
 -------------------------------------------------------------------------------
-  ADC_SC_CLK32_OUT  <= adc_sc_clk32_o;
+  --ADC_SC_CLK32_OUT  <= adc_sc_clk32_o;
+  --ADC_SC_CLK32_OUT  <= nx_frame_clock_o;
 
-  adc_fclk_i        <= ADC_FCLK_IN;       
-  adc_dclk_i        <= ADC_DCLK_IN;       
-  adc_a_i           <= ADC_A_IN;          
-  adc_b_i           <= ADC_B_IN;          
-  adc_nx_i          <= ADC_NX_IN;         
-  adc_d_i           <= ADC_D_IN;          
-  
+--  adc_fclk_i        <= ADC_FCLK_IN;       
+--  adc_dclk_i        <= ADC_DCLK_IN;       
+--  adc_a_i           <= ADC_A_IN;          
+--  adc_b_i           <= ADC_B_IN;          
+--  adc_nx_i          <= ADC_NX_IN;         
+--  adc_d_i           <= ADC_D_IN;          
+--  
 -------------------------------------------------------------------------------
 -- I2C Signals
 -------------------------------------------------------------------------------
@@ -741,7 +737,7 @@ begin
   I2C_REG_RESET_OUT <= not i2c_reg_reset_o;
 
 
---  ADC_SC_CLK32_OUT  <= nx_frame_clock_o;
+
   
 -------------------------------------------------------------------------------
 -- END

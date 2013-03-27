@@ -178,8 +178,8 @@ add_file -vhdl -lib "work" "./source/nx_timestamp_sim.vhd"
 add_file -vhdl -lib "work" "./source/clock10MHz.vhd"
 
 # Needed by ADC9222 Entity
-add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
 add_file -vhdl -lib "work" "../base/cores/dqsinput.vhd"
+add_file -vhdl -lib "work" "../base/cores/dqsinput1x4.vhd"
 add_file -vhdl -lib "work" "../base/cores/fifo_cdt_200.vhd"
 add_file -vhdl -lib "work" "../base/cores/pll_adc12bit.vhd"
 add_file -vhdl -lib "work" "../base/cores/fifo_32x512.vhd"
