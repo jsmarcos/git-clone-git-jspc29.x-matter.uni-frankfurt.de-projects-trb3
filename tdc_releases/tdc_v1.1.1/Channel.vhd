@@ -60,11 +60,11 @@ architecture Channel of Channel is
   -- debug
   signal sync_q             : std_logic_vector(2 downto 0);
   signal hit_pulse          : std_logic;
-  signal hit_pulse_r        : std_logic;
+  signal hit_pulse_100      : std_logic;
   signal fifo_wr_en_i       : std_logic;
-  signal fifo_wr_en_reg     : std_logic;
+  signal fifo_wr_en_100     : std_logic;
   signal encoder_start_i    : std_logic;
-  signal encoder_start_reg  : std_logic;
+  signal encoder_start_100  : std_logic;
   signal lost_hit_cntr      : unsigned(23 downto 0);
   signal hit_detect_cntr    : unsigned(23 downto 0);
   signal encoder_start_cntr : unsigned(23 downto 0);
@@ -112,8 +112,26 @@ begin
       ENCODER_START_OUT    => encoder_start_i);
 
   data_finished_i   <= DATA_FINISHED_IN      when rising_edge(CLK_100);
-  encoder_start_reg <= encoder_start_i       when rising_edge(CLK_200);
-  fifo_wr_en_reg    <= fifo_wr_en_i          when rising_edge(CLK_200);
+  --encoder_start_reg <= encoder_start_i       when rising_edge(CLK_200);
+  --fifo_wr_en_reg    <= fifo_wr_en_i          when rising_edge(CLK_200);
+
+  pulse_sync_encoder_start : pulse_sync
+    port map (
+      CLK_A_IN    => CLK_200,
+      RESET_A_IN  => RESET_200,
+      PULSE_A_IN  => encoder_start_i,
+      CLK_B_IN    => CLK_100,
+      RESET_B_IN  => RESET_100,
+      PULSE_B_OUT => encoder_start_100);
+
+  pulse_sync_fifo_write : pulse_sync
+    port map (
+      CLK_A_IN    => CLK_200,
+      RESET_A_IN  => RESET_200,
+      PULSE_A_IN  => fifo_wr_en_i,
+      CLK_B_IN    => CLK_100,
+      RESET_B_IN  => RESET_100,
+      PULSE_B_OUT => fifo_wr_en_100);
 
   CoarseCounter : ShiftRegisterSISO
     generic map (
@@ -121,38 +139,41 @@ begin
       WIDTH => 11)
     port map (
       CLK   => CLK_200,
-      RESET => RESET_200,
       D_IN  => COARSE_COUNTER_IN,
       D_OUT => coarse_cntr_reg);
 
 -------------------------------------------------------------------------------
 -- DEBUG Counters
 -------------------------------------------------------------------------------
-  reset_counters_200 <= RESET_COUNTERS when rising_edge(CLK_200);
-
   --purpose: Hit Signal Synchroniser
   sync_q(0) <= SCALER_IN when rising_edge(CLK_200);
   sync_q(1) <= sync_q(0) when rising_edge(CLK_200);
   sync_q(2) <= sync_q(1) when rising_edge(CLK_200);
 
-  edge_to_pulse_1 : edge_to_pulse
+  risingEdgeDetect_1: risingEdgeDetect
     port map (
-      clock     => CLK_200,
-      en_clk    => '1',
-      signal_in => sync_q(2),
-      pulse     => hit_pulse);
-
-  hit_pulse_r <= hit_pulse when rising_edge(CLK_200);
+      CLK       => CLK_200,
+      SIGNAL_IN => sync_q(2),
+      PULSE_OUT => hit_pulse);
+  
+  pulse_sync_hit : pulse_sync
+    port map (
+      CLK_A_IN    => CLK_200,
+      RESET_A_IN  => RESET_200,
+      PULSE_A_IN  => hit_pulse,
+      CLK_B_IN    => CLK_100,
+      RESET_B_IN  => RESET_100,
+      PULSE_B_OUT => hit_pulse_100);
 
   --purpose: Counts the detected but unwritten hits
-  Lost_Hit_Counter : process (CLK_200)
+  Lost_Hit_Counter : process (CLK_100)
   begin
-    if rising_edge(CLK_200) then
-      if RESET_200 = '1' or reset_counters_200 = '1' then
+    if rising_edge(CLK_100) then
+      if RESET_COUNTERS = '1' then
         lost_hit_cntr <= (others => '0');
-      elsif hit_pulse_r = '1' then
+      elsif hit_pulse_100 = '1' then
         lost_hit_cntr <= lost_hit_cntr + to_unsigned(1, 1);
-      elsif fifo_wr_en_reg = '1' then
+      elsif fifo_wr_en_100 = '1' then
         lost_hit_cntr <= lost_hit_cntr - to_unsigned(1, 1);
       end if;
     end if;
@@ -161,12 +182,12 @@ begin
   LOST_HIT_NUMBER <= std_logic_vector(lost_hit_cntr) when rising_edge(CLK_100);
 
   --purpose: Counts the detected hits
-  Hit_Detect_Counter : process (CLK_200)
+  Hit_Detect_Counter : process (CLK_100)
   begin
-    if rising_edge(CLK_200) then
-      if RESET_200 = '1' or reset_counters_200 = '1' then
+    if rising_edge(CLK_100) then
+      if RESET_COUNTERS = '1' then
         hit_detect_cntr <= (others => '0');
-      elsif hit_pulse_r = '1' then
+      elsif hit_pulse_100 = '1' then
         hit_detect_cntr <= hit_detect_cntr + to_unsigned(1, 1);
       end if;
     end if;
@@ -175,12 +196,12 @@ begin
   HIT_DETECT_NUMBER <= std_logic_vector(hit_detect_cntr) when rising_edge(CLK_100);
 
   --purpose: Counts the encoder start times
-  Encoder_Start_Counter : process (CLK_200)
+  Encoder_Start_Counter : process (CLK_100)
   begin
-    if rising_edge(CLK_200) then
-      if RESET_200 = '1' or reset_counters_200 = '1' then
+    if rising_edge(CLK_100) then
+      if RESET_COUNTERS = '1' then
         encoder_start_cntr <= (others => '0');
-      elsif encoder_start_reg = '1' then
+      elsif encoder_start_100 = '1' then
         encoder_start_cntr <= encoder_start_cntr + to_unsigned(1, 1);
       end if;
     end if;
@@ -189,12 +210,12 @@ begin
   ENCODER_START_NUMBER <= std_logic_vector(encoder_start_cntr) when rising_edge(CLK_100);
 
   --purpose: Counts the written hits
-  FIFO_WR_Counter : process (CLK_200)
+  FIFO_WR_Counter : process (CLK_100)
   begin
-    if rising_edge(CLK_200) then
-      if RESET_200 = '1' or reset_counters_200 = '1' then
+    if rising_edge(CLK_100) then
+      if RESET_COUNTERS = '1' then
         fifo_wr_cntr <= (others => '0');
-      elsif fifo_wr_en_reg = '1' then
+      elsif fifo_wr_en_100 = '1' then
         fifo_wr_cntr <= fifo_wr_cntr + to_unsigned(1, 1);
       end if;
     end if;
