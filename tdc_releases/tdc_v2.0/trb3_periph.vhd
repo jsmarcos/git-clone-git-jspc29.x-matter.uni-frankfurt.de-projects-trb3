@@ -149,16 +149,16 @@ architecture trb3_periph_arch of trb3_periph is
   signal ctrl_reg_strobe        : std_logic_vector(2**REGIO_NUM_CTRL_REGS-1 downto 0);
 
   --RegIO
-  signal regio_addr_out           : std_logic_vector (15 downto 0);
-  signal regio_read_enable_out    : std_logic;
-  signal regio_write_enable_out   : std_logic;
-  signal regio_data_out           : std_logic_vector (31 downto 0);
-  signal regio_data_in            : std_logic_vector (31 downto 0);
-  signal regio_dataready_in       : std_logic;
-  signal regio_no_more_data_in    : std_logic;
-  signal regio_write_ack_in       : std_logic;
-  signal regio_unknown_addr_in    : std_logic;
-  signal regio_timeout_out        : std_logic;
+  signal regio_addr_out         : std_logic_vector (15 downto 0);
+  signal regio_read_enable_out  : std_logic;
+  signal regio_write_enable_out : std_logic;
+  signal regio_data_out         : std_logic_vector (31 downto 0);
+  signal regio_data_in          : std_logic_vector (31 downto 0);
+  signal regio_dataready_in     : std_logic;
+  signal regio_no_more_data_in  : std_logic;
+  signal regio_write_ack_in     : std_logic;
+  signal regio_unknown_addr_in  : std_logic;
+  signal regio_timeout_out      : std_logic;
 
   --Timer
   signal global_time         : std_logic_vector(31 downto 0);
@@ -331,20 +331,20 @@ begin
       BROADCAST_BITMASK         => x"FF",
       BROADCAST_SPECIAL_ADDR    => x"48",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
-      REGIO_HARDWARE_VERSION    => x"91000000",    --regio_hardware_version_i(31 downto 16) <= x"9100";
-                                                   --regio_hardware_version_i(15 downto 12) <= x"0";  --addOn_type_i;
-                                                   --regio_hardware_version_i(11 downto 8)  <= x"0";  --edge_type_i;
-                                                   --regio_hardware_version_i(7 downto 4)   <= x"6";  --tdc_channel_no_i;
-                                                   --regio_hardware_version_i(3 downto 0)   <= x"0";
+      REGIO_HARDWARE_VERSION    => x"91000000",  --regio_hardware_version_i(31 downto 16) <= x"9100";
+                                                 --regio_hardware_version_i(15 downto 12) <= x"0";  --addOn_type_i;
+                                                 --regio_hardware_version_i(11 downto 8)  <= x"0";  --edge_type_i;
+                                                 --regio_hardware_version_i(7 downto 4)   <= x"6";  --tdc_channel_no_i;
+                                                 --regio_hardware_version_i(3 downto 0)   <= x"0";
       REGIO_INIT_ADDRESS        => x"f305",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
       CLOCK_FREQUENCY           => 125,
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
       DATA_INTERFACE_NUMBER     => 1,
-      DATA_BUFFER_DEPTH         => 13,         --13
+      DATA_BUFFER_DEPTH         => 13,  --13
       DATA_BUFFER_WIDTH         => 32,
-      DATA_BUFFER_FULL_THRESH   => 2**13-800,  --2**13-1024
+      DATA_BUFFER_FULL_THRESH   => 2**13-800,    --2**13-1024
       TRG_RELEASE_AFTER_DATA    => c_YES,
       HEADER_BUFFER_DEPTH       => 9,
       HEADER_BUFFER_FULL_THRESH => 2**9-16
@@ -674,7 +674,7 @@ begin
 
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 2,              -- Number of TDC channels
+      CHANNEL_NUMBER => 4,              -- Number of TDC channels
       STATUS_REG_NR  => REGIO_NUM_STAT_REGS,
       CONTROL_REG_NR => REGIO_NUM_CTRL_REGS)
     port map (
@@ -682,7 +682,7 @@ begin
       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
-      HIT_IN                => hit_in_i(1 downto 1),  -- Channel start signals
+      HIT_IN                => hit_in_i(3 downto 1),  -- Channel start signals
       TRG_WIN_PRE           => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --
