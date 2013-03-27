@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2012-12-14
+-- Last update: 2013-03-27
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -23,8 +23,7 @@ use work.trb3_components.all;
 
 entity Readout is
   generic (
-    CHANNEL_NUMBER : integer range 2 to 65;
-    STATUS_REG_NR  : integer range 0 to 6);
+    CHANNEL_NUMBER : integer range 2 to 65);
 
   port (
     CLK_200           : in std_logic;
@@ -550,7 +549,7 @@ begin  -- behavioral
       end if;
     end if;
   end process FSM_READOUT_BUSY_CLK;
-  
+
   FSM_READOUT_BUSY : process (FSM_RDO_BUSY_CURRENT, trg_win_end_200_p, data_finished_reg, HIT_IN)
   begin
     FSM_RDO_BUSY_NEXT <= NOT_BUSY;
