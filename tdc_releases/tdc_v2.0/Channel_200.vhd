@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2012-11-15
+-- Last update: 2012-11-26
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -138,7 +138,7 @@ begin  -- Channel_200
   -- purpose: Toggle between the edges of the hit signal
   ToggleHitEdge : process (hit_reg, HIT_IN)
   begin  -- process ToggleHitEdge
-    if hit_reg(9) = '0' then
+    if hit_reg(7) = '0' then
       hit_in_i <= HIT_IN;
     else
       hit_in_i <= not HIT_IN;
