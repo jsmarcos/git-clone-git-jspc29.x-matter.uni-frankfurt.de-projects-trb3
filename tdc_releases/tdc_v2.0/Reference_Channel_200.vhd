@@ -5,7 +5,7 @@
 -- File       : Reference_channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-09-04
--- Last update: 2012-11-15
+-- Last update: 2013-03-27
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -300,9 +300,9 @@ begin  -- Reference_Channel_200
     end if;
   end process EpochCounterCaptureFirstWord;
 
-  read_en_reg     <= READ_EN_IN                                            when rising_edge(CLK_100);
-  read_en_2reg    <= read_en_reg                                           when rising_edge(CLK_100);
-  first_read_i    <= read_en_reg and not(read_en_2reg)                     when rising_edge(CLK_100);
+  read_en_reg  <= READ_EN_IN                        when rising_edge(CLK_100);
+  read_en_2reg <= read_en_reg                       when rising_edge(CLK_100);
+  first_read_i <= read_en_reg and not(read_en_2reg) when rising_edge(CLK_100);
 
   FifoWasFull : process (CLK_100, RESET_100)
   begin
@@ -316,7 +316,7 @@ begin  -- Reference_Channel_200
       end if;
     end if;
   end process FifoWasFull;
-  
+
   RegisterOutputs : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
