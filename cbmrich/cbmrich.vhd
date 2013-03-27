@@ -214,6 +214,39 @@ architecture cbmrich_arch of cbmrich is
   signal hitreg_data_ready : std_logic;
   signal hitreg_invalid    : std_logic;
 
+  signal srb_read_en    : std_logic;
+  signal srb_write_en   : std_logic;
+  signal srb_data_in    : std_logic_vector(31 downto 0);
+  signal srb_addr       : std_logic_vector(6 downto 0);
+  signal srb_data_out   : std_logic_vector(31 downto 0);
+  signal srb_data_ready : std_logic;
+  signal srb_invalid    : std_logic;
+
+  signal lhb_read_en    : std_logic;
+  signal lhb_write_en   : std_logic;
+  signal lhb_data_in    : std_logic_vector(31 downto 0);
+  signal lhb_addr       : std_logic_vector(6 downto 0);
+  signal lhb_data_out   : std_logic_vector(31 downto 0);
+  signal lhb_data_ready : std_logic;
+  signal lhb_invalid    : std_logic;
+
+  signal esb_read_en    : std_logic;
+  signal esb_write_en   : std_logic;
+  signal esb_data_in    : std_logic_vector(31 downto 0);
+  signal esb_addr       : std_logic_vector(6 downto 0);
+  signal esb_data_out   : std_logic_vector(31 downto 0);
+  signal esb_data_ready : std_logic;
+  signal esb_invalid    : std_logic;
+
+  signal fwb_read_en    : std_logic;
+  signal fwb_write_en   : std_logic;
+  signal fwb_data_in    : std_logic_vector(31 downto 0);
+  signal fwb_addr       : std_logic_vector(6 downto 0);
+  signal fwb_data_out   : std_logic_vector(31 downto 0);
+  signal fwb_data_ready : std_logic;
+  signal fwb_invalid    : std_logic;
+
+
   signal spi_bram_addr : std_logic_vector(7 downto 0);
   signal spi_bram_wr_d : std_logic_vector(7 downto 0);
   signal spi_bram_rd_d : std_logic_vector(7 downto 0);
@@ -428,9 +461,9 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 4,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, others => 0)
+      PORT_NUMBER    => 7,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -495,6 +528,54 @@ begin
       BUS_WRITE_ACK_IN(3)                 => '0',
       BUS_NO_MORE_DATA_IN(3)              => '0',
       BUS_UNKNOWN_ADDR_IN(3)              => hitreg_invalid,
+      --Status Registers
+      BUS_READ_ENABLE_OUT(4)              => srb_read_en,
+      BUS_WRITE_ENABLE_OUT(4)             => srb_write_en,
+      BUS_DATA_OUT(4*32+31 downto 4*32)   => open,
+      BUS_ADDR_OUT(4*16+6 downto 4*16)    => srb_addr,
+      BUS_ADDR_OUT(4*16+15 downto 4*16+7) => open,
+      BUS_TIMEOUT_OUT(4)                  => open,
+      BUS_DATA_IN(4*32+31 downto 4*32)    => srb_data_out,
+      BUS_DATAREADY_IN(4)                 => srb_data_ready,
+      BUS_WRITE_ACK_IN(4)                 => '0',
+      BUS_NO_MORE_DATA_IN(4)              => '0',
+      BUS_UNKNOWN_ADDR_IN(4)              => srb_invalid,
+      --Encoder Start Registers
+      BUS_READ_ENABLE_OUT(5)              => esb_read_en,
+      BUS_WRITE_ENABLE_OUT(5)             => esb_write_en,
+      BUS_DATA_OUT(5*32+31 downto 5*32)   => open,
+      BUS_ADDR_OUT(5*16+6 downto 5*16)    => esb_addr,
+      BUS_ADDR_OUT(5*16+15 downto 5*16+7) => open,
+      BUS_TIMEOUT_OUT(5)                  => open,
+      BUS_DATA_IN(5*32+31 downto 5*32)    => esb_data_out,
+      BUS_DATAREADY_IN(5)                 => esb_data_ready,
+      BUS_WRITE_ACK_IN(5)                 => '0',
+      BUS_NO_MORE_DATA_IN(5)              => '0',
+      BUS_UNKNOWN_ADDR_IN(5)              => esb_invalid,
+      --Fifo Write Registers
+      BUS_READ_ENABLE_OUT(6)              => fwb_read_en,
+      BUS_WRITE_ENABLE_OUT(6)             => fwb_write_en,
+      BUS_DATA_OUT(6*32+31 downto 6*32)   => open,
+      BUS_ADDR_OUT(6*16+6 downto 6*16)    => fwb_addr,
+      BUS_ADDR_OUT(6*16+15 downto 6*16+7) => open,
+      BUS_TIMEOUT_OUT(6)                  => open,
+      BUS_DATA_IN(6*32+31 downto 6*32)    => fwb_data_out,
+      BUS_DATAREADY_IN(6)                 => fwb_data_ready,
+      BUS_WRITE_ACK_IN(6)                 => '0',
+      BUS_NO_MORE_DATA_IN(6)              => '0',
+      BUS_UNKNOWN_ADDR_IN(6)              => fwb_invalid,
+      ----Lost Hit Registers
+      --BUS_READ_ENABLE_OUT(7)              => lhb_read_en,
+      --BUS_WRITE_ENABLE_OUT(7)             => lhb_write_en,
+      --BUS_DATA_OUT(7*32+31 downto 7*32)   => open,
+      --BUS_ADDR_OUT(7*16+6 downto 7*16)    => lhb_addr,
+      --BUS_ADDR_OUT(7*16+15 downto 7*16+7) => open,
+      --BUS_TIMEOUT_OUT(7)                  => open,
+      --BUS_DATA_IN(7*32+31 downto 7*32)    => lhb_data_out,
+      --BUS_DATAREADY_IN(7)                 => lhb_data_ready,
+      --BUS_WRITE_ACK_IN(7)                 => '0',
+      --BUS_NO_MORE_DATA_IN(7)              => '0',
+      --BUS_UNKNOWN_ADDR_IN(7)              => lhb_invalid,
 
       STAT_DEBUG => open
       );
@@ -660,20 +741,45 @@ begin
       HCB_DATA_OUT          => hitreg_data_out,   -- bus data
       HCB_DATAREADY_OUT     => hitreg_data_ready,   -- bus data ready strobe
       HCB_UNKNOWN_ADDR_OUT  => hitreg_invalid,    -- bus invalid addr
+      --Status Registers Bus
+      SRB_READ_EN_IN        => srb_read_en,   -- bus read en strobe
+      SRB_WRITE_EN_IN       => srb_write_en,  -- bus write en strobe
+      SRB_ADDR_IN           => srb_addr,    -- bus address
+      SRB_DATA_OUT          => srb_data_out,  -- bus data
+      SRB_DATAREADY_OUT     => srb_data_ready,    -- bus data ready strobe
+      SRB_UNKNOWN_ADDR_OUT  => srb_invalid,   -- bus invalid addr
+      --Encoder Start Registers Bus
+      ESB_READ_EN_IN        => esb_read_en,   -- bus read en strobe
+      ESB_WRITE_EN_IN       => esb_write_en,  -- bus write en strobe
+      ESB_ADDR_IN           => esb_addr,    -- bus address
+      ESB_DATA_OUT          => esb_data_out,  -- bus data
+      ESB_DATAREADY_OUT     => esb_data_ready,    -- bus data ready strobe
+      ESB_UNKNOWN_ADDR_OUT  => esb_invalid,   -- bus invalid addr
+      --Fifo Write Registers Bus
+      FWB_READ_EN_IN        => fwb_read_en,   -- bus read en strobe
+      FWB_WRITE_EN_IN       => fwb_write_en,  -- bus write en strobe
+      FWB_ADDR_IN           => fwb_addr,    -- bus address
+      FWB_DATA_OUT          => fwb_data_out,  -- bus data
+      FWB_DATAREADY_OUT     => fwb_data_ready,    -- bus data ready strobe
+      FWB_UNKNOWN_ADDR_OUT  => fwb_invalid,   -- bus invalid addr
+      --Lost Hit Registers Bus
+      LHB_READ_EN_IN        => '0',  -- lhb_read_en,   -- bus read en strobe
+      LHB_WRITE_EN_IN       => '0',  -- lhb_write_en,  -- bus write en strobe
+      LHB_ADDR_IN           => (others => '0'),  -- lhb_addr,    -- bus address
+      LHB_DATA_OUT          => open,  -- lhb_data_out,  -- bus data
+      LHB_DATAREADY_OUT     => open,  -- lhb_data_ready,    -- bus data ready strobe
+      LHB_UNKNOWN_ADDR_OUT  => open,  -- lhb_invalid,   -- bus invalid addr
       --
-      SLOW_CONTROL_REG_OUT  => stat_reg,
       LOGIC_ANALYSER_OUT    => open,    --TEST_LINE,
       CONTROL_REG_IN        => ctrl_reg);
 
 
-  hit_in_i <= INPUT;
+--  hit_in_i <= INPUT;
 
   -- to detect rising & falling edges
-  --hit_in_i(1) <= not timing_trg_received_i;
-
-  --Gen_Hit_In_Signals : for i in 1 to 15 generate
-  --  hit_in_i(i*2)   <= INPUT(i-1);
-  --  hit_in_i(i*2+1) <= not INPUT(i-1);
-  --end generate Gen_Hit_In_Signals;
+  Gen_Hit_In_Signals : for i in 1 to 32 generate
+    hit_in_i(i*2-1) <= INPUT(i);
+    hit_in_i(i*2)   <= not INPUT(i);
+  end generate Gen_Hit_In_Signals;
 
 end architecture;
