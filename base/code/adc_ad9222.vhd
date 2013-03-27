@@ -73,7 +73,8 @@ begin
 
   ADCCLK_OUT <= CLK_ADCREF;
   restart_i <= RESTART_IN when rising_edge(clk_data);
-      
+
+gen_2 : if DEVICES = 2 generate
   THE_INPUT : dqsinput
     port map(
       clk_0 => ADC_DCO(0),
@@ -90,6 +91,23 @@ begin
       q_0 => data_in(19 downto 0),
       q_1 => data_in(39 downto 20)
       );
+end generate;
+
+gen_1 : if DEVICES = 1 generate
+  THE_INPUT : entity work.dqsinput1x4
+    port map(
+      clk => ADC_DCO(0),
+      eclk => open,
+      clkdiv_reset => '0',
+      sclk => clk_data,
+      datain(3 downto 0) => ADC_DATA(3 downto 0),
+      datain(4)          => ADC_FCO(0),
+      q => data_in(19 downto 0),
+      );
+end generate;
+
+
+
 
   gen_chips : for i in 0 to 1 generate
     THE_FIFO : fifo_cdt_200
