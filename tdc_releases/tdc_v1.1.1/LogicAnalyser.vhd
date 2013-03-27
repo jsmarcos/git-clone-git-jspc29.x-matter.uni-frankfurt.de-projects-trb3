@@ -5,7 +5,7 @@
 -- File       : LogicAnalyser.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-26
--- Last update: 2012-10-26
+-- Last update: 2013-03-27
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -21,8 +21,7 @@ use work.trb3_components.all;
 
 entity LogicAnalyser is
   generic (
-    CHANNEL_NUMBER : integer range 2 to 65;
-    STATUS_REG_NR  : integer range 0 to 6);
+    CHANNEL_NUMBER : integer range 2 to 65);
 
   port (
     CLK        : in  std_logic;
