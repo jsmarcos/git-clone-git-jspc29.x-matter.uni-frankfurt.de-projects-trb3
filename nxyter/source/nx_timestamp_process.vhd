@@ -71,17 +71,11 @@ architecture Behavioral of nx_timestamp_process is
    
   -- Process Trigger Handler
   signal store_to_fifo        : std_logic;
-  signal store_to_fifo_x      : std_logic;
   signal data_fifo_reset_o    : std_logic;
-  signal data_fifo_reset_o_x  : std_logic;
   signal process_busy_o       : std_logic;
-  signal process_busy_o_x     : std_logic;
   signal wait_timer_init      : unsigned(11 downto 0);
-  signal wait_timer_init_x    : unsigned(11 downto 0);
   signal token_return_ctr     : unsigned(3 downto 0);
-  signal token_return_ctr_x   : unsigned(3 downto 0);
   signal ch_status_cmd_tr     : CS_CMDS;
-  signal ch_status_cmd_tr_x   : CS_CMDS;
   
   type STATES is (S_IDLE,
                   S_TRIGGER,
@@ -90,15 +84,11 @@ architecture Behavioral of nx_timestamp_process is
                   S_WAIT_PROCESS_END,
                   S_WRITE_TRAILER
                   );
-  signal STATE, NEXT_STATE : STATES;
+  signal STATE : STATES;
 
   signal t_data_o             : std_logic_vector(31 downto 0);
-  signal t_data_o_x           : std_logic_vector(31 downto 0);
   signal t_data_clk_o         : std_logic;
-  signal t_data_clk_o_x       : std_logic;
-  
   signal busy_time_ctr        : unsigned(11 downto 0);
-  signal busy_time_ctr_x      : unsigned(11 downto 0);
   
   -- Timer
   signal wait_timer_done      : std_logic;
@@ -269,9 +259,8 @@ begin
   -- Trigger Handler
   -----------------------------------------------------------------------------
 
-  PROC_TRIGGER_HANDLER_TRANSFER: process(CLK_IN)
-  begin 
-
+  PROC_TRIGGER_HANDLER: process(CLK_IN)
+  begin
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
         store_to_fifo         <= '0';
@@ -285,91 +274,77 @@ begin
         ch_status_cmd_tr      <= CS_RESET;
         STATE                 <= S_IDLE;
       else
-        store_to_fifo         <= store_to_fifo_x;
-        data_fifo_reset_o     <= data_fifo_reset_o_x;
-        process_busy_o        <= process_busy_o_x;
-        wait_timer_init       <= wait_timer_init_x;
-        t_data_o              <= t_data_o_x;
-        t_data_clk_o          <= t_data_clk_o_x;
-        busy_time_ctr         <= busy_time_ctr_x;
-        token_return_ctr      <= token_return_ctr_x;
-        ch_status_cmd_tr      <= ch_status_cmd_tr_x;
-        STATE                 <= NEXT_STATE;
+        store_to_fifo         <= '0';
+        data_fifo_reset_o     <= '0';
+        wait_timer_init       <= (others => '0');
+        process_busy_o        <= '1';
+        t_data_o              <= (others => '0');
+        t_data_clk_o          <= '0';
+        token_return_ctr      <= token_return_ctr;
+        ch_status_cmd_tr      <= CS_NONE;
+
+        case STATE is
+          
+          when S_IDLE =>
+            if (TRIGGER_IN = '1') then
+              busy_time_ctr   <= (others => '0');
+              STATE           <= S_TRIGGER;
+            else
+              process_busy_o  <= '0';
+              STATE           <= S_IDLE;
+            end if;
+            
+          when S_TRIGGER =>
+            ch_status_cmd_tr  <= CS_RESET;
+            data_fifo_reset_o <= '1';
+            wait_timer_init   <= x"020";    -- wait 320ns for first event
+            STATE             <= S_WAIT_DATA;
+            
+          when S_WAIT_DATA =>
+            if (wait_timer_done = '0') then
+              STATE           <= S_WAIT_DATA;
+            else
+              STATE           <= S_PROCESS_START;
+            end if;
+            
+          when S_PROCESS_START =>
+            token_return_ctr  <= (others => '0');
+            wait_timer_init   <= readout_time_max; 
+            store_to_fifo     <= '1';
+            STATE             <= S_WAIT_PROCESS_END;
+            
+          when S_WAIT_PROCESS_END =>
+            if (wait_timer_done   = '1' or
+                channel_all_done  = '1' or
+                NX_NOMORE_DATA_IN = '1') then
+              STATE           <= S_WRITE_TRAILER;
+            else
+              store_to_fifo   <= '1';
+              STATE           <= S_WAIT_PROCESS_END;
+              
+              -- Check Token_Return
+              if (readout_mode = x"0" and NX_TOKEN_RETURN_IN = '1') then
+                if (token_return_ctr > 0) then
+                  ch_status_cmd_tr <= CS_TOKEN_UPDATE;
+                end if;
+                token_return_ctr   <= token_return_ctr + 1;
+              end if;
+            end if;
+
+          when S_WRITE_TRAILER =>
+            t_data_o          <= x"deadaffe";
+            t_data_clk_o      <= '1';
+            ch_status_cmd_tr  <= CS_RESET;
+            STATE             <= S_IDLE;
+            
+        end case;
+
+        if (STATE /= S_IDLE) then
+          busy_time_ctr   <= busy_time_ctr + 1;
+        end if;      
+
       end if;
     end if;
-  end process PROC_TRIGGER_HANDLER_TRANSFER;
-
-
-  PROC_TRIGGER_HANDLER: process(TRIGGER_IN)
-  begin
-   store_to_fifo_x      <= '0';
-   data_fifo_reset_o_x  <= '0';
-   wait_timer_init_x    <= (others => '0');
-   process_busy_o_x     <= '1';
-   t_data_o_x           <= (others => '0');
-   t_data_clk_o_x       <= '0';
-   token_return_ctr_x   <= token_return_ctr;
-   ch_status_cmd_tr_x   <= CS_NONE;
-   case STATE is
-     
-     when S_IDLE =>
-       if (TRIGGER_IN = '1') then
-         busy_time_ctr_x   <= (others => '0');
-         NEXT_STATE        <= S_TRIGGER;
-       else
-         process_busy_o_x  <= '0';
-         NEXT_STATE        <= S_IDLE;
-       end if;
-     
-     when S_TRIGGER =>
-       ch_status_cmd_tr_x  <= CS_RESET;
-       data_fifo_reset_o_x <= '1';
-       wait_timer_init_x   <= x"020";    -- wait 320ns for first event
-       NEXT_STATE          <= S_WAIT_DATA;
-       
-     when S_WAIT_DATA =>
-       if (wait_timer_done = '0') then
-         NEXT_STATE        <= S_WAIT_DATA;
-       else
-         NEXT_STATE        <= S_PROCESS_START;
-       end if;
-       
-     when S_PROCESS_START =>
-       token_return_ctr_x  <= (others => '0');
-       wait_timer_init_x   <= readout_time_max; 
-       store_to_fifo_x     <= '1';
-       NEXT_STATE          <= S_WAIT_PROCESS_END;
-                      
-     when S_WAIT_PROCESS_END =>
-       if (wait_timer_done   = '1' or
-           channel_all_done  = '1' or
-           NX_NOMORE_DATA_IN = '1') then
-         NEXT_STATE        <= S_WRITE_TRAILER;
-       else
-         store_to_fifo_x   <= '1';
-         NEXT_STATE        <= S_WAIT_PROCESS_END;
-         
-         -- Check Token_Return
-         if (readout_mode = x"0" and NX_TOKEN_RETURN_IN = '1') then
-           if (token_return_ctr > 0) then
-             ch_status_cmd_tr_x  <= CS_TOKEN_UPDATE;
-           end if;
-           token_return_ctr_x    <= token_return_ctr + 1;
-         end if;
-       end if;
-
-     when S_WRITE_TRAILER =>
-       t_data_o_x          <= x"deadaffe";
-       t_data_clk_o_x      <= '1';
-       ch_status_cmd_tr_x  <= CS_RESET;
-       NEXT_STATE          <= S_IDLE;
-       
-   end case;
-
-   if (STATE /= S_IDLE) then
-     busy_time_ctr_x   <= busy_time_ctr + 1;
-   end if;
-   
   end process PROC_TRIGGER_HANDLER;
   
   -----------------------------------------------------------------------------

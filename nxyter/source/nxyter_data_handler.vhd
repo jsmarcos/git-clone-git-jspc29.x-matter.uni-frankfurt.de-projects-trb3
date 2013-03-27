@@ -65,22 +65,16 @@ architecture Behavioral of nXyter_data_handler is
   
   -- LV2 Data Out Handler
    signal fee_trg_release_o        : std_logic;
-   signal fee_trg_release_o_x      : std_logic;
    signal fee_trg_statusbits_o     : std_logic_vector(31 downto 0);
-   signal fee_trg_statusbits_o_x   : std_logic_vector(31 downto 0);
    signal fee_data_o               : std_logic_vector(31 downto 0);
-   signal fee_data_o_x             : std_logic_vector(31 downto 0);
    signal fee_data_write_o         : std_logic;
-   signal fee_data_write_o_x       : std_logic;
    signal fee_data_finished_o      : std_logic;
-   signal fee_data_finished_o_x    : std_logic;
-   
 
    type STATES is (S_IDLE,
                    S_SEND_DATA,
                    S_END
                   );
-   signal STATE, NEXT_STATE   : STATES; 
+   signal STATE : STATES; 
 
 begin
 
@@ -98,7 +92,7 @@ begin
   DEBUG_LINE_OUT(8)            <= FEE_DATA_ALMOST_FULL_IN;
   DEBUG_LINE_OUT(15 downto 9)  <= LVL1_TRG_NUMBER_IN(6 downto 0);
 
- PROC_DATA_HANDLER_TRANSFER: process(CLK_IN)
+  PROC_DATA_HANDLER: process(CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
@@ -108,39 +102,30 @@ begin
         fee_data_finished_o  <= '0';
         STATE                <= S_IDLE;
       else
-        fee_trg_release_o    <= fee_trg_release_o_x;
-        fee_data_o           <= fee_data_o_x;
-        fee_data_write_o     <= fee_data_write_o_x;
-        fee_data_finished_o  <= fee_data_finished_o_x;
-        STATE                <= NEXT_STATE;
+        fee_trg_release_o    <= '0';
+        fee_data_o           <= (others => '0');
+        fee_data_write_o     <= '0'; 
+        fee_data_finished_o  <= '0';
+
+        case STATE is
+          when S_IDLE =>
+            if (LVL1_TRG_DATA_VALID_IN = '1') then
+              STATE             <= S_SEND_DATA;
+            end if;
+            
+          when S_SEND_DATA =>
+            fee_data_o          <= x"deadbeef";
+            fee_data_write_o    <= '1';
+            STATE               <= S_END;
+
+          when S_END =>
+            fee_trg_release_o   <= '1';
+            fee_data_finished_o <= '1';
+            STATE               <= S_IDLE;
+            
+        end case;
       end if;
     end if;
-  end process PROC_DATA_HANDLER_TRANSFER;
-  
-  PROC_DATA_HANDLER: process(STATE)
-  begin
-    fee_trg_release_o_x       <= '0';
-    fee_data_o_x              <= (others => '0');
-    fee_data_write_o_x        <= '0'; 
-    fee_data_finished_o_x     <= '0';
-
-    case STATE is
-      when S_IDLE =>
-        if (LVL1_TRG_DATA_VALID_IN = '1') then
-          NEXT_STATE          <= S_SEND_DATA;
-        end if;
-        
-      when S_SEND_DATA =>
-        fee_data_o_x          <= x"deadbeef";
-        fee_data_write_o_x    <= '1';
-        NEXT_STATE            <= S_END;
-
-      when S_END =>
-        fee_trg_release_o_x   <= '1';
-        fee_data_finished_o_x <= '1';
-        NEXT_STATE            <= S_IDLE;
-        
-    end case;
     
   end process PROC_DATA_HANDLER;
 

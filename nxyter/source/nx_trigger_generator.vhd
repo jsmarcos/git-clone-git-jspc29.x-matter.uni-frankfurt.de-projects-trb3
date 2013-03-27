@@ -33,15 +33,10 @@ architecture Behavioral of nx_trigger_generator is
 
   signal start_cycle         : std_logic;
   signal trigger_cycle_ctr   : unsigned(7 downto 0);
-  signal trigger_cycle_ctr_x : unsigned(7 downto 0);
   signal wait_timer_init     : unsigned(15 downto 0);
-  signal wait_timer_init_x   : unsigned(15 downto 0);
   signal wait_timer_done     : std_logic;
   signal trigger_o           : std_logic;
-  signal trigger_o_x         : std_logic;
   signal ts_reset_o          : std_logic;
-  signal ts_reset_o_x        : std_logic;
-  signal testpulse_o_x       : std_logic;
   signal testpulse_o         : std_logic;
   
   type STATES is (S_IDLE,
@@ -49,7 +44,7 @@ architecture Behavioral of nx_trigger_generator is
                   S_SET_TESTPULSE,
                   S_WAIT_TRIGGER_END
                   );
-  signal STATE, NEXT_STATE : STATES;
+  signal STATE : STATES;
   
   -- TRBNet Slave Bus            
   signal slv_data_out_o          : std_logic_vector(31 downto 0);
@@ -88,9 +83,9 @@ begin
   -----------------------------------------------------------------------------
   -- Gernerate Trigger
   -----------------------------------------------------------------------------
-
-  PROC_TRIGGER_OUT_TRANSFER: process (CLK_IN)
-  begin 
+ 
+  PROC_TRIGGER_OUT: process(CLK_IN)
+  begin
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
         trigger_o         <= '0';
@@ -100,78 +95,61 @@ begin
         trigger_cycle_ctr <= (others => '0');
         STATE             <= S_IDLE;
       else
-        trigger_o         <= trigger_o_x;
-        testpulse_o       <= testpulse_o_x;
-        ts_reset_o        <= ts_reset_o_x;
-        wait_timer_init   <= wait_timer_init_x;
-        trigger_cycle_ctr <= trigger_cycle_ctr_x;
-        STATE             <= NEXT_STATE;
+        trigger_o         <= '0';
+        testpulse_o       <= '0';
+        ts_reset_o        <= '0';
+        wait_timer_init   <= (others => '0');
+        trigger_cycle_ctr <= trigger_cycle_ctr;
+        
+        case STATE is
+          when  S_IDLE =>
+            if (start_cycle = '1') then
+              trigger_cycle_ctr <= reg_trigger_num_cycles;
+              if (reg_reset_on = '1') then
+                ts_reset_o      <= '1';
+                wait_timer_init <= reg_trigger_period;
+                STATE           <= S_WAIT_TRIGGER_END;
+              else
+                STATE           <= S_NEXT_CYCLE;
+              end if;
+            else
+              STATE             <= S_IDLE;
+            end if;
+
+          when S_NEXT_CYCLE =>
+            if (trigger_cycle_ctr > 0) then
+              trigger_o         <= '1';
+              trigger_cycle_ctr <= trigger_cycle_ctr - 1;
+              if (reg_testpulse_length > 0) then
+                wait_timer_init <= reg_testpulse_length;
+                STATE           <= S_SET_TESTPULSE;
+              else
+                wait_timer_init <= reg_trigger_period;
+                STATE           <= S_WAIT_TRIGGER_END;
+              end if;
+            else
+              STATE             <= S_IDLE;
+            end if;
+
+          when S_SET_TESTPULSE =>
+            testpulse_o         <= '1';
+            if (wait_timer_done = '0') then
+              STATE             <= S_SET_TESTPULSE;
+            else
+              wait_timer_init   <= reg_trigger_period - reg_testpulse_length;
+              STATE             <= S_WAIT_TRIGGER_END;
+            end if;
+            
+          when S_WAIT_TRIGGER_END =>
+            if (wait_timer_done = '0') then
+              STATE             <= S_WAIT_TRIGGER_END;
+            else
+              STATE             <= S_NEXT_CYCLE;
+            end if;
+
+        end case;
       end if;
     end if;
-  end process PROC_TRIGGER_OUT_TRANSFER;
-
-  PROC_TRIGGER_OUT: process(STATE,
-                            start_cycle,
-                            reg_trigger_num_cycles,
-                            reg_trigger_period,
-                            reg_reset_on,
-                            reg_testpulse_length,
-                            wait_timer_done
-                            )
-  begin
-    trigger_o_x         <= '0';
-    testpulse_o_x       <= '0';
-    ts_reset_o_x        <= '0';
-    wait_timer_init_x   <= (others => '0');
-    trigger_cycle_ctr_x <= trigger_cycle_ctr;
-    
-    case STATE is
-      when  S_IDLE =>
-        if (start_cycle = '1') then
-          trigger_cycle_ctr_x   <= reg_trigger_num_cycles;
-          if (reg_reset_on = '1') then
-            ts_reset_o_x        <= '1';
-            wait_timer_init_x   <= reg_trigger_period;
-            NEXT_STATE          <= S_WAIT_TRIGGER_END;
-          else
-            NEXT_STATE          <= S_NEXT_CYCLE;
-          end if;
-        else
-          NEXT_STATE            <= S_IDLE;
-        end if;
-
-      when S_NEXT_CYCLE =>
-        if (trigger_cycle_ctr > 0) then
-          trigger_o_x           <= '1';
-          trigger_cycle_ctr_x <= trigger_cycle_ctr - 1;
-          if (reg_testpulse_length > 0) then
-            wait_timer_init_x   <= reg_testpulse_length;
-            NEXT_STATE          <= S_SET_TESTPULSE;
-          else
-            wait_timer_init_x   <= reg_trigger_period;
-            NEXT_STATE          <= S_WAIT_TRIGGER_END;
-          end if;
-        else
-          NEXT_STATE            <= S_IDLE;
-        end if;
-
-      when S_SET_TESTPULSE =>
-        testpulse_o_x         <= '1';
-        if (wait_timer_done = '0') then
-          NEXT_STATE          <= S_SET_TESTPULSE;
-        else
-          wait_timer_init_x   <= reg_trigger_period - reg_testpulse_length;
-          NEXT_STATE          <= S_WAIT_TRIGGER_END;
-        end if;
-        
-      when S_WAIT_TRIGGER_END =>
-        if (wait_timer_done = '0') then
-          NEXT_STATE        <= S_WAIT_TRIGGER_END;
-        else
-          NEXT_STATE        <= S_NEXT_CYCLE;
-        end if;
-
-    end case;
   end process PROC_TRIGGER_OUT;
 
   -----------------------------------------------------------------------------

@@ -456,7 +456,7 @@ begin
 -------------------------------------------------------------------------------
 -- FPGA Timestamp
 -------------------------------------------------------------------------------
-
+  
   nx_fpga_timestamp_1: nx_fpga_timestamp
     port map (
       CLK_IN                => clk_256_o,
@@ -648,67 +648,31 @@ begin
 -------------------------------------------------------------------------------
 -- ADC 9228 Handler
 -------------------------------------------------------------------------------
---   adc_ad9222_1: adc_ad9222
+
+--   adc_ad9222_1: entity work.adc_ad9222
 --     generic map (
---       CHANNELS   => 4,
---       DEVICES    => 2,
+--       CHANNELS => 4,
+--       DEVICES  => 1,
 --       RESOLUTION => 12
 --       )
 --     port map (
 --       CLK                        => CLK_IN,
---       CLK_ADCREF                 => adc_ref_clk,
---       CLK_ADCDAT                 => adc_dat_clk,
---       RESTART_IN                 => adc_restart,
---       ADCCLK_OUT                 => ADC_SC_CLK32_OUT,
---       ADC_DATA(0)                => ADC_NX_IN,
---       ADC_DATA(7 downto 1)       => open,
---       ADC_DCO(0)                 => ADC_DCLK_IN,
---       ADC_DCO(1)                 => ADC_DCLK_IN,
---       ADC_FCO(0)                 => ADC_FCLK_IN,
---       ADC_FCO(1)                 => open,
---       DATA_OUT(11 downto 0)      => adc_data_word,
---       DATA_OUT(95 downto 12)     => open,
---       FCO_OUT                    => open,
--- --      FCO_OUT(23 downto 1)        => open,
---       DATA_VALID_OUT(0)          => adc_data_valid,
---       DATA_VALID_OUT(1)          => open,
+--       CLK_ADCREF                 => nx_frame_clock_o,  -- adc_ref_clk,
+--       CLK_ADCDAT                 => nx_frame_clock_o, -- adc_dat_clk,
+--       RESTART_IN                 => '0', -- adc_restart,
+--       ADCCLK_OUT                 => ADC_SC_CLK32_OUT, -- adc_sc_clk32_o,
+--       ADC_DATA(0)                => ADC_A_IN, -- adc_data_i,
+--       ADC_DATA(1)                => ADC_B_IN, -- adc_data_i,
+--       ADC_DATA(2)                => ADC_NX_IN, -- adc_data_i,
+--       ADC_DATA(3)                => ADC_D_IN, -- adc_data_i,
+--       ADC_DCO(0)                 => ADC_DCLK_IN, -- adc_dat_clk_i,
+--       ADC_FCO(0)                 => ADC_FCLK_IN, -- adc_fco_clk_i,
+--       DATA_OUT(0)                => DEBUG_LINE_OUT(0), -- adc_data_word,
+--       FCO_OUT(0)                 => DEBUG_LINE_OUT(1), -- adc_fco,
+--       DATA_VALID_OUT(0)          => DEBUG_LINE_OUT(2), -- adc_data_valid,
 --       DEBUG                      => open
 --       );
--- nx_frame_clock_o
 
-  
-  adc_ad9222_1: entity work.adc_ad9222
-    generic map (
-      CHANNELS => 4,
-      DEVICES  => 1,
-      RESOLUTION => 12
-      )
-    port map (
-      CLK                        => CLK_IN,
-      CLK_ADCREF                 => nx_frame_clock_o,  -- adc_ref_clk,
-      CLK_ADCDAT                 => nx_frame_clock_o, -- adc_dat_clk,
-      RESTART_IN                 => '0', -- adc_restart,
-      ADCCLK_OUT                 => ADC_SC_CLK32_OUT, -- adc_sc_clk32_o,
-      ADC_DATA(0)                => ADC_A_IN, -- adc_data_i,
-      ADC_DATA(1)                => ADC_B_IN, -- adc_data_i,
-      ADC_DATA(2)                => ADC_NX_IN, -- adc_data_i,
-      ADC_DATA(3)                => ADC_D_IN, -- adc_data_i,
-      ADC_DCO(0)                 => ADC_DCLK_IN, -- adc_dat_clk_i,
-      ADC_FCO(0)                 => ADC_FCLK_IN, -- adc_fco_clk_i,
-      DATA_OUT(0)                => DEBUG_LINE_OUT(0), -- adc_data_word,
-      FCO_OUT(0)                 => DEBUG_LINE_OUT(1), -- adc_fco,
-      DATA_VALID_OUT(0)          => DEBUG_LINE_OUT(2), -- adc_data_valid,
-      DEBUG                      => open
-      );
-  
-  
---  adc_ref_clk            <= adc_10MHz_clock;
---  adc_dat_clk            <= '0';
---  adc_restart            <= RESET_IN;
---  adc_data_i(0)          <= adc_nx_i;
---  adc_data_i(7 downto 1) <= (others => '0');
-  
- 
 -------------------------------------------------------------------------------
 -- nXyter Signals
 -------------------------------------------------------------------------------
@@ -719,25 +683,15 @@ begin
 -------------------------------------------------------------------------------
 -- ADC Signals
 -------------------------------------------------------------------------------
-  --ADC_SC_CLK32_OUT  <= adc_sc_clk32_o;
-  --ADC_SC_CLK32_OUT  <= nx_frame_clock_o;
 
---  adc_fclk_i        <= ADC_FCLK_IN;       
---  adc_dclk_i        <= ADC_DCLK_IN;       
---  adc_a_i           <= ADC_A_IN;          
---  adc_b_i           <= ADC_B_IN;          
---  adc_nx_i          <= ADC_NX_IN;         
---  adc_d_i           <= ADC_D_IN;          
---  
+
+  
 -------------------------------------------------------------------------------
 -- I2C Signals
 -------------------------------------------------------------------------------
 
   I2C_SM_RESET_OUT  <= not i2c_sm_reset_o;
   I2C_REG_RESET_OUT <= not i2c_reg_reset_o;
-
-
-
   
 -------------------------------------------------------------------------------
 -- END

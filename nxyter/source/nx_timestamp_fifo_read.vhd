@@ -77,7 +77,7 @@ architecture Behavioral of nx_timestamp_fifo_read is
                        S_SYNC_WAIT
                        );
 
-  signal STATE_SYNC, NEXT_STATE_SYNC: STATES_SYNC;
+  signal STATE_SYNC : STATES_SYNC;
 
   signal rs_sync_set              : std_logic;
   signal rs_sync_reset            : std_logic;
@@ -86,12 +86,6 @@ architecture Behavioral of nx_timestamp_fifo_read is
   signal nx_frame_resync_ctr      : unsigned(7 downto 0);
   signal frame_sync_wait_done     : std_logic;
   
-  signal rs_sync_set_x            : std_logic;
-  signal rs_sync_reset_x          : std_logic;
-  signal frame_clock_ctr_inc_s_x  : std_logic;
-  signal frame_sync_wait_ctr_x    : unsigned(7 downto 0);
-  signal nx_frame_resync_ctr_x    : unsigned(7 downto 0);
-
   -- Slave Bus                    
   signal slv_data_out_o           : std_logic_vector(31 downto 0);
   signal slv_no_more_data_o       : std_logic;
@@ -331,7 +325,10 @@ begin
       );
 
   -- Frame Sync process
-  PROC_SYNC_TO_NX_FRAME_TRANSFER: process(CLK_IN)
+  PROC_SYNC_TO_NX_FRAME: process(CLK_IN)
+    
+    variable fifo_tag_given : std_logic_vector(3 downto 0);
+
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
@@ -342,87 +339,64 @@ begin
         frame_sync_wait_ctr   <= (others => '0');
         STATE_SYNC            <= S_SYNC_CHECK;
       else
-        rs_sync_set           <= rs_sync_set_x;
-        rs_sync_reset         <= rs_sync_reset_x;
-        frame_clock_ctr_inc_s <= frame_clock_ctr_inc_s_x;
-        nx_frame_resync_ctr   <= nx_frame_resync_ctr_x;
-        frame_sync_wait_ctr   <= frame_sync_wait_ctr_x;
-        STATE_SYNC            <= NEXT_STATE_SYNC;
+        rs_sync_set           <= '0';
+        rs_sync_reset         <= '0';
+        frame_clock_ctr_inc_s <= '0';
+        nx_frame_resync_ctr   <= nx_frame_resync_ctr;
+        frame_sync_wait_ctr   <= (others => '0');
+
+        fifo_tag_given := fifo_out(35) & fifo_out(26) &
+                          fifo_out(17) & fifo_out(8);
+
+        case STATE_SYNC is
+          when S_SYNC_CHECK =>
+            if (fifo_new_frame = '1') then      
+              case register_fifo_data is
+                when x"7f7f7f06" =>
+                  rs_sync_set <= '1';
+                  STATE_SYNC  <= S_SYNC_CHECK;
+
+                when x"067f7f7f" =>
+                  STATE_SYNC <= S_SYNC_RESYNC;
+                  
+                when x"7f067f7f" =>
+                  STATE_SYNC <= S_SYNC_RESYNC;
+                  
+                when x"7f7f067f" =>
+                  STATE_SYNC <= S_SYNC_RESYNC;
+                  
+                when others =>
+                  STATE_SYNC <= S_SYNC_CHECK;
+                  
+              end case;
+            else
+              STATE_SYNC <= S_SYNC_CHECK;
+            end if;
+
+          when S_SYNC_RESYNC =>
+            rs_sync_reset         <= '1';
+            frame_clock_ctr_inc_s <= '1';
+            if (reset_ctr = '0') then
+              nx_frame_resync_ctr <= nx_frame_resync_ctr + 1;          
+            end if;
+
+            frame_sync_wait_ctr   <= x"14";
+            STATE_SYNC            <= S_SYNC_WAIT;
+
+          when S_SYNC_WAIT =>
+            if (frame_sync_wait_done = '0') then
+              STATE_SYNC          <= S_SYNC_WAIT;
+            else
+              STATE_SYNC          <= S_SYNC_CHECK;
+            end if;
+        
+        end case;
+      
+        if (reset_ctr = '1') then
+          nx_frame_resync_ctr   <= (others => '0');       
+        end if;
       end if;
     end if;
-  end process PROC_SYNC_TO_NX_FRAME_TRANSFER;
-
-  PROC_SYNC_TO_NX_FRAME: process(STATE_SYNC,
-                                 fifo_out(35),
-                                 fifo_out(26),
-                                 fifo_out(17),
-                                 fifo_out(8),
-                                 fifo_new_frame,
-                                 register_fifo_data,
-                                 frame_sync_wait_done,
-                                 reset_ctr
-                                 )
-
-    variable fifo_tag_given : std_logic_vector(3 downto 0);
-
-  begin
-    rs_sync_set_x           <= '0';
-    rs_sync_reset_x         <= '0';
-    frame_clock_ctr_inc_s_x <= '0';
-    nx_frame_resync_ctr_x   <= nx_frame_resync_ctr;
-    frame_sync_wait_ctr_x   <= (others => '0');
-
-    fifo_tag_given := fifo_out(35) & fifo_out(26) &
-                      fifo_out(17) & fifo_out(8);
-
-    case STATE_SYNC is
-      when S_SYNC_CHECK =>
-        if (fifo_new_frame = '1') then      
-          case register_fifo_data is
-            when x"7f7f7f06" =>
-              rs_sync_set_x <= '1';
-              NEXT_STATE_SYNC  <= S_SYNC_CHECK;
-
-            when x"067f7f7f" =>
-              NEXT_STATE_SYNC <= S_SYNC_RESYNC;
-            
-            when x"7f067f7f" =>
-              NEXT_STATE_SYNC <= S_SYNC_RESYNC;
-            
-            when x"7f7f067f" =>
-              NEXT_STATE_SYNC <= S_SYNC_RESYNC;
-            
-            when others =>
-              NEXT_STATE_SYNC <= S_SYNC_CHECK;
-            
-          end case;
-        else
-          NEXT_STATE_SYNC <= S_SYNC_CHECK;
-        end if;
-
-      when S_SYNC_RESYNC =>
-        rs_sync_reset_x         <= '1';
-        frame_clock_ctr_inc_s_x <= '1';
-        if (reset_ctr = '0') then
-          nx_frame_resync_ctr_x   <= nx_frame_resync_ctr + 1;          
-        end if;
-
-        frame_sync_wait_ctr_x   <= x"14";
-        NEXT_STATE_SYNC         <= S_SYNC_WAIT;
-
-      when S_SYNC_WAIT =>
-        if (frame_sync_wait_done = '0') then
-          NEXT_STATE_SYNC       <= S_SYNC_WAIT;
-        else
-          NEXT_STATE_SYNC       <= S_SYNC_CHECK;
-        end if;
-        
-    end case;
-
-    if (reset_ctr = '1') then
-      nx_frame_resync_ctr_x   <= (others => '0');       
-    end if;
-
   end process PROC_SYNC_TO_NX_FRAME;
 
   -----------------------------------------------------------------------------

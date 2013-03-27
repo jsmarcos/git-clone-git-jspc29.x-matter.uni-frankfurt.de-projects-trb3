@@ -38,20 +38,16 @@ architecture Behavioral of nx_trigger_handler is
 
   signal start_cycle         : std_logic;
   signal wait_timer_init     : unsigned(7 downto 0);
-  signal wait_timer_init_x   : unsigned(7 downto 0);
   signal wait_timer_done     : std_logic;
   signal trigger_o           : std_logic;
-  signal trigger_o_x         : std_logic;
   signal timestamp_hold_o    : std_logic;
-  signal timestamp_hold_o_x  : std_logic;
   signal trigger_busy_o      : std_logic;
-  signal trigger_busy_o_x    : std_logic;
   
   type STATES is (S_IDLE,
                   S_START,
                   S_WAIT_TRIGGER_RELEASE
                   );
-  signal STATE, NEXT_STATE : STATES;
+  signal STATE : STATES;
   
   -- TRBNet Slave Bus            
   signal slv_data_out_o           : std_logic_vector(31 downto 0);
@@ -87,8 +83,8 @@ begin
   -- Trigger Handler
   -----------------------------------------------------------------------------
 
-  PROC_TRIGGER_HANDLER_TRANSFER: process (CLK_IN)
-  begin 
+  PROC_TRIGGER_HANDLER: process(CLK_IN)
+  begin
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
         trigger_o         <= '0';
@@ -97,47 +93,35 @@ begin
         wait_timer_init   <= (others => '0');
         STATE             <= S_IDLE;
       else
-        trigger_o         <= trigger_o_x;
-        timestamp_hold_o  <= timestamp_hold_o_x;
-        trigger_busy_o    <= trigger_busy_o_x;
-        wait_timer_init   <= wait_timer_init_x;
-        STATE             <= NEXT_STATE;
+        trigger_o         <= '0';
+        timestamp_hold_o  <= '0';
+        trigger_busy_o    <= '1';
+        wait_timer_init   <= (others => '0');
+        
+        case STATE is
+          when  S_IDLE =>
+            if (TRIGGER_IN = '1') then
+              trigger_o        <= '1';
+              timestamp_hold_o <= '1';
+              STATE            <= S_START;
+            else
+              trigger_busy_o   <= '0';
+              STATE            <= S_IDLE;
+            end if;
+
+          when S_START =>
+            STATE              <= S_WAIT_TRIGGER_RELEASE;
+            
+          when S_WAIT_TRIGGER_RELEASE =>
+            if (TRIGGER_RELEASE_IN = '0') then
+              STATE            <= S_WAIT_TRIGGER_RELEASE;
+            else
+              STATE            <= S_IDLE;
+            end if;
+            
+        end case;
       end if;
     end if;
-  end process PROC_TRIGGER_HANDLER_TRANSFER;
-
-  PROC_TRIGGER_HANDLER: process(STATE,
-                                TRIGGER_IN,
-                                TRIGGER_RELEASE_IN
-                                )
-  begin
-    trigger_o_x         <= '0';
-    timestamp_hold_o_x  <= '0';
-    trigger_busy_o_x    <= '1';
-    wait_timer_init_x   <= (others => '0');
-    
-    case STATE is
-      when  S_IDLE =>
-        if (TRIGGER_IN = '1') then
-          trigger_o_x         <= '1';
-          timestamp_hold_o_x  <= '1';
-          NEXT_STATE          <= S_START;
-        else
-          trigger_busy_o_x    <= '0';
-          NEXT_STATE          <= S_IDLE;
-        end if;
-
-      when S_START =>
-        NEXT_STATE            <= S_WAIT_TRIGGER_RELEASE;
-        
-      when S_WAIT_TRIGGER_RELEASE =>
-        if (TRIGGER_RELEASE_IN = '0') then
-          NEXT_STATE          <= S_WAIT_TRIGGER_RELEASE;
-        else
-          NEXT_STATE          <= S_IDLE;
-        end if;
-        
-    end case;
   end process PROC_TRIGGER_HANDLER;
 
   -----------------------------------------------------------------------------

@@ -45,7 +45,6 @@ architecture Behavioral of nxyter_registers is
   signal i2c_sm_reset_o      : std_logic;
   signal i2c_reg_reset_o     : std_logic;
   signal nx_ts_reset_o       : std_logic;
-  signal wait_timer_init_x   : unsigned(7 downto 0);
 
   type STATES is (S_IDLE,
                   S_I2C_SM_RESET,
@@ -55,7 +54,7 @@ architecture Behavioral of nxyter_registers is
                   S_NX_TS_RESET
                   );
   
-  signal STATE, NEXT_STATE : STATES;
+  signal STATE : STATES;
   
   -- Wait Timer
   signal wait_timer_init    : unsigned(7 downto 0);
@@ -87,74 +86,67 @@ begin
   -- I2C SM Reset
   -----------------------------------------------------------------------------
 
-  PROC_I2C_SM_RESET_TRANSFER: process(CLK_IN)
-  begin 
+  PROC_I2C_SM_RESET: process(CLK_IN)
+  begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        wait_timer_init  <= (others => '0');
-        STATE            <= S_IDLE;
+        wait_timer_init    <= (others => '0');
+        i2c_sm_reset_o     <= '0';
+        i2c_reg_reset_o    <= '0';
+        nx_ts_reset_o      <= '0';
+        STATE              <= S_IDLE;
       else
-        wait_timer_init  <= wait_timer_init_x;
-        STATE            <= NEXT_STATE;
+        i2c_sm_reset_o     <= '0';
+        i2c_reg_reset_o    <= '0';
+        nx_ts_reset_o      <= '0';
+        wait_timer_init    <= (others => '0');
+        
+        case STATE is
+          when S_IDLE =>
+            if (i2c_sm_reset_start = '1') then
+              STATE          <= S_I2C_SM_RESET;
+            elsif (i2c_reg_reset_start = '1') then
+              STATE          <= S_I2C_REG_RESET;
+            elsif (nx_ts_reset_start = '1') then
+              STATE          <= S_NX_TS_RESET;
+            else
+              STATE          <= S_IDLE;
+            end if;
+            
+          when S_I2C_SM_RESET =>
+            i2c_sm_reset_o   <= '1';
+            wait_timer_init  <= x"8f";
+            STATE            <= S_I2C_SM_RESET_WAIT;
+
+          when S_I2C_SM_RESET_WAIT =>
+            i2c_sm_reset_o   <= '1';
+            if (wait_timer_done = '0') then
+              STATE          <= S_I2C_SM_RESET_WAIT;
+            else
+              STATE          <= S_IDLE;
+            end if;
+
+          when S_I2C_REG_RESET =>
+            i2c_reg_reset_o  <= '1';
+            wait_timer_init  <= x"8f";
+            STATE            <= S_I2C_REG_RESET_WAIT;
+
+          when S_I2C_REG_RESET_WAIT =>
+            i2c_reg_reset_o  <= '1';
+            if (wait_timer_done = '0') then
+              STATE          <= S_I2C_REG_RESET_WAIT;
+            else
+              STATE          <= S_IDLE;
+            end if;
+
+          when S_NX_TS_RESET =>
+            nx_ts_reset_o    <= '1';
+            STATE            <= S_IDLE;
+
+        end case;
       end if;
     end if;
-  end process PROC_I2C_SM_RESET_TRANSFER;
-
-  PROC_I2C_SM_RESET: process(STATE,
-                             i2c_sm_reset_start,
-                             i2c_reg_reset_start,
-                             nx_ts_reset_start,
-                             wait_timer_done
-                             )
-  begin
-    i2c_sm_reset_o     <= '0';
-    i2c_reg_reset_o    <= '0';
-    nx_ts_reset_o      <= '0';
-    wait_timer_init_x  <= (others => '0');
     
-    case STATE is
-      when S_IDLE =>
-        if (i2c_sm_reset_start = '1') then
-          NEXT_STATE       <= S_I2C_SM_RESET;
-        elsif (i2c_reg_reset_start = '1') then
-          NEXT_STATE       <= S_I2C_REG_RESET;
-        elsif (nx_ts_reset_start = '1') then
-          NEXT_STATE       <= S_NX_TS_RESET;
-        else
-          NEXT_STATE       <= S_IDLE;
-        end if;
-        
-      when S_I2C_SM_RESET =>
-        i2c_sm_reset_o     <= '1';
-        wait_timer_init_x  <= x"8f";
-        NEXT_STATE         <= S_I2C_SM_RESET_WAIT;
-
-      when S_I2C_SM_RESET_WAIT =>
-        i2c_sm_reset_o    <= '1';
-        if (wait_timer_done = '0') then
-          NEXT_STATE       <= S_I2C_SM_RESET_WAIT;
-        else
-          NEXT_STATE       <= S_IDLE;
-        end if;
-
-      when S_I2C_REG_RESET =>
-        i2c_reg_reset_o    <= '1';
-        wait_timer_init_x  <= x"8f";
-        NEXT_STATE         <= S_I2C_REG_RESET_WAIT;
-
-      when S_I2C_REG_RESET_WAIT =>
-        i2c_reg_reset_o    <= '1';
-        if (wait_timer_done = '0') then
-          NEXT_STATE       <= S_I2C_REG_RESET_WAIT;
-        else
-          NEXT_STATE       <= S_IDLE;
-        end if;
-
-      when S_NX_TS_RESET =>
-        nx_ts_reset_o      <= '1';
-        NEXT_STATE         <= S_IDLE;
-
-    end case;
   end process PROC_I2C_SM_RESET;
 
   -----------------------------------------------------------------------------

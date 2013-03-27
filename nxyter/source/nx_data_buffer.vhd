@@ -46,19 +46,13 @@ architecture Behavioral of nx_data_buffer is
   signal fifo_read_done     : std_logic;
   signal fifo_data          : std_logic_vector(31 downto 0);
 
-  signal fifo_read_enable_x : std_logic;
-  signal fifo_read_busy_x   : std_logic;
-  signal fifo_no_data_x     : std_logic;
-  signal fifo_read_done_x   : std_logic;
-  signal fifo_data_x        : std_logic_vector(31 downto 0);
-  
   type STATES is (S_IDLE,
                   S_NOP1,
                   S_NOP2,
                   S_READ_WORD
                   );
 
-  signal STATE, NEXT_STATE: STATES;
+  signal STATE : STATES;
   
   -- Slave Bus
   signal slv_data_out_o        : std_logic_vector(31 downto 0);
@@ -125,69 +119,56 @@ begin
   -- FIFO Output Handler
   -----------------------------------------------------------------------------
   
-  PROC_FIFO_READ_TRANSFER: process(CLK_IN)
+  PROC_FIFO_READ_WORD: process(CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        fifo_read_enable <= '0';
-        fifo_read_busy   <= '0';
-        fifo_data        <= (others => '0');
-        fifo_read_done   <= '0';
-        fifo_no_data     <= '1';
-        STATE            <= S_IDLE;
-      else
-        fifo_read_enable <= fifo_read_enable_x;
-        fifo_read_busy   <= fifo_read_busy_x;
-        fifo_data        <= fifo_data_x;
-        fifo_read_done   <= fifo_read_done_x;
-        fifo_no_data     <= fifo_no_data_x;
-        STATE            <= NEXT_STATE;
+        fifo_read_enable  <= '0';
+        fifo_read_busy    <= '0';
+        fifo_data         <= (others => '0');
+        fifo_read_done    <= '0';
+        fifo_no_data      <= '1';
+        STATE             <= S_IDLE;
+      else                
+        fifo_read_busy    <= '0';
+        fifo_no_data      <= '0';
+        fifo_read_done    <= '0';
+        fifo_data         <= (others => '0');
+        fifo_read_enable  <= '0';
+
+        case STATE is 
+          when S_IDLE =>
+            if (fifo_read_start = '1') then
+              if (fifo_empty = '0') then
+                fifo_read_enable <= '1';
+                fifo_read_busy   <= '1';
+                STATE            <= S_NOP1;
+              else
+                fifo_no_data     <= '1';
+                fifo_read_done   <= '1';
+                STATE            <= S_IDLE;
+              end if;
+            else
+              STATE              <= S_IDLE;
+            end if;
+
+          when S_NOP1 =>
+            fifo_read_busy       <= '1';
+            STATE                <= S_NOP2;
+
+          when S_NOP2 =>
+            fifo_read_busy       <= '1';
+            STATE                <= S_READ_WORD;
+            
+          when S_READ_WORD =>
+            fifo_read_busy       <= '0';
+            fifo_data            <= fifo_o;
+            fifo_read_done       <= '1';
+            STATE                <= S_IDLE;
+            
+        end case; 
       end if;
     end if;
-  end process PROC_FIFO_READ_TRANSFER;
-
-  PROC_FIFO_READ_WORD: process(STATE,
-                               fifo_read_start,
-                               fifo_empty
-                               )
-  begin
-    fifo_read_busy_x   <= '0';
-    fifo_no_data_x     <= '0';
-    fifo_read_done_x   <= '0';
-    fifo_data_x        <= (others => '0');
-    fifo_read_enable_x <= '0';
-
-    case STATE is 
-      when S_IDLE =>
-        if (fifo_read_start = '1') then
-          if (fifo_empty = '0') then
-            fifo_read_enable_x <= '1';
-            fifo_read_busy_x   <= '1';
-            NEXT_STATE         <= S_NOP1;
-          else
-           fifo_no_data_x      <= '1';
-           fifo_read_done_x    <= '1';
-           NEXT_STATE          <= S_IDLE;
-          end if;
-        else
-          NEXT_STATE           <= S_IDLE;
-        end if;
-
-      when S_NOP1 =>
-        fifo_read_busy_x   <= '1';
-        NEXT_STATE         <= S_NOP2;
-
-      when S_NOP2 =>
-        fifo_read_busy_x   <= '1';
-        NEXT_STATE         <= S_READ_WORD;
-        
-      when S_READ_WORD =>
-        fifo_read_busy_x   <= '0';
-        fifo_data_x        <= fifo_o;
-        fifo_read_done_x   <= '1';
-        NEXT_STATE         <= S_IDLE;
-    
-    end case; 
 
   end process PROC_FIFO_READ_WORD;
   
