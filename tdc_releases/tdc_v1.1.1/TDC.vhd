@@ -12,7 +12,6 @@ use work.version.all;
 entity TDC is
   generic (
     CHANNEL_NUMBER : integer range 2 to 65;
-    STATUS_REG_NR  : integer range 0 to 6;
     CONTROL_REG_NR : integer range 0 to 6);
   port (
     RESET                 : in  std_logic;
@@ -24,19 +23,19 @@ entity TDC is
     TRG_WIN_POST          : in  std_logic_vector(10 downto 0);
 --
     -- Trigger signals from handler
-    TRG_DATA_VALID_IN     : in  std_logic := '0';
-    VALID_TIMING_TRG_IN   : in  std_logic := '0';
-    VALID_NOTIMING_TRG_IN : in  std_logic := '0';
-    INVALID_TRG_IN        : in  std_logic := '0';
-    TMGTRG_TIMEOUT_IN     : in  std_logic := '0';
-    SPIKE_DETECTED_IN     : in  std_logic := '0';
-    MULTI_TMG_TRG_IN      : in  std_logic := '0';
-    SPURIOUS_TRG_IN       : in  std_logic := '0';
+    TRG_DATA_VALID_IN     : in  std_logic                     := '0';
+    VALID_TIMING_TRG_IN   : in  std_logic                     := '0';
+    VALID_NOTIMING_TRG_IN : in  std_logic                     := '0';
+    INVALID_TRG_IN        : in  std_logic                     := '0';
+    TMGTRG_TIMEOUT_IN     : in  std_logic                     := '0';
+    SPIKE_DETECTED_IN     : in  std_logic                     := '0';
+    MULTI_TMG_TRG_IN      : in  std_logic                     := '0';
+    SPURIOUS_TRG_IN       : in  std_logic                     := '0';
 --
     TRG_NUMBER_IN         : in  std_logic_vector(15 downto 0) := (others => '0');
-    TRG_CODE_IN           : in  std_logic_vector(7 downto 0) := (others => '0');
+    TRG_CODE_IN           : in  std_logic_vector(7 downto 0)  := (others => '0');
     TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0) := (others => '0');
-    TRG_TYPE_IN           : in  std_logic_vector(3 downto 0) := (others => '0');
+    TRG_TYPE_IN           : in  std_logic_vector(3 downto 0)  := (others => '0');
 --
     --Response to handler
     TRG_RELEASE_OUT       : out std_logic;
@@ -78,7 +77,7 @@ entity TDC is
     LHB_UNKNOWN_ADDR_OUT  : out std_logic;
 --
     LOGIC_ANALYSER_OUT    : out std_logic_vector(15 downto 0);
-    CONTROL_REG_IN        : in  std_logic_vector(32*2**CONTROL_REG_NR-1 downto 0)
+    CONTROL_REG_IN        : in  std_logic_vector(32*CONTROL_REG_NR-1 downto 0)
     );
 end TDC;
 
@@ -124,7 +123,7 @@ architecture TDC of TDC is
   signal ch_level_hit_number       : std_logic_vector_array_32(0 to CHANNEL_NUMBER-1);
   signal ch_lost_hit_bus_i         : std_logic_vector_array_32(0 to CHANNEL_NUMBER-1);
   signal ch_encoder_start_bus_i    : std_logic_vector_array_32(0 to CHANNEL_NUMBER-1);
-  signal ch_fifo_wr_bus_i          : std_logic_vector_array_32(0 to CHANNEL_NUMBER-1);  
+  signal ch_fifo_wr_bus_i          : std_logic_vector_array_32(0 to CHANNEL_NUMBER-1);
 -- To the endpoint
   signal data_finished_i           : std_logic;
 -- Epoch counter
@@ -141,6 +140,7 @@ architecture TDC of TDC is
   attribute syn_keep                    : boolean;
   attribute syn_keep of reset_tdc       : signal is true;
   attribute syn_keep of coarse_cntr     : signal is true;
+  attribute syn_keep of hit_in_i        : signal is true;
   attribute syn_preserve                : boolean;
   attribute syn_preserve of coarse_cntr : signal is true;
 
@@ -149,7 +149,7 @@ begin
 -- Slow control signals
   logic_anal_control <= CONTROL_REG_IN(3 downto 0) when rising_edge(CLK_READOUT);
   debug_mode_en_i    <= CONTROL_REG_IN(4);
-  reset_counters_i   <= CONTROL_REG_IN(8);
+  reset_counters_i   <= CONTROL_REG_IN(8) or RESET when rising_edge(CLK_READOUT);
   run_mode_i         <= CONTROL_REG_IN(12);
   run_mode_200       <= run_mode_i                 when rising_edge(CLK_TDC);  -- Run mode control register synchronised to the coarse counter clk
   trigger_win_en_i   <= CONTROL_REG_IN(1*32+31);
@@ -280,7 +280,7 @@ begin
     ch_level_hit_number(i) <= scaler_in_i(i) & "0000000" & ch_hit_detect_number_i(i) when rising_edge(CLK_READOUT);
   end generate GenHitDetectNumber;
 
-  TheStatusRegistersBus: BusHandler
+  TheStatusRegistersBus : BusHandler
     generic map (
       BUS_LENGTH => 23)
     port map (
@@ -352,8 +352,7 @@ begin
 -- Readout
   TheReadout : Readout
     generic map (
-      CHANNEL_NUMBER => CHANNEL_NUMBER,
-      STATUS_REG_NR  => STATUS_REG_NR)
+      CHANNEL_NUMBER => CHANNEL_NUMBER)
     port map (
       CLK_200                  => CLK_TDC,
       RESET_200                => reset_tdc,
@@ -398,8 +397,7 @@ begin
 -- Logic Analyser
   TheLogicAnalyser : LogicAnalyser
     generic map (
-      CHANNEL_NUMBER => CHANNEL_NUMBER,
-      STATUS_REG_NR  => STATUS_REG_NR)
+      CHANNEL_NUMBER => CHANNEL_NUMBER)
     port map (
       CLK        => CLK_READOUT,
       RESET      => RESET,
