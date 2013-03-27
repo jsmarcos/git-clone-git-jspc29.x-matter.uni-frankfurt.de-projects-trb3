@@ -10,7 +10,7 @@ use work.trb3_components.all;
 entity adc_ad9222 is
   generic(
     CHANNELS : integer range 4 to 4 := 4;
-    DEVICES  : integer range 2 to 2 := 2;
+    DEVICES  : integer range 1 to 2 := 1;
     RESOLUTION : integer range 12 to 12 := 12
     );
   port(
@@ -102,14 +102,14 @@ gen_1 : if DEVICES = 1 generate
       sclk => clk_data,
       datain(3 downto 0) => ADC_DATA(3 downto 0),
       datain(4)          => ADC_FCO(0),
-      q => data_in(19 downto 0),
+      q => data_in(19 downto 0)
       );
 end generate;
 
 
 
 
-  gen_chips : for i in 0 to 1 generate
+  gen_chips : for i in 0 to DEVICES-1 generate
     THE_FIFO : fifo_cdt_200
       port map(
         Data     => cdt_data_in(i),
