@@ -37,11 +37,11 @@ architecture adc_ad9222_arch of  adc_ad9222 is
 
 signal clk_data  : std_logic;
 
-signal data_in   : std_logic_vector(39 downto 0);
-signal data_int  : std_logic_vector(39 downto 0);
-signal fifo_empty : std_logic_vector(1 downto 0);
-signal fifo_full  : std_logic_vector(1 downto 0);
-signal valid_read : std_logic_vector(1 downto 0);
+signal data_in   : std_logic_vector(DEVICES*20-1 downto 0);
+signal data_int  : std_logic_vector(DEVICES*20-1 downto 0);
+signal fifo_empty : std_logic_vector(DEVICES-1 downto 0);
+signal fifo_full  : std_logic_vector(DEVICES-1 downto 0);
+signal valid_read : std_logic_vector(DEVICES-1 downto 0);
 
 type cdt_t is array(0 to DEVICES-1) of std_logic_vector(59 downto 0);
 signal cdt_data_in : cdt_t;
