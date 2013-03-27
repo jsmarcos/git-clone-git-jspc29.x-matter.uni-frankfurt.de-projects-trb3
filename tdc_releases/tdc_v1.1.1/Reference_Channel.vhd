@@ -50,7 +50,7 @@ architecture Reference_Channel of Reference_Channel is
   signal hit_buf  : std_logic;
 
   -- time stamp
-  signal coarse_cntr_reg    : std_logic_vector(10 downto 0);
+  signal coarse_cntr_reg : std_logic_vector(10 downto 0);
 
   -- other
   signal trg_win_end_i   : std_logic;
@@ -104,7 +104,6 @@ begin
       WIDTH => 11)
     port map (
       CLK   => CLK_200,
-      RESET => RESET_200,
       D_IN  => COARSE_COUNTER_IN,
       D_OUT => coarse_cntr_reg);
 
