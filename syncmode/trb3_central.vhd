@@ -912,7 +912,7 @@ LED_YELLOW <= link_ok; --debug(3);
   TEST_LINE(16)           <= 'Z';
   TEST_LINE(31 downto 17) <= med_stat_debug(31 downto 17);
   
-  CLK_TEST_OUT <= clk_100_internal & tx_dlm_i & rx_dlm_i;
+  CLK_TEST_OUT <= clk_100_internal & med_stat_debug(36) & rx_dlm_i;
   
 
 --   FPGA1_CONNECTOR(0) <= '0';

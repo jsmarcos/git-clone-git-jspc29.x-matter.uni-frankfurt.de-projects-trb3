@@ -93,7 +93,12 @@ add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_frame_constr.vhd"
 #add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_packet_constr_nologic.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_packet_constr.vhd"
 #add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_packet_constr_simple_sender.vhd"
-add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_ipu2gbe.vhd"
+
+
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_ipu2gbe_simple_sender.vhd"
+#add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_ipu2gbe.vhd"
+
+
 #add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_ipu2gbe_nologic.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ip_configurator.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_buf.vhd"

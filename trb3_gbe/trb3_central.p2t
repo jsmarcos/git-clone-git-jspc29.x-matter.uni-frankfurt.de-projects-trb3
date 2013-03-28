@@ -1,10 +1,10 @@
 -w
 -i 15
 -l 5
--n 1
+-n 2
 -y
 -s 12
--t 11
+-t 12
 -c 1
 -e 2
 #-g guidefile.ncd

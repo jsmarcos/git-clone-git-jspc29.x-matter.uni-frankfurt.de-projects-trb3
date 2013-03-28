@@ -18,10 +18,10 @@ package config is
     constant USE_ETHERNET           : integer := c_YES;    
     
 --Run wih 125 MHz instead of 100 MHz     
-    constant USE_125_MHZ            : integer := c_NO;    
+    constant USE_125_MHZ            : integer := c_YES;    
    
 --Only slow-control, no trigger or read-out
-    constant USE_SCTRL_ONLY         : integer := c_NO;    
+    constant USE_SCTRL_ONLY         : integer := c_YES;    
 
 --Use sync mode, RX clock for all parts of the FPGA
     constant USE_RXCLOCK            : integer := c_NO;

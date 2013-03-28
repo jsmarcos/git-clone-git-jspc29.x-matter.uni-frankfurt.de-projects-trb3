@@ -8,6 +8,6 @@ use ieee.numeric_std.all;
 
 package version is
 
-    constant VERSION_NUMBER_TIME  : integer   := 1361540878;
+    constant VERSION_NUMBER_TIME  : integer   := 1364404198;
 
 end package version;
