@@ -644,9 +644,7 @@ begin
    begin
       if rising_edge(CLK) then
          if RESET='1' then
-            eb_mask_i     <= (0 => '1', others => '0');
             eb_mask_buf_i <= (0 => '1', others => '0');
-            eb_aggr_threshold_i <= x"00";
             eb_aggr_counter_i   <= x"00";
          elsif eb_aggr_threshold_i /= x"00" and ro_next_cycle_i = '1' then
             if eb_aggr_threshold_i = eb_aggr_counter_i then
@@ -817,6 +815,9 @@ begin
             throttle_threshold_i <= (others => '0');
             throttle_enabled_i <= '0';
             stop_triggers_i <= '0';
+            eb_aggr_threshold_i <= x"00";
+            eb_mask_i     <= (0 => '1', others => '0');
+
             
          else
          
