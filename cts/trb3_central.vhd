@@ -1201,7 +1201,6 @@ gen_TDC : if INCLUDE_TDC = c_YES generate
   THE_TDC : TDC
     generic map (
       CHANNEL_NUMBER => 5,             -- Number of TDC channels
-      STATUS_REG_NR  => 0,
       CONTROL_REG_NR => 2)
     port map (
       RESET                 => reset_i,
@@ -1303,10 +1302,18 @@ end process;
   CLK_MNGR1_USER <= select_tc(19 downto 16);
   CLK_MNGR2_USER <= select_tc(27 downto 24); 
 
+   
+  cts_rdo_trigger <= cts_trigger_out;
 
+process begin
+  -- output time reference synchronously to the 200MHz clock
+  -- in order to reduce jitter
+  wait until rising_edge(clk_200_i);
   TRIGGER_OUT    <= cts_trigger_out;
   TRIGGER_OUT2   <= cts_trigger_out;
-  cts_rdo_trigger <= cts_trigger_out;
+end process;
+  
+  
 ---------------------------------------------------------------------------
 -- FPGA communication
 ---------------------------------------------------------------------------
