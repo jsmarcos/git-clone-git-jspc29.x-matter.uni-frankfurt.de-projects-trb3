@@ -14,16 +14,18 @@ entity cbmtof is
   port(
     --Clocks
     CLK_OSC : in std_logic;                     --for tdc measurements
-    CLK_CM  : in std_logic_vector(9 downto 0);  --from clock manager
+    CLK_CM  : in std_logic_vector(8 downto 0);  --from clock manager
     CLK_EXT : in std_logic;
 
     --Serdes
     --CLK_SERDES_INT_RIGHT : in    std_logic;
-    SERDES_TX : out   std_logic_vector(1 downto 0);
-    SERDES_RX : in    std_logic_vector(1 downto 0);
-    SFP_TXDIS : out   std_logic;
-    SFP_MOD   : inout std_logic_vector(2 downto 0);
-    SFP_LOS   : in    std_logic;
+    SERDES_TX    : out   std_logic_vector(1 downto 0);
+    SERDES_RX    : in    std_logic_vector(1 downto 0);
+    SFP_TXDIS    : out   std_logic;
+    SFP_MOD      : inout std_logic_vector(2 downto 0);
+    SFP_LOS      : in    std_logic;
+    SFP_RATE_SEL : out   std_logic;     -- doesn't exist in cbmrich
+    SFP_TXFAULT  : out   std_logic;     -- doesn't exist in cbmrich
 
     --Connections
     SPARE_LINE : inout std_logic_vector(2 downto 0);
@@ -294,7 +296,7 @@ begin
 
   THE_MAIN_PLL : pll_in200_out100
     port map(
-      CLK   => CLK_CM(0),
+      CLK   => CLK_CM(4),
       CLKOP => clk_100_i,
       CLKOK => clk_200_i,
       LOCK  => pll_lock
@@ -309,7 +311,9 @@ begin
       SERDES_NUM  => 0,                 --number of serdes in quad
       EXT_CLOCK   => c_NO,              --use internal clock
       USE_200_MHZ => c_YES,             --run on 200 MHz clock
-      USE_CTC     => c_YES              --CTC required
+      USE_125_MHZ => c_NO,
+      USE_CTC     => c_YES,             --CTC required
+      USE_SLAVE   => c_NO
       )
     port map(
       CLK                => clk_200_i,
@@ -465,7 +469,7 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 7,
+      PORT_NUMBER    => 9,
       PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"c400", 8 => x"c800", others => x"0000"),
       PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, others => 0)
       )
@@ -692,8 +696,6 @@ begin
       PROGRAMN  => PROGRAMN
       );
 
-
-
 ---------------------------------------------------------------------------
 -- LED
 ---------------------------------------------------------------------------
@@ -707,12 +709,16 @@ begin
 ---------------------------------------------------------------------------
 -- Test Connector
 ---------------------------------------------------------------------------    
-  TEST_LINE(15 downto 1) <= INPUT(15 downto 1);
-  TEST_LINE(0)           <= SPARE_LINE(0);
-
-
+  TEST_LINE(0)            <= OR_IN;
+  TEST_LINE(8 downto 1)   <= CLK_CM(8 downto 1);
+  TEST_LINE(9)            <= CLK_EXT;
+  TEST_LINE(11 downto 10) <= SFP_MOD(2 downto 1);
+  TEST_LINE(13 downto 12) <= SPARE_LINE(2 downto 1);
+  TEST_LINE(31 downto 14) <= time_counter(31 downto 14);
+  
   LVDS(1) <= or_all(INPUT);
   LVDS(2) <= SPARE_LINE(0);
+  CLK_MNGR_USER(3 downto 0) <= (others => '0');
 
 ---------------------------------------------------------------------------
 -- Test Circuits
@@ -728,14 +734,14 @@ begin
 -------------------------------------------------------------------------------
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 65,             -- Number of TDC channels
+      CHANNEL_NUMBER => 3,             -- Number of TDC channels
       CONTROL_REG_NR => 5)              -- Number of control regs
     port map (
       RESET                 => reset_i,
       CLK_TDC               => CLK_OSC,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
-      HIT_IN                => hit_in_i(64 downto 1),  -- Channel start signals
+      HIT_IN                => hit_in_i(2 downto 1),  -- Channel start signals
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --
