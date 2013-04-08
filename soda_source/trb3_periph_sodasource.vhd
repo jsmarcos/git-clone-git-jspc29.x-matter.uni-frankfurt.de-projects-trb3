@@ -5,6 +5,7 @@ use ieee.numeric_std.all;
 library work;
 use work.trb_net_std.all;
 use work.trb_net_components.all;
+use work.trb_net16_hub_func.all;
 use work.trb3_components.all;
 use work.med_sync_define.all;
 use work.version.all;
@@ -12,7 +13,9 @@ use work.version.all;
 entity trb3_periph_sodasource is
   generic(
     SYNC_MODE : integer range 0 to 1 := c_NO;   --use the RX clock for internal logic and transmission. Should be NO for soda tests!
-    USE_125_MHZ : integer := c_YES
+    USE_125_MHZ : integer := c_NO;
+    CLOCK_FREQUENCY : integer := 100;
+    NUM_INTERFACES : integer := 2
     );
   port(
     --Clocks
@@ -123,18 +126,18 @@ architecture trb3_periph_sodasource_arch of trb3_periph_sodasource is
   signal clk_tdc                  : std_logic;
   signal time_counter, time_counter2 : unsigned(31 downto 0);
   --Media Interface
-  signal med_stat_op        : std_logic_vector (1*16-1 downto 0);
-  signal med_ctrl_op        : std_logic_vector (1*16-1 downto 0);
-  signal med_stat_debug     : std_logic_vector (1*64-1 downto 0);
-  signal med_ctrl_debug     : std_logic_vector (1*64-1 downto 0);
-  signal med_data_out       : std_logic_vector (1*16-1 downto 0);
-  signal med_packet_num_out : std_logic_vector (1*3-1 downto 0);
-  signal med_dataready_out  : std_logic;
-  signal med_read_out       : std_logic;
-  signal med_data_in        : std_logic_vector (1*16-1 downto 0);
-  signal med_packet_num_in  : std_logic_vector (1*3-1 downto 0);
-  signal med_dataready_in   : std_logic;
-  signal med_read_in        : std_logic;
+  signal med_stat_op        : std_logic_vector (NUM_INTERFACES*16-1 downto 0);
+  signal med_ctrl_op        : std_logic_vector (NUM_INTERFACES*16-1 downto 0);
+  signal med_stat_debug     : std_logic_vector (NUM_INTERFACES*64-1 downto 0);
+  signal med_ctrl_debug     : std_logic_vector (NUM_INTERFACES*64-1 downto 0);
+  signal med_data_out       : std_logic_vector (NUM_INTERFACES*16-1 downto 0);
+  signal med_packet_num_out : std_logic_vector (NUM_INTERFACES* 3-1 downto 0);
+  signal med_dataready_out  : std_logic_vector (NUM_INTERFACES* 1-1 downto 0);
+  signal med_read_out       : std_logic_vector (NUM_INTERFACES* 1-1 downto 0);
+  signal med_data_in        : std_logic_vector (NUM_INTERFACES*16-1 downto 0);
+  signal med_packet_num_in  : std_logic_vector (NUM_INTERFACES* 3-1 downto 0);
+  signal med_dataready_in   : std_logic_vector (NUM_INTERFACES* 1-1 downto 0);
+  signal med_read_in        : std_logic_vector (NUM_INTERFACES* 1-1 downto 0);
 
   --Slow Control channel
   signal common_stat_reg        : std_logic_vector(std_COMSTATREG*32-1 downto 0);
@@ -273,14 +276,14 @@ end generate;
       CLEAR              => clear_i,
       CLK_EN             => '1',
       --Internal Connection
-      MED_DATA_IN        => med_data_out,
-      MED_PACKET_NUM_IN  => med_packet_num_out,
-      MED_DATAREADY_IN   => med_dataready_out,
-      MED_READ_OUT       => med_read_in,
-      MED_DATA_OUT       => med_data_in,
-      MED_PACKET_NUM_OUT => med_packet_num_in,
-      MED_DATAREADY_OUT  => med_dataready_in,
-      MED_READ_IN        => med_read_out,
+      MED_DATA_IN        => med_data_out(15 downto 0),
+      MED_PACKET_NUM_IN  => med_packet_num_out(2 downto 0),
+      MED_DATAREADY_IN   => med_dataready_out(0),
+      MED_READ_OUT       => med_read_in(0),
+      MED_DATA_OUT       => med_data_in(15 downto 0),
+      MED_PACKET_NUM_OUT => med_packet_num_in(2 downto 0),
+      MED_DATAREADY_OUT  => med_dataready_in(0),
+      MED_READ_IN        => med_read_out(0),
       REFCLK2CORE_OUT    => open,
       CLK_RX_HALF_OUT    => rx_clock_half,
       CLK_RX_FULL_OUT    => rx_clock_full,
@@ -303,9 +306,9 @@ end generate;
       SCI_WRITE          => sci1_write,
       SCI_ACK            => sci1_ack,        
       -- Status and control port
-      STAT_OP            => med_stat_op,
-      CTRL_OP            => med_ctrl_op,
-      STAT_DEBUG         => med_stat_debug,
+      STAT_OP            => med_stat_op(15 downto 0),
+      CTRL_OP            => med_ctrl_op(15 downto 0),
+      STAT_DEBUG         => med_stat_debug(63 downto 0),
       CTRL_DEBUG         => (others => '0')
       );
 
@@ -313,114 +316,179 @@ end generate;
 ---------------------------------------------------------------------------
 -- Endpoint
 ---------------------------------------------------------------------------
-  THE_ENDPOINT : trb_net16_endpoint_hades_full_handler
-    generic map(
-      REGIO_NUM_STAT_REGS       => REGIO_NUM_STAT_REGS,  --4,    --16 stat reg
-      REGIO_NUM_CTRL_REGS       => REGIO_NUM_CTRL_REGS,  --3,    --8 cotrol reg
-      ADDRESS_MASK              => x"FFFF",
-      BROADCAST_BITMASK         => x"FF",
-      BROADCAST_SPECIAL_ADDR    => x"45",
-      REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
-      REGIO_HARDWARE_VERSION    => x"91000000",
-      REGIO_INIT_ADDRESS        => x"f306",
-      REGIO_USE_VAR_ENDPOINT_ID => c_YES,
-      CLOCK_FREQUENCY           => 100,
-      TIMING_TRIGGER_RAW        => c_YES,
-      --Configure data handler
-      DATA_INTERFACE_NUMBER     => 1,
-      DATA_BUFFER_DEPTH         => 9,  --13
-      DATA_BUFFER_WIDTH         => 32,
-      DATA_BUFFER_FULL_THRESH   => 256,
-      TRG_RELEASE_AFTER_DATA    => c_YES,
-      HEADER_BUFFER_DEPTH       => 9,
-      HEADER_BUFFER_FULL_THRESH => 256
-      )
-    port map(
-      CLK                => clk_sys_i,
-      RESET              => reset_i,
-      CLK_EN             => '1',
-      MED_DATAREADY_OUT  => med_dataready_out,
-      MED_DATA_OUT       => med_data_out,
-      MED_PACKET_NUM_OUT => med_packet_num_out,
-      MED_READ_IN        => med_read_in,
-      MED_DATAREADY_IN   => med_dataready_in,
-      MED_DATA_IN        => med_data_in,
-      MED_PACKET_NUM_IN  => med_packet_num_in,
-      MED_READ_OUT       => med_read_out,
-      MED_STAT_OP_IN     => med_stat_op,
-      MED_CTRL_OP_OUT    => med_ctrl_op,
+--   THE_ENDPOINT : trb_net16_endpoint_hades_full_handler
+--     generic map(
+--       REGIO_NUM_STAT_REGS       => REGIO_NUM_STAT_REGS,  --4,    --16 stat reg
+--       REGIO_NUM_CTRL_REGS       => REGIO_NUM_CTRL_REGS,  --3,    --8 cotrol reg
+--       ADDRESS_MASK              => x"FFFF",
+--       BROADCAST_BITMASK         => x"FF",
+--       BROADCAST_SPECIAL_ADDR    => x"45",
+--       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
+--       REGIO_HARDWARE_VERSION    => x"91000000",
+--       REGIO_INIT_ADDRESS        => x"f306",
+--       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
+--       CLOCK_FREQUENCY           => 100,
+--       TIMING_TRIGGER_RAW        => c_YES,
+--       --Configure data handler
+--       DATA_INTERFACE_NUMBER     => 1,
+--       DATA_BUFFER_DEPTH         => 9,  --13
+--       DATA_BUFFER_WIDTH         => 32,
+--       DATA_BUFFER_FULL_THRESH   => 256,
+--       TRG_RELEASE_AFTER_DATA    => c_YES,
+--       HEADER_BUFFER_DEPTH       => 9,
+--       HEADER_BUFFER_FULL_THRESH => 256
+--       )
+--     port map(
+--       CLK                => clk_sys_i,
+--       RESET              => reset_i,
+--       CLK_EN             => '1',
+--       MED_DATAREADY_OUT  => med_dataready_out,
+--       MED_DATA_OUT       => med_data_out,
+--       MED_PACKET_NUM_OUT => med_packet_num_out,
+--       MED_READ_IN        => med_read_in,
+--       MED_DATAREADY_IN   => med_dataready_in,
+--       MED_DATA_IN        => med_data_in,
+--       MED_PACKET_NUM_IN  => med_packet_num_in,
+--       MED_READ_OUT       => med_read_out,
+--       MED_STAT_OP_IN     => med_stat_op,
+--       MED_CTRL_OP_OUT    => med_ctrl_op,
+-- 
+--       --Timing trigger in
+--       TRG_TIMING_TRG_RECEIVED_IN  => '0',
+--       --LVL1 trigger to FEE
+--       LVL1_TRG_DATA_VALID_OUT     => open,
+--       LVL1_VALID_TIMING_TRG_OUT   => open,
+--       LVL1_VALID_NOTIMING_TRG_OUT => open,
+--       LVL1_INVALID_TRG_OUT        => open,
+-- 
+--       LVL1_TRG_TYPE_OUT        => open,
+--       LVL1_TRG_NUMBER_OUT      => open,
+--       LVL1_TRG_CODE_OUT        => open,
+--       LVL1_TRG_INFORMATION_OUT => open,
+--       LVL1_INT_TRG_NUMBER_OUT  => open,
+-- 
+--       --Information about trigger handler errors
+--       TRG_MULTIPLE_TRG_OUT     => open,
+--       TRG_TIMEOUT_DETECTED_OUT => open,
+--       TRG_SPURIOUS_TRG_OUT     => open,
+--       TRG_MISSING_TMG_TRG_OUT  => open,
+--       TRG_SPIKE_DETECTED_OUT   => open,
+-- 
+--       --Response from FEE
+--       FEE_TRG_RELEASE_IN(0)       => '1',
+--       FEE_TRG_STATUSBITS_IN       => (others => '0'),
+--       FEE_DATA_IN                 => (others => '0'),
+--       FEE_DATA_WRITE_IN(0)        => '0',
+--       FEE_DATA_FINISHED_IN(0)     => '1',
+--       FEE_DATA_ALMOST_FULL_OUT(0) => open,
+-- 
+--       -- Slow Control Data Port
+--       REGIO_COMMON_STAT_REG_IN           => common_stat_reg,  --0x00
+--       REGIO_COMMON_CTRL_REG_OUT          => common_ctrl_reg,  --0x20
+--       REGIO_COMMON_STAT_STROBE_OUT       => common_stat_reg_strobe,
+--       REGIO_COMMON_CTRL_STROBE_OUT       => common_ctrl_reg_strobe,
+--       REGIO_STAT_REG_IN                  => stat_reg,         --start 0x80
+--       REGIO_CTRL_REG_OUT                 => ctrl_reg,         --start 0xc0
+--       REGIO_STAT_STROBE_OUT              => stat_reg_strobe,
+--       REGIO_CTRL_STROBE_OUT              => ctrl_reg_strobe,
+--       REGIO_VAR_ENDPOINT_ID(1 downto 0)  => CODE_LINE,
+--       REGIO_VAR_ENDPOINT_ID(15 downto 2) => (others => '0'),
+-- 
+--       BUS_ADDR_OUT         => regio_addr_out,
+--       BUS_READ_ENABLE_OUT  => regio_read_enable_out,
+--       BUS_WRITE_ENABLE_OUT => regio_write_enable_out,
+--       BUS_DATA_OUT         => regio_data_out,
+--       BUS_DATA_IN          => regio_data_in,
+--       BUS_DATAREADY_IN     => regio_dataready_in,
+--       BUS_NO_MORE_DATA_IN  => regio_no_more_data_in,
+--       BUS_WRITE_ACK_IN     => regio_write_ack_in,
+--       BUS_UNKNOWN_ADDR_IN  => regio_unknown_addr_in,
+--       BUS_TIMEOUT_OUT      => regio_timeout_out,
+--       ONEWIRE_INOUT        => TEMPSENS,
+--       ONEWIRE_MONITOR_OUT  => open,
+-- 
+--       TIME_GLOBAL_OUT         => global_time,
+--       TIME_LOCAL_OUT          => local_time,
+--       TIME_SINCE_LAST_TRG_OUT => time_since_last_trg,
+--       TIME_TICKS_OUT          => timer_ticks,
+-- 
+--       STAT_DEBUG_IPU              => open,
+--       STAT_DEBUG_1                => open,
+--       STAT_DEBUG_2                => open,
+--       STAT_DEBUG_DATA_HANDLER_OUT => open,
+--       STAT_DEBUG_IPU_HANDLER_OUT  => open,
+--       STAT_TRIGGER_OUT            => open,
+--       CTRL_MPLEX                  => (others => '0'),
+--       IOBUF_CTRL_GEN              => (others => '0'),
+--       STAT_ONEWIRE                => open,
+--       STAT_ADDR_DEBUG             => open,
+--       DEBUG_LVL1_HANDLER_OUT      => open
+--       );
 
-      --Timing trigger in
-      TRG_TIMING_TRG_RECEIVED_IN  => '0',
-      --LVL1 trigger to FEE
-      LVL1_TRG_DATA_VALID_OUT     => open,
-      LVL1_VALID_TIMING_TRG_OUT   => open,
-      LVL1_VALID_NOTIMING_TRG_OUT => open,
-      LVL1_INVALID_TRG_OUT        => open,
 
-      LVL1_TRG_TYPE_OUT        => open,
-      LVL1_TRG_NUMBER_OUT      => open,
-      LVL1_TRG_CODE_OUT        => open,
-      LVL1_TRG_INFORMATION_OUT => open,
-      LVL1_INT_TRG_NUMBER_OUT  => open,
+---------------------------------------------------------------------------
+-- Hub
+---------------------------------------------------------------------------
 
-      --Information about trigger handler errors
-      TRG_MULTIPLE_TRG_OUT     => open,
-      TRG_TIMEOUT_DETECTED_OUT => open,
-      TRG_SPURIOUS_TRG_OUT     => open,
-      TRG_MISSING_TMG_TRG_OUT  => open,
-      TRG_SPIKE_DETECTED_OUT   => open,
+THE_HUB : trb_net16_hub_base
+  generic map (
+    HUB_USED_CHANNELS => (c_NO,c_NO,c_NO,c_YES),
+    IBUF_SECURE_MODE  => c_YES,
+    MII_NUMBER        => NUM_INTERFACES,
+    MII_IS_UPLINK     => (0 => 1, others => 0),
+    MII_IS_DOWNLINK   => (0 => 0, others => 1),
+    MII_IS_UPLINK_ONLY=> (0 => 1, others => 0),
+    INT_NUMBER        => 0,
+    USE_ONEWIRE       => c_YES,
+    COMPILE_TIME      => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME,32)),
+    HARDWARE_VERSION  => x"91003200",
+    INIT_ENDPOINT_ID  => x"0000",
+    INIT_ADDRESS      => x"F355",
+    USE_VAR_ENDPOINT_ID => c_YES,
+    BROADCAST_SPECIAL_ADDR => x"45",
+    CLOCK_FREQUENCY   => CLOCK_FREQUENCY
+    )
+  port map (
+    CLK    => clk_sys_i,
+    RESET  => reset_i,
+    CLK_EN => '1',
 
-      --Response from FEE
-      FEE_TRG_RELEASE_IN(0)       => '1',
-      FEE_TRG_STATUSBITS_IN       => (others => '0'),
-      FEE_DATA_IN                 => (others => '0'),
-      FEE_DATA_WRITE_IN(0)        => '0',
-      FEE_DATA_FINISHED_IN(0)     => '1',
-      FEE_DATA_ALMOST_FULL_OUT(0) => open,
+    --Media interfacces
+    MED_DATAREADY_OUT(NUM_INTERFACES*1-1 downto 0)   => med_dataready_out,
+    MED_DATA_OUT(NUM_INTERFACES*16-1 downto 0)       => med_data_out,
+    MED_PACKET_NUM_OUT(NUM_INTERFACES*3-1 downto 0)  => med_packet_num_out,
+    MED_READ_IN(NUM_INTERFACES*1-1 downto 0)         => med_read_in,
+    MED_DATAREADY_IN(NUM_INTERFACES*1-1 downto 0)    => med_dataready_in,
+    MED_DATA_IN(NUM_INTERFACES*16-1 downto 0)        => med_data_in,
+    MED_PACKET_NUM_IN(NUM_INTERFACES*3-1 downto 0)   => med_packet_num_in,
+    MED_READ_OUT(NUM_INTERFACES*1-1 downto 0)        => med_read_out,
+    MED_STAT_OP(NUM_INTERFACES*16-1 downto 0)        => med_stat_op,
+    MED_CTRL_OP(NUM_INTERFACES*16-1 downto 0)        => med_ctrl_op,
 
-      -- Slow Control Data Port
-      REGIO_COMMON_STAT_REG_IN           => common_stat_reg,  --0x00
-      REGIO_COMMON_CTRL_REG_OUT          => common_ctrl_reg,  --0x20
-      REGIO_COMMON_STAT_STROBE_OUT       => common_stat_reg_strobe,
-      REGIO_COMMON_CTRL_STROBE_OUT       => common_ctrl_reg_strobe,
-      REGIO_STAT_REG_IN                  => stat_reg,         --start 0x80
-      REGIO_CTRL_REG_OUT                 => ctrl_reg,         --start 0xc0
-      REGIO_STAT_STROBE_OUT              => stat_reg_strobe,
-      REGIO_CTRL_STROBE_OUT              => ctrl_reg_strobe,
-      REGIO_VAR_ENDPOINT_ID(1 downto 0)  => CODE_LINE,
-      REGIO_VAR_ENDPOINT_ID(15 downto 2) => (others => '0'),
+    COMMON_STAT_REGS                => common_stat_reg,
+    COMMON_CTRL_REGS                => common_ctrl_reg,
+    MY_ADDRESS_OUT                  => open,
+    --REGIO INTERFACE
+    REGIO_ADDR_OUT                  => regio_addr_out,
+    REGIO_READ_ENABLE_OUT           => regio_read_enable_out,
+    REGIO_WRITE_ENABLE_OUT          => regio_write_enable_out,
+    REGIO_DATA_OUT                  => regio_data_out,
+    REGIO_DATA_IN                   => regio_data_in,
+    REGIO_DATAREADY_IN              => regio_dataready_in,
+    REGIO_NO_MORE_DATA_IN           => regio_no_more_data_in,
+    REGIO_WRITE_ACK_IN              => regio_write_ack_in,
+    REGIO_UNKNOWN_ADDR_IN           => regio_unknown_addr_in,
+    REGIO_TIMEOUT_OUT               => regio_timeout_out,
+    REGIO_VAR_ENDPOINT_ID(1 downto 0) => CODE_LINE,
+    REGIO_VAR_ENDPOINT_ID(15 downto 2) => (others => '0'),
+    ONEWIRE                         => TEMPSENS,
+    ONEWIRE_MONITOR_OUT             => open,
+    --Status ports (for debugging)
+    MPLEX_CTRL            => (others => '0'),
+    CTRL_DEBUG            => (others => '0'),
+    STAT_DEBUG            => open
+    );
 
-      BUS_ADDR_OUT         => regio_addr_out,
-      BUS_READ_ENABLE_OUT  => regio_read_enable_out,
-      BUS_WRITE_ENABLE_OUT => regio_write_enable_out,
-      BUS_DATA_OUT         => regio_data_out,
-      BUS_DATA_IN          => regio_data_in,
-      BUS_DATAREADY_IN     => regio_dataready_in,
-      BUS_NO_MORE_DATA_IN  => regio_no_more_data_in,
-      BUS_WRITE_ACK_IN     => regio_write_ack_in,
-      BUS_UNKNOWN_ADDR_IN  => regio_unknown_addr_in,
-      BUS_TIMEOUT_OUT      => regio_timeout_out,
-      ONEWIRE_INOUT        => TEMPSENS,
-      ONEWIRE_MONITOR_OUT  => open,
-
-      TIME_GLOBAL_OUT         => global_time,
-      TIME_LOCAL_OUT          => local_time,
-      TIME_SINCE_LAST_TRG_OUT => time_since_last_trg,
-      TIME_TICKS_OUT          => timer_ticks,
-
-      STAT_DEBUG_IPU              => open,
-      STAT_DEBUG_1                => open,
-      STAT_DEBUG_2                => open,
-      STAT_DEBUG_DATA_HANDLER_OUT => open,
-      STAT_DEBUG_IPU_HANDLER_OUT  => open,
-      STAT_TRIGGER_OUT            => open,
-      CTRL_MPLEX                  => (others => '0'),
-      IOBUF_CTRL_GEN              => (others => '0'),
-      STAT_ONEWIRE                => open,
-      STAT_ADDR_DEBUG             => open,
-      DEBUG_LVL1_HANDLER_OUT      => open
-      );
 
 
 ---------------------------------------------------------------------------
@@ -534,14 +602,14 @@ THE_SODA_SOURCE : entity work.med_ecp3_sfp_sync
     RESET              => reset_i,
     CLEAR              => clear_i,
     --Internal Connection for TrbNet data -> not used a.t.m.
-    MED_DATA_IN        => (others => '0'),
-    MED_PACKET_NUM_IN  => (others => '0'),
-    MED_DATAREADY_IN   => '0',
-    MED_READ_OUT       => open,
-    MED_DATA_OUT       => open,
-    MED_PACKET_NUM_OUT => open,
-    MED_DATAREADY_OUT  => open,
-    MED_READ_IN        => '1',
+    MED_DATA_IN        => med_data_out(31 downto 16),
+    MED_PACKET_NUM_IN  => med_packet_num_out(5 downto 3),
+    MED_DATAREADY_IN   => med_dataready_out(1),
+    MED_READ_OUT       => med_read_in(1),
+    MED_DATA_OUT       => med_data_in(31 downto 16),
+    MED_PACKET_NUM_OUT => med_packet_num_in(5 downto 3),
+    MED_DATAREADY_OUT  => med_dataready_in(1),
+    MED_READ_IN        => med_read_out(1),
     CLK_RX_HALF_OUT    => soda_rx_clock_half,
     CLK_RX_FULL_OUT    => soda_rx_clock_full,
     
@@ -568,8 +636,8 @@ THE_SODA_SOURCE : entity work.med_ecp3_sfp_sync
     SCI_ACK            => sci2_ack,  
     SCI_NACK           => sci2_nack,
     -- Status and control port
-    STAT_OP            => open,
-    CTRL_OP            => (others => '0'),
+    STAT_OP            => med_stat_op(31 downto 16),
+    CTRL_OP            => med_ctrl_op(31 downto 16),
     STAT_DEBUG         => open,
     CTRL_DEBUG         => (others => '0')
    );      
@@ -578,7 +646,8 @@ THE_SODA_SOURCE : entity work.med_ecp3_sfp_sync
 ---------------------------------------------------------------------------
 -- The Soda Source
 ---------------------------------------------------------------------------         
-   
+  tx_dlm_i <= '0';
+  tx_dlm_word <= x"00";
    
    
 ---------------------------------------------------------------------------

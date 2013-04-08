@@ -93,6 +93,10 @@ add_file -vhdl -lib work "../../trbnet/trb_net16_endpoint_hades_full.vhd"
 add_file -vhdl -lib work "../../trbnet/basics/signal_sync.vhd"
 add_file -vhdl -lib work "../../trbnet/basics/ram_dp_rw.vhd"
 add_file -vhdl -lib work "../../trbnet/basics/pulse_stretch.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net16_hub_func.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net16_hub_base.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net16_hub_logic.vhd"
+
 
 add_file -vhdl -lib work "../../trbnet/special/handler_lvl1.vhd"
 add_file -vhdl -lib work "../../trbnet/special/handler_data.vhd"

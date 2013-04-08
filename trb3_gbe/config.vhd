@@ -18,10 +18,10 @@ package config is
     constant USE_ETHERNET           : integer := c_YES;    
     
 --Run wih 125 MHz instead of 100 MHz     
-    constant USE_125_MHZ            : integer := c_YES;    
+    constant USE_125_MHZ            : integer := c_NO;    
    
 --Only slow-control, no trigger or read-out
-    constant USE_SCTRL_ONLY         : integer := c_YES;    
+    constant USE_SCTRL_ONLY         : integer := c_NO;    
 
 --Use sync mode, RX clock for all parts of the FPGA
     constant USE_RXCLOCK            : integer := c_NO;
@@ -68,15 +68,15 @@ package config is
   --this is used to select the proper configuration in the main code    
     constant CFG_MODE : integer;
 
-    
-  --first entry is normal CTS with one optical output, second one is with four optical outputs
-  --slow-control is accepted on SFP1 only, triggers are sent to all used SFP
+    --    --optical link SFP1 is uplink on all channels  (e.g. connect a Hub)
+
+
     constant INTERNAL_NUM_ARR     : hub_mii_t := (0,0);
     constant INTERFACE_NUM_ARR    : hub_mii_t := (5,5);
     constant IS_UPLINK_ARR        : hub_cfg_t := ((0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0),
                                                   (0,0,0,0,1,1,1,0,0,0,0,0,0,0,0,0,0));
     constant IS_DOWNLINK_ARR      : hub_cfg_t := ((1,1,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1),
-                                                  (1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0));
+                                                  (1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0));
     constant IS_UPLINK_ONLY_ARR   : hub_cfg_t := ((0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0),
                                                   (0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0)); 
     constant INTERNAL_CHANNEL_ARR : hub_cfg_t := ((0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0),                                                  

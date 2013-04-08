@@ -47,6 +47,7 @@ MULTICYCLE TO CELL "gen_uplink_THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
 
 
 MULTICYCLE FROM CELL "gen_ethernet_hub_THE_HUB/reset_i" 20 ns;
+MULTICYCLE FROM CELL "THE_RESET_HANDLER/reset" 20 ns;
 
 #TrbNet Hub 
 REGION "REGION_IOBUF" "R20C96D" 88 86 DEVSIZE;
@@ -140,17 +141,17 @@ UGROUP "gbe_rx_tx"
 	BLKNAME gen_ethernet_hub_GBE/FRAME_CONSTRUCTOR
 	BLKNAME gen_ethernet_hub_GBE/MB_IP_CONFIG
 	BLKNAME gen_ethernet_hub_GBE/THE_IP_CONFIGURATOR
-	BLKNAME gen_ethernet_hub_GBE/PACKET_CONSTRUCTOR
+# 	BLKNAME gen_ethernet_hub_GBE/PACKET_CONSTRUCTOR
 	#BLKNAME gen_ethernet_hub_GBE/THE_IPU_INTERFACE
 	BLKNAME gen_ethernet_hub_GBE/setup_imp_gen_SETUP;
 
 
 	
 #Normal design
-# REGION "GBE_REGION" "R40C2D" 35 40 DEVSIZE;
-# REGION "GBE_MAIN_REGION" "R74C30C" 38 36 DEVSIZE;
-# LOCATE UGROUP "controllers" REGION "GBE_MAIN_REGION" ;
-# LOCATE UGROUP "gbe_rx_tx" REGION "GBE_REGION" ;
+REGION "GBE_REGION" "R30C20D" 35 40 DEVSIZE;
+REGION "GBE_MAIN_REGION" "R74C40C" 38 36 DEVSIZE;
+LOCATE UGROUP "controllers" REGION "GBE_MAIN_REGION" ;
+LOCATE UGROUP "gbe_rx_tx" REGION "GBE_REGION" ;
 
 #Reduced design
 # REGION "GBE_REGION" "R40C2D" 35 40 DEVSIZE;
@@ -160,7 +161,7 @@ UGROUP "gbe_rx_tx"
 
 
 
-REGION "MED0" "R70C2D" 35 40 DEVSIZE;
+REGION "MED0" "R69C4D" 35 40 DEVSIZE;
 FREQUENCY NET "gen_ethernet_hub_GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/un1_PCS_SERDES_1" 125.000000 MHz ;
 FREQUENCY NET "gen_ethernet_hub_GBE/serdes_clk_125_c" 125.000000 MHz ;
 LOCATE UGROUP "tsmac" REGION "MED0" ;
@@ -269,12 +270,12 @@ PRIORITIZE NET "gen_ethernet_hub_GBE/serdes_rx_clk_c" 80;
 BLOCK PATH FROM CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_cpu_if*" TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac*" ;
 BLOCK PATH FROM CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_cpu_if*" TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_rx_mac*" ;
 
-MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_gmii/sync_rxd_m*"           2.000000 X ;
-MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_gmii/ipg_shrink_m*"         2.000000 X ;
-MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_gmii/nib_alig*"             2.000000 X ;
-MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac/U1_tx_rfifo/rd_ptr*" 2.000000 X ;
-MULTICYCLE FROM CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac/U1_tx_rfifo/rd_ptr*" 2.000000 X ;
-MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac/U1_tx_rfifo/wr_ptr*" 2.000000 X ;
-MULTICYCLE FROM CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac/U1_tx_rfifo/wr_ptr*" 2.000000 X ;
+# MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_gmii/sync_rxd_m*"           2.000000 X ;
+# MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_gmii/ipg_shrink_m*"         2.000000 X ;
+# MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_gmii/nib_alig*"             2.000000 X ;
+# MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac/U1_tx_rfifo/rd_ptr*" 2.000000 X ;
+# MULTICYCLE FROM CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac/U1_tx_rfifo/rd_ptr*" 2.000000 X ;
+# MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac/U1_tx_rfifo/wr_ptr*" 2.000000 X ;
+# MULTICYCLE FROM CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac/U1_tx_rfifo/wr_ptr*" 2.000000 X ;
 
 #BLOCK INTERCLOCKDOMAIN PATHS ;

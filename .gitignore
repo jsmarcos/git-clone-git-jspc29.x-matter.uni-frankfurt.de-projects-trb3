@@ -1,3 +1,4 @@
+*~
 *.log
 *.rpt
 netlists
@@ -9,4 +10,5 @@ version.vhd
 *.sym
 *tmpl.vhd
 *.log
-
+workdir
+*.kate-swp

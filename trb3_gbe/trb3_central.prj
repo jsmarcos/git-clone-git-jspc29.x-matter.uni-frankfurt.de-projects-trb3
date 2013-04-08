@@ -95,11 +95,10 @@ add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_packet_constr.vhd
 #add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_packet_constr_simple_sender.vhd"
 
 
-add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_ipu2gbe_simple_sender.vhd"
-#add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_ipu2gbe.vhd"
+#add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_ipu2gbe_simple_sender.vhd"
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_ipu2gbe.vhd"
 
 
-#add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_ipu2gbe_nologic.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ip_configurator.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_buf.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_setup.vhd"
@@ -108,10 +107,7 @@ add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/mb_mac_sim.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/slv_mac_memory.vhd"
 #add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/slv_register.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/ip_mem.vhd"
-#add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/serdes/serdes_gbe_0_extclock_8b.vhd"
-#add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/serdes_intclk/serdes_gbe_0_intclock_8b.vhd"
 
-#add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/serdes_intclk/serdes_gbe_0_intclock_8b_ecp3.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/serdes_gbe_0ch/serdes_gbe_0ch.vhd"
 
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/mac_init_mem.vhd"
@@ -126,7 +122,6 @@ add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_512x32.vhd"
 
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_2048x8x16.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_65536x18x9.vhd"
-#add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_1024x16x8.vhd"
 
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_32kx16x8_mb.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/debug_fifo_2kx16.vhd"
@@ -207,6 +202,7 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/serdes_full_ctc
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/serdes_onboard_full_125.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_ctc.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_int.vhd"
+add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_1_125_int.vhd"
 
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_lsm_sfp.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.vhd"

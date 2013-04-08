@@ -639,7 +639,7 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
   port map( 
 	  CLK                         => clk_sys_i,
 	  TEST_CLK                    => '0',
-	  CLK_125_IN                  => CLK_GPLL_RIGHT,
+	  CLK_125_IN                  => clk_gbe_internal,
 	  RESET                       => reset_i,
 	  GSR_N                       => gsr_n,
 	  --Debug

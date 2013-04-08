@@ -75,7 +75,9 @@ library work;
 --   
 --    0x0d        Event Builder selection
 --      15 : 00   Event Builder mask (default: 0x1)
---      23 : 16   Number of events before selecting next builder (useful to aggregate events to support large data packets) 
+--      23 : 16   Number of events before selecting next builder (useful to aggregate events to support large data packets
+--      27 : 24   Event Builder number of calibration trigger
+--        28      If asserted: Use special event builder for calibration trigger, otherwise, use ordinary round robin selection.
 -- </address_table>
 
 -- Header of data packet written to event builder
@@ -307,6 +309,8 @@ architecture RTL of CTS is
           eb_mask_buf_i : std_logic_vector(15 downto 0) := (0 => '1', others => '0');
    signal eb_aggr_threshold_i, eb_aggr_counter_i : unsigned(7 downto 0) := x"00";
    signal eb_selection_i : std_logic_vector(3 downto 0) := x"0";
+   signal eb_special_calibration_eb_i     : std_logic_vector(3 downto 0) := x"0";
+   signal eb_use_special_calibration_eb_i : std_logic := '0';
 begin
 -- Trigger Distribution
 -----------------------------------------
@@ -552,7 +556,13 @@ begin
                   CTS_IPU_NUMBER_OUT <= fifo_data_out_i(15 downto 0);
                   CTS_IPU_RND_CODE_OUT <= fifo_data_out_i(23 downto 16);
                   CTS_IPU_TYPE_OUT  <= fifo_data_out_i(27 downto 24);
-                  CTS_IPU_INFORMATION_OUT <= X"0" & eb_selection_i;
+                  CTS_IPU_INFORMATION_OUT <= X"00";
+                  
+                  if fifo_data_out_i(27 downto 24) = x"e" and eb_use_special_calibration_eb_i = '1' then
+                    CTS_IPU_INFORMATION_OUT(3 downto 0) <= eb_special_calibration_eb_i;
+                  else
+                    CTS_IPU_INFORMATION_OUT(3 downto 0) <= eb_selection_i;
+                  end if;
 
                   
                   CTS_IPU_SEND_OUT <= '1';
@@ -615,8 +625,9 @@ begin
    random_proc: process(CLK) is
    begin
       if rising_edge(CLK) then
-         -- sequence repeats every 256 iterations
-         td_random_number_i <= STD_LOGIC_VECTOR(UNSIGNED(td_random_number_i) + TO_UNSIGNED(113, 8));
+         -- sequence (without external entropy) repeats every 256 iterations
+         td_random_number_i <= STD_LOGIC_VECTOR(UNSIGNED(td_random_number_i) + TO_UNSIGNED(113, 8) + UNSIGNED(CTS_REGIO_ADDR_IN(7 downto 0))) 
+            xor ("0" & LVL1_TRG_DATA_VALID_IN & "0" &LVL1_VALID_TIMING_TRG_IN & "0000");
       end if;
    end process;
    
@@ -803,8 +814,11 @@ begin
    cts_status_registers_i(16#0c#)(throttle_threshold_i'RANGE) <= STD_LOGIC_VECTOR(throttle_threshold_i);
    cts_status_registers_i(16#0c#)(throttle_threshold_i'LENGTH) <= throttle_enabled_i;
    cts_status_registers_i(16#0c#)(31) <= stop_triggers_i;
+   
    cts_status_registers_i(16#0d#)(15 downto 0) <= eb_mask_i;
    cts_status_registers_i(16#0d#)(23 downto 16) <= STD_LOGIC_VECTOR(eb_aggr_threshold_i);
+   cts_status_registers_i(16#0d#)(27 downto 24) <= eb_special_calibration_eb_i;
+   cts_status_registers_i(16#0d#)(28) <= eb_use_special_calibration_eb_i;
    
    regio_proc: process(CLK) is
       variable addr : integer range 0 to 15;
@@ -815,9 +829,11 @@ begin
             throttle_threshold_i <= (others => '0');
             throttle_enabled_i <= '0';
             stop_triggers_i <= '0';
+
             eb_aggr_threshold_i <= x"00";
             eb_mask_i     <= (0 => '1', others => '0');
-
+            eb_special_calibration_eb_i <= x"0";
+            eb_use_special_calibration_eb_i <= '0';
             
          else
          
@@ -860,6 +876,8 @@ begin
             if addr = 16#0d# and cts_regio_write_enable_in_i = '1' then
                eb_mask_i <= cts_regio_data_in_i(15 downto 0);
                eb_aggr_threshold_i <= UNSIGNED(cts_regio_data_in_i(23 downto 16));
+               eb_special_calibration_eb_i <= cts_regio_data_in_i(27 downto 24);
+               eb_use_special_calibration_eb_i <= cts_regio_data_in_i(28);
             end if;
          end if;
       end if;
