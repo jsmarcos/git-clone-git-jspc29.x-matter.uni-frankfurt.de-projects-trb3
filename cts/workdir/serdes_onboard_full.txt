@@ -1,0 +1,1 @@
+../../../trbnet/media_interfaces/ecp3_sfp/serdes_onboard_full.txt

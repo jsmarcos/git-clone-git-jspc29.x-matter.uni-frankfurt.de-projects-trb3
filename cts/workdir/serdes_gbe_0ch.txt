@@ -1,0 +1,1 @@
+../../../trbnet/gbe2_ecp3/ipcores_ecp3/serdes_gbe_0ch/serdes_gbe_0ch.txt
