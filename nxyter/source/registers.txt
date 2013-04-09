@@ -36,11 +36,18 @@
 
 -- Timestamp Fifo
 0x8500 :  r    current FIFO value
-0x8501 :  r/w  r: FIFO Status ......
-               w: trigger resync
-0x8502 :  r/w  r: get resync counter(8bit)
-               w: clear resync counter    
-0x8503 :  r/w  FIFO Delay, i.e. Trigger Delay (6bit, in 3.1ns, range 2 .. 60)
+0x8501 :  r/w  r: FIFO Status 
+				 0: fifo_full
+				 1: fifo_empty
+				 2: fifo_almost_empty
+                 4..29: ignore
+				31: nx_frame_synced
+               w: pll reset
+0x8502 :  r/w  r: Resync Counter(12bit)
+               w: clear Resync Counter    
+0x8503 :  r/w  r: Parity Error Counter (12bit)
+               w: clear Parity Error Counter
+0x8504 :  r/w  FIFO Delay, i.e. Trigger Delay (6bit, in 3.1ns, range 2 .. 60)
 
 -- Data Buffer
 0x8600 :  r    read FIFO buffer

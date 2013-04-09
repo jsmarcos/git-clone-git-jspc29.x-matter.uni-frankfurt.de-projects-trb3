@@ -25,7 +25,6 @@ component nXyter_FEE_board
     NX_CLK128_IN           : in    std_logic;
     NX_TIMESTAMP_IN        : in    std_logic_vector (7 downto 0);
     NX_RESET_OUT           : out   std_logic;
-    NX_CLK256A_OUT         : out   std_logic;
     NX_TESTPULSE_OUT       : out   std_logic;
 
     ADC_FCLK_IN            : in    std_logic;
@@ -47,7 +46,6 @@ component nXyter_FEE_board
     REGIO_NO_MORE_DATA_OUT : out   std_logic;
     REGIO_UNKNOWN_ADDR_OUT : out   std_logic;
 
-    CLK_128_IN             : in    std_logic;
     DEBUG_LINE_OUT         : out   std_logic_vector(15 downto 0)
     );
 end component;
@@ -250,6 +248,40 @@ component clock10MHz
     );
 end component;
 
+component fifo_32to32_dc
+  port (
+    Data          : in  std_logic_vector(31 downto 0);
+    WrClock       : in  std_logic;
+    RdClock       : in  std_logic;
+    WrEn          : in  std_logic;
+    RdEn          : in  std_logic;
+    Reset         : in  std_logic;
+    RPReset       : in  std_logic;
+    AmEmptyThresh : in  std_logic_vector(5 downto 0);
+    Q             : out std_logic_vector(31 downto 0);
+    Empty         : out std_logic;
+    Full          : out std_logic;
+    AlmostEmpty   : out std_logic
+    );
+end component;
+
+component fifo_dc_8to32_dyn
+  port (
+    Data          : in  std_logic_vector(7 downto 0);
+    WrClock       : in  std_logic;
+    RdClock       : in  std_logic;
+    WrEn          : in  std_logic;
+    RdEn          : in  std_logic;
+    Reset         : in  std_logic;
+    RPReset       : in  std_logic;
+    AmEmptyThresh : in  std_logic_vector(5 downto 0);
+    Q             : out std_logic_vector(31 downto 0);
+    Empty         : out std_logic;
+    Full          : out std_logic;
+    AlmostEmpty   : out std_logic
+    );
+end component;
+
 component fifo_dc_9to36_dyn
   port (
     Data         : in  std_logic_vector(8 downto 0);
@@ -271,10 +303,9 @@ component nx_timestamp_fifo_read
   port (
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
-    NX_TIMESTAMP_CLK_IN  : in  std_logic;
 
+    NX_TIMESTAMP_CLK_IN  : in  std_logic;
     NX_TIMESTAMP_IN      : in  std_logic_vector (7 downto 0);
-    NX_FRAME_CLOCK_OUT   : out std_logic;
     NX_TIMESTAMP_OUT     : out std_logic_vector(31 downto 0);
     NX_NEW_TIMESTAMP_OUT : out std_logic;
 
@@ -411,6 +442,21 @@ component pll_nx_clk256
     CLK   : in  std_logic;
     CLKOP : out std_logic;
     LOCK  : out std_logic);
+end component;
+
+component pll_nx_clk250
+  port (
+    CLK   : in  std_logic;
+    CLKOP : out std_logic;
+    LOCK  : out std_logic);
+end component;
+
+component pll_adc_clk3125
+  port (
+    CLK   : in  std_logic;
+    CLKOP : out std_logic;
+    LOCK  : out std_logic
+    );
 end component;
 
 component nx_fpga_timestamp
