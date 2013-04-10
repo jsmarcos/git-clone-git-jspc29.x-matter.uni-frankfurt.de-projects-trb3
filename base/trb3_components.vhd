@@ -523,5 +523,61 @@ end component;
   end component;
 
 
+component med_ecp3_sfp_sync is
+  generic(
+    SERDES_NUM : integer range 0 to 3 := 0;
+--     MASTER_CLOCK_SWITCH : integer := c_NO;   --just for debugging, should be NO
+    IS_SYNC_SLAVE   : integer := c_NO       --select slave mode
+    );
+  port(
+    CLK                : in  std_logic; -- _internal_ 200 MHz reference clock
+    SYSCLK             : in  std_logic; -- 100 MHz main clock net, synchronous to RX clock
+    RESET              : in  std_logic; -- synchronous reset
+    CLEAR              : in  std_logic; -- asynchronous reset
+    --Internal Connection TX
+    MED_DATA_IN        : in  std_logic_vector(c_DATA_WIDTH-1 downto 0);
+    MED_PACKET_NUM_IN  : in  std_logic_vector(c_NUM_WIDTH-1 downto 0);
+    MED_DATAREADY_IN   : in  std_logic;
+    MED_READ_OUT       : out std_logic := '0';
+    --Internal Connection RX
+    MED_DATA_OUT       : out std_logic_vector(c_DATA_WIDTH-1 downto 0) := (others => '0');
+    MED_PACKET_NUM_OUT : out std_logic_vector(c_NUM_WIDTH-1 downto 0) := (others => '0');
+    MED_DATAREADY_OUT  : out std_logic := '0';
+    MED_READ_IN        : in  std_logic;
+    CLK_RX_HALF_OUT    : out std_logic := '0';  --received 100 MHz
+    CLK_RX_FULL_OUT    : out std_logic := '0';  --received 200 MHz
+    
+    --Sync operation
+    RX_DLM             : out std_logic := '0';
+    RX_DLM_WORD        : out std_logic_vector(7 downto 0) := x"00";
+    TX_DLM             : in  std_logic := '0';
+    TX_DLM_WORD        : in  std_logic_vector(7 downto 0) := x"00";
+    
+    --SFP Connection
+    SD_RXD_P_IN        : in  std_logic;
+    SD_RXD_N_IN        : in  std_logic;
+    SD_TXD_P_OUT       : out std_logic;
+    SD_TXD_N_OUT       : out std_logic;
+    SD_REFCLK_P_IN     : in  std_logic;  --not used
+    SD_REFCLK_N_IN     : in  std_logic;  --not used
+    SD_PRSNT_N_IN      : in  std_logic;  -- SFP Present ('0' = SFP in place, '1' = no SFP mounted)
+    SD_LOS_IN          : in  std_logic;  -- SFP Loss Of Signal ('0' = OK, '1' = no signal)
+    SD_TXDIS_OUT       : out  std_logic := '0'; -- SFP disable
+    --Control Interface
+    SCI_DATA_IN        : in  std_logic_vector(7 downto 0) := (others => '0');
+    SCI_DATA_OUT       : out std_logic_vector(7 downto 0) := (others => '0');
+    SCI_ADDR           : in  std_logic_vector(8 downto 0) := (others => '0');
+    SCI_READ           : in  std_logic := '0';
+    SCI_WRITE          : in  std_logic := '0';
+    SCI_ACK            : out std_logic := '0';
+    SCI_NACK           : out std_logic := '0';
+    -- Status and control port
+    STAT_OP            : out std_logic_vector (15 downto 0);
+    CTRL_OP            : in  std_logic_vector (15 downto 0) := (others => '0');
+    STAT_DEBUG         : out std_logic_vector (63 downto 0);
+    CTRL_DEBUG         : in  std_logic_vector (63 downto 0) := (others => '0')
+   );
+end component;  
+  
 
 end package;
