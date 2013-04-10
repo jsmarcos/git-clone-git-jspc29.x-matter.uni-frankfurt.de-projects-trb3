@@ -137,8 +137,13 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_1_125_int.v
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_lsm_sfp.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.vhd"
 
-add_file -vhdl -lib "work" "cores/nxyter_input_pll.vhd"
 add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
+
+add_file -vhdl -lib "work" "cores/pll_nx_clk250.vhd"
+add_file -vhdl -lib "work" "cores/pll_adc_clk3125.vhd"
+add_file -vhdl -lib "work" "cores/fifo_32to32_dc.vhd"
+add_file -vhdl -lib "work" "cores/fifo_dc_8to32_dyn.vhd"
+add_file -vhdl -lib "work" "source/fifo_dc_9to36_dyn.vhd"
 
 add_file -vhdl -lib "work" "trb3_periph.vhd"
 
@@ -151,7 +156,6 @@ add_file -vhdl -lib "work" "./source/nxyter.vhd"
 add_file -vhdl -lib "work" "./source/nxyter_data_handler.vhd"
 add_file -vhdl -lib "work" "./source/pll_nx_clk256.vhd"
 add_file -vhdl -lib "work" "./source/nxyter_registers.vhd"
-add_file -vhdl -lib "work" "./source/fifo_dc_9to36_dyn.vhd"
 add_file -vhdl -lib "work" "./source/nx_timestamp_fifo_read.vhd"
 add_file -vhdl -lib "work" "./source/level_to_pulse.vhd"
 add_file -vhdl -lib "work" "./source/gray_decoder.vhd"
@@ -176,7 +180,6 @@ add_file -vhdl -lib "work" "./source/nx_fpga_timestamp.vhd"
 add_file -vhdl -lib "work" "./source/nx_trigger_generator.vhd"
 add_file -vhdl -lib "work" "./source/nx_trigger_handler.vhd"
 add_file -vhdl -lib "work" "./source/nx_timestamp_sim.vhd"
-
 
 # Needed by ADC9222 Entity
 add_file -vhdl -lib "work" "../base/cores/dqsinput.vhd"

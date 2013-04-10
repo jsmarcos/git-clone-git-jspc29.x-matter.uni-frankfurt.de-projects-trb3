@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<DiamondModule name="nxyter_input_pll" module="PLL" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2013 03 27 23:26:50.117" version="5.3" type="Module" synthesis="synplify" source_format="VHDL">
-  <Package>
-		<File name="nxyter_input_pll.lpc" type="lpc" modified="2013 03 27 23:26:48.000"/>
-		<File name="nxyter_input_pll.vhd" type="top_level_vhdl" modified="2013 03 27 23:26:48.000"/>
-		<File name="nxyter_input_pll_tmpl.vhd" type="template_vhdl" modified="2013 03 27 23:26:48.000"/>
-  </Package>
-</DiamondModule>

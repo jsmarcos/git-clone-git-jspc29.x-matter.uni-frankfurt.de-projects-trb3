@@ -39,7 +39,7 @@ entity nx_timestamp_decode is
 end entity;
 
 architecture Behavioral of nx_timestamp_decode is
-  
+
   -- Gray Decoder
   signal nx_timestamp         : std_logic_vector(13 downto 0);
   signal nx_channel_id        : std_logic_vector( 6 downto 0);
@@ -85,15 +85,15 @@ begin
   -- Debug Line
   DEBUG_OUT(0)                    <= CLK_IN;
   DEBUG_OUT(1)                    <= NX_NEW_TIMESTAMP_IN;
-  DEBUG_OUT(2)                    <= TIMESTAMP_VALID_OUT;
-  DEBUG_OUT(3)                    <= new_timestamp;
+  DEBUG_OUT(2)                    <= timestamp_valid_o;
+  DEBUG_OUT(3)                    <= '0';
   DEBUG_OUT(5 downto 4)           <= status_bits;
   DEBUG_OUT(6)                    <= parity;
-  DEBUG_OUT(7)                    <= '0';
+  DEBUG_OUT(7)                    <= nx_token_return_o;
+  DEBUG_OUT(8)                    <= nx_nomore_data_o;
   
-  DEBUG_OUT(14 downto 8)          <= nx_channel_id;
-  DEBUG_OUT(15)                   <= '0';
-  
+  DEBUG_OUT(15 downto 9)          <= nx_channel_id;
+
   -----------------------------------------------------------------------------
   -- Gray Decoder for Timestamp and Chgannel Id
   -----------------------------------------------------------------------------

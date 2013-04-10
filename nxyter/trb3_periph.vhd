@@ -9,12 +9,15 @@ use work.trb3_components.all;
 use work.version.all;
 use work.nxyter_components.all;
 
+library ecp3;
+use ecp3.components.all;
+
 
 entity trb3_periph is
   port(
     --Clocks
-    CLK_GPLL_LEFT        : in    std_logic;  --Clock Manager 1/(2468), 125 MHz
     CLK_GPLL_RIGHT       : in    std_logic;  --Clock Manager 2/(2468), 200 MHz  <-- MAIN CLOCK for FPGA
+    CLK_GPLL_LEFT        : in    std_logic;  --Clock Manager 1/(2468), 125 MHz
     CLK_PCLK_LEFT        : in    std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
     CLK_PCLK_RIGHT       : in    std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
     --Trigger
@@ -122,11 +125,13 @@ entity trb3_periph is
   attribute syn_useioff of FPGA5_COMM    : signal is true;
   attribute syn_useioff of TEST_LINE     : signal is true;
   --attribute syn_useioff of INP           : signal is false;
-  --attribute syn_useioff of SPARE_LINE    : signal is true;
+  attribute syn_useioff of NX1_TIMESTAMP_IN   : signal is true;
+  attribute syn_useioff of NX2_TIMESTAMP_IN   : signal is true;
   --attribute syn_useioff of DAC_SDO       : signal is true;
   --attribute syn_useioff of DAC_SDI       : signal is true;
   --attribute syn_useioff of DAC_SCK       : signal is true;
   --attribute syn_useioff of DAC_CS        : signal is true;
+
 
 end entity;
 
@@ -139,6 +144,11 @@ architecture trb3_periph_arch of trb3_periph is
   attribute syn_keep     : boolean;
   attribute syn_preserve : boolean;
 
+  -- For 250MHz PLL nxyter clock, THE_256M_ODDR_1
+  attribute ODDRAPPS : string;
+  attribute ODDRAPPS of THE_256M_ODDR_1 : label is "SCLK_ALIGNED";
+
+  
   --Clock / Reset
   signal clk_100_i                : std_logic;  --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i                : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
@@ -267,7 +277,9 @@ architecture trb3_periph_arch of trb3_periph is
   signal nx1_timestamp_sim_o         : std_logic_vector(7 downto 0);
   signal nx1_clk128_sim_o            : std_logic;
 
-  -- nXyter 1 Regio Bus
+  signal nx1_clk256_o                : std_logic;
+
+  -- nXyter 2 Regio Bus
   signal nx2_regio_addr_in           : std_logic_vector (15 downto 0);
   signal nx2_regio_data_in           : std_logic_vector (31 downto 0);
   signal nx2_regio_data_out          : std_logic_vector (31 downto 0);
@@ -278,6 +290,8 @@ architecture trb3_periph_arch of trb3_periph is
   signal nx2_regio_write_ack_out     : std_logic;
   signal nx2_regio_no_more_data_out  : std_logic;
   signal nx2_regio_unknown_addr_out  : std_logic;
+
+  signal nx2_clk256_o                : std_logic;
 
 begin
 ---------------------------------------------------------------------------
@@ -635,7 +649,6 @@ begin
   LED_RED    <= timing_trg_received_i;
   LED_YELLOW <= not med_stat_op(11);
 
-
 -------------------------------------------------------------------------------
 -- nXyter Data Handler
 -------------------------------------------------------------------------------
@@ -684,7 +697,7 @@ begin
     port map (
       CLK_IN                 => clk_100_i,
       RESET_IN               => reset_i,
-
+      
       I2C_SDA_INOUT          => NX1_I2C_SDA_INOUT,
       I2C_SCL_INOUT          => NX1_I2C_SCL_INOUT,
       I2C_SM_RESET_OUT       => NX1_I2C_SM_RESET_OUT,
@@ -700,7 +713,6 @@ begin
       -- NX_TIMESTAMP_IN        => nx1_timestamp_sim_o,
       
       NX_RESET_OUT           => NX1_RESET_OUT,
-      NX_CLK256A_OUT         => NX1_CLK256A_OUT,
       NX_TESTPULSE_OUT       => NX1_TESTPULSE_OUT,
 
       ADC_FCLK_IN            => NX1_ADC_FCLK_IN,
@@ -722,29 +734,54 @@ begin
       REGIO_NO_MORE_DATA_OUT => nx1_regio_no_more_data_out,
       REGIO_UNKNOWN_ADDR_OUT => nx1_regio_unknown_addr_out,
 
-      CLK_128_IN             => CLK_GPLL_LEFT,
       DEBUG_LINE_OUT         => TEST_LINE
       -- DEBUG_LINE_OUT         => open
       );
 
+
+  pll_nx_clk256_1: pll_nx_clk256
+    port map (
+      CLK   => clk_100_i,
+      CLKOP => NX1_CLK256A_OUT,
+      LOCK  => open
+      );
+  
+--  -- 250MHz Clock to nXyters
+--  pll_nx_clk250_1: pll_nx_clk250
+--    port map (
+--      CLK   => CLK_GPLL_LEFT,
+--      CLKOP => NX1_CLK256A_OUT, -- nx1_clk256_o,
+--      LOCK  => open
+--      );
+
+  THE_256M_ODDR_1: ODDRXD1
+    port map(
+      SCLK  =>  nx1_clk256_o,
+      DA    => '1',
+      DB    => '0',
+      Q     => open --NX1_CLK256A_OUT
+      );
+
+
 -------------------------------------------------------------------------------
 -- Timestamp Simulator
 -------------------------------------------------------------------------------
-  nxyter_timestamp_sim_1: nxyter_timestamp_sim
-    port map (
-      CLK_IN        => CLK_GPLL_LEFT,
-      RESET_IN      => reset_i,
-      TIMESTAMP_OUT => nx1_timestamp_sim_o,
-      CLK128_OUT    => nx1_clk128_sim_o
-      );
+--   nxyter_timestamp_sim_1: nxyter_timestamp_sim
+--     port map (
+--       CLK_IN        => CLK_GPLL_LEFT,
+--       RESET_IN      => reset_i,
+--       TIMESTAMP_OUT => nx1_timestamp_sim_o,
+--       CLK128_OUT    => nx1_clk128_sim_o
+--       );
 
   
 ---------------------------------------------------------------------------
 -- Test Connector - Logic Analyser
 ---------------------------------------------------------------------------
 
-  
-  -- TEST_LINE(15 downto 0) <= (others => '0');
+ -- TEST_LINE(0)           <= clk_100_i;
+ -- TEST_LINE(1)           <= NX1_CLK128_IN;
+ -- TEST_LINE(15 downto 2) <= (others => '0');
   
 
 end architecture;
