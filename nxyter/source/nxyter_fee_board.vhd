@@ -197,7 +197,7 @@ begin
 --  DEBUG_LINE_OUT(7)            <= '0';
 --  
 --  
---  DEBUG_gLINE_OUT(8)            <= ADC_FCLK_IN;        
+--  DEBUG_LINE_OUT(8)            <= ADC_FCLK_IN;        
 --  DEBUG_LINE_OUT(9)            <= ADC_DCLK_IN;        
 --  DEBUG_LINE_OUT(10)           <= ADC_SC_CLK32_OUT;
 --  DEBUG_LINE_OUT(11)           <= ADC_A_IN;
@@ -539,8 +539,8 @@ begin
       SLV_NO_MORE_DATA_OUT => slv_no_more_data(2),
       SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(2),
 
-      DEBUG_OUT            => DEBUG_LINE_OUT
-      -- DEBUG_OUT            => open
+      --DEBUG_OUT            => DEBUG_LINE_OUT
+      DEBUG_OUT            => open
       );
 
 
@@ -664,8 +664,21 @@ begin
 --       DEBUG                      => open
 --       );
 
-  
-  ADC_SC_CLK32_OUT  <= adc_clk_o;
+
+  adc_ad9228_1: adc_ad9228
+    port map (
+      CLK_IN           => CLK_IN,
+      RESET_IN         => RESET_IN,
+      ADC_FCLK_IN      => ADC_FCLK_IN,
+      ADC_DCLK_IN      => ADC_DCLK_IN,
+      ADC_SC_CLK32_OUT => ADC_SC_CLK32_OUT,
+      ADC_A_IN         => ADC_A_IN,
+      ADC_B_IN         => ADC_B_IN,
+      ADC_NX_IN        => ADC_NX_IN,
+      ADC_D_IN         => ADC_D_IN,
+      --DEBUG_OUT        => open,
+      DEBUG_OUT        => DEBUG_LINE_OUT
+      );
   
 -------------------------------------------------------------------------------
 -- nXyter Signals
