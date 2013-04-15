@@ -12,39 +12,39 @@ use work.trb_net_std.all;
 use work.trb_net_components.all;
 use work.trb3_components.all;
 use work.nxyter_components.all;
--- ADCM use work.adcmv3_components.all;
 
 entity nXyter_FEE_board is
   
   port (
-    CLK_IN             : in std_logic;  
-    RESET_IN           : in std_logic;  
-
-    -- I2C Ports
-    I2C_SDA_INOUT      : inout std_logic;   -- nXyter I2C fdata line
-    I2C_SCL_INOUT      : inout std_logic;   -- nXyter I2C Clock line
-    I2C_SM_RESET_OUT   : out std_logic;     -- reset nXyter I2C StateMachine 
-    I2C_REG_RESET_OUT  : out std_logic;     -- reset I2C registers to default
-
-    -- ADC SPI
-    SPI_SCLK_OUT       : out std_logic;
-    SPI_SDIO_INOUT     : inout std_logic;
-    SPI_CSB_OUT        : out std_logic;    
-
-    -- nXyter Timestamp Ports
-    NX_CLK128_IN       : in std_logic;
-    NX_TIMESTAMP_IN    : in std_logic_vector (7 downto 0);
-    NX_RESET_OUT       : out std_logic;
-    NX_TESTPULSE_OUT   : out std_logic;
+    CLK_IN                  : in std_logic;  
+    RESET_IN                : in std_logic;  
+    CLK_ADC_IN              : in std_logic;
+                            
+    -- I2C Ports            
+    I2C_SDA_INOUT           : inout std_logic;   -- nXyter I2C fdata line
+    I2C_SCL_INOUT           : inout std_logic;   -- nXyter I2C Clock line
+    I2C_SM_RESET_OUT        : out std_logic;     -- reset nXyter I2C SMachine 
+    I2C_REG_RESET_OUT       : out std_logic;     -- reset I2C registers 
+                            
+    -- ADC SPI              
+    SPI_SCLK_OUT            : out std_logic;
+    SPI_SDIO_INOUT          : inout std_logic;
+    SPI_CSB_OUT             : out std_logic;    
+                            
+    -- nXyter Timestamp      Ports
+    NX_CLK128_IN            : in std_logic;
+    NX_TIMESTAMP_IN         : in std_logic_vector (7 downto 0);
+    NX_RESET_OUT            : out std_logic;
+    NX_TESTPULSE_OUT        : out std_logic;
 
     -- ADC nXyter Pulse Hight Ports
-    ADC_FCLK_IN        : in std_logic;
-    ADC_DCLK_IN        : in std_logic;
-    ADC_SC_CLK32_OUT   : out std_logic;
-    ADC_A_IN           : in std_logic;
-    ADC_B_IN           : in std_logic;
-    ADC_NX_IN          : in std_logic;
-    ADC_D_IN           : in std_logic;        
+    ADC_FCLK_IN             : in  std_logic_vector(1 downto 0);
+    ADC_DCLK_IN             : in  std_logic_vector(1 downto 0);
+    ADC_SC_CLK32_OUT        : out std_logic;
+    ADC_A_IN                : in  std_logic_vector(1 downto 0);
+    ADC_B_IN                : in  std_logic_vector(1 downto 0);
+    ADC_NX_IN               : in  std_logic_vector(1 downto 0);
+    ADC_D_IN                : in  std_logic_vector(1 downto 0);        
     
     -- TRBNet RegIO Port for the slave bus
     REGIO_ADDR_IN           : in    std_logic_vector(15 downto 0);
@@ -198,7 +198,6 @@ begin
 --  
 --  
 --  DEBUG_LINE_OUT(8)            <= ADC_FCLK_IN;        
---  DEBUG_LINE_OUT(9)            <= ADC_DCLK_IN;        
 --  DEBUG_LINE_OUT(10)           <= ADC_SC_CLK32_OUT;
 --  DEBUG_LINE_OUT(11)           <= ADC_A_IN;
 --  DEBUG_LINE_OUT(12)           <= ADC_B_IN;
@@ -656,7 +655,6 @@ begin
 --       ADC_DATA(1)                => ADC_B_IN, -- adc_data_i,
 --       ADC_DATA(2)                => ADC_NX_IN, -- adc_data_i,
 --       ADC_DATA(3)                => ADC_D_IN, -- adc_data_i,
---       ADC_DCO(0)                 => ADC_DCLK_IN, -- adc_dat_clk_i,
 --       ADC_FCO(0)                 => ADC_FCLK_IN, -- adc_fco_clk_i,
 --       DATA_OUT(0)                => DEBUG_LINE_OUT(0), -- adc_data_word,
 --       FCO_OUT(0)                 => DEBUG_LINE_OUT(1), -- adc_fco,
@@ -664,11 +662,12 @@ begin
 --       DEBUG                      => open
 --       );
 
-
-  adc_ad9228_1: adc_ad9228
+  adc_receiver_1: adc_receiver
     port map (
       CLK_IN           => CLK_IN,
       RESET_IN         => RESET_IN,
+      CLK_ADC_IN       => CLK_ADC_IN,
+
       ADC_FCLK_IN      => ADC_FCLK_IN,
       ADC_DCLK_IN      => ADC_DCLK_IN,
       ADC_SC_CLK32_OUT => ADC_SC_CLK32_OUT,
@@ -676,9 +675,25 @@ begin
       ADC_B_IN         => ADC_B_IN,
       ADC_NX_IN        => ADC_NX_IN,
       ADC_D_IN         => ADC_D_IN,
+            
       --DEBUG_OUT        => open,
       DEBUG_OUT        => DEBUG_LINE_OUT
       );
+
+--  adc_ad9228_1: adc_ad9228
+--    port map (
+--      CLK_IN           => CLK_IN,
+--      RESET_IN         => RESET_IN,
+--      ADC_FCLK_IN      => ADC_FCLK_IN,
+--      ADC_DCLK_IN      => ADC_DCLK_IN,
+--      ADC_SC_CLK32_OUT => ADC_SC_CLK32_OUT,
+--      ADC_A_IN         => ADC_A_IN,
+--      ADC_B_IN         => ADC_B_IN,
+--      ADC_NX_IN        => ADC_NX_IN,
+--      ADC_D_IN         => ADC_D_IN,
+--      --DEBUG_OUT        => open,
+--      DEBUG_OUT        => DEBUG_LINE_OUT
+--      );
   
 -------------------------------------------------------------------------------
 -- nXyter Signals

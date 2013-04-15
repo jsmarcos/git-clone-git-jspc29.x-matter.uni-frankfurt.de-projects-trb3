@@ -12,7 +12,8 @@ component nXyter_FEE_board
   port (
     CLK_IN                 : in    std_logic;
     RESET_IN               : in    std_logic;
-
+    CLK_ADC_IN             : in    std_logic;
+        
     I2C_SDA_INOUT          : inout std_logic;
     I2C_SCL_INOUT          : inout std_logic;
     I2C_SM_RESET_OUT       : out   std_logic;
@@ -27,13 +28,13 @@ component nXyter_FEE_board
     NX_RESET_OUT           : out   std_logic;
     NX_TESTPULSE_OUT       : out   std_logic;
 
-    ADC_FCLK_IN            : in    std_logic;
-    ADC_DCLK_IN            : in    std_logic;
+    ADC_FCLK_IN            : in    std_logic_vector(1 downto 0);
+    ADC_DCLK_IN            : in    std_logic_vector(1 downto 0);
     ADC_SC_CLK32_OUT       : out   std_logic;
-    ADC_A_IN               : in    std_logic;
-    ADC_B_IN               : in    std_logic;
-    ADC_NX_IN              : in    std_logic;
-    ADC_D_IN               : in    std_logic;
+    ADC_A_IN               : in    std_logic_vector(1 downto 0);
+    ADC_B_IN               : in    std_logic_vector(1 downto 0);
+    ADC_NX_IN              : in    std_logic_vector(1 downto 0);
+    ADC_D_IN               : in    std_logic_vector(1 downto 0);
 
     REGIO_ADDR_IN          : in    std_logic_vector(15 downto 0);
     REGIO_DATA_IN          : in    std_logic_vector(31 downto 0);
@@ -265,9 +266,9 @@ component fifo_32to32_dc
     );
 end component;
 
-component fifo_dc_8to32_dyn
+component fifo_6to6_dc
   port (
-    Data          : in  std_logic_vector(7 downto 0);
+    Data          : in  std_logic_vector(5 downto 0);
     WrClock       : in  std_logic;
     RdClock       : in  std_logic;
     WrEn          : in  std_logic;
@@ -275,27 +276,23 @@ component fifo_dc_8to32_dyn
     Reset         : in  std_logic;
     RPReset       : in  std_logic;
     AmEmptyThresh : in  std_logic_vector(5 downto 0);
-    Q             : out std_logic_vector(31 downto 0);
+    Q             : out std_logic_vector(5 downto 0);
     Empty         : out std_logic;
     Full          : out std_logic;
     AlmostEmpty   : out std_logic
     );
 end component;
 
-component fifo_dc_9to36_dyn
+component fifo_32_data
   port (
-    Data         : in  std_logic_vector(8 downto 0);
-    WrClock      : in  std_logic;
-    RdClock      : in  std_logic;
-    WrEn         : in  std_logic;
-    RdEn         : in  std_logic;
-    Reset        : in  std_logic;
-    RPReset      : in  std_logic;
-    AmEmptyThresh: in  std_logic_vector(5 downto 0);
-    Q            : out std_logic_vector(35 downto 0);
-    Empty        : out std_logic;
-    Full         : out std_logic;
-    AlmostEmpty  : out  std_logic
+    Data  : in  std_logic_vector(31 downto 0);
+    Clock : in  std_logic;
+    WrEn  : in  std_logic;
+    RdEn  : in  std_logic;
+    Reset : in  std_logic;
+    Q     : out std_logic_vector(31 downto 0);
+    Empty : out std_logic;
+    Full  : out std_logic
     );
 end component;
 
@@ -383,18 +380,6 @@ component Gray_Encoder
     );
 end component;
 
-component fifo_32_data
-  port (
-    Data  : in  std_logic_vector(31 downto 0);
-    Clock : in  std_logic;
-    WrEn  : in  std_logic;
-    RdEn  : in  std_logic;
-    Reset : in  std_logic;
-    Q     : out std_logic_vector(31 downto 0);
-    Empty : out std_logic;
-    Full  : out std_logic
-    );
-end component;
 
 component nx_data_buffer
   port (
@@ -449,6 +434,22 @@ component pll_nx_clk250
     CLK   : in  std_logic;
     CLKOP : out std_logic;
     LOCK  : out std_logic);
+end component;
+
+component pll_adc_clk32
+  port (
+    CLK    : in  std_logic;
+    CLKOP  : out std_logic;
+    LOCK   : out std_logic
+    );
+end component;
+
+component pll_adc_clk192
+  port (
+    CLK   : in  std_logic;
+    CLKOP : out std_logic;
+    LOCK  : out std_logic
+    );
 end component;
 
 component pll_adc_clk3125
@@ -515,6 +516,40 @@ component nx_trigger_handler
     SLV_NO_MORE_DATA_OUT : out std_logic;
     SLV_UNKNOWN_ADDR_OUT : out std_logic;
     DEBUG_OUT            : out std_logic_vector(15 downto 0));
+end component;
+
+-------------------------------------------------------------------------------
+-- ADC Handler
+-------------------------------------------------------------------------------
+component adc_ad9228
+  port (
+    CLK_IN           : in  std_logic;
+    RESET_IN         : in  std_logic;
+    ADC_FCLK_IN      : in  std_logic;
+    ADC_DCLK_IN      : in  std_logic;
+    ADC_SC_CLK32_OUT : out std_logic;
+    ADC_A_IN         : in  std_logic;
+    ADC_B_IN         : in  std_logic;
+    ADC_NX_IN        : in  std_logic;
+    ADC_D_IN         : in  std_logic;
+    DEBUG_OUT        : out std_logic_vector(15 downto 0)
+    );
+end component;
+
+component adc_receiver
+  port (
+    CLK_IN           : in  std_logic;
+    RESET_IN         : in  std_logic;
+    CLK_ADC_IN       : in  std_logic;
+    ADC_FCLK_IN      : in  std_logic_vector(1 downto 0);
+    ADC_DCLK_IN      : in  std_logic_vector(1 downto 0);
+    ADC_SC_CLK32_OUT : out std_logic;
+    ADC_A_IN         : in  std_logic_vector(1 downto 0);
+    ADC_B_IN         : in  std_logic_vector(1 downto 0);
+    ADC_NX_IN        : in  std_logic_vector(1 downto 0);
+    ADC_D_IN         : in  std_logic_vector(1 downto 0);
+    DEBUG_OUT        : out std_logic_vector(15 downto 0)
+    );
 end component;
 
 -------------------------------------------------------------------------------
