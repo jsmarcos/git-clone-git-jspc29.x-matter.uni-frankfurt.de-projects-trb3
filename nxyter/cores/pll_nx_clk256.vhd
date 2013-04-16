@@ -2,7 +2,7 @@
 -- Module  Version: 5.3
 --/usr/local/opt/lattice_diamond/diamond/2.0/ispfpga/bin/lin/scuba -w -n pll_nx_clk256 -lang vhdl -synth synplify -arch ep5c00 -type pll -fin 100 -phase_cntl STATIC -fclkop 256 -fclkop_tol 0.0 -fb_mode CLOCKTREE -noclkos -noclkok -norst -noclkok2 -bw -e 
 
--- Wed Oct 24 17:29:56 2012
+-- Sat Apr 13 17:24:24 2013
 
 library IEEE;
 use IEEE.std_logic_1164.all;

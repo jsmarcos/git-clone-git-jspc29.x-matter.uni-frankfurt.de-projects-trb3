@@ -110,7 +110,7 @@ architecture Behavioral of nx_timestamp_fifo_read is
 
 begin
 
-  DEBUG_OUT(0)            <= NX_TIMESTAMP_CLK_IN;
+  DEBUG_OUT(0)            <= CLK_IN; --NX_TIMESTAMP_CLK_IN;
   DEBUG_OUT(1)            <= parity_error;
   DEBUG_OUT(2)            <= nx_new_frame;
   DEBUG_OUT(3)            <= rs_sync_set;
@@ -243,7 +243,8 @@ begin
         parity_error   <= '0';
         if (nx_new_frame = '1' and nx_frame_synced = '1') then
           -- Timestamp Bit #6 is excluded (funny nxyter-bug)
-          parity_bits         := fifo_32bit_word(31 downto 24) &
+          parity_bits         := fifo_32bit_word(31)           &
+                                 fifo_32bit_word(30 downto 24) &
                                  fifo_32bit_word(21 downto 16) &
                                  fifo_32bit_word(14 downto  8) &
                                  fifo_32bit_word( 2 downto  1);
