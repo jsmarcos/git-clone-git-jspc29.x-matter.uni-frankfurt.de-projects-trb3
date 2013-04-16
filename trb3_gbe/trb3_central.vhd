@@ -296,7 +296,7 @@ THE_RESET_HANDLER : trb_net_reset_handler
     DEBUG_OUT       => open
   );
 
-trb_reset_in <= med_stat_op(4*16+13) or reset_via_gbe; --_delayed(2);
+trb_reset_in <= med_stat_op(4*16+13) or reset_via_gbe_delayed(2);
 reset_i <= reset_i_temp;
 
 process begin
