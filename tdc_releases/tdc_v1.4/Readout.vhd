@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2013-03-20
+-- Last update: 2013-04-17
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -59,6 +59,7 @@ entity Readout is
     TRG_CODE_IN              : in  std_logic_vector(7 downto 0);
     TRG_INFORMATION_IN       : in  std_logic_vector(23 downto 0);
     TRG_TYPE_IN              : in  std_logic_vector(3 downto 0);
+    DATA_LIMIT_IN            : in  unsigned(7 downto 0);
 -- to the endpoint
     TRG_RELEASE_OUT          : out std_logic;
     TRG_STATUSBIT_OUT        : out std_logic_vector(31 downto 0);
@@ -268,14 +269,32 @@ begin  -- behavioral
     end if;
   end process Trg_Win_Calculation;
 
-  CaptureChannelWCount : process (CLK_200)
+  ---- Number of words to write out to trbnet
+  --Gen : for i in 0 to CHANNEL_NUMBER-1 generate
+  --  CaptureChannelWCount : process (CLK_200)
+  --  begin
+  --    if rising_edge(CLK_200) then
+  --      if trg_win_end_200_p = '1' then
+  --        if CH_WCNT_IN(i) < DATA_LIMIT_IN then
+  --          ch_wcnt_reg(i) <= CH_WCNT_IN(i) after 10 ps;
+  --        else
+  --          ch_wcnt_reg(i) <= DATA_LIMIT_IN after 10 ps;
+  --        end if;
+  --      end if;
+  --    end if;
+  --  end process CaptureChannelWCount;
+  --end generate Gen;
+
+  -- Number of words to read from the fifos
+  CaptureChannelRCount : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
       if trg_win_end_200_p = '1' then
         ch_wcnt_reg <= CH_WCNT_IN after 10 ps;
       end if;
     end if;
-  end process CaptureChannelWCount;
+  end process CaptureChannelRCount;
+
   ch_wcnt_2reg <= ch_wcnt_reg when rising_edge(CLK_100);
 
 -- Channel Hit Time Determination
@@ -351,8 +370,8 @@ begin  -- behavioral
   READ_EN_OUT <= rd_en;
 
   RD_FSM_PROC : process (RD_CURRENT, VALID_TIMING_TRG_IN, VALID_NOTIMING_TRG_IN, trg_win_end_100_p,
-                         ch_empty_reg, TRG_DATA_VALID_IN, INVALID_TRG_IN, TMGTRG_TIMEOUT_IN,
-                         TRG_TYPE_IN, SPURIOUS_TRG_IN, stop_status_i, DEBUG_MODE_EN_IN, rd_number, fifo_nr_rd)
+                         ch_empty_reg, TRG_DATA_VALID_IN, INVALID_TRG_IN, TMGTRG_TIMEOUT_IN, TRG_TYPE_IN,
+                         SPURIOUS_TRG_IN, stop_status_i, DEBUG_MODE_EN_IN, rd_number, fifo_nr_rd, ch_wcnt_2reg)
   begin
 
     start_trg_win_cnt_fsm <= '0';
@@ -412,7 +431,7 @@ begin  -- behavioral
       when RD_CH =>
         if rd_number /= ch_wcnt_2reg(fifo_nr_rd) then
           rd_en_fsm(fifo_nr_rd) <= '1';
-          rd_number_fsm         <= rd_number + to_unsigned(1, 8);
+          rd_number_fsm         <= rd_number + to_unsigned(1, 1);
           fifo_nr_rd_fsm        <= fifo_nr_rd;
           RD_NEXT               <= RD_CH;
         elsif fifo_nr_rd = CHANNEL_NUMBER-1 then
@@ -514,17 +533,20 @@ begin  -- behavioral
     case (WR_CURRENT) is
       when IDLE =>
         if trg_win_end_100_3reg = '1' then
-          wr_number_fsm <= ch_wcnt_2reg(0);
-          WR_NEXT       <= WR_CH;
+          WR_NEXT <= WR_CH;
         else
           WR_NEXT <= IDLE;
         end if;
         wr_fsm_debug_fsm <= x"1";
 --
       when WR_CH =>
-        if wr_number /= x"00" then
-          wr_ch_data_fsm   <= '1';
-          wr_number_fsm    <= wr_number - to_unsigned(1, 8);
+        if wr_number /= ch_wcnt_2reg(fifo_nr_wr) then
+          if wr_number >= DATA_LIMIT_IN then
+            wr_ch_data_fsm <= '0';
+          else
+            wr_ch_data_fsm <= '1';
+          end if;
+          wr_number_fsm    <= wr_number + to_unsigned(1, 1);
           fifo_nr_wr_fsm   <= fifo_nr_wr;
           wr_fsm_debug_fsm <= x"2";
         elsif fifo_nr_wr = CHANNEL_NUMBER-1 then
@@ -534,7 +556,7 @@ begin  -- behavioral
           wr_fsm_debug_fsm <= x"3";
           WR_NEXT          <= IDLE;
         else
-          wr_number_fsm    <= ch_wcnt_2reg(fifo_nr_wr+1);
+          wr_number_fsm    <= (others => '0');
           fifo_nr_wr_fsm   <= fifo_nr_wr + 1;
           wr_fsm_debug_fsm <= x"4";
         end if;

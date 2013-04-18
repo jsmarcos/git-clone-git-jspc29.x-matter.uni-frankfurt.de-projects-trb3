@@ -101,6 +101,7 @@ architecture TDC of TDC is
   signal run_mode_200                 : std_logic;
   signal trigger_win_en_i             : std_logic;
   signal ch_en_i                      : std_logic_vector(64 downto 1);
+  signal data_limit_i                 : unsigned(7 downto 0);
 -- Logic analyser
   signal logic_anal_data_i            : std_logic_vector(3*32-1 downto 0);
 -- Hit signals
@@ -152,6 +153,7 @@ begin
   run_mode_200       <= run_mode_i                 when rising_edge(CLK_TDC);  -- Run mode control register synchronised to the coarse counter clk
   trigger_win_en_i   <= CONTROL_REG_IN(1*32+31);
   ch_en_i            <= CONTROL_REG_IN(3*32+31 downto 2*32+0);
+  data_limit_i       <= unsigned(CONTROL_REG_IN(4*32+7 downto 4*32+0));
 
 -- Reset signal
   reset_tdc <= RESET;
@@ -253,6 +255,7 @@ begin
       TRG_CODE_IN              => TRG_CODE_IN,
       TRG_INFORMATION_IN       => TRG_INFORMATION_IN,
       TRG_TYPE_IN              => TRG_TYPE_IN,
+      DATA_LIMIT_IN            => data_limit_i,
       TRG_RELEASE_OUT          => TRG_RELEASE_OUT,
       TRG_STATUSBIT_OUT        => TRG_STATUSBIT_OUT,
       DATA_OUT                 => DATA_OUT,
