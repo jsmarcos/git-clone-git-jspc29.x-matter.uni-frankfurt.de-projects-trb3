@@ -158,12 +158,33 @@ begin
 -- Reset signal
   reset_tdc <= RESET;
 
--- Channel enable signals
+-- Channel and calibration enable signals
   GEN_Channel_Enable : for i in 1 to CHANNEL_NUMBER-1 generate
-    hit_in_i(i) <= HIT_IN(i) and ch_en_i(i);
+    process (ch_en_i, calibration_on, random, HIT_IN)
+    begin
+      if ch_en_i(i) = '1' then
+        if calibration_on = '1' then
+          hit_in_i(i) <=  random;
+        else
+          hit_in_i(i) <= HIT_IN(i)
+        end if;
+      else
+        hit_in_i(i) <= '0';
+      end if;
+    end process ;
+--    hit_in_i(i) <= HIT_IN(i) and ch_en_i(i);
   end generate GEN_Channel_Enable;
 
---  hit_in_i(1) <= REFERENCE_TIME;
+  CalibrationSwitch : process (CLK_READOUT)
+  begin
+    if rising_edge(CLK_READOUT) then
+      if TRG_TYPE_IN = x"C" then
+        calibration_on <= '1';
+      else
+        calibration_on <= '0';
+      end if;
+    end if;
+  end process CalibrationSwitch;
 
 -- Reference channel
   The_Reference_Time : Reference_Channel
