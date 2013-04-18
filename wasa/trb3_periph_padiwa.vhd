@@ -246,7 +246,7 @@ architecture trb3_periph_padiwa_arch of trb3_periph_padiwa is
   signal tdc_ctrl_read      : std_logic;
   signal last_tdc_ctrl_read : std_logic;
   signal tdc_ctrl_write     : std_logic;
-  signal tdc_ctrl_addr      : std_logic_vector(1 downto 0);
+  signal tdc_ctrl_addr      : std_logic_vector(2 downto 0);
   signal tdc_ctrl_data_in   : std_logic_vector(31 downto 0);
   signal tdc_ctrl_data_out  : std_logic_vector(31 downto 0);
   signal tdc_ctrl_reg       : std_logic_vector(5*32-1 downto 0);
@@ -511,7 +511,7 @@ begin
     generic map(
       PORT_NUMBER    => 9,
       PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"b000", 8 => x"c800", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 9, 8 => 2, others => 0)
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 9, 8 => 3, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -631,8 +631,8 @@ begin
       BUS_READ_ENABLE_OUT(8)              => tdc_ctrl_read,
       BUS_WRITE_ENABLE_OUT(8)             => tdc_ctrl_write,
       BUS_DATA_OUT(8*32+31 downto 8*32)   => tdc_ctrl_data_in,
-      BUS_ADDR_OUT(8*16+1 downto 8*16)    => tdc_ctrl_addr,
-      BUS_ADDR_OUT(8*16+15 downto 8*16+2) => open,
+      BUS_ADDR_OUT(8*16+2 downto 8*16)    => tdc_ctrl_addr,
+      BUS_ADDR_OUT(8*16+15 downto 8*16+3) => open,
       BUS_TIMEOUT_OUT(8)                  => open,
       BUS_DATA_IN(8*32+31 downto 8*32)    => tdc_ctrl_data_out,
       BUS_DATAREADY_IN(8)                 => last_tdc_ctrl_read,
