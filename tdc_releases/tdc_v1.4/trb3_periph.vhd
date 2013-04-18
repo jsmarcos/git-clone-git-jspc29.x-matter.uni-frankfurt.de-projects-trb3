@@ -230,7 +230,7 @@ architecture trb3_periph_arch of trb3_periph is
   signal tdc_ctrl_read      : std_logic;
   signal last_tdc_ctrl_read : std_logic;
   signal tdc_ctrl_write     : std_logic;
-  signal tdc_ctrl_addr      : std_logic_vector(1 downto 0);
+  signal tdc_ctrl_addr      : std_logic_vector(2 downto 0);
   signal tdc_ctrl_data_in   : std_logic_vector(31 downto 0);
   signal tdc_ctrl_data_out  : std_logic_vector(31 downto 0);
   signal tdc_ctrl_reg       : std_logic_vector(5*32-1 downto 0);
@@ -337,6 +337,7 @@ begin
   --                                      -- x"4" - Wasa AddOn
   --edge_type_i      <= x"0";             -- x"0" - single edge
   --                                      -- x"1" - double edge
+  --                                      -- x"8" - double edge on consecutive channels
   --tdc_channel_no_i <= x"6";             -- 2^n channels
   
   THE_ENDPOINT : trb_net16_endpoint_hades_full_handler
@@ -347,7 +348,7 @@ begin
       BROADCAST_BITMASK         => x"FF",
       BROADCAST_SPECIAL_ADDR    => x"48",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
-      REGIO_HARDWARE_VERSION    => x"91000060",  -- regio_hardware_version_i,
+      REGIO_HARDWARE_VERSION    => x"91000860",  -- regio_hardware_version_i,
       REGIO_INIT_ADDRESS        => x"f305",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
       CLOCK_FREQUENCY           => 125,
@@ -463,7 +464,7 @@ begin
     generic map(
       PORT_NUMBER    => 9,
       PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"c400", 8 => x"c800", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 7, 8 => 2, others => 0)
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 7, 8 => 3, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -580,8 +581,8 @@ begin
       BUS_READ_ENABLE_OUT(8)              => tdc_ctrl_read,
       BUS_WRITE_ENABLE_OUT(8)             => tdc_ctrl_write,
       BUS_DATA_OUT(8*32+31 downto 8*32)   => tdc_ctrl_data_in,
-      BUS_ADDR_OUT(8*16+1 downto 8*16)    => tdc_ctrl_addr,
-      BUS_ADDR_OUT(8*16+15 downto 8*16+2) => open,
+      BUS_ADDR_OUT(8*16+2 downto 8*16)    => tdc_ctrl_addr,
+      BUS_ADDR_OUT(8*16+15 downto 8*16+3) => open,
       BUS_TIMEOUT_OUT(8)                  => open,
       BUS_DATA_IN(8*32+31 downto 8*32)    => tdc_ctrl_data_out,
       BUS_DATAREADY_IN(8)                 => last_tdc_ctrl_read,
@@ -710,14 +711,14 @@ begin
 
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 5,              -- Number of TDC channels
-      CONTROL_REG_NR => 5)              -- Number of control regs
+      CHANNEL_NUMBER => 65,             -- Number of TDC channels
+      CONTROL_REG_NR => 5)  -- Number of control regs - higher than 8 check tdc_ctrl_addr
     port map (
       RESET                 => reset_i,
       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
-      REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
-      HIT_IN                => hit_in_i(4 downto 1),  -- Channel start signals
+      REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
+      HIT_IN                => hit_in_i(64 downto 1),  -- Channel start signals
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --
