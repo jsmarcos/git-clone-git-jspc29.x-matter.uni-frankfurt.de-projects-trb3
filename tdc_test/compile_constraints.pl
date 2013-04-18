@@ -4,8 +4,10 @@ use warnings;
 use strict;
 
 my $TOPNAME                      = "trb3_periph";  #Name of top-level entity
-my $BasePath                     = "../base/";     #path to "base" directory
+
 
 #create full lpf file
-system("cp ../base/trb3_periph_mainz.lpf workdir/$TOPNAME.lpf");
-system("cat ../tdc_releases/tdc_v0.5/".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
+system("cp ../base/trb3_periph_mainz.lpf diamond/$TOPNAME.lpf");
+system("cat ../tdc_releases/tdc_v1.4/trbnet_constraints.lpf >> diamond/$TOPNAME.lpf");
+system("cat ../tdc_releases/tdc_v1.4/tdc_constraints.lpf >> diamond/$TOPNAME.lpf");
+

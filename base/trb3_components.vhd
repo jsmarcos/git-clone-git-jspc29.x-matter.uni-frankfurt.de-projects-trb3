@@ -44,7 +44,7 @@ end component;
       );
   end component;
 
-  component TDC
+  component TDC is
     generic (
       CHANNEL_NUMBER : integer range 2 to 65;
       CONTROL_REG_NR : integer range 0 to 6);
@@ -56,18 +56,18 @@ end component;
       HIT_IN                : in  std_logic_vector(CHANNEL_NUMBER-1 downto 1);
       TRG_WIN_PRE           : in  std_logic_vector(10 downto 0);
       TRG_WIN_POST          : in  std_logic_vector(10 downto 0);
-      TRG_DATA_VALID_IN     : in  std_logic;
-      VALID_TIMING_TRG_IN   : in  std_logic;
-      VALID_NOTIMING_TRG_IN : in  std_logic;
-      INVALID_TRG_IN        : in  std_logic;
-      TMGTRG_TIMEOUT_IN     : in  std_logic;
-      SPIKE_DETECTED_IN     : in  std_logic;
-      MULTI_TMG_TRG_IN      : in  std_logic;
-      SPURIOUS_TRG_IN       : in  std_logic;
-      TRG_NUMBER_IN         : in  std_logic_vector(15 downto 0);
-      TRG_CODE_IN           : in  std_logic_vector(7 downto 0);
-      TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0);
-      TRG_TYPE_IN           : in  std_logic_vector(3 downto 0);
+      TRG_DATA_VALID_IN     : in  std_logic                     := '0';
+      VALID_TIMING_TRG_IN   : in  std_logic                     := '0';
+      VALID_NOTIMING_TRG_IN : in  std_logic                     := '0';
+      INVALID_TRG_IN        : in  std_logic                     := '0';
+      TMGTRG_TIMEOUT_IN     : in  std_logic                     := '0';
+      SPIKE_DETECTED_IN     : in  std_logic                     := '0';
+      MULTI_TMG_TRG_IN      : in  std_logic                     := '0';
+      SPURIOUS_TRG_IN       : in  std_logic                     := '0';
+      TRG_NUMBER_IN         : in  std_logic_vector(15 downto 0) := (others => '0');
+      TRG_CODE_IN           : in  std_logic_vector(7 downto 0)  := (others => '0');
+      TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0) := (others => '0');
+      TRG_TYPE_IN           : in  std_logic_vector(3 downto 0)  := (others => '0');
       TRG_RELEASE_OUT       : out std_logic;
       TRG_STATUSBIT_OUT     : out std_logic_vector(31 downto 0);
       DATA_OUT              : out std_logic_vector(31 downto 0);
@@ -91,12 +91,12 @@ end component;
       ESB_DATA_OUT          : out std_logic_vector(31 downto 0);
       ESB_DATAREADY_OUT     : out std_logic;
       ESB_UNKNOWN_ADDR_OUT  : out std_logic;
-      FWB_READ_EN_IN        : in  std_logic;
-      FWB_WRITE_EN_IN       : in  std_logic;
-      FWB_ADDR_IN           : in  std_logic_vector(6 downto 0);
-      FWB_DATA_OUT          : out std_logic_vector(31 downto 0);
-      FWB_DATAREADY_OUT     : out std_logic;
-      FWB_UNKNOWN_ADDR_OUT  : out std_logic;
+      EFB_READ_EN_IN        : in  std_logic;
+      EFB_WRITE_EN_IN       : in  std_logic;
+      EFB_ADDR_IN           : in  std_logic_vector(6 downto 0);
+      EFB_DATA_OUT          : out std_logic_vector(31 downto 0);
+      EFB_DATAREADY_OUT     : out std_logic;
+      EFB_UNKNOWN_ADDR_OUT  : out std_logic;
       LHB_READ_EN_IN        : in  std_logic;
       LHB_WRITE_EN_IN       : in  std_logic;
       LHB_ADDR_IN           : in  std_logic_vector(6 downto 0);
@@ -105,7 +105,7 @@ end component;
       LHB_UNKNOWN_ADDR_OUT  : out std_logic;
       LOGIC_ANALYSER_OUT    : out std_logic_vector(15 downto 0);
       CONTROL_REG_IN        : in  std_logic_vector(32*CONTROL_REG_NR-1 downto 0));
-  end component;
+  end component TDC;
   
   component Reference_Channel
     generic (
@@ -160,7 +160,7 @@ end component;
       COARSE_COUNTER_IN      : in  std_logic_vector(10 downto 0));
   end component;
 
-  component Channel
+  component Channel is
     generic (
       CHANNEL_ID : integer range 0 to 64);
     port (
@@ -170,8 +170,6 @@ end component;
       CLK_200                 : in  std_logic;
       CLK_100                 : in  std_logic;
       HIT_IN                  : in  std_logic;
-      TRIGGER_IN              : in  std_logic;
-      SCALER_IN               : in  std_logic;
       TRIGGER_WIN_END_IN      : in  std_logic;
       READ_EN_IN              : in  std_logic;
       FIFO_DATA_OUT           : out std_logic_vector(35 downto 0);
@@ -181,16 +179,14 @@ end component;
       FIFO_ALMOST_FULL_OUT    : out std_logic;
       COARSE_COUNTER_IN       : in  std_logic_vector(10 downto 0);
       EPOCH_COUNTER_IN        : in  std_logic_vector(27 downto 0);
-      DATA_FINISHED_IN        : in  std_logic;
       LOST_HIT_NUMBER         : out std_logic_vector(23 downto 0);
       HIT_DETECT_NUMBER       : out std_logic_vector(23 downto 0);
-      FIFO_WR_NUMBER          : out std_logic_vector(23 downto 0);      
       ENCODER_START_NUMBER    : out std_logic_vector(23 downto 0);
       ENCODER_FINISHED_NUMBER : out std_logic_vector(23 downto 0);
       Channel_DEBUG           : out std_logic_vector(31 downto 0));
-  end component;
-  
-  component Channel_200
+  end component Channel;
+
+  component Channel_200 is
     generic (
       CHANNEL_ID : integer range 0 to 64);
     port (
@@ -199,11 +195,8 @@ end component;
       CLK_100              : in  std_logic;
       RESET_100            : in  std_logic;
       HIT_IN               : in  std_logic;
-      TRIGGER_IN           : in  std_logic;
-      SCALER_IN            : in  std_logic;
       TRIGGER_WIN_END_IN   : in  std_logic;
       EPOCH_COUNTER_IN     : in  std_logic_vector(27 downto 0);
-      DATA_FINISHED_IN     : in  std_logic;
       COARSE_COUNTER_IN    : in  std_logic_vector(10 downto 0);
       READ_EN_IN           : in  std_logic;
       FIFO_DATA_OUT        : out std_logic_vector(35 downto 0);
@@ -211,12 +204,11 @@ end component;
       FIFO_EMPTY_OUT       : out std_logic;
       FIFO_FULL_OUT        : out std_logic;
       FIFO_ALMOST_FULL_OUT : out std_logic;
-      FIFO_WR_OUT          : out std_logic;
       ENCODER_START_OUT    : out std_logic;
       ENCODER_FINISHED_OUT : out std_logic);
-  end component;
-  
-  component Readout
+  end component Channel_200;
+
+  component Readout is
     generic (
       CHANNEL_NUMBER : integer range 2 to 65);
     port (
@@ -248,18 +240,17 @@ end component;
       TRG_CODE_IN              : in  std_logic_vector(7 downto 0);
       TRG_INFORMATION_IN       : in  std_logic_vector(23 downto 0);
       TRG_TYPE_IN              : in  std_logic_vector(3 downto 0);
+      DATA_LIMIT_IN            : in  unsigned(7 downto 0);
       TRG_RELEASE_OUT          : out std_logic;
       TRG_STATUSBIT_OUT        : out std_logic_vector(31 downto 0);
       DATA_OUT                 : out std_logic_vector(31 downto 0);
       DATA_WRITE_OUT           : out std_logic;
       DATA_FINISHED_OUT        : out std_logic;
       READ_EN_OUT              : out std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-      HIT_IN                   : in  std_logic_vector(CHANNEL_NUMBER-1 downto 1);      
-      READOUT_BUSY_OUT         : out std_logic;
       TRIGGER_WIN_END_OUT      : out std_logic;
       STATUS_REGISTERS_BUS_OUT : out std_logic_vector_array_32(0 to 18);
       READOUT_DEBUG            : out std_logic_vector(31 downto 0));
-  end component;
+  end component Readout;
   
   component LogicAnalyser
     generic (
