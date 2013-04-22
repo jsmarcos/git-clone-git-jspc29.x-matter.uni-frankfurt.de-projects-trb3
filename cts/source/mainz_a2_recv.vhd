@@ -50,9 +50,9 @@ end entity;
 
 architecture arch1 of mainz_a2_recv is
 
-	constant timeoutcnt_Max : integer := 2000000; -- x 10 ns = 20us maximum
-	                                             -- time until trigger id can
-	                                             -- be received;
+	constant timeoutcnt_Max : integer := 50000; -- x 10 ns = 500us maximum
+	                                            -- time until trigger id can
+	                                            -- be received;
 	signal timeoutcnt : integer range 0 to timeoutcnt_Max := timeoutcnt_Max;
 	
 	signal shift_reg : std_logic_vector(34 downto 0);
