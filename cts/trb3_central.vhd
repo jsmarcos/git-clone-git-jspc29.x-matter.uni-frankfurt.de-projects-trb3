@@ -1255,12 +1255,12 @@ gen_TDC : if INCLUDE_TDC = c_YES generate
       ESB_DATAREADY_OUT     => esb_data_ready,    -- bus data ready strobe
       ESB_UNKNOWN_ADDR_OUT  => esb_invalid,   -- bus invalid addr
       --Fifo Write Registers Bus
-      FWB_READ_EN_IN        => fwb_read_en,   -- bus read en strobe
-      FWB_WRITE_EN_IN       => fwb_write_en,  -- bus write en strobe
-      FWB_ADDR_IN           => fwb_addr,    -- bus address
-      FWB_DATA_OUT          => fwb_data_out,  -- bus data
-      FWB_DATAREADY_OUT     => fwb_data_ready,    -- bus data ready strobe
-      FWB_UNKNOWN_ADDR_OUT  => fwb_invalid,   -- bus invalid addr
+      EFB_READ_EN_IN        => fwb_read_en,   -- bus read en strobe
+      EFB_WRITE_EN_IN       => fwb_write_en,  -- bus write en strobe
+      EFB_ADDR_IN           => fwb_addr,    -- bus address
+      EFB_DATA_OUT          => fwb_data_out,  -- bus data
+      EFB_DATAREADY_OUT     => fwb_data_ready,    -- bus data ready strobe
+      EFB_UNKNOWN_ADDR_OUT  => fwb_invalid,   -- bus invalid addr
       --Lost Hit Registers Bus
       LHB_READ_EN_IN        => '0', -- lhb_read_en,   -- bus read en strobe
       LHB_WRITE_EN_IN       => '0', -- lhb_write_en,  -- bus write en strobe
