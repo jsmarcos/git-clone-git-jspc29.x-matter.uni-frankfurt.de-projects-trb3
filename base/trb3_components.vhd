@@ -25,14 +25,14 @@ package trb3_components is
 --   end component;
 
 
-component oddr is
+  component oddr is
     port (
-        clk: in  std_logic; 
-        clkout: out  std_logic; 
-        da: in  std_logic_vector(0 downto 0); 
-        db: in  std_logic_vector(0 downto 0); 
-        q: out  std_logic_vector(0 downto 0));
-end component;
+      clk    : in  std_logic;
+      clkout : out std_logic;
+      da     : in  std_logic_vector(0 downto 0);
+      db     : in  std_logic_vector(0 downto 0);
+      q      : out std_logic_vector(0 downto 0));
+  end component;
 
 
   component pll_in125_out125
@@ -97,6 +97,12 @@ end component;
       EFB_DATA_OUT          : out std_logic_vector(31 downto 0);
       EFB_DATAREADY_OUT     : out std_logic;
       EFB_UNKNOWN_ADDR_OUT  : out std_logic;
+      FWB_READ_EN_IN        : in  std_logic;  -- not used after version 1.3
+      FWB_WRITE_EN_IN       : in  std_logic;  -- not used after version 1.3
+      FWB_ADDR_IN           : in  std_logic_vector(6 downto 0);  -- not used after version 1.3
+      FWB_DATA_OUT          : out std_logic_vector(31 downto 0);  -- not used after version 1.3
+      FWB_DATAREADY_OUT     : out std_logic;  -- not used after version 1.3
+      FWB_UNKNOWN_ADDR_OUT  : out std_logic;  -- not used after version 1.3
       LHB_READ_EN_IN        : in  std_logic;
       LHB_WRITE_EN_IN       : in  std_logic;
       LHB_ADDR_IN           : in  std_logic_vector(6 downto 0);
@@ -106,7 +112,7 @@ end component;
       LOGIC_ANALYSER_OUT    : out std_logic_vector(15 downto 0);
       CONTROL_REG_IN        : in  std_logic_vector(32*CONTROL_REG_NR-1 downto 0));
   end component TDC;
-  
+
   component Reference_Channel
     generic (
       CHANNEL_ID : integer range 0 to 0);
@@ -170,6 +176,7 @@ end component;
       CLK_200                 : in  std_logic;
       CLK_100                 : in  std_logic;
       HIT_IN                  : in  std_logic;
+      TRIGGER_IN              : in  std_logic;  -- not used after version 1.3
       TRIGGER_WIN_END_IN      : in  std_logic;
       READ_EN_IN              : in  std_logic;
       FIFO_DATA_OUT           : out std_logic_vector(35 downto 0);
@@ -195,6 +202,7 @@ end component;
       CLK_100              : in  std_logic;
       RESET_100            : in  std_logic;
       HIT_IN               : in  std_logic;
+      TRIGGER_IN           : in  std_logic;  -- not used after version 1.3
       TRIGGER_WIN_END_IN   : in  std_logic;
       EPOCH_COUNTER_IN     : in  std_logic_vector(27 downto 0);
       COARSE_COUNTER_IN    : in  std_logic_vector(10 downto 0);
@@ -251,7 +259,7 @@ end component;
       STATUS_REGISTERS_BUS_OUT : out std_logic_vector_array_32(0 to 18);
       READOUT_DEBUG            : out std_logic_vector(31 downto 0));
   end component Readout;
-  
+
   component LogicAnalyser
     generic (
       CHANNEL_NUMBER : integer range 2 to 65);
@@ -514,61 +522,61 @@ end component;
   end component;
 
 
-component med_ecp3_sfp_sync is
-  generic(
-    SERDES_NUM : integer range 0 to 3 := 0;
+  component med_ecp3_sfp_sync is
+    generic(
+      SERDES_NUM    : integer range 0 to 3 := 0;
 --     MASTER_CLOCK_SWITCH : integer := c_NO;   --just for debugging, should be NO
-    IS_SYNC_SLAVE   : integer := c_NO       --select slave mode
-    );
-  port(
-    CLK                : in  std_logic; -- _internal_ 200 MHz reference clock
-    SYSCLK             : in  std_logic; -- 100 MHz main clock net, synchronous to RX clock
-    RESET              : in  std_logic; -- synchronous reset
-    CLEAR              : in  std_logic; -- asynchronous reset
-    --Internal Connection TX
-    MED_DATA_IN        : in  std_logic_vector(c_DATA_WIDTH-1 downto 0);
-    MED_PACKET_NUM_IN  : in  std_logic_vector(c_NUM_WIDTH-1 downto 0);
-    MED_DATAREADY_IN   : in  std_logic;
-    MED_READ_OUT       : out std_logic := '0';
-    --Internal Connection RX
-    MED_DATA_OUT       : out std_logic_vector(c_DATA_WIDTH-1 downto 0) := (others => '0');
-    MED_PACKET_NUM_OUT : out std_logic_vector(c_NUM_WIDTH-1 downto 0) := (others => '0');
-    MED_DATAREADY_OUT  : out std_logic := '0';
-    MED_READ_IN        : in  std_logic;
-    CLK_RX_HALF_OUT    : out std_logic := '0';  --received 100 MHz
-    CLK_RX_FULL_OUT    : out std_logic := '0';  --received 200 MHz
-    
-    --Sync operation
-    RX_DLM             : out std_logic := '0';
-    RX_DLM_WORD        : out std_logic_vector(7 downto 0) := x"00";
-    TX_DLM             : in  std_logic := '0';
-    TX_DLM_WORD        : in  std_logic_vector(7 downto 0) := x"00";
-    
-    --SFP Connection
-    SD_RXD_P_IN        : in  std_logic;
-    SD_RXD_N_IN        : in  std_logic;
-    SD_TXD_P_OUT       : out std_logic;
-    SD_TXD_N_OUT       : out std_logic;
-    SD_REFCLK_P_IN     : in  std_logic;  --not used
-    SD_REFCLK_N_IN     : in  std_logic;  --not used
-    SD_PRSNT_N_IN      : in  std_logic;  -- SFP Present ('0' = SFP in place, '1' = no SFP mounted)
-    SD_LOS_IN          : in  std_logic;  -- SFP Loss Of Signal ('0' = OK, '1' = no signal)
-    SD_TXDIS_OUT       : out  std_logic := '0'; -- SFP disable
-    --Control Interface
-    SCI_DATA_IN        : in  std_logic_vector(7 downto 0) := (others => '0');
-    SCI_DATA_OUT       : out std_logic_vector(7 downto 0) := (others => '0');
-    SCI_ADDR           : in  std_logic_vector(8 downto 0) := (others => '0');
-    SCI_READ           : in  std_logic := '0';
-    SCI_WRITE          : in  std_logic := '0';
-    SCI_ACK            : out std_logic := '0';
-    SCI_NACK           : out std_logic := '0';
-    -- Status and control port
-    STAT_OP            : out std_logic_vector (15 downto 0);
-    CTRL_OP            : in  std_logic_vector (15 downto 0) := (others => '0');
-    STAT_DEBUG         : out std_logic_vector (63 downto 0);
-    CTRL_DEBUG         : in  std_logic_vector (63 downto 0) := (others => '0')
-   );
-end component;  
+      IS_SYNC_SLAVE : integer              := c_NO  --select slave mode
+      );
+    port(
+      CLK                : in  std_logic;  -- _internal_ 200 MHz reference clock
+      SYSCLK             : in  std_logic;  -- 100 MHz main clock net, synchronous to RX clock
+      RESET              : in  std_logic;  -- synchronous reset
+      CLEAR              : in  std_logic;  -- asynchronous reset
+      --Internal Connection TX
+      MED_DATA_IN        : in  std_logic_vector(c_DATA_WIDTH-1 downto 0);
+      MED_PACKET_NUM_IN  : in  std_logic_vector(c_NUM_WIDTH-1 downto 0);
+      MED_DATAREADY_IN   : in  std_logic;
+      MED_READ_OUT       : out std_logic                                 := '0';
+      --Internal Connection RX
+      MED_DATA_OUT       : out std_logic_vector(c_DATA_WIDTH-1 downto 0) := (others => '0');
+      MED_PACKET_NUM_OUT : out std_logic_vector(c_NUM_WIDTH-1 downto 0)  := (others => '0');
+      MED_DATAREADY_OUT  : out std_logic                                 := '0';
+      MED_READ_IN        : in  std_logic;
+      CLK_RX_HALF_OUT    : out std_logic                                 := '0';  --received 100 MHz
+      CLK_RX_FULL_OUT    : out std_logic                                 := '0';  --received 200 MHz
+
+      --Sync operation
+      RX_DLM      : out std_logic                    := '0';
+      RX_DLM_WORD : out std_logic_vector(7 downto 0) := x"00";
+      TX_DLM      : in  std_logic                    := '0';
+      TX_DLM_WORD : in  std_logic_vector(7 downto 0) := x"00";
+
+      --SFP Connection
+      SD_RXD_P_IN    : in  std_logic;
+      SD_RXD_N_IN    : in  std_logic;
+      SD_TXD_P_OUT   : out std_logic;
+      SD_TXD_N_OUT   : out std_logic;
+      SD_REFCLK_P_IN : in  std_logic;   --not used
+      SD_REFCLK_N_IN : in  std_logic;   --not used
+      SD_PRSNT_N_IN  : in  std_logic;  -- SFP Present ('0' = SFP in place, '1' = no SFP mounted)
+      SD_LOS_IN      : in  std_logic;  -- SFP Loss Of Signal ('0' = OK, '1' = no signal)
+      SD_TXDIS_OUT   : out std_logic                      := '0';  -- SFP disable
+      --Control Interface
+      SCI_DATA_IN    : in  std_logic_vector(7 downto 0)   := (others => '0');
+      SCI_DATA_OUT   : out std_logic_vector(7 downto 0)   := (others => '0');
+      SCI_ADDR       : in  std_logic_vector(8 downto 0)   := (others => '0');
+      SCI_READ       : in  std_logic                      := '0';
+      SCI_WRITE      : in  std_logic                      := '0';
+      SCI_ACK        : out std_logic                      := '0';
+      SCI_NACK       : out std_logic                      := '0';
+      -- Status and control port
+      STAT_OP        : out std_logic_vector (15 downto 0);
+      CTRL_OP        : in  std_logic_vector (15 downto 0) := (others => '0');
+      STAT_DEBUG     : out std_logic_vector (63 downto 0);
+      CTRL_DEBUG     : in  std_logic_vector (63 downto 0) := (others => '0')
+      );
+  end component;
   
 
 end package;
