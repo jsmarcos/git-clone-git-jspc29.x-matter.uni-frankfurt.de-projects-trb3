@@ -407,7 +407,8 @@ architecture trb3_central_arch of trb3_central is
 
 begin
 -- MBS Module
- THE_MBS: entity work.mbs_vulom_recv
+	gen_mbs_vulom_as_etm : if ETM_CHOICE = ETM_CHOICE_MBS_VULOM generate
+	THE_MBS: entity work.mbs_vulom_recv
    port map (
       CLK => clk_100_i,
       RESET_IN => reset_i,
@@ -429,13 +430,38 @@ begin
       
       DEBUG => cts_ext_debug
    );
+	end generate;
 
+	gen_mainz_a2_as_etm: if ETM_CHOICE = ETM_CHOICE_MAINZ_A2 generate
+		mainz_a2_recv_1: entity work.mainz_a2_recv
+			port map (
+				CLK						 => clk_100_i,
+				RESET_IN			 => reset_i,
+				SERIAL_IN			 => CLK_EXT(3),
+				EXT_TRG_IN		 => CLK_EXT(4),
+				--TRG_ASYNC_OUT	 => TRG_ASYNC_OUT,
+				TRG_SYNC_OUT	 => cts_ext_trigger,
+				TRIGGER_IN     => cts_rdo_trg_data_valid,
+				DATA_OUT       => cts_rdo_additional_data(31 downto 0),
+				WRITE_OUT      => cts_rdo_additional_write(0),
+				STATUSBIT_OUT  => cts_rdo_trg_status_bits_additional(31 downto 0),
+				FINISHED_OUT   => cts_rdo_additional_finished(0),
+
+				CONTROL_REG_IN => cts_ext_control,
+				STATUS_REG_OUT => cts_ext_status,
+				
+				DEBUG => cts_ext_debug
+				);
+	end generate;
+
+	
+	
    trigger_in_buf_i(1 downto 0) <= CLK_EXT;
    trigger_in_buf_i(3 downto 2) <= TRIGGER_EXT(3 downto 2);
 
  THE_CTS: CTS 
    generic map (
-      EXTERNAL_TRIGGER_ID  => X"60", --, fill in trigger logic enumeration id of external trigger logic
+      EXTERNAL_TRIGGER_ID  => X"60"+ETM_CHOICE_type'pos(ETM_CHOICE), --, fill in trigger logic enumeration id of external trigger logic
       TRIGGER_INPUT_COUNT  => 4,
       TRIGGER_COIN_COUNT   => 4,
       TRIGGER_PULSER_COUNT => 4,

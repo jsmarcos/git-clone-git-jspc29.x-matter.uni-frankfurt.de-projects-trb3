@@ -19,7 +19,11 @@ package config is
     
 --Run wih 125 MHz instead of 100 MHz     
     constant USE_125_MHZ : integer range c_NO to c_YES := c_YES;    
-   
+
+--Which external trigger module (ETM) to use?
+    type ETM_CHOICE_type is (ETM_CHOICE_MBS_VULOM, ETM_CHOICE_MAINZ_A2);
+    constant ETM_CHOICE : ETM_CHOICE_type := ETM_CHOICE_MBS_VULOM;
+    
 ------------------------------------------------------------------------------
 --End of configuration
 ------------------------------------------------------------------------------
