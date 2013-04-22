@@ -667,6 +667,7 @@ begin
                   if eb_mask_buf_i(i) = '1' then
                      eb_mask_buf_i(i) <= '0';
                      eb_selection_i <= STD_LOGIC_VECTOR(TO_UNSIGNED(i, 4));
+                     exit;
                   end if;
                end loop;
             else
@@ -830,7 +831,7 @@ begin
             throttle_enabled_i <= '0';
             stop_triggers_i <= '0';
 
-            eb_aggr_threshold_i <= x"10";
+            eb_aggr_threshold_i <= x"00";
             eb_mask_i     <= (0 => '1', others => '0');
             eb_special_calibration_eb_i <= x"0";
             eb_use_special_calibration_eb_i <= '0';
@@ -859,24 +860,18 @@ begin
                transfer_debug_limits_i     <= '1';
                
                cts_regio_write_ack_out_i   <= '1';
-               cts_regio_unknown_addr_out_i <= '0';
-               
             end if;
             
             if addr = 16#09# and cts_regio_write_enable_in_i = '1' then
                ro_configuration_i <= cts_regio_data_in_i(ro_configuration_i'RANGE);
-
                cts_regio_write_ack_out_i   <= '1';
-               cts_regio_unknown_addr_out_i <= '0';
             end if;
          
             if addr = 16#0c# and cts_regio_write_enable_in_i = '1' then
                throttle_threshold_i <= UNSIGNED(cts_regio_data_in_i(throttle_threshold_i'RANGE));
                throttle_enabled_i   <= cts_regio_data_in_i(throttle_threshold_i'LENGTH);
                stop_triggers_i      <= cts_regio_data_in_i(31);
-
                cts_regio_write_ack_out_i   <= '1';
-               cts_regio_unknown_addr_out_i <= '0';
             end if;
 
             if addr = 16#0d# and cts_regio_write_enable_in_i = '1' then
@@ -884,9 +879,6 @@ begin
                eb_aggr_threshold_i <= UNSIGNED(cts_regio_data_in_i(23 downto 16));
                eb_special_calibration_eb_i <= cts_regio_data_in_i(27 downto 24);
                eb_use_special_calibration_eb_i <= cts_regio_data_in_i(28);
-
-               cts_regio_write_ack_out_i   <= '1';
-               cts_regio_unknown_addr_out_i <= '0';
             end if;
          end if;
       end if;
