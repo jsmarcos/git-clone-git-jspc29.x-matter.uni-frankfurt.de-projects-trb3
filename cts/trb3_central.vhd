@@ -344,6 +344,7 @@ architecture trb3_central_arch of trb3_central is
 
   signal cts_trigger_out             : std_logic;
   signal external_send_reset         : std_logic;
+  --bit 1 ms-tick, 0 us-tick
   signal timer_ticks                 : std_logic_vector(1 downto 0);
   
   signal trigger_busy_i              : std_logic;
@@ -432,11 +433,13 @@ begin
    );
 	end generate;
 
+-- Mainz A2 Module
 	gen_mainz_a2_as_etm: if ETM_CHOICE = ETM_CHOICE_MAINZ_A2 generate
 		mainz_a2_recv_1: entity work.mainz_a2_recv
 			port map (
 				CLK						 => clk_100_i,
 				RESET_IN			 => reset_i,
+				TIMER_TICK_1US_IN => timer_ticks(0),
 				SERIAL_IN			 => CLK_EXT(3),
 				EXT_TRG_IN		 => CLK_EXT(4),
 				--TRG_ASYNC_OUT	 => TRG_ASYNC_OUT,
