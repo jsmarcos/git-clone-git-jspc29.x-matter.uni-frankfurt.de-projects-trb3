@@ -125,7 +125,26 @@ package cts_pkg is
       DEBUG          : out std_logic_vector(31 downto 0)    
       );
    end component;   
-   
+
+	 component mainz_a2_recv is
+		 port (
+			 CLK							 : in	 std_logic;
+			 RESET_IN					 : in	 std_logic;
+			 TIMER_TICK_1US_IN : in	 std_logic;
+			 SERIAL_IN				 : in	 std_logic;
+			 EXT_TRG_IN				 : in	 std_logic;
+			 TRG_ASYNC_OUT		 : out std_logic;
+			 TRG_SYNC_OUT			 : out std_logic;
+			 TRIGGER_IN				 : in	 std_logic;
+			 DATA_OUT					 : out std_logic_vector(31 downto 0);
+			 WRITE_OUT				 : out std_logic;
+			 STATUSBIT_OUT		 : out std_logic_vector(31 downto 0);
+			 FINISHED_OUT			 : out std_logic;
+			 CONTROL_REG_IN		 : in	 std_logic_vector(31 downto 0);
+			 STATUS_REG_OUT		 : out std_logic_vector(31 downto 0) := (others => '0');
+			 DEBUG						 : out std_logic_vector(31 downto 0));
+	 end component mainz_a2_recv;
+	 
    component CTS_TRIGGER is
       generic (
          TRIGGER_INPUT_COUNT  : integer range 1 to  8 := 4;
