@@ -100,6 +100,8 @@ architecture trb3_periph_padiwa_arch of trb3_periph_padiwa is
   --Clock / Reset
   signal clk_100_i                   : std_logic;  --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i                   : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
+  signal clk_125_i                   : std_logic;  -- 125 MHz, via Clock Manager and bypassed PLL
+  signal clk_20_i                    : std_logic;  -- clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
   signal pll_lock                    : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
   signal clear_i                     : std_logic;
   signal reset_i                     : std_logic;
@@ -246,7 +248,7 @@ architecture trb3_periph_padiwa_arch of trb3_periph_padiwa is
   signal tdc_ctrl_read      : std_logic;
   signal last_tdc_ctrl_read : std_logic;
   signal tdc_ctrl_write     : std_logic;
-  signal tdc_ctrl_addr      : std_logic_vector(1 downto 0);
+  signal tdc_ctrl_addr      : std_logic_vector(2 downto 0);
   signal tdc_ctrl_data_in   : std_logic_vector(31 downto 0);
   signal tdc_ctrl_data_out  : std_logic_vector(31 downto 0);
   signal tdc_ctrl_reg       : std_logic_vector(5*32-1 downto 0);
@@ -307,6 +309,14 @@ begin
       CLKOK => clk_200_internal,
       LOCK  => pll_lock
       );
+
+  -- generates hits for calibration uncorrelated with tdc clk
+  THE_CALIBRATION_PLL : pll_in125_out20
+    port map (
+      CLK   => CLK_GPLL_LEFT,
+      CLKOP => clk_20_i,
+      CLKOK => clk_125_i,
+      LOCK  => open);
 
   gen_sync_clocks : if SYNC_MODE = c_YES generate
     clk_100_i <= rx_clock_100;
@@ -511,7 +521,7 @@ begin
     generic map(
       PORT_NUMBER    => 9,
       PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"b000", 8 => x"c800", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 9, 8 => 2, others => 0)
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 9, 8 => 3, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -631,8 +641,8 @@ begin
       BUS_READ_ENABLE_OUT(8)              => tdc_ctrl_read,
       BUS_WRITE_ENABLE_OUT(8)             => tdc_ctrl_write,
       BUS_DATA_OUT(8*32+31 downto 8*32)   => tdc_ctrl_data_in,
-      BUS_ADDR_OUT(8*16+1 downto 8*16)    => tdc_ctrl_addr,
-      BUS_ADDR_OUT(8*16+15 downto 8*16+2) => open,
+      BUS_ADDR_OUT(8*16+2 downto 8*16)    => tdc_ctrl_addr,
+      BUS_ADDR_OUT(8*16+15 downto 8*16+3) => open,
       BUS_TIMEOUT_OUT(8)                  => open,
       BUS_DATA_IN(8*32+31 downto 8*32)    => tdc_ctrl_data_out,
       BUS_DATAREADY_IN(8)                 => last_tdc_ctrl_read,
@@ -775,14 +785,15 @@ begin
 -------------------------------------------------------------------------------
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 65,             -- Number of TDC channels
+      CHANNEL_NUMBER => 5,             -- Number of TDC channels
       CONTROL_REG_NR => 5)
     port map (
       RESET                 => reset_i,
       CLK_TDC               => clk_tdc,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
-      HIT_IN                => hit_in_i(64 downto 1),  -- Channel start signals
+      HIT_IN                => hit_in_i(4 downto 1),  -- Channel start signals
+      HIT_CALIBRATION       => clk_20_i,    -- Hits for calibrating the TDC
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --

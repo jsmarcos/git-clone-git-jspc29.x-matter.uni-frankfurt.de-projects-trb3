@@ -19,6 +19,7 @@ entity TDC is
     CLK_READOUT           : in  std_logic;
     REFERENCE_TIME        : in  std_logic;
     HIT_IN                : in  std_logic_vector(CHANNEL_NUMBER-1 downto 1);
+    HIT_CALIBRATION       : in  std_logic;
     TRG_WIN_PRE           : in  std_logic_vector(10 downto 0);
     TRG_WIN_POST          : in  std_logic_vector(10 downto 0);
 --
@@ -102,6 +103,7 @@ architecture TDC of TDC is
   signal trigger_win_en_i             : std_logic;
   signal ch_en_i                      : std_logic_vector(64 downto 1);
   signal data_limit_i                 : unsigned(7 downto 0);
+  signal calibration_on               : std_logic;  -- turns on calibration for trig type 0xC
 -- Logic analyser
   signal logic_anal_data_i            : std_logic_vector(3*32-1 downto 0);
 -- Hit signals
@@ -160,13 +162,13 @@ begin
 
 -- Channel and calibration enable signals
   GEN_Channel_Enable : for i in 1 to CHANNEL_NUMBER-1 generate
-    process (ch_en_i, calibration_on, random, HIT_IN)
+    process (ch_en_i, calibration_on, HIT_CALIBRATION, HIT_IN)
     begin
       if ch_en_i(i) = '1' then
         if calibration_on = '1' then
-          hit_in_i(i) <=  random;
+          hit_in_i(i) <=  HIT_CALIBRATION;
         else
-          hit_in_i(i) <= HIT_IN(i)
+          hit_in_i(i) <= HIT_IN(i);
         end if;
       else
         hit_in_i(i) <= '0';
@@ -178,7 +180,7 @@ begin
   CalibrationSwitch : process (CLK_READOUT)
   begin
     if rising_edge(CLK_READOUT) then
-      if TRG_TYPE_IN = x"C" then
+      if TRG_TYPE_IN = x"D" then
         calibration_on <= '1';
       else
         calibration_on <= '0';

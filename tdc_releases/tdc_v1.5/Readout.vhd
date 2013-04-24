@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2013-04-17
+-- Last update: 2013-04-24
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -400,6 +400,11 @@ begin  -- behavioral
           if TRG_TYPE_IN = x"E" then
             wr_header_fsm <= '1';
             RD_NEXT       <= SEND_STATUS;
+          elsif TRG_TYPE_IN = x"D" then
+            RD_NEXT               <= WAIT_FOR_TRG_WIND_END;  --WR_HEADER_A;
+            start_trg_win_cnt_fsm <= '1';
+            wr_header_fsm         <= '1';
+            readout_fsm           <= '1';
           else
             data_finished_fsm <= '1';
             RD_NEXT           <= SEND_TRG_RELEASE_A;
