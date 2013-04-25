@@ -526,7 +526,7 @@ package trb3_components is
     generic(
       SERDES_NUM    : integer range 0 to 3 := 0;
 --     MASTER_CLOCK_SWITCH : integer := c_NO;   --just for debugging, should be NO
-      IS_SYNC_SLAVE : integer              := c_NO  --select slave mode
+      IS_SYNC_SLAVE : integer              := 0  --select slave mode
       );
     port(
       CLK                : in  std_logic;  -- _internal_ 200 MHz reference clock

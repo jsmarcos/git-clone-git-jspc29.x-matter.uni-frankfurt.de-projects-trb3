@@ -14,7 +14,7 @@ use machxo2.all;
 
 entity panda_dirc_wasa is
   generic(
-    NORMAL_ORDER : integer := 0
+    PADIWA_FLAVOUR : integer := 2
     );
   port(
     CON        : out std_logic_vector(16 downto 1);
@@ -261,12 +261,13 @@ clk_source: OSCH
 ---------------------------------------------------------------------------
 -- Input re-ordering
 ---------------------------------------------------------------------------
-gen_outputs_1 : if NORMAL_ORDER = 1 generate
+gen_outputs_1 : if PADIWA_FLAVOUR = 2 generate
   INP_i <= INP;
   PWM <= pwm_i(15 downto 0);
 end generate;
 
-gen_outputs_2 : if NORMAL_ORDER = 0 generate
+
+gen_outputs_2 : if PADIWA_FLAVOUR = 1 generate
   INP_i <= INP(16) & INP(8) & INP(15) & INP(7) & INP(14) & INP(6) & INP(13) & INP(5) & 
            INP(12) & INP(4) & INP(11) & INP(3) & INP(10) & INP(2) & INP(9)  & INP(1);
   PWM <= pwm_i(15) & pwm_i(7) & pwm_i(14) & pwm_i(6) & pwm_i(13) & pwm_i(5) & pwm_i(12) & pwm_i(4) & 
@@ -506,7 +507,7 @@ THE_IO_REG_READ : process begin
     case spi_channel_i(3 downto 0) is
       when x"0" => spi_reg20_i <= std_logic_vector(to_unsigned(VERSION_NUMBER_TIME,16));
       when x"1" => spi_reg20_i <= std_logic_vector(to_unsigned(VERSION_NUMBER_TIME/2**16,16));
-      when x"2" => spi_reg20_i <= x"000" & "000" & std_logic_vector(to_unsigned(NORMAL_ORDER,1));
+      when x"2" => spi_reg20_i <= x"000" & std_logic_vector(to_unsigned(PADIWA_FLAVOUR,4));
       when others => null;
     end case;
   end if;

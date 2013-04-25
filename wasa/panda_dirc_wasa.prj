@@ -6,8 +6,8 @@
 
 #project files
 add_file -vhdl -lib work "/d/jspc29/lattice/diamond/1.4.2.105/cae_library/synthesis/vhdl/machxo2.vhd"
-add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/base/trb3_components.vhd"
 add_file -vhdl -lib work "/d/jspc22/trb/cvs/trbnet/trb_net_std.vhd"
+add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/base/trb3_components.vhd"
 add_file -vhdl -lib work "/d/jspc22/trb/cvs/trbnet/trb_net_components.vhd"
 add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/wasa/source/spi_slave.vhd"
 add_file -vhdl -lib work "/d/jspc22/trb/cvs/trbnet/trb_net_onewire.vhd"
