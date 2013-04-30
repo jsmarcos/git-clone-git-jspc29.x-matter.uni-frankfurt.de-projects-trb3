@@ -992,7 +992,7 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
   generic map(
     PORT_NUMBER    => 11,
     PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"8100", 3 => x"8300", 4 => x"a000", 5 => x"d300", 6 => x"c000", 7 => x"c100", 8 => x"c200", 9 => x"c300", 10 => x"c800", others => x"0000"),
-    PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 8,       3 => 8,       4 => 9,       5 => 0,       6 => 7,       7 => 5,       8 => 7,       9 => 7,       10 => 2,       others => 0)
+    PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 8,       3 => 8,       4 => 9,       5 => 0,       6 => 7,       7 => 5,       8 => 7,       9 => 7,       10 => 3,       others => 0)
     )
   port map(
     CLK                   => clk_100_i,
