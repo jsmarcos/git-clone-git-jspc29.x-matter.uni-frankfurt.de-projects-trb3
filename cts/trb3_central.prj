@@ -245,7 +245,8 @@ add_file -vhdl -lib work "source/cts.vhd"
 ###############
 #Change path to tdc release also in compile script!
 ###############
-add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.4/Adder_304.vhd"
+# don't use vhd but link Adder_304.ngo to workdir!
+#add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.4/Adder_304.vhd"
 add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.4/bit_sync.vhd"
 add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.4/BusHandler.vhd"
 add_file -vhdl -lib "work" "../tdc_releases/tdc_v1.4/Channel.vhd"
