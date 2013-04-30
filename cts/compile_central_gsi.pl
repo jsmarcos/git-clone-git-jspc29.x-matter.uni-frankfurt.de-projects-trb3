@@ -46,6 +46,8 @@ system("cat ../tdc_releases/tdc_v1.4/tdc_constraints.lpf >> workdir/$TOPNAME.lpf
 system("cat ".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
 system("sed -i 's#THE_TDC/#gen_TDC_THE_TDC/#g' workdir/$TOPNAME.lpf");
 
+system("ln -f -s config_mainz_a2.vhd config.vhd");
+
 if(defined $ENV{'LPF_ONLY'} and $ENV{'LPF_ONLY'} == 1) {exit;}
 
 #set -e
