@@ -399,10 +399,10 @@ architecture trb3_central_arch of trb3_central is
   signal tdc_ctrl_read      : std_logic;
   signal last_tdc_ctrl_read : std_logic;
   signal tdc_ctrl_write     : std_logic;
-  signal tdc_ctrl_addr      : std_logic_vector(1 downto 0);
+  signal tdc_ctrl_addr      : std_logic_vector(2 downto 0);
   signal tdc_ctrl_data_in   : std_logic_vector(31 downto 0);
   signal tdc_ctrl_data_out  : std_logic_vector(31 downto 0);
-  signal tdc_ctrl_reg   : std_logic_vector(4*32-1 downto 0);
+  signal tdc_ctrl_reg   : std_logic_vector(5*32-1 downto 0);
   signal tdc_debug      : std_logic_vector(15 downto 0);  
 
 
@@ -1135,8 +1135,8 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
     BUS_READ_ENABLE_OUT(10)              => tdc_ctrl_read,
     BUS_WRITE_ENABLE_OUT(10)             => tdc_ctrl_write,
     BUS_DATA_OUT(10*32+31 downto 10*32)  => tdc_ctrl_data_in,
-    BUS_ADDR_OUT(10*16+1 downto 10*16)   => tdc_ctrl_addr,
-    BUS_ADDR_OUT(10*16+15 downto 10*16+2)=> open,
+    BUS_ADDR_OUT(10*16+2 downto 10*16)   => tdc_ctrl_addr,
+    BUS_ADDR_OUT(10*16+15 downto 10*16+3)=> open,
     BUS_TIMEOUT_OUT(10)                  => open,
     BUS_DATA_IN(10*32+31 downto 10*32)   => tdc_ctrl_data_out,
     BUS_DATAREADY_IN(10)                 => last_tdc_ctrl_read,
@@ -1230,7 +1230,7 @@ gen_TDC : if INCLUDE_TDC = c_YES generate
   THE_TDC : TDC
     generic map (
       CHANNEL_NUMBER => 5,             -- Number of TDC channels
-      CONTROL_REG_NR => 2)
+      CONTROL_REG_NR => 5)
     port map (
       RESET                 => reset_i,
       CLK_TDC               => CLK_PCLK_RIGHT,  -- Clock used for the time measurement
