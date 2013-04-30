@@ -1,0 +1,4 @@
+[lxhadeb07]
+system = linux
+corenum = 24
+workdir = /home/aneiser/trb3/cts/workdir
