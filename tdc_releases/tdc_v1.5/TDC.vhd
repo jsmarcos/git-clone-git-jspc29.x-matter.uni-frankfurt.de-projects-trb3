@@ -108,6 +108,9 @@ architecture TDC of TDC is
   signal logic_anal_data_i            : std_logic_vector(3*32-1 downto 0);
 -- Hit signals
   signal hit_in_i                     : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
+  signal hit_latch                    : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
+  signal hit_reg                      : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
+  signal hit_2reg                     : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
 -- To the channels
   signal rd_en_i                      : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
   signal trg_win_end_i                : std_logic;
@@ -160,6 +163,20 @@ begin
 -- Reset signal
   reset_tdc <= RESET;
 
+  -- Blocks the input after the rising edge against short pulses
+  GEN_HitBlock : for i in 1 to CHANNEL_NUMBER-1 generate
+    TheStretcher : process (HIT_IN, hit_2reg)
+    begin
+      if hit_2reg(i) = '1' then
+        hit_latch(i) <= '0';
+      elsif rising_edge(HIT_IN(i)) then
+        hit_latch(i) <= '1';
+      end if;
+    end process TheStretcher;
+  end generate GEN_HitBlock;
+  hit_reg  <= hit_latch when rising_edge(CLK_TDC);
+  hit_2reg <= hit_reg   when rising_edge(CLK_TDC);
+  
 -- Channel and calibration enable signals
   GEN_Channel_Enable : for i in 1 to CHANNEL_NUMBER-1 generate
     process (ch_en_i, calibration_on, HIT_CALIBRATION, HIT_IN)
@@ -168,7 +185,7 @@ begin
         if calibration_on = '1' then
           hit_in_i(i) <=  HIT_CALIBRATION;
         else
-          hit_in_i(i) <= HIT_IN(i);
+          hit_in_i(i) <= hit_latch(i); --HIT_IN(i);
         end if;
       else
         hit_in_i(i) <= '0';

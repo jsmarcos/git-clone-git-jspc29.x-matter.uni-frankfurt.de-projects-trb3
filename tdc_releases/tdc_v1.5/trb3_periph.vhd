@@ -357,7 +357,7 @@ begin
       BROADCAST_BITMASK         => x"FF",
       BROADCAST_SPECIAL_ADDR    => x"48",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
-      REGIO_HARDWARE_VERSION    => x"91000860",  -- regio_hardware_version_i,
+      REGIO_HARDWARE_VERSION    => x"91000060",  -- regio_hardware_version_i,
       REGIO_INIT_ADDRESS        => x"f305",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
       CLOCK_FREQUENCY           => 125,
@@ -720,14 +720,14 @@ begin
 
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 5,              -- Number of TDC channels
+      CHANNEL_NUMBER => 65,              -- Number of TDC channels
       CONTROL_REG_NR => 5)  -- Number of control regs - higher than 8 check tdc_ctrl_addr
     port map (
       RESET                 => reset_i,
       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
-      HIT_IN                => hit_in_i(4 downto 1),  -- Channel start signals
+      HIT_IN                => hit_in_i(64 downto 1),  -- Channel start signals
       HIT_CALIBRATION       => clk_20_i,    -- Hits for calibrating the TDC
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
@@ -794,13 +794,13 @@ begin
       CONTROL_REG_IN        => tdc_ctrl_reg);
 
   -- For single edge measurements
-  -- hit_in_i <= INP;
+  hit_in_i <= INP;
 
   -- For ToT Measurements
-  Gen_Hit_In_Signals : for i in 1 to 32 generate
-    hit_in_i(i*2-1) <= INP(i-1);
-    hit_in_i(i*2)   <= not INP(i-1);
-  end generate Gen_Hit_In_Signals;
+  --Gen_Hit_In_Signals : for i in 1 to 32 generate
+  --  hit_in_i(i*2-1) <= INP(i-1);
+  --  hit_in_i(i*2)   <= not INP(i-1);
+  --end generate Gen_Hit_In_Signals;
 
   -- !!!!! IMPORTANT !!!!! Don't forget to set the REGIO_HARDWARE_VERSION !!!!!
 end architecture;
