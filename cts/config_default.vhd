@@ -11,7 +11,7 @@ package config is
 ------------------------------------------------------------------------------
 
 --include TDC for all four trigger input lines
-    constant INCLUDE_TDC : integer range c_NO to c_YES := c_NO;
+    constant INCLUDE_TDC : integer range c_NO to c_YES := c_YES;
     
 --use all four SFP (1-4) as downlink to other boards.     
     constant USE_4_SFP   : integer range c_NO to c_YES := c_NO;
@@ -22,7 +22,7 @@ package config is
 
 --Which external trigger module (ETM) to use?
     type ETM_CHOICE_type is (ETM_CHOICE_MBS_VULOM, ETM_CHOICE_MAINZ_A2);
-    constant ETM_CHOICE : ETM_CHOICE_type := ETM_CHOICE_MBS_VULOM;
+    constant ETM_CHOICE : ETM_CHOICE_type := ETM_CHOICE_MAINZ_A2;
     
 ------------------------------------------------------------------------------
 --End of configuration
