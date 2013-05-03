@@ -12,3 +12,5 @@ version.vhd
 *.log
 workdir
 *.kate-swp
+.run_manager.ini
+reportview.xml
