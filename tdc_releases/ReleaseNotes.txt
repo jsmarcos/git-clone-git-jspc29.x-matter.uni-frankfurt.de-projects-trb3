@@ -4,6 +4,11 @@ tdc_v2.0	15.11.2012	Double edge detection for longer than 20 ns is
 				implemented. (Not stable-will be fixed in
 				future releases.)
 
+tdc_v1.5	03.05.2013	TDC calibration trigger is implemented in
+				order to shoot every channel with sufficient #
+				of hits for proper calibration. Also the TDC
+				is adapted for short pulses.
+
 tdc_v1.4	18.04.2013	Limiting data transfer functionality is
 				added. Use 0xc804 register to define the # of
 				word per channel to be read-out.

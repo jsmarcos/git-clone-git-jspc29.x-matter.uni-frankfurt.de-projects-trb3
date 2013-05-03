@@ -44,6 +44,14 @@ package trb3_components is
       );
   end component;
 
+  component pll_in125_out20 is
+    port (
+      CLK   : in  std_logic;
+      CLKOP : out std_logic;            -- 20 MHz
+      CLKOK : out std_logic;            -- 125 MHz, bypass
+      LOCK  : out std_logic);
+  end component pll_in125_out20;
+  
   component TDC is
     generic (
       CHANNEL_NUMBER : integer range 2 to 65;
@@ -54,6 +62,7 @@ package trb3_components is
       CLK_READOUT           : in  std_logic;
       REFERENCE_TIME        : in  std_logic;
       HIT_IN                : in  std_logic_vector(CHANNEL_NUMBER-1 downto 1);
+      HIT_CALIBRATION       : in  std_logic;
       TRG_WIN_PRE           : in  std_logic_vector(10 downto 0);
       TRG_WIN_POST          : in  std_logic_vector(10 downto 0);
       TRG_DATA_VALID_IN     : in  std_logic                     := '0';
