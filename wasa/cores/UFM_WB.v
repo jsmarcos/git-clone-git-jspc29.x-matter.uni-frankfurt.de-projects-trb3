@@ -44,8 +44,8 @@
 
 `timescale 1ns / 100ps
 `include "efb_define_def.v"
-`include "/d/jspc29/lattice/diamond/2.0/ispfpga/verilog/data/machxo2/GSR.v"
-`include "/d/jspc29/lattice/diamond/2.0/ispfpga/verilog/data/machxo2/PUR.v"
+//`include "/d/jspc29/lattice/diamond/2.0/ispfpga/verilog/data/machxo2/GSR.v"
+//`include "/d/jspc29/lattice/diamond/2.0/ispfpga/verilog/data/machxo2/PUR.v"
 
 module UFM_WB(
 				  input clk_i
