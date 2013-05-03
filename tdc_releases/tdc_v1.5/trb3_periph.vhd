@@ -802,5 +802,5 @@ begin
   --  hit_in_i(i*2)   <= not INP(i-1);
   --end generate Gen_Hit_In_Signals;
 
-  -- !!!!! IMPORTANT !!!!! Don't forget to set the REGIO_HARDWARE_VERSION !!!!!
+-- !!!!! IMPORTANT !!!!! Don't forget to set the REGIO_HARDWARE_VERSION !!!!!
 end architecture;
