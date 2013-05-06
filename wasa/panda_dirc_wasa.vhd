@@ -14,7 +14,7 @@ use machxo2.all;
 
 entity panda_dirc_wasa is
   generic(
-    PADIWA_FLAVOUR : integer := 2
+    PADIWA_FLAVOUR : integer := 1
     );
   port(
     CON        : out std_logic_vector(16 downto 1);
@@ -163,7 +163,7 @@ signal idram : idram_t;
 type ram_t is array(0 to 15) of std_logic_vector(15 downto 0);
 signal ram   : ram_t;
 
-signal pwm_i : std_logic_vector(31 downto 0);
+signal pwm_i : std_logic_vector(32 downto 1);
 signal INP_i     : std_logic_vector(15 downto 0);
 signal spi_reg00_i : std_logic_vector(15 downto 0);
 signal spi_reg10_i : std_logic_vector(15 downto 0);
@@ -261,22 +261,29 @@ clk_source: OSCH
 ---------------------------------------------------------------------------
 -- Input re-ordering
 ---------------------------------------------------------------------------
-gen_outputs_1 : if PADIWA_FLAVOUR = 2 generate
-  INP_i <= INP;
-  PWM <= pwm_i(15 downto 0);
-end generate;
 
-
-gen_outputs_2 : if PADIWA_FLAVOUR = 1 generate
+gen_outputs_1 : if PADIWA_FLAVOUR = 1 generate
   INP_i <= INP(16) & INP(8) & INP(15) & INP(7) & INP(14) & INP(6) & INP(13) & INP(5) & 
            INP(12) & INP(4) & INP(11) & INP(3) & INP(10) & INP(2) & INP(9)  & INP(1);
-  PWM <= pwm_i(15) & pwm_i(7) & pwm_i(14) & pwm_i(6) & pwm_i(13) & pwm_i(5) & pwm_i(12) & pwm_i(4) & 
-         pwm_i(11) & pwm_i(3) & pwm_i(10) & pwm_i(2) & pwm_i(9)  & pwm_i(1) & pwm_i(8)  & pwm_i(0);
+  PWM   <= pwm_i(16) & pwm_i(8) & pwm_i(15) & pwm_i(7) & pwm_i(14) & pwm_i(6) & pwm_i(13) & pwm_i(5) & 
+           pwm_i(12) & pwm_i(4) & pwm_i(11) & pwm_i(3) & pwm_i(10) & pwm_i(2) & pwm_i(9)  & pwm_i(1);
 end generate;
 
-  
-  
-  
+
+gen_outputs_2 : if PADIWA_FLAVOUR = 2 generate
+  INP_i <= INP;
+  PWM <= pwm_i(16 downto 1);
+end generate;
+
+
+gen_outputs_3 : if PADIWA_FLAVOUR = 3 generate
+  INP_i <= INP(9)  & INP(1) & INP(10) & INP(2) & INP(11) & INP(3) & INP(12) & INP(4) & 
+           INP(13) & INP(5) & INP(14) & INP(6) & INP(15) & INP(7) & INP(16) & INP(8);
+  PWM   <= pwm_i(9) & pwm_i(1) & pwm_i(10) & pwm_i(2) & pwm_i(11) & pwm_i(3) & pwm_i(12) & pwm_i(4) & 
+           pwm_i(13) & pwm_i(5) & pwm_i(14) & pwm_i(6) & pwm_i(15) & pwm_i(7) & pwm_i(16)  & pwm_i(8);
+end generate;
+
+   
 ---------------------------------------------------------------------------
 -- SPI Interface
 ---------------------------------------------------------------------------  
