@@ -172,6 +172,8 @@ architecture trb3_central_arch of trb3_central is
 
   signal clk_100_i   : std_logic; --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i   : std_logic; --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
+  signal clk_125_i   : std_logic; --125 MHz, via Clock Manager and bypassed PLL
+  signal clk_20_i    : std_logic; --clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
   signal pll_lock    : std_logic; --Internal PLL locked. E.g. used to reset all internal logic.
   signal clear_i     : std_logic;
   signal reset_i     : std_logic;
@@ -587,6 +589,15 @@ THE_MAIN_PLL : pll_in200_out100
     LOCK   => pll_lock
     );
 
+-- generates hits for calibration uncorrelated with tdc clk
+THE_CALIBRATION_PLL : pll_in125_out20
+	port map (
+		CLK   => CLK_GPLL_RIGHT,
+		CLKOP => clk_20_i,
+		CLKOK => clk_125_i,
+		LOCK  => open);
+
+  
 
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (SFP)
@@ -894,7 +905,7 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
   port map( 
 	  CLK                         => clk_100_i,
 	  TEST_CLK                    => '0',
-	  CLK_125_IN                  => CLK_GPLL_RIGHT,
+	  CLK_125_IN                  => clk_125_i,
 	  RESET                       => reset_i,
 	  GSR_N                       => gsr_n,
 	  --Debug
@@ -1237,6 +1248,7 @@ gen_TDC : if INCLUDE_TDC = c_YES generate
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => cts_trigger_out,  -- Reference time input
       HIT_IN                => trigger_in_buf_i,  -- Channel start signals
+      HIT_CALIBRATION       => clk_20_i,    -- Hits for calibrating the TDC
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --

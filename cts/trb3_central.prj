@@ -233,6 +233,7 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4.vhd"
 
 add_file -vhdl -lib work "../base/cores/pll_in200_out100.vhd"
+add_file -vhdl -lib work "../base/cores/pll_in125_out20.vhd"
 add_file -vhdl -lib work "../../trbnet/optical_link/f_divider.vhd"
 add_file -vhdl -lib work "source/cts_pkg.vhd"
 add_file -vhdl -lib work "source/cts_fifo.vhd"
