@@ -22,7 +22,7 @@ package config is
 
 --Which external trigger module (ETM) to use?
     type ETM_CHOICE_type is (ETM_CHOICE_MBS_VULOM, ETM_CHOICE_MAINZ_A2);
-    constant ETM_CHOICE : ETM_CHOICE_type := ETM_CHOICE_MAINZ_A2;
+    constant ETM_CHOICE : ETM_CHOICE_type := ETM_CHOICE_MBS_VULOM;
     
 ------------------------------------------------------------------------------
 --End of configuration
