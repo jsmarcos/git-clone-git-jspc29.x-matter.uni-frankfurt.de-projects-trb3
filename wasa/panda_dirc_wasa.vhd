@@ -125,7 +125,7 @@ component UFM_WB
     clk_i : in std_logic;
     rst_n : in std_logic;
     cmd       : in std_logic_vector(2 downto 0);
-    ufm_page  : in std_logic_vector(10 downto 0);
+    ufm_page  : in std_logic_vector(12 downto 0);
     GO        : in std_logic;
     BUSY      : out std_logic;
     ERR       : out std_logic;
@@ -188,7 +188,7 @@ signal flashram_data_i : std_logic_vector(7 downto 0);
 signal flashram_data_o : std_logic_vector(7 downto 0);
 
 signal flash_command : std_logic_vector(2 downto 0);
-signal flash_page    : std_logic_vector(10 downto 0);
+signal flash_page    : std_logic_vector(12 downto 0);
 signal flash_go      : std_logic;
 signal flash_busy    : std_logic;
 signal flash_err     : std_logic;
@@ -319,8 +319,8 @@ spi_reg40_i <= flash_busy & flash_err & "000000" & ram_data_o;
 PROC_CTRL_FLASH : process begin
   wait until rising_edge(clk_i);
   if(spi_write_i(5) = '1' and spi_channel_i(7 downto 4) = x"0") then
-    flash_command <= spi_data_i(14 downto 12);
-    flash_page    <= spi_data_i(10 downto 0);
+    flash_command <= spi_data_i(15 downto 13);
+    flash_page    <= spi_data_i(12 downto 0);
     flash_go_tmp(0)<= '1';
   else
     flash_go_tmp(5 downto 0) <= flash_go_tmp(4 downto 0) & '0';
