@@ -178,6 +178,21 @@ module UFM_WB(
    assign ufm_repeated_read = (cmd == 3'b001) ? 1'b1 : 1'b0 ;
    assign ufm_repeated_write = (cmd == 3'b011) ? 1'b1 : 1'b0 ;
 
+`define	CMD_CHECK_BUSY_FLAG	    8'hF0
+`define CMD_BYPASS              8'hFF
+`define CMD_ENABLE_INTERFACE    8'h74
+`define CMD_DISABLE_INTERFACE   8'h26
+`define CMD_SET_ADDRESS         8'hB4
+
+`define CMD_UFM_READ            8'hCA
+`define CMD_UFM_ERASE           8'hCB
+`define CMD_UFM_PROGRAM         8'hC9
+
+`define CMD_CFG_READ            8'h73
+`define CMD_CFG_ERASE           8'h0E
+`define CMD_CFG_PROGRAM         8'h70
+
+
 
 
    always @ (posedge clk_i or negedge rst_n)                        // generate clk enable and write enable signals for port A of the DPRAM
@@ -303,7 +318,7 @@ module UFM_WB(
              else begin
                 n_wb_we_i =  `WRITE;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = 8'hF0;
+                n_wb_dat_i = `CMD_CHECK_BUSY_FLAG;
                 n_wb_stb_i = `HIGH ; 
                 n_efb_flag   =  1'b1 ;
              end
@@ -461,7 +476,7 @@ module UFM_WB(
                 n_wb_we_i =  `WRITE;
                 n_efb_flag   =  1'b1 ;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = 8'h74;
+                n_wb_dat_i = CMD_ENABLE_INTERFACE;
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -548,7 +563,7 @@ module UFM_WB(
                 n_wb_we_i =  `WRITE;
                 n_efb_flag   =  1'b1 ;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = 8'hCB;
+                n_wb_dat_i = CMD_UFM_ERASE;
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -632,7 +647,7 @@ module UFM_WB(
                 n_wb_we_i =  `WRITE;
                 n_efb_flag   =  1'b1 ;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = 8'h26;
+                n_wb_dat_i = CMD_DISABLE_INTERFACE;
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -713,7 +728,7 @@ module UFM_WB(
                 n_wb_we_i =  `WRITE;
                 n_efb_flag   =  1'b1 ;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = 8'hFF;
+                n_wb_dat_i = CMD_BYPASS;
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -727,7 +742,7 @@ module UFM_WB(
                 n_wb_we_i =  `WRITE;
                 n_efb_flag   =  1'b1 ;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = 8'hFF;
+                n_wb_dat_i = CMD_BYPASS;
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -740,7 +755,7 @@ module UFM_WB(
              else begin
                 n_wb_we_i =  `WRITE;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = 8'hFF;
+                n_wb_dat_i = CMD_BYPASS;
                 n_efb_flag   =  1'b1 ;
                 n_wb_stb_i = `HIGH ; 
              end
@@ -755,7 +770,7 @@ module UFM_WB(
                 n_wb_we_i =  `WRITE;
                 n_efb_flag   =  1'b1 ;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = 8'hFF;
+                n_wb_dat_i = CMD_BYPASS;
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -805,7 +820,7 @@ module UFM_WB(
                 n_efb_flag = `HIGH ;
                 n_wb_we_i =  `WRITE;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = 8'hB4;
+                n_wb_dat_i = CMD_SET_ADDRESS;
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -948,7 +963,7 @@ module UFM_WB(
                 n_efb_flag = `HIGH ;
                 n_wb_we_i =  `WRITE;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = 8'hCA;
+                n_wb_dat_i = CMD_UFM_READ;
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -1067,7 +1082,7 @@ module UFM_WB(
                 n_efb_flag = `HIGH ;
                 n_wb_we_i =  `WRITE;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = 8'hC9;
+                n_wb_dat_i = CMD_UFM_PROGRAM;
                 n_wb_stb_i = `HIGH ; 
              end
           end
