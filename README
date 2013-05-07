@@ -1,136 +1,15 @@
 ====================
 == 0. Content
 ====================
-
-== 1. Boards
-== 2. CVS Organization / File list
-== 3. Design Files & FLASH ROMs
-== 4. Network addresses generic settings for TrbNet
-
-====================
-== 1. Boards
-====================
-  Serial numbers will be four digits: 3 digits to identify the board (we are looking into a bright future of the TRB3 ;-))
-  plus one digit for the FPGA number (this is also the endpoint ID the FPGA will report)
-  Four digits in total which are to be listed in the list of serial numbers, e.g. the first board is:
-    0015  0x08000002e2e22b28
-    0010  0xa6000002e2e2df28
-    0011  0x51000002e2e22828
-    0012  0x72000002e2eb4628
-    0013  0xb0000002e311b928
-  All serial numbers have to be listed in serials_trb3.db in the CVS. This file is readable by the DAQ-startup scripts 
-  and will be used to assign addresses to the individual boards.
-
-====================
-== 2. CVS Organization / File list
-====================
-
-=== Directories
-
-base	                Here the main files like entity templates and pin-out files are stored. 
-base/cores              All IP-cores specific to the TRB3 that will be used in more than one project, e.g. PLLs
-base/clockmanager       Designs for the two clock managers
-central_hub2            The central hub design for TRBnetv2
-fpgatest		Designs used during hardware testing
-fpgatest/projects       Diamond Projects for FPGA tests
-tdc_souce_files		The source files of the TDC are stored here.
-
-
-
-=== Files to copy & change for new projects (COPY, CHANGE & USE)
-
-base/trb3_central.p2t               Config file for PAR
-base/trb3_central.vhd               Basic design for central FPGA
-base/trb3_central.prj               Project file for toolchain
-base/trb3_central_constraints.lpf   Constraints for each specific design of trb3_central
-base/compile_central_frankfurt.pl   Generic compile script for central FPGA using paths for Frankfurt set-up
-base/compile_central_gsi.pl         Generic compile script for central FPGA using paths for GSI set-up
-
-base/trb3_periph.p2t                Config file for PAR
-base/trb3_periph.vhd                Basic design for central FPGA
-base/trb3_periph.prj                Project file for toolchain
-base/trb3_periph_constraints.lpf    Constraints for each specific design of trb3_peripheral
-base/compile_periph_frankfurt.pl    Generic compile script for peripheral FPGA using paths for Frankfurt set-up
-base/compile_periph_gsi.pl          Generic compile script for peripheral FPGA using paths for GSI set-up
-base/compile_periph_synonly.pl      Generic synthesis only script for peripheral FPGA. Can be used if Diamond GUI is wished to be used.
-
-base/trb3.xcf                       ispVM configuration file
-
-
-=== Files to change directly for all projects (NO COPY)
-
-base/trb3_components.vhd            All VHDL components special for TRB3 used in any design should 
-                                    be listed in here
-
-
-=== Files not to change at all (NO CHANGE)
-
-base/trb3_central.lpf               Pin-out for central FPGA
-base/trb3_periph.lpf		    Pin-out for peripheral FPGA
-
-
-
-====================
-== 3. Design Files & FLASH ROMs
-====================
-
-
-In general, there should be two designs: One for the central FPGA, one for the peripheral FPGA. 
-If necessary, designs for each of the peripheral FPGA can be defined. I.e. six different cases 
-of design files are listed for each of the settings below.
-
-To run TRBnet and especially to operate the Flash ROMs to store the FPGA designs, several settings 
-have to be present in each design:
-
-The filename must contain a substring according to the FPGA the design belongs to:
-- trb3_central or trb3_fpga5   : designs for the central FPGA
-- trb3_periph or trb3_fpga1234 : designs for the peripheral FPGAs
-- trb3_fpga1                   : designs for FPGA 1 only
-- trb3_fpga2                   : designs for FPGA 2 only
-- trb3_fpga3                   : designs for FPGA 3 only
-- trb3_fpga4                   : designs for FPGA 4 only
-
-
-The upper 16 bit of the REGIO_HARDWARE_VERSION generic of the TrbNet endpoint has to be initialized:
-- 0x9000  for the central FPGA
-- 0x9100  for peripheral FPGA
-- 0x9110  for FPGA 1 only
-- 0x9120  for FPGA 2 only
-- 0x9130  for FPGA 3 only
-- 0x9140  for FPGA 4 only
-- 0x9200  for CBM RICH Board
+Not much content any more, everything is in the main TRB3 documentation.
 
 
 
 
 
 ====================
-== 4. Network addresses generic settings for TrbNet
+== HOWTO Program TRB3
 ====================
-
-REGIO_INIT_ADDRESS gives the default network address
-- 0xF300 for the central FPGA
-- 0xF305 for peripheral FPGAs
-- 0xF301 for FPGA 1 only
-- 0xF302 for FPGA 2 only
-- 0xF303 for FPGA 3 only
-- 0xF304 for FPGA 4 only
-
-BROADCAST_SPECIAL_ADDR has to be set to address all FPGA of a given type within a setup:
-- 0x40   for the central FPGA
-- 0x45   for peripheral FPGAs
-- 0x41   for FPGA 1 only
-- 0x42   for FPGA 2 only
-- 0x43   for FPGA 3 only
-- 0x44   for FPGA 4 only
-- 0x50   for CBM RICH
-
-
-
-
-
-
-HOWTO Program TRB3
 
 0) diamond: program all FPGAs + clocks
 1) get MAC-address in logfile of hadeb05:/var/log/messages
