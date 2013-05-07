@@ -137,7 +137,6 @@ package cts_pkg is
 			 TIMER_TICK_1US_IN : in	 std_logic;
 			 SERIAL_IN				 : in	 std_logic;
 			 EXT_TRG_IN				 : in	 std_logic;
-			 TRG_ASYNC_OUT		 : out std_logic;
 			 TRG_SYNC_OUT			 : out std_logic;
 			 TRIGGER_IN				 : in	 std_logic;
 			 DATA_OUT					 : out std_logic_vector(31 downto 0);
