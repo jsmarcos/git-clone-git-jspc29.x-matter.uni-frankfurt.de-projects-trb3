@@ -92,6 +92,7 @@ library work;
 --      25        Include last idle, dead time counters
 --      26        Include Counters "Trigger asserted", "Trigger Edges", "Triggers Accepted"
 --      27        Timestamp (1 word)
+--    29 : 28     ETM Data amount
 -- </reg_table>
 
 entity CTS is
