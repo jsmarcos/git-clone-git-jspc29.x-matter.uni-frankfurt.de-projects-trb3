@@ -125,6 +125,7 @@ package cts_pkg is
       --Registers / Debug    
       CONTROL_REG_IN : in  std_logic_vector(31 downto 0);
       STATUS_REG_OUT : out std_logic_vector(31 downto 0);
+      HEADER_REG_OUT : out std_logic_vector(1 downto 0);
       DEBUG          : out std_logic_vector(31 downto 0)    
       );
    end component;   
@@ -145,6 +146,7 @@ package cts_pkg is
 			 FINISHED_OUT			 : out std_logic;
 			 CONTROL_REG_IN		 : in	 std_logic_vector(31 downto 0);
 			 STATUS_REG_OUT		 : out std_logic_vector(31 downto 0) := (others => '0');
+			 HEADER_REG_OUT    : out std_logic_vector(1 downto 0);
 			 DEBUG						 : out std_logic_vector(31 downto 0));
 	 end component mainz_a2_recv;
 	 

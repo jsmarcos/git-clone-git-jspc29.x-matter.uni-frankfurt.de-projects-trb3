@@ -33,6 +33,7 @@ entity mainz_a2_recv is
 																				--Registers / Debug		 
 		CONTROL_REG_IN : in	 std_logic_vector(31 downto 0);
 		STATUS_REG_OUT : out std_logic_vector(31 downto 0) := (others => '0');
+		HEADER_REG_OUT    : out std_logic_vector(1 downto 0);
 		DEBUG					 : out std_logic_vector(31 downto 0)
 		);
 end entity;
@@ -86,9 +87,8 @@ architecture arch1 of mainz_a2_recv is
 	signal config_rdo_disable_i : std_logic;
 
 begin
-	timer_tick_1us <= TIMER_TICK_1US_IN;
-
-	reg_SERIAL_IN <= SERIAL_IN when rising_edge(CLK);
+	-- we tell the CTS that we send four words of over DATA_OUT
+	HEADER_REG_OUT <= b"10"; 
 
 																				--PROC_FIRST_BITS : process
 																				--begin

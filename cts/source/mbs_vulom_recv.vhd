@@ -30,6 +30,7 @@ entity mbs_vulom_recv is
     --Registers / Debug    
     CONTROL_REG_IN : in  std_logic_vector(31 downto 0);
     STATUS_REG_OUT : out std_logic_vector(31 downto 0) := (others => '0');
+    HEADER_REG_OUT : out std_logic_vector(1 downto 0);
     DEBUG          : out std_logic_vector(31 downto 0)    
     );
 end entity;
@@ -80,6 +81,8 @@ signal config_rdo_disable_i : std_logic;
 
 begin
 
+-- we tell the CTS that we send one word of over DATA_OUT
+HEADER_REG_OUT <= b"01"; 
 
 reg_MBS_IN <= MBS_IN when rising_edge(CLK_200);
 
