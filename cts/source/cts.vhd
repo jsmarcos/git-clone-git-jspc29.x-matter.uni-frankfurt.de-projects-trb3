@@ -119,6 +119,7 @@ entity CTS is
       EXT_TRIGGER_IN  : in std_logic;
       EXT_STATUS_IN   : in std_logic_vector(31 downto 0) := X"00000000";
       EXT_CONTROL_OUT : out std_logic_vector(31 downto 0);    
+      EXT_HEADER_BITS_IN : in std_logic_vector( 1 downto 0) := "00";
 
   -- CTS Endpoint -----------------------------------------------------------
       --LVL1 trigger
@@ -152,8 +153,6 @@ entity CTS is
       CTS_REGIO_WRITE_ACK_OUT      : out std_logic;
       CTS_REGIO_UNKNOWN_ADDR_OUT   : out std_logic;
       
-      TDC_HEADER_BITS_IN           : in std_logic_vector( 1 downto 0) := "00";
-   
   -- Frontend Endpoint -----------------------------------------------------
       --Data Port
       LVL1_TRG_DATA_VALID_IN       : in std_logic;
@@ -421,7 +420,7 @@ begin
                      FEE_DATA_OUT(25) <= ro_configuration_buf_i(2);
                      FEE_DATA_OUT(26) <= ro_configuration_buf_i(3);
                      
-                     FEE_DATA_OUT(29 downto 28) <= TDC_HEADER_BITS_IN;
+                     FEE_DATA_OUT(29 downto 28) <= EXT_HEADER_BITS_IN;
                      
                      FEE_DATA_WRITE_OUT <= '1';
 
