@@ -61,6 +61,8 @@ package cts_pkg is
          CTS_REGIO_DATAREADY_OUT      : out std_logic;
          CTS_REGIO_WRITE_ACK_OUT      : out std_logic;
          CTS_REGIO_UNKNOWN_ADDR_OUT   : out std_logic;
+         
+         TDC_HEADER_BITS_IN           : in std_logic_vector( 1 downto 0) := "00";         
       
    -- Frontend Endpoint -----------------------------------------------------
          --Data Port
