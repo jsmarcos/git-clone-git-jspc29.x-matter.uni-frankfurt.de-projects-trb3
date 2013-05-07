@@ -14,7 +14,7 @@ use machxo2.all;
 
 entity panda_dirc_wasa is
   generic(
-    PADIWA_FLAVOUR : integer := 3
+    PADIWA_FLAVOUR : integer := 2
     );
   port(
     CON        : out std_logic_vector(16 downto 1);
@@ -314,7 +314,8 @@ spi_reg40_i <= flash_busy & flash_err & "000000" & ram_data_o;
 ---------------------------------------------------------------------------
 -- RAM Interface
 ---------------------------------------------------------------------------  
-
+--CFG-Flash: 0 - 5758
+--UFM-Flash: 7167 - 7936
 
 PROC_CTRL_FLASH : process begin
   wait until rising_edge(clk_i);

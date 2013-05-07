@@ -96,6 +96,8 @@ module UFM_WB(
    reg                     n_ufm_enabled;
    wire             ufm_repeated_read;
    wire             ufm_repeated_write;
+   
+
 
    reg [7:0]             wb_dat_i ;
    reg                     wb_stb_i ;
@@ -129,6 +131,12 @@ module UFM_WB(
    reg [4:0]             n_count;
    reg                     n_ufm_addr_MSB;
 
+   wire [7:0]  cmd_read;
+   wire [7:0]  cmd_erase;
+   wire [7:0]  cmd_program;
+   wire [12:0] real_address;
+   
+   
    PUR PUR_INST   (.PUR(1'b1));
    GSR GSR_INST   (.GSR(1'b1));
 
@@ -192,7 +200,10 @@ module UFM_WB(
 `define CMD_CFG_ERASE           8'h0E
 `define CMD_CFG_PROGRAM         8'h70
 
-
+ assign cmd_read    = ((ufm_page >= 13'b1110000000000)? CMD_UFM_READ : CMD_CFG_READ ;  
+ assign cmd_erase   = ((ufm_page >= 13'b1110000000000)? CMD_UFM_ERASE : CMD_CFG_ERASE ;  
+ assign cmd_program = ((ufm_page >= 13'b1110000000000)? CMD_UFM_PROGRAM : CMD_CFG_PROGRAM ;  
+ assign real_address= ((ufm_page >= 13'b1110000000000)? (ufm_page xor 13'b1110000000000) : ufm_page ;  
 
 
    always @ (posedge clk_i or negedge rst_n)                        // generate clk enable and write enable signals for port A of the DPRAM
@@ -563,7 +574,7 @@ module UFM_WB(
                 n_wb_we_i =  `WRITE;
                 n_efb_flag   =  1'b1 ;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = CMD_UFM_ERASE;
+                n_wb_dat_i = cmd_erase;
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -904,7 +915,7 @@ module UFM_WB(
                 n_efb_flag = `HIGH ;
                 n_wb_we_i =  `WRITE;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = {5'b000,ufm_page[12:8]};
+                n_wb_dat_i = {5'b000,real_address[12:8]};
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -918,7 +929,7 @@ module UFM_WB(
                 n_efb_flag = `HIGH ;
                 n_wb_we_i =  `WRITE;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = ufm_page[7:0];
+                n_wb_dat_i = real_address[7:0];
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -963,7 +974,7 @@ module UFM_WB(
                 n_efb_flag = `HIGH ;
                 n_wb_we_i =  `WRITE;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = CMD_UFM_READ;
+                n_wb_dat_i = cmd_read;
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -1082,7 +1093,7 @@ module UFM_WB(
                 n_efb_flag = `HIGH ;
                 n_wb_we_i =  `WRITE;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = CMD_UFM_PROGRAM;
+                n_wb_dat_i = cmd_program;
                 n_wb_stb_i = `HIGH ; 
              end
           end
