@@ -759,7 +759,7 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
     MII_IS_DOWNLINK      => IS_DOWNLINK,
     MII_IS_UPLINK_ONLY   => IS_UPLINK_ONLY,	
     COMPILE_VERSION                  => x"0001",
-    HARDWARE_VERSION                 => x"9000CEE0",
+    HARDWARE_VERSION                 => HARDWARE_INFO,
     INIT_ENDPOINT_ID                 => x"0005",
     BROADCAST_BITMASK                => x"7E",
     CLOCK_FREQUENCY                  => 100,

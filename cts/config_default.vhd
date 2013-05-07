@@ -40,7 +40,8 @@ package config is
     type hub_mii_t is array(0 to 1) of integer;    
     type hub_ct    is array(0 to 16) of integer;
     type hub_cfg_t is array(0 to 1) of hub_ct;    
-
+    type hw_info_t is array(0 to 1) of std_logic_vector(31 downto 0);
+    
   --this is used to select the proper configuration in the main code    
     constant CFG_MODE : integer;
     
@@ -55,14 +56,14 @@ package config is
                                                   (1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0));
     constant IS_UPLINK_ONLY_ARR   : hub_cfg_t := ((0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0),
                                                   (0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0)); 
-                           
+    constant HARDWARE_INFO_ARR    : hw_info_t := (x"9000CEE0",x"9000CEE2");
                           
     constant INTERNAL_NUM         : integer;
     constant INTERFACE_NUM        : integer;
     constant IS_UPLINK            : hub_ct;
     constant IS_DOWNLINK          : hub_ct;
     constant IS_UPLINK_ONLY       : hub_ct;
-    
+    constant HARDWARE_INFO        : std_logic_vector(31 downto 0);
     
     -- MII_NUMBER        => 5, --(8)
     -- INT_NUMBER        => 5,
@@ -97,6 +98,7 @@ package body config is
   constant CFG_MODE : integer := USE_4_SFP;
   constant cts_rdo_additional_ports : integer := 1 + INCLUDE_TDC;
 
+  constant HARDWARE_INFO        : std_logic_vector (31 downto 0) := HARDWARE_INFO_ARR(INCLUDE_TDC);
   constant INTERNAL_NUM         : integer := INTERNAL_NUM_ARR(CFG_MODE);
   constant INTERFACE_NUM        : integer := INTERFACE_NUM_ARR(CFG_MODE);
   constant IS_UPLINK            : hub_ct  := IS_UPLINK_ARR(CFG_MODE);
