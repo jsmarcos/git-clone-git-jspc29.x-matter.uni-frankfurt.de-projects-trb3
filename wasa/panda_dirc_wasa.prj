@@ -6,24 +6,24 @@
 
 #project files
 add_file -vhdl -lib work "/d/jspc29/lattice/diamond/1.4.2.105/cae_library/synthesis/vhdl/machxo2.vhd"
-add_file -vhdl -lib work "/d/jspc22/trb/cvs/trbnet/trb_net_std.vhd"
-add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/base/trb3_components.vhd"
-add_file -vhdl -lib work "/d/jspc22/trb/cvs/trbnet/trb_net_components.vhd"
-add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/wasa/source/spi_slave.vhd"
-add_file -vhdl -lib work "/d/jspc22/trb/cvs/trbnet/trb_net_onewire.vhd"
-add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/wasa/version.vhd"
-add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/wasa/source/pwm.vhd"
+add_file -vhdl -lib work "../..//trbnet/trb_net_std.vhd"
+add_file -vhdl -lib work "../base/trb3_components.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net_components.vhd"
+add_file -vhdl -lib work "source/spi_slave.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net_onewire.vhd"
+add_file -vhdl -lib work "version.vhd"
+add_file -vhdl -lib work "source/pwm.vhd"
 
 
-add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/wasa/cores/oddr16.vhd"
-add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/wasa/cores/flash.vhd"
-add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/wasa/cores/flashram.vhd"
-add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/wasa/cores/pll.vhd"
-add_file -verilog -lib work "/d/jspc22/trb/cvs/trb3/wasa/cores/UFM_WB.v"
-add_file -verilog -lib work "/d/jspc22/trb/cvs/trb3/wasa/cores/efb_define_def.v"
+add_file -vhdl -lib work "cores/oddr16.vhd"
+add_file -vhdl -lib work "cores/flash.vhd"
+add_file -vhdl -lib work "cores/flashram.vhd"
+add_file -vhdl -lib work "cores/pll.vhd"
+add_file -verilog -lib work "cores/efb_define_def.v"
+add_file -verilog -lib work "cores/UFM_WB.v"
 
 
-add_file -vhdl -lib work "/d/jspc22/trb/cvs/trb3/wasa/panda_dirc_wasa.vhd"
+add_file -vhdl -lib work "panda_dirc_wasa.vhd"
 
 
 #implementation: "panda_dirc_wasa"

@@ -235,7 +235,22 @@
  *                                                                     *
  ***********************************************************************/ 		
 		
+`define CMD_CHECK_BUSY_FLAG     8'hF0
+`define CMD_BYPASS              8'hFF
+`define CMD_ENABLE_INTERFACE    8'h74
+`define CMD_DISABLE_INTERFACE   8'h26
+`define CMD_SET_ADDRESS         8'hB4
 
+`define CMD_UFM_READ            8'hCA
+`define CMD_UFM_ERASE           8'hCB
+`define CMD_UFM_PROGRAM         8'hC9
+
+`define CMD_CFG_READ            8'h73
+`define CMD_CFG_ERASE           8'h0E
+`define CMD_CFG_PROGRAM         8'h70
+		
+		
+		
 `define          state0             7'd00     
 `define          state1	          7'd01    
 `define          state2	          7'd02    

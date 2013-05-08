@@ -234,6 +234,8 @@ signal ram_fsm_data_i : std_logic_vector(7 downto 0);
 signal ram_fsm_addr_i : std_logic_vector(3 downto 0);
 signal ram_fsm_write_i: std_logic;
 
+signal enable_cfg_flash : std_logic;
+
 begin
 
 
@@ -321,7 +323,11 @@ PROC_CTRL_FLASH : process begin
   wait until rising_edge(clk_i);
   if(spi_write_i(5) = '1' and spi_channel_i(7 downto 4) = x"0") then
     flash_command <= spi_data_i(15 downto 13);
-    flash_page    <= spi_data_i(12 downto 0);
+    if(enable_cfg_flash = '1') then
+      flash_page    <= spi_data_i(12 downto 0);
+    else
+      flash_page    <= "111" & spi_data_i(9 downto 0);
+    end if;
     flash_go_tmp(0)<= '1';
   else
     flash_go_tmp(5 downto 0) <= flash_go_tmp(4 downto 0) & '0';
@@ -331,7 +337,15 @@ PROC_CTRL_FLASH : process begin
   end if;
 end process;
 
- flash_go <= or_all(flash_go_tmp);
+PROC_CTRL_FLASH_ENABLE : process begin
+  wait until rising_edge(clk_i);
+  if(spi_write_i(5) = '1' and spi_channel_i(7 downto 4) = x"C") then
+    enable_cfg_flash <= spi_data_i(0);
+  end if;
+end process;
+
+flash_go <= or_all(flash_go_tmp);
+
 
 THE_FLASH_RAM : flashram
   port map(

@@ -134,6 +134,7 @@ module UFM_WB(
    wire [7:0]  cmd_read;
    wire [7:0]  cmd_erase;
    wire [7:0]  cmd_program;
+   wire [7:0]  cmd_select_sector;
    wire [12:0] real_address;
    
    
@@ -186,24 +187,13 @@ module UFM_WB(
    assign ufm_repeated_read = (cmd == 3'b001) ? 1'b1 : 1'b0 ;
    assign ufm_repeated_write = (cmd == 3'b011) ? 1'b1 : 1'b0 ;
 
-`define	CMD_CHECK_BUSY_FLAG	    8'hF0
-`define CMD_BYPASS              8'hFF
-`define CMD_ENABLE_INTERFACE    8'h74
-`define CMD_DISABLE_INTERFACE   8'h26
-`define CMD_SET_ADDRESS         8'hB4
 
-`define CMD_UFM_READ            8'hCA
-`define CMD_UFM_ERASE           8'hCB
-`define CMD_UFM_PROGRAM         8'hC9
 
-`define CMD_CFG_READ            8'h73
-`define CMD_CFG_ERASE           8'h0E
-`define CMD_CFG_PROGRAM         8'h70
-
- assign cmd_read    = ((ufm_page >= 13'b1110000000000)? CMD_UFM_READ : CMD_CFG_READ ;  
- assign cmd_erase   = ((ufm_page >= 13'b1110000000000)? CMD_UFM_ERASE : CMD_CFG_ERASE ;  
- assign cmd_program = ((ufm_page >= 13'b1110000000000)? CMD_UFM_PROGRAM : CMD_CFG_PROGRAM ;  
- assign real_address= ((ufm_page >= 13'b1110000000000)? (ufm_page xor 13'b1110000000000) : ufm_page ;  
+  assign cmd_read    = (ufm_page[12:10] == 3'b111)? `CMD_UFM_READ : `CMD_CFG_READ ;  
+  assign cmd_erase   = (ufm_page[12:10] == 3'b111)? `CMD_UFM_ERASE : `CMD_CFG_ERASE ;  
+  assign cmd_program = (ufm_page[12:10] == 3'b111)? `CMD_UFM_PROGRAM : `CMD_CFG_PROGRAM ;  
+  assign real_address= (ufm_page[12:10] == 3'b111)? {3'b000,ufm_page[9:0]} : ufm_page ;  
+  assign cmd_select_sector = (ufm_page[12:10] == 3'b111)? 8'h40 : 8'h00 ;
 
 
    always @ (posedge clk_i or negedge rst_n)                        // generate clk enable and write enable signals for port A of the DPRAM
@@ -487,7 +477,7 @@ module UFM_WB(
                 n_wb_we_i =  `WRITE;
                 n_efb_flag   =  1'b1 ;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = CMD_ENABLE_INTERFACE;
+                n_wb_dat_i = `CMD_ENABLE_INTERFACE;
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -588,7 +578,7 @@ module UFM_WB(
                 n_wb_we_i =  `WRITE;
                 n_efb_flag   =  1'b1 ;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = 8'h00;
+                n_wb_dat_i = 8'h04;           //JM added for 0xE to erase CFG Flash
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -658,7 +648,7 @@ module UFM_WB(
                 n_wb_we_i =  `WRITE;
                 n_efb_flag   =  1'b1 ;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = CMD_DISABLE_INTERFACE;
+                n_wb_dat_i = `CMD_DISABLE_INTERFACE;
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -739,7 +729,7 @@ module UFM_WB(
                 n_wb_we_i =  `WRITE;
                 n_efb_flag   =  1'b1 ;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = CMD_BYPASS;
+                n_wb_dat_i = `CMD_BYPASS;
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -753,7 +743,7 @@ module UFM_WB(
                 n_wb_we_i =  `WRITE;
                 n_efb_flag   =  1'b1 ;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = CMD_BYPASS;
+                n_wb_dat_i = `CMD_BYPASS;
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -766,7 +756,7 @@ module UFM_WB(
              else begin
                 n_wb_we_i =  `WRITE;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = CMD_BYPASS;
+                n_wb_dat_i = `CMD_BYPASS;
                 n_efb_flag   =  1'b1 ;
                 n_wb_stb_i = `HIGH ; 
              end
@@ -781,7 +771,7 @@ module UFM_WB(
                 n_wb_we_i =  `WRITE;
                 n_efb_flag   =  1'b1 ;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = CMD_BYPASS;
+                n_wb_dat_i = `CMD_BYPASS;
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -831,7 +821,7 @@ module UFM_WB(
                 n_efb_flag = `HIGH ;
                 n_wb_we_i =  `WRITE;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = CMD_SET_ADDRESS;
+                n_wb_dat_i = `CMD_SET_ADDRESS;
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -887,7 +877,7 @@ module UFM_WB(
                 n_efb_flag = `HIGH ;
                 n_wb_we_i =  `WRITE;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = 8'h40;
+                n_wb_dat_i = cmd_select_sector;
                 n_wb_stb_i = `HIGH ; 
              end
           end
@@ -915,7 +905,7 @@ module UFM_WB(
                 n_efb_flag = `HIGH ;
                 n_wb_we_i =  `WRITE;
                 n_wb_adr_i = `CFGTXDR;
-                n_wb_dat_i = {5'b000,real_address[12:8]};
+                n_wb_dat_i = {3'b000,real_address[12:8]};
                 n_wb_stb_i = `HIGH ; 
              end
           end
