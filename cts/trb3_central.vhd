@@ -306,6 +306,7 @@ architecture trb3_central_arch of trb3_central is
   signal cts_ext_status              : std_logic_vector(31 downto 0) := (others => '0');
   signal cts_ext_control             : std_logic_vector(31 downto 0);
   signal cts_ext_debug               : std_logic_vector(31 downto 0);
+  signal cts_ext_header 						 : std_logic_vector(1 downto 0);
 
   signal cts_rdo_additional_data            : std_logic_vector(31+INCLUDE_TDC*32 downto 0);
   signal cts_rdo_additional_write           : std_logic_vector(0+INCLUDE_TDC downto 0) := (others => '0');
@@ -430,6 +431,7 @@ begin
 
       CONTROL_REG_IN => cts_ext_control,
       STATUS_REG_OUT => cts_ext_status,
+      HEADER_REG_OUT => cts_ext_header,
       
       DEBUG => cts_ext_debug
    );
@@ -444,7 +446,6 @@ begin
 				TIMER_TICK_1US_IN => timer_ticks(0),
 				SERIAL_IN			 => CLK_EXT(3),
 				EXT_TRG_IN		 => CLK_EXT(4),
-				--TRG_ASYNC_OUT	 => TRG_ASYNC_OUT,
 				TRG_SYNC_OUT	 => cts_ext_trigger,
 				TRIGGER_IN     => cts_rdo_trg_data_valid,
 				DATA_OUT       => cts_rdo_additional_data(31 downto 0),
@@ -454,6 +455,7 @@ begin
 
 				CONTROL_REG_IN => cts_ext_control,
 				STATUS_REG_OUT => cts_ext_status,
+				HEADER_REG_OUT => cts_ext_header,
 				
 				DEBUG => cts_ext_debug
 				);
@@ -482,7 +484,8 @@ begin
       
       EXT_TRIGGER_IN => cts_ext_trigger,
       EXT_STATUS_IN  => cts_ext_status,
-      EXT_CONTROL_OUT => cts_ext_control, 
+      EXT_CONTROL_OUT => cts_ext_control,
+      EXT_HEADER_BITS_IN => cts_ext_header,
       
       CTS_TRG_SEND_OUT => cts_trg_send,
       CTS_TRG_TYPE_OUT => cts_trg_type,

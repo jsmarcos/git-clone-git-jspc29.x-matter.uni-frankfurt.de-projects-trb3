@@ -12,16 +12,13 @@ entity mainz_a2_recv is
 		CLK								: in std_logic;		-- must be 100 MHz!
 		RESET_IN					: in std_logic;	 -- could be used after busy_release to make sure entity is in correct state
 		TIMER_TICK_1US_IN : in std_logic;		-- 1 micro second tick, synchronous to
-																				-- CLK
 
 																				--Module inputs
 		SERIAL_IN	 : in std_logic;	-- serial raw in, externally clock'ed at 12.5 MHz
 		EXT_TRG_IN : in std_logic;					-- external trigger in, ~10us later
 							-- the external trigger id is sent on SERIAL_IN
 
-																				--trigger outputs
-		TRG_ASYNC_OUT : out std_logic;	-- asynchronous rising edge, length varying, here: approx. 110 ns
-		TRG_SYNC_OUT	: out std_logic;			-- sync. to CLK
+		TRG_SYNC_OUT : out std_logic;				-- sync. to CLK
 
 																				--data output for read-out
 		TRIGGER_IN		: in	std_logic;
@@ -33,6 +30,7 @@ entity mainz_a2_recv is
 																				--Registers / Debug		 
 		CONTROL_REG_IN : in	 std_logic_vector(31 downto 0);
 		STATUS_REG_OUT : out std_logic_vector(31 downto 0) := (others => '0');
+		HEADER_REG_OUT    : out std_logic_vector(1 downto 0);
 		DEBUG					 : out std_logic_vector(31 downto 0)
 		);
 end entity;
@@ -44,11 +42,17 @@ end entity;
 --Stopbit/Controlbit: "1"
 --Parity check over trig Nr and parity bit
 
---Data Format of DATA_OUT (goes into DAQ stream)
--- Bit 30 -	 0 : Trigger Number (Bit 32 is cut off and used for error flag)
--- Bit 31			 : Error flag (either parity wrong or no stop/control bit seen)
+--Data Format of DATA_OUT: 4 words (goes into DAQ stream)
+-- Word 1 		 : 32bit Trigger Number 
+-- Word 2			 :
+--   Bit 31-5  : reserved
+--   Bit 4     : No Id received (timeout)
+--   Bit 3     : Stop/Control Bit (should be set)
+--   Bit 2     : Parity Bit (should be zero)
+--   Bit 1     : Start Bit (should be set)
+--   Bit 0     : Error flag (either parity wrong or no stop/control bit seen)
 
---statusbit 23 of STATUSBIT_OUT is equal to Bit 31 of DATA_OUT
+--statusbit 23 is error flag = Bit 0 of DATA_OUT word 2
 
 architecture arch1 of mainz_a2_recv is
 
@@ -56,23 +60,19 @@ architecture arch1 of mainz_a2_recv is
 																				-- time until trigger id can be received;
 	constant timeoutcnt_Max : integer														:= 500;
 	signal timeoutcnt				: integer range 0 to timeoutcnt_Max := timeoutcnt_Max;
-	signal timer_tick_1us : std_logic;
-	
+	signal timer_tick_1us		: std_logic;
+
 	signal shift_reg : std_logic_vector(34 downto 0);
 	signal bitcnt		 : integer range 0 to shift_reg'length;
 
-
-
-																				--signal first_bits_fast : std_logic;
-																				--signal first_bits_slow : std_logic;
 	signal reg_SERIAL_IN : std_logic;
 	signal done					 : std_logic;
-																				--signal done_slow			 : std_logic;
 
-	signal number_reg : std_logic_vector(30 downto 0);
-																				--signal status_reg : std_logic_vector(1 downto 0);
-	signal error_reg	: std_logic;
+	signal data_eventid_reg : std_logic_vector(31 downto 0);
+	signal data_status_reg : std_logic_vector(31 downto 0);
 
+	signal timeout_seen : std_logic := '0';
+	
 	signal trg_async : std_logic;
 	signal trg_sync	 : std_logic;
 
@@ -80,36 +80,21 @@ architecture arch1 of mainz_a2_recv is
 									 WAIT5, WAIT6, WAIT7, WAIT8, NO_TRG_ID_RECV, FINISH);
 	signal state : state_t := IDLE;
 
-	type rdo_state_t is (RDO_IDLE, RDO_WAIT, RDO_WRITE, RDO_FINISH);
+	type rdo_state_t is (RDO_IDLE, RDO_WAIT, RDO_WRITE1, RDO_WRITE2, RDO_WRITE3, RDO_WRITE4, RDO_FINISH);
 	signal rdostate : rdo_state_t := RDO_IDLE;
 
 	signal config_rdo_disable_i : std_logic;
 
 begin
+	-- we tell the CTS that we send four words of over DATA_OUT
+	HEADER_REG_OUT <= b"10"; 
+
+
 	timer_tick_1us <= TIMER_TICK_1US_IN;
+	TRG_SYNC_OUT	 <= trg_sync;
+	trg_sync			 <= EXT_TRG_IN when rising_edge(CLK);
+	reg_SERIAL_IN	 <= SERIAL_IN	 when rising_edge(CLK);
 
-	reg_SERIAL_IN <= SERIAL_IN when rising_edge(CLK);
-
-																				--PROC_FIRST_BITS : process
-																				--begin
-																				--	wait until rising_edge(CLK_200);
-																				--	if bitcnt > 32 and RESET_IN = '0' then
-																				--		first_bits_fast <= '1';
-																				--	else
-																				--		first_bits_fast <= '0';
-																				--	end if;
-																				--end process;
-
-																				--first_bits_slow <= first_bits_fast when rising_edge(CLK);
-
-																				--trg_async <= (not MBS_IN or trg_async)												when first_bits_fast = '1' else '0';
-																				--trg_sync	<= (not reg_MBS_IN or trg_sync) and first_bits_slow when rising_edge(CLK);
-	trg_async <= EXT_TRG_IN;
-																				-- do we need another register here?
-	trg_sync	<= EXT_TRG_IN when rising_edge(CLK);
-
-	TRG_ASYNC_OUT <= trg_async;
-	TRG_SYNC_OUT	<= trg_sync when rising_edge(CLK);
 
 																				-- since CLK runs at 100MHz, we sample at 12.5MHz due to 8 WAIT states
 	PROC_FSM : process
@@ -119,7 +104,8 @@ begin
 
 			when IDLE =>
 				done <= '1';
-				if trg_sync = '1' then
+				if trg_sync = '1' then					
+					timeout_seen <= '0';
 					done			 <= '0';
 					timeoutcnt <= timeoutcnt_Max;
 					state			 <= WAIT_FOR_STARTBIT;
@@ -132,7 +118,7 @@ begin
 					state	 <= WAIT1;
 				elsif timeoutcnt = 0 then
 					state <= NO_TRG_ID_RECV;
-				elsif timer_tick_1us = '1' then 
+				elsif timer_tick_1us = '1' then
 					timeoutcnt <= timeoutcnt-1;
 				end if;
 
@@ -172,6 +158,8 @@ begin
 																				-- set bogus trigger id and no control bit (forces error flag set!)
 				shift_reg <= b"00" & x"ffffffff" & b"1";
 				state			<= FINISH;
+				timeout_seen <= '1';
+				
 				
 			when FINISH =>
 																				-- wait until serial line is idle again
@@ -187,23 +175,25 @@ begin
 		end if;
 	end process;
 
-																				--done_slow <= done when rising_edge(CLK);
-
 	PROC_REG_INFO : process
 	begin
 		wait until rising_edge(CLK);
+		data_status_reg <= (others => '0');
+		data_eventid_reg <= (others => '0');
 		if done = '1' then
-																				-- here we cut off the highest bit of the received trigger id
-																				-- so shift_reg(32) is discarded (but used for checksum)
-			number_reg <= shift_reg(31 downto 1);
-																				--status_reg <= shift_reg(7 downto 6);
-
-																				-- check if start and control bit is 1 and parity is okay
+			data_eventid_reg <= shift_reg(32 downto 1);
+			
+			data_status_reg(1) <= shift_reg(0);
+			data_status_reg(2) <= xor_all(shift_reg(33 downto 1));
+			data_status_reg(3) <= shift_reg(34);
+			data_status_reg(4) <= timeout_seen;
+			
+			-- check if start and control bit is 1 and parity is okay
 			if shift_reg(34) = '1' and shift_reg(0) = '1'
 				and xor_all(shift_reg(33 downto 1)) = '0' then
-				error_reg <= '0';
+				data_status_reg(0) <= '0';
 			else
-				error_reg <= '1';
+				data_status_reg(0) <= '1';
 			end if;
 		end if;
 	end process;
@@ -214,25 +204,33 @@ begin
 		wait until rising_edge(CLK);
 		WRITE_OUT			<= '0';
 		FINISHED_OUT	<= config_rdo_disable_i;
-		STATUSBIT_OUT <= (23 => error_reg, others => '0');
+		STATUSBIT_OUT <= (23 => data_status_reg(0), others => '0');
 		case rdostate is
 			when RDO_IDLE =>
 				if TRIGGER_IN = '1' and config_rdo_disable_i = '0' then
-					if done = '0' then
-						rdostate <= RDO_WAIT;
-					else
-						rdostate <= RDO_WRITE;
-					end if;
+					-- always wait so that PROC_REG_INFO sets data_eventid_reg correctly
+					rdostate <= RDO_WAIT;
 				end if;
 			when RDO_WAIT =>
 				if done = '1' then
-					rdostate <= RDO_WRITE;
+					rdostate <= RDO_WRITE1;
 				end if;
-			when RDO_WRITE =>
-				rdostate	<= RDO_FINISH;
-				DATA_OUT	<= error_reg & number_reg;
+			when RDO_WRITE1 =>
+				rdostate	<= RDO_WRITE2;
+				DATA_OUT	<= data_eventid_reg;
 				WRITE_OUT <= '1';
-				
+			when RDO_WRITE2 =>
+				rdostate	<= RDO_WRITE3;
+				DATA_OUT	<= data_status_reg;
+				WRITE_OUT <= '1';
+			when RDO_WRITE3 =>
+				rdostate	<= RDO_WRITE4;
+				DATA_OUT	<= x"deadbeef";
+				WRITE_OUT <= '1';
+			when RDO_WRITE4 =>
+				rdostate	<= RDO_FINISH;
+				DATA_OUT	<= x"deadbeef";
+				WRITE_OUT <= '1';
 			when RDO_FINISH =>
 				FINISHED_OUT <= '1';
 				rdostate		 <= RDO_IDLE;
@@ -241,7 +239,7 @@ begin
 
 	config_rdo_disable_i <= CONTROL_REG_IN(0);
 
-	STATUS_REG_OUT <= error_reg & std_logic_vector(to_unsigned(bitcnt, 6)) & number_reg(24 downto 0);
+	STATUS_REG_OUT <= data_status_reg(0) & std_logic_vector(to_unsigned(bitcnt, 6)) & data_eventid_reg(24 downto 0);
 	DEBUG					 <= x"00000000";	-- & done & '0' & shift_reg(13 downto 0);
 
 end architecture;
