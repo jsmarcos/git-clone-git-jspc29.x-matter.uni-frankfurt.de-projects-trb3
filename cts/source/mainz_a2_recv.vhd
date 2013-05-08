@@ -175,11 +175,6 @@ begin
 		end if;
 	end process;
 
-	
-
-	-- data_status_reg(4) signals timeout
-	
-	
 	PROC_REG_INFO : process
 	begin
 		wait until rising_edge(CLK);
@@ -191,7 +186,7 @@ begin
 			data_status_reg(1) <= shift_reg(0);
 			data_status_reg(2) <= xor_all(shift_reg(33 downto 1));
 			data_status_reg(3) <= shift_reg(34);
-			data_status_reg(3) <= timeout_seen;
+			data_status_reg(4) <= timeout_seen;
 			
 			-- check if start and control bit is 1 and parity is okay
 			if shift_reg(34) = '1' and shift_reg(0) = '1'
