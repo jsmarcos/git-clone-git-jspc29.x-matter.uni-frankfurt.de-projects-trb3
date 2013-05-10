@@ -30,7 +30,7 @@ entity mainz_a2_recv is
 																				--Registers / Debug		 
 		CONTROL_REG_IN : in	 std_logic_vector(31 downto 0);
 		STATUS_REG_OUT : out std_logic_vector(31 downto 0) := (others => '0');
-		HEADER_REG_OUT    : out std_logic_vector(1 downto 0);
+		HEADER_REG_OUT : out std_logic_vector(1 downto 0);
 		DEBUG					 : out std_logic_vector(31 downto 0)
 		);
 end entity;
@@ -43,14 +43,14 @@ end entity;
 --Parity check over trig Nr and parity bit
 
 --Data Format of DATA_OUT: 4 words (goes into DAQ stream)
--- Word 1 		 : 32bit Trigger Number 
+-- Word 1			 : 32bit Trigger Number 
 -- Word 2			 :
---   Bit 31-5  : reserved
---   Bit 4     : No Id received (timeout)
---   Bit 3     : Stop/Control Bit (should be set)
---   Bit 2     : Parity Bit (should be zero)
---   Bit 1     : Start Bit (should be set)
---   Bit 0     : Error flag (either parity wrong or no stop/control bit seen)
+--	 Bit 31-5	 : reserved
+--	 Bit 4		 : No Id received (timeout)
+--	 Bit 3		 : Stop/Control Bit (should be set)
+--	 Bit 2		 : Parity Bit (should be zero)
+--	 Bit 1		 : Start Bit (should be set)
+--	 Bit 0		 : Error flag (either parity wrong or no stop/control bit seen)
 
 --statusbit 23 is error flag = Bit 0 of DATA_OUT word 2
 
@@ -69,13 +69,14 @@ architecture arch1 of mainz_a2_recv is
 	signal done					 : std_logic;
 
 	signal data_eventid_reg : std_logic_vector(31 downto 0);
-	signal data_status_reg : std_logic_vector(31 downto 0);
+	signal data_status_reg	: std_logic_vector(31 downto 0);
 
 	signal timeout_seen : std_logic := '0';
-	
-	signal trg_async : std_logic;
-	signal trg_sync	 : std_logic;
 
+	signal trg_async		: std_logic;
+	signal trg_sync			: std_logic;
+	signal trg_sync_old : std_logic;
+	
 	type state_t is (IDLE, WAIT_FOR_STARTBIT, WAIT1, WAIT2, WAIT3, READ_BIT,
 									 WAIT5, WAIT6, WAIT7, WAIT8, NO_TRG_ID_RECV, FINISH);
 	signal state : state_t := IDLE;
@@ -86,13 +87,14 @@ architecture arch1 of mainz_a2_recv is
 	signal config_rdo_disable_i : std_logic;
 
 begin
-	-- we tell the CTS that we send four words of over DATA_OUT
-	HEADER_REG_OUT <= b"10"; 
+																				-- we tell the CTS that we send four words of over DATA_OUT
+	HEADER_REG_OUT <= b"10";
 
 
 	timer_tick_1us <= TIMER_TICK_1US_IN;
 	TRG_SYNC_OUT	 <= trg_sync;
 	trg_sync			 <= EXT_TRG_IN when rising_edge(CLK);
+	trg_sync_old	 <= trg_sync	 when rising_edge(CLK);
 	reg_SERIAL_IN	 <= SERIAL_IN	 when rising_edge(CLK);
 
 
@@ -104,11 +106,12 @@ begin
 
 			when IDLE =>
 				done <= '1';
-				if trg_sync = '1' then					
+				-- detect rising edge of trigger, if the trigger is high for a long time
+				if trg_sync = '1' and trg_sync_old = '0' then
 					timeout_seen <= '0';
-					done			 <= '0';
-					timeoutcnt <= timeoutcnt_Max;
-					state			 <= WAIT_FOR_STARTBIT;
+					done				 <= '0';
+					timeoutcnt	 <= timeoutcnt_Max;
+					state				 <= WAIT_FOR_STARTBIT;
 				end if;
 				
 			when WAIT_FOR_STARTBIT =>
@@ -156,8 +159,8 @@ begin
 			when NO_TRG_ID_RECV =>
 																				-- we received no id after a trigger within the timeout, so
 																				-- set bogus trigger id and no control bit (forces error flag set!)
-				shift_reg <= b"00" & x"ffffffff" & b"1";
-				state			<= FINISH;
+				shift_reg		 <= b"00" & x"ffffffff" & b"1";
+				state				 <= FINISH;
 				timeout_seen <= '1';
 				
 				
@@ -178,17 +181,17 @@ begin
 	PROC_REG_INFO : process
 	begin
 		wait until rising_edge(CLK);
-		data_status_reg <= (others => '0');
+		data_status_reg	 <= (others => '0');
 		data_eventid_reg <= (others => '0');
 		if done = '1' then
 			data_eventid_reg <= shift_reg(32 downto 1);
-			
+
 			data_status_reg(1) <= shift_reg(0);
 			data_status_reg(2) <= xor_all(shift_reg(33 downto 1));
 			data_status_reg(3) <= shift_reg(34);
 			data_status_reg(4) <= timeout_seen;
-			
-			-- check if start and control bit is 1 and parity is okay
+
+																				-- check if start and control bit is 1 and parity is okay
 			if shift_reg(34) = '1' and shift_reg(0) = '1'
 				and xor_all(shift_reg(33 downto 1)) = '0' then
 				data_status_reg(0) <= '0';
@@ -208,7 +211,7 @@ begin
 		case rdostate is
 			when RDO_IDLE =>
 				if TRIGGER_IN = '1' and config_rdo_disable_i = '0' then
-					-- always wait so that PROC_REG_INFO sets data_eventid_reg correctly
+																				-- always wait so that PROC_REG_INFO sets data_eventid_reg correctly
 					rdostate <= RDO_WAIT;
 				end if;
 			when RDO_WAIT =>
