@@ -38,6 +38,7 @@ library work;
 -- 7000 - 72FF  Readout endpoint registers
 -- 8100 - 83FF  GbE configuration & status
 -- A000 - A1FF  CTS configuration & status
+-- C000 - CFFF  TDC configuration & status
 -- D000 - D13F  Flash Programming
 
 
@@ -103,13 +104,29 @@ entity trb3_central is
     FPGA4_CONNECTOR                : inout std_logic_vector(7 downto 0); --Bit 0-1: LED for SFP1/2
                                                                          --Bit 0-3 connected to LED by default, two on each side
                                                                          
-    --Big AddOn connector
-    ADDON_RESET                    : out std_logic; --reset signal to AddOn
-    ADDON_TO_TRB_CLK               : in  std_logic; --Clock from AddOn, connected to PCLK input
-    TRB_TO_ADDON_CLK               : out std_logic; --Clock sent to AddOn
-    ADO_LV                         : inout std_logic_vector(61 downto 0);
-    ADO_TTL                        : inout std_logic_vector(46 downto 0);
-    FS_PE                          : inout std_logic_vector(17 downto 0);
+    --AddOn connector
+    ECL_IN                         : in  std_logic_vector(3 downto 0);
+    NIM_IN                         : in  std_logic_vector(1 downto 0);
+    JIN1                           : in  std_logic_vector(3 downto 0);
+    JIN2                           : in  std_logic_vector(3 downto 0);
+    JINLVDS                        : in  std_logic_vector(15 downto 0);  --No LVDS, just TTL!
+    
+    DISCRIMINATOR_IN               : in  std_logic_vector(1 downto 0);
+    PWM_OUT                        : out std_logic_vector(1 downto 0);
+    
+    JOUT1                          : out std_logic_vector(3 downto 0);
+    JOUT2                          : out std_logic_vector(3 downto 0);
+    JOUTLVDS                       : out std_logic_vector(7 downto 0);
+    JTTL                           : inout std_logic_vector(15 downto 0);
+    TRG_FANOUT_ADDON               : out std_logic;
+    
+    LED_BANK                       : out std_logic_vector(7 downto 0);
+    LED_RJ_GREEN                   : out std_logic_vector(5 downto 0);
+    LED_RJ_RED                     : out std_logic_vector(5 downto 0);
+    LED_FAN_GREEN                  : out std_logic;
+    LED_FAN_ORANGE                 : out std_logic;
+    LED_FAN_RED                    : out std_logic;
+    LED_FAN_YELLOW                 : out std_logic;
     
     --Flash ROM & Reboot
     FLASH_CLK                      : out std_logic;
@@ -133,17 +150,25 @@ entity trb3_central is
     --Test Connectors
     TEST_LINE                      : out std_logic_vector(31 downto 0)
     );
-    
+
+
     attribute syn_useioff : boolean;
     --no IO-FF for LEDs relaxes timing constraints
     attribute syn_useioff of LED_CLOCK_GREEN    : signal is false;
     attribute syn_useioff of LED_CLOCK_RED      : signal is false;
+    attribute syn_useioff of LED_TRIGGER_GREEN  : signal is false;
+    attribute syn_useioff of LED_TRIGGER_RED    : signal is false;
     attribute syn_useioff of LED_GREEN          : signal is false;
     attribute syn_useioff of LED_ORANGE         : signal is false;
     attribute syn_useioff of LED_RED            : signal is false;
-    attribute syn_useioff of LED_TRIGGER_GREEN  : signal is false;
-    attribute syn_useioff of LED_TRIGGER_RED    : signal is false;
     attribute syn_useioff of LED_YELLOW         : signal is false;
+    attribute syn_useioff of LED_FAN_GREEN      : signal is false;
+    attribute syn_useioff of LED_FAN_ORANGE     : signal is false;
+    attribute syn_useioff of LED_FAN_RED        : signal is false;
+    attribute syn_useioff of LED_FAN_YELLOW     : signal is false;
+    attribute syn_useioff of LED_BANK           : signal is false;
+    attribute syn_useioff of LED_RJ_GREEN       : signal is false;
+    attribute syn_useioff of LED_RJ_RED         : signal is false;
     attribute syn_useioff of FPGA1_TTL          : signal is false;
     attribute syn_useioff of FPGA2_TTL          : signal is false;
     attribute syn_useioff of FPGA3_TTL          : signal is false;
@@ -1378,13 +1403,9 @@ end process;
 
 
 ---------------------------------------------------------------------------
--- Big AddOn Connector
+-- AddOn Connector
 ---------------------------------------------------------------------------
-  ADDON_RESET      <= '1';
-  TRB_TO_ADDON_CLK <= '0';
-  ADO_LV           <= (others => 'Z');
-  ADO_TTL          <= (others => 'Z');
-  FS_PE            <= (others => 'Z');
+
 
 
 ---------------------------------------------------------------------------
