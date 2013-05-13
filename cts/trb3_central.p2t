@@ -1,14 +1,14 @@
 -w
 -i 15
 -l 5
--n 1
+-n 5
 -y
 -s 12
--t 19
+-t 1
 -c 1
 -e 2
 #-g guidefile.ncd
--m nodelist.txt
+-m ../nodelist.txt
 # -w
 # -i 6
 # -l 5
@@ -18,4 +18,7 @@
 # -c 0
 # -e 0
 #
+
 -exp parCDP=1:parCDR=1:parPlcInLimit=0:parPlcInNeighborSize=1:parPathBased=ON:parHold=ON:parHoldLimit=10000:paruseNBR=1
+#-exp parDisablePgroup=0:parCDR=1:parHold=ON:parHoldLimit=10000:paruseNBR=1
+#-exp parUseNBR=0:parCDP=auto:parCDR=1:parPathBased=OFF:parHold=ON
