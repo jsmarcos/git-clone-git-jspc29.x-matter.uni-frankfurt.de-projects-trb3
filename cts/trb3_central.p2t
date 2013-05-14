@@ -6,7 +6,7 @@
 -s 5
 -c 0
 -e 0
--exp parUseNBR=0:parCDP=auto:parCDR=1:parPathBased=OFF:parHold=ON
+-exp parDisablePgroup=0:parUseNBR=0:parCDP=auto:parCDR=1:parPathBased=OFF:parHold=ON
 
 
 #-w
