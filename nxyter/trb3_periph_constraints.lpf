@@ -28,8 +28,8 @@
   USE PRIMARY NET "CLK_PCLK_LEFT";
   USE PRIMARY NET "CLK_PCLK_LEFT_c";
 
- # USE PRIMARY NET "CLK_GPLL_RIGHT";
- # USE PRIMARY NET "CLK_GPLL_RIGHT_c";
+  USE PRIMARY2EDGE NET "THE_MAIN_PLL/PLLInst_0";
+  USE PRIMARY NET "THE_MAIN_PLL/PLLInst_0";
 
   USE PRIMARY NET "NX1_ADC_SC_CLK32_OUT";
   USE PRIMARY NET "NX1_ADC_SC_CLK32_OUT_c";
@@ -40,8 +40,6 @@
 # Reset Nets
 #################################################################  
 GSR_NET NET "GSR_N";  
-
-
 
 
 #################################################################
@@ -76,12 +74,6 @@ DEFINE PORT GROUP "NX_IN" "NX1_TIMESTAMP_*";
 INPUT_SETUP GROUP "NX_IN" 3.0 ns HOLD 3.0 ns CLKPORT="NX1_CLK128_IN" ; 
 
 MULTICYCLE FROM CLKNET "NX1_CLK256A_OUT_c_c" 50 ns;
-
-
-
-
-
-
 
 #PROHIBIT PRIMARY NET "NX1_ADC_DCLK_IN_c";
 #PROHIBIT SECONDARY NET "NX1_ADC_DCLK_IN_c";

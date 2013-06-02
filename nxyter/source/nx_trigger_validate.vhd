@@ -6,18 +6,20 @@ library work;
 use work.trb_net_std.all;
 use work.nxyter_components.all;
 
-entity nx_timestamp_process is
+entity nx_trigger_validate is
   port (
     CLK_IN               : in  std_logic;  
     RESET_IN             : in  std_logic;
 
     -- Inputs
-    TIMESTAMP_CLK_IN     : in  std_logic;
+    DATA_CLK_IN          : in  std_logic;
+    TIMESTAMP_IN         : in  std_logic_vector(13 downto 0);
+    CHANNEL_IN           : in  std_logic_vector(6 downto 0);
+    TIMESTAMP_STATUS_IN  : in  std_logic_vector(2 downto 0);
+    ADC_DATA_IN          : in  std_logic_vector(11 downto 0);
     NX_TOKEN_RETURN_IN   : in  std_logic;
     NX_NOMORE_DATA_IN    : in  std_logic;
-    TIMESTAMP_IN         : in  unsigned(13 downto 0);
-    CHANNEL_IN           : in  unsigned(6 downto 0);
-    TIMESTAMP_STATUS_IN  : in  std_logic_vector(1 downto 0);
+    
     TIMESTAMP_REF_IN     : in  unsigned(11 downto 0);
     TRIGGER_IN           : in std_logic;
     
@@ -42,7 +44,7 @@ entity nx_timestamp_process is
 
 end entity;
 
-architecture Behavioral of nx_timestamp_process is
+architecture Behavioral of nx_trigger_validate is
 
   -- Sync Ref
   signal timestamp_ref_x      : unsigned(11 downto 0);
@@ -167,16 +169,16 @@ begin
         out_of_window_h      <= '0';
         ch_status_cmd_pr     <= CS_NONE;
         
-        if (store_to_fifo = '1' and TIMESTAMP_CLK_IN = '1') then
+        if (store_to_fifo = '1' and DATA_CLK_IN = '1') then
           ts_ref             := timestamp_ref - x"010";
           window_lower_thr   := trigger_window_delay;
           window_upper_thr   := window_lower_thr + trigger_window_width;
-          deltaT             := TIMESTAMP_IN(13 downto 2) - ts_ref;
+          deltaT             := unsigned(TIMESTAMP_IN(13 downto 2)) - ts_ref;
 
           case readout_mode is
             
             when x"0" =>            -- RefValue + valid and window filter 
-              if (TIMESTAMP_STATUS_IN(0) = '0') then
+              if (TIMESTAMP_STATUS_IN(1) = '0') then
                 if (deltaT < window_lower_thr) then
                   out_of_window_l <= '1';
                   data_clk_o      <= '0';
@@ -191,12 +193,14 @@ begin
                   ch_status_cmd_pr <= CS_SET_DONE;
                 else
                   --data_o( 1 downto  0) <= TIMESTAMP_IN(1 downto 0);
-                  data_o(11 downto  0) <= deltaT;
-                  data_o(15 downto 12) <= (others => '0');
-                  data_o(22 downto 16) <= CHANNEL_IN;
-                  data_o(27 downto 23) <= (others => '0');
-                  data_o(29 downto 28) <= TIMESTAMP_STATUS_IN;
-                  data_o(31 downto 30) <= (others => '0');
+                  data_o(11 downto  0)   <= deltaT;
+                  data_o(15 downto 12)   <= (others => '0');
+                  --data_o(22 downto 16) <= CHANNEL_IN;
+                  --data_o(27 downto 23) <= (others => '0');
+                  --data_o(30 downto 28) <= TIMESTAMP_STATUS_IN;
+                  --data_o(31)           <= '0';
+                  data_o(27 downto 16)   <= ADC_DATA_IN;
+                  data_o(31 downto 28)   <= (others => '0');
                   data_clk_o <= '1';
                   -- IN LUT-Data bit setzten.
                   channel_index      <= CHANNEL_IN;
@@ -205,44 +209,52 @@ begin
               end if;
           
             when x"1" =>            -- RefValue + valid filter
-              if (TIMESTAMP_STATUS_IN(0) = '0') then
+              if (TIMESTAMP_STATUS_IN(1) = '0') then
                 --data_o( 1 downto  0) <= TIMESTAMP_IN(1 downto 0);
                 data_o(11 downto  0) <= deltaT;
                 data_o(15 downto 12) <= (others => '0');
-                data_o(22 downto 16) <= CHANNEL_IN;
-                data_o(27 downto 23) <= (others => '0');
-                data_o(29 downto 28) <= TIMESTAMP_STATUS_IN;
-                data_o(31 downto 30) <= (others => '0');
+              --  data_o(22 downto 16) <= CHANNEL_IN;
+              --  data_o(27 downto 23) <= (others => '0');
+              --  data_o(30 downto 28) <= TIMESTAMP_STATUS_IN;
+              --  data_o(31)           <=  '0';
+                data_o(27 downto 16)   <= ADC_DATA_IN;
+                data_o(31 downto 28)   <= (others => '0');
                 data_clk_o <= '1';
               end if;
 
             when x"3" =>            -- RefValue + valid filter
-              if (TIMESTAMP_STATUS_IN(0) = '0') then
+              if (TIMESTAMP_STATUS_IN(1) = '0') then
                 data_o(11 downto  0) <= TIMESTAMP_IN(13 downto 2);
                 data_o(13 downto 12) <= (others => '0'); 
                 data_o(15 downto 14) <= (others => '0');
-                data_o(27 downto 16) <= ts_ref;
-                data_o(31 downto 28) <= (others => '0');
+              --  data_o(27 downto 16) <= ts_ref;
+              --  data_o(31)           <= '0';
+                data_o(27 downto 16)   <= ADC_DATA_IN;
+                data_o(31 downto 28)   <= (others => '0');
                 data_clk_o <= '1';
               end if;
                   
             when x"4" =>            -- RawValue
               data_o(13 downto  0) <= TIMESTAMP_IN;
               data_o(15 downto 14) <= (others => '0');
-              data_o(22 downto 16) <= CHANNEL_IN;
-              data_o(27 downto 23) <= (others => '0');
-              data_o(29 downto 28) <= TIMESTAMP_STATUS_IN;
-              data_o(31 downto 30) <= (others => '0');
+              --data_o(22 downto 16) <= CHANNEL_IN;
+              --data_o(27 downto 23) <= (others => '0');
+              --data_o(30 downto 28) <= TIMESTAMP_STATUS_IN;
+              --data_o(31)           <= '0';
+              data_o(27 downto 16)   <= ADC_DATA_IN;
+              data_o(31 downto 28)   <= (others => '0');
               data_clk_o <= '1';
 
             when x"5" =>            -- RawValue + valid filter
-              if (TIMESTAMP_STATUS_IN(0) = '0') then
+              if (TIMESTAMP_STATUS_IN(1) = '0') then
                 data_o(13 downto  0) <= TIMESTAMP_IN;
                 data_o(15 downto 14) <= (others => '0');
-                data_o(22 downto 16) <= CHANNEL_IN;
-                data_o(27 downto 23) <= (others => '0');
-                data_o(29 downto 28) <= TIMESTAMP_STATUS_IN;
-                data_o(31 downto 30) <= (others => '0');
+                --data_o(22 downto 16) <= CHANNEL_IN;
+                --data_o(27 downto 23) <= (others => '0');
+                --data_o(30 downto 28) <= TIMESTAMP_STATUS_IN;
+                --data_o(31)           <= '0';
+                data_o(27 downto 16)   <= ADC_DATA_IN;
+                data_o(31 downto 28)   <= (others => '0');
                 data_clk_o <= '1';
               end if;
 

@@ -6,20 +6,23 @@ library work;
 use work.trb_net_std.all;
 use work.nxyter_components.all;
 
-entity nx_timestamp_decode is
+entity nx_data_validate is
   port (
     CLK_IN               : in  std_logic;  
     RESET_IN             : in  std_logic;
 
     -- Inputs
-    NX_NEW_TIMESTAMP_IN  : in  std_logic;
     NX_TIMESTAMP_IN      : in  std_logic_vector(31 downto 0);
+    ADC_DATA_IN          : in  std_logic_vector(11 downto 0);
+    NEW_DATA_IN          : in  std_logic;
 
     -- Outputs
-    TIMESTAMP_OUT        : out unsigned(13 downto 0);
-    CHANNEL_OUT          : out unsigned(6 downto 0);
-    TIMESTAMP_STATUS_OUT : out std_logic_vector(1 downto 0);
-    TIMESTAMP_VALID_OUT  : out std_logic;
+    TIMESTAMP_OUT        : out std_logic_vector(13 downto 0);
+    CHANNEL_OUT          : out std_logic_vector(6 downto 0);
+    TIMESTAMP_STATUS_OUT : out std_logic_vector(2 downto 0);
+    ADC_DATA_OUT         : out std_logic_vector(11 downto 0);
+    DATA_VALID_OUT       : out std_logic;
+
     NX_TOKEN_RETURN_OUT  : out std_logic;
     NX_NOMORE_DATA_OUT   : out std_logic;
 
@@ -38,25 +41,26 @@ entity nx_timestamp_decode is
 
 end entity;
 
-architecture Behavioral of nx_timestamp_decode is
+architecture Behavioral of nx_data_validate is
 
   -- Gray Decoder
   signal nx_timestamp         : std_logic_vector(13 downto 0);
   signal nx_channel_id        : std_logic_vector( 6 downto 0);
-
+  
   -- TIMESTAMP_BITS
   signal new_timestamp        : std_logic;
   signal valid_frame_bits     : std_logic_vector(3 downto 0);
   signal status_bits          : std_logic_vector(1 downto 0);
   signal parity_bit           : std_logic;
   signal parity               : std_logic;
-  signal timstamp_raw         : std_logic_vector(31 downto 0);
+  signal adc_data             : std_logic_vector(11 downto 0);
   
   -- Validate Timestamp
-  signal timestamp_o          : unsigned(13 downto 0);
-  signal channel_o            : unsigned(6 downto 0);
-  signal timestamp_status_o   : std_logic_vector(1 downto 0);
-  signal timestamp_valid_o    : std_logic;
+  signal timestamp_o          : std_logic_vector(13 downto 0);
+  signal channel_o            : std_logic_vector(6 downto 0);
+  signal timestamp_status_o   : std_logic_vector(2 downto 0);
+  signal adc_data_o           : std_logic_vector(11 downto 0);
+  signal data_valid_o         : std_logic;
 
   signal nx_notempty_ctr      : unsigned (1 downto 0);  
   signal nx_token_return_o    : std_logic;
@@ -80,19 +84,22 @@ architecture Behavioral of nx_timestamp_decode is
   signal clear_counters       : std_logic;
   signal nx_trigger_rate      : unsigned(19 downto 0);
 
+  signal invalid_adc : std_logic;
+  
 begin
 
   -- Debug Line
-  DEBUG_OUT(0)                    <= CLK_IN;
-  DEBUG_OUT(1)                    <= NX_NEW_TIMESTAMP_IN;
-  DEBUG_OUT(2)                    <= timestamp_valid_o;
-  DEBUG_OUT(3)                    <= '0';
-  DEBUG_OUT(5 downto 4)           <= status_bits;
-  DEBUG_OUT(6)                    <= parity;
-  DEBUG_OUT(7)                    <= nx_token_return_o;
-  DEBUG_OUT(8)                    <= nx_nomore_data_o;
+--  DEBUG_OUT(0)                    <= CLK_IN;
+--  DEBUG_OUT(1)                    <= new_timestamp;
+--  DEBUG_OUT(2)                    <= nx_token_return_o;-- new_timestamp;
+  DEBUG_OUT(0)                    <= data_valid_o;
+  DEBUG_OUT(3 downto 1)           <= channel_o(2 downto 0);
+  DEBUG_OUT(15 downto 4)          <= adc_data;
+  --DEBUG_OUT(6 downto 4)           <= timestamp_status_o;
+  --DEBUG_OUT(7)                    <= nx_token_return_o;
+  --DEBUG_OUT(8)                    <= invalid_adc;--nx_nomore_data_o;
   
-  DEBUG_OUT(15 downto 9)          <= nx_channel_id;
+  --DEBUG_OUT(15 downto 9)          <= channel_o;
 
   -----------------------------------------------------------------------------
   -- Gray Decoder for Timestamp and Chgannel Id
@@ -132,7 +139,7 @@ begin
         parity_bit          <= '0';
         parity              <= '0';
         new_timestamp       <= '0';
-        timstamp_raw        <= (others => '0');
+        adc_data            <= (others => '0');
       else
         -- Timestamp Bit #6 is excluded (funny nxyter-bug)
         parity_bits         := NX_TIMESTAMP_IN(31 downto 24) &
@@ -144,9 +151,9 @@ begin
         parity_bit          <= '0';
         parity              <= '0';
         new_timestamp       <= '0';
-        timstamp_raw        <= (others => '0');
+        adc_data            <= (others => '0');
         
-        if (NX_NEW_TIMESTAMP_IN = '1') then
+        if (NEW_DATA_IN = '1') then
           valid_frame_bits(3) <= NX_TIMESTAMP_IN(31);
           valid_frame_bits(2) <= NX_TIMESTAMP_IN(23);
           valid_frame_bits(1) <= NX_TIMESTAMP_IN(15);
@@ -154,7 +161,7 @@ begin
           status_bits         <= NX_TIMESTAMP_IN(2 downto 1);
           parity_bit          <= NX_TIMESTAMP_IN(0);
           parity              <= xor_all(parity_bits);
-          timstamp_raw        <= NX_TIMESTAMP_IN;
+          adc_data            <= ADC_DATA_IN;
           new_timestamp       <= '1';
         end if;
       end if;
@@ -172,7 +179,8 @@ begin
         timestamp_o          <= (others => '0');
         channel_o            <= (others => '0');
         timestamp_status_o   <= (others => '0');
-        timestamp_valid_o    <= '0';
+        adc_data_o           <= (others => '0');
+        data_valid_o         <= '0';
         nx_notempty_ctr      <= (others => '0');
         nx_token_return_o    <= '0';
         nx_nomore_data_o     <= '1';
@@ -188,10 +196,13 @@ begin
         timestamp_o          <= (others => '0');
         channel_o            <= (others => '0');
         timestamp_status_o   <= (others => '0');
-        timestamp_valid_o    <= '0';
+        adc_data_o           <= (others => '0');
+        data_valid_o         <= '0';
         nx_token_return_o    <= '0';
         nx_nomore_data_o     <= '0';
-    
+
+        invalid_adc <= '0';
+
         if (new_timestamp = '1') then
           case valid_frame_bits is
             when "1000" =>
@@ -202,7 +213,8 @@ begin
               
               ---- Check Parity
               if ((parity_bit /= parity) and (clear_counters = '0')) then
-                parity_error_ctr <= parity_error_ctr + 1;
+                timestamp_status_o(0) <= '1';
+                parity_error_ctr      <= parity_error_ctr + 1;
               end if;
 
               -- Check PileUp
@@ -211,18 +223,23 @@ begin
               end if;
               
               -- Take Timestamp
-              timestamp_o          <= unsigned(nx_timestamp);
-              channel_o            <= unsigned(nx_channel_id);
-              timestamp_status_o   <= status_bits;
-              timestamp_valid_o    <= '1';
+              timestamp_o                    <= nx_timestamp;
+              channel_o                      <= nx_channel_id;
+              timestamp_status_o(2 downto 1) <= status_bits;
+              adc_data_o                     <= adc_data;
+              data_valid_o                   <= '1';
               
-              nx_notempty_ctr      <= (others => '0');
+              nx_notempty_ctr                <= (others => '0');
 
               -- Rate Counter
               if (nx_rate_timer < x"186a0") then
                 nx_valid_ctr  <= nx_valid_ctr + 1;
               end if;
-                
+
+              if (adc_data = x"aff") then
+                invalid_adc <= '1';
+              end if;
+              
             when "0000" =>
               case nx_notempty_ctr is
                 when "00"   =>
@@ -232,7 +249,7 @@ begin
                 when "01"   =>
                   nx_nomore_data_o  <= '1';
                   nx_notempty_ctr   <= nx_notempty_ctr + 1;
-                  
+                
                 when others => null;
               end case;
               
@@ -347,7 +364,8 @@ begin
   TIMESTAMP_OUT         <= timestamp_o;
   CHANNEL_OUT           <= channel_o;
   TIMESTAMP_STATUS_OUT  <= timestamp_status_o;
-  TIMESTAMP_VALID_OUT   <= timestamp_valid_o;
+  ADC_DATA_OUT          <= adc_data_o;
+  DATA_VALID_OUT        <= data_valid_o;
   NX_TOKEN_RETURN_OUT   <= nx_token_return_o;
   NX_NOMORE_DATA_OUT    <= nx_nomore_data_o;
   

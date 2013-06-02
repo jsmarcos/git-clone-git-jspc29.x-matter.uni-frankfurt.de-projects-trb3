@@ -54,7 +54,7 @@ entity trb3_periph is
     NX1_TESTPULSE_OUT          : out   std_logic;
     NX1_ADC_FCLK_IN            : in    std_logic;
     NX1_ADC_DCLK_IN            : in    std_logic;
-    NX1_ADC_SC_CLK32_OUT       : out   std_logic;
+    NX1_ADC_SAMPLE_CLK_OUT     : out   std_logic;
     NX1_ADC_A_IN               : in    std_logic;
     NX1_ADC_B_IN               : in    std_logic;
     NX1_ADC_NX_IN              : in    std_logic;
@@ -83,7 +83,7 @@ entity trb3_periph is
     NX2_TESTPULSE_OUT          : out   std_logic;
     NX2_ADC_FCLK_IN            : in    std_logic;
     NX2_ADC_DCLK_IN            : in    std_logic;
-    NX2_ADC_SC_CLK32_OUT       : out   std_logic;
+    NX2_ADC_SAMPLE_CLK_OUT     : out   std_logic;
     NX2_ADC_A_IN               : in    std_logic;
     NX2_ADC_B_IN               : in    std_logic;
     NX2_ADC_NX_IN              : in    std_logic;
@@ -153,8 +153,8 @@ architecture trb3_periph_arch of trb3_periph is
   attribute syn_preserve : boolean;
 
   -- For 250MHz PLL nxyter clock, THE_256M_ODDR_1
-  -- attribute ODDRAPPS : string;
-  -- attribute ODDRAPPS of THE_256M_ODDR_1 : label is "SCLK_ALIGNED";
+ --attribute ODDRAPPS : string;
+ --attribute ODDRAPPS of THE_256M_ODDR_1 : label is "SCLK_ALIGNED";
 
   
   --Clock / Reset
@@ -304,9 +304,6 @@ architecture trb3_periph_arch of trb3_periph is
 
   signal nx2_clk256_o                : std_logic;
 
-
-  signal pll_192MHz : std_logic;
-  
 begin
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -507,13 +504,6 @@ begin
 -- AddOn
 ---------------------------------------------------------------------------
 
-  pll_adc_clk192_1: pll_adc_clk192
-    port map (
-      CLK   => CLK_PCLK_LEFT,
-      CLKOP => pll_192MHz,
-      LOCK  => open
-      );
-  
 ---------------------------------------------------------------------------
 -- Bus Handler
 ---------------------------------------------------------------------------
@@ -741,7 +731,7 @@ begin
       ADC_FCLK_IN(1)            => NX1B_ADC_FCLK_IN,
       ADC_DCLK_IN(0)            => NX1_ADC_DCLK_IN,
       ADC_DCLK_IN(1)            => NX1B_ADC_DCLK_IN,
-      ADC_SC_CLK32_OUT          => NX1_ADC_SC_CLK32_OUT,
+      ADC_SAMPLE_CLK_OUT        => NX1_ADC_SAMPLE_CLK_OUT,
       ADC_A_IN(0)               => NX1_ADC_A_IN,
       ADC_A_IN(1)               => NX1B_ADC_A_IN,
       ADC_B_IN(0)               => NX1_ADC_B_IN,
@@ -769,25 +759,37 @@ begin
   pll_nx_clk256_1: entity work.pll_nx_clk256
     port map (
       CLK   => clk_100_i,
-      CLKOP => NX1_CLK256A_OUT,
+      CLKOP => nx1_clk256_o,
       LOCK  => pll_lock_clk256
       );
-  
---  -- 250MHz Clock to nXyters
---  pll_nx_clk250_1: entity work.pll_nx_clk250
---    port map (
---      CLK   => CLK_GPLL_LEFT,
---      CLKOP => NX1_CLK256A_OUT, -- nx1_clk256_o,
---      LOCK  => open
---      );
 
---  THE_256M_ODDR_1: ODDRXD1
---    port map(
---      SCLK  =>  nx1_clk256_o,
---      DA    => '1',
---      DB    => '0',
---      Q     => open --NX1_CLK256A_OUT
---      );
+  NX1_CLK256A_OUT <= nx1_clk256_o;
+
+  
+  -- 250MHz Clock to nXyters
+  --pll_nx_clk250_1: entity work.pll_nx_clk250
+  --  port map (
+  --    CLK   => CLK_GPLL_LEFT,
+  --    CLKOP => nx1_clk256_o,
+  --    LOCK  => open
+  --    );
+
+  --pll_125_hub_1: pll_125_hub
+  --  port map (
+  --    CLK   => CLK_GPLL_LEFT,
+  --    CLKOP => open,
+  --    CLKOK => nx1_clk256_o,
+  --    LOCK  => open
+  --    );
+ -- NX1_CLK256A_OUT <= CLK_PCLK_RIGHT;
+  
+  --THE_256M_ODDR_1: ODDRXD1
+  --  port map(
+  --    SCLK  => nx1_clk256_o,
+  --    DA    => '1',
+  --    DB    => '0',
+  --    Q     => NX1_CLK256A_OUT
+  --    );
 
 
 -------------------------------------------------------------------------------

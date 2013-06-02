@@ -40,7 +40,7 @@ entity nXyter_FEE_board is
     -- ADC nXyter Pulse Hight Ports
     ADC_FCLK_IN             : in  std_logic_vector(1 downto 0);
     ADC_DCLK_IN             : in  std_logic_vector(1 downto 0);
-    ADC_SC_CLK32_OUT        : out std_logic;
+    ADC_SAMPLE_CLK_OUT      : out std_logic;
     ADC_A_IN                : in  std_logic_vector(1 downto 0);
     ADC_B_IN                : in  std_logic_vector(1 downto 0);
     ADC_NX_IN               : in  std_logic_vector(1 downto 0);
@@ -94,17 +94,20 @@ architecture Behavioral of nXyter_FEE_board is
   signal spi_sdi              : std_logic;
   signal spi_sdo              : std_logic;        
 
-  -- Timestamp FIFO Read
-  signal nx_timestamp         : std_logic_vector(31 downto 0);
-  signal nx_new_timestamp     : std_logic;
-  signal adc_clk_o            : std_logic;
-       
-  -- Timestamp Decode Handlers
-  signal timestamp_data       : std_logic_vector(31 downto 0);
-  signal timestamp            : unsigned(13 downto 0);
-  signal timestamp_channel_id : unsigned(6 downto 0);
-  signal timestamp_status     : std_logic_vector(1 downto 0);
-  signal timestamp_valid      : std_logic;
+  -- Data Receiver
+  signal adc_data_valid       : std_logic;
+  signal adc_new_data         : std_logic;
+
+  signal new_timestamp        : std_logic_vector(31 downto 0);
+  signal new_adc_data         : std_logic_vector(11 downto 0);
+  signal new_data             : std_logic;
+
+  -- Data Validate
+  signal timestamp            : std_logic_vector(13 downto 0);
+  signal timestamp_channel_id : std_logic_vector(6 downto 0);
+  signal timestamp_status     : std_logic_vector(2 downto 0);
+  signal adc_data             : std_logic_vector(11 downto 0);
+  signal data_valid           : std_logic;
 
   signal nx_token_return      : std_logic;
   signal nx_nomore_data       : std_logic;
@@ -146,9 +149,8 @@ architecture Behavioral of nXyter_FEE_board is
 --
 --  signal adc_dat_clk          : std_logic;
 --  signal adc_restart          : std_logic;
---  signal adc_clk_o            : std_logic;
+--  signal adc_clk              : std_logic;
 --
---  signal adc_data_i           : std_logic_vector(7 downto 0);
 --  signal adc_dat_clk_i        : std_logic_vector(1 downto 0);
 --  signal adc_fco_clk_i        : std_logic_vector(1 downto 0);
 --  
@@ -161,10 +163,11 @@ begin
 -------------------------------------------------------------------------------
 -- DEBUG
 -------------------------------------------------------------------------------
---   DEBUG_LINE_OUT(0)            <= CLK_IN;
---   DEBUG_LINE_OUT(1)            <= trigger_ack;
---   DEBUG_LINE_OUT(2)            <= nx_ts_reset_o;
---   DEBUG_LINE_OUT(3)            <= nx_testpulse_o;
+--  DEBUG_LINE_OUT(0)            <= CLK_IN;
+--  DEBUG_LINE_OUT(1)            <= NX_CLK128_IN;
+--  DEBUG_LINE_OUT(2)            <= ADC_SAMPLE_CLK_OUT;
+--  DEBUG_LINE_OUT(7 downto 3)  <= (others => '0');
+--  DEBUG_LINE_OUT(15 downto 8)  <= NX_TIMESTAMP_IN;
 --   DEBUG_LINE_OUT(4)            <= nx_new_timestamp;
 --   DEBUG_LINE_OUT(5)            <= timestamp_valid;
 --   DEBUG_LINE_OUT(6)            <= timestamp_hold;
@@ -217,22 +220,22 @@ begin
 
       PORT_ADDRESSES      => ( 0 => x"0100",    -- Control Register Handler
                                1 => x"0040",    -- I2C Master
-                               2 => x"0500",    -- Timestamp Fifo
+                               2 => x"0500",    -- Data Receiver
                                3 => x"0600",    -- Data Buffer
                                4 => x"0060",    -- SPI Master
                                5 => x"0140",    -- Trigger Generator
-                               6 => x"0120",    -- Timestamp Decode
+                               6 => x"0120",    -- Data Validate
                                7 => x"0160",    -- Trigger Handler
                                8 => x"0180",    -- Timestamp Process
                                others => x"0000"),
 
       PORT_ADDR_MASK      => ( 0 => 3,          -- Control Register Handler
                                1 => 0,          -- I2C master
-                               2 => 3,          -- Timestamp Fifo
+                               2 => 3,          -- Data Receiver
                                3 => 1,          -- Data Buffer
                                4 => 0,          -- SPI Master
                                5 => 3,          -- Trigger Generator
-                               6 => 4,          -- Timestamp Decode
+                               6 => 4,          -- Data Validate
                                7 => 1,          -- Trigger Handler
                                8 => 4,          -- Timestamp Process
                                others => 0)
@@ -276,7 +279,7 @@ begin
       BUS_NO_MORE_DATA_IN(1)              => slv_no_more_data(1),
       BUS_UNKNOWN_ADDR_IN(1)              => slv_unknown_addr(1),
 
-      -- Timestamp Fifo
+      -- Data Receiver
       BUS_READ_ENABLE_OUT(2)              => slv_read(2),
       BUS_WRITE_ENABLE_OUT(2)             => slv_write(2),
       BUS_DATA_OUT(2*32+31 downto 2*32)   => slv_data_wr(2*32+31 downto 2*32),
@@ -327,7 +330,7 @@ begin
       BUS_NO_MORE_DATA_IN(5)              => slv_no_more_data(5),
       BUS_UNKNOWN_ADDR_IN(5)              => slv_unknown_addr(5),
 
-      -- Timestamp Decode
+      -- Data Validate
       BUS_READ_ENABLE_OUT(6)              => slv_read(6),
       BUS_WRITE_ENABLE_OUT(6)             => slv_write(6),
       BUS_DATA_OUT(6*32+31 downto 6*32)   => slv_data_wr(6*32+31 downto 6*32),
@@ -510,54 +513,66 @@ begin
       SLV_ACK_OUT          => slv_ack(5),
       SLV_NO_MORE_DATA_OUT => slv_no_more_data(5),
       SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(5),
-      -- DEBUG_OUT            => DEBUG_LINE_OUT
-      DEBUG_OUT            => open
-      );
-
-
--------------------------------------------------------------------------------
--- nXyter TimeStamp Read
--------------------------------------------------------------------------------
-
-  nx_timestamp_fifo_read_1: nx_timestamp_fifo_read
-    port map (
-      CLK_IN               => CLK_IN,
-      RESET_IN             => RESET_IN,
-      
-      NX_TIMESTAMP_CLK_IN  => NX_CLK128_IN,
-      NX_TIMESTAMP_IN      => NX_TIMESTAMP_IN,
-      NX_TIMESTAMP_OUT     => nx_timestamp,
-      NX_NEW_TIMESTAMP_OUT => nx_new_timestamp,
-
-      SLV_READ_IN          => slv_read(2),
-      SLV_WRITE_IN         => slv_write(2),
-      SLV_DATA_OUT         => slv_data_rd(2*32+31 downto 2*32),
-      SLV_DATA_IN          => slv_data_wr(2*32+31 downto 2*32),
-      SLV_ADDR_IN          => slv_addr(2*16+15 downto 2*16),
-      SLV_ACK_OUT          => slv_ack(2),
-      SLV_NO_MORE_DATA_OUT => slv_no_more_data(2),
-      SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(2),
-
       --DEBUG_OUT            => DEBUG_LINE_OUT
       DEBUG_OUT            => open
       );
 
+-------------------------------------------------------------------------------
+-- nXyter Data Receiver
+-------------------------------------------------------------------------------
 
+  nx_data_receiver_1: nx_data_receiver
+    port map (
+      CLK_IN               => CLK_IN,
+      RESET_IN             => RESET_IN,
+
+      NX_TIMESTAMP_CLK_IN  => NX_CLK128_IN,
+      NX_TIMESTAMP_IN      => NX_TIMESTAMP_IN,
+
+      ADC_CLK_DAT_SRC_IN   => CLK_ADC_IN,
+      ADC_FCLK_IN          => ADC_FCLK_IN,
+      ADC_DCLK_IN          => ADC_DCLK_IN, 
+      ADC_SAMPLE_CLK_OUT   => ADC_SAMPLE_CLK_OUT,
+      ADC_A_IN             => ADC_A_IN,
+      ADC_B_IN             => ADC_B_IN,
+      ADC_NX_IN            => ADC_NX_IN, 
+      ADC_D_IN             => ADC_D_IN,
+
+      NX_TIMESTAMP_OUT     => new_timestamp,
+      ADC_DATA_OUT         => new_adc_data,
+      NEW_DATA_OUT         => new_data,
+
+      SLV_READ_IN          => slv_read(2),                      
+      SLV_WRITE_IN         => slv_write(2),                     
+      SLV_DATA_OUT         => slv_data_rd(2*32+31 downto 2*32), 
+      SLV_DATA_IN          => slv_data_wr(2*32+31 downto 2*32), 
+      SLV_ADDR_IN          => slv_addr(2*16+15 downto 2*16),    
+      SLV_ACK_OUT          => slv_ack(2),                       
+      SLV_NO_MORE_DATA_OUT => slv_no_more_data(2),              
+      SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(2),              
+      --DEBUG_OUT            => DEBUG_LINE_OUT
+      DEBUG_OUT            => open
+      );
+  
 -------------------------------------------------------------------------------
 -- Timestamp Decoder and Valid Data Filter
 -------------------------------------------------------------------------------
 
-  nx_timestamp_decode_1: nx_timestamp_decode
+  nx_data_validate_1: nx_data_validate
     port map (
       CLK_IN                => CLK_IN,
       RESET_IN              => RESET_IN,
-      NX_NEW_TIMESTAMP_IN   => nx_new_timestamp,
-      NX_TIMESTAMP_IN       => nx_timestamp,
+      
+      NX_TIMESTAMP_IN       => new_timestamp,
+      ADC_DATA_IN           => new_adc_data,
+      NEW_DATA_IN           => new_data,
 
       TIMESTAMP_OUT         => timestamp,
       CHANNEL_OUT           => timestamp_channel_id,
       TIMESTAMP_STATUS_OUT  => timestamp_status,
-      TIMESTAMP_VALID_OUT   => timestamp_valid,
+      ADC_DATA_OUT          => adc_data,
+      DATA_VALID_OUT        => data_valid,
+      
       NX_TOKEN_RETURN_OUT   => nx_token_return,
       NX_NOMORE_DATA_OUT    => nx_nomore_data,
       
@@ -569,25 +584,27 @@ begin
       SLV_ACK_OUT           => slv_ack(6),
       SLV_NO_MORE_DATA_OUT  => slv_no_more_data(6),
       SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(6),
-      -- DEBUG_OUT            => DEBUG_LINE_OUT
-      DEBUG_OUT           => open
+      DEBUG_OUT             => DEBUG_LINE_OUT
+      --DEBUG_OUT             => open
       );
 
 -------------------------------------------------------------------------------
 -- NX Timestamp Process
 -------------------------------------------------------------------------------
 
-  nx_timestamp_process_1: nx_timestamp_process
+  nx_trigger_validate_1: nx_trigger_validate
     port map (
       CLK_IN                 => CLK_IN,
       RESET_IN               => RESET_IN,
 
-      TIMESTAMP_CLK_IN       => timestamp_valid,
-      NX_TOKEN_RETURN_IN     => nx_token_return,
-      NX_NOMORE_DATA_IN      => nx_nomore_data,
+      DATA_CLK_IN            => data_valid,
       TIMESTAMP_IN           => timestamp,
       CHANNEL_IN             => timestamp_channel_id,
       TIMESTAMP_STATUS_IN    => timestamp_status,
+      ADC_DATA_IN            => adc_data,
+      NX_TOKEN_RETURN_IN     => nx_token_return,
+      NX_NOMORE_DATA_IN      => nx_nomore_data,
+
       TIMESTAMP_REF_IN       => timestamp_trigger,
       TRIGGER_IN             => trigger_ack,
 
@@ -635,66 +652,6 @@ begin
 
   data_buffer_reset <= RESET_IN or data_fifo_reset;
 
--------------------------------------------------------------------------------
--- ADC 9228 Handler
--------------------------------------------------------------------------------
-
---   adc_ad9222_1: entity work.adc_ad9222
---     generic map (
---       CHANNELS => 4,
---       DEVICES  => 1,
---       RESOLUTION => 12
---       )
---     port map (
---       CLK                        => CLK_IN,
---       CLK_ADCREF                 => adc_clk,  -- adc_ref_clk,
---       CLK_ADCDAT                 => adc_clk,  -- adc_dat_clk,
---       RESTART_IN                 => '0', -- adc_restart,
---       ADCCLK_OUT                 => ADC_SC_CLK32_OUT, -- adc_sc_clk32_o,
---       ADC_DATA(0)                => ADC_A_IN, -- adc_data_i,
---       ADC_DATA(1)                => ADC_B_IN, -- adc_data_i,
---       ADC_DATA(2)                => ADC_NX_IN, -- adc_data_i,
---       ADC_DATA(3)                => ADC_D_IN, -- adc_data_i,
---       ADC_FCO(0)                 => ADC_FCLK_IN, -- adc_fco_clk_i,
---       DATA_OUT(0)                => DEBUG_LINE_OUT(0), -- adc_data_word,
---       FCO_OUT(0)                 => DEBUG_LINE_OUT(1), -- adc_fco,
---       DATA_VALID_OUT(0)          => DEBUG_LINE_OUT(2), -- adc_data_valid,
---       DEBUG                      => open
---       );
-
-  adc_receiver_1: adc_receiver
-    port map (
-      CLK_IN           => CLK_IN,
-      RESET_IN         => RESET_IN,
-      CLK_ADC_IN       => CLK_ADC_IN,
-
-      ADC_FCLK_IN      => ADC_FCLK_IN,
-      ADC_DCLK_IN      => ADC_DCLK_IN,
-      ADC_SC_CLK32_OUT => ADC_SC_CLK32_OUT,
-      ADC_A_IN         => ADC_A_IN,
-      ADC_B_IN         => ADC_B_IN,
-      ADC_NX_IN        => ADC_NX_IN,
-      ADC_D_IN         => ADC_D_IN,
-            
-      --DEBUG_OUT        => open,
-      DEBUG_OUT        => DEBUG_LINE_OUT
-      );
-
---  adc_ad9228_1: adc_ad9228
---    port map (
---      CLK_IN           => CLK_IN,
---      RESET_IN         => RESET_IN,
---      ADC_FCLK_IN      => ADC_FCLK_IN,
---      ADC_DCLK_IN      => ADC_DCLK_IN,
---      ADC_SC_CLK32_OUT => ADC_SC_CLK32_OUT,
---      ADC_A_IN         => ADC_A_IN,
---      ADC_B_IN         => ADC_B_IN,
---      ADC_NX_IN        => ADC_NX_IN,
---      ADC_D_IN         => ADC_D_IN,
---      --DEBUG_OUT        => open,
---      DEBUG_OUT        => DEBUG_LINE_OUT
---      );
-  
 -------------------------------------------------------------------------------
 -- nXyter Signals
 -------------------------------------------------------------------------------

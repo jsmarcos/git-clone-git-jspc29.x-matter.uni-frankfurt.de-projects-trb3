@@ -13,11 +13,11 @@ CoreType=LPM
 CoreStatus=Demo
 CoreName=FIFO_DC
 CoreRevision=5.4
-ModuleName=fifo_32to32_dc
+ModuleName=fifo_ts_32to32_dc
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=04/07/2013
-Time=20:23:08
+Date=06/02/2013
+Time=03:59:31
 
 [Parameters]
 Verilog=0
@@ -28,9 +28,9 @@ Expression=BusA(0 to 7)
 Order=Big Endian [MSB:LSB]
 IO=0
 FIFOImp=EBR Based
-Depth=64
+Depth=32
 Width=32
-RDepth=64
+RDepth=32
 RWidth=32
 regout=1
 CtrlByRdEn=1
