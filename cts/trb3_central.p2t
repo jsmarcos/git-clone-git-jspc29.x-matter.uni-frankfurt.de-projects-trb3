@@ -1,13 +1,13 @@
 -w
 -l 5
 -i 6
--n 3
+-n 5
 -t 2
 -s 100
 -c 0
 -e 0
 -stopzero
--exp parUseNBR=0:parCDP=auto:parCDR=1:parPathBased=OFF:parHold=OFF:parDisablePgroup=0
+-exp parUseNBR=0:parCDP=auto:parCDR=1:parPathBased=OFF:parDisablePgroup=0:parHold=ON
 
 
 

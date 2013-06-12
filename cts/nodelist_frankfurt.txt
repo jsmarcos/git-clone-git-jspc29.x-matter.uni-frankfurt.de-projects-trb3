@@ -1,0 +1,14 @@
+
+
+[jspc22]
+system = linux
+corenum = 2
+env = /d/jspc29/lattice/diamond_settings.sh
+workdir = /d/jspc22/trb/git/trb3/cts/workdir
+
+[jspc48]
+system = linux
+corenum = 3
+env = /d/jspc29/lattice/diamond_settings.sh
+workdir = /d/jspc22/trb/git/trb3/cts/workdir
+

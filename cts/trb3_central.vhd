@@ -617,15 +617,16 @@ THE_MAIN_PLL : pll_in200_out100
     LOCK   => pll_lock
     );
 
--- generates hits for calibration uncorrelated with tdc clk
-THE_CALIBRATION_PLL : pll_in125_out20
-	port map (
-		CLK   => CLK_GPLL_RIGHT,
-		CLKOP => clk_20_i,
-		CLKOK => clk_125_i,
-		LOCK  => open);
+-- -- generates hits for calibration uncorrelated with tdc clk
+-- THE_CALIBRATION_PLL : pll_in125_out20
+-- 	port map (
+-- 		CLK   => CLK_GPLL_RIGHT,
+-- 		CLKOP => clk_20_i,
+-- 		CLKOK => clk_125_i,
+-- 		LOCK  => open);
 
-  
+  clk_125_i <= CLK_GPLL_RIGHT;
+  clk_20_i <= '0';
 
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (SFP)
@@ -1405,21 +1406,21 @@ end process;
 ---------------------------------------------------------------------------
 -- AddOn Connector
 ---------------------------------------------------------------------------
-    PWM_OUT                        <= "00";
-    
-    JOUT1                          <= x"0";
-    JOUT2                          <= x"0";
-    JOUTLVDS                       <= x"00";
-    JTTL                           <= x"0000";
-    TRG_FANOUT_ADDON               <= '0';
-    
-    LED_BANK                       <= x"FF";
-    LED_RJ_GREEN                   <= "111111";
-    LED_RJ_RED                     <= "111111";
-    LED_FAN_GREEN                  <= '1';
-    LED_FAN_ORANGE                 <= '1';
-    LED_FAN_RED                    <= '1';
-    LED_FAN_YELLOW                 <= '1';
+--     PWM_OUT                        <= "00";
+--     
+--     JOUT1                          <= x"0";
+--     JOUT2                          <= x"0";
+--     JOUTLVDS                       <= x"00";
+--     JTTL                           <= x"0000";
+--     TRG_FANOUT_ADDON               <= '0';
+--     
+--     LED_BANK                       <= x"FF";
+--     LED_RJ_GREEN                   <= "111111";
+--     LED_RJ_RED                     <= "111111";
+--     LED_FAN_GREEN                  <= '1';
+--     LED_FAN_ORANGE                 <= '1';
+--     LED_FAN_RED                    <= '1';
+--     LED_FAN_YELLOW                 <= '1';
 
 
 ---------------------------------------------------------------------------
