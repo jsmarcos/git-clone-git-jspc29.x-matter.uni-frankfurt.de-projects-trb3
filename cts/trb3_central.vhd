@@ -556,25 +556,6 @@ begin
 
 GSR_N   <= pll_lock;
   
--- THE_RESET_HANDLER : trb_net_reset_handler
---   generic map(
---     RESET_DELAY     => x"FEEE"
---     )
---   port map(
---     CLEAR_IN        => '0',             -- reset input (high active, async)
---     CLEAR_N_IN      => '1',             -- reset input (low active, async)
---     CLK_IN          => clk_200_i,       -- raw master clock, NOT from PLL/DLL!
---     SYSCLK_IN       => clk_100_i,       -- PLL/DLL remastered clock
---     PLL_LOCKED_IN   => pll_lock,        -- master PLL lock signal (async)
---     RESET_IN        => '0',             -- general reset signal (SYSCLK)
---     TRB_RESET_IN    => trb_reset_in, -- TRBnet reset signal (SYSCLK)
---     CLEAR_OUT       => clear_i,         -- async reset out, USE WITH CARE!
---     RESET_OUT       => reset_i,         -- synchronous reset out (SYSCLK)
---     DEBUG_OUT       => open
---   );
--- 
--- trb_reset_in <= med_stat_op(4*16+13) or reset_via_gbe;
-
 THE_RESET_HANDLER : trb_net_reset_handler
   generic map(
     RESET_DELAY     => x"FEEE"
