@@ -450,49 +450,55 @@
         <Source name="../trb3_central.vhd" type="VHDL" type_short="VHDL">
             <Options top_module="trb3_central"/>
         </Source>
-        <Source name="../../tdc_releases/tdc_v1.1.1/bit_sync.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../tdc_release/bit_sync.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../../tdc_releases/tdc_v1.1.1/BusHandler.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../tdc_release/BusHandler.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../../tdc_releases/tdc_v1.1.1/Channel.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../tdc_release/Channel.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../../tdc_releases/tdc_v1.1.1/Channel_200.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../tdc_release/Channel_200.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../../tdc_releases/tdc_v1.1.1/Encoder_304_Bit.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../tdc_release/Encoder_304_Bit.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../../tdc_releases/tdc_v1.1.1/FIFO_32x32_OutReg.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../tdc_release/LogicAnalyser.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../../tdc_releases/tdc_v1.1.1/LogicAnalyser.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../tdc_release/Readout.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../../tdc_releases/tdc_v1.1.1/Readout.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../tdc_release/Reference_Channel_200.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../../tdc_releases/tdc_v1.1.1/Reference_Channel_200.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../tdc_release/Reference_Channel.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../../tdc_releases/tdc_v1.1.1/Reference_Channel.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../tdc_release/ROM_encoder_3.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../../tdc_releases/tdc_v1.1.1/ROM_encoder_3.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../tdc_release/ShiftRegisterSISO.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../../tdc_releases/tdc_v1.1.1/ROM_FIFO.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../tdc_release/TDC.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../../tdc_releases/tdc_v1.1.1/ShiftRegisterSISO.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../tdc_release/up_counter.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../../tdc_releases/tdc_v1.1.1/TDC.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../tdc_release/fallingEdgeDetect.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../../tdc_releases/tdc_v1.1.1/up_counter.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../tdc_release/FIFO_36x128_OutReg_Counter.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
+        <Source name="../tdc_release/risingEdgeDetect.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
+        <Source name="../tdc_release/ROM4_Encoder.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
         <Source name="../../../trbnet/optical_link/f_divider.vhd" type="VHDL" type_short="VHDL">
@@ -505,6 +511,18 @@
             <Options/>
         </Source>
         <Source name="../config.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
+        <Source name="../../../trbnet/media_interfaces/ecp3_sfp/sfp_1_125_int.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
+        <Source name="../source/mainz_a2_recv.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
+        <Source name="../../../trbnet/media_interfaces/ecp3_sfp/serdes_onboard_full_125.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
+        <Source name="../../base/cores/pll_in125_out20.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
         <Source name="../workdir/trb3_central.lpf" type="Logic Preference" type_short="LPF">

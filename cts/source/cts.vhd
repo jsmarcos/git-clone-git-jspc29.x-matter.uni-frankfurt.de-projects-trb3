@@ -92,6 +92,7 @@ library work;
 --      25        Include last idle, dead time counters
 --      26        Include Counters "Trigger asserted", "Trigger Edges", "Triggers Accepted"
 --      27        Timestamp (1 word)
+--    29 : 28     ETM Data amount
 -- </reg_table>
 
 entity CTS is
@@ -119,6 +120,7 @@ entity CTS is
       EXT_TRIGGER_IN  : in std_logic;
       EXT_STATUS_IN   : in std_logic_vector(31 downto 0) := X"00000000";
       EXT_CONTROL_OUT : out std_logic_vector(31 downto 0);    
+      EXT_HEADER_BITS_IN : in std_logic_vector( 1 downto 0) := "00";
 
   -- CTS Endpoint -----------------------------------------------------------
       --LVL1 trigger
@@ -151,7 +153,7 @@ entity CTS is
       CTS_REGIO_DATAREADY_OUT      : out std_logic;
       CTS_REGIO_WRITE_ACK_OUT      : out std_logic;
       CTS_REGIO_UNKNOWN_ADDR_OUT   : out std_logic;
-   
+      
   -- Frontend Endpoint -----------------------------------------------------
       --Data Port
       LVL1_TRG_DATA_VALID_IN       : in std_logic;
@@ -311,6 +313,8 @@ architecture RTL of CTS is
    signal eb_selection_i : std_logic_vector(3 downto 0) := x"0";
    signal eb_special_calibration_eb_i     : std_logic_vector(3 downto 0) := x"0";
    signal eb_use_special_calibration_eb_i : std_logic := '0';
+   
+   signal eb_regio_updated_i : std_logic := '0';
 begin
 -- Trigger Distribution
 -----------------------------------------
@@ -416,6 +420,8 @@ begin
                      
                      FEE_DATA_OUT(25) <= ro_configuration_buf_i(2);
                      FEE_DATA_OUT(26) <= ro_configuration_buf_i(3);
+                     
+                     FEE_DATA_OUT(29 downto 28) <= EXT_HEADER_BITS_IN;
                      
                      FEE_DATA_WRITE_OUT <= '1';
 
@@ -560,7 +566,7 @@ begin
                   
                   if fifo_data_out_i(27 downto 24) = x"e" and eb_use_special_calibration_eb_i = '1' then
                     CTS_IPU_INFORMATION_OUT(3 downto 0) <= eb_special_calibration_eb_i;
-                  else
+                  elsif eb_aggr_threshold_i /= x"00" then
                     CTS_IPU_INFORMATION_OUT(3 downto 0) <= eb_selection_i;
                   end if;
 
@@ -657,26 +663,32 @@ begin
          if RESET='1' then
             eb_mask_buf_i <= (0 => '1', others => '0');
             eb_aggr_counter_i   <= x"00";
-         elsif eb_aggr_threshold_i /= x"00" and ro_next_cycle_i = '1' then
+            eb_selection_i <= x"0";
+         
+         elsif eb_mask_buf_i = x"00" or eb_regio_updated_i = '1'then
+            -- we already unmasked all active ebs, so let's start over and again select all active ebs
+            eb_mask_buf_i <= eb_mask_i;
+            
+         elsif (eb_aggr_threshold_i /= x"00" and ro_next_cycle_i = '1')  then
             if eb_aggr_threshold_i = eb_aggr_counter_i then
                eb_aggr_counter_i <= (others => '0');
 
                -- let's waste some logic to save some lines of code. if we run out of area,
                -- we can switch to a sequential process instead of a parallel priority encoder
-               for i in 0 to 15 loop
+               eb_sel_loop: for i in 0 to 15 loop
                   if eb_mask_buf_i(i) = '1' then
                      eb_mask_buf_i(i) <= '0';
                      eb_selection_i <= STD_LOGIC_VECTOR(TO_UNSIGNED(i, 4));
-                     exit;
+                     exit eb_sel_loop;
+                     
                   end if;
                end loop;
+               
             else
                eb_aggr_counter_i <= eb_aggr_counter_i + TO_UNSIGNED(1,1);
+               
             end if;
-
-         elsif eb_mask_buf_i = x"00" then
-            -- we already unmasked all active ebs, so let's start over and again select all active ebs
-            eb_mask_buf_i <= eb_mask_i;
+            
          end if;
       end if;
    end process;
@@ -874,11 +886,16 @@ begin
                cts_regio_write_ack_out_i   <= '1';
             end if;
 
+            eb_regio_updated_i <= '0';
             if addr = 16#0d# and cts_regio_write_enable_in_i = '1' then
                eb_mask_i <= cts_regio_data_in_i(15 downto 0);
                eb_aggr_threshold_i <= UNSIGNED(cts_regio_data_in_i(23 downto 16));
                eb_special_calibration_eb_i <= cts_regio_data_in_i(27 downto 24);
                eb_use_special_calibration_eb_i <= cts_regio_data_in_i(28);
+               
+               eb_regio_updated_i <= '1';
+               
+               cts_regio_write_ack_out_i <= '1';
             end if;
          end if;
       end if;

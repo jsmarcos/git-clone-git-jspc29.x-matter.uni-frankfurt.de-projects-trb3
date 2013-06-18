@@ -29,6 +29,8 @@ package cts_pkg is
          EXT_TRIGGER_IN  : in std_logic;
          EXT_STATUS_IN   : in std_logic_vector(31 downto 0) := X"00000000";
          EXT_CONTROL_OUT : out std_logic_vector(31 downto 0);
+         EXT_HEADER_BITS_IN : in std_logic_vector( 1 downto 0) := "00";         
+
 
    -- CTS Endpoint -----------------------------------------------------------
          --LVL1 trigger
@@ -61,6 +63,7 @@ package cts_pkg is
          CTS_REGIO_DATAREADY_OUT      : out std_logic;
          CTS_REGIO_WRITE_ACK_OUT      : out std_logic;
          CTS_REGIO_UNKNOWN_ADDR_OUT   : out std_logic;
+         
       
    -- Frontend Endpoint -----------------------------------------------------
          --Data Port
@@ -122,6 +125,7 @@ package cts_pkg is
       --Registers / Debug    
       CONTROL_REG_IN : in  std_logic_vector(31 downto 0);
       STATUS_REG_OUT : out std_logic_vector(31 downto 0);
+      HEADER_REG_OUT : out std_logic_vector(1 downto 0);
       DEBUG          : out std_logic_vector(31 downto 0)    
       );
    end component;   
@@ -133,7 +137,6 @@ package cts_pkg is
 			 TIMER_TICK_1US_IN : in	 std_logic;
 			 SERIAL_IN				 : in	 std_logic;
 			 EXT_TRG_IN				 : in	 std_logic;
-			 TRG_ASYNC_OUT		 : out std_logic;
 			 TRG_SYNC_OUT			 : out std_logic;
 			 TRIGGER_IN				 : in	 std_logic;
 			 DATA_OUT					 : out std_logic_vector(31 downto 0);
@@ -142,6 +145,7 @@ package cts_pkg is
 			 FINISHED_OUT			 : out std_logic;
 			 CONTROL_REG_IN		 : in	 std_logic_vector(31 downto 0);
 			 STATUS_REG_OUT		 : out std_logic_vector(31 downto 0) := (others => '0');
+			 HEADER_REG_OUT    : out std_logic_vector(1 downto 0);
 			 DEBUG						 : out std_logic_vector(31 downto 0));
 	 end component mainz_a2_recv;
 	 

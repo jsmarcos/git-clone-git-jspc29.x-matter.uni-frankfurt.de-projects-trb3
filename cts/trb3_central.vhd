@@ -38,6 +38,7 @@ library work;
 -- 7000 - 72FF  Readout endpoint registers
 -- 8100 - 83FF  GbE configuration & status
 -- A000 - A1FF  CTS configuration & status
+-- C000 - CFFF  TDC configuration & status
 -- D000 - D13F  Flash Programming
 
 
@@ -103,13 +104,29 @@ entity trb3_central is
     FPGA4_CONNECTOR                : inout std_logic_vector(7 downto 0); --Bit 0-1: LED for SFP1/2
                                                                          --Bit 0-3 connected to LED by default, two on each side
                                                                          
-    --Big AddOn connector
-    ADDON_RESET                    : out std_logic; --reset signal to AddOn
-    ADDON_TO_TRB_CLK               : in  std_logic; --Clock from AddOn, connected to PCLK input
-    TRB_TO_ADDON_CLK               : out std_logic; --Clock sent to AddOn
-    ADO_LV                         : inout std_logic_vector(61 downto 0);
-    ADO_TTL                        : inout std_logic_vector(46 downto 0);
-    FS_PE                          : inout std_logic_vector(17 downto 0);
+    --AddOn connector
+    ECL_IN                         : in  std_logic_vector(3 downto 0);
+    NIM_IN                         : in  std_logic_vector(1 downto 0);
+    JIN1                           : in  std_logic_vector(3 downto 0);
+    JIN2                           : in  std_logic_vector(3 downto 0);
+    JINLVDS                        : in  std_logic_vector(15 downto 0);  --No LVDS, just TTL!
+    
+    DISCRIMINATOR_IN               : in  std_logic_vector(1 downto 0);
+    PWM_OUT                        : out std_logic_vector(1 downto 0);
+    
+    JOUT1                          : out std_logic_vector(3 downto 0);
+    JOUT2                          : out std_logic_vector(3 downto 0);
+    JOUTLVDS                       : out std_logic_vector(7 downto 0);
+    JTTL                           : inout std_logic_vector(15 downto 0);
+    TRG_FANOUT_ADDON               : out std_logic;
+    
+    LED_BANK                       : out std_logic_vector(7 downto 0);
+    LED_RJ_GREEN                   : out std_logic_vector(5 downto 0);
+    LED_RJ_RED                     : out std_logic_vector(5 downto 0);
+    LED_FAN_GREEN                  : out std_logic;
+    LED_FAN_ORANGE                 : out std_logic;
+    LED_FAN_RED                    : out std_logic;
+    LED_FAN_YELLOW                 : out std_logic;
     
     --Flash ROM & Reboot
     FLASH_CLK                      : out std_logic;
@@ -133,17 +150,25 @@ entity trb3_central is
     --Test Connectors
     TEST_LINE                      : out std_logic_vector(31 downto 0)
     );
-    
+
+
     attribute syn_useioff : boolean;
     --no IO-FF for LEDs relaxes timing constraints
     attribute syn_useioff of LED_CLOCK_GREEN    : signal is false;
     attribute syn_useioff of LED_CLOCK_RED      : signal is false;
+    attribute syn_useioff of LED_TRIGGER_GREEN  : signal is false;
+    attribute syn_useioff of LED_TRIGGER_RED    : signal is false;
     attribute syn_useioff of LED_GREEN          : signal is false;
     attribute syn_useioff of LED_ORANGE         : signal is false;
     attribute syn_useioff of LED_RED            : signal is false;
-    attribute syn_useioff of LED_TRIGGER_GREEN  : signal is false;
-    attribute syn_useioff of LED_TRIGGER_RED    : signal is false;
     attribute syn_useioff of LED_YELLOW         : signal is false;
+    attribute syn_useioff of LED_FAN_GREEN      : signal is false;
+    attribute syn_useioff of LED_FAN_ORANGE     : signal is false;
+    attribute syn_useioff of LED_FAN_RED        : signal is false;
+    attribute syn_useioff of LED_FAN_YELLOW     : signal is false;
+    attribute syn_useioff of LED_BANK           : signal is false;
+    attribute syn_useioff of LED_RJ_GREEN       : signal is false;
+    attribute syn_useioff of LED_RJ_RED         : signal is false;
     attribute syn_useioff of FPGA1_TTL          : signal is false;
     attribute syn_useioff of FPGA2_TTL          : signal is false;
     attribute syn_useioff of FPGA3_TTL          : signal is false;
@@ -172,6 +197,8 @@ architecture trb3_central_arch of trb3_central is
 
   signal clk_100_i   : std_logic; --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i   : std_logic; --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
+  signal clk_125_i   : std_logic; --125 MHz, via Clock Manager and bypassed PLL
+  signal clk_20_i    : std_logic; --clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
   signal pll_lock    : std_logic; --Internal PLL locked. E.g. used to reset all internal logic.
   signal clear_i     : std_logic;
   signal reset_i     : std_logic;
@@ -304,6 +331,7 @@ architecture trb3_central_arch of trb3_central is
   signal cts_ext_status              : std_logic_vector(31 downto 0) := (others => '0');
   signal cts_ext_control             : std_logic_vector(31 downto 0);
   signal cts_ext_debug               : std_logic_vector(31 downto 0);
+  signal cts_ext_header 						 : std_logic_vector(1 downto 0);
 
   signal cts_rdo_additional_data            : std_logic_vector(31+INCLUDE_TDC*32 downto 0);
   signal cts_rdo_additional_write           : std_logic_vector(0+INCLUDE_TDC downto 0) := (others => '0');
@@ -428,6 +456,7 @@ begin
 
       CONTROL_REG_IN => cts_ext_control,
       STATUS_REG_OUT => cts_ext_status,
+      HEADER_REG_OUT => cts_ext_header,
       
       DEBUG => cts_ext_debug
    );
@@ -442,7 +471,6 @@ begin
 				TIMER_TICK_1US_IN => timer_ticks(0),
 				SERIAL_IN			 => CLK_EXT(3),
 				EXT_TRG_IN		 => CLK_EXT(4),
-				--TRG_ASYNC_OUT	 => TRG_ASYNC_OUT,
 				TRG_SYNC_OUT	 => cts_ext_trigger,
 				TRIGGER_IN     => cts_rdo_trg_data_valid,
 				DATA_OUT       => cts_rdo_additional_data(31 downto 0),
@@ -452,6 +480,7 @@ begin
 
 				CONTROL_REG_IN => cts_ext_control,
 				STATUS_REG_OUT => cts_ext_status,
+				HEADER_REG_OUT => cts_ext_header,
 				
 				DEBUG => cts_ext_debug
 				);
@@ -480,7 +509,8 @@ begin
       
       EXT_TRIGGER_IN => cts_ext_trigger,
       EXT_STATUS_IN  => cts_ext_status,
-      EXT_CONTROL_OUT => cts_ext_control, 
+      EXT_CONTROL_OUT => cts_ext_control,
+      EXT_HEADER_BITS_IN => cts_ext_header,
       
       CTS_TRG_SEND_OUT => cts_trg_send,
       CTS_TRG_TYPE_OUT => cts_trg_type,
@@ -587,6 +617,15 @@ THE_MAIN_PLL : pll_in200_out100
     LOCK   => pll_lock
     );
 
+-- generates hits for calibration uncorrelated with tdc clk
+THE_CALIBRATION_PLL : pll_in125_out20
+	port map (
+		CLK   => CLK_GPLL_RIGHT,
+		CLKOP => clk_20_i,
+		CLKOK => clk_125_i,
+		LOCK  => open);
+
+  
 
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (SFP)
@@ -748,7 +787,7 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
     MII_IS_DOWNLINK      => IS_DOWNLINK,
     MII_IS_UPLINK_ONLY   => IS_UPLINK_ONLY,	
     COMPILE_VERSION                  => x"0001",
-    HARDWARE_VERSION                 => x"9000CEE0",
+    HARDWARE_VERSION                 => HARDWARE_INFO,
     INIT_ENDPOINT_ID                 => x"0005",
     BROADCAST_BITMASK                => x"7E",
     CLOCK_FREQUENCY                  => 100,
@@ -894,7 +933,7 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
   port map( 
 	  CLK                         => clk_100_i,
 	  TEST_CLK                    => '0',
-	  CLK_125_IN                  => CLK_GPLL_RIGHT,
+	  CLK_125_IN                  => clk_125_i,
 	  RESET                       => reset_i,
 	  GSR_N                       => gsr_n,
 	  --Debug
@@ -1237,6 +1276,7 @@ gen_TDC : if INCLUDE_TDC = c_YES generate
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => cts_trigger_out,  -- Reference time input
       HIT_IN                => trigger_in_buf_i,  -- Channel start signals
+      HIT_CALIBRATION       => clk_20_i,    -- Hits for calibrating the TDC
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --
@@ -1363,13 +1403,23 @@ end process;
 
 
 ---------------------------------------------------------------------------
--- Big AddOn Connector
+-- AddOn Connector
 ---------------------------------------------------------------------------
-  ADDON_RESET      <= '1';
-  TRB_TO_ADDON_CLK <= '0';
-  ADO_LV           <= (others => 'Z');
-  ADO_TTL          <= (others => 'Z');
-  FS_PE            <= (others => 'Z');
+    PWM_OUT                        <= "00";
+    
+    JOUT1                          <= x"0";
+    JOUT2                          <= x"0";
+    JOUTLVDS                       <= x"00";
+    JTTL                           <= x"0000";
+    TRG_FANOUT_ADDON               <= '0';
+    
+    LED_BANK                       <= x"FF";
+    LED_RJ_GREEN                   <= "111111";
+    LED_RJ_RED                     <= "111111";
+    LED_FAN_GREEN                  <= '1';
+    LED_FAN_ORANGE                 <= '1';
+    LED_FAN_RED                    <= '1';
+    LED_FAN_YELLOW                 <= '1';
 
 
 ---------------------------------------------------------------------------
