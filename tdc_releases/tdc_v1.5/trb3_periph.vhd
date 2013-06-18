@@ -357,7 +357,7 @@ begin
       BROADCAST_BITMASK         => x"FF",
       BROADCAST_SPECIAL_ADDR    => x"48",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
-      REGIO_HARDWARE_VERSION    => x"91000060",  -- regio_hardware_version_i,
+      REGIO_HARDWARE_VERSION    => x"91000860",  -- regio_hardware_version_i,
       REGIO_INIT_ADDRESS        => x"f305",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
       CLOCK_FREQUENCY           => 125,
@@ -794,13 +794,13 @@ begin
       CONTROL_REG_IN        => tdc_ctrl_reg);
 
   -- For single edge measurements
-  hit_in_i <= INP;
+  --hit_in_i <= INP;
 
   -- For ToT Measurements
-  --Gen_Hit_In_Signals : for i in 1 to 32 generate
-  --  hit_in_i(i*2-1) <= INP(i-1);
-  --  hit_in_i(i*2)   <= not INP(i-1);
-  --end generate Gen_Hit_In_Signals;
+  Gen_Hit_In_Signals : for i in 1 to 32 generate
+    hit_in_i(i*2-1) <= INP(i-1);
+    hit_in_i(i*2)   <= not INP(i-1);
+  end generate Gen_Hit_In_Signals;
 
 -- !!!!! IMPORTANT !!!!! Don't forget to set the REGIO_HARDWARE_VERSION !!!!!
 end architecture;

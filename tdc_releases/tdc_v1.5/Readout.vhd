@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2013-04-24
+-- Last update: 2013-05-06
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -160,7 +160,7 @@ architecture behavioral of Readout is
   signal wr_ch_data_reg          : std_logic;
   signal wr_ch_data_2reg         : std_logic;
   signal wr_status               : std_logic;
-  signal wr_trailer              : std_logic;
+--  signal wr_trailer              : std_logic;
   signal stop_status_i           : std_logic;
   -- to endpoint
   signal data_out_reg            : std_logic_vector(31 downto 0);
@@ -348,7 +348,7 @@ begin  -- behavioral
 -- Readout
 -------------------------------------------------------------------------------
 -- Readout fsm
-  RD_FSM_CLK : process (CLK_100, RESET_100)
+  RD_FSM_CLK : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
       RD_CURRENT        <= RD_NEXT;
@@ -370,7 +370,7 @@ begin  -- behavioral
   READ_EN_OUT <= rd_en;
 
   RD_FSM_PROC : process (RD_CURRENT, VALID_TIMING_TRG_IN, VALID_NOTIMING_TRG_IN, trg_win_end_100_p,
-                         ch_empty_reg, TRG_DATA_VALID_IN, INVALID_TRG_IN, TMGTRG_TIMEOUT_IN, TRG_TYPE_IN,
+                         TRG_DATA_VALID_IN, INVALID_TRG_IN, TMGTRG_TIMEOUT_IN, TRG_TYPE_IN,
                          SPURIOUS_TRG_IN, stop_status_i, DEBUG_MODE_EN_IN, rd_number, fifo_nr_rd, ch_wcnt_2reg)
   begin
 
@@ -525,7 +525,7 @@ begin  -- behavioral
     end if;
   end process WR_FSM_CLK;
 
-  WR_FSM : process (WR_CURRENT, trg_win_end_100_3reg, TRG_TYPE_IN, wr_number, ch_wcnt_2reg, fifo_nr_wr)
+  WR_FSM : process (WR_CURRENT, trg_win_end_100_3reg, wr_number, ch_wcnt_2reg, fifo_nr_wr, DATA_LIMIT_IN)
 
   begin
 
@@ -642,10 +642,10 @@ begin  -- behavioral
         end case;
         data_wr_reg <= '1';
         i           := i+1;
-      elsif wr_trailer = '1' then
-        data_out_reg  <= "011" & "0000000000000" & trailer_error_bits;
-        data_wr_reg   <= '1';
-        stop_status_i <= '0';
+      --elsif wr_trailer = '1' then
+      --  data_out_reg  <= "011" & "0000000000000" & trailer_error_bits;
+      --  data_wr_reg   <= '1';
+      --  stop_status_i <= '0';
       else
         data_out_reg  <= (others => '1');
         data_wr_reg   <= '0';

@@ -20,7 +20,7 @@ UGROUP "ref_hit" BBOX 1 1
 	BLKNAME THE_TDC/The_Reference_Time/hit_buf_RNO;
 LOCATE UGROUP "ref_hit" SITE "R9C133D" ;
 UGROUP "Ref_ff_en"  BBOX 1 1
-	BLKNAME THE_TDC/The_Reference_Time/Reference_Channel_200_1/ff_array_en_i_1_i;
+	BLKNAME THE_TDC/The_Reference_Time/Reference_Channel_200_1/ff_array_en_i_RNO;
 LOCATE UGROUP "Ref_ff_en" SITE "R8C156D" ;
 
 ##############################################################################

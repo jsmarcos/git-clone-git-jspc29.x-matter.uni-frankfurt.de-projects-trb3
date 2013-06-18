@@ -179,7 +179,7 @@ begin
   
 -- Channel and calibration enable signals
   GEN_Channel_Enable : for i in 1 to CHANNEL_NUMBER-1 generate
-    process (ch_en_i, calibration_on, HIT_CALIBRATION, HIT_IN)
+    process (ch_en_i, calibration_on, HIT_CALIBRATION, hit_latch)
     begin
       if ch_en_i(i) = '1' then
         if calibration_on = '1' then

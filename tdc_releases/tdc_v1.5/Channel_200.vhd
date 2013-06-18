@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2013-03-19
+-- Last update: 2013-05-06
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -180,7 +180,7 @@ begin  -- Channel_200
   fifo_rd_en_i <= READ_EN_IN or fifo_full_i;
 
   -- Readout fsm
-  FSM_CLK : process (CLK_200, RESET_200)
+  FSM_CLK : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
       FSM_CURRENT   <= FSM_NEXT;
