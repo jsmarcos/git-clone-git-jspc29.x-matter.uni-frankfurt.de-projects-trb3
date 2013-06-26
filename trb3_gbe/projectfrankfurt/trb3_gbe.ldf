@@ -2,7 +2,7 @@
 <BaliProject version="2.0" title="trb3_gbe" device="LFE3-150EA-8FN1156C" default_implementation="trb3_gbe">
     <Options/>
     <Implementation title="trb3_gbe" dir="trb3_gbe" description="trb3_gbe" default_strategy="Strategy1">
-        <Options top="trb3_central"/>
+        <Options def_top="pll_in200_out100" top="trb3_central"/>
         <Source name="../../../trbnet/gbe2_ecp3/ipcores_ecp3/sgmii33/sgmii_channel_smi.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
@@ -388,7 +388,7 @@
             <Options/>
         </Source>
         <Source name="../trb3_central.vhd" type="VHDL" type_short="VHDL">
-            <Options/>
+            <Options top_module="trb3_central"/>
         </Source>
         <Source name="../../../trbnet/media_interfaces/ecp3_sfp/sfp_1_125_int.vhd" type="VHDL" type_short="VHDL">
             <Options/>

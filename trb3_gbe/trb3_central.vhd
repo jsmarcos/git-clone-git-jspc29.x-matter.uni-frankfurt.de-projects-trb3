@@ -148,7 +148,6 @@ architecture trb3_central_arch of trb3_central is
   attribute syn_preserve of GSR_N : signal is true;
   
   --FPGA Test
-  signal time_counter, time_counter2 : unsigned(31 downto 0);
   signal rx_clock : std_logic;
   signal rx_clock_half : std_logic;
   signal rx_clock_full : std_logic;
@@ -852,67 +851,6 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
     );
 
 
-
--- 
--- THE_SPI_MASTER: spi_master
---   port map(
---     CLK_IN         => clk_sys_i,
---     RESET_IN       => reset_i,
---     -- Slave bus
---     BUS_READ_IN    => spictrl_read_en,
---     BUS_WRITE_IN   => spictrl_write_en,
---     BUS_BUSY_OUT   => spictrl_busy,
---     BUS_ACK_OUT    => spictrl_ack,
---     BUS_ADDR_IN(0) => spictrl_addr,
---     BUS_DATA_IN    => spictrl_data_in,
---     BUS_DATA_OUT   => spictrl_data_out,
---     -- SPI connections
---     SPI_CS_OUT     => FLASH_CS,
---     SPI_SDI_IN     => FLASH_DOUT,
---     SPI_SDO_OUT    => FLASH_DIN,
---     SPI_SCK_OUT    => FLASH_CLK,
---     -- BRAM for read/write data
---     BRAM_A_OUT     => spi_bram_addr,
---     BRAM_WR_D_IN   => spi_bram_wr_d,
---     BRAM_RD_D_OUT  => spi_bram_rd_d,
---     BRAM_WE_OUT    => spi_bram_we,
---     -- Status lines
---     STAT           => open
---     );
--- 
--- -- data memory for SPI accesses
--- THE_SPI_MEMORY: spi_databus_memory
---   port map(
---     CLK_IN        => clk_sys_i,
---     RESET_IN      => reset_i,
---     -- Slave bus
---     BUS_ADDR_IN   => spimem_addr,
---     BUS_READ_IN   => spimem_read_en,
---     BUS_WRITE_IN  => spimem_write_en,
---     BUS_ACK_OUT   => spimem_ack,
---     BUS_DATA_IN   => spimem_data_in,
---     BUS_DATA_OUT  => spimem_data_out,
---     -- state machine connections
---     BRAM_ADDR_IN  => spi_bram_addr,
---     BRAM_WR_D_OUT => spi_bram_wr_d,
---     BRAM_RD_D_IN  => spi_bram_rd_d,
---     BRAM_WE_IN    => spi_bram_we,
---     -- Status lines
---     STAT          => open
---     );
---     
--- ---------------------------------------------------------------------------
--- -- Reboot FPGA
--- ---------------------------------------------------------------------------
--- THE_FPGA_REBOOT : fpga_reboot
---   port map(
---     CLK       => clk_sys_i,
---     RESET     => reset_i,
---     DO_REBOOT => common_ctrl_regs(15),
---     PROGRAMN  => PROGRAMN
---     );
-
-    
 ---------------------------------------------------------------------------
 -- Clock and Trigger Configuration
 ---------------------------------------------------------------------------
@@ -926,10 +864,6 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
 ---------------------------------------------------------------------------
 -- FPGA communication
 ---------------------------------------------------------------------------
---   FPGA1_COMM <= (others => 'Z');
---   FPGA2_COMM <= (others => 'Z');
---   FPGA3_COMM <= (others => 'Z');
---   FPGA4_COMM <= (others => 'Z');
 
   FPGA1_TTL <= (others => 'Z');
   FPGA2_TTL <= (others => 'Z');
@@ -957,23 +891,13 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
 ---------------------------------------------------------------------------
   LED_CLOCK_GREEN                <= '0';
   LED_CLOCK_RED                  <= '1';
---   LED_GREEN                      <= not med_stat_op(9);
---   LED_YELLOW                     <= not med_stat_op(10);
---   LED_ORANGE                     <= not med_stat_op(11); 
---   LED_RED                        <= '1';
   LED_TRIGGER_GREEN              <= not med_stat_op(4*16+9);
   LED_TRIGGER_RED                <= not (med_stat_op(4*16+11) or med_stat_op(4*16+10));
 
-
---LED_GREEN <= time_counter(27);
---LED_ORANGE <= time_counter2(27);
---LED_RED <= debug(2);
---LED_YELLOW <= debug(3);
-
-LED_GREEN <= debug(0);
-LED_ORANGE <= debug(1);
-LED_RED <= debug(2);
-LED_YELLOW <= link_ok; --debug(3);
+  LED_GREEN <= debug(0);
+  LED_ORANGE <= debug(1);
+  LED_RED <= debug(2);
+  LED_YELLOW <= link_ok; --debug(3);
 
 
 ---------------------------------------------------------------------------
@@ -989,21 +913,8 @@ LED_YELLOW <= link_ok; --debug(3);
 
   CLK_TEST_OUT <= clk_med_i & '0' & clk_sys_i;
   
+  
 
---   FPGA1_CONNECTOR(0) <= '0';
-  FPGA2_CONNECTOR(0) <= '0';
---   FPGA3_CONNECTOR(0) <= '0';
---   FPGA4_CONNECTOR(0) <= '0';
-  
-  
----------------------------------------------------------------------------
--- Test Circuits
----------------------------------------------------------------------------
-  process
-    begin
-      wait until rising_edge(clk_sys_internal);
-      time_counter <= time_counter + 1;
-    end process;
 
 
 end architecture;

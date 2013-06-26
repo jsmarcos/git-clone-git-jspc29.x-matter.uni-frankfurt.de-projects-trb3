@@ -3,6 +3,8 @@ USE IEEE.std_logic_1164.ALL;
 use ieee.numeric_std.all;
 use work.trb_net_std.all;
 
+use work.trb_net16_hub_func.all;
+
 package config is
 
 
@@ -59,11 +61,11 @@ package config is
 --Hub configuration 
 ------------------------------------------------------------------------------
     type hub_mii_t is array(0 to 1) of integer;    
-    type hub_ct    is array(0 to 16) of integer;
-    type hub_cfg_t is array(0 to 1) of hub_ct;  
+--     type hub_ct    is array(0 to 16) of integer;
+    type hub_cfg_t is array(0 to 1) of hub_mii_config_t;  
     type hw_info_t is array(0 to 7) of std_logic_vector(31 downto 0);
-    type hub_ch_t  is array(0 to 3) of integer;    
-    type hub_chn_t is array(0 to 1) of hub_ch_t;
+--     type hub_ch_t  is array(0 to 3) of integer;    
+    type hub_chn_t is array(0 to 1) of hub_channel_config_t;
 
   --this is used to select the proper configuration in the main code    
     constant CFG_MODE : integer;
@@ -90,12 +92,12 @@ package config is
   --declare constants, filled in body                          
     constant INTERNAL_NUM         : integer;
     constant INTERFACE_NUM        : integer;
-    constant IS_UPLINK            : hub_ct;
-    constant IS_DOWNLINK          : hub_ct;
-    constant IS_UPLINK_ONLY       : hub_ct;
-    constant INTERNAL_CHANNELS    : hub_ct;
+    constant IS_UPLINK            : hub_mii_config_t;
+    constant IS_DOWNLINK          : hub_mii_config_t;
+    constant IS_UPLINK_ONLY       : hub_mii_config_t;
+    constant INTERNAL_CHANNELS    : hub_mii_config_t;
     constant HARDWARE_INFO        : std_logic_vector(31 downto 0);
-    constant USED_CHANNELS        : hub_ch_t;
+    constant USED_CHANNELS        : hub_channel_config_t;
     constant CLOCK_FREQUENCY      : integer;
     constant MEDIA_FREQUENCY      : integer;
 
@@ -108,12 +110,12 @@ package body config is
 
   constant INTERNAL_NUM         : integer := INTERNAL_NUM_ARR(CFG_MODE);
   constant INTERFACE_NUM        : integer := INTERFACE_NUM_ARR(CFG_MODE);
-  constant IS_UPLINK            : hub_ct  := IS_UPLINK_ARR(CFG_MODE);
-  constant IS_DOWNLINK          : hub_ct  := IS_DOWNLINK_ARR(CFG_MODE);
-  constant IS_UPLINK_ONLY       : hub_ct  := IS_UPLINK_ONLY_ARR(CFG_MODE); 
-  constant INTERNAL_CHANNELS    : hub_ct  := INTERNAL_CHANNEL_ARR(CFG_MODE); 
+  constant IS_UPLINK            : hub_mii_config_t  := IS_UPLINK_ARR(CFG_MODE);
+  constant IS_DOWNLINK          : hub_mii_config_t  := IS_DOWNLINK_ARR(CFG_MODE);
+  constant IS_UPLINK_ONLY       : hub_mii_config_t  := IS_UPLINK_ONLY_ARR(CFG_MODE); 
+  constant INTERNAL_CHANNELS    : hub_mii_config_t  := INTERNAL_CHANNEL_ARR(CFG_MODE); 
   constant HARDWARE_INFO        : std_logic_vector(31 downto 0) := HARDWARE_INFO_ARR(HW_INFO_MODE);
-  constant USED_CHANNELS        : hub_ch_t := USED_CHANNELS_ARR(USE_SCTRL_ONLY);
+  constant USED_CHANNELS        : hub_channel_config_t := USED_CHANNELS_ARR(USE_SCTRL_ONLY);
   constant CLOCK_FREQUENCY      : integer := CLOCK_FREQUENCY_ARR(USE_125_MHZ);
   constant MEDIA_FREQUENCY      : integer := MEDIA_FREQUENCY_ARR(USE_125_MHZ);
   
