@@ -85,6 +85,7 @@ entity trb3_periph_padiwa is
   attribute syn_useioff of FLASH_DOUT : signal is true;
   attribute syn_useioff of TEST_LINE  : signal is true;
   attribute syn_useioff of SPARE_LINE : signal is true;
+  attribute syn_useioff of INP        : signal is false;
 
 
 end entity;
@@ -408,7 +409,7 @@ begin
       BROADCAST_BITMASK         => x"FF",
       BROADCAST_SPECIAL_ADDR    => x"48",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
-      REGIO_HARDWARE_VERSION    => x"91004060",
+      REGIO_HARDWARE_VERSION    => x"91004860",
       REGIO_INIT_ADDRESS        => x"f306",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
       CLOCK_FREQUENCY           => 100,
@@ -785,14 +786,14 @@ begin
 -------------------------------------------------------------------------------
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 5,             -- Number of TDC channels
+      CHANNEL_NUMBER => 65,             -- Number of TDC channels
       CONTROL_REG_NR => 5)
     port map (
       RESET                 => reset_i,
       CLK_TDC               => clk_tdc,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
-      HIT_IN                => hit_in_i(4 downto 1),  -- Channel start signals
+      HIT_IN                => hit_in_i(64 downto 1),  -- Channel start signals
       HIT_CALIBRATION       => clk_20_i,    -- Hits for calibrating the TDC
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
@@ -859,7 +860,7 @@ begin
       CONTROL_REG_IN        => tdc_ctrl_reg);
 
 
-  -- For single edge measurements
+  ---- For single edge measurements
   --hit_in_i <= INP;
 
   -- For ToT Measurements

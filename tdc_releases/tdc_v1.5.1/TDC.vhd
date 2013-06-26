@@ -176,21 +176,21 @@ begin
   end generate GEN_HitBlock;
   hit_reg  <= hit_latch when rising_edge(CLK_TDC);
   hit_2reg <= hit_reg   when rising_edge(CLK_TDC);
-  
+
 -- Channel and calibration enable signals
   GEN_Channel_Enable : for i in 1 to CHANNEL_NUMBER-1 generate
     process (ch_en_i, calibration_on, HIT_CALIBRATION, hit_latch)
     begin
       if ch_en_i(i) = '1' then
         if calibration_on = '1' then
-          hit_in_i(i) <=  HIT_CALIBRATION;
+          hit_in_i(i) <= HIT_CALIBRATION;
         else
-          hit_in_i(i) <= hit_latch(i); --HIT_IN(i);
+          hit_in_i(i) <= hit_latch(i);  --HIT_IN(i);
         end if;
       else
         hit_in_i(i) <= '0';
       end if;
-    end process ;
+    end process;
 --    hit_in_i(i) <= HIT_IN(i) and ch_en_i(i);
   end generate GEN_Channel_Enable;
 
@@ -364,7 +364,9 @@ begin
       UNKNOWN_ADDR_OUT => HCB_UNKNOWN_ADDR_OUT);
 
   GenHitDetectNumber : for i in 1 to CHANNEL_NUMBER-1 generate
-    ch_level_hit_number(i) <= hit_in_i(i) & "0000000" & ch_hit_detect_number_i(i) when rising_edge(CLK_READOUT);
+    ch_level_hit_number(i)(31)           <= HIT_IN(i) and ch_en_i(i)  when rising_edge(CLK_READOUT);
+    ch_level_hit_number(i)(30 downto 24) <= (others => '0');
+    ch_level_hit_number(i)(23 downto 0)  <= ch_hit_detect_number_i(i) when rising_edge(CLK_READOUT);
   end generate GenHitDetectNumber;
 
   TheStatusRegistersBus : BusHandler

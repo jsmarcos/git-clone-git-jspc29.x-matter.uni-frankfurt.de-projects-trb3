@@ -1,9 +1,0 @@
-trb3_periph_padiwa_20121019.bit		65 Channels with the hit counters.
-trb3_periph_padiwa_20121020.bit		Level bit, which shows the input level, is added
-trb3_periph_padiwa_20121021.bit		Previoud design is recompiled, as the
-					unique id from the temperature sensor
-					was not working.
-trb3_periph_padiwa_20121022.bit		Broadcast address is changed to 0xfe48
-trb3_periph_padiwa_20121130.bit		The bug with the big fifos are fixed
-					and the slow control register
-					addresses are changed to 0xc100.
