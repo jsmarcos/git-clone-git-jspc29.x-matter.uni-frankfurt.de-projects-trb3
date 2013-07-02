@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2013-05-06
+-- Last update: 2013-06-27
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -553,18 +553,17 @@ begin  -- behavioral
           end if;
           wr_number_fsm    <= wr_number + to_unsigned(1, 1);
           fifo_nr_wr_fsm   <= fifo_nr_wr;
-          wr_fsm_debug_fsm <= x"2";
+
         elsif fifo_nr_wr = CHANNEL_NUMBER-1 then
           wr_ch_data_fsm   <= '0';
           wr_number_fsm    <= (others => '0');
           wr_finished_fsm  <= '1';
-          wr_fsm_debug_fsm <= x"3";
           WR_NEXT          <= IDLE;
         else
           wr_number_fsm    <= (others => '0');
           fifo_nr_wr_fsm   <= fifo_nr_wr + 1;
-          wr_fsm_debug_fsm <= x"4";
         end if;
+        wr_fsm_debug_fsm <= x"2";
 --      
       when others =>
         WR_NEXT          <= IDLE;
@@ -950,7 +949,7 @@ begin  -- behavioral
   STATUS_REGISTERS_BUS_OUT(16)(23 downto 0)  <= std_logic_vector(readout_time);
   STATUS_REGISTERS_BUS_OUT(17)(23 downto 0)  <= std_logic_vector(timeout_number);
   STATUS_REGISTERS_BUS_OUT(18)(23 downto 0)  <= std_logic_vector(finished_number);
-  STATUS_REGISTERS_BUS_OUT(18)(31 downto 24) <= std_logic_vector(wr_number);
+
 
   FILL_BUS1 : for i in 4 to 17 generate
     STATUS_REGISTERS_BUS_OUT(i)(31 downto 24) <= (others => '0');

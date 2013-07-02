@@ -34,9 +34,9 @@ entity trb3_periph is
     SPARE_LINE           : inout std_logic_vector(3 downto 0);  --inputs only
     INP                  : in    std_logic_vector(63 downto 0);
     --DAC_SDO              : in    std_logic;
-    --DAC_SDI              : out   std_logic;
-    --DAC_SCK              : out   std_logic;
-    --DAC_CS               : out   std_logic_vector(3 downto 0);
+    DAC_SDI              : out   std_logic;
+    DAC_SCK              : out   std_logic;
+    DAC_CS               : out   std_logic_vector(4 downto 1);
     --Flash ROM & Reboot
     FLASH_CLK            : out   std_logic;
     FLASH_CS             : out   std_logic;
@@ -75,9 +75,9 @@ entity trb3_periph is
   attribute syn_useioff of INP           : signal is false;
   attribute syn_useioff of SPARE_LINE    : signal is true;
   --attribute syn_useioff of DAC_SDO       : signal is true;
-  --attribute syn_useioff of DAC_SDI       : signal is true;
-  --attribute syn_useioff of DAC_SCK       : signal is true;
-  --attribute syn_useioff of DAC_CS        : signal is true;
+  attribute syn_useioff of DAC_SDI       : signal is true;
+  attribute syn_useioff of DAC_SCK       : signal is true;
+  attribute syn_useioff of DAC_CS        : signal is true;
 
 end entity;
 
@@ -357,7 +357,7 @@ begin
       BROADCAST_BITMASK         => x"FF",
       BROADCAST_SPECIAL_ADDR    => x"48",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
-      REGIO_HARDWARE_VERSION    => x"91000860",  -- regio_hardware_version_i,
+      REGIO_HARDWARE_VERSION    => x"91000060",  -- regio_hardware_version_i,
       REGIO_INIT_ADDRESS        => x"f305",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
       CLOCK_FREQUENCY           => 125,
@@ -458,7 +458,7 @@ begin
       DEBUG_LVL1_HANDLER_OUT      => open
       );
 
-  timing_trg_received_i <= TRIGGER_RIGHT;  --TRIGGER_LEFT;
+  timing_trg_received_i <= TRIGGER_LEFT;  --TRIGGER_RIGHT;  --
   common_stat_reg       <= (others => '0');
   stat_reg              <= (others => '0');
 
@@ -681,13 +681,13 @@ begin
       -- SPI connections
       SPI_CS_OUT(15 downto 4) => open,
       SPI_CS_OUT(3 downto 0)  => dac_cs_i,
-      SPI_SDI_IN              => open,
+      SPI_SDI_IN              => '0',
       SPI_SDO_OUT             => dac_sdi_i,
       SPI_SCK_OUT             => dac_sck_i);
 
-  --DAC_CS  <= open; --dac_cs_i;
-  --DAC_SDI <= open; --dac_sdi_i;
-  --DAC_SCK <= open; --dac_sck_i;
+  DAC_CS  <= dac_cs_i;
+  DAC_SDI <= dac_sdi_i;
+  DAC_SCK <= dac_sck_i;
 
 ---------------------------------------------------------------------------
 -- Reboot FPGA
@@ -720,14 +720,14 @@ begin
 
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 65,              -- Number of TDC channels
+      CHANNEL_NUMBER => 5,              -- Number of TDC channels
       CONTROL_REG_NR => 5)  -- Number of control regs - higher than 8 check tdc_ctrl_addr
     port map (
       RESET                 => reset_i,
       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
-      HIT_IN                => hit_in_i(64 downto 1),  -- Channel start signals
+      HIT_IN                => hit_in_i(4 downto 1),  -- Channel start signals
       HIT_CALIBRATION       => clk_20_i,    -- Hits for calibrating the TDC
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
@@ -795,12 +795,13 @@ begin
 
   -- For single edge measurements
   --hit_in_i <= INP;
+  hit_in_i <= (others => timing_trg_received_i);
 
-  -- For ToT Measurements
-  Gen_Hit_In_Signals : for i in 1 to 32 generate
-    hit_in_i(i*2-1) <= INP(i-1);
-    hit_in_i(i*2)   <= not INP(i-1);
-  end generate Gen_Hit_In_Signals;
+  ---- For ToT Measurements
+  --Gen_Hit_In_Signals : for i in 1 to 32 generate
+  --  hit_in_i(i*2-1) <= INP(i-1);
+  --  hit_in_i(i*2)   <= not INP(i-1);
+  --end generate Gen_Hit_In_Signals;
 
 -- !!!!! IMPORTANT !!!!! Don't forget to set the REGIO_HARDWARE_VERSION !!!!!
 end architecture;
