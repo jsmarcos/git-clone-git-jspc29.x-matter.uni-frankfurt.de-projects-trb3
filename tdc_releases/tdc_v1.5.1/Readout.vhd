@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2013-06-27
+-- Last update: 2013-07-03
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -23,7 +23,8 @@ use work.trb3_components.all;
 
 entity Readout is
   generic (
-    CHANNEL_NUMBER : integer range 2 to 65);
+    CHANNEL_NUMBER : integer range 2 to 65;
+    TDC_VERSION    : std_logic_vector(10 downto 0));
 
   port (
     CLK_200           : in std_logic;
@@ -925,8 +926,9 @@ begin  -- behavioral
   STATUS_REGISTERS_BUS_OUT(0)(7 downto 4)    <= wr_fsm_debug;
   STATUS_REGISTERS_BUS_OUT(0)(15 downto 8)   <= std_logic_vector(to_unsigned(CHANNEL_NUMBER-1, 8));
   STATUS_REGISTERS_BUS_OUT(0)(16)            <= REFERENCE_TIME when rising_edge(CLK_100);
-  STATUS_REGISTERS_BUS_OUT(0)(27 downto 17)  <= (others => '0');
+  STATUS_REGISTERS_BUS_OUT(0)(27 downto 17)  <= TDC_VERSION;
   STATUS_REGISTERS_BUS_OUT(0)(31 downto 28)  <= TRG_TYPE_IN    when rising_edge(CLK_100);
+  
   STATUS_REGISTERS_BUS_OUT(1)                <= slow_control_ch_empty_i(31 downto 0);
   STATUS_REGISTERS_BUS_OUT(2)                <= slow_control_ch_empty_i(63 downto 32);
   STATUS_REGISTERS_BUS_OUT(3)(10 downto 0)   <= TRG_WIN_PRE;

@@ -55,7 +55,8 @@ package trb3_components is
   component TDC is
     generic (
       CHANNEL_NUMBER : integer range 2 to 65;
-      CONTROL_REG_NR : integer range 0 to 6);
+      CONTROL_REG_NR : integer range 0 to 6;
+      TDC_VERSION    : std_logic_vector(10 downto 0));
     port (
       RESET                 : in  std_logic;
       CLK_TDC               : in  std_logic;
@@ -227,7 +228,8 @@ package trb3_components is
 
   component Readout is
     generic (
-      CHANNEL_NUMBER : integer range 2 to 65);
+      CHANNEL_NUMBER : integer range 2 to 65;
+      TDC_VERSION    : std_logic_vector(10 downto 0));
     port (
       CLK_200                  : in  std_logic;
       RESET_200                : in  std_logic;
@@ -269,6 +271,26 @@ package trb3_components is
       READOUT_DEBUG            : out std_logic_vector(31 downto 0));
   end component Readout;
 
+  component TriggerHandler is
+    generic (
+      TRIGGER_NUM            : integer;
+      PHYSICAL_EVENT_TRG_NUM : integer);
+    port (
+      CLK_TRG                 : in  std_logic;
+      CLK_RDO                 : in  std_logic;
+      CLK_TDC                 : in  std_logic;
+      RESET_TRG               : in  std_logic;
+      RESET_RDO               : in  std_logic;
+      RESET_TDC               : in  std_logic;
+      TRIGGER_IN              : in  std_logic_vector(TRIGGER_NUM-1 downto 0);
+      TRIGGER_RDO_OUT         : out std_logic_vector(TRIGGER_NUM-1 downto 0);
+      TRIGGER_TDC_OUT         : out std_logic_vector(TRIGGER_NUM-1 downto 0);
+      TRIGGER_WIN_EN_IN       : in  std_logic;
+      TRIGGER_WIN_POST_IN     : in  unsigned(10 downto 0);
+      TRIGGER_WIN_END_RDO_OUT : out std_logic;
+      TRIGGER_WIN_END_TDC_OUT : out std_logic);
+  end component TriggerHandler;
+  
   component LogicAnalyser
     generic (
       CHANNEL_NUMBER : integer range 2 to 65);

@@ -12,7 +12,8 @@ use work.version.all;
 entity TDC is
   generic (
     CHANNEL_NUMBER : integer range 2 to 65;
-    CONTROL_REG_NR : integer range 0 to 6);
+    CONTROL_REG_NR : integer range 0 to 6;
+    TDC_VERSION    : std_logic_vector(10 downto 0));
   port (
     RESET                 : in  std_logic;
     CLK_TDC               : in  std_logic;
@@ -266,7 +267,8 @@ begin
   -- Readout
   TheReadout : Readout
     generic map (
-      CHANNEL_NUMBER => CHANNEL_NUMBER)
+      CHANNEL_NUMBER => CHANNEL_NUMBER,
+      TDC_VERSION    => TDC_VERSION)
     port map (
       CLK_200                  => CLK_TDC,
       RESET_200                => reset_tdc,
