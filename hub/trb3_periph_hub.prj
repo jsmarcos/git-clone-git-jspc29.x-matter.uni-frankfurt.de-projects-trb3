@@ -101,7 +101,8 @@ add_file -vhdl -lib work "../../trbnet/special/spi_master.vhd"
 add_file -vhdl -lib work "../../trbnet/special/spi_slim.vhd"
 add_file -vhdl -lib work "../../trbnet/special/spi_databus_memory.vhd"
 add_file -vhdl -lib work "../../trbnet/special/fpga_reboot.vhd"
-
+add_file -vhdl -lib work "../../trbnet/sfp_interface.vhd"
+add_file -vhdl -lib work "../../trbnet/special/sfp_i2c_readout.vhd"
 
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/spi_dpram_32_to_8.vhd"
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/lattice_ecp2m_fifo.vhd"
