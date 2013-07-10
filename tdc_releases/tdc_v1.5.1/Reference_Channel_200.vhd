@@ -5,7 +5,7 @@
 -- File       : Reference_channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-09-04
--- Last update: 2013-03-18
+-- Last update: 2013-06-24
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -56,7 +56,7 @@ architecture Reference_Channel_200 of Reference_Channel_200 is
   signal data_a_i      : std_logic_vector(303 downto 0);
   signal data_b_i      : std_logic_vector(303 downto 0);
   signal result_i      : std_logic_vector(303 downto 0) := (others => '1');
-  signal ff_array_en_i : std_logic := '0';
+  signal ff_array_en_i : std_logic                      := '0';
 
   -- hit detection
   signal result_2_reg    : std_logic;
@@ -155,8 +155,10 @@ begin  -- Reference_Channel_200
   TimeStampCapture : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
-      if hit_detect_reg = '1' then
-        time_stamp_i <= coarse_cntr_reg;
+      if encoder_finished_i = '1' then
+        time_stamp_i <= std_logic_vector(unsigned(coarse_cntr_reg) - to_unsigned(8, 11));
+        --if hit_detect_reg = '1' then
+        --time_stamp_i <= coarse_cntr_reg;
       end if;
     end if;
   end process TimeStampCapture;

@@ -12,7 +12,8 @@ use work.version.all;
 entity TDC is
   generic (
     CHANNEL_NUMBER : integer range 2 to 65;
-    CONTROL_REG_NR : integer range 0 to 6);
+    CONTROL_REG_NR : integer range 0 to 6;
+    TDC_VERSION    : std_logic_vector(10 downto 0));
   port (
     RESET                 : in  std_logic;
     CLK_TDC               : in  std_logic;
@@ -100,6 +101,7 @@ architecture TDC of TDC is
   signal run_mode_i                   : std_logic;  -- 1: cc reset every trigger
                                                     -- 0: free running mode
   signal run_mode_200                 : std_logic;
+  signal run_mode_edge_200            : std_logic;
   signal trigger_win_en_i             : std_logic;
   signal ch_en_i                      : std_logic_vector(64 downto 1);
   signal data_limit_i                 : unsigned(7 downto 0);
@@ -265,7 +267,8 @@ begin
   -- Readout
   TheReadout : Readout
     generic map (
-      CHANNEL_NUMBER => CHANNEL_NUMBER)
+      CHANNEL_NUMBER => CHANNEL_NUMBER,
+      TDC_VERSION    => TDC_VERSION)
     port map (
       CLK_200                  => CLK_TDC,
       RESET_200                => reset_tdc,
@@ -319,19 +322,25 @@ begin
         UP_IN     => '1');
   end generate GenCoarseCounter;
 
-  Coarse_Counter_Reset : process (CLK_TDC, reset_tdc)
+  Coarse_Counter_Reset : process (CLK_TDC)
   begin
     if rising_edge(CLK_TDC) then
-      if reset_tdc = '1' then
-        coarse_cntr_reset <= '1';
-      elsif run_mode_200 = '1' then
-        coarse_cntr_reset <= '0';
-      else
+      if run_mode_200 = '0' then
         coarse_cntr_reset <= trg_win_end_i;
+      elsif run_mode_edge_200 = '1' then
+        coarse_cntr_reset <= '1';
+      else
+        coarse_cntr_reset <= '0';
       end if;
     end if;
   end process Coarse_Counter_Reset;
-
+  
+  Run_Mode_Edge_Detect: risingEdgeDetect
+    port map (
+      CLK       => CLK_TDC,
+      SIGNAL_IN => run_mode_200,
+      PULSE_OUT => run_mode_edge_200);
+  
   GenCoarseCounterReset : for i in 1 to 4 generate
     coarse_cntr_reset_r(i) <= coarse_cntr_reset when rising_edge(CLK_TDC);
   end generate GenCoarseCounterReset;
@@ -346,7 +355,7 @@ begin
       COUNT_OUT => epoch_cntr,
       UP_IN     => epoch_cntr_up_i);
   epoch_cntr_up_i    <= and_all(coarse_cntr(1));
-  epoch_cntr_reset_i <= reset_tdc or coarse_cntr_reset;
+  epoch_cntr_reset_i <= coarse_cntr_reset;
 
 -- Bus handler entities
   TheHitCounterBus : BusHandler
