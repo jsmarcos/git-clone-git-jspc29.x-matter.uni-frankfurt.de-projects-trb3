@@ -17,18 +17,6 @@ library work;
    use work.config.all;
 -- The description of hub ports is also there!
    
-   
---Ports:
---        LVL1/IPU       SCtrl
---  0     FPGA 1         FPGA 1
---  1     FPGA 2         FPGA 2
---  2     FPGA 3         FPGA 3
---  3     FPGA 4         FPGA 4
---  4     opt. link      opt. link
---  5-7   SFP 2-4
---  5(8)  CTS read-out   internal         0 1 -   X X O   --downlink only
---  6(9)  CTS TRG        Sctrl GbE        2 3 4   X X X   --uplink only
-
 
 --Slow Control
 --    0 -    7  Readout endpoint common status
@@ -556,25 +544,6 @@ begin
 
 GSR_N   <= pll_lock;
   
--- THE_RESET_HANDLER : trb_net_reset_handler
---   generic map(
---     RESET_DELAY     => x"FEEE"
---     )
---   port map(
---     CLEAR_IN        => '0',             -- reset input (high active, async)
---     CLEAR_N_IN      => '1',             -- reset input (low active, async)
---     CLK_IN          => clk_200_i,       -- raw master clock, NOT from PLL/DLL!
---     SYSCLK_IN       => clk_100_i,       -- PLL/DLL remastered clock
---     PLL_LOCKED_IN   => pll_lock,        -- master PLL lock signal (async)
---     RESET_IN        => '0',             -- general reset signal (SYSCLK)
---     TRB_RESET_IN    => trb_reset_in, -- TRBnet reset signal (SYSCLK)
---     CLEAR_OUT       => clear_i,         -- async reset out, USE WITH CARE!
---     RESET_OUT       => reset_i,         -- synchronous reset out (SYSCLK)
---     DEBUG_OUT       => open
---   );
--- 
--- trb_reset_in <= med_stat_op(4*16+13) or reset_via_gbe;
-
 THE_RESET_HANDLER : trb_net_reset_handler
   generic map(
     RESET_DELAY     => x"FEEE"

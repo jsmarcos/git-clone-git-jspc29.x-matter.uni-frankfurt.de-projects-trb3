@@ -9,7 +9,7 @@ use strict;
 ###################################################################################
 #Settings for this project
 my $TOPNAME                      = "trb3_periph_hub";  #Name of top-level entity
-my $lattice_path                 = '/d/jspc29/lattice/diamond/2.01';
+my $lattice_path                 = '/d/jspc29/lattice/diamond/2.2_x64';
 my $synplify_path                = '/d/jspc29/lattice/synplify/F-2012.03-SP1/';
 my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
 my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
@@ -112,8 +112,8 @@ execute($c);
 
 system("rm $TOPNAME.ncd");
 
-
-$c=qq|$lattice_path/ispfpga/bin/lin/multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
+$c=qq|mpartrce -p "../$TOPNAME.p2t" -f "../$TOPNAME.p3t" -tf "$TOPNAME.pt" "|.$TOPNAME.qq|_map.ncd" "$TOPNAME.ncd"|;
+#$c=qq|$lattice_path/ispfpga/bin/lin/multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
 execute($c);
 
 # IOR IO Timing Report

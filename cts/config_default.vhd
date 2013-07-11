@@ -11,7 +11,7 @@ package config is
 ------------------------------------------------------------------------------
 
 --include TDC for all four trigger input lines
-    constant INCLUDE_TDC : integer range c_NO to c_YES := c_YES;
+    constant INCLUDE_TDC : integer range c_NO to c_YES := c_NO;
     
 --use all four SFP (1-4) as downlink to other boards.     
     constant USE_4_SFP   : integer range c_NO to c_YES := c_NO;
@@ -29,6 +29,18 @@ package config is
 ------------------------------------------------------------------------------
 
 
+
+   
+--Ports:
+--        LVL1/IPU       SCtrl
+--  0     FPGA 1         FPGA 1
+--  1     FPGA 2         FPGA 2
+--  2     FPGA 3         FPGA 3
+--  3     FPGA 4         FPGA 4
+--  4     opt. link      opt. link
+--  5-7   SFP 2-4
+--  5(8)  CTS read-out   internal         0 1 -   X X O   --downlink only
+--  6(9)  CTS TRG        Sctrl GbE        2 3 4   X X X   --uplink only
 
 
     

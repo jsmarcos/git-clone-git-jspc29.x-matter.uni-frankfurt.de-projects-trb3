@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2013-05-06
+-- Last update: 2013-06-24
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -131,8 +131,10 @@ begin  -- Channel_200
   TimeStampCapture : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
-      if hit_detect_reg = '1' then
-        time_stamp_i <= coarse_cntr_reg;
+      if encoder_finished_i = '1' then
+        time_stamp_i <= std_logic_vector(unsigned(coarse_cntr_reg) - to_unsigned(8, 11));
+        --if hit_detect_reg = '1' then
+        --  time_stamp_i <= coarse_cntr_reg;
       end if;
     end if;
   end process TimeStampCapture;
@@ -190,7 +192,7 @@ begin  -- Channel_200
     end if;
   end process FSM_CLK;
 
-  FSM_PROC : process (FSM_CURRENT, encoder_finished_i, epoch_cntr_updated)  --, TRIGGER_IN)
+  FSM_PROC : process (FSM_CURRENT, encoder_finished_i, epoch_cntr_updated)
   begin
 
     FSM_NEXT        <= WAIT_FOR_HIT;
@@ -215,19 +217,15 @@ begin  -- Channel_200
         fsm_debug_fsm  <= "10";
 
       when WAIT_FOR_HIT =>
-        if epoch_cntr_updated = '1' then  -- or TRIGGER_IN = '1' then
+        if epoch_cntr_updated = '1' and encoder_finished_i = '0' then
           FSM_NEXT <= WRITE_EPOCH;
+        elsif epoch_cntr_updated = '0' and encoder_finished_i = '1' then
+          write_data_fsm <= '1';
+          FSM_NEXT       <= WAIT_FOR_HIT;
+        elsif epoch_cntr_updated = '1' and encoder_finished_i = '1' then
+          FSM_NEXT <= WRITE_DATA;
         else
-          if encoder_finished_i = '1' and epoch_cntr_updated = '1' then
-            write_epoch_fsm <= '1';
-            FSM_NEXT        <= WRITE_DATA;
-          elsif encoder_finished_i = '1' and epoch_cntr_updated = '0' then
-            write_data_fsm <= '1';
-            FSM_NEXT       <= WAIT_FOR_HIT;
-          else
-            write_data_fsm <= '0';
-            FSM_NEXT       <= WAIT_FOR_HIT;
-          end if;
+          FSM_NEXT <= WAIT_FOR_HIT;
         end if;
         fsm_debug_fsm <= "11";
 
@@ -236,6 +234,53 @@ begin  -- Channel_200
         fsm_debug_fsm <= "00";
     end case;
   end process FSM_PROC;
+
+  --FSM_PROC : process (FSM_CURRENT, encoder_finished_i, epoch_cntr_updated)  --, TRIGGER_IN)
+  --begin
+
+  --  FSM_NEXT        <= WAIT_FOR_HIT;
+  --  write_epoch_fsm <= '0';
+  --  write_data_fsm  <= '0';
+  --  fsm_debug_fsm   <= "00";
+
+  --  case (FSM_CURRENT) is
+  --    when WRITE_EPOCH =>
+  --      if encoder_finished_i = '1' then
+  --        write_epoch_fsm <= '1';
+  --        FSM_NEXT        <= WRITE_DATA;
+  --      else
+  --        write_epoch_fsm <= '0';
+  --        FSM_NEXT        <= WRITE_EPOCH;
+  --      end if;
+  --      fsm_debug_fsm <= "01";
+
+  --    when WRITE_DATA =>
+  --      write_data_fsm <= '1';
+  --      FSM_NEXT       <= WAIT_FOR_HIT;
+  --      fsm_debug_fsm  <= "10";
+
+  --    when WAIT_FOR_HIT =>
+  --      if epoch_cntr_updated = '1' then  -- or TRIGGER_IN = '1' then
+  --        FSM_NEXT <= WRITE_EPOCH;
+  --      else
+  --        if encoder_finished_i = '1' and epoch_cntr_updated = '1' then
+  --          write_epoch_fsm <= '1';
+  --          FSM_NEXT        <= WRITE_DATA;
+  --        elsif encoder_finished_i = '1' and epoch_cntr_updated = '0' then
+  --          write_data_fsm <= '1';
+  --          FSM_NEXT       <= WAIT_FOR_HIT;
+  --        else
+  --          write_data_fsm <= '0';
+  --          FSM_NEXT       <= WAIT_FOR_HIT;
+  --        end if;
+  --      end if;
+  --      fsm_debug_fsm <= "11";
+
+  --    when others =>
+  --      FSM_NEXT      <= WRITE_EPOCH;
+  --      fsm_debug_fsm <= "00";
+  --  end case;
+  --end process FSM_PROC;
 
   -- purpose: Generate Fifo Wr Signal
   FifoWriteSignal : process (CLK_200)

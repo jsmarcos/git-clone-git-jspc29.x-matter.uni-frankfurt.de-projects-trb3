@@ -46,8 +46,8 @@ entity trb3_periph_hub is
     SFP_MOD0   : in  std_logic_vector(6 downto 1);
     SFP_TXDIS  : out std_logic_vector(6 downto 1); 
     SFP_LOS    : in  std_logic_vector(6 downto 1);
---     SFP_MOD1   : inout std_logic_vector(6 downto 1); 
---     SFP_MOD2   : inout std_logic_vector(6 downto 1); 
+    SFP_MOD1   : out std_logic_vector(6 downto 1); 
+    SFP_MOD2   : inout std_logic_vector(6 downto 1); 
 --     SFP_RATESEL : out std_logic_vector(6 downto 1);
 --     SFP_TXFAULT : in  std_logic_vector(6 downto 1);
 
@@ -206,6 +206,16 @@ architecture trb3_periph_hub_arch of trb3_periph_hub is
   signal sci2_data_in  : std_logic_vector(7 downto 0);
   signal sci2_data_out : std_logic_vector(7 downto 0);
   signal sci2_addr     : std_logic_vector(8 downto 0);  
+
+  signal i2c_ack      : std_logic;
+  signal i2c_nack     : std_logic;
+  signal i2c_write    : std_logic;
+  signal i2c_read     : std_logic;
+  signal i2c_data_in  : std_logic_vector(31 downto 0);
+  signal i2c_data_out : std_logic_vector(31 downto 0);
+  signal i2c_addr     : std_logic_vector(7  downto 0);  
+  signal buf_SFP_MOD2_IN : std_logic_vector(6 downto 1);
+  signal buf_SFP_MOD2 : std_logic_vector(6 downto 1);
   
   --FPGA Test
   signal time_counter : unsigned(31 downto 0);
@@ -509,8 +519,29 @@ THE_MEDIA_DOWNLINK : trb_net16_med_ecp3_sfp_4
       CTRL_DEBUG         => (others => '0')
       );
 
-
       
+      
+THE_SFP_i2C : sfp_i2c_readout
+  generic map(
+    SFP_NUMBER => 6
+    )
+  port map(
+    CLOCK     => clk_100_i,
+    RESET     => reset_i,
+    
+    BUS_DATA_IN   => i2c_data_in,
+    BUS_DATA_OUT  => i2c_data_out,
+    BUS_ADDR_IN   => i2c_addr,
+    BUS_WRITE_IN  => i2c_write,
+    BUS_READ_IN   => i2c_read,
+    BUS_ACK_OUT   => i2c_ack,
+    BUS_NACK_OUT  => i2c_nack,
+    
+    SDA           => SFP_MOD2,
+--     SDA_IN        => buf_SFP_MOD2_IN,
+    SCL           => SFP_MOD1
+    );
+    
 ---------------------------------------------------------------------------
 -- Hub
 ---------------------------------------------------------------------------
@@ -590,9 +621,9 @@ THE_HUB : trb_net16_hub_base
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 4,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"b000", 3 => x"b200", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 9,       3 => 9,       others => 0)
+      PORT_NUMBER    => 5,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"b000", 3 => x"b200", 4 => x"d500", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 9,       3 => 9,       4 => 8,       others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -659,7 +690,18 @@ THE_HUB : trb_net16_hub_base
       BUS_WRITE_ACK_IN(3)                 => sci2_ack,
       BUS_NO_MORE_DATA_IN(3)              => '0',
       BUS_UNKNOWN_ADDR_IN(3)              => '0',
-      
+      --I2C for SFP
+      BUS_READ_ENABLE_OUT(4)              => i2c_read,
+      BUS_WRITE_ENABLE_OUT(4)             => i2c_write,
+      BUS_DATA_OUT(4*32+31 downto 4*32)   => i2c_data_in,
+      BUS_ADDR_OUT(4*16+7 downto 4*16)    => i2c_addr,
+      BUS_ADDR_OUT(4*16+15 downto 4*16+9) => open,
+      BUS_TIMEOUT_OUT(4)                  => open,
+      BUS_DATA_IN(4*32+31 downto 4*32)    => i2c_data_out,
+      BUS_DATAREADY_IN(4)                 => i2c_ack,
+      BUS_WRITE_ACK_IN(4)                 => i2c_ack,
+      BUS_NO_MORE_DATA_IN(4)              => '0',
+      BUS_UNKNOWN_ADDR_IN(4)              => i2c_nack,      
       STAT_DEBUG => open
       );
 
