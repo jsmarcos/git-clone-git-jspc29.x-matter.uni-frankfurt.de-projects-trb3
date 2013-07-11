@@ -1,7 +1,8 @@
 -- Control Register
-0x8100 :  r/w  w: reset I2C State Machine r: reset ctr
-0x8101 :  r/w  w: reset I2C all Register r: reset ctr
-0x8102 :  r/w  w: Reset and Sync Timestamps (nXyter and FPGA) r: reset ctr
+0x8100 :  w    w: reset I2C State Machine
+0x8101 :  w    w: reset I2C all Register
+0x8102 :  w    w: Reset and Sync Timestamps (nXyter and FPGA)
+0x8103 :  r/w  Put nxyter into offline mode 
 
 -- NX Data Validate
 0x8120 :  rw   Invalid Frame Counter (16 bit) / w: clear all counters
@@ -32,7 +33,7 @@
 0x8144 :  r/w  Bit0     : 1: send timestamp-reset before trigger 
 
 -- Trigger Handler
-0x8160 :  r/w  Bit 15-0 : Delay Trigger in Timestamp Hold 
+0x8160 :  r/w  Bit 15-0 : Delay Timestamp Hold  signal (8bit, 10ns)
 
 -- NX Data Receiver
 0x8500 :  r    current Timestamp FIFO value
@@ -58,7 +59,9 @@
 
 -- Event Data Buffer
 0x8600 :  r    read FIFO buffer
-0x8601 :  r/w  r: read FIFO status
+0x8601 :  r    FIFO write counter
+0x8602 :  r    FIFO flush counter
+0x8603 :  r/w  r: read FIFO status
                w: enable/disable FIFO write
 
 -- I2C Master

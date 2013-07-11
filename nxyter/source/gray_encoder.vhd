@@ -23,7 +23,7 @@ entity Gray_Encoder is
     GRAY_OUT    : out std_logic_vector(WIDTH - 1 downto 0)
     );
 
-end Gray_Encoder;
+end entity;
 
 architecture Behavioral of  Gray_Encoder is
 

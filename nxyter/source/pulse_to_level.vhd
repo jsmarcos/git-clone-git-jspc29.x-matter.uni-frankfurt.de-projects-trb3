@@ -16,7 +16,7 @@ entity pulse_to_level is
     LEVEL_OUT     : out std_logic
     );
 
-end pulse_to_level;
+end entity;
 
 architecture Behavioral of pulse_to_level is
 
@@ -36,22 +36,22 @@ begin
       CTR_WIDTH => 5
       )
     port map (
-      CLK_IN         => CLK_IN,
-      RESET_IN       => RESET_IN,
-      TIMER_START_IN => start_timer,
-      TIMER_DONE_OUT => timer_done
+      CLK_IN          => CLK_IN,
+      RESET_IN        => RESET_IN,
+      TIMER_START_IN  => start_timer,
+      TIMER_DONE_OUT  => timer_done
       );
   
   PROC_CONVERT: process(CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        start_timer <= (others => '0');
-        level_o     <= '0';
-        STATE       <= IDLE;
+        start_timer  <= (others => '0');
+        level_o      <= '0';
+        STATE        <= IDLE;
       else
         level_o <= '0';
-        start_timer <= (others => '0');
+        start_timer  <= (others => '0');
 
         case STATE is
 

@@ -12,7 +12,7 @@ entity level_to_pulse is
     PULSE_OUT     : out std_logic
     );
 
-end level_to_pulse;
+end entity;
 
 architecture Behavioral of level_to_pulse is
 
@@ -30,7 +30,7 @@ begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
         pulse_o <= '0';
-        STATE   <= WAIT_LOW;
+        STATE   <= IDLE;
       else
         pulse_o <= '0';
         case STATE is

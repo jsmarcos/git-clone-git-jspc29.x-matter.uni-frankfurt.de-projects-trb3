@@ -62,7 +62,6 @@ architecture Behavioral of nx_data_validate is
   signal adc_data_o           : std_logic_vector(11 downto 0);
   signal data_valid_o         : std_logic;
 
-  signal nx_notempty_ctr      : unsigned (1 downto 0);  
   signal nx_token_return_o    : std_logic;
   signal nx_nomore_data_o     : std_logic;
   
@@ -89,12 +88,13 @@ architecture Behavioral of nx_data_validate is
 begin
 
   -- Debug Line
---  DEBUG_OUT(0)                    <= CLK_IN;
---  DEBUG_OUT(1)                    <= new_timestamp;
---  DEBUG_OUT(2)                    <= nx_token_return_o;-- new_timestamp;
-  DEBUG_OUT(0)                    <= data_valid_o;
-  DEBUG_OUT(3 downto 1)           <= channel_o(2 downto 0);
-  DEBUG_OUT(15 downto 4)          <= adc_data;
+  DEBUG_OUT(0)                    <= CLK_IN;
+  DEBUG_OUT(1)                    <= nx_token_return_o;
+  DEBUG_OUT(2)                    <= nx_nomore_data_o;
+  DEBUG_OUT(3)                    <= data_valid_o;
+  DEBUG_OUT(4)                    <= new_timestamp;
+  DEBUG_OUT(8 downto 5)           <= (others => '0');
+  DEBUG_OUT(15 downto 9)          <= channel_o;
   --DEBUG_OUT(6 downto 4)           <= timestamp_status_o;
   --DEBUG_OUT(7)                    <= nx_token_return_o;
   --DEBUG_OUT(8)                    <= invalid_adc;--nx_nomore_data_o;
@@ -181,9 +181,8 @@ begin
         timestamp_status_o   <= (others => '0');
         adc_data_o           <= (others => '0');
         data_valid_o         <= '0';
-        nx_notempty_ctr      <= (others => '0');
         nx_token_return_o    <= '0';
-        nx_nomore_data_o     <= '1';
+        nx_nomore_data_o     <= '0';
 
         invalid_frame_ctr    <= (others => '0');
         overflow_ctr         <= (others => '0');
@@ -198,13 +197,13 @@ begin
         timestamp_status_o   <= (others => '0');
         adc_data_o           <= (others => '0');
         data_valid_o         <= '0';
-        nx_token_return_o    <= '0';
-        nx_nomore_data_o     <= '0';
-
+       
         invalid_adc <= '0';
 
         if (new_timestamp = '1') then
           case valid_frame_bits is
+
+            -- Data Frame
             when "1000" =>
               ---- Check Overflow
               if ((status_bits(0) = '1') and (clear_counters = '0')) then
@@ -229,38 +228,36 @@ begin
               adc_data_o                     <= adc_data;
               data_valid_o                   <= '1';
               
-              nx_notempty_ctr                <= (others => '0');
-
               -- Rate Counter
               if (nx_rate_timer < x"186a0") then
-                nx_valid_ctr  <= nx_valid_ctr + 1;
+                nx_valid_ctr    <= nx_valid_ctr + 1;
               end if;
 
               if (adc_data = x"aff") then
                 invalid_adc <= '1';
               end if;
-              
-            when "0000" =>
-              case nx_notempty_ctr is
-                when "00"   =>
-                  nx_token_return_o <= '1';
-                  nx_notempty_ctr   <= nx_notempty_ctr + 1;
 
-                when "01"   =>
-                  nx_nomore_data_o  <= '1';
-                  nx_notempty_ctr   <= nx_notempty_ctr + 1;
-                
-                when others => null;
-              end case;
+              nx_token_return_o   <= '0';
+              nx_nomore_data_o    <= '0';
+                            
+            -- Token return and nomore_data
+            when "0000" =>
+              nx_token_return_o   <= '1';
+              nx_nomore_data_o    <= nx_token_return_o;
               
             when others =>
               -- Invalid frame, not empty, discard timestamp
               if (clear_counters = '0') then
                 invalid_frame_ctr <= invalid_frame_ctr + 1;
               end if;
-              nx_notempty_ctr      <= (others => '0');
+              nx_token_return_o   <= '0';
+              nx_nomore_data_o    <= '0';
+              
           end case;
-        end if;
+        else
+          nx_token_return_o       <= nx_token_return_o;
+          nx_nomore_data_o        <= nx_nomore_data_o;
+        end if;  -- new_timestamp = '1'
 
         -- Trigger Rate
         if (nx_rate_timer < x"186a0") then

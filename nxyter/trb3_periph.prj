@@ -147,13 +147,10 @@ add_file -vhdl -lib "work" "cores/pll_nx_clk256.vhd"
 add_file -vhdl -lib "work" "cores/pll_nx_clk250.vhd"
 add_file -vhdl -lib "work" "cores/pll_adc_clk32.vhd"
 add_file -vhdl -lib "work" "cores/pll_adc_clk192.vhd"
-#add_file -vhdl -lib "work" "cores/fifo_32to32_dc.vhd"
 add_file -vhdl -lib "work" "cores/fifo_ts_32to32_dc.vhd"
-add_file -vhdl -lib "work" "cores/fifo_12_adc.vhd"
 add_file -vhdl -lib "work" "cores/fifo_32_data.vhd"
 
 add_file -vhdl -lib "work" "trb3_periph.vhd"
-
 
 add_file -vhdl -lib "work" "source/nxyter_components.vhd"
 add_file -vhdl -lib "work" "source/level_to_pulse.vhd"
@@ -166,10 +163,10 @@ add_file -vhdl -lib "work" "source/nxyter_fee_board.vhd"
 add_file -vhdl -lib "work" "source/nx_data_receiver.vhd"
 add_file -vhdl -lib "work" "source/nx_data_validate.vhd"
 add_file -vhdl -lib "work" "source/nx_trigger_validate.vhd"
-add_file -vhdl -lib "work" "source/nx_data_buffer.vhd"
+add_file -vhdl -lib "work" "source/nx_event_buffer.vhd"
 
-add_file -vhdl -lib "work" "source/nxyter_data_handler.vhd"
 add_file -vhdl -lib "work" "source/nxyter_registers.vhd"
+add_file -vhdl -lib "work" "source/nx_setup.vhd"
 
 add_file -vhdl -lib "work" "source/nx_i2c_master.vhd"
 add_file -vhdl -lib "work" "source/nx_i2c_startstop.vhd"

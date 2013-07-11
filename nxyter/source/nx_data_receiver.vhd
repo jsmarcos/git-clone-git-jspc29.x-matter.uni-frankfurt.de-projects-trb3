@@ -18,7 +18,7 @@ entity nx_data_receiver is
     NX_TIMESTAMP_IN      : in std_logic_vector (7 downto 0);
 
     -- ADC Ports
-    ADC_CLK_DAT_SRC_IN   : in  std_logic;
+    ADC_CLK_DAT_IN       : in  std_logic;
     ADC_FCLK_IN          : in  std_logic_vector(1 downto 0);
     ADC_DCLK_IN          : in  std_logic_vector(1 downto 0);
     ADC_SAMPLE_CLK_OUT   : out std_logic;
@@ -128,28 +128,13 @@ architecture Behavioral of nx_data_receiver is
   -----------------------------------------------------------------------------
 
   -- ADC Handler
-  signal adc_dat_clk       : std_logic;
-  signal adc_dat_clk_lock  : std_logic;
   signal adc_reset_r       : std_logic;
+  signal adc_reset_l       : std_logic;
   signal adc_reset         : std_logic;
   
   signal adc_data          : std_logic_vector(11 downto 0);
   signal adc_data_valid    : std_logic;
 
-  -- ADC FIFO Handler
---  signal adc_fifo_reset           : std_logic;
---  signal adc_fifo_next_word       : std_logic_vector(11 downto 0);
---  signal adc_fifo_almost_empty    : std_logic;
---  signal adc_fifo_full            : std_logic;
---  signal adc_fifo_empty           : std_logic;
---  signal adc_fifo_read_enable     : std_logic;
---  signal adc_fifo_write_enable    : std_logic;
---  signal adc_read_enable_pause    : std_logic;
---  
---  signal adc_fifo_data_valid_t    : std_logic;
---  signal adc_fifo_data_valid      : std_logic;
---  signal adc_fifo_data            : std_logic_vector(11 downto 0);
-  
   signal adc_data_t               : std_logic_vector(11 downto 0);
   signal adc_new_data             : std_logic;
   signal adc_new_data_ctr         : unsigned(3 downto 0);
@@ -174,7 +159,6 @@ architecture Behavioral of nx_data_receiver is
 
   signal reset_resync_ctr         : std_logic;
   signal reset_parity_error_ctr   : std_logic;
-  signal adc_fifo_delay_r         : std_logic_vector(5 downto 0);
   signal fifo_reset_r             : std_logic;
 
   signal valid_data_d             : std_logic;
@@ -187,7 +171,6 @@ begin
   DEBUG_OUT(4)            <= adc_new_data;
   DEBUG_OUT(5)            <= new_data_o;
   DEBUG_OUT(6)            <= nx_fifo_data_valid;
-  --DEBUG_OUT(7)            <= adc_fifo_data_valid;
   DEBUG_OUT(7)            <= valid_data_d;--(others => '0');
   DEBUG_OUT(15 downto 8)  <= nx_timestamp_reg;
   --DEBUG_OUT(15 downto 8)  <= (others => '0');
@@ -212,13 +195,6 @@ begin
   -- ADC CLK DOMAIN
   -----------------------------------------------------------------------------
 
-  pll_adc_clk192_1: pll_adc_clk192
-    port map (
-      CLK   => ADC_CLK_DAT_SRC_IN,
-      CLKOP => adc_dat_clk,
-      LOCK  => adc_dat_clk_lock
-      );
-
   adc_ad9222_1: entity work.adc_ad9222
     generic map (
       CHANNELS => 4,
@@ -228,7 +204,7 @@ begin
     port map (
       CLK                        => CLK_IN,
       CLK_ADCREF                 => adc_sample_clk,
-      CLK_ADCDAT                 => adc_dat_clk,
+      CLK_ADCDAT                 => ADC_CLK_DAT_IN,
       RESTART_IN                 => adc_reset,
       ADCCLK_OUT                 => ADC_SAMPLE_CLK_OUT,
 
@@ -254,33 +230,18 @@ begin
       DEBUG                      => open
       );
 
---  pulse_to_level_1: pulse_to_level
---    generic map (
---      NUM_CYCLES => "10000"
---      )
---    port map (
---      CLK_IN     => CLK_IN,
---      RESET_IN   => RESET_IN,
---      PULSE_IN   => adc_reset_r,
---      LEVEL_OUT  => adc_reset
---      );
-  
-  adc_reset <= adc_reset_r;
+  adc_reset <= adc_reset_l or RESET_IN;
 
---  PROC_ADC_RESET: proc(CLK_IN)
---  begin
---   if( rising_edge(CLK_IN) ) then
---      if (RESET_IN = '1' or reset_parity_error_ctr = '1') then
---        adc_reset <= '0';
---      else
---        if (adc_reset_start = '1') then
---          adc_reset <= '1';
---                                           
---        end generate (adc_reset_start = '1');
---        adc_reset
---      end if;
---   end if;
---  end if;
+  pulse_to_level_1: pulse_to_level
+    generic map (
+      NUM_CYCLES => "10000"
+      )
+    port map (
+      CLK_IN     => CLK_IN,
+      RESET_IN   => RESET_IN,
+      PULSE_IN   => adc_reset_r,
+      LEVEL_OUT  => adc_reset_l
+      );
   
   -----------------------------------------------------------------------------
   -- NX_TIMESTAMP_CLK_IN Domain
@@ -432,23 +393,6 @@ begin
       );
   
   nx_fifo_reset     <= RESET_IN or fifo_reset_r;
-
---  fifo_12_adc_1: fifo_12_adc
---    port map (
---      Data          => adc_fifo_next_word,
---      Clock         => CLK_IN,
---      WrEn          => adc_fifo_write_enable,
---      RdEn          => adc_fifo_read_enable,
---      Reset         => adc_fifo_reset,
---      AmEmptyThresh => adc_fifo_delay_r,
---      Q             => adc_fifo_data,
---      Empty         => adc_fifo_empty,
---      Full          => adc_fifo_full,
---      AlmostEmpty   => adc_fifo_almost_empty
---      );
---
---  adc_fifo_reset <= RESET_IN;
-  
 
 --   -- Reset NX_TIMESTAMP_CLK Domain
 --   PROC_NX_CLK_DOMAIN_RESET: process(CLK_IN)
@@ -669,71 +613,6 @@ begin
     end if;
   end process PROC_ADC_DATA_READ; 
         
-  -- ADC FIFO Write Handler
---  PROC_ADC_FIFO_WRITE_ENABLE: process(CLK_IN)
---  begin
---    if( rising_edge(CLK_IN) ) then
---      if( RESET_IN = '1' ) then
---        adc_fifo_next_word       <= x"bee";
---        adc_fifo_write_enable    <= '0';
---      else
---        if (adc_data_valid = '1' and adc_fifo_full = '0') then
---          adc_fifo_next_word     <= adc_data; 
---          adc_fifo_write_enable  <= '1';
---        else
---          adc_fifo_next_word     <= x"bee";
---          adc_fifo_write_enable  <= '0';
---        end if;
---      end if;
---    end if;
---  end process PROC_ADC_FIFO_WRITE_ENABLE;
---
---  -- ADC FIFO Read Handler
---  PROC_ADC_FIFO_READ_ENABLE: process(CLK_IN)
---  begin
---    if( rising_edge(CLK_IN) ) then
---      if( RESET_IN = '1' or fifo_reset_r = '1') then
---        adc_fifo_read_enable       <= '0';
---        adc_read_enable_pause      <= '0';
---        adc_fifo_data_valid_t      <= '0';
---        adc_fifo_data_valid        <= '0';
---      else
---        if (adc_fifo_almost_empty = '0' and adc_read_enable_pause = '0') then
---          adc_fifo_read_enable      <= '1';
---          adc_read_enable_pause     <= '1';
---        else
---          adc_fifo_read_enable      <= '0';
---          adc_read_enable_pause     <= '0';
---        end if;
---
---        -- Delay read signal by one CLK
---        adc_fifo_data_valid_t   <= adc_fifo_read_enable;
---        adc_fifo_data_valid     <= adc_fifo_data_valid_t;
---
---      end if;
---    end if;
---  end process PROC_ADC_FIFO_READ_ENABLE;
-  
---  PROC_ADC_FIFO_READ: process(CLK_IN)
---  begin
---    if( rising_edge(CLK_IN) ) then
---      if (RESET_IN = '1' or fifo_reset_r = '1') then
---        adc_data_t         <= (others => '0');
---        adc_new_data       <= '0';
---        adc_new_data_ctr   <= (others => '0');
---      else
---        if (adc_fifo_data_valid = '1') then
---          adc_data_t       <= adc_fifo_data;
---          adc_new_data     <= '1';
---          adc_new_data_ctr <= adc_new_data_ctr + 1;
---        else
---          adc_data_t       <= x"aff";
---          adc_new_data     <= '0';
---        end if;
---      end if;
---    end if;
---  end process PROC_ADC_FIFO_READ;
-
   -----------------------------------------------------------------------------
   -- Output handler
   -----------------------------------------------------------------------------
@@ -815,7 +694,6 @@ begin
         reset_resync_ctr        <= '0';
         reset_parity_error_ctr  <= '0';
         nx_fifo_delay_r         <= "01000";
-        adc_fifo_delay_r        <= "000010";
         fifo_reset_r            <= '0';
         adc_clk_delay           <= "111";
         adc_reset_r             <= '0';
@@ -838,10 +716,10 @@ begin
             when x"0001" =>
               slv_data_out_o(0)            <= nx_fifo_full;
               slv_data_out_o(1)            <= nx_fifo_empty;
-              slv_data_out_o(2)            <= '0'; --adc_fifo_full;
-              slv_data_out_o(3)            <= '0'; -- adc_fifo_empty;
+              slv_data_out_o(2)            <= '0';
+              slv_data_out_o(3)            <= '0';
               slv_data_out_o(4)            <= nx_fifo_data_valid;
-              slv_data_out_o(5)            <= adc_new_data; --adc_fifo_data_valid;
+              slv_data_out_o(5)            <= adc_new_data;
               slv_data_out_o(29 downto 5)  <= (others => '0');
               slv_data_out_o(30)           <= '0';
               slv_data_out_o(31)           <= reg_nx_frame_synced;
@@ -903,7 +781,7 @@ begin
             when x"0004" => 
               if (SLV_DATA_IN  < x"0000_001c" and
                   SLV_DATA_IN  > x"0000_0001") then
-                nx_fifo_delay_r           <= SLV_DATA_IN(4 downto 0);
+                nx_fifo_delay_r            <= SLV_DATA_IN(4 downto 0);
                 fifo_reset_r               <= '1';
               end if;
               slv_ack_o                    <= '1';
@@ -920,6 +798,7 @@ begin
                   when "110" => adc_clk_delay <= "110";
                   when "111" => adc_clk_delay <= "111";
                 end case;
+                adc_reset_r                <= '1';
               end if;
               slv_ack_o                    <= '1';
               

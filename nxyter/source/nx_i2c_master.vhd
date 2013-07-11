@@ -17,14 +17,20 @@ entity nx_i2c_master is
     SDA_INOUT            : inout std_logic;
     SCL_INOUT            : inout std_logic;
 
+    -- Internal Interface
+    INTERNAL_COMMAND_IN  : in    std_logic_vector(31 downto 0);
+    COMMAND_BUSY_OUT     : out   std_logic;
+    I2C_DATA_OUT         : out   std_logic_vector(31 downto 0);
+    I2C_LOCK_IN          : in    std_logic;
+    
     -- Slave bus         
-    SLV_READ_IN          : in  std_logic;
-    SLV_WRITE_IN         : in  std_logic;
-    SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
-    SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
-    SLV_ACK_OUT          : out std_logic;
-    SLV_NO_MORE_DATA_OUT : out std_logic;
-    SLV_UNKNOWN_ADDR_OUT : out std_logic;
+    SLV_READ_IN          : in    std_logic;
+    SLV_WRITE_IN         : in    std_logic;
+    SLV_DATA_OUT         : out   std_logic_vector(31 downto 0);
+    SLV_DATA_IN          : in    std_logic_vector(31 downto 0);
+    SLV_ACK_OUT          : out   std_logic;
+    SLV_NO_MORE_DATA_OUT : out   std_logic;
+    SLV_UNKNOWN_ADDR_OUT : out   std_logic;
     
     -- Debug Line
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
@@ -33,13 +39,14 @@ end entity;
 
 architecture Behavioral of nx_i2c_master is
 
-  signal sda_i : std_logic;
-  signal sda_x : std_logic;
-  signal sda   : std_logic;
-
-  signal scl_i : std_logic;
-  signal scl_x : std_logic;
-  signal scl   : std_logic;
+  signal sda_i                 : std_logic;
+  signal sda_x                 : std_logic;
+  signal sda                   : std_logic;
+                               
+  signal scl_i                 : std_logic;
+  signal scl_x                 : std_logic;
+  signal scl                   : std_logic;
+  signal command_busy_o        : std_logic;
 
   -- I2C Master  
   signal sda_o                 : std_logic;
@@ -53,7 +60,7 @@ architecture Behavioral of nx_i2c_master is
   signal readbyte_seq_start    : std_logic;
   signal sendbyte_byte         : std_logic_vector(7 downto 0);
   signal read_seq_ctr          : std_logic;
-  signal reg_data              : std_logic_vector(31 downto 0);
+  signal i2c_data              : std_logic_vector(31 downto 0);
 
   signal i2c_busy_x            : std_logic;
   signal startstop_select_x    : std_logic;
@@ -62,7 +69,7 @@ architecture Behavioral of nx_i2c_master is
   signal sendbyte_byte_x       : std_logic_vector(7 downto 0);
   signal readbyte_seq_start_x  : std_logic;
   signal read_seq_ctr_x        : std_logic;
-  signal reg_data_x            : std_logic_vector(31 downto 0);
+  signal i2c_data_x            : std_logic_vector(31 downto 0);
   
   signal sda_startstop         : std_logic;
   signal scl_startstop         : std_logic;
@@ -103,13 +110,28 @@ architecture Behavioral of nx_i2c_master is
   signal slv_no_more_data_o      : std_logic;
   signal slv_unknown_addr_o      : std_logic;
   signal slv_ack_o               : std_logic;
+
   signal i2c_chipid              : std_logic_vector(6 downto 0);
   signal i2c_rw_bit              : std_logic;
   signal i2c_registerid          : std_logic_vector(7 downto 0);
   signal i2c_register_data       : std_logic_vector(7 downto 0);
   signal i2c_register_value_read : std_logic_vector(7 downto 0);
 
+  signal disable_slave_bus       : std_logic; 
+  signal internal_command        : std_logic;
+  signal internal_command_d      : std_logic;
+  signal i2c_data_internal_o     : std_logic_vector(31 downto 0);
+  signal i2c_data_slave          : std_logic_vector(31 downto 0);
+
 begin
+
+  -- Debug
+  DEBUG_OUT(0)            <= CLK_IN;
+  DEBUG_OUT(8 downto 1)   <= i2c_data(7 downto 0);
+  DEBUG_OUT(12 downto 9)  <= i2c_data(31 downto 28);
+  DEBUG_OUT(13)           <= i2c_busy;
+  DEBUG_OUT(14)           <= internal_command;
+  DEBUG_OUT(15)           <= internal_command_d;
 
   -- Start / Stop Sequence
   nx_i2c_startstop_1: nx_i2c_startstop
@@ -158,26 +180,7 @@ begin
       SDA_IN            => sda
       );
   
-  -- Debug Line
-  -- DEBUG_OUT(0) <= not sendbyte_ack;
-  -- DEBUG_OUT(1) <= sda_o;
-  -- DEBUG_OUT(2) <= scl_o;
-  -- DEBUG_OUT(3) <= sda_startstop;
-  -- DEBUG_OUT(4) <= scl_startstop;
-  -- DEBUG_OUT(5) <= sda_sendbyte;
-  -- DEBUG_OUT(6) <= scl_sendbyte;
-  -- DEBUG_OUT(7) <= sda_readbyte;
-  -- DEBUG_OUT(8) <= scl_readbyte;
-  -- DEBUG_OUT(9) <= i2c_start;
-  
-  --  DEBUG_OUT(8) <= i2c_start;
-  --  DEBUG_OUT(15 downto 10) <= (others => '0');
-  DEBUG_OUT(0) <= i2c_start;
-  DEBUG_OUT(15 downto 14) <= (others => '0');
-  DEBUG_OUT(13 downto 9)  <= reg_data(28 downto 24);
-  DEBUG_OUT(8 downto 1)   <= reg_data(7 downto 0);
-
-  -- Sync I2C Lines
+   -- Sync I2C Lines
   sda_i <= SDA_INOUT;
   scl_i <= SCL_INOUT;
 
@@ -210,7 +213,7 @@ begin
         sendbyte_seq_start    <= '0';
         readbyte_seq_start    <= '0';
         sendbyte_byte         <= (others => '0');
-        reg_data              <= (others => '0');
+        i2c_data              <= (others => '0');
         read_seq_ctr          <= '0';
         STATE                 <= S_RESET;
       else
@@ -220,7 +223,7 @@ begin
         sendbyte_seq_start    <= sendbyte_seq_start_x;
         readbyte_seq_start    <= readbyte_seq_start_x;
         sendbyte_byte         <= sendbyte_byte_x;
-        reg_data              <= reg_data_x;
+        i2c_data              <= i2c_data_x;
         read_seq_ctr          <= read_seq_ctr_x;
         STATE                 <= NEXT_STATE;
       end if;
@@ -235,7 +238,8 @@ begin
                            sendbyte_done,
                            sendbyte_ack,
                            readbyte_done,
-                           startstop_done)
+                           startstop_done
+                           )
 
   begin
     -- Defaults
@@ -247,24 +251,24 @@ begin
     sendbyte_seq_start_x    <= '0';
     sendbyte_byte_x         <= (others => '0');
     readbyte_seq_start_x    <= '0';
-    reg_data_x              <= reg_data;
+    i2c_data_x              <= i2c_data;
     read_seq_ctr_x          <= read_seq_ctr;
     
     case STATE is
 
       when S_RESET =>
-        reg_data_x <= (others => '0');
-        NEXT_STATE <= S_IDLE;
+        i2c_data_x        <= (others => '0');
+        NEXT_STATE        <= S_IDLE;
         
       when S_IDLE =>
         if (i2c_start = '1') then
-          reg_data_x <= x"8000_0000";  -- Set Running , clear all other bits 
-          NEXT_STATE <= S_START;
+          i2c_data_x      <= x"8000_0000"; -- Set Running, clear all other bits 
+          NEXT_STATE      <= S_START;
         else
-          i2c_busy_x     <= '0';
-          reg_data_x     <= reg_data and x"7fff_ffff";  -- clear running bit;
-          read_seq_ctr_x <= '0';
-          NEXT_STATE     <= S_IDLE;
+          i2c_busy_x      <= '0';
+          i2c_data_x      <= i2c_data and x"7fff_ffff";  -- clear running bit;
+          read_seq_ctr_x  <= '0';
+          NEXT_STATE      <= S_IDLE;
         end if;
             
         -- I2C START Sequence 
@@ -300,7 +304,7 @@ begin
         else
           scl_o      <= '0';
           if (sendbyte_ack = '0') then
-            reg_data_x <= reg_data or x"0100_0000";
+            i2c_data_x <= i2c_data or x"0100_0000";
             NEXT_STATE <= S_STOP;
           else
             if (read_seq_ctr = '0') then
@@ -325,7 +329,7 @@ begin
         else
           scl_o      <= '0';
           if (sendbyte_ack = '0') then
-            reg_data_x <= reg_data or x"0200_0000";
+            i2c_data_x <= i2c_data or x"0200_0000";
             NEXT_STATE <= S_STOP;
           else
             if (i2c_rw_bit = '0') then
@@ -349,7 +353,7 @@ begin
         else
           scl_o      <= '0';
           if (sendbyte_ack = '0') then
-            reg_data_x <= reg_data or x"0400_0000";
+            i2c_data_x <= i2c_data or x"0400_0000";
           end if;
           NEXT_STATE <= S_STOP;
         end if;
@@ -365,7 +369,7 @@ begin
           NEXT_STATE <= S_GET_DATA_WAIT;
         else
           scl_o                  <= '0';
-          reg_data_x(7 downto 0) <= readbyte_byte; 
+          i2c_data_x(7 downto 0) <= readbyte_byte; 
           NEXT_STATE             <= S_STOP;
         end if;
         
@@ -381,13 +385,31 @@ begin
         if (startstop_done = '0') then
           NEXT_STATE <= S_STOP_WAIT;
         else
-          reg_data_x <= reg_data or x"4000_0000"; -- Set DONE Bit
-          NEXT_STATE <= S_IDLE;
+          i2c_data_x           <= i2c_data or x"4000_0000"; -- Set DONE Bit
+          NEXT_STATE           <= S_IDLE;
         end if;
         
     end case;
   end process PROC_I2C_MASTER;
 
+  PROC_I2C_DATA_MULTIPLEXER: process(CLK_IN)
+  begin 
+    if( rising_edge(CLK_IN) ) then
+      if( RESET_IN = '1' ) then
+        i2c_data_internal_o   <= (others => '0');
+        i2c_data_slave        <= (others => '0');
+        command_busy_o        <= '0';
+      else
+        if (internal_command = '0' and internal_command_d = '0') then  
+          i2c_data_slave      <= i2c_data;
+        else
+          i2c_data_internal_o <= i2c_data;
+        end if;
+      end if;
+      command_busy_o      <= i2c_busy;
+    end if;
+  end process PROC_I2C_DATA_MULTIPLEXER;
+  
   -----------------------------------------------------------------------------
   -- TRBNet Slave Bus
   -----------------------------------------------------------------------------
@@ -398,7 +420,7 @@ begin
   --   D[31]    I2C_GO          0 => don't do anything on I2C,
   --                            1 => start I2C access
   --   D[30]    I2C_ACTION      0 => write byte, 1 => read byte
-  --   D[29:24] I2C_SPEED       set to all '1'
+  --   D[29:24] I2C_SPEED       set all to '1'
   --   D[23:16] I2C_ADDRESS     address of I2C chip
   --   D[15:8]  I2C_CMD         command byte for access
   --   D[7:0]   I2C_DATA        data to be written
@@ -429,6 +451,8 @@ begin
         slv_unknown_addr_o <= '0';
         slv_ack_o          <= '0';
         i2c_start          <= '0';
+        internal_command   <= '0';
+        internal_command_d <= '0';
 
         i2c_chipid              <= (others => '0');    
         i2c_rw_bit              <= '0';    
@@ -437,33 +461,59 @@ begin
         i2c_register_value_read <= (others => '0');
             
       else
-        slv_ack_o          <= '1';
         slv_unknown_addr_o <= '0';
         slv_no_more_data_o <= '0';
         slv_data_out_o     <= (others => '0');
         i2c_start          <= '0';
-        
-        if (SLV_WRITE_IN  = '1') then
-          if (i2c_busy = '0' and SLV_DATA_IN(31) = '1') then
-            i2c_rw_bit        <= SLV_DATA_IN(30);
-            i2c_chipid        <= SLV_DATA_IN(22 downto 16);
-            i2c_registerid    <= SLV_DATA_IN(15 downto 8);
-            i2c_register_data <= SLV_DATA_IN(7 downto 0); 
-            i2c_start         <= '1';
-          end if;
 
+        internal_command_d   <= internal_command;
+                
+        if (i2c_busy = '0' and internal_command_d = '1') then
+          internal_command     <= '0';
+          slv_ack_o            <= '0';
+
+        elsif (i2c_busy = '0' and INTERNAL_COMMAND_IN(31) = '1') then
+          -- Internal Interface Command
+          i2c_rw_bit           <= INTERNAL_COMMAND_IN(30);
+          i2c_chipid           <= INTERNAL_COMMAND_IN(22 downto 16);
+          i2c_registerid       <= INTERNAL_COMMAND_IN(15 downto 8);
+          i2c_register_data    <= INTERNAL_COMMAND_IN(7 downto 0); 
+          i2c_start            <= '1';
+          internal_command     <= '1';
+          slv_ack_o            <= '0';
+
+        elsif (SLV_WRITE_IN  = '1') then
+          if (internal_command = '0' and
+              I2C_LOCK_IN      = '0' and
+              i2c_busy         = '0' and
+              SLV_DATA_IN(31)  = '1') then
+            i2c_rw_bit         <= SLV_DATA_IN(30);
+            i2c_chipid         <= SLV_DATA_IN(22 downto 16);
+            i2c_registerid     <= SLV_DATA_IN(15 downto 8);
+            i2c_register_data  <= SLV_DATA_IN(7 downto 0); 
+            i2c_start          <= '1';
+            slv_ack_o          <= '1';
+          else
+            slv_no_more_data_o <= '1';
+            slv_ack_o          <= '0';
+          end if;
+          
         elsif (SLV_READ_IN = '1') then
-          if (i2c_busy = '1') then
+          if (internal_command = '0' and
+              I2C_LOCK_IN      = '0' and
+              i2c_busy         = '0') then
+            slv_data_out_o     <= i2c_data_slave;
+            slv_ack_o          <= '1';
+          else
             slv_data_out_o     <= (others => '0');
             slv_no_more_data_o <= '1';
             slv_ack_o          <= '0';
-          else
-          slv_data_out_o       <= reg_data;
           end if;
 
         else
-          slv_ack_o <= '0';
+          slv_ack_o            <= '0';
         end if;
+
       end if;
     end if;           
   end process PROC_SLAVE_BUS;
@@ -474,17 +524,20 @@ begin
   -----------------------------------------------------------------------------
 
   -- I2C Outputs
-  SDA_INOUT <= '0' when (sda_o = '0' or
-                         sda_startstop = '0' or
-                         sda_sendbyte = '0' or
-                         sda_readbyte = '0')
-               else 'Z';
+  SDA_INOUT        <= '0' when (sda_o = '0' or
+                                sda_startstop = '0' or
+                                sda_sendbyte = '0' or
+                                sda_readbyte = '0')
+                      else 'Z';
   
-  SCL_INOUT <= '0' when (scl_o = '0' or
-                         scl_startstop = '0' or
-                         scl_sendbyte = '0' or
-                         scl_readbyte = '0')
-               else 'Z';
+  SCL_INOUT        <= '0' when (scl_o = '0' or
+                                scl_startstop = '0' or
+                                scl_sendbyte = '0' or
+                                scl_readbyte = '0')
+                      else 'Z';
+
+  COMMAND_BUSY_OUT <= command_busy_o;
+  I2C_DATA_OUT     <= i2c_data_internal_o;
 
   -- Slave Bus
   SLV_DATA_OUT         <= slv_data_out_o;    

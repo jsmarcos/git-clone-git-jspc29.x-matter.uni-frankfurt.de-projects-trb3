@@ -23,7 +23,7 @@ entity Gray_Decoder is
     BINARY_OUT : out std_logic_vector(WIDTH - 1 downto 0)
     );
 
-end Gray_Decoder;
+end entity;
 
 
 architecture Gray_Decoder of Gray_Decoder is
