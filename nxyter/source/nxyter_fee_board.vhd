@@ -267,7 +267,7 @@ begin
                                8 => 4,          -- Trigger Validate
                                9 => 8,          -- NX Register Setup
                                10 => 8,         -- NX Histograms
-                               others => 0)
+                               others => 0),
 
       PORT_MASK_ENABLE           => 1
       )
