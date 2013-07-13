@@ -102,7 +102,7 @@ begin
   --DEBUG_OUT(15 downto 9)          <= channel_o;
 
   -----------------------------------------------------------------------------
-  -- Gray Decoder for Timestamp and Chgannel Id
+  -- Gray Decoder for Timestamp and Channel Id
   -----------------------------------------------------------------------------
 
   Gray_Decoder_1: Gray_Decoder          -- Decode nx_timestamp

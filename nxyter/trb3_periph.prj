@@ -167,6 +167,7 @@ add_file -vhdl -lib "work" "source/nx_event_buffer.vhd"
 
 add_file -vhdl -lib "work" "source/nxyter_registers.vhd"
 add_file -vhdl -lib "work" "source/nx_setup.vhd"
+add_file -vhdl -lib "work" "source/nx_histograms.vhd"
 
 add_file -vhdl -lib "work" "source/nx_i2c_master.vhd"
 add_file -vhdl -lib "work" "source/nx_i2c_startstop.vhd"

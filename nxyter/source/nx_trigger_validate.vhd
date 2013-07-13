@@ -3,7 +3,6 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 library work;
-use work.trb_net_std.all;
 use work.nxyter_components.all;
 
 entity nx_trigger_validate is
@@ -29,6 +28,10 @@ entity nx_trigger_validate is
     DATA_OUT             : out std_logic_vector(31 downto 0);
     DATA_CLK_OUT         : out std_logic;
     NOMORE_DATA_OUT      : out std_logic;
+
+    -- Histogram
+    HISTOGRAM_FILL_OUT   : out std_logic;
+    HISTOGRAM_BIN_OUT    : out std_logic_vector(6 downto 0);
     
     -- Slave bus         
     SLV_READ_IN          : in  std_logic;
@@ -97,7 +100,11 @@ architecture Behavioral of nx_trigger_validate is
   
   -- Timer
   signal wait_timer_done      : std_logic;
-  
+
+  -- Histogram
+  signal histogram_fill_o     : std_logic;
+  signal histogram_bin_o      : std_logic_vector(6 downto 0);
+
   -- Slave Bus                    
   signal slv_data_out_o       : std_logic_vector(31 downto 0);
   signal slv_no_more_data_o   : std_logic;
@@ -111,21 +118,21 @@ architecture Behavioral of nx_trigger_validate is
 
   signal window_lower_thr_r   : std_logic_vector(11 downto 0);
   signal window_upper_thr_r   : std_logic_vector(11 downto 0);
-    
+
 begin
 
   -- Debug Line
   DEBUG_OUT(0)            <= CLK_IN;
-  DEBUG_OUT(2)            <= trigger_busy_o;
-  DEBUG_OUT(3)            <= channel_all_done;
-  DEBUG_OUT(4)            <= data_clk_o;
-  DEBUG_OUT(5)            <= t_data_clk_o;
-  DEBUG_OUT(6)            <= out_of_window_l;
-  DEBUG_OUT(7)            <= out_of_window_h;
-  DEBUG_OUT(8)            <= NX_TOKEN_RETURN_IN;
-  DEBUG_OUT(9)            <= NX_NOMORE_DATA_IN;
-  DEBUG_OUT(10)           <= store_to_fifo;
-  DEBUG_OUT(15 downto 11) <= (others => '0');
+--  DEBUG_OUT(2)            <= trigger_busy_o;
+--  DEBUG_OUT(3)            <= channel_all_done;
+--  DEBUG_OUT(4)            <= data_clk_o;
+--  DEBUG_OUT(5)            <= t_data_clk_o;
+--  DEBUG_OUT(6)            <= out_of_window_l;
+  --DEBUG_OUT(7)            <= out_of_window_h;
+  --DEBUG_OUT(8)            <= NX_TOKEN_RETURN_IN;
+  --DEBUG_OUT(9)            <= NX_NOMORE_DATA_IN;
+  --DEBUG_OUT(10)           <= store_to_fifo;
+  DEBUG_OUT(15 downto 1)  <= SLV_ADDR_IN(15 downto 1);
   
   -- Timer
   nx_timer_1: nx_timer
@@ -178,83 +185,92 @@ begin
         out_of_window_l      <= '0';
         out_of_window_h      <= '0';
         ch_status_cmd_pr     <= CS_NONE;
-        
-        if (DATA_CLK_IN = '1' and store_to_fifo = '1') then
-          ts_ref             := timestamp_ref - x"010";
-          window_lower_thr   := trigger_window_delay;
-          window_upper_thr   := window_lower_thr + trigger_window_width;
-          deltaT             := unsigned(TIMESTAMP_IN(13 downto 2)) - ts_ref;
 
-          window_lower_thr_r <= window_lower_thr;
-          window_upper_thr_r <= window_upper_thr;
-          
-          case readout_mode is
-            
-            when x"0" =>            -- RefValue + valid and window filter 
-              if (TIMESTAMP_STATUS_IN(1) = '0') then
-                if (deltaT < window_lower_thr) then
-                  out_of_window_l        <= '1';
-                  data_clk_o             <= '0';
-                  -- IN LUT-Data bit setzten.
-                  channel_index          <= CHANNEL_IN;
-                  ch_status_cmd_pr       <= CS_SET_WAIT;
-                elsif (deltaT > window_upper_thr) then
-                  out_of_window_h        <= '1';
-                  data_clk_o             <= '0';
-                  -- In LUT-Done Bit setzten
-                  channel_index          <= CHANNEL_IN;
-                  ch_status_cmd_pr       <= CS_SET_DONE;
-                else
-                  -- IN LUT-Data bit setzten.
-                  channel_index          <= CHANNEL_IN;
-                  ch_status_cmd_pr       <= CS_SET_WAIT;
-                  
-                  data_o(11 downto  0)   <= deltaT;
-                  data_o(23 downto 12)   <= ADC_DATA_IN;
-                  data_o(30 downto 24)   <= CHANNEL_IN;
-                  data_o(31)             <= '0';
+        histogram_fill_o     <= '0';
+        histogram_bin_o      <= (others => '0');
+        
+        if (DATA_CLK_IN = '1') then
+          if (store_to_fifo = '1') then
+            ts_ref             := timestamp_ref - x"010";
+            window_lower_thr   := trigger_window_delay;
+            window_upper_thr   := window_lower_thr + trigger_window_width;
+            deltaT             := unsigned(TIMESTAMP_IN(13 downto 2)) - ts_ref;
+
+            window_lower_thr_r <= window_lower_thr;
+            window_upper_thr_r <= window_upper_thr;
+
+            case readout_mode is
+              
+              when x"0" =>            -- RefValue + valid and window filter 
+                if (TIMESTAMP_STATUS_IN(1) = '0') then
+                  if (deltaT < window_lower_thr) then
+                    out_of_window_l        <= '1';
+                    data_clk_o             <= '0';
+                    -- IN LUT-Data bit setzten.
+                    channel_index          <= CHANNEL_IN;
+                    ch_status_cmd_pr       <= CS_SET_WAIT;
+                  elsif (deltaT > window_upper_thr) then
+                    out_of_window_h        <= '1';
+                    data_clk_o             <= '0';
+                    -- In LUT-Done Bit setzten
+                    channel_index          <= CHANNEL_IN;
+                    ch_status_cmd_pr       <= CS_SET_DONE;
+                  else
+                    -- IN LUT-Data bit setzten.
+                    channel_index          <= CHANNEL_IN;
+                    ch_status_cmd_pr       <= CS_SET_WAIT;
+                    
+                    data_o(11 downto  0)   <= deltaT;
+                    data_o(23 downto 12)   <= ADC_DATA_IN;
+                    data_o(30 downto 24)   <= CHANNEL_IN;
+                    data_o(31)             <= '0';
+                    data_clk_o <= '1';
+                  end if;
+                end if;
+                
+              when x"1" =>            -- RefValue + valid filter
+                if (TIMESTAMP_STATUS_IN(1) = '0') then
+                  data_o(11 downto  0)     <= deltaT;
+                  data_o(23 downto 12)     <= ADC_DATA_IN;
+                  data_o(30 downto 24)     <= CHANNEL_IN;
+                  data_o(31)               <= '0';
+                  data_clk_o               <= '1';
+                end if;
+
+              when x"3" =>            -- RefValue + valid filter
+                if (TIMESTAMP_STATUS_IN(1) = '0') then
+                  data_o(11 downto  0)     <= TIMESTAMP_IN(13 downto 2);
+                  data_o(23 downto 12)     <= ADC_DATA_IN;
+                  data_o(30 downto 24)     <= CHANNEL_IN;
+                  data_o(31)               <= '0';
                   data_clk_o <= '1';
                 end if;
-              end if;
-          
-            when x"1" =>            -- RefValue + valid filter
-              if (TIMESTAMP_STATUS_IN(1) = '0') then
-                data_o(11 downto  0)     <= deltaT;
-                data_o(23 downto 12)     <= ADC_DATA_IN;
-                data_o(30 downto 24)     <= CHANNEL_IN;
-                data_o(31)               <= '0';
-                data_clk_o               <= '1';
-              end if;
+                
+              when x"4" =>            -- RawValue
+                data_o(11 downto  0)       <= TIMESTAMP_IN(13 downto 2);
+                data_o(23 downto 12)       <= ADC_DATA_IN;
+                data_o(30 downto 24)       <= CHANNEL_IN;
+                data_o(31)                 <= '0';
+                data_clk_o                 <= '1';
 
-            when x"3" =>            -- RefValue + valid filter
-              if (TIMESTAMP_STATUS_IN(1) = '0') then
-                data_o(11 downto  0)     <= TIMESTAMP_IN(13 downto 2);
-                data_o(23 downto 12)     <= ADC_DATA_IN;
-                data_o(30 downto 24)     <= CHANNEL_IN;
-                data_o(31)               <= '0';
-                data_clk_o <= '1';
-              end if;
-                  
-            when x"4" =>            -- RawValue
-              data_o(11 downto  0)       <= TIMESTAMP_IN(13 downto 2);
-              data_o(23 downto 12)       <= ADC_DATA_IN;
-              data_o(30 downto 24)       <= CHANNEL_IN;
-              data_o(31)                 <= '0';
-              data_clk_o                 <= '1';
+              when x"5" =>            -- RawValue + valid filter
+                if (TIMESTAMP_STATUS_IN(1) = '0') then
+                  data_o(11 downto  0)     <= TIMESTAMP_IN(13 downto 2);
+                  data_o(23 downto 12)     <= ADC_DATA_IN;
+                  data_o(30 downto 24)     <= CHANNEL_IN;
+                  data_o(31)               <= '0';
+                  data_clk_o               <= '1';
+                end if;
 
-            when x"5" =>            -- RawValue + valid filter
-              if (TIMESTAMP_STATUS_IN(1) = '0') then
-                data_o(11 downto  0)     <= TIMESTAMP_IN(13 downto 2);
-                data_o(23 downto 12)     <= ADC_DATA_IN;
-                data_o(30 downto 24)     <= CHANNEL_IN;
-                data_o(31)               <= '0';
-                data_clk_o               <= '1';
-              end if;
+              when others => null;
 
-            when others => null;
+            end case;
 
-          end case;
-            
+          end if;
+
+          -- Fill Histogram
+          histogram_fill_o    <= '1';
+          histogram_bin_o     <= CHANNEL_IN;
         end if;
       end if;
     end if;
@@ -431,6 +447,7 @@ begin
 
   -- Give status info to the TRB Slow Control Channel
   PROC_FIFO_REGISTERS: process(CLK_IN)
+
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
@@ -492,7 +509,7 @@ begin
               slv_data_out_o(11 downto 0)  <= window_upper_thr_r;
               slv_data_out_o(31 downto 12) <= (others => '0');
               slv_ack_o                    <= '1';  
-            
+              
             when x"0008" =>
               slv_data_out_o               <=
                 std_logic_vector(channel_done(31 downto 0));
@@ -512,7 +529,7 @@ begin
               slv_data_out_o               <=
                 std_logic_vector(channel_done(127 downto 96));
               slv_ack_o                    <= '1'; 
-
+              
             when others  =>
               slv_unknown_addr_o           <= '1';
               slv_ack_o                    <= '0';
@@ -544,7 +561,7 @@ begin
               slv_ack_o                    <= '0';
           end case;                
         else
-          slv_ack_o <= '0';
+          slv_ack_o                        <= '0';
         end if;
       end if;
     end if;
@@ -558,6 +575,9 @@ begin
   DATA_OUT              <= data_o or t_data_o;
   DATA_CLK_OUT          <= data_clk_o or t_data_clk_o;
   NOMORE_DATA_OUT       <= nomore_data_o;
+
+  HISTOGRAM_FILL_OUT    <= histogram_fill_o;
+  HISTOGRAM_BIN_OUT     <= histogram_bin_o;
   
   -- Slave 
   SLV_DATA_OUT          <= slv_data_out_o;    

@@ -48,13 +48,15 @@
                w: clear Resync Counter    
 0x8503 :  r/w  r: Parity Error Counter (12bit)
                w: clear Parity Error Counter
-0x8504 :  r/w  FIFO Delay, i.e. Trigger Delay (6Bit, in 31.25ns, range 2..60) default: 8
+0x8504 :  r/w  FIFO Delay, i.e. Trigger Delay (6Bit, in 31.25ns, range 2..60)
+                default: 8
 0x8505 :  r/w  ADC CLK Delay 4ns steps (3Bit: range 0..7)
                0:  4ns after frame_valid
                1:  8ns -------"---------
                ......  -------"---------
                6: 28ns -------"--------- 
-               7: 32ns -------"--------- <= this shoud be correct i.e. 2ns before new frame clock
+               7: 32ns -------"--------- <= this shoud be correct 
+                                            i.e. 2ns before new frame clock
 0x8506 :  r    current ADC FIFO value
 
 -- Event Data Buffer
@@ -69,5 +71,3 @@
 
 -- SPI Master
 0x8060 :       Access to SPI Interface
-
-

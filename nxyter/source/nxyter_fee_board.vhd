@@ -97,15 +97,17 @@ architecture Behavioral of nXyter_FEE_board is
   -- Clock 256
   signal clk_250_o             : std_logic;
                                
-  -- Bus Handler               
-  signal slv_read              : std_logic_vector(16-1 downto 0);
-  signal slv_write             : std_logic_vector(16-1 downto 0);
-  signal slv_no_more_data      : std_logic_vector(16-1 downto 0);
-  signal slv_ack               : std_logic_vector(16-1 downto 0);
-  signal slv_addr              : std_logic_vector(16*16-1 downto 0);
-  signal slv_data_rd           : std_logic_vector(16*32-1 downto 0);
-  signal slv_data_wr           : std_logic_vector(16*32-1 downto 0);
-  signal slv_unknown_addr      : std_logic_vector(16-1 downto 0);
+  -- Bus Handler
+  constant NUM_PORTS : integer := 11;
+
+  signal slv_read              : std_logic_vector(NUM_PORTS-1 downto 0);
+  signal slv_write             : std_logic_vector(NUM_PORTS-1 downto 0);
+  signal slv_no_more_data      : std_logic_vector(NUM_PORTS-1 downto 0);
+  signal slv_ack               : std_logic_vector(NUM_PORTS-1 downto 0);
+  signal slv_addr              : std_logic_vector(NUM_PORTS*16-1 downto 0);
+  signal slv_data_rd           : std_logic_vector(NUM_PORTS*32-1 downto 0);
+  signal slv_data_wr           : std_logic_vector(NUM_PORTS*32-1 downto 0);
+  signal slv_unknown_addr      : std_logic_vector(NUM_PORTS-1 downto 0);
                                
   -- TRB Register              
   signal i2c_sm_reset_o        : std_logic;   
@@ -152,6 +154,9 @@ architecture Behavioral of nXyter_FEE_board is
   signal event_buffer_clear    : std_logic;
   signal trigger_validate_busy : std_logic;
   signal validate_nomore_data  : std_logic;
+  
+  signal trigger_validate_fill : std_logic;
+  signal trigger_validate_bin  : std_logic_vector(6 downto 0);
   
   -- Event Buffer               
   signal trigger_evt_busy      : std_logic;
@@ -236,7 +241,7 @@ begin
 
   THE_BUS_HANDLER: trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER         => 10,
+      PORT_NUMBER         => NUM_PORTS,
 
       PORT_ADDRESSES      => ( 0 => x"0100",    -- Control Register Handler
                                1 => x"0040",    -- I2C Master
@@ -248,7 +253,7 @@ begin
                                7 => x"0160",    -- Trigger Handler
                                8 => x"0180",    -- Trigger Validate
                                9 => x"0200",    -- NX Register Setup
-
+                               10 => x"0800",   -- NX Histograms
                                others => x"0000"),
 
       PORT_ADDR_MASK      => ( 0 => 3,          -- Control Register Handler
@@ -261,152 +266,39 @@ begin
                                7 => 1,          -- Trigger Handler
                                8 => 4,          -- Trigger Validate
                                9 => 8,          -- NX Register Setup
+                               10 => 8,         -- NX Histograms
                                others => 0)
+
+      PORT_MASK_ENABLE           => 1
       )
     port map(
-      CLK                                 => CLK_IN,
-      RESET                               => RESET_IN,
-      
-      DAT_ADDR_IN                         => REGIO_ADDR_IN,
-      DAT_DATA_IN                         => REGIO_DATA_IN,
-      DAT_DATA_OUT                        => REGIO_DATA_OUT,
-      DAT_READ_ENABLE_IN                  => REGIO_READ_ENABLE_IN,
-      DAT_WRITE_ENABLE_IN                 => REGIO_WRITE_ENABLE_IN,
-      DAT_TIMEOUT_IN                      => REGIO_TIMEOUT_IN,
-      DAT_DATAREADY_OUT                   => REGIO_DATAREADY_OUT,
-      DAT_WRITE_ACK_OUT                   => REGIO_WRITE_ACK_OUT,
-      DAT_NO_MORE_DATA_OUT                => REGIO_NO_MORE_DATA_OUT,
-      DAT_UNKNOWN_ADDR_OUT                => REGIO_UNKNOWN_ADDR_OUT,
+      CLK                        => CLK_IN,
+      RESET                      => RESET_IN,
+                                 
+      DAT_ADDR_IN                => REGIO_ADDR_IN,
+      DAT_DATA_IN                => REGIO_DATA_IN,
+      DAT_DATA_OUT               => REGIO_DATA_OUT,
+      DAT_READ_ENABLE_IN         => REGIO_READ_ENABLE_IN,
+      DAT_WRITE_ENABLE_IN        => REGIO_WRITE_ENABLE_IN,
+      DAT_TIMEOUT_IN             => REGIO_TIMEOUT_IN,
+      DAT_DATAREADY_OUT          => REGIO_DATAREADY_OUT,
+      DAT_WRITE_ACK_OUT          => REGIO_WRITE_ACK_OUT,
+      DAT_NO_MORE_DATA_OUT       => REGIO_NO_MORE_DATA_OUT,
+      DAT_UNKNOWN_ADDR_OUT       => REGIO_UNKNOWN_ADDR_OUT,
+                                 
+      -- Control Registers       
+      BUS_READ_ENABLE_OUT        => slv_read,
+      BUS_WRITE_ENABLE_OUT       => slv_write,
+      BUS_DATA_OUT               => slv_data_wr,
+      BUS_DATA_IN                => slv_data_rd,
+      BUS_ADDR_OUT               => slv_addr,
+      BUS_TIMEOUT_OUT            => open,
+      BUS_DATAREADY_IN           => slv_ack,
+      BUS_WRITE_ACK_IN           => slv_ack,
+      BUS_NO_MORE_DATA_IN        => slv_no_more_data,
+      BUS_UNKNOWN_ADDR_IN        => slv_unknown_addr,
 
-      -- Control Registers
-      BUS_READ_ENABLE_OUT(0)              => slv_read(0),
-      BUS_WRITE_ENABLE_OUT(0)             => slv_write(0),
-      BUS_DATA_OUT(0*32+31 downto 0*32)   => slv_data_wr(0*32+31 downto 0*32),
-      BUS_DATA_IN(0*32+31 downto 0*32)    => slv_data_rd(0*32+31 downto 0*32),
-      BUS_ADDR_OUT(0*16+2 downto 0*16)    => slv_addr(0*16+2 downto 0*16),
-      BUS_ADDR_OUT(0*16+15 downto 0*16+3) => open,
-      BUS_TIMEOUT_OUT(0)                  => open,
-      BUS_DATAREADY_IN(0)                 => slv_ack(0),
-      BUS_WRITE_ACK_IN(0)                 => slv_ack(0),
-      BUS_NO_MORE_DATA_IN(0)              => slv_no_more_data(0),
-      BUS_UNKNOWN_ADDR_IN(0)              => slv_unknown_addr(0),
-
-      -- I2C master
-      BUS_READ_ENABLE_OUT(1)              => slv_read(1),
-      BUS_WRITE_ENABLE_OUT(1)             => slv_write(1),
-      BUS_DATA_OUT(1*32+31 downto 1*32)   => slv_data_wr(1*32+31 downto 1*32),
-      BUS_DATA_IN(1*32+31 downto 1*32)    => slv_data_rd(1*32+31 downto 1*32),
-      BUS_ADDR_OUT(1*16+15 downto 1*16)   => open,
-      BUS_TIMEOUT_OUT(1)                  => open,
-      BUS_DATAREADY_IN(1)                 => slv_ack(1),
-      BUS_WRITE_ACK_IN(1)                 => slv_ack(1),
-      BUS_NO_MORE_DATA_IN(1)              => slv_no_more_data(1),
-      BUS_UNKNOWN_ADDR_IN(1)              => slv_unknown_addr(1),
-
-      -- Data Receiver
-      BUS_READ_ENABLE_OUT(2)              => slv_read(2),
-      BUS_WRITE_ENABLE_OUT(2)             => slv_write(2),
-      BUS_DATA_OUT(2*32+31 downto 2*32)   => slv_data_wr(2*32+31 downto 2*32),
-      BUS_DATA_IN(2*32+31 downto 2*32)    => slv_data_rd(2*32+31 downto 2*32),
-      BUS_ADDR_OUT(2*16+2 downto 2*16)    => slv_addr(2*16+2 downto 2*16),
-      BUS_ADDR_OUT(2*16+15 downto 2*16+3) => open,
-      BUS_TIMEOUT_OUT(2)                  => open,
-      BUS_DATAREADY_IN(2)                 => slv_ack(2),
-      BUS_WRITE_ACK_IN(2)                 => slv_ack(2),
-      BUS_NO_MORE_DATA_IN(2)              => slv_no_more_data(2),
-      BUS_UNKNOWN_ADDR_IN(2)              => slv_unknown_addr(2),
-
-      -- DataBuffer
-      BUS_READ_ENABLE_OUT(3)              => slv_read(3),
-      BUS_WRITE_ENABLE_OUT(3)             => slv_write(3),
-      BUS_DATA_OUT(3*32+31 downto 3*32)   => slv_data_wr(3*32+31 downto 3*32),
-      BUS_DATA_IN(3*32+31 downto 3*32)    => slv_data_rd(3*32+31 downto 3*32),
-      BUS_ADDR_OUT(3*16+2 downto 3*16)    => slv_addr(3*16+2 downto 3*16),
-      BUS_ADDR_OUT(3*16+15 downto 3*16+3) => open,
-      BUS_TIMEOUT_OUT(3)                  => open,
-      BUS_DATAREADY_IN(3)                 => slv_ack(3),
-      BUS_WRITE_ACK_IN(3)                 => slv_ack(3),
-      BUS_NO_MORE_DATA_IN(3)              => slv_no_more_data(3),
-      BUS_UNKNOWN_ADDR_IN(3)              => slv_unknown_addr(3),
-
-      -- SPI master
-      BUS_READ_ENABLE_OUT(4)              => slv_read(4),
-      BUS_WRITE_ENABLE_OUT(4)             => slv_write(4),
-      BUS_DATA_OUT(4*32+31 downto 4*32)   => slv_data_wr(4*32+31 downto 4*32),
-      BUS_DATA_IN(4*32+31 downto 4*32)    => slv_data_rd(4*32+31 downto 4*32),
-      BUS_ADDR_OUT(4*16+15 downto 4*16)   => open,
-      BUS_TIMEOUT_OUT(4)                  => open,
-      BUS_DATAREADY_IN(4)                 => slv_ack(4),
-      BUS_WRITE_ACK_IN(4)                 => slv_ack(4),
-      BUS_NO_MORE_DATA_IN(4)              => slv_no_more_data(4),
-      BUS_UNKNOWN_ADDR_IN(4)              => slv_unknown_addr(4),
-
-      -- Trigger Generator
-      BUS_READ_ENABLE_OUT(5)              => slv_read(5),
-      BUS_WRITE_ENABLE_OUT(5)             => slv_write(5),
-      BUS_DATA_OUT(5*32+31 downto 5*32)   => slv_data_wr(5*32+31 downto 5*32),
-      BUS_DATA_IN(5*32+31 downto 5*32)    => slv_data_rd(5*32+31 downto 5*32),
-      BUS_ADDR_OUT(5*16+2 downto 5*16)    => slv_addr(5*16+2 downto 5*16),
-      BUS_ADDR_OUT(5*16+15 downto 5*16+3) => open,
-      BUS_TIMEOUT_OUT(5)                  => open,
-      BUS_DATAREADY_IN(5)                 => slv_ack(5),
-      BUS_WRITE_ACK_IN(5)                 => slv_ack(5),
-      BUS_NO_MORE_DATA_IN(5)              => slv_no_more_data(5),
-      BUS_UNKNOWN_ADDR_IN(5)              => slv_unknown_addr(5),
-
-      -- Data Validate
-      BUS_READ_ENABLE_OUT(6)              => slv_read(6),
-      BUS_WRITE_ENABLE_OUT(6)             => slv_write(6),
-      BUS_DATA_OUT(6*32+31 downto 6*32)   => slv_data_wr(6*32+31 downto 6*32),
-      BUS_DATA_IN(6*32+31 downto 6*32)    => slv_data_rd(6*32+31 downto 6*32),
-      BUS_ADDR_OUT(6*16+4 downto 6*16)    => slv_addr(6*16+4 downto 6*16),
-      BUS_ADDR_OUT(6*16+15 downto 6*16+5) => open,
-      BUS_TIMEOUT_OUT(6)                  => open,
-      BUS_DATAREADY_IN(6)                 => slv_ack(6),
-      BUS_WRITE_ACK_IN(6)                 => slv_ack(6),
-      BUS_NO_MORE_DATA_IN(6)              => slv_no_more_data(6),
-      BUS_UNKNOWN_ADDR_IN(6)              => slv_unknown_addr(6),
-
-      -- Trigger Handler
-      BUS_READ_ENABLE_OUT(7)              => slv_read(7),
-      BUS_WRITE_ENABLE_OUT(7)             => slv_write(7),
-      BUS_DATA_OUT(7*32+31 downto 7*32)   => slv_data_wr(7*32+31 downto 7*32),
-      BUS_DATA_IN(7*32+31 downto 7*32)    => slv_data_rd(7*32+31 downto 7*32),
-      BUS_ADDR_OUT(7*16+0)                => slv_addr(7*16+0),
-      BUS_ADDR_OUT(7*16+15 downto 7*16+1) => open,
-      BUS_TIMEOUT_OUT(7)                  => open,
-      BUS_DATAREADY_IN(7)                 => slv_ack(7),
-      BUS_WRITE_ACK_IN(7)                 => slv_ack(7),
-      BUS_NO_MORE_DATA_IN(7)              => slv_no_more_data(7),
-      BUS_UNKNOWN_ADDR_IN(7)              => slv_unknown_addr(7),
-
-      -- Timestamp Process
-      BUS_READ_ENABLE_OUT(8)              => slv_read(8),
-      BUS_WRITE_ENABLE_OUT(8)             => slv_write(8),
-      BUS_DATA_OUT(8*32+31 downto 8*32)   => slv_data_wr(8*32+31 downto 8*32),
-      BUS_DATA_IN(8*32+31 downto 8*32)    => slv_data_rd(8*32+31 downto 8*32),
-      BUS_ADDR_OUT(8*16+3 downto 8*16)    => slv_addr(8*16+3 downto 8*16),
-      BUS_ADDR_OUT(8*16+15 downto 8*16+4) => open,
-      BUS_TIMEOUT_OUT(8)                  => open,
-      BUS_DATAREADY_IN(8)                 => slv_ack(8),
-      BUS_WRITE_ACK_IN(8)                 => slv_ack(8),
-      BUS_NO_MORE_DATA_IN(8)              => slv_no_more_data(8),
-      BUS_UNKNOWN_ADDR_IN(8)              => slv_unknown_addr(8),
-
-      -- NX Register Setup
-      BUS_READ_ENABLE_OUT(9)              => slv_read(9),
-      BUS_WRITE_ENABLE_OUT(9)             => slv_write(9),
-      BUS_DATA_OUT(9*32+31 downto 9*32)   => slv_data_wr(9*32+31 downto 9*32),
-      BUS_DATA_IN(9*32+31 downto 9*32)    => slv_data_rd(9*32+31 downto 9*32),
-      BUS_ADDR_OUT(9*16+7 downto 9*16)    => slv_addr(9*16+7 downto 9*16),
-      BUS_ADDR_OUT(9*16+15 downto 9*16+5) => open,
-      BUS_TIMEOUT_OUT(9)                  => open,
-      BUS_DATAREADY_IN(9)                 => slv_ack(9),
-      BUS_WRITE_ACK_IN(9)                 => slv_ack(9),
-      BUS_NO_MORE_DATA_IN(9)              => slv_no_more_data(9),
-      BUS_UNKNOWN_ADDR_IN(9)              => slv_unknown_addr(9),
-      
-      ---- debug
+      -- DEBUG
       STAT_DEBUG          => open
       );
 
@@ -708,6 +600,9 @@ begin
       DATA_CLK_OUT           => trigger_data_clk,
       NOMORE_DATA_OUT        => validate_nomore_data,
 
+      HISTOGRAM_FILL_OUT     => trigger_validate_fill,
+      HISTOGRAM_BIN_OUT      => trigger_validate_bin,
+      
       SLV_READ_IN            => slv_read(8),
       SLV_WRITE_IN           => slv_write(8),
       SLV_DATA_OUT           => slv_data_rd(8*32+31 downto 8*32),
@@ -760,6 +655,31 @@ begin
       DEBUG_OUT            => open
       );
 
+  nx_histograms_1: nx_histograms
+    generic map (
+      NUM_BINS => 7
+      )
+    port map (
+      CLK_IN                      => CLK_IN,
+      RESET_IN                    => RESET_IN,
+                                  
+      RESET_HISTS_IN              => open,
+      CHANNEL_STAT_FILL_IN        => trigger_validate_fill,
+      CHANNEL_ID_IN               => trigger_validate_bin,
+                                  
+      SLV_READ_IN                 => slv_read(10),
+      SLV_WRITE_IN                => slv_write(10),
+      SLV_DATA_OUT                => slv_data_rd(10*32+31 downto 10*32),
+      SLV_DATA_IN                 => slv_data_wr(10*32+31 downto 10*32),
+      SLV_ADDR_IN                 => slv_addr(10*16+15 downto 10*16),
+      SLV_ACK_OUT                 => slv_ack(10),
+      SLV_NO_MORE_DATA_OUT        => slv_no_more_data(10),
+      SLV_UNKNOWN_ADDR_OUT        => slv_unknown_addr(10),
+
+      --DEBUG_OUT                   => DEBUG_LINE_OUT
+      DEBUG_OUT                   => open
+      );
+  
 -------------------------------------------------------------------------------
 -- nXyter Signals
 -------------------------------------------------------------------------------
@@ -767,12 +687,6 @@ begin
   NX_RESET_OUT      <= not nx_ts_reset_o;
   NX_TESTPULSE_OUT  <= nx_testpulse_o;
 
--------------------------------------------------------------------------------
--- ADC Signals
--------------------------------------------------------------------------------
-  
-
-  
 -------------------------------------------------------------------------------
 -- I2C Signals
 -------------------------------------------------------------------------------

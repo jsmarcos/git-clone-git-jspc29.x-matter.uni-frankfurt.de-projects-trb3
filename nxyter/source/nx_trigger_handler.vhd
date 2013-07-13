@@ -157,7 +157,15 @@ begin
         
         case STATE is
           when  S_IDLE =>
-            if (LVL1_VALID_TIMING_TRG_IN = '1') then
+
+            if (LVL1_VALID_NOTIMING_TRG_IN = '1') then
+              STATE              <= S_WAIT_TRG_DATA_VALID;
+
+            elsif (LVL1_INVALID_TRG_IN = '1') then
+              fee_trg_release_o      <= '1';
+              STATE                  <= S_IDLE;
+              
+            elsif (LVL1_VALID_TIMING_TRG_IN = '1') then
               if (NXYTER_OFFLINE_IN = '1') then
                 STATE              <= S_WAIT_TRG_DATA_VALID;
               else
@@ -276,7 +284,7 @@ begin
         slv_no_more_data_o       <= '0';
         slv_unknown_addr_o       <= '0';
         slv_ack_o                <= '0';
-        reg_timestamp_hold_delay <= x"3f";
+        reg_timestamp_hold_delay <= x"01";
       else
         slv_unknown_addr_o <= '0';
         slv_no_more_data_o <= '0';
