@@ -61,11 +61,12 @@ begin
 
   -- Debug Line
   DEBUG_OUT(0)           <= CLK_IN;
-  DEBUG_OUT(1)           <= TRIGGER_OUT;
+  DEBUG_OUT(1)           <= trigger_o;
   DEBUG_OUT(2)           <= start_cycle;
   DEBUG_OUT(3)           <= wait_timer_done;
   DEBUG_OUT(4)           <= ts_reset_o;
-  DEBUG_OUT(7 downto 5)  <= (others => '0');
+  DEBUG_OUT(5)           <= testpulse_o;
+  DEBUG_OUT(7 downto 6)  <= (others => '0');
   DEBUG_OUT(15 downto 8) <= trigger_cycle_ctr;
 
   -- Timer

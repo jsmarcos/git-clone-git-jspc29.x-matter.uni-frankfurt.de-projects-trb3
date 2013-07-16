@@ -51,7 +51,7 @@ architecture Behavioral of nx_i2c_readbyte is
                   S_READ_BYTE,
                   S_UNSET_SCL1,
                   S_SET_SCL1,
-                  s_GET_BIT,
+                  S_GET_BIT,
                   S_SET_SCL2,
                   S_UNSET_SCL2,
                   S_NEXT_BIT,

@@ -139,32 +139,35 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.v
 
 add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
 
+
+# nXyter Files
+
+add_file -vhdl -lib "work" "cores/pll_125_hub.vhd"
 add_file -vhdl -lib "work" "cores/pll_nx_clk256.vhd"
 add_file -vhdl -lib "work" "cores/pll_nx_clk250.vhd"
 add_file -vhdl -lib "work" "cores/pll_adc_clk32.vhd"
 add_file -vhdl -lib "work" "cores/pll_adc_clk192.vhd"
-add_file -vhdl -lib "work" "cores/fifo_32to32_dc.vhd"
+add_file -vhdl -lib "work" "cores/fifo_ts_32to32_dc.vhd"
 add_file -vhdl -lib "work" "cores/fifo_32_data.vhd"
-add_file -vhdl -lib "work" "cores/fifo_6to6_dc.vhd"
 
 add_file -vhdl -lib "work" "trb3_periph.vhd"
 
-# nXyter Files
-
 add_file -vhdl -lib "work" "source/nxyter_components.vhd"
-
-add_file -vhdl -lib "work" "source/nxyter_fee_board.vhd"
-add_file -vhdl -lib "work" "source/nxyter_data_handler.vhd"
-add_file -vhdl -lib "work" "source/nxyter_registers.vhd"
-add_file -vhdl -lib "work" "source/nx_timestamp_fifo_read.vhd"
 add_file -vhdl -lib "work" "source/level_to_pulse.vhd"
+add_file -vhdl -lib "work" "source/pulse_to_level.vhd"
 add_file -vhdl -lib "work" "source/gray_decoder.vhd"
 add_file -vhdl -lib "work" "source/gray_encoder.vhd"
-add_file -vhdl -lib "work" "source/nx_data_buffer.vhd"
 add_file -vhdl -lib "work" "source/nx_timer.vhd"
 
-add_file -vhdl -lib "work" "source/nx_timestamp_decode.vhd"
-add_file -vhdl -lib "work" "source/nx_timestamp_process.vhd"
+add_file -vhdl -lib "work" "source/nxyter_fee_board.vhd"
+add_file -vhdl -lib "work" "source/nx_data_receiver.vhd"
+add_file -vhdl -lib "work" "source/nx_data_validate.vhd"
+add_file -vhdl -lib "work" "source/nx_trigger_validate.vhd"
+add_file -vhdl -lib "work" "source/nx_event_buffer.vhd"
+
+add_file -vhdl -lib "work" "source/nxyter_registers.vhd"
+add_file -vhdl -lib "work" "source/nx_setup.vhd"
+add_file -vhdl -lib "work" "source/nx_histograms.vhd"
 
 add_file -vhdl -lib "work" "source/nx_i2c_master.vhd"
 add_file -vhdl -lib "work" "source/nx_i2c_startstop.vhd"
@@ -179,9 +182,6 @@ add_file -vhdl -lib "work" "source/nx_fpga_timestamp.vhd"
 add_file -vhdl -lib "work" "source/nx_trigger_generator.vhd"
 add_file -vhdl -lib "work" "source/nx_trigger_handler.vhd"
 add_file -vhdl -lib "work" "source/nx_timestamp_sim.vhd"
-
-add_file -vhdl -lib "work" "source/adc_ad9228.vhd"
-add_file -vhdl -lib "work" "source/adc_receiver.vhd"
 
 # Needed by ADC9222 Entity
 add_file -vhdl -lib "work" "../base/cores/dqsinput.vhd"

@@ -17,7 +17,13 @@ entity adc_spi_master is
     SCLK_OUT             : out   std_logic;
     SDIO_INOUT           : inout std_logic;
     CSB_OUT              : out   std_logic;
-    
+
+    -- Internal Interface
+    INTERNAL_COMMAND_IN  : in    std_logic_vector(31 downto 0);
+    COMMAND_ACK_OUT      : out   std_logic;
+    SPI_DATA             : out   std_logic_vector(31 downto 0);
+    SPI_LOCK_IN          : in    std_logic;
+
     -- Slave bus         
     SLV_READ_IN          : in    std_logic;
     SLV_WRITE_IN         : in    std_logic;
@@ -34,11 +40,12 @@ end entity;
 
 architecture Behavioral of adc_spi_master is
 
-  signal sdio_i : std_logic;
-  signal sdio_x : std_logic;
-  signal sdio   : std_logic;
+  signal sdio_i        : std_logic;
+  signal sdio_x        : std_logic;
+  signal sdio          : std_logic;
 
-  signal sclk_o : std_logic;
+  signal sclk_o        : std_logic;
+  signal command_ack_o : std_logic;
 
   -- SPI Master
   signal csb_o                 : std_logic;
@@ -366,7 +373,8 @@ begin
         slv_unknown_addr_o <= '0';
         slv_ack_o          <= '0';
         spi_start          <= '0';
-
+        command_ack_o      <= '0';
+        
         spi_chipid              <= (others => '0');    
         spi_rw_bit              <= '0';    
         spi_registerid          <= (others => '0');    
@@ -374,32 +382,46 @@ begin
         spi_register_value_read <= (others => '0');
             
       else
-        slv_ack_o          <= '1';
+        slv_data_out_o     <= (others => '0');
         slv_unknown_addr_o <= '0';
         slv_no_more_data_o <= '0';
-        slv_data_out_o     <= (others => '0');
+
         spi_start          <= '0';
-        
+        command_ack_o      <= '0';
+
+        --if (spi_busy = '0' and INTERNAL_COMMAND_IN(31) = '1') then
+        --  spi_rw_bit         <= INTERNAL_COMMAND_IN(30);
+        --  spi_registerid     <= INTERNAL_COMMAND_IN(20 downto 8);
+        --  spi_register_data  <= INTERNAL_COMMAND_IN(7 downto 0); 
+        --  spi_start          <= '1';
+        --  command_ack_o      <= '1';
+        --  slv_ack_o          <= '1';
+        --
+        --elsif (SLV_WRITE_IN  = '1') then
         if (SLV_WRITE_IN  = '1') then
           if (spi_busy = '0' and SLV_DATA_IN(31) = '1') then
             spi_rw_bit        <= SLV_DATA_IN(30);
             spi_registerid    <= SLV_DATA_IN(20 downto 8);
             spi_register_data <= SLV_DATA_IN(7 downto 0); 
             spi_start         <= '1';
+            slv_ack_o         <= '1';
+          else
+            slv_ack_o         <= '1';
           end if;
-
+          
         elsif (SLV_READ_IN = '1') then
           if (spi_busy = '1') then
-            slv_data_out_o     <= (others => '0');
             slv_no_more_data_o <= '1';
             slv_ack_o          <= '0';
           else
-          slv_data_out_o       <= reg_data;
+            slv_data_out_o     <= reg_data;
+            slv_ack_o          <= '1';
           end if;
 
         else
-          slv_ack_o <= '0';
+          slv_ack_o            <= '0';
         end if;
+        
       end if;
     end if;           
   end process PROC_SLAVE_BUS;
@@ -410,15 +432,16 @@ begin
   -----------------------------------------------------------------------------
   
   -- SPI Outputs
-  SDIO_INOUT <= sdio_sendbyte when (takeover_sdio = '1')
-                else 'Z';
+  SDIO_INOUT      <= sdio_sendbyte when (takeover_sdio = '1')
+                     else 'Z';
   
-  SCLK_OUT   <= sclk_o or
-                sclk_sendbyte or
-                sclk_readbyte;
+  SCLK_OUT        <= sclk_o or
+                     sclk_sendbyte or
+                     sclk_readbyte;
 
-  CSB_OUT       <= csb_o;
-
+  CSB_OUT         <= csb_o;
+  COMMAND_ACK_OUT <= command_ack_o;
+    
   -- Slave Bus
   SLV_DATA_OUT         <= slv_data_out_o;    
   SLV_NO_MORE_DATA_OUT <= slv_no_more_data_o; 

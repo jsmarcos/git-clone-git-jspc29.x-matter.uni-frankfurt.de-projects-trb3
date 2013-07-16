@@ -1,16 +1,17 @@
 -- Control Register
-0x8100 :  r/w  w: reset I2C State Machine r: reset ctr
-0x8101 :  r/w  w: reset I2C all Register r: reset ctr
-0x8102 :  r/w  w: Reset and Sync Timestamps (nXyter and FPGA) r: reset ctr
+0x8100 :  w    w: reset I2C State Machine
+0x8101 :  w    w: reset I2C all Register
+0x8102 :  w    w: Reset and Sync Timestamps (nXyter and FPGA)
+0x8103 :  r/w  Put nxyter into offline mode 
 
--- Timestamp Decode
+-- NX Data Validate
 0x8120 :  rw   Invalid Frame Counter (16 bit) / w: clear all counters
 0x8121 :  r    Overflow Counter (16 bit)
 0x8122 :  r    Pileup Counter (16 bit)
 0x8123 :  r    Parity Error Counter (16 bit)
 0x8124 :  r    Trigger Rate (in kHz)
 
--- Timestamp Process
+-- NX Trigger Validate
 0x8180 :  r/w  Readout Mode (0:Ref + valid + window, 1: Ref + Valid 
                              3: Raw and TimeStamp + valid,
                              4: Raw,  5: Raw + Valid )
@@ -32,10 +33,10 @@
 0x8144 :  r/w  Bit0     : 1: send timestamp-reset before trigger 
 
 -- Trigger Handler
-0x8160 :  r/w  Bit 15-0 : Delay Trigger in Timestamp Hold 
+0x8160 :  r/w  Bit 15-0 : Delay Timestamp Hold  signal (8bit, 10ns)
 
--- Timestamp Fifo
-0x8500 :  r    current FIFO value
+-- NX Data Receiver
+0x8500 :  r    current Timestamp FIFO value
 0x8501 :  r/w  r: FIFO Status 
 				 0: fifo_full
 				 1: fifo_empty
@@ -47,17 +48,26 @@
                w: clear Resync Counter    
 0x8503 :  r/w  r: Parity Error Counter (12bit)
                w: clear Parity Error Counter
-0x8504 :  r/w  FIFO Delay, i.e. Trigger Delay (6bit, in 3.1ns, range 2 .. 60)
+0x8504 :  r/w  FIFO Delay, i.e. Trigger Delay (6Bit, in 31.25ns, range 2..60)
+                default: 8
+0x8505 :  r/w  ADC CLK Delay 4ns steps (3Bit: range 0..7)
+               0:  4ns after frame_valid
+               1:  8ns -------"---------
+               ......  -------"---------
+               6: 28ns -------"--------- 
+               7: 32ns -------"--------- <= this shoud be correct 
+                                            i.e. 2ns before new frame clock
+0x8506 :  r    current ADC FIFO value
 
--- Data Buffer
+-- Event Data Buffer
 0x8600 :  r    read FIFO buffer
-0x8601 :  r/w  r: read FIFO status
+0x8601 :  r    FIFO write counter
+0x8602 :  r    FIFO flush counter
+0x8603 :  r/w  r: read FIFO status
                w: enable/disable FIFO write
 
 -- I2C Master
-0x8040 :     Access to I2C Interface
+0x8040 :        Access to I2C Interface
 
 -- SPI Master
-0x8060 :    Access to SPI Interface
-
-
+0x8060 :       Access to SPI Interface
