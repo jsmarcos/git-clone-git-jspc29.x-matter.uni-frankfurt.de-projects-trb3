@@ -39,6 +39,9 @@ end entity;
 
 architecture Behavioral of nx_i2c_master is
 
+  signal sda_o                 : std_logic;
+  signal scl_o                 : std_logic;
+  
   signal sda_i                 : std_logic;
   signal sda_x                 : std_logic;
   signal sda                   : std_logic;
@@ -49,10 +52,9 @@ architecture Behavioral of nx_i2c_master is
   signal command_busy_o        : std_logic;
 
   -- I2C Master  
-  signal sda_o                 : std_logic;
-  signal scl_o                 : std_logic;
+  signal sda_master            : std_logic;
+  signal scl_master            : std_logic;
   signal i2c_start             : std_logic;
-
   signal i2c_busy              : std_logic;
   signal startstop_select      : std_logic;
   signal startstop_seq_start   : std_logic;
@@ -128,11 +130,14 @@ begin
   -- Debug
   DEBUG_OUT(0)            <= CLK_IN;
   DEBUG_OUT(8 downto 1)   <= i2c_data(7 downto 0);
-  DEBUG_OUT(12 downto 9)  <= i2c_data(31 downto 28);
-  DEBUG_OUT(13)           <= i2c_busy;
-  DEBUG_OUT(14)           <= internal_command;
-  DEBUG_OUT(15)           <= internal_command_d;
-
+  DEBUG_OUT(10 downto 9)  <= i2c_data(31 downto 30);
+  DEBUG_OUT(11)           <= i2c_busy;
+  DEBUG_OUT(12)           <= sda_o;
+  DEBUG_OUT(13)           <= scl_o;
+  DEBUG_OUT(14)           <= sda;
+  DEBUG_OUT(15)           <= scl;
+  --DEBUG_OUT(12 downto 9)  <= i2c_data(31 downto 28);
+  
   -- Start / Stop Sequence
   nx_i2c_startstop_1: nx_i2c_startstop
     generic map (
@@ -162,6 +167,7 @@ begin
       SDA_OUT           => sda_sendbyte,
       SCL_OUT           => scl_sendbyte,
       SDA_IN            => sda,
+      SCL_IN            => scl,
       ACK_OUT           => sendbyte_ack
       );
 
@@ -243,150 +249,152 @@ begin
 
   begin
     -- Defaults
-    sda_o                   <= '1';
-    scl_o                   <= '1';
-    i2c_busy_x              <= '1';
-    startstop_select_x      <= '0';
-    startstop_seq_start_x   <= '0';
-    sendbyte_seq_start_x    <= '0';
-    sendbyte_byte_x         <= (others => '0');
-    readbyte_seq_start_x    <= '0';
-    i2c_data_x              <= i2c_data;
-    read_seq_ctr_x          <= read_seq_ctr;
+    sda_master                <= '1';
+    scl_master                <= '1';
+    i2c_busy_x                <= '1';
+    startstop_select_x        <= '0';
+    startstop_seq_start_x     <= '0';
+    sendbyte_seq_start_x      <= '0';
+    sendbyte_byte_x           <= (others => '0');
+    readbyte_seq_start_x      <= '0';
+    i2c_data_x                <= i2c_data;
+    read_seq_ctr_x            <= read_seq_ctr;
     
     case STATE is
 
       when S_RESET =>
-        i2c_data_x        <= (others => '0');
-        NEXT_STATE        <= S_IDLE;
+        i2c_data_x              <= (others => '0');
+        NEXT_STATE              <= S_IDLE;
         
       when S_IDLE =>
         if (i2c_start = '1') then
-          i2c_data_x      <= x"8000_0000"; -- Set Running, clear all other bits 
-          NEXT_STATE      <= S_START;
+          i2c_data_x            <= x"8000_0000"; -- Set Running, clear all
+                                               -- other bits 
+          NEXT_STATE            <= S_START;
         else
-          i2c_busy_x      <= '0';
-          i2c_data_x      <= i2c_data and x"7fff_ffff";  -- clear running bit;
-          read_seq_ctr_x  <= '0';
-          NEXT_STATE      <= S_IDLE;
+          i2c_busy_x            <= '0';
+          i2c_data_x            <= i2c_data and x"7fff_ffff";  -- clear running
+                                                             -- bit;
+          read_seq_ctr_x        <= '0';
+          NEXT_STATE            <= S_IDLE;
         end if;
             
         -- I2C START Sequence 
       when S_START =>
-        startstop_select_x    <= '1';
-        startstop_seq_start_x <= '1';
-        NEXT_STATE            <= S_START_WAIT;
+        startstop_select_x      <= '1';
+        startstop_seq_start_x   <= '1';
+        NEXT_STATE              <= S_START_WAIT;
         
       when S_START_WAIT =>
         if (startstop_done = '0') then
-          NEXT_STATE <= S_START_WAIT;
+          NEXT_STATE            <= S_START_WAIT;
         else
-          sda_o      <= '0';
-          scl_o      <= '0';
-          NEXT_STATE <= S_SEND_CHIP_ID;
+          sda_master            <= '0';
+          scl_master            <= '0';
+          NEXT_STATE            <= S_SEND_CHIP_ID;
         end if;
                    
         -- I2C SEND ChipId Sequence
       when S_SEND_CHIP_ID =>
-        scl_o <= '0';
+        scl_master                  <= '0';
         sendbyte_byte_x(7 downto 1) <= i2c_chipid;
         if (read_seq_ctr = '0') then
-          sendbyte_byte_x(0)        <= '0';
+          sendbyte_byte_x(0)    <= '0';
         else
-          sendbyte_byte_x(0)        <= '1';
+          sendbyte_byte_x(0)    <= '1';
         end if;
-        sendbyte_seq_start_x        <= '1';
-        NEXT_STATE                  <= S_SEND_CHIP_ID_WAIT;
+        sendbyte_seq_start_x    <= '1';
+        NEXT_STATE              <= S_SEND_CHIP_ID_WAIT;
         
       when S_SEND_CHIP_ID_WAIT =>
         if (sendbyte_done = '0') then
-          NEXT_STATE <= S_SEND_CHIP_ID_WAIT;
+          NEXT_STATE            <= S_SEND_CHIP_ID_WAIT;
         else
-          scl_o      <= '0';
+          scl_master            <= '0';
           if (sendbyte_ack = '0') then
-            i2c_data_x <= i2c_data or x"0100_0000";
-            NEXT_STATE <= S_STOP;
+            i2c_data_x          <= i2c_data or x"0100_0000";
+            NEXT_STATE          <= S_STOP;
           else
             if (read_seq_ctr = '0') then
-              read_seq_ctr_x <= '1';
-              NEXT_STATE <= S_SEND_REGISTER;
+              read_seq_ctr_x    <= '1';
+              NEXT_STATE        <= S_SEND_REGISTER;
             else
-              NEXT_STATE <= S_GET_DATA;
+              NEXT_STATE        <= S_GET_DATA;
             end if;
           end if;
         end if;
         
         -- I2C SEND RegisterId
       when S_SEND_REGISTER =>
-        scl_o <= '0';
-        sendbyte_byte_x       <= i2c_registerid;          
-        sendbyte_seq_start_x  <= '1';
-        NEXT_STATE            <= S_SEND_REGISTER_WAIT;
+        scl_master              <= '0';
+        sendbyte_byte_x         <= i2c_registerid;          
+        sendbyte_seq_start_x    <= '1';
+        NEXT_STATE              <= S_SEND_REGISTER_WAIT;
         
       when S_SEND_REGISTER_WAIT =>
         if (sendbyte_done = '0') then
-          NEXT_STATE <= S_SEND_REGISTER_WAIT;
+          NEXT_STATE            <= S_SEND_REGISTER_WAIT;
         else
-          scl_o      <= '0';
+          scl_master            <= '0';
           if (sendbyte_ack = '0') then
-            i2c_data_x <= i2c_data or x"0200_0000";
-            NEXT_STATE <= S_STOP;
+            i2c_data_x          <= i2c_data or x"0200_0000";
+            NEXT_STATE          <= S_STOP;
           else
             if (i2c_rw_bit = '0') then
-              NEXT_STATE <= S_SEND_DATA;
+              NEXT_STATE        <= S_SEND_DATA;
             else
-              NEXT_STATE <= S_START;
+              NEXT_STATE        <= S_START;
             end if;
           end if;
         end if;
 
         -- I2C SEND DataWord
       when S_SEND_DATA =>
-        scl_o <= '0';
-        sendbyte_byte_x        <= i2c_register_data;
-        sendbyte_seq_start_x   <= '1';
-        NEXT_STATE             <= S_SEND_DATA_WAIT;
+        scl_master              <= '0';
+        sendbyte_byte_x         <= i2c_register_data;
+        sendbyte_seq_start_x    <= '1';
+        NEXT_STATE              <= S_SEND_DATA_WAIT;
         
       when S_SEND_DATA_WAIT =>
         if (sendbyte_done = '0') then
-          NEXT_STATE <= S_SEND_DATA_WAIT;
+          NEXT_STATE            <= S_SEND_DATA_WAIT;
         else
-          scl_o      <= '0';
+          scl_master            <= '0';
           if (sendbyte_ack = '0') then
-            i2c_data_x <= i2c_data or x"0400_0000";
+            i2c_data_x          <= i2c_data or x"0400_0000";
           end if;
-          NEXT_STATE <= S_STOP;
+          NEXT_STATE            <= S_STOP;
         end if;
 
         -- I2C GET DataWord
       when S_GET_DATA =>
-        scl_o <= '0';
-        readbyte_seq_start_x   <= '1';
-        NEXT_STATE             <= S_GET_DATA_WAIT;
+        scl_master              <= '0';
+        readbyte_seq_start_x    <= '1';
+        NEXT_STATE              <= S_GET_DATA_WAIT;
         
       when S_GET_DATA_WAIT =>
         if (readbyte_done = '0') then
-          NEXT_STATE <= S_GET_DATA_WAIT;
+          NEXT_STATE            <= S_GET_DATA_WAIT;
         else
-          scl_o                  <= '0';
-          i2c_data_x(7 downto 0) <= readbyte_byte; 
-          NEXT_STATE             <= S_STOP;
+          scl_master                    <= '0';
+          i2c_data_x(7 downto 0)<= readbyte_byte; 
+          NEXT_STATE            <= S_STOP;
         end if;
         
         -- I2C STOP Sequence 
       when S_STOP =>
-        sda_o                 <= '0';
-        scl_o                 <= '0';
-        startstop_select_x    <= '0';
-        startstop_seq_start_x <= '1';
-        NEXT_STATE            <= S_STOP_WAIT;
+        sda_master              <= '0';
+        scl_master              <= '0';
+        startstop_select_x      <= '0';
+        startstop_seq_start_x   <= '1';
+        NEXT_STATE              <= S_STOP_WAIT;
         
       when S_STOP_WAIT =>
         if (startstop_done = '0') then
-          NEXT_STATE <= S_STOP_WAIT;
+          NEXT_STATE            <= S_STOP_WAIT;
         else
-          i2c_data_x           <= i2c_data or x"4000_0000"; -- Set DONE Bit
-          NEXT_STATE           <= S_IDLE;
+          i2c_data_x            <= i2c_data or x"4000_0000"; -- Set DONE Bit
+          NEXT_STATE            <= S_IDLE;
         end if;
         
     end case;
@@ -396,17 +404,17 @@ begin
   begin 
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        i2c_data_internal_o   <= (others => '0');
-        i2c_data_slave        <= (others => '0');
-        command_busy_o        <= '0';
+        i2c_data_internal_o     <= (others => '0');
+        i2c_data_slave          <= (others => '0');
+        command_busy_o          <= '0';
       else
         if (internal_command = '0' and internal_command_d = '0') then  
-          i2c_data_slave      <= i2c_data;
+          i2c_data_slave        <= i2c_data;
         else
-          i2c_data_internal_o <= i2c_data;
+          i2c_data_internal_o   <= i2c_data;
         end if;
       end if;
-      command_busy_o      <= i2c_busy;
+      command_busy_o            <= i2c_busy;
     end if;
   end process PROC_I2C_DATA_MULTIPLEXER;
   
@@ -524,20 +532,22 @@ begin
   -----------------------------------------------------------------------------
 
   -- I2C Outputs
-  SDA_INOUT        <= '0' when (sda_o = '0' or
-                                sda_startstop = '0' or
-                                sda_sendbyte = '0' or
-                                sda_readbyte = '0')
-                      else 'Z';
-  
-  SCL_INOUT        <= '0' when (scl_o = '0' or
-                                scl_startstop = '0' or
-                                scl_sendbyte = '0' or
-                                scl_readbyte = '0')
-                      else 'Z';
-
-  COMMAND_BUSY_OUT <= command_busy_o;
-  I2C_DATA_OUT     <= i2c_data_internal_o;
+  sda_o                <= (sda_master    and
+                           sda_startstop and
+                           sda_sendbyte  and
+                           sda_readbyte
+                           );
+  SDA_INOUT            <= '0' when (sda_o = '0') else 'Z';
+                       
+  scl_o                <= (scl_master    and
+                           scl_startstop and
+                           scl_sendbyte  and
+                           scl_readbyte
+                           );
+  SCL_INOUT            <= '0' when (scl_o = '0') else 'Z';
+                       
+  COMMAND_BUSY_OUT     <= command_busy_o;
+  I2C_DATA_OUT         <= i2c_data_internal_o;
 
   -- Slave Bus
   SLV_DATA_OUT         <= slv_data_out_o;    

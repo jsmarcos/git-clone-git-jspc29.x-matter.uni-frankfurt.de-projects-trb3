@@ -29,7 +29,7 @@ entity nx_trigger_handler is
 
     -- Internal FPGA Trigger
     INTERNAL_TRIGGER_IN        : in  std_logic;
-    
+
     -- Trigger FeedBack
     TRIGGER_VALIDATE_BUSY_IN   : in  std_logic;
     LVL2_TRIGGER_BUSY_IN       : in  std_logic;
@@ -41,6 +41,9 @@ entity nx_trigger_handler is
     EVENT_BUFFER_CLEAR_OUT     : out std_logic;
     FAST_CLEAR_OUT             : out std_logic;
     TRIGGER_BUSY_OUT           : out std_logic;
+
+    -- Pulser
+    TRIGGER_TESTPULSE_OUT      : out std_logic;
     
     -- Slave bus               
     SLV_READ_IN                : in  std_logic;
@@ -63,11 +66,12 @@ architecture Behavioral of nx_trigger_handler is
   signal validate_trigger_o       : std_logic;
   signal timestamp_hold           : std_logic;
   signal lvl2_trigger_o           : std_logic;
-  signal evt_buffer_clear_o       : std_logic;
+  signal event_buffer_clear_o     : std_logic;
   signal fast_clear_o             : std_logic;
   signal trigger_busy_o           : std_logic;
   signal fee_trg_release_o        : std_logic;
   signal fee_trg_statusbits_o     : std_logic_vector(31 downto 0);
+  signal trigger_testpulse_o      : std_logic;
 
   type STATES is (S_IDLE,
                   S_CTS_TRIGGER,
@@ -83,11 +87,12 @@ architecture Behavioral of nx_trigger_handler is
 
   -- Timestamp Hold Handler
   type TS_STATES is (TS_IDLE,
-                  TS_WAIT_TIMER_DONE
-                  );
+                     TS_WAIT_TIMER_DONE
+                     );
   signal TS_STATE : TS_STATES;
 
   signal timestamp_hold_o         : std_logic;
+  signal wait_timer_reset         : std_logic;
   signal wait_timer_init          : unsigned(7 downto 0);
   signal wait_timer_done          : std_logic;
                                   
@@ -98,6 +103,7 @@ architecture Behavioral of nx_trigger_handler is
   signal slv_ack_o                : std_logic;
 
   signal reg_timestamp_hold_delay : unsigned(7 downto 0);
+  signal reg_testpulse_enable     : std_logic;
   
 begin
 
@@ -112,7 +118,7 @@ begin
   DEBUG_OUT(6)            <= validate_trigger_o;
   DEBUG_OUT(7)            <= timestamp_hold_o;
   DEBUG_OUT(8)            <= lvl2_trigger_o;
-  DEBUG_OUT(9)            <= evt_buffer_clear_o;
+  DEBUG_OUT(9)            <= event_buffer_clear_o;
   DEBUG_OUT(10)           <= fee_trg_release_o;
   DEBUG_OUT(11)           <= trigger_busy_o;
   
@@ -125,11 +131,13 @@ begin
       )
     port map (
       CLK_IN         => CLK_IN,
-      RESET_IN       => RESET_IN,
+      RESET_IN       => wait_timer_reset,
       TIMER_START_IN => wait_timer_init,
       TIMER_DONE_OUT => wait_timer_done
       );
 
+  wait_timer_reset   <= RESET_IN or fast_clear_o;
+  
   -----------------------------------------------------------------------------
   -- Trigger Handler
   -----------------------------------------------------------------------------
@@ -143,8 +151,10 @@ begin
         lvl2_trigger_o       <= '0';
         fee_trg_release_o    <= '0';
         fee_trg_statusbits_o <= (others => '0');
-        evt_buffer_clear_o   <= '0';
+        fast_clear_o         <= '0';
+        event_buffer_clear_o <= '0';
         trigger_busy_o       <= '0';
+        trigger_testpulse_o  <= '0';
         STATE                <= S_IDLE;
       else
         validate_trigger_o         <= '0';
@@ -152,87 +162,93 @@ begin
         lvl2_trigger_o       <= '0';
         fee_trg_release_o    <= '0';
         fee_trg_statusbits_o <= (others => '0');
-        evt_buffer_clear_o   <= '0';
+        fast_clear_o         <= '0';
+        event_buffer_clear_o <= '0';
         trigger_busy_o       <= '1';
-        
-        case STATE is
-          when  S_IDLE =>
+        trigger_testpulse_o  <= '0';
 
-            if (LVL1_VALID_NOTIMING_TRG_IN = '1') then
-              STATE              <= S_WAIT_TRG_DATA_VALID;
-
-            elsif (LVL1_INVALID_TRG_IN = '1') then
-              fee_trg_release_o      <= '1';
-              STATE                  <= S_IDLE;
-              
-            elsif (LVL1_VALID_TIMING_TRG_IN = '1') then
-              if (NXYTER_OFFLINE_IN = '1') then
-                STATE              <= S_WAIT_TRG_DATA_VALID;
+        if (LVL1_INVALID_TRG_IN = '1') then
+          fast_clear_o         <= '1';
+          fee_trg_release_o    <= '1';
+          STATE                <= S_IDLE;
+        else
+          case STATE is
+            when  S_IDLE =>
+              if (LVL1_VALID_NOTIMING_TRG_IN = '1') then
+                STATE                <= S_WAIT_TRG_DATA_VALID;
+                
+              elsif (LVL1_VALID_TIMING_TRG_IN = '1') then
+                if (NXYTER_OFFLINE_IN = '1') then
+                  STATE              <= S_WAIT_TRG_DATA_VALID;
+                else
+                  STATE              <= S_CTS_TRIGGER;
+                end if;
+              elsif (INTERNAL_TRIGGER_IN = '1') then
+                STATE                <= S_INTERNAL_TRIGGER;
               else
-                STATE              <= S_CTS_TRIGGER;
+                trigger_busy_o       <= '0';
+                STATE                <= S_IDLE;
+              end if;     
+
+              -- CTS Trigger Handler
+            when S_CTS_TRIGGER =>
+              event_buffer_clear_o   <= '1';
+              validate_trigger_o     <= '1';
+              timestamp_hold         <= '1';
+              lvl2_trigger_o         <= '1';
+              if (reg_testpulse_enable = '1') then
+                trigger_testpulse_o  <= '1';
               end if;
-            elsif (INTERNAL_TRIGGER_IN = '1') then
-              STATE                <= S_INTERNAL_TRIGGER;
-            else
-              trigger_busy_o       <= '0';
-              STATE                <= S_IDLE;
-            end if;     
+              STATE                  <= S_WAIT_TRG_DATA_VALID;
 
-            -- CTS Trigger Handler
-          when S_CTS_TRIGGER =>
-            evt_buffer_clear_o     <= '1';
-            validate_trigger_o     <= '1';
-            timestamp_hold         <= '1';
-            lvl2_trigger_o         <= '1';
-            STATE                  <= S_WAIT_TRG_DATA_VALID;
+            when S_WAIT_TRG_DATA_VALID =>
+              if (LVL1_TRG_DATA_VALID_IN = '0') then
+                STATE                <= S_WAIT_TRG_DATA_VALID;
+              else
+                STATE                <= S_WAIT_LVL2_TRIGGER_DONE;
+              end if;
 
-          when S_WAIT_TRG_DATA_VALID =>
-            if (LVL1_TRG_DATA_VALID_IN = '0') then
-              STATE                <= S_WAIT_TRG_DATA_VALID;
-            else
-              STATE                <= S_WAIT_LVL2_TRIGGER_DONE;
-            end if;
+            when S_WAIT_LVL2_TRIGGER_DONE =>
+              if (LVL2_TRIGGER_BUSY_IN = '1') then
+                STATE                <= S_WAIT_LVL2_TRIGGER_DONE;
+              else
+                STATE                <= S_FEE_TRIGGER_RELEASE;
+              end if;
 
-          when S_WAIT_LVL2_TRIGGER_DONE =>
-            if (LVL2_TRIGGER_BUSY_IN = '1') then
-              STATE                <= S_WAIT_LVL2_TRIGGER_DONE;
-            else
-              STATE                <= S_FEE_TRIGGER_RELEASE;
-            end if;
-
-          when S_FEE_TRIGGER_RELEASE =>
-            fee_trg_release_o      <= '1';
-            STATE                  <= S_WAIT_FEE_TRIGGER_RELEASE_ACK;
+            when S_FEE_TRIGGER_RELEASE =>
+              fee_trg_release_o      <= '1';
+              STATE                  <= S_WAIT_FEE_TRIGGER_RELEASE_ACK;
               
-          when S_WAIT_FEE_TRIGGER_RELEASE_ACK =>
-            if (LVL1_TRG_DATA_VALID_IN = '1') then
-              STATE                <= S_WAIT_FEE_TRIGGER_RELEASE_ACK;
-            else
-              STATE                <= S_IDLE;
-            end if;
-            
-            -- Internal Trigger Handler
-          when S_INTERNAL_TRIGGER =>
-            validate_trigger_o     <= '1';
-            timestamp_hold         <= '1';
-            evt_buffer_clear_o     <= '1';
-            STATE                  <= S_WAIT_TRIGGER_VALIDATE_ACK;
+            when S_WAIT_FEE_TRIGGER_RELEASE_ACK =>
+              if (LVL1_TRG_DATA_VALID_IN = '1') then
+                STATE                <= S_WAIT_FEE_TRIGGER_RELEASE_ACK;
+              else
+                STATE                <= S_IDLE;
+              end if;
+              
+              -- Internal Trigger Handler
+            when S_INTERNAL_TRIGGER =>
+              validate_trigger_o     <= '1';
+              timestamp_hold         <= '1';
+              event_buffer_clear_o   <= '1';
+              STATE                  <= S_WAIT_TRIGGER_VALIDATE_ACK;
 
-          when S_WAIT_TRIGGER_VALIDATE_ACK =>
-            if (TRIGGER_VALIDATE_BUSY_IN = '0') then
-              STATE                <= S_WAIT_TRIGGER_VALIDATE_ACK;
-            else
-              STATE                <= S_WAIT_TRIGGER_VALIDATE_DONE;
-            end if;
-            
-          when S_WAIT_TRIGGER_VALIDATE_DONE =>
-            if (TRIGGER_VALIDATE_BUSY_IN = '1') then
-              STATE                <= S_WAIT_TRIGGER_VALIDATE_DONE;
-            else
-              STATE                <= S_IDLE;
-            end if;
-            
-        end case;
+            when S_WAIT_TRIGGER_VALIDATE_ACK =>
+              if (TRIGGER_VALIDATE_BUSY_IN = '0') then
+                STATE                <= S_WAIT_TRIGGER_VALIDATE_ACK;
+              else
+                STATE                <= S_WAIT_TRIGGER_VALIDATE_DONE;
+              end if;
+              
+            when S_WAIT_TRIGGER_VALIDATE_DONE =>
+              if (TRIGGER_VALIDATE_BUSY_IN = '1') then
+                STATE                <= S_WAIT_TRIGGER_VALIDATE_DONE;
+              else
+                STATE                <= S_IDLE;
+              end if;
+              
+          end case;
+        end if;
       end if;
     end if;
   end process PROC_TRIGGER_HANDLER;
@@ -241,12 +257,12 @@ begin
   begin
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1' or NXYTER_OFFLINE_IN = '1') then
-        wait_timer_init   <= (others => '0');
-        timestamp_hold_o  <= '0';
-        TS_STATE          <= TS_IDLE;
+        wait_timer_init     <= (others => '0');
+        timestamp_hold_o    <= '0';
+        TS_STATE            <= TS_IDLE;
       else
-        wait_timer_init   <= (others => '0');
-        timestamp_hold_o  <= '0';
+        wait_timer_init     <= (others => '0');
+        timestamp_hold_o    <= '0';
 
         case TS_STATE is
 
@@ -285,6 +301,7 @@ begin
         slv_unknown_addr_o       <= '0';
         slv_ack_o                <= '0';
         reg_timestamp_hold_delay <= x"01";
+        reg_testpulse_enable     <= '0';
       else
         slv_unknown_addr_o <= '0';
         slv_no_more_data_o <= '0';
@@ -297,6 +314,10 @@ begin
               if (unsigned(SLV_DATA_IN(7 downto 0)) > 0) then
                 reg_timestamp_hold_delay <= unsigned(SLV_DATA_IN(7 downto 0));
               end if;
+              slv_ack_o                   <= '1';
+
+            when x"0001" =>
+              reg_testpulse_enable        <= SLV_DATA_IN(0);
               slv_ack_o                   <= '1';
               
             when others =>
@@ -311,6 +332,11 @@ begin
               slv_data_out_o(7 downto 0)   <=
                 std_logic_vector(reg_timestamp_hold_delay);
               slv_data_out_o(31 downto 8)  <= (others => '0');
+              slv_ack_o                    <= '1';
+
+            when x"0001" =>
+              slv_data_out_o(0)            <= reg_testpulse_enable;
+              slv_data_out_o(31 downto 1)  <= (others => '0');
               slv_ack_o                    <= '1';
 
             when others =>
@@ -331,11 +357,13 @@ begin
   VALIDATE_TRIGGER_OUT      <= validate_trigger_o;
   TIMESTAMP_HOLD_OUT        <= timestamp_hold_o;
   LVL2_TRIGGER_OUT          <= lvl2_trigger_o;
-  EVENT_BUFFER_CLEAR_OUT    <= evt_buffer_clear_o;
+  EVENT_BUFFER_CLEAR_OUT    <= event_buffer_clear_o;
   FAST_CLEAR_OUT            <= fast_clear_o;
   TRIGGER_BUSY_OUT          <= trigger_busy_o;
   FEE_TRG_RELEASE_OUT       <= fee_trg_release_o;
   FEE_TRG_STATUSBITS_OUT    <= fee_trg_statusbits_o;
+
+  TRIGGER_TESTPULSE_OUT     <= trigger_testpulse_o;
 
   -- Slave Bus              
   SLV_DATA_OUT              <= slv_data_out_o;    

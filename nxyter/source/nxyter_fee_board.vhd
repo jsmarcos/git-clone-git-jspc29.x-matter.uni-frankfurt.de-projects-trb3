@@ -98,7 +98,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal clk_250_o             : std_logic;
                                
   -- Bus Handler
-  constant NUM_PORTS : integer := 11;
+  constant NUM_PORTS           : integer := 12;
 
   signal slv_read              : std_logic_vector(NUM_PORTS-1 downto 0);
   signal slv_write             : std_logic_vector(NUM_PORTS-1 downto 0);
@@ -174,6 +174,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal fast_clear            : std_logic;
   signal nxyter_offline        : std_logic;
   signal fee_trg_release_o     : std_logic;
+  signal trigger_testpulse     : std_logic;
 
   -- FPGA Timestamp            
   signal timestamp_trigger     : unsigned(11 downto 0);
@@ -183,6 +184,10 @@ architecture Behavioral of nXyter_FEE_board is
   signal trigger_intern        : std_logic;
   signal nx_testpulse_o        : std_logic;
 
+  -- Debug Handler
+  constant DEBUG_NUM_PORTS     : integer := 12;
+  signal debug_line            : debug_array_t(0 to DEBUG_NUM_PORTS-1);
+  
 begin
 
 -------------------------------------------------------------------------------
@@ -243,31 +248,35 @@ begin
     generic map(
       PORT_NUMBER         => NUM_PORTS,
 
-      PORT_ADDRESSES      => ( 0 => x"0100",    -- Control Register Handler
-                               1 => x"0040",    -- I2C Master
-                               2 => x"0500",    -- Data Receiver
-                               3 => x"0600",    -- Data Buffer
-                               4 => x"0060",    -- SPI Master
-                               5 => x"0140",    -- Trigger Generator
-                               6 => x"0120",    -- Data Validate
-                               7 => x"0160",    -- Trigger Handler
-                               8 => x"0180",    -- Trigger Validate
-                               9 => x"0200",    -- NX Register Setup
-                               10 => x"0800",   -- NX Histograms
-                               others => x"0000"),
+      PORT_ADDRESSES      => (  0 => x"0100",    -- Control Register Handler
+                                1 => x"0040",    -- I2C Master
+                                2 => x"0500",    -- Data Receiver
+                                3 => x"0600",    -- Data Buffer
+                                4 => x"0060",    -- SPI Master
+                                5 => x"0140",    -- Trigger Generator
+                                6 => x"0120",    -- Data Validate
+                                7 => x"0160",    -- Trigger Handler
+                                8 => x"0180",    -- Trigger Validate
+                                9 => x"0200",    -- NX Register Setup
+                               10 => x"0800",    -- NX Histograms
+                               11 => x"0020",    -- Debug Handler
+                               others => x"0000"
+                                ),
 
-      PORT_ADDR_MASK      => ( 0 => 3,          -- Control Register Handler
-                               1 => 0,          -- I2C master
-                               2 => 3,          -- Data Receiver
-                               3 => 3,          -- Data Buffer
-                               4 => 0,          -- SPI Master
-                               5 => 3,          -- Trigger Generator
-                               6 => 4,          -- Data Validate
-                               7 => 1,          -- Trigger Handler
-                               8 => 4,          -- Trigger Validate
-                               9 => 8,          -- NX Register Setup
-                               10 => 8,         -- NX Histograms
-                               others => 0),
+      PORT_ADDR_MASK      => (  0 => 3,          -- Control Register Handler
+                                1 => 0,          -- I2C master
+                                2 => 3,          -- Data Receiver
+                                3 => 3,          -- Data Buffer
+                                4 => 0,          -- SPI Master
+                                5 => 3,          -- Trigger Generator
+                                6 => 4,          -- Data Validate
+                                7 => 1,          -- Trigger Handler
+                                8 => 4,          -- Trigger Validate
+                                9 => 8,          -- NX Register Setup
+                               10 => 8,          -- NX Histograms
+                               11 => 0,          -- Debug Handler
+                               others => 0
+                                ),
 
       PORT_MASK_ENABLE           => 1
       )
@@ -286,7 +295,7 @@ begin
       DAT_NO_MORE_DATA_OUT       => REGIO_NO_MORE_DATA_OUT,
       DAT_UNKNOWN_ADDR_OUT       => REGIO_UNKNOWN_ADDR_OUT,
                                  
-      -- Control Registers       
+      -- All NXYTER Ports      
       BUS_READ_ENABLE_OUT        => slv_read,
       BUS_WRITE_ENABLE_OUT       => slv_write,
       BUS_DATA_OUT               => slv_data_wr,
@@ -324,7 +333,7 @@ begin
       NX_TS_RESET_OUT        => nx_ts_reset_1,
       OFFLINE_OUT            => nxyter_offline,
       --DEBUG_OUT              => DEBUG_LINE_OUT
-      DEBUG_OUT              => open
+      DEBUG_OUT              => debug_line(0)
       );
 
   nx_register_setup_1: nx_setup
@@ -348,7 +357,7 @@ begin
       SLV_NO_MORE_DATA_OUT => slv_no_more_data(9),
       SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(9),
       --DEBUG_OUT            => DEBUG_LINE_OUT
-      DEBUG_OUT            => open
+      DEBUG_OUT            => debug_line(1)
       );
   
 -------------------------------------------------------------------------------
@@ -376,7 +385,7 @@ begin
       SLV_NO_MORE_DATA_OUT  => slv_no_more_data(1),
       SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(1),
       --DEBUG_OUT          => DEBUG_LINE_OUT
-      DEBUG_OUT             => open
+      DEBUG_OUT             => debug_line(2)
       );
 
 -------------------------------------------------------------------------------
@@ -405,7 +414,7 @@ begin
       SLV_NO_MORE_DATA_OUT => slv_no_more_data(4), 
       SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(4),
       -- DEBUG_OUT            => DEBUG_LINE_OUT
-      DEBUG_OUT            => open
+      DEBUG_OUT            => debug_line(3)
       );
 
 -------------------------------------------------------------------------------
@@ -428,7 +437,7 @@ begin
       SLV_NO_MORE_DATA_OUT  => open,
       SLV_UNKNOWN_ADDR_OUT  => open,
       -- DEBUG_OUT             => DEBUG_LINE_OUT
-      DEBUG_OUT             => open
+      DEBUG_OUT             => debug_line(4)
       );
 
 -------------------------------------------------------------------------------
@@ -467,6 +476,8 @@ begin
       FAST_CLEAR_OUT             => fast_clear,
       TRIGGER_BUSY_OUT           => trigger_busy,
 
+      TRIGGER_TESTPULSE_OUT      => trigger_testpulse,
+      
       SLV_READ_IN                => slv_read(7),
       SLV_WRITE_IN               => slv_write(7),
       SLV_DATA_OUT               => slv_data_rd(7*32+31 downto 7*32),
@@ -477,7 +488,7 @@ begin
       SLV_UNKNOWN_ADDR_OUT       => slv_unknown_addr(7),
 
       --DEBUG_OUT                  => DEBUG_LINE_OUT
-      DEBUG_OUT                  => open
+      DEBUG_OUT                  => debug_line(5)
       );
 
 -------------------------------------------------------------------------------
@@ -488,6 +499,7 @@ begin
     port map (
       CLK_IN               => CLK_IN,
       RESET_IN             => RESET_IN,
+      TRIGGER_IN           => trigger_testpulse,
       TRIGGER_OUT          => trigger_intern,
       TS_RESET_OUT         => nx_ts_reset_2,
       TESTPULSE_OUT        => nx_testpulse_o,
@@ -500,7 +512,7 @@ begin
       SLV_NO_MORE_DATA_OUT => slv_no_more_data(5),
       SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(5),
       --DEBUG_OUT            => DEBUG_LINE_OUT
-      DEBUG_OUT            => open
+      DEBUG_OUT            => debug_line(6)
       );
 
 -------------------------------------------------------------------------------
@@ -537,7 +549,7 @@ begin
       SLV_NO_MORE_DATA_OUT => slv_no_more_data(2),              
       SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(2),              
       --DEBUG_OUT            => DEBUG_LINE_OUT
-      DEBUG_OUT            => open
+      DEBUG_OUT            => debug_line(7)
       );
   
 -------------------------------------------------------------------------------
@@ -571,7 +583,7 @@ begin
       SLV_NO_MORE_DATA_OUT  => slv_no_more_data(6),
       SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(6),
       --DEBUG_OUT             => DEBUG_LINE_OUT
-      DEBUG_OUT             => open
+      DEBUG_OUT             => debug_line(8)
       );
 
 -------------------------------------------------------------------------------
@@ -611,8 +623,8 @@ begin
       SLV_ACK_OUT            => slv_ack(8),
       SLV_NO_MORE_DATA_OUT   => slv_no_more_data(8),
       SLV_UNKNOWN_ADDR_OUT   => slv_unknown_addr(8),
-      DEBUG_OUT              => DEBUG_LINE_OUT
-      --DEBUG_OUT              => open
+      --DEBUG_OUT              => DEBUG_LINE_OUT
+      DEBUG_OUT              => debug_line(9)
       );
 
 -------------------------------------------------------------------------------
@@ -652,12 +664,13 @@ begin
       SLV_UNKNOWN_ADDR_OUT       => slv_unknown_addr(3),
 
       --DEBUG_OUT                  => DEBUG_LINE_OUT
-      DEBUG_OUT            => open
+      DEBUG_OUT                  =>  debug_line(10)
       );
 
   nx_histograms_1: nx_histograms
     generic map (
-      NUM_BINS => 7
+      BUS_WIDTH  => 7,
+      ENABLE     => 0
       )
     port map (
       CLK_IN                      => CLK_IN,
@@ -677,7 +690,7 @@ begin
       SLV_UNKNOWN_ADDR_OUT        => slv_unknown_addr(10),
 
       --DEBUG_OUT                   => DEBUG_LINE_OUT
-      DEBUG_OUT                   => open
+      DEBUG_OUT                   => debug_line(11)
       );
   
 -------------------------------------------------------------------------------
@@ -693,6 +706,29 @@ begin
 
   I2C_SM_RESET_OUT  <= not i2c_sm_reset_o;
   I2C_REG_RESET_OUT <= not i2c_reg_reset_o;
+
+
+-------------------------------------------------------------------------------
+-- DEBUG Line Select
+-------------------------------------------------------------------------------
+  debug_multiplexer_1: debug_multiplexer
+    generic map (
+      NUM_PORTS => DEBUG_NUM_PORTS
+      )
+    port map (
+      CLK_IN               => CLK_IN,
+      RESET_IN             => RESET_IN,
+      DEBUG_LINE_IN        => debug_line,
+      DEBUG_LINE_OUT       => DEBUG_LINE_OUT,
+      SLV_READ_IN          => slv_read(11),
+      SLV_WRITE_IN         => slv_write(11),
+      SLV_DATA_OUT         => slv_data_rd(11*32+31 downto 11*32),
+      SLV_DATA_IN          => slv_data_wr(11*32+31 downto 11*32),
+      SLV_ADDR_IN          => slv_addr(11*16+15 downto 11*16),
+      SLV_ACK_OUT          => slv_ack(11),
+      SLV_NO_MORE_DATA_OUT => slv_no_more_data(11),
+      SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(11)
+      );
   
 -------------------------------------------------------------------------------
 -- END
