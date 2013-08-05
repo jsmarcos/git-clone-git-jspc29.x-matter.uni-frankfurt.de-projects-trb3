@@ -11,6 +11,7 @@ entity pwm_generator is
     DATA_IN    : in  std_logic_vector(15 downto 0) := (others => '0');
     DATA_OUT   : out std_logic_vector(15 downto 0);
     WRITE_IN   : in  std_logic := '0';
+    COMP_IN    : in  signed(15 downto 0);
     ADDR_IN    : in  std_logic_vector(3 downto 0) := (others => '0');
     
     
@@ -25,6 +26,7 @@ architecture pwm_arch of pwm_generator is
 
 type ram_t is array(0 to 15) of unsigned(16 downto 0);
 signal set : ram_t := (others => '0' & x"87C1");
+signal set_tmp : ram_t;
 
 type cnt_t is array(0 to 15) of unsigned(16 downto 0);
 signal cnt : cnt_t := (others => (others => '0'));
@@ -50,7 +52,8 @@ gen_channels : for i in 0 to 15 generate
   flag(i)      <= cnt(i)(16);
   last_flag(i) <= flag(i) when rising_edge(CLK);
   pwm_i(i)     <= (last_flag(i) xor flag(i)) when rising_edge(CLK);
-  cnt(i)       <= cnt(i) + set(i) when rising_edge(CLK);
+  set_tmp(i)   <= unsigned(signed(set(i)) + resize(COMP_IN,17));
+  cnt(i)       <= cnt(i) + set_tmp(i) when rising_edge(CLK);
 end generate;
 
 

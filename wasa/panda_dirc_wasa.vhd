@@ -14,7 +14,8 @@ use machxo2.all;
 
 entity panda_dirc_wasa is
   generic(
-    PADIWA_FLAVOUR : integer := 2
+    PADIWA_FLAVOUR : integer := 2;
+    TEMP_CORRECTION: integer := 0
     );
   port(
     CON        : out std_logic_vector(16 downto 1);
@@ -86,6 +87,7 @@ component pwm_generator
     CLK        : in std_logic;
     DATA_IN    : in  std_logic_vector(15 downto 0);
     DATA_OUT   : out std_logic_vector(15 downto 0);
+    COMP_IN    : in  signed(15 downto 0);
     WRITE_IN   : in  std_logic;
     ADDR_IN    : in  std_logic_vector(3 downto 0);
     PWM        : out std_logic_vector(31 downto 0)
@@ -197,7 +199,7 @@ signal inp_select    : integer range 0 to 31 := 0;
 signal inp_invert   : std_logic_vector(15 downto 0);
 signal input_enable : std_logic_vector(15 downto 0);
 signal inp_status   : std_logic_vector(15 downto 0);
-signal led_status   : std_logic_vector(4  downto 0);
+signal led_status   : std_logic_vector(4  downto 0) := "10000";
 
 signal timer    : unsigned(18 downto 0) := (others => '0');
 signal last_inp : std_logic_vector(3 downto 0) := (others => '0');
@@ -235,6 +237,11 @@ signal ram_fsm_addr_i : std_logic_vector(3 downto 0);
 signal ram_fsm_write_i: std_logic;
 
 signal enable_cfg_flash : std_logic;
+signal comp_setting     : std_logic_vector(15 downto 0);
+signal compensate_i     : signed(15 downto 0);
+signal temp_calc_i      : signed(27 downto 0);
+signal temperature_i_s  : std_logic_vector(11 downto 0);
+signal comp_setting_s   : std_logic_vector(15 downto 0);
 
 begin
 
@@ -440,6 +447,7 @@ THE_PWM_GEN : pwm_generator
     CLK        => clk_i,
     DATA_IN    => pwm_data_i,
     DATA_OUT   => pwm_data_o,
+    COMP_IN    => compensate_i,
     WRITE_IN   => pwm_write_i,
     ADDR_IN    => pwm_addr_i,
     PWM        => pwm_i
@@ -523,6 +531,7 @@ THE_IO_REG_READ : process begin
       when x"3" => spi_reg20_i <= x"00" & "000" & std_logic_vector(to_unsigned(inp_select,5));
       when x"4" => spi_reg20_i <= inp_invert;
       when x"5" => spi_reg20_i <= inp_stretch;
+      when x"6" => spi_reg20_i <= comp_setting;
       when others => null;
     end case;
   else
@@ -545,6 +554,7 @@ THE_IO_REG_WRITE : process begin
       when x"3" => inp_select <= to_integer(unsigned(spi_data_i(4 downto 0)));
       when x"4" => inp_invert <= spi_data_i;
       when x"5" => inp_stretch <= spi_data_i;
+      when x"6" => comp_setting <= spi_data_i;
       when others => null;
     end case;
   end if;
@@ -552,6 +562,17 @@ end process;
 
 inp_status <= INP_i when rising_edge(clk_i);
 last_inp <= inp_status(3 downto 0) when rising_edge(clk_i);
+
+temperature_i_s <= temperature_i when rising_edge(clk_26);
+comp_setting_s <= comp_setting when rising_edge(clk_26);
+temp_calc_i <= signed(temperature_i_s) * signed(comp_setting_s) when rising_edge(clk_26);
+
+gen_comp: if TEMP_CORRECTION = 1 generate
+  compensate_i <= temp_calc_i(27 downto 12) when rising_edge(clk_26);
+end generate;
+gen_no_comp: if TEMP_CORRECTION = 0 generate
+  compensate_i <= (others => '0');
+end generate;
 
 
 ---------------------------------------------------------------------------
