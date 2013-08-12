@@ -1,3 +1,9 @@
+-------------------------------------------------------------------------------
+--trb3_periph for MuPix v3/v4
+--T. Weber, University Mainz
+-------------------------------------------------------------------------------
+
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -34,110 +40,81 @@ entity trb3_periph is
     FPGA5_COMM           : inout std_logic_vector(11 downto 0);
                                         --Bit 0/1 input, serial link RX active
                                         --Bit 2/3 output, serial link TX active
-    
+
     ---------------------------------------------------------------------------
-    -- BEGIN AddonBoard nXyter
+    -- BEGIN SenorBoard MuPix 
     ---------------------------------------------------------------------------
     --Connections to NXYTER-FEB 1
+    timestamp_from_mupix : in  std_logic_vector(7 downto 0);
+    rowaddr_from_mupix   : in  std_logic_vector(5 downto 0);
+    coladdr_from_mupix   : in  std_logic_vector(5 downto 0);
+    priout_from_mupix    : in  std_logic;
+    sout_c_from_mupix    : in  std_logic;
+    sout_d_from_mupix    : in  std_logic;
+    hbus_form_mupix      : in  std_logic;
+    fpga_aux_from_board  : in  std_logic_vector(9 downto 0);
+    ldpix_to_mupix       : out std_logic;
+    ldcol_to_mupix       : out std_logic;
+    timestamp_to_mupix   : out std_logic_vector(7 downto 0);
+    rdcol_to_mupix       : out std_logic;
+    pulldown_to_mupix    : out std_logic;
+    sin_to_mupix         : out std_logic;
+    ck_d_to_mupix        : out std_logic;
+    ck_c_to_mupix        : out std_logic;
+    ld_c_to_mupix        : out std_logic;
+    testpulse1_to_board  : out std_logic;
+    testpulse2_to_board  : out std_logic;
+    spi_din_to_board     : out std_logic;
+    spi_clk_to_board     : out std_logic;
+    spi_ld_to_board      : out std_logic;
+    fpga_led_to_board    : out std_logic_vector(3 downto 0);
+    fpga_aux_to_board    : out std_logic_vector(9 downto 0);
 
-    NX1_RESET_OUT              : out   std_logic;     
-    NX1_I2C_SDA_INOUT          : inout std_logic;
-    NX1_I2C_SCL_INOUT          : inout std_logic;
-    NX1_I2C_SM_RESET_OUT       : out   std_logic;
-    NX1_I2C_REG_RESET_OUT      : out   std_logic;
-    NX1_SPI_SCLK_OUT           : out   std_logic;
-    NX1_SPI_SDIO_INOUT         : inout std_logic;
-    NX1_SPI_CSB_OUT            : out   std_logic;
-    NX1_CLK128_IN              : in    std_logic;
-    NX1_TIMESTAMP_IN           : in    std_logic_vector (7 downto 0);
-    NX1_CLK256A_OUT            : out   std_logic;
-    NX1_TESTPULSE_OUT          : out   std_logic;
-    NX1_ADC_FCLK_IN            : in    std_logic;
-    NX1_ADC_DCLK_IN            : in    std_logic;
-    NX1_ADC_SAMPLE_CLK_OUT     : out   std_logic;
-    NX1_ADC_A_IN               : in    std_logic;
-    NX1_ADC_B_IN               : in    std_logic;
-    NX1_ADC_NX_IN              : in    std_logic;
-    NX1_ADC_D_IN               : in    std_logic;
-    NX1B_ADC_FCLK_IN           : in    std_logic;
-    NX1B_ADC_DCLK_IN           : in    std_logic;
-    NX1B_ADC_A_IN              : in    std_logic;
-    NX1B_ADC_B_IN              : in    std_logic;
-    NX1B_ADC_NX_IN             : in    std_logic;
-    NX1B_ADC_D_IN              : in    std_logic;
 
-    --Connections to NXYTER-FEB 2
-
-    NX2_RESET_OUT              : out   std_logic;     
-    NX2_I2C_SDA_INOUT          : inout std_logic;
-    NX2_I2C_SCL_INOUT          : inout std_logic;
-    NX2_I2C_SM_RESET_OUT       : out   std_logic;
-    NX2_I2C_REG_RESET_OUT      : out   std_logic;
-    NX2_SPI_SCLK_OUT           : out   std_logic;
-    NX2_SPI_SDIO_INOUT         : inout std_logic;
-    NX2_SPI_CSB_OUT            : out   std_logic;
-    NX2_CLK128_IN              : in    std_logic;
-    NX2_TIMESTAMP_IN           : in    std_logic_vector (7 downto 0);
-    NX2_CLK256A_OUT            : out   std_logic;
-    NX2_TESTPULSE_OUT          : out   std_logic;
-    NX2_ADC_FCLK_IN            : in    std_logic;
-    NX2_ADC_DCLK_IN            : in    std_logic;
-    NX2_ADC_SAMPLE_CLK_OUT     : out   std_logic;
-    NX2_ADC_A_IN               : in    std_logic;
-    NX2_ADC_B_IN               : in    std_logic;
-    NX2_ADC_NX_IN              : in    std_logic;
-    NX2_ADC_D_IN               : in    std_logic;
-    NX2B_ADC_FCLK_IN           : in    std_logic;
-    NX2B_ADC_DCLK_IN           : in    std_logic;
-    NX2B_ADC_A_IN              : in    std_logic;
-    NX2B_ADC_B_IN              : in    std_logic;
-    NX2B_ADC_NX_IN             : in    std_logic;
-    NX2B_ADC_D_IN              : in    std_logic;
-     
     ---------------------------------------------------------------------------
-    -- END AddonBoard nXyter
+    -- END SensorBoard MuPix 
     ---------------------------------------------------------------------------
-    
+
 
     --Flash ROM & Reboot
-    FLASH_CLK            : out   std_logic;
-    FLASH_CS             : out   std_logic;
-    FLASH_DIN            : out   std_logic;
-    FLASH_DOUT           : in    std_logic;
-    PROGRAMN             : out   std_logic;  --reboot FPGA
+    FLASH_CLK  : out   std_logic;
+    FLASH_CS   : out   std_logic;
+    FLASH_DIN  : out   std_logic;
+    FLASH_DOUT : in    std_logic;
+    PROGRAMN   : out   std_logic;       --reboot FPGA
     --Misc
-    TEMPSENS             : inout std_logic;  --Temperature Sensor
-    CODE_LINE            : in    std_logic_vector(1 downto 0);
-    LED_GREEN            : out   std_logic;
-    LED_ORANGE           : out   std_logic;
-    LED_RED              : out   std_logic;
-    LED_YELLOW           : out   std_logic;
-    SUPPL                : in    std_logic;  --terminated diff pair, PCLK, Pads
+    TEMPSENS   : inout std_logic;       --Temperature Sensor
+    CODE_LINE  : in    std_logic_vector(1 downto 0);
+    LED_GREEN  : out   std_logic;
+    LED_ORANGE : out   std_logic;
+    LED_RED    : out   std_logic;
+    LED_YELLOW : out   std_logic;
+    SUPPL      : in    std_logic;       --terminated diff pair, PCLK, Pads
     --Test Connectors
-    TEST_LINE            : out   std_logic_vector(15 downto 0)
+    TEST_LINE  : out   std_logic_vector(15 downto 0)
     );
 
-  attribute syn_useioff                  : boolean;
+  attribute syn_useioff                     : boolean;
   --no IO-FF for LEDs relaxes timing constraints
-  attribute syn_useioff of LED_GREEN     : signal is false;
-  attribute syn_useioff of LED_ORANGE    : signal is false;
-  attribute syn_useioff of LED_RED       : signal is false;
-  attribute syn_useioff of LED_YELLOW    : signal is false;
-  attribute syn_useioff of TEMPSENS      : signal is false;
-  attribute syn_useioff of PROGRAMN      : signal is false;
-  attribute syn_useioff of CODE_LINE     : signal is false;
-  attribute syn_useioff of TRIGGER_LEFT  : signal is false;
-  attribute syn_useioff of TRIGGER_RIGHT : signal is false;
+  attribute syn_useioff of LED_GREEN        : signal is false;
+  attribute syn_useioff of LED_ORANGE       : signal is false;
+  attribute syn_useioff of LED_RED          : signal is false;
+  attribute syn_useioff of LED_YELLOW       : signal is false;
+  attribute syn_useioff of TEMPSENS         : signal is false;
+  attribute syn_useioff of PROGRAMN         : signal is false;
+  attribute syn_useioff of CODE_LINE        : signal is false;
+  attribute syn_useioff of TRIGGER_LEFT     : signal is false;
+  attribute syn_useioff of TRIGGER_RIGHT    : signal is false;
   --important signals
-  attribute syn_useioff of FLASH_CLK     : signal is true;
-  attribute syn_useioff of FLASH_CS      : signal is true;
-  attribute syn_useioff of FLASH_DIN     : signal is true;
-  attribute syn_useioff of FLASH_DOUT    : signal is true;
-  attribute syn_useioff of FPGA5_COMM    : signal is true;
-  attribute syn_useioff of TEST_LINE     : signal is true;
+  attribute syn_useioff of FLASH_CLK        : signal is true;
+  attribute syn_useioff of FLASH_CS         : signal is true;
+  attribute syn_useioff of FLASH_DIN        : signal is true;
+  attribute syn_useioff of FLASH_DOUT       : signal is true;
+  attribute syn_useioff of FPGA5_COMM       : signal is true;
+  attribute syn_useioff of TEST_LINE        : signal is true;
   --attribute syn_useioff of INP           : signal is false;
-  attribute syn_useioff of NX1_TIMESTAMP_IN   : signal is true;
-  attribute syn_useioff of NX2_TIMESTAMP_IN   : signal is true;
+  attribute syn_useioff of NX1_TIMESTAMP_IN : signal is true;
+  attribute syn_useioff of NX2_TIMESTAMP_IN : signal is true;
   --attribute syn_useioff of NX1_ADC_NX_IN   : signal is true;
   --attribute syn_useioff of DAC_SDO       : signal is true;
   --attribute syn_useioff of DAC_SDI       : signal is true;
@@ -157,10 +134,10 @@ architecture trb3_periph_arch of trb3_periph is
   attribute syn_preserve : boolean;
 
   -- For 250MHz PLL nxyter clock, THE_256M_ODDR_1
- --attribute ODDRAPPS : string;
- --attribute ODDRAPPS of THE_256M_ODDR_1 : label is "SCLK_ALIGNED";
+  --attribute ODDRAPPS : string;
+  --attribute ODDRAPPS of THE_256M_ODDR_1 : label is "SCLK_ALIGNED";
 
-  
+
   --Clock / Reset
   signal clk_100_i                : std_logic;  --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i                : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
@@ -203,12 +180,12 @@ architecture trb3_periph_arch of trb3_periph is
   signal trg_spike_detected_i   : std_logic;
 
   --Data channel
-  signal fee_trg_release_i      : std_logic_vector(2-1 downto 0);
-  signal fee_trg_statusbits_i   : std_logic_vector(2*32-1 downto 0);
-  signal fee_data_i             : std_logic_vector(2*32-1 downto 0);
-  signal fee_data_write_i       : std_logic_vector(2-1 downto 0);
-  signal fee_data_finished_i    : std_logic_vector(2-1 downto 0);
-  signal fee_almost_full_i      : std_logic_vector(2-1 downto 0);
+  signal fee_trg_release_i    : std_logic_vector(2-1 downto 0);
+  signal fee_trg_statusbits_i : std_logic_vector(2*32-1 downto 0);
+  signal fee_data_i           : std_logic_vector(2*32-1 downto 0);
+  signal fee_data_write_i     : std_logic_vector(2-1 downto 0);
+  signal fee_data_finished_i  : std_logic_vector(2-1 downto 0);
+  signal fee_almost_full_i    : std_logic_vector(2-1 downto 0);
 
   --Slow Control channel
   signal common_stat_reg        : std_logic_vector(std_COMSTATREG*32-1 downto 0);
@@ -274,42 +251,24 @@ architecture trb3_periph_arch of trb3_periph is
   signal time_counter : unsigned(31 downto 0);
 
 
-  -- nXyter-FEE-Board Clocks
-  signal nx_clk256                   : std_logic;
-  signal pll_lock_clk256             : std_logic;
-  signal clk_adc_dat                 : std_logic;
-  signal clk_adc_dat_lock            : std_logic;
-  
-  -- nXyter 1 Regio Bus
-  signal nx1_regio_addr_in           : std_logic_vector (15 downto 0);
-  signal nx1_regio_data_in           : std_logic_vector (31 downto 0);
-  signal nx1_regio_data_out          : std_logic_vector (31 downto 0);
-  signal nx1_regio_read_enable_in    : std_logic;
-  signal nx1_regio_write_enable_in   : std_logic;
-  signal nx1_regio_timeout_in        : std_logic;
-  signal nx1_regio_dataready_out     : std_logic;
-  signal nx1_regio_write_ack_out     : std_logic;
-  signal nx1_regio_no_more_data_out  : std_logic;
-  signal nx1_regio_unknown_addr_out  : std_logic;
-  
-  signal nx1_timestamp_sim_o         : std_logic_vector(7 downto 0);
-  signal nx1_clk128_sim_o            : std_logic;
+  -- MuPix-FEE-Board Clocks
+  signal mu_clk50       : std_logic;
+  signal pll_lock_clk50 : std_logic;
 
-  -- nXyter 2 Regio Bus
-  signal nx2_regio_addr_in           : std_logic_vector (15 downto 0);
-  signal nx2_regio_data_in           : std_logic_vector (31 downto 0);
-  signal nx2_regio_data_out          : std_logic_vector (31 downto 0);
-  signal nx2_regio_read_enable_in    : std_logic;
-  signal nx2_regio_write_enable_in   : std_logic;
-  signal nx2_regio_timeout_in        : std_logic;
-  signal nx2_regio_dataready_out     : std_logic;
-  signal nx2_regio_write_ack_out     : std_logic;
-  signal nx2_regio_no_more_data_out  : std_logic;
-  signal nx2_regio_unknown_addr_out  : std_logic;
-           
-  signal nx2_timestamp_sim_o         : std_logic_vector(7 downto 0);
-  signal nx2_clk128_sim_o            : std_logic;
-           
+  -- MuPix Regio Bus
+  signal mu_regio_addr_in          : std_logic_vector (15 downto 0);
+  signal mu_regio_data_in          : std_logic_vector (31 downto 0);
+  signal mu_regio_data_out         : std_logic_vector (31 downto 0);
+  signal mu_regio_read_enable_in   : std_logic;
+  signal mu_regio_write_enable_in  : std_logic;
+  signal mu_regio_timeout_in       : std_logic;
+  signal mu_regio_dataready_out    : std_logic;
+  signal mu_regio_write_ack_out    : std_logic;
+  signal mu_regio_no_more_data_out : std_logic;
+  signal mu_regio_unknown_addr_out : std_logic;
+
+
+  
 begin
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -409,7 +368,7 @@ begin
       CLOCK_FREQUENCY           => 125,
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
-      DATA_INTERFACE_NUMBER     => 2,
+      DATA_INTERFACE_NUMBER     => 1,          --number of FEE Cards
       DATA_BUFFER_DEPTH         => 13,         --13
       DATA_BUFFER_WIDTH         => 32,
       DATA_BUFFER_FULL_THRESH   => 2**13-800,  --2**13-1024
@@ -453,21 +412,13 @@ begin
       TRG_MISSING_TMG_TRG_OUT  => trg_missing_tmg_trg_i,
       TRG_SPIKE_DETECTED_OUT   => trg_spike_detected_i,
 
-      --Response from FEE, i.e. nXyter #0
-      FEE_TRG_RELEASE_IN(0)                       => fee_trg_release_i(0),
-      FEE_TRG_STATUSBITS_IN(0*32+31  downto 0*32) => fee_trg_statusbits_i(0*32+31 downto 0*32),
-      FEE_DATA_IN(0*32+31  downto 0*32)           => fee_data_i(0*32+31 downto 0*32),
-      FEE_DATA_WRITE_IN(0)                        => fee_data_write_i(0),
-      FEE_DATA_FINISHED_IN(0)                     => fee_data_finished_i(0),
-      FEE_DATA_ALMOST_FULL_OUT(0)                 => fee_almost_full_i(0),
-
-      --Response from FEE, i.e. nXyter #1
-      FEE_TRG_RELEASE_IN(1)                       => fee_trg_release_i(1),
-      FEE_TRG_STATUSBITS_IN(1*32+31  downto 1*32) => fee_trg_statusbits_i(1*32+31 downto 1*32),
-      FEE_DATA_IN(1*32+31  downto 1*32)           => fee_data_i(1*32+31 downto 1*32),
-      FEE_DATA_WRITE_IN(1)                        => fee_data_write_i(1),
-      FEE_DATA_FINISHED_IN(1)                     => fee_data_finished_i(1),
-      FEE_DATA_ALMOST_FULL_OUT(1)                 => fee_almost_full_i(1),
+      --Response from FEE, i.e. MuPix 3
+      FEE_TRG_RELEASE_IN(0)                      => fee_trg_release_i(0),
+      FEE_TRG_STATUSBITS_IN(0*32+31 downto 0*32) => fee_trg_statusbits_i(0*32+31 downto 0*32),
+      FEE_DATA_IN(0*32+31 downto 0*32)           => fee_data_i(0*32+31 downto 0*32),
+      FEE_DATA_WRITE_IN(0)                       => fee_data_write_i(0),
+      FEE_DATA_FINISHED_IN(0)                    => fee_data_finished_i(0),
+      FEE_DATA_ALMOST_FULL_OUT(0)                => fee_almost_full_i(0),
 
       -- Slow Control Data Port
       REGIO_COMMON_STAT_REG_IN           => common_stat_reg,  --0x00
@@ -513,13 +464,13 @@ begin
       );
 
   timing_trg_received_i <= TRIGGER_LEFT;
-  
+
 --  fee_trg_release_i(1)                      <= '1';
 --  fee_data_i(1*32+31 downto 1*32)           <= (others => '1');
 --  fee_trg_statusbits_i(1*32+31 downto 1*32) <= (others => '0');
 --  fee_data_write_i(1)                       <= '0';
 --  fee_data_finished_i(1)                    <= '1';
-  
+
 ---------------------------------------------------------------------------
 -- AddOn
 ---------------------------------------------------------------------------
@@ -529,17 +480,15 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 4,
-      PORT_ADDRESSES => (0 => x"d000",
-                         1 => x"d100",
-                         2 => x"8000",
-                         3 => x"9000", 
-                         others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1,
-                         1 => 6,
-                         2 => 12,
-                         3 => 12,
-                         others => 0)
+      PORT_NUMBER                                     => 3,
+      PORT_ADDRESSES                                  => (0 => x"d000",
+                                               1      => x"d100",
+                                               2      => x"8000",
+                                               others => x"0000"),
+      PORT_ADDR_MASK                                  => (0 => 1,
+                                               1      => 6,
+                                               2      => 12,
+                                               others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -557,58 +506,44 @@ begin
       DAT_UNKNOWN_ADDR_OUT => regio_unknown_addr_in,
 
       --Bus Handler (SPI CTRL)
-      BUS_READ_ENABLE_OUT(0)               => spictrl_read_en,
-      BUS_WRITE_ENABLE_OUT(0)              => spictrl_write_en,
-      BUS_DATA_OUT(0*32+31 downto 0*32)    => spictrl_data_in,
-      BUS_ADDR_OUT(0*16)                   => spictrl_addr,
-      BUS_ADDR_OUT(0*16+15 downto 0*16+1)  => open,
-      BUS_TIMEOUT_OUT(0)                   => open,
-      BUS_DATA_IN(0*32+31 downto 0*32)     => spictrl_data_out,
-      BUS_DATAREADY_IN(0)                  => spictrl_ack,
-      BUS_WRITE_ACK_IN(0)                  => spictrl_ack,
-      BUS_NO_MORE_DATA_IN(0)               => spictrl_busy,
-      BUS_UNKNOWN_ADDR_IN(0)               => '0',
-                                           
+      BUS_READ_ENABLE_OUT(0)              => spictrl_read_en,
+      BUS_WRITE_ENABLE_OUT(0)             => spictrl_write_en,
+      BUS_DATA_OUT(0*32+31 downto 0*32)   => spictrl_data_in,
+      BUS_ADDR_OUT(0*16)                  => spictrl_addr,
+      BUS_ADDR_OUT(0*16+15 downto 0*16+1) => open,
+      BUS_TIMEOUT_OUT(0)                  => open,
+      BUS_DATA_IN(0*32+31 downto 0*32)    => spictrl_data_out,
+      BUS_DATAREADY_IN(0)                 => spictrl_ack,
+      BUS_WRITE_ACK_IN(0)                 => spictrl_ack,
+      BUS_NO_MORE_DATA_IN(0)              => spictrl_busy,
+      BUS_UNKNOWN_ADDR_IN(0)              => '0',
+
       --Bus Handler (SPI Memory)           
-      BUS_READ_ENABLE_OUT(1)               => spimem_read_en,
-      BUS_WRITE_ENABLE_OUT(1)              => spimem_write_en,
-      BUS_DATA_OUT(1*32+31 downto 1*32)    => spimem_data_in,
-      BUS_ADDR_OUT(1*16+5 downto 1*16)     => spimem_addr,
-      BUS_ADDR_OUT(1*16+15 downto 1*16+6)  => open,
-      BUS_TIMEOUT_OUT(1)                   => open,
-      BUS_DATA_IN(1*32+31 downto 1*32)     => spimem_data_out,
-      BUS_DATAREADY_IN(1)                  => spimem_ack,
-      BUS_WRITE_ACK_IN(1)                  => spimem_ack,
-      BUS_NO_MORE_DATA_IN(1)               => '0',
-      BUS_UNKNOWN_ADDR_IN(1)               => '0',
+      BUS_READ_ENABLE_OUT(1)              => spimem_read_en,
+      BUS_WRITE_ENABLE_OUT(1)             => spimem_write_en,
+      BUS_DATA_OUT(1*32+31 downto 1*32)   => spimem_data_in,
+      BUS_ADDR_OUT(1*16+5 downto 1*16)    => spimem_addr,
+      BUS_ADDR_OUT(1*16+15 downto 1*16+6) => open,
+      BUS_TIMEOUT_OUT(1)                  => open,
+      BUS_DATA_IN(1*32+31 downto 1*32)    => spimem_data_out,
+      BUS_DATAREADY_IN(1)                 => spimem_ack,
+      BUS_WRITE_ACK_IN(1)                 => spimem_ack,
+      BUS_NO_MORE_DATA_IN(1)              => '0',
+      BUS_UNKNOWN_ADDR_IN(1)              => '0',
 
-      --Bus Handler (nXyter1 trb_net16_regio_bus_handler)
-      BUS_READ_ENABLE_OUT(2)               => nx1_regio_read_enable_in,
-      BUS_WRITE_ENABLE_OUT(2)              => nx1_regio_write_enable_in,
-      BUS_DATA_OUT(2*32+31 downto 2*32)    => nx1_regio_data_in,
-      BUS_ADDR_OUT(2*16+11 downto 2*16)    => nx1_regio_addr_in(11 downto 0),
+      --Bus Handler (MuPix trb_net16_regio_bus_handler)
+      BUS_READ_ENABLE_OUT(2)               => mu_regio_read_enable_in,
+      BUS_WRITE_ENABLE_OUT(2)              => mu_regio_write_enable_in,
+      BUS_DATA_OUT(2*32+31 downto 2*32)    => mu_regio_data_in,
+      BUS_ADDR_OUT(2*16+11 downto 2*16)    => mu_regio_addr_in,
       BUS_ADDR_OUT(2*16+15 downto 2*16+12) => open,
-      BUS_TIMEOUT_OUT(2)                   => open,  --nx1_regio_timeout_in,
-      BUS_DATA_IN(2*32+31 downto 2*32)     => nx1_regio_data_out,
-      BUS_DATAREADY_IN(2)                  => nx1_regio_dataready_out,
-      BUS_WRITE_ACK_IN(2)                  => nx1_regio_write_ack_out,
-      BUS_NO_MORE_DATA_IN(2)               => nx1_regio_no_more_data_out,
-      BUS_UNKNOWN_ADDR_IN(2)               => nx1_regio_unknown_addr_out,
+      BUS_TIMEOUT_OUT(2)                   => open,
+      BUS_DATA_IN(2*32+31 downto 2*32)     => mu_regio_data_out,
+      BUS_DATAREADY_IN(2)                  => mu_regio_dataready_out,
+      BUS_WRITE_ACK_IN(2)                  => mu_regio_write_ack_out,
+      BUS_NO_MORE_DATA_IN(2)               => mu_regio_no_more_data_out,
+      BUS_UNKNOWN_ADDR_IN(2)               => mu_regio_unknown_addr_out,
 
-      --Bus Handler (nXyter2 trb_net16_regio_bus_handler)
-      BUS_READ_ENABLE_OUT(3)               => nx2_regio_read_enable_in,
-      BUS_WRITE_ENABLE_OUT(3)              => nx2_regio_write_enable_in,
-      BUS_DATA_OUT(3*32+31 downto 3*32)    => nx2_regio_data_in,
-      BUS_ADDR_OUT(3*16+11 downto 3*16)    => nx2_regio_addr_in(11 downto 0),
-      BUS_ADDR_OUT(3*16+15 downto 3*16+12) => open,
-      BUS_TIMEOUT_OUT(3)                   => open,  --nx2_regio_timeout_in,
-      BUS_DATA_IN(3*32+31 downto 3*32)     => nx2_regio_data_out,
-      BUS_DATAREADY_IN(3)                  => nx2_regio_dataready_out,
-      BUS_WRITE_ACK_IN(3)                  => nx2_regio_write_ack_out,
-      BUS_NO_MORE_DATA_IN(3)               => nx2_regio_no_more_data_out,
-      BUS_UNKNOWN_ADDR_IN(3)               => nx2_regio_unknown_addr_out,
-
-      
       STAT_DEBUG => open
       );
 
@@ -683,49 +618,39 @@ begin
   LED_YELLOW <= not med_stat_op(11);
 
 -----------------------------------------------------------------------------
--- The xXyter-FEB #1
+-- MuPix Frontend-Board
 -----------------------------------------------------------------------------
 
-  nXyter_FEE_board_0: nXyter_FEE_board
-    generic map (
-      BOARD_ID => x"affe"
-      )
+  nXyter_FEE_board_0 : nXyter_FEE_board
     port map (
-      CLK_IN                     => clk_100_i,
-      RESET_IN                   => reset_i,
-      CLK_NX_IN                  => nx_clk256,
-      CLK_ADC_IN                 => clk_adc_dat,
-                                 
-      I2C_SDA_INOUT              => NX1_I2C_SDA_INOUT,
-      I2C_SCL_INOUT              => NX1_I2C_SCL_INOUT,
-      I2C_SM_RESET_OUT           => NX1_I2C_SM_RESET_OUT,
-      I2C_REG_RESET_OUT          => NX1_I2C_REG_RESET_OUT,
-                                 
-      SPI_SCLK_OUT               => NX1_SPI_SCLK_OUT,
-      SPI_SDIO_INOUT             => NX1_SPI_SDIO_INOUT,
-      SPI_CSB_OUT                => NX1_SPI_CSB_OUT,
-                                 
-      NX_CLK128_IN               => NX1_CLK128_IN,
-      NX_TIMESTAMP_IN            => NX1_TIMESTAMP_IN,
-      -- NX_CLK128_IN               => nx1_clk128_sim_o,
-      -- NX_TIMESTAMP_IN            => nx1_timestamp_sim_o,
-                                 
-      NX_RESET_OUT               => NX1_RESET_OUT,
-      NX_TESTPULSE_OUT           => NX1_TESTPULSE_OUT,
-                                 
-      ADC_FCLK_IN(0)             => NX1_ADC_FCLK_IN,
-      ADC_FCLK_IN(1)             => NX1B_ADC_FCLK_IN,
-      ADC_DCLK_IN(0)             => NX1_ADC_DCLK_IN,
-      ADC_DCLK_IN(1)             => NX1B_ADC_DCLK_IN,
-      ADC_SAMPLE_CLK_OUT         => NX1_ADC_SAMPLE_CLK_OUT,
-      ADC_A_IN(0)                => NX1_ADC_A_IN,
-      ADC_A_IN(1)                => NX1B_ADC_A_IN,
-      ADC_B_IN(0)                => NX1_ADC_B_IN,
-      ADC_B_IN(1)                => NX1B_ADC_B_IN,
-      ADC_NX_IN(0)               => NX1_ADC_NX_IN,
-      ADC_NX_IN(1)               => NX1B_ADC_NX_IN,
-      ADC_D_IN(0)                => NX1_ADC_D_IN,
-      ADC_D_IN(1)                => NX1B_ADC_D_IN,
+      clk                  => clk,
+      fastclk              => clk_100_i,
+      reset                => reset_i,
+      timestamp_from_mupix => timestamp_from_mupix,
+      rowaddr_from_mupix   => rowaddr_from_mupix,
+      coladdr_from_mupix   => coladdr_from_mupix,
+      priout_from_mupix    => priout_from_mupix,
+      sout_c_from_mupix    => sout_c_from_mupix,
+      sout_d_from_mupix    => sout_d_from_mupix,
+      hbus_form_mupix      => hbus_form_mupix,
+      fpga_aux_from_board  => fpga_aux_from_board,
+      ldpix_to_mupix       => ldpix_to_mupix,
+      ldcol_to_mupix       => ldcol_to_mupix,
+      timestamp_to_mupix   => timestamp_to_mupix,
+      rdcol_to_mupix       => rdcol_to_mupix,
+      pulldown_to_mupix    => pulldown_to_mupix,
+      sin_to_mupix         => sin_to_mupix,
+      ck_d_to_mupix        => ck_d_to_mupix,
+      ck_c_to_mupix        => ck_c_to_mupix,
+      ld_c_to_mupix        => ld_c_to_mupix,
+      testpulse1_to_board  => testpulse1_to_board,
+      testpulse2_to_board  => testpulse2_to_board,
+      spi_din_to_board     => spi_din_to_board,
+      spi_clk_to_board     => spi_clk_to_board,
+      spi_ld_to_board      => spi_ld_to_board,
+      fpga_led_to_board    => fpga_led_to_board,
+      fpga_aux_to_board    => fpga_aux_to_board,
+
 
       LVL1_TRG_DATA_VALID_IN     => trg_data_valid_i,
       LVL1_VALID_TIMING_TRG_IN   => trg_timing_valid_i,
@@ -737,107 +662,33 @@ begin
       LVL1_TRG_INFORMATION_IN    => trg_information_i,
       LVL1_INT_TRG_NUMBER_IN     => trg_int_number_i,
 
-      FEE_TRG_RELEASE_OUT        => fee_trg_release_i(0),
-      FEE_TRG_STATUSBITS_OUT     => fee_trg_statusbits_i(31 downto 0),
-      FEE_DATA_OUT               => fee_data_i(31 downto 0),
-      FEE_DATA_WRITE_OUT         => fee_data_write_i(0),
-      FEE_DATA_FINISHED_OUT      => fee_data_finished_i(0),
-      FEE_DATA_ALMOST_FULL_IN    => fee_almost_full_i(0),
-      
-      REGIO_ADDR_IN              => nx1_regio_addr_in,
-      REGIO_DATA_IN              => nx1_regio_data_in,
-      REGIO_DATA_OUT             => nx1_regio_data_out,
-      REGIO_READ_ENABLE_IN       => nx1_regio_read_enable_in,
-      REGIO_WRITE_ENABLE_IN      => nx1_regio_write_enable_in,
-      REGIO_TIMEOUT_IN           => nx1_regio_timeout_in,
-      REGIO_DATAREADY_OUT        => nx1_regio_dataready_out,
-      REGIO_WRITE_ACK_OUT        => nx1_regio_write_ack_out,
-      REGIO_NO_MORE_DATA_OUT     => nx1_regio_no_more_data_out,
-      REGIO_UNKNOWN_ADDR_OUT     => nx1_regio_unknown_addr_out,
-                                 
-      DEBUG_LINE_OUT            => TEST_LINE
+      FEE_TRG_RELEASE_OUT     => fee_trg_release_i(0),
+      FEE_TRG_STATUSBITS_OUT  => fee_trg_statusbits_i(31 downto 0),
+      FEE_DATA_OUT            => fee_data_i(31 downto 0),
+      FEE_DATA_WRITE_OUT      => fee_data_write_i(0),
+      FEE_DATA_FINISHED_OUT   => fee_data_finished_i(0),
+      FEE_DATA_ALMOST_FULL_IN => fee_almost_full_i(0),
+
+      REGIO_ADDR_IN          => mu_regio_addr_in,
+      REGIO_DATA_IN          => mu_regio_data_in,
+      REGIO_DATA_OUT         => mu_regio_data_out,
+      REGIO_READ_ENABLE_IN   => mu_regio_read_enable_in,
+      REGIO_WRITE_ENABLE_IN  => mu_regio_write_enable_in,
+      REGIO_TIMEOUT_IN       => mu_regio_timeout_in,
+      REGIO_DATAREADY_OUT    => mu_regio_dataready_out,
+      REGIO_WRITE_ACK_OUT    => mu_regio_write_ack_out,
+      REGIO_NO_MORE_DATA_OUT => mu_regio_no_more_data_out,
+      REGIO_UNKNOWN_ADDR_OUT => mu_regio_unknown_addr_out,
+
+      DEBUG_LINE_OUT => TEST_LINE
       --DEBUG_LINE_OUT                => open
       );
-  
------------------------------------------------------------------------------
--- The xXyter-FEB #2
------------------------------------------------------------------------------
 
-  nXyter_FEE_board_1: nXyter_FEE_board
-    generic map (
-      BOARD_ID => x"babe"
-      )
-    port map (
-      CLK_IN                     => clk_100_i,
-      RESET_IN                   => reset_i,
-      CLK_NX_IN                  => nx_clk256,
-      CLK_ADC_IN                 => clk_adc_dat,
-                                 
-      I2C_SDA_INOUT              => NX2_I2C_SDA_INOUT,
-      I2C_SCL_INOUT              => NX2_I2C_SCL_INOUT,
-      I2C_SM_RESET_OUT           => NX2_I2C_SM_RESET_OUT,
-      I2C_REG_RESET_OUT          => NX2_I2C_REG_RESET_OUT,
-                                    
-      SPI_SCLK_OUT               => NX2_SPI_SCLK_OUT,
-      SPI_SDIO_INOUT             => NX2_SPI_SDIO_INOUT,
-      SPI_CSB_OUT                => NX2_SPI_CSB_OUT,
-      
-      NX_CLK128_IN               => NX2_CLK128_IN,
-      NX_TIMESTAMP_IN            => NX2_TIMESTAMP_IN,
-                                    
-      NX_RESET_OUT               => NX2_RESET_OUT,
-      NX_TESTPULSE_OUT           => NX2_TESTPULSE_OUT,
-  
-      ADC_FCLK_IN(0)             => NX2_ADC_FCLK_IN,
-      ADC_FCLK_IN(1)             => NX2B_ADC_FCLK_IN,
-      ADC_DCLK_IN(0)             => NX2_ADC_DCLK_IN,
-      ADC_DCLK_IN(1)             => NX2B_ADC_DCLK_IN,
-      ADC_SAMPLE_CLK_OUT         => NX2_ADC_SAMPLE_CLK_OUT,
-      ADC_A_IN(0)                => NX2_ADC_A_IN,
-      ADC_A_IN(1)                => NX2B_ADC_A_IN,
-      ADC_B_IN(0)                => NX2_ADC_B_IN,
-      ADC_B_IN(1)                => NX2B_ADC_B_IN,
-      ADC_NX_IN(0)               => NX2_ADC_NX_IN,
-      ADC_NX_IN(1)               => NX2B_ADC_NX_IN,
-      ADC_D_IN(0)                => NX2_ADC_D_IN,
-      ADC_D_IN(1)                => NX2B_ADC_D_IN,
-      
-      LVL1_TRG_DATA_VALID_IN     => trg_data_valid_i,
-      LVL1_VALID_TIMING_TRG_IN   => trg_timing_valid_i,
-      LVL1_VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,
-      LVL1_INVALID_TRG_IN        => trg_invalid_i,
-      LVL1_TRG_TYPE_IN           => trg_type_i,
-      LVL1_TRG_NUMBER_IN         => trg_number_i,
-      LVL1_TRG_CODE_IN           => trg_code_i,
-      LVL1_TRG_INFORMATION_IN    => trg_information_i,
-      LVL1_INT_TRG_NUMBER_IN     => trg_int_number_i,
-  
-      FEE_TRG_RELEASE_OUT        => fee_trg_release_i(1),
-      FEE_TRG_STATUSBITS_OUT     => fee_trg_statusbits_i(63 downto 32),
-      FEE_DATA_OUT               => fee_data_i(63 downto 32),
-      FEE_DATA_WRITE_OUT         => fee_data_write_i(1),
-      FEE_DATA_FINISHED_OUT      => fee_data_finished_i(1),
-      FEE_DATA_ALMOST_FULL_IN    => fee_almost_full_i(1),
-      
-      REGIO_ADDR_IN              => nx2_regio_addr_in,
-      REGIO_DATA_IN              => nx2_regio_data_in,
-      REGIO_DATA_OUT             => nx2_regio_data_out,
-      REGIO_READ_ENABLE_IN       => nx2_regio_read_enable_in,
-      REGIO_WRITE_ENABLE_IN      => nx2_regio_write_enable_in,
-      REGIO_TIMEOUT_IN           => nx2_regio_timeout_in,
-      REGIO_DATAREADY_OUT        => nx2_regio_dataready_out,
-      REGIO_WRITE_ACK_OUT        => nx2_regio_write_ack_out,
-      REGIO_NO_MORE_DATA_OUT     => nx2_regio_no_more_data_out,
-      REGIO_UNKNOWN_ADDR_OUT     => nx2_regio_unknown_addr_out,
-                                 
-      --DEBUG_LINE_OUT            => TEST_LINE
-      DEBUG_LINE_OUT                => open
-      );
 
   -----------------------------------------------------------------------------
-  -- nXyter common Clocks
+  -- MuPix common Clocks
   -----------------------------------------------------------------------------
-  pll_nx_clk256_1: entity work.pll_nx_clk256
+  pll_nx_clk256_1 : entity work.pll_nx_clk256
     port map (
       CLK   => clk_100_i,
       CLKOP => nx_clk256,
@@ -848,60 +699,14 @@ begin
   NX2_CLK256A_OUT <= nx_clk256;
 
   -- ADC Receiver Clock
-  pll_adc_clk192_1: pll_adc_clk192
+  pll_adc_clk192_1 : pll_adc_clk192
     port map (
       CLK   => CLK_PCLK_LEFT,
       CLKOP => clk_adc_dat,
       LOCK  => clk_adc_dat_lock
       );
 
-  -----------------------------------------------------------------------------
-  
-  -- 250MHz Clock to nXyters
-  --pll_nx_clk250_1: entity work.pll_nx_clk250
-  --  port map (
-  --    CLK   => CLK_GPLL_LEFT,
-  --    CLKOP => nx1_clk256_o,
-  --    LOCK  => open
-  --    );
+ 
 
-  --pll_125_hub_1: pll_125_hub
-  --  port map (
-  --    CLK   => CLK_GPLL_LEFT,
-  --    CLKOP => open,
-  --    CLKOK => nx1_clk256_o,
-  --    LOCK  => open
-  --    );
- -- NX1_CLK256A_OUT <= CLK_PCLK_RIGHT;
-  
-  --THE_256M_ODDR_1: ODDRXD1
-  --  port map(
-  --    SCLK  => nx1_clk256_o,
-  --    DA    => '1',
-  --    DB    => '0',
-  --    Q     => NX1_CLK256A_OUT
-  --    );
-
-
--------------------------------------------------------------------------------
--- Timestamp Simulator
--------------------------------------------------------------------------------
---   nxyter_timestamp_sim_1: nxyter_timestamp_sim
---     port map (
---       CLK_IN        => CLK_GPLL_LEFT,
---       RESET_IN      => reset_i,
---       TIMESTAMP_OUT => nx1_timestamp_sim_o,
---       CLK128_OUT    => nx1_clk128_sim_o
---       );
-
-  
----------------------------------------------------------------------------
--- Test Connector - Logic Analyser
----------------------------------------------------------------------------
-
- -- TEST_LINE(0)           <= clk_100_i;
- -- TEST_LINE(1)           <= NX1_CLK128_IN;
- -- TEST_LINE(15 downto 2) <= (others => '0');
-  
 
 end architecture;
