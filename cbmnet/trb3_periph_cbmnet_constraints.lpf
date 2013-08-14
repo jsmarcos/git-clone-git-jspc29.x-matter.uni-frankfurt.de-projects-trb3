@@ -48,7 +48,7 @@
 GSR_NET NET "GSR_N";  
 
 
-#################################################################
+################################################################
 # Locate Serdes and media interfaces
 #################################################################
 LOCATE COMP   "THE_MEDIA_UPLINK/gen_serdes_1_200_THE_SERDES/PCSD_INST" SITE "PCSA" ;
@@ -61,33 +61,5 @@ LOCATE UGROUP "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLINK" ;
 #################################################################
 MULTICYCLE TO CELL "THE_MEDIA_DOWNLINK/SCI_DATA_OUT*" 50 ns;
 MULTICYCLE TO CELL "THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
-MULTICYCLE TO CELL "THE_ADC/restart_i" 20 ns;
 
-
-#################################################################
-# Constraints for nxyter inputs
-#################################################################
-
-# look at .par and .twr.setup file for clocks 
-# and .mrp or errors
-PROHIBIT PRIMARY NET "NX1_CLK128_IN_c";
-PROHIBIT SECONDARY NET "NX1_CLK128_IN_c";
-
-PROHIBIT PRIMARY NET "NX2_CLK128_IN_c";
-PROHIBIT SECONDARY NET "NX2_CLK128_IN_c";
-
-PROHIBIT PRIMARY NET "TEST_LINE_c_0_1";
-PROHIBIT SECONDARY NET "TEST_LINE_c_0_1";
-
-DEFINE PORT GROUP "NX1_IN" "NX1_TIMESTAMP_*";
-INPUT_SETUP GROUP "NX1_IN" 3.0 ns HOLD 3.0 ns CLKPORT="NX1_CLK128_IN" ; 
-
-DEFINE PORT GROUP "NX2_IN" "NX2_TIMESTAMP_*";
-INPUT_SETUP GROUP "NX2_IN" 3.0 ns HOLD 3.0 ns CLKPORT="NX2_CLK128_IN" ; 
-
-MULTICYCLE FROM CLKNET "NX1_CLK256A_OUT_c" 50 ns;
-MULTICYCLE FROM CLKNET "NX2_CLK256A_OUT_c" 50 ns;
-
-#PROHIBIT PRIMARY NET "NX1_ADC_DCLK_IN_c";
-#PROHIBIT SECONDARY NET "NX1_ADC_DCLK_IN_c";
 
