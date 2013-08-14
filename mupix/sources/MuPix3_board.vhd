@@ -7,12 +7,15 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.numeric_std.all;
 use work.mupix_components.all;
+use work.trb_net_std.all;
+use work.trb_net_components.all;
+use work.trb3_components.all;
+
 
 entity MuPix3_Board is
   port(
     --Clock signal
-    clk                        : in  std_logic;  --for MuPix Controll
-    fastclk                    : in  std_logic;  --to the Hitbus Histogram
+    clk                        : in  std_logic;  
     reset                      : in  std_logic;
     --signals to and from MuPix 3 chip/board DACS
     timestamp_from_mupix       : in  std_logic_vector(7 downto 0);
@@ -72,12 +75,86 @@ entity MuPix3_Board is
 end MuPix3_Board;
 
 
-architecture Behavioral of MuPix3_Block is
+architecture Behavioral of MuPix3_Board is
 
+--signal declarations
+-- Bus Handler
+  constant NUM_PORTS : integer := 11;
+
+  signal slv_read              : std_logic_vector(NUM_PORTS-1 downto 0);
+  signal slv_write             : std_logic_vector(NUM_PORTS-1 downto 0);
+  signal slv_no_more_data      : std_logic_vector(NUM_PORTS-1 downto 0);
+  signal slv_ack               : std_logic_vector(NUM_PORTS-1 downto 0);
+  signal slv_addr              : std_logic_vector(NUM_PORTS*16-1 downto 0);
+  signal slv_data_rd           : std_logic_vector(NUM_PORTS*32-1 downto 0);
+  signal slv_data_wr           : std_logic_vector(NUM_PORTS*32-1 downto 0);
+  signal slv_unknown_addr      : std_logic_vector(NUM_PORTS-1 downto 0);
  
-  
 
 begin  -- Behavioral
+
+  -------------------------------------------------------------------------------
+-- Port Maps
+-------------------------------------------------------------------------------
+
+  THE_BUS_HANDLER: trb_net16_regio_bus_handler
+    generic map(
+      PORT_NUMBER         => NUM_PORTS,
+
+      PORT_ADDRESSES      => ( 0 => x"0100",    -- Readout Control
+                               1 => x"0040",    -- Sensorboard DACs
+                               2 => x"0600",    -- Injection Control
+                               3 => x"0060",    -- MuPix DACs
+                               4 => x"0120",    -- TimeStamp Control
+                               5 => x"0160",    -- Hit Generator
+                               6 => x"0180",    -- Manual Readout
+                               7 => x"0200",    -- MuPix SlowControl Out
+                               8 => x"0800",    -- Hitbus Histograms
+                               others => x"0000"),
+
+      PORT_ADDR_MASK      => ( 0 => 8,          -- Readout Control
+                               1 => 4,          -- Sensorboard DACs
+                               2 => 8,          -- Injection Control
+                               3 => 4,          -- MuPix DACs
+                               4 => 4,          -- TimeStamp Control
+                               5 => 4,          -- Hit Generator
+                               6 => 4,          -- Manual Readout
+                               7 => 8,          -- MuPix SlowControl Out
+                               8 => 8,          -- HitBus Histograms
+                               others => 0),
+
+      PORT_MASK_ENABLE           => 1
+      )
+    port map(
+      CLK                        => CLK_IN,
+      RESET                      => RESET_IN,
+                                 
+      DAT_ADDR_IN                => REGIO_ADDR_IN,
+      DAT_DATA_IN                => REGIO_DATA_IN,
+      DAT_DATA_OUT               => REGIO_DATA_OUT,
+      DAT_READ_ENABLE_IN         => REGIO_READ_ENABLE_IN,
+      DAT_WRITE_ENABLE_IN        => REGIO_WRITE_ENABLE_IN,
+      DAT_TIMEOUT_IN             => REGIO_TIMEOUT_IN,
+      DAT_DATAREADY_OUT          => REGIO_DATAREADY_OUT,
+      DAT_WRITE_ACK_OUT          => REGIO_WRITE_ACK_OUT,
+      DAT_NO_MORE_DATA_OUT       => REGIO_NO_MORE_DATA_OUT,
+      DAT_UNKNOWN_ADDR_OUT       => REGIO_UNKNOWN_ADDR_OUT,
+                                 
+      -- Control Registers       
+      BUS_READ_ENABLE_OUT        => slv_read,
+      BUS_WRITE_ENABLE_OUT       => slv_write,
+      BUS_DATA_OUT               => slv_data_wr,
+      BUS_DATA_IN                => slv_data_rd,
+      BUS_ADDR_OUT               => slv_addr,
+      BUS_TIMEOUT_OUT            => open,
+      BUS_DATAREADY_IN           => slv_ack,
+      BUS_WRITE_ACK_IN           => slv_ack,
+      BUS_NO_MORE_DATA_IN        => slv_no_more_data,
+      BUS_UNKNOWN_ADDR_IN        => slv_unknown_addr,
+
+      -- DEBUG
+      STAT_DEBUG          => open
+      );
 
 
   --Mupix 3 Chip Interface
@@ -145,7 +222,7 @@ begin  -- Behavioral
     generic map (
       HistogramRange => 10)
     port map (
-      clk       => fastclk,
+      clk       => clk,
       Control   => historeg,
       trigger   => fpga_aux_to_board(0),
       hitbus    => hbus_form_mupix,
@@ -153,14 +230,14 @@ begin  -- Behavioral
       BinHeight => BinHeightToFormatterFiFo);
 
 
-  write_mupix : process
+  write_mupix_dac : process
   begin
     wait until rising_edge(clk);
     sin_to_mupix  <= writeregs(5)(0);
     ck_c_to_mupix <= writeregs(5)(1);
     ck_d_to_mupix <= writeregs(5)(2);
     ld_c_to_mupix <= writeregs(5)(3);
-  end process write_mupix;
+  end process write_mupix_dac;
   
 
 end Behavioral;

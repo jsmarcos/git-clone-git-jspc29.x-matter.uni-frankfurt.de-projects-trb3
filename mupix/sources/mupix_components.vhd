@@ -9,7 +9,6 @@ package mupix_components is
   component MuPix3_Board
     port (
       clk                        : in  std_logic;
-      fastclk                    : in  std_logic;
       reset                      : in  std_logic;
       timestamp_from_mupix       : in  std_logic_vector(7 downto 0);
       rowaddr_from_mupix         : in  std_logic_vector(5 downto 0);

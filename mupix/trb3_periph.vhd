@@ -44,7 +44,7 @@ entity trb3_periph is
     ---------------------------------------------------------------------------
     -- BEGIN SenorBoard MuPix 
     ---------------------------------------------------------------------------
-    --Connections to NXYTER-FEB 1
+    --Connections to MuPix 3
     timestamp_from_mupix : in  std_logic_vector(7 downto 0);
     rowaddr_from_mupix   : in  std_logic_vector(5 downto 0);
     coladdr_from_mupix   : in  std_logic_vector(5 downto 0);
@@ -535,7 +535,7 @@ begin
       BUS_READ_ENABLE_OUT(2)               => mu_regio_read_enable_in,
       BUS_WRITE_ENABLE_OUT(2)              => mu_regio_write_enable_in,
       BUS_DATA_OUT(2*32+31 downto 2*32)    => mu_regio_data_in,
-      BUS_ADDR_OUT(2*16+11 downto 2*16)    => mu_regio_addr_in,
+      BUS_ADDR_OUT(2*16+11 downto 2*16)    => mu_regio_addr_in(11 downto 0),
       BUS_ADDR_OUT(2*16+15 downto 2*16+12) => open,
       BUS_TIMEOUT_OUT(2)                   => open,
       BUS_DATA_IN(2*32+31 downto 2*32)     => mu_regio_data_out,
@@ -621,10 +621,9 @@ begin
 -- MuPix Frontend-Board
 -----------------------------------------------------------------------------
 
-  nXyter_FEE_board_0 : nXyter_FEE_board
+  MuPix3_Board_0 : MuPix3_Board
     port map (
-      clk                  => clk,
-      fastclk              => clk_100_i,
+      clk                  => clk_100_i,
       reset                => reset_i,
       timestamp_from_mupix => timestamp_from_mupix,
       rowaddr_from_mupix   => rowaddr_from_mupix,
