@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+rm -rf workdir
+mkdir workdir
+cd workdir
+../../base/linkdesignfiles.sh

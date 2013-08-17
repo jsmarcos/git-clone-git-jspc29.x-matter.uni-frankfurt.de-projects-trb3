@@ -8,16 +8,22 @@ use work.trb_net_components.all;
 use work.trb3_components.all;
 use work.version.all;
 
+use work.cbmnet_interface_pkg.all;
+use work.cbmnet_phy_pkg.all;
 
 
 entity trb3_periph_cbmnet is
+  generic (
+    CBM_FEE_MODE : integer := c_YES -- in FEE mode, logic will run on recovered clock and (for now) listen only to data received
+                                    -- in Master mode, logic will run on internal clock and regularly send dlms
+  );
   port(
     --Clocks
-    CLK_GPLL_LEFT  : in std_logic;      --Clock Manager 1/(2468), 125 MHz
+    CLK_GPLL_LEFT  : in std_logic;  --Clock Manager 1/(2468), 125 MHz
     CLK_GPLL_RIGHT : in std_logic;  --Clock Manager 2/(2468), 200 MHz  <-- MAIN CLOCK for FPGA
     CLK_PCLK_LEFT  : in std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
     CLK_PCLK_RIGHT : in std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
-
+    
     --Trigger
     TRIGGER_LEFT  : in std_logic;       --left side trigger input from fan-out
     TRIGGER_RIGHT : in std_logic;       --right side trigger input from fan-out
@@ -36,17 +42,17 @@ entity trb3_periph_cbmnet is
                                                       --Bit 2/3 output, serial link TX active
                                                       --others yet undefined
     --Connection to AddOn
-    SPARE_LINE : inout std_logic_vector(5 downto 0);  --inputs only
-    DQUL       : inout std_logic_vector(45 downto 0);
-    DQLL       : inout std_logic_vector(47 downto 0);
-    DQUR       : inout std_logic_vector(33 downto 0);
-    DQLR       : inout std_logic_vector(35 downto 0);
-    --All DQ groups from one bank are grouped.
-    --All DQS are inserted in the DQ lines at position 6 and 7, DQ 6-9 are shifted to 8-11
-    --Order per bank is kept, i.e. adjacent numbers have adjacent pins
-    --all DQ blocks are 6+2+4=12 Pins wide, only DQUL3 is 6+2+2=10.
-    --even numbers are positive LVDS line, odd numbers are negative LVDS line
-    --DQUL can be switched to 1.8V
+    LED_LINKOK : out std_logic_vector(6 downto 1);
+    LED_RX     : out std_logic_vector(6 downto 1); 
+    LED_TX     : out std_logic_vector(6 downto 1);
+    
+    SFP_MOD0   : in  std_logic_vector(6 downto 1);
+    SFP_TXDIS  : out std_logic_vector(6 downto 1); 
+    SFP_LOS    : in  std_logic_vector(6 downto 1);
+    SFP_MOD1   : out std_logic_vector(6 downto 1); 
+    SFP_MOD2   : inout std_logic_vector(6 downto 1); 
+    
+
     --Flash ROM & Reboot
     FLASH_CLK  : out   std_logic;
     FLASH_CS   : out   std_logic;
@@ -64,7 +70,13 @@ entity trb3_periph_cbmnet is
     SUPPL      : in    std_logic;       --terminated diff pair, PCLK, Pads
 
     --Test Connectors
-    TEST_LINE : out std_logic_vector(15 downto 0)
+    TEST_LINE : out std_logic_vector(15 downto 0);
+    
+-- PCS Core TODO: Suppose this is necessary only for simulation
+   SD_RXD_N_IN     : in std_logic;
+   SD_RXD_P_IN     : in std_logic;
+   SD_TXD_N_OUT    : out std_logic;
+   SD_TXD_P_OUT    : out std_logic
     );
 
 
@@ -87,11 +99,14 @@ entity trb3_periph_cbmnet is
   attribute syn_useioff of FLASH_DOUT : signal is true;
   attribute syn_useioff of FPGA5_COMM : signal is true;
   attribute syn_useioff of TEST_LINE  : signal is true;
-  attribute syn_useioff of DQLL       : signal is true;
-  attribute syn_useioff of DQUL       : signal is true;
-  attribute syn_useioff of DQLR       : signal is true;
-  attribute syn_useioff of DQUR       : signal is true;
-  attribute syn_useioff of SPARE_LINE : signal is true;
+--   attribute syn_useioff of DQLL       : signal is true;
+--   attribute syn_useioff of DQUL       : signal is true;
+--   attribute syn_useioff of DQLR       : signal is true;
+--   attribute syn_useioff of DQUR       : signal is true;
+--   attribute syn_useioff of SPARE_LINE : signal is true;
+
+attribute nopad : string;
+attribute nopad of SD_RXD_N_IN, SD_RXD_P_IN, SD_TXD_N_OUT, SD_TXD_P_OUT : signal is "true";
 
 
 end entity;
@@ -105,6 +120,7 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
   attribute syn_preserve : boolean;
 
   --Clock / Reset
+  signal clk_125_i                : std_logic; -- clock reference for CBMNet serdes
   signal clk_100_i                : std_logic;  --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i                : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
   signal pll_lock                 : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
@@ -114,6 +130,11 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
   attribute syn_keep of GSR_N     : signal is true;
   attribute syn_preserve of GSR_N : signal is true;
 
+  
+  signal rclk_125_i                : std_logic; -- recovered clock 
+  signal rreset_i                  : std_logic; -- reset for recovered clock ~ 1us after clock becomes stable
+
+  
   --Media Interface
   signal med_stat_op        : std_logic_vector (1*16-1 downto 0);
   signal med_ctrl_op        : std_logic_vector (1*16-1 downto 0);
@@ -202,14 +223,179 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
   signal spi_bram_rd_d : std_logic_vector(7 downto 0);
   signal spi_bram_we   : std_logic;
 
-
   --FPGA Test
   signal time_counter : unsigned(31 downto 0);
+  
+-- CBMNet signals
+   constant NUM_LANES : integer := 1;
+   signal cbm_clk               :  std_logic; -- Main clock
+   signal cbm_res_n             :  std_logic; -- Active low reset; can be changed by define
+   signal cbm_link_active       :  std_logic; -- link is active and can send and receive data
+   
+   signal cbm_ctrl2send_stop    :  std_logic := '0'; -- send control interface
+   signal cbm_ctrl2send_start   :  std_logic := '0';
+   signal cbm_ctrl2send_end     :  std_logic := '0';
+   signal cbm_ctrl2send         :  std_logic_vector(15 downto 0) := (others => '0');
+   
+   signal cbm_data2send_stop    :  std_logic_vector(NUM_LANES-1 downto 0) := (others => '0'); -- send data interface
+   signal cbm_data2send_start   :  std_logic_vector(NUM_LANES-1 downto 0) := (others => '0');
+   signal cbm_data2send_end     :  std_logic_vector(NUM_LANES-1 downto 0) := (others => '0');
+   signal cbm_data2send         :  std_logic_vector((16*NUM_LANES)-1 downto 0) := (others => '0');
+
+   signal cbm_dlm2send_va       :  std_logic := '0';                      -- send dlm interface
+   signal cbm_dlm2send          :  std_logic_vector(3 downto 0) := (others => '0');
+   
+   signal cbm_dlm_rec_type      :  std_logic_vector(3 downto 0) := (others => '0');   -- receive dlm interface
+   signal cbm_dlm_rec_va        :  std_logic := '0';
+   
+   signal cbm_data_rec          :  std_logic_vector((16*NUM_LANES)-1 downto 0);   -- receive data interface
+   signal cbm_data_rec_start    :  std_logic_vector(NUM_LANES-1 downto 0);
+   signal cbm_data_rec_end      :  std_logic_vector(NUM_LANES-1 downto 0);         
+   signal cbm_data_rec_stop     :  std_logic_vector(NUM_LANES-1 downto 0);  
+   
+   signal cbm_ctrl_rec          :  std_logic_vector(15 downto 0);       -- receive control interface
+   signal cbm_ctrl_rec_start    :  std_logic;
+   signal cbm_ctrl_rec_end      :  std_logic;                 
+   signal cbm_ctrl_rec_stop     :  std_logic;
+   
+   signal cbm_data_from_link    :  std_logic_vector((18*NUM_LANES)-1 downto 0);   -- interface from the PHY
+   signal cbm_data2link         :  std_logic_vector((18*NUM_LANES)-1 downto 0);   -- interface to the PHY
+   
+   signal cbm_link_activeovr    :  std_logic := '0'; -- Overrides; set 0 by default
+   signal cbm_link_readyovr     :  std_logic := '0';
+   
+   signal cbm_SERDES_ready      :  std_logic;    -- signalize when PHY ready
+   
+   signal phy_stat_op,    phy_ctrl_op    : std_logic_vector(15 downto 0) := (others => '0');
+   signal phy_stat_debug, phy_ctrl_debug : std_logic_vector(63 downto 0) := (others => '0');
+
 begin
+   clk_125_i <= CLK_GPLL_LEFT; 
+
+   THE_CBM_PHY: cbmnet_phy_ecp3
+   generic map (IS_SYNC_SLAVE => CBM_FEE_MODE)
+   port map (
+      CLK                => clk_125_i,
+      RESET              => reset_i,
+      
+      --Internal Connection TX
+      MED_TXDATA_IN      => cbm_data2link(15 downto  0),
+      MED_TXDATA_K_IN    => cbm_data2link(17 downto 16),
+      
+      --Internal Connection RX
+      MED_RXDATA_OUT     => cbm_data_from_link(15 downto 0),
+      MED_RXDATA_K_OUT   => cbm_data_from_link(17 downto 16),
+      
+      CLK_RX_HALF_OUT    => rclk_125_i,
+      CLK_RX_FULL_OUT    => open,
+      CLK_RX_RESET_OUT   => rreset_i,
+
+      LINK_ACTIVE_OUT    => cbm_link_active,
+      SERDES_ready       => cbm_SERDES_ready,
+      
+      --SFP Connection
+      SD_RXD_P_IN        => SD_RXD_P_IN,
+      SD_RXD_N_IN        => SD_RXD_N_IN,
+      SD_TXD_P_OUT       => SD_TXD_P_OUT,
+      SD_TXD_N_OUT       => SD_TXD_N_OUT,
+
+      SD_PRSNT_N_IN      => SFP_MOD0(1),
+      SD_LOS_IN          => SFP_LOS(1),
+      SD_TXDIS_OUT       => SFP_TXDIS(1),
+
+      --Control Interface (not used, default values set in component def)
+--       SCI_DATA_IN        => ,
+--       SCI_DATA_OUT       => ,
+--       SCI_ADDR           => ,
+--       SCI_READ           => ,
+--       SCI_WRITE          => ,
+--       SCI_ACK            => ,
+--       SCI_NACK           => ,
+      
+      -- Status and control port
+      STAT_OP            => phy_stat_op,
+      CTRL_OP            => phy_ctrl_op,
+      STAT_DEBUG         => phy_stat_debug,
+      CTRL_DEBUG         => phy_ctrl_debug
+   );
+
+   LED_LINKOK(1) <= cbm_link_active;
+   LED_RX(1)     <= phy_stat_op(10);
+   LED_TX(1)     <= phy_stat_op(11);
+
+   THE_CBM_ENDPOINT: lp_top 
+   generic map (
+      NUM_LANES => NUM_LANES,
+      TX_SLAVE  => 1
+   )
+   port map (
+      clk => cbm_clk,
+      res_n => cbm_res_n,
+      link_active => cbm_link_active,
+      ctrl2send_stop => cbm_ctrl2send_stop,
+      ctrl2send_start => cbm_ctrl2send_start,
+      ctrl2send_end => cbm_ctrl2send_end,
+      ctrl2send => cbm_ctrl2send,
+      data2send_stop => cbm_data2send_stop,
+      data2send_start => cbm_data2send_start,
+      data2send_end => cbm_data2send_end,
+      data2send => cbm_data2send,
+      dlm2send_va => cbm_dlm2send_va,
+      dlm2send => cbm_dlm2send,
+      dlm_rec_type => cbm_dlm_rec_type,
+      dlm_rec_va => cbm_dlm_rec_va,
+      data_rec => cbm_data_rec,
+      data_rec_start => cbm_data_rec_start,
+      data_rec_end => cbm_data_rec_end,
+      data_rec_stop => cbm_data_rec_stop,
+      ctrl_rec => cbm_ctrl_rec,
+      ctrl_rec_start => cbm_ctrl_rec_start,
+      ctrl_rec_end => cbm_ctrl_rec_end,
+      ctrl_rec_stop => cbm_ctrl_rec_stop,
+      data_from_link => cbm_data_from_link,
+      data2link => cbm_data2link,
+      link_activeovr => cbm_link_activeovr,
+      link_readyovr => cbm_link_readyovr,
+      SERDES_ready => cbm_SERDES_ready
+   );
+
+  TEST_LINE(7 downto 0)   <= cbm_data_from_link(7 downto 0);
+  TEST_LINE(8)            <= cbm_SERDES_ready;
+  TEST_LINE(9)            <= cbm_link_active;
+--TEST_LINE(10) see FEE/MST switch below
+  TEST_LINE(11)           <= rreset_i;
+  TEST_LINE(15 downto 12) <= (others => '0');
+
+   GEN_FEE_TEST_LOGIC: if CBM_FEE_MODE generate
+      TEST_LINE(10)           <= cbm_dlm_rec_va;
+   end generate;
+
+
+   GEN_MST_TEST_LOGIC: if not CBM_FEE_MODE generate
+      process(rclk_125_i) is
+         constant counter_max : integer := 1250000;
+         variable counter : integer range 0 to counter_max := 0;
+      begin
+         cbm_dlm2send_va <= '0';
+         if rreset_i = '1' then
+            counter := 1;
+         else
+            if counter = counter_max then
+               counter := 0;
+               cbm_dlm2send_va <= '1';
+            else
+               counter := counter + 1;
+            end if;
+         end if;
+      end process;
+
+      TEST_LINE(10) <= cbm_dlm2send_va;
+   end generate;
+   
+   
 ---------------------------------------------------------------------------
 -- Reset Generation
 ---------------------------------------------------------------------------
-
   GSR_N <= pll_lock;
 
   THE_RESET_HANDLER : trb_net_reset_handler
@@ -400,10 +586,10 @@ begin
 ---------------------------------------------------------------------------
 -- AddOn
 ---------------------------------------------------------------------------
-  DQLL <= (others => '0');
-  DQUL <= (others => '0');
-  DQLR <= (others => '0');
-  DQUR <= (others => '0');
+--   DQLL <= (others => '0');
+--   DQUL <= (others => '0');
+--   DQLR <= (others => '0');
+--   DQUR <= (others => '0');
 
 ---------------------------------------------------------------------------
 -- Bus Handler
@@ -441,6 +627,7 @@ begin
       BUS_WRITE_ACK_IN(0)                 => spictrl_ack,
       BUS_NO_MORE_DATA_IN(0)              => spictrl_busy,
       BUS_UNKNOWN_ADDR_IN(0)              => '0',
+      
       --Bus Handler (SPI Memory)
       BUS_READ_ENABLE_OUT(1)              => spimem_read_en,
       BUS_WRITE_ENABLE_OUT(1)             => spimem_write_en,
@@ -528,17 +715,6 @@ begin
   LED_ORANGE <= not med_stat_op(10);
   LED_RED    <= not time_counter(26);
   LED_YELLOW <= not med_stat_op(11);
-
-
----------------------------------------------------------------------------
--- Test Connector
----------------------------------------------------------------------------    
-  TEST_LINE(7 downto 0)   <= med_data_in(7 downto 0);
-  TEST_LINE(8)            <= med_dataready_in;
-  TEST_LINE(9)            <= med_dataready_out;
-  TEST_LINE(10)           <= stat_reg_strobe(0);
-  TEST_LINE(15 downto 11) <= (others => '0');
-
 
 ---------------------------------------------------------------------------
 -- Test Circuits

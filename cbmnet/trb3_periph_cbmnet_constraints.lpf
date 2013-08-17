@@ -13,14 +13,6 @@
   FREQUENCY PORT CLK_GPLL_RIGHT 200 MHz;
   FREQUENCY PORT CLK_GPLL_LEFT  125 MHz;
 
-  FREQUENCY PORT NX1_CLK256A_OUT 256 MHz;
-  FREQUENCY PORT NX2_CLK256A_OUT 256 MHz;
-    
-#Put the names of your nxyter inputs here:  
-  FREQUENCY PORT NX1_CLK128_IN 128 MHz;
-  FREQUENCY PORT NX2_CLK128_IN 128 MHz;
-  FREQUENCY PORT NX1_ADC_DCLK_IN 192 MHz;   
-  FREQUENCY PORT NX2_ADC_DCLK_IN 192 MHz;  
 
 #Change the next two lines to the clk_fast signal of the ADC  
   USE PRIMARY2EDGE NET "THE_MAIN_PLL/PLLInst_0";
@@ -29,19 +21,6 @@
   
   USE PRIMARY NET "CLK_PCLK_LEFT";
   USE PRIMARY NET "CLK_PCLK_LEFT_c";
-  
-  USE PRIMARY NET "NX1_ADC_SAMPLE_CLK_OUT";
-  USE PRIMARY NET "NX1_ADC_SAMPLE_CLK_OUT_c";
-
-  USE PRIMARY NET "NX2_ADC_SAMPLE_CLK_OUT";
-  USE PRIMARY NET "NX2_ADC_SAMPLE_CLK_OUT_c";
-
-  USE PRIMARY2EDGE NET "nXyter_FEE_board_0/nx_data_receiver_1/adc_dat_clk";
-  USE PRIMARY NET "nXyter_FEE_board_0/nx_data_receiver_1/adc_dat_clk";
-  
-  #USE PRIMARY2EDGE NET "nXyter_FEE_board_0/nx_data_receiver_1/adc_dat_clk";
-  #USE PRIMARY NET "nXyter_FEE_board_0/nx_data_receiver_1/adc_dat_clk";
-  
 #################################################################
 # Reset Nets
 #################################################################  
@@ -61,5 +40,3 @@ LOCATE UGROUP "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLINK" ;
 #################################################################
 MULTICYCLE TO CELL "THE_MEDIA_DOWNLINK/SCI_DATA_OUT*" 50 ns;
 MULTICYCLE TO CELL "THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
-
-
