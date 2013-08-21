@@ -23,7 +23,7 @@ package cbmnet_interface_pkg is
          READY_CHAR1  : std_logic_vector(7 downto 0) :=  K287;
          ALIGN_CHAR  : std_logic_vector(7 downto 0) :=  K285;
          DATAWIDTH  : integer :=  16;
-         WORDS : integer := DATAWIDTH/8;
+         WORDS : integer := 2; --DATAWIDTH/8;
          
          INCL_8B10B_DEC : integer range 0 to 1 := 1
       );
@@ -53,7 +53,7 @@ package cbmnet_interface_pkg is
          READY_CHAR1  : std_logic_vector(7 downto 0) :=  K287;
          ALIGN_CHAR  : std_logic_vector(7 downto 0) :=  K285;
          DATAWIDTH  : integer :=  16;
-         WORDS :integer := DATAWIDTH/8
+         WORDS :integer := 2 --DATAWIDTH/8;
       );
       port (
          clk : in std_logic;

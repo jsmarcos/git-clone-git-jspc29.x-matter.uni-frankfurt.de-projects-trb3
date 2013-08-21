@@ -13,230 +13,243 @@ use work.cbmnet_phy_pkg.all;
 
 
 entity trb3_periph_cbmnet is
-  generic (
-    CBM_FEE_MODE : integer := c_YES -- in FEE mode, logic will run on recovered clock and (for now) listen only to data received
-                                    -- in Master mode, logic will run on internal clock and regularly send dlms
-  );
-  port(
-    --Clocks
-    CLK_GPLL_LEFT  : in std_logic;  --Clock Manager 1/(2468), 125 MHz
-    CLK_GPLL_RIGHT : in std_logic;  --Clock Manager 2/(2468), 200 MHz  <-- MAIN CLOCK for FPGA
-    CLK_PCLK_LEFT  : in std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
-    CLK_PCLK_RIGHT : in std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
-    
-    --Trigger
-    TRIGGER_LEFT  : in std_logic;       --left side trigger input from fan-out
-    TRIGGER_RIGHT : in std_logic;       --right side trigger input from fan-out
+   generic (
+      CBM_FEE_MODE : integer := c_YES -- in FEE mode, logic will run on recovered clock and (for now) listen only to data received
+                                     -- in Master mode, logic will run on internal clock and regularly send dlms
+   );
+   port(
+      --Clocks
+      CLK_GPLL_LEFT  : in std_logic;  --Clock Manager 1/(2468), 125 MHz
+      CLK_GPLL_RIGHT : in std_logic;  --Clock Manager 2/(2468), 200 MHz  <-- MAIN CLOCK for FPGA
+      CLK_PCLK_LEFT  : in std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
+      CLK_PCLK_RIGHT : in std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
 
-    --Serdes
-    CLK_SERDES_INT_LEFT  : in  std_logic;  --Clock Manager 1/(1357), off, 125 MHz possible
-    CLK_SERDES_INT_RIGHT : in  std_logic;  --Clock Manager 2/(1357), 200 MHz, only in case of problems
-    SERDES_INT_TX        : out std_logic_vector(3 downto 0);
-    SERDES_INT_RX        : in  std_logic_vector(3 downto 0);
-    SERDES_ADDON_TX      : out std_logic_vector(11 downto 0);
-    SERDES_ADDON_RX      : in  std_logic_vector(11 downto 0);
+      --Trigger
+      TRIGGER_LEFT  : in std_logic;       --left side trigger input from fan-out
+      TRIGGER_RIGHT : in std_logic;       --right side trigger input from fan-out
 
-    --Inter-FPGA Communication
-    FPGA5_COMM : inout std_logic_vector(11 downto 0);
-                                                      --Bit 0/1 input, serial link RX active
-                                                      --Bit 2/3 output, serial link TX active
-                                                      --others yet undefined
-    --Connection to AddOn
-    LED_LINKOK : out std_logic_vector(6 downto 1);
-    LED_RX     : out std_logic_vector(6 downto 1); 
-    LED_TX     : out std_logic_vector(6 downto 1);
-    
-    SFP_MOD0   : in  std_logic_vector(6 downto 1);
-    SFP_TXDIS  : out std_logic_vector(6 downto 1); 
-    SFP_LOS    : in  std_logic_vector(6 downto 1);
-    SFP_MOD1   : out std_logic_vector(6 downto 1); 
-    SFP_MOD2   : inout std_logic_vector(6 downto 1); 
-    
+      --Serdes
+      CLK_SERDES_INT_LEFT  : in  std_logic;  --Clock Manager 1/(1357), off, 125 MHz possible
+      CLK_SERDES_INT_RIGHT : in  std_logic;  --Clock Manager 2/(1357), 200 MHz, only in case of problems
+      SERDES_INT_TX        : out std_logic_vector(3 downto 0);
+      SERDES_INT_RX        : in  std_logic_vector(3 downto 0);
+      SERDES_ADDON_TX      : out std_logic_vector(11 downto 0);
+      SERDES_ADDON_RX      : in  std_logic_vector(11 downto 0);
 
-    --Flash ROM & Reboot
-    FLASH_CLK  : out   std_logic;
-    FLASH_CS   : out   std_logic;
-    FLASH_DIN  : out   std_logic;
-    FLASH_DOUT : in    std_logic;
-    PROGRAMN   : out   std_logic;                     --reboot FPGA
+      --Inter-FPGA Communication
+      FPGA5_COMM : inout std_logic_vector(11 downto 0);
+                                                   --Bit 0/1 input, serial link RX active
+                                                   --Bit 2/3 output, serial link TX active
+                                                   --others yet undefined
+      --Connection to AddOn
+      LED_LINKOK : out std_logic_vector(6 downto 1);
+      LED_RX     : out std_logic_vector(6 downto 1); 
+      LED_TX     : out std_logic_vector(6 downto 1);
 
-    --Misc
-    TEMPSENS   : inout std_logic;       --Temperature Sensor
-    CODE_LINE  : in    std_logic_vector(1 downto 0);
-    LED_GREEN  : out   std_logic;
-    LED_ORANGE : out   std_logic;
-    LED_RED    : out   std_logic;
-    LED_YELLOW : out   std_logic;
-    SUPPL      : in    std_logic;       --terminated diff pair, PCLK, Pads
+      SFP_MOD0   : in  std_logic_vector(6 downto 1);
+      SFP_TXDIS  : out std_logic_vector(6 downto 1); 
+      SFP_LOS    : in  std_logic_vector(6 downto 1);
+      SFP_MOD1   : out std_logic_vector(6 downto 1); 
+      SFP_MOD2   : inout std_logic_vector(6 downto 1); 
 
-    --Test Connectors
-    TEST_LINE : out std_logic_vector(15 downto 0);
-    
--- PCS Core TODO: Suppose this is necessary only for simulation
-   SD_RXD_N_IN     : in std_logic;
-   SD_RXD_P_IN     : in std_logic;
-   SD_TXD_N_OUT    : out std_logic;
-   SD_TXD_P_OUT    : out std_logic
-    );
+      SFP_RATESEL: out std_logic_vector(6 downto 1); 
+      SFP_TXFAULT: in  std_logic_vector(6 downto 1);
 
+      --Flash ROM & Reboot
+      FLASH_CLK  : out   std_logic;
+      FLASH_CS   : out   std_logic;
+      FLASH_DIN  : out   std_logic;
+      FLASH_DOUT : in    std_logic;
+      PROGRAMN   : out   std_logic;      --reboot FPGA
 
-  attribute syn_useioff                  : boolean;
-  --no IO-FF for LEDs relaxes timing constraints
-  attribute syn_useioff of LED_GREEN     : signal is false;
-  attribute syn_useioff of LED_ORANGE    : signal is false;
-  attribute syn_useioff of LED_RED       : signal is false;
-  attribute syn_useioff of LED_YELLOW    : signal is false;
-  attribute syn_useioff of TEMPSENS      : signal is false;
-  attribute syn_useioff of PROGRAMN      : signal is false;
-  attribute syn_useioff of CODE_LINE     : signal is false;
-  attribute syn_useioff of TRIGGER_LEFT  : signal is false;
-  attribute syn_useioff of TRIGGER_RIGHT : signal is false;
+      --Misc
+      TEMPSENS   : inout std_logic;       --Temperature Sensor
+      CODE_LINE  : in    std_logic_vector(1 downto 0);
+      LED_GREEN  : out   std_logic;
+      LED_ORANGE : out   std_logic;
+      LED_RED    : out   std_logic;
+      LED_YELLOW : out   std_logic;
+      SUPPL      : in    std_logic;       --terminated diff pair, PCLK, Pads
 
-  --important signals _with_ IO-FF
-  attribute syn_useioff of FLASH_CLK  : signal is true;
-  attribute syn_useioff of FLASH_CS   : signal is true;
-  attribute syn_useioff of FLASH_DIN  : signal is true;
-  attribute syn_useioff of FLASH_DOUT : signal is true;
-  attribute syn_useioff of FPGA5_COMM : signal is true;
-  attribute syn_useioff of TEST_LINE  : signal is true;
---   attribute syn_useioff of DQLL       : signal is true;
---   attribute syn_useioff of DQUL       : signal is true;
---   attribute syn_useioff of DQLR       : signal is true;
---   attribute syn_useioff of DQUR       : signal is true;
---   attribute syn_useioff of SPARE_LINE : signal is true;
+      --Test Connectors
+      TEST_LINE : out std_logic_vector(15 downto 0);
 
-attribute nopad : string;
-attribute nopad of SD_RXD_N_IN, SD_RXD_P_IN, SD_TXD_N_OUT, SD_TXD_P_OUT : signal is "true";
+      -- PCS Core TODO: Suppose this is necessary only for simulation
+      SD_RXD_N_IN     : in std_logic;
+      SD_RXD_P_IN     : in std_logic;
+      SD_TXD_N_OUT    : out std_logic;
+      SD_TXD_P_OUT    : out std_logic
+   );
 
 
+   attribute syn_useioff                  : boolean;
+   --no IO-FF for LEDs relaxes timing constraints
+   attribute syn_useioff of LED_GREEN     : signal is false;
+   attribute syn_useioff of LED_ORANGE    : signal is false;
+   attribute syn_useioff of LED_RED       : signal is false;
+   attribute syn_useioff of LED_YELLOW    : signal is false;
+   attribute syn_useioff of TEMPSENS      : signal is false;
+   attribute syn_useioff of PROGRAMN      : signal is false;
+   attribute syn_useioff of CODE_LINE     : signal is false;
+   attribute syn_useioff of TRIGGER_LEFT  : signal is false;
+   attribute syn_useioff of TRIGGER_RIGHT : signal is false;
+   attribute syn_useioff of LED_LINKOK    : signal is false;
+   attribute syn_useioff of LED_RX        : signal is false;
+   attribute syn_useioff of LED_TX        : signal is false;
+
+   --important signals _with_ IO-FF
+   attribute syn_useioff of FLASH_CLK  : signal is true;
+   attribute syn_useioff of FLASH_CS   : signal is true;
+   attribute syn_useioff of FLASH_DIN  : signal is true;
+   attribute syn_useioff of FLASH_DOUT : signal is true;
+   attribute syn_useioff of FPGA5_COMM : signal is true;
+   attribute syn_useioff of TEST_LINE  : signal is true;
+
+   attribute nopad : string;
+   attribute nopad of SD_RXD_N_IN, SD_RXD_P_IN, SD_TXD_N_OUT, SD_TXD_P_OUT : signal is "true";
+   
+   attribute syn_keep     : boolean;
+   attribute syn_keep of  CLK_GPLL_LEFT, CLK_GPLL_RIGHT, CLK_PCLK_LEFT, 
+   CLK_PCLK_RIGHT, TRIGGER_LEFT, TRIGGER_RIGHT : signal is true;
+
+   
 end entity;
 
 architecture trb3_periph_arch of trb3_periph_cbmnet is
-  --Constants
-  constant REGIO_NUM_STAT_REGS : integer := 2;
-  constant REGIO_NUM_CTRL_REGS : integer := 2;
+   --Constants
+   constant REGIO_NUM_STAT_REGS : integer := 2;
+   constant REGIO_NUM_CTRL_REGS : integer := 2;
 
-  attribute syn_keep     : boolean;
-  attribute syn_preserve : boolean;
+   attribute syn_keep     : boolean;
+   attribute syn_preserve : boolean;
 
-  --Clock / Reset
-  signal clk_125_i                : std_logic; -- clock reference for CBMNet serdes
-  signal clk_100_i                : std_logic;  --clock for main logic, 100 MHz, via Clock Manager and internal PLL
-  signal clk_200_i                : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
-  signal pll_lock                 : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
-  signal clear_i                  : std_logic;
-  signal reset_i                  : std_logic;
-  signal GSR_N                    : std_logic;
-  attribute syn_keep of GSR_N     : signal is true;
-  attribute syn_preserve of GSR_N : signal is true;
+   --Clock / Reset
+   signal clk_125_i                : std_logic; -- clock reference for CBMNet serdes
+   signal clk_100_i                : std_logic;  --clock for main logic, 100 MHz, via Clock Manager and internal PLL
+   signal clk_200_i                : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
+   signal pll_lock                 : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
+   signal pll_lock1, pll_lock2     : std_logic;
+   signal clear_i                  : std_logic;
+   signal reset_i                  : std_logic;
+   signal GSR_N                    : std_logic;
+   attribute syn_keep of GSR_N     : signal is true;
+   attribute syn_preserve of GSR_N : signal is true;
 
-  
-  signal rclk_125_i                : std_logic; -- recovered clock 
-  signal rreset_i                  : std_logic; -- reset for recovered clock ~ 1us after clock becomes stable
 
-  
-  --Media Interface
-  signal med_stat_op        : std_logic_vector (1*16-1 downto 0);
-  signal med_ctrl_op        : std_logic_vector (1*16-1 downto 0);
-  signal med_stat_debug     : std_logic_vector (1*64-1 downto 0);
-  signal med_ctrl_debug     : std_logic_vector (1*64-1 downto 0);
-  signal med_data_out       : std_logic_vector (1*16-1 downto 0);
-  signal med_packet_num_out : std_logic_vector (1*3-1 downto 0);
-  signal med_dataready_out  : std_logic;
-  signal med_read_out       : std_logic;
-  signal med_data_in        : std_logic_vector (1*16-1 downto 0);
-  signal med_packet_num_in  : std_logic_vector (1*3-1 downto 0);
-  signal med_dataready_in   : std_logic;
-  signal med_read_in        : std_logic;
+   signal rclk_125_i                : std_logic; -- recovered clock 
+   signal rreset_i                  : std_logic; -- reset for recovered clock ~ 1us after clock becomes stable
 
-  --LVL1 channel
-  signal timing_trg_received_i : std_logic;
-  signal trg_data_valid_i      : std_logic;
-  signal trg_timing_valid_i    : std_logic;
-  signal trg_notiming_valid_i  : std_logic;
-  signal trg_invalid_i         : std_logic;
-  signal trg_type_i            : std_logic_vector(3 downto 0);
-  signal trg_number_i          : std_logic_vector(15 downto 0);
-  signal trg_code_i            : std_logic_vector(7 downto 0);
-  signal trg_information_i     : std_logic_vector(23 downto 0);
-  signal trg_int_number_i      : std_logic_vector(15 downto 0);
-  signal trg_multiple_trg_i    : std_logic;
-  signal trg_timeout_detected_i: std_logic;
-  signal trg_spurious_trg_i    : std_logic;
-  signal trg_missing_tmg_trg_i : std_logic;
-  signal trg_spike_detected_i  : std_logic;
-  
-  --Data channel
-  signal fee_trg_release_i    : std_logic;
-  signal fee_trg_statusbits_i : std_logic_vector(31 downto 0);
-  signal fee_data_i           : std_logic_vector(31 downto 0);
-  signal fee_data_write_i     : std_logic;
-  signal fee_data_finished_i  : std_logic;
-  signal fee_almost_full_i    : std_logic;
 
-  --Slow Control channel
-  signal common_stat_reg        : std_logic_vector(std_COMSTATREG*32-1 downto 0);
-  signal common_ctrl_reg        : std_logic_vector(std_COMCTRLREG*32-1 downto 0);
-  signal stat_reg               : std_logic_vector(32*2**REGIO_NUM_STAT_REGS-1 downto 0);
-  signal ctrl_reg               : std_logic_vector(32*2**REGIO_NUM_CTRL_REGS-1 downto 0);
-  signal common_stat_reg_strobe : std_logic_vector(std_COMSTATREG-1 downto 0);
-  signal common_ctrl_reg_strobe : std_logic_vector(std_COMCTRLREG-1 downto 0);
-  signal stat_reg_strobe        : std_logic_vector(2**REGIO_NUM_STAT_REGS-1 downto 0);
-  signal ctrl_reg_strobe        : std_logic_vector(2**REGIO_NUM_CTRL_REGS-1 downto 0);
+   --Media Interface
+   signal med_stat_op        : std_logic_vector (1*16-1 downto 0);
+   signal med_ctrl_op        : std_logic_vector (1*16-1 downto 0);
+   signal med_stat_debug     : std_logic_vector (1*64-1 downto 0);
+   signal med_ctrl_debug     : std_logic_vector (1*64-1 downto 0);
+   signal med_data_out       : std_logic_vector (1*16-1 downto 0);
+   signal med_packet_num_out : std_logic_vector (1*3-1 downto 0);
+   signal med_dataready_out  : std_logic;
+   signal med_read_out       : std_logic;
+   signal med_data_in        : std_logic_vector (1*16-1 downto 0);
+   signal med_packet_num_in  : std_logic_vector (1*3-1 downto 0);
+   signal med_dataready_in   : std_logic;
+   signal med_read_in        : std_logic;
 
-  --RegIO
-  signal my_address             : std_logic_vector (15 downto 0);
-  signal regio_addr_out         : std_logic_vector (15 downto 0);
-  signal regio_read_enable_out  : std_logic;
-  signal regio_write_enable_out : std_logic;
-  signal regio_data_out         : std_logic_vector (31 downto 0);
-  signal regio_data_in          : std_logic_vector (31 downto 0);
-  signal regio_dataready_in     : std_logic;
-  signal regio_no_more_data_in  : std_logic;
-  signal regio_write_ack_in     : std_logic;
-  signal regio_unknown_addr_in  : std_logic;
-  signal regio_timeout_out      : std_logic;
+   --LVL1 channel
+   signal timing_trg_received_i : std_logic;
+   signal trg_data_valid_i      : std_logic;
+   signal trg_timing_valid_i    : std_logic;
+   signal trg_notiming_valid_i  : std_logic;
+   signal trg_invalid_i         : std_logic;
+   signal trg_type_i            : std_logic_vector(3 downto 0);
+   signal trg_number_i          : std_logic_vector(15 downto 0);
+   signal trg_code_i            : std_logic_vector(7 downto 0);
+   signal trg_information_i     : std_logic_vector(23 downto 0);
+   signal trg_int_number_i      : std_logic_vector(15 downto 0);
+   signal trg_multiple_trg_i    : std_logic;
+   signal trg_timeout_detected_i: std_logic;
+   signal trg_spurious_trg_i    : std_logic;
+   signal trg_missing_tmg_trg_i : std_logic;
+   signal trg_spike_detected_i  : std_logic;
 
-  --Timer
-  signal global_time         : std_logic_vector(31 downto 0);
-  signal local_time          : std_logic_vector(7 downto 0);
-  signal time_since_last_trg : std_logic_vector(31 downto 0);
-  signal timer_ticks         : std_logic_vector(1 downto 0);
+   --Data channel
+   signal fee_trg_release_i    : std_logic;
+   signal fee_trg_statusbits_i : std_logic_vector(31 downto 0);
+   signal fee_data_i           : std_logic_vector(31 downto 0);
+   signal fee_data_write_i     : std_logic;
+   signal fee_data_finished_i  : std_logic;
+   signal fee_almost_full_i    : std_logic;
 
-  --Flash
-  signal spictrl_read_en  : std_logic;
-  signal spictrl_write_en : std_logic;
-  signal spictrl_data_in  : std_logic_vector(31 downto 0);
-  signal spictrl_addr     : std_logic;
-  signal spictrl_data_out : std_logic_vector(31 downto 0);
-  signal spictrl_ack      : std_logic;
-  signal spictrl_busy     : std_logic;
-  signal spimem_read_en   : std_logic;
-  signal spimem_write_en  : std_logic;
-  signal spimem_data_in   : std_logic_vector(31 downto 0);
-  signal spimem_addr      : std_logic_vector(5 downto 0);
-  signal spimem_data_out  : std_logic_vector(31 downto 0);
-  signal spimem_ack       : std_logic;
+   --Slow Control channel
+   signal common_stat_reg        : std_logic_vector(std_COMSTATREG*32-1 downto 0);
+   signal common_ctrl_reg        : std_logic_vector(std_COMCTRLREG*32-1 downto 0);
+   signal stat_reg               : std_logic_vector(32*2**REGIO_NUM_STAT_REGS-1 downto 0);
+   signal ctrl_reg               : std_logic_vector(32*2**REGIO_NUM_CTRL_REGS-1 downto 0);
+   signal common_stat_reg_strobe : std_logic_vector(std_COMSTATREG-1 downto 0);
+   signal common_ctrl_reg_strobe : std_logic_vector(std_COMCTRLREG-1 downto 0);
+   signal stat_reg_strobe        : std_logic_vector(2**REGIO_NUM_STAT_REGS-1 downto 0);
+   signal ctrl_reg_strobe        : std_logic_vector(2**REGIO_NUM_CTRL_REGS-1 downto 0);
 
-  signal spi_bram_addr : std_logic_vector(7 downto 0);
-  signal spi_bram_wr_d : std_logic_vector(7 downto 0);
-  signal spi_bram_rd_d : std_logic_vector(7 downto 0);
-  signal spi_bram_we   : std_logic;
+   --RegIO
+   signal my_address             : std_logic_vector (15 downto 0);
+   signal regio_addr_out         : std_logic_vector (15 downto 0);
+   signal regio_read_enable_out  : std_logic;
+   signal regio_write_enable_out : std_logic;
+   signal regio_data_out         : std_logic_vector (31 downto 0);
+   signal regio_data_in          : std_logic_vector (31 downto 0);
+   signal regio_dataready_in     : std_logic;
+   signal regio_no_more_data_in  : std_logic;
+   signal regio_write_ack_in     : std_logic;
+   signal regio_unknown_addr_in  : std_logic;
+   signal regio_timeout_out      : std_logic;
 
-  --FPGA Test
-  signal time_counter : unsigned(31 downto 0);
-  
--- CBMNet signals
+   --Timer
+   signal global_time         : std_logic_vector(31 downto 0);
+   signal local_time          : std_logic_vector(7 downto 0);
+   signal time_since_last_trg : std_logic_vector(31 downto 0);
+   signal timer_ticks         : std_logic_vector(1 downto 0);
+
+   --Flash
+   signal spictrl_read_en  : std_logic;
+   signal spictrl_write_en : std_logic;
+   signal spictrl_data_in  : std_logic_vector(31 downto 0);
+   signal spictrl_addr     : std_logic;
+   signal spictrl_data_out : std_logic_vector(31 downto 0);
+   signal spictrl_ack      : std_logic;
+   signal spictrl_busy     : std_logic;
+   signal spimem_read_en   : std_logic;
+   signal spimem_write_en  : std_logic;
+   signal spimem_data_in   : std_logic_vector(31 downto 0);
+   signal spimem_addr      : std_logic_vector(5 downto 0);
+   signal spimem_data_out  : std_logic_vector(31 downto 0);
+   signal spimem_ack       : std_logic;
+
+   signal debug_read_en   : std_logic;
+   signal debug_write_en  : std_logic;
+   signal debug_data_in   : std_logic_vector(31 downto 0);
+   signal debug_addr      : std_logic_vector(5 downto 0);
+   signal debug_data_out  : std_logic_vector(31 downto 0);
+   signal debug_ack       : std_logic;
+   
+   
+   signal spi_bram_addr : std_logic_vector(7 downto 0);
+   signal spi_bram_wr_d : std_logic_vector(7 downto 0);
+   signal spi_bram_rd_d : std_logic_vector(7 downto 0);
+   signal spi_bram_we   : std_logic;
+
+   --FPGA Test
+   signal time_counter : unsigned(31 downto 0);
+
+   -- CBMNet signals
    constant NUM_LANES : integer := 1;
    signal cbm_clk               :  std_logic; -- Main clock
    signal cbm_res_n             :  std_logic; -- Active low reset; can be changed by define
    signal cbm_link_active       :  std_logic; -- link is active and can send and receive data
-   
+
    signal cbm_ctrl2send_stop    :  std_logic := '0'; -- send control interface
    signal cbm_ctrl2send_start   :  std_logic := '0';
    signal cbm_ctrl2send_end     :  std_logic := '0';
    signal cbm_ctrl2send         :  std_logic_vector(15 downto 0) := (others => '0');
-   
+
    signal cbm_data2send_stop    :  std_logic_vector(NUM_LANES-1 downto 0) := (others => '0'); -- send data interface
    signal cbm_data2send_start   :  std_logic_vector(NUM_LANES-1 downto 0) := (others => '0');
    signal cbm_data2send_end     :  std_logic_vector(NUM_LANES-1 downto 0) := (others => '0');
@@ -244,28 +257,28 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
 
    signal cbm_dlm2send_va       :  std_logic := '0';                      -- send dlm interface
    signal cbm_dlm2send          :  std_logic_vector(3 downto 0) := (others => '0');
-   
+
    signal cbm_dlm_rec_type      :  std_logic_vector(3 downto 0) := (others => '0');   -- receive dlm interface
    signal cbm_dlm_rec_va        :  std_logic := '0';
-   
+
    signal cbm_data_rec          :  std_logic_vector((16*NUM_LANES)-1 downto 0);   -- receive data interface
    signal cbm_data_rec_start    :  std_logic_vector(NUM_LANES-1 downto 0);
    signal cbm_data_rec_end      :  std_logic_vector(NUM_LANES-1 downto 0);         
-   signal cbm_data_rec_stop     :  std_logic_vector(NUM_LANES-1 downto 0);  
-   
+   signal cbm_data_rec_stop     :  std_logic_vector(NUM_LANES-1 downto 0) := (others =>'0');  
+
    signal cbm_ctrl_rec          :  std_logic_vector(15 downto 0);       -- receive control interface
    signal cbm_ctrl_rec_start    :  std_logic;
    signal cbm_ctrl_rec_end      :  std_logic;                 
-   signal cbm_ctrl_rec_stop     :  std_logic;
-   
+   signal cbm_ctrl_rec_stop     :  std_logic := '0';
+
    signal cbm_data_from_link    :  std_logic_vector((18*NUM_LANES)-1 downto 0);   -- interface from the PHY
    signal cbm_data2link         :  std_logic_vector((18*NUM_LANES)-1 downto 0);   -- interface to the PHY
-   
+
    signal cbm_link_activeovr    :  std_logic := '0'; -- Overrides; set 0 by default
    signal cbm_link_readyovr     :  std_logic := '0';
-   
+
    signal cbm_SERDES_ready      :  std_logic;    -- signalize when PHY ready
-   
+
    signal phy_stat_op,    phy_ctrl_op    : std_logic_vector(15 downto 0) := (others => '0');
    signal phy_stat_debug, phy_ctrl_debug : std_logic_vector(63 downto 0) := (others => '0');
 
@@ -277,20 +290,21 @@ begin
    port map (
       CLK                => clk_125_i,
       RESET              => reset_i,
-      
+      CLEAR              => '0',
+         
       --Internal Connection TX
-      MED_TXDATA_IN      => cbm_data2link(15 downto  0),
-      MED_TXDATA_K_IN    => cbm_data2link(17 downto 16),
+      PHY_TXDATA_IN      => cbm_data2link(15 downto  0),
+      PHY_TXDATA_K_IN    => cbm_data2link(17 downto 16),
       
       --Internal Connection RX
-      MED_RXDATA_OUT     => cbm_data_from_link(15 downto 0),
-      MED_RXDATA_K_OUT   => cbm_data_from_link(17 downto 16),
+      PHY_RXDATA_OUT     => cbm_data_from_link(15 downto 0),
+      PHY_RXDATA_K_OUT   => cbm_data_from_link(17 downto 16),
       
       CLK_RX_HALF_OUT    => rclk_125_i,
       CLK_RX_FULL_OUT    => open,
       CLK_RX_RESET_OUT   => rreset_i,
 
-      LINK_ACTIVE_OUT    => cbm_link_active,
+      LINK_ACTIVE_OUT    => open,
       SERDES_ready       => cbm_SERDES_ready,
       
       --SFP Connection
@@ -304,13 +318,13 @@ begin
       SD_TXDIS_OUT       => SFP_TXDIS(1),
 
       --Control Interface (not used, default values set in component def)
---       SCI_DATA_IN        => ,
---       SCI_DATA_OUT       => ,
---       SCI_ADDR           => ,
---       SCI_READ           => ,
---       SCI_WRITE          => ,
---       SCI_ACK            => ,
---       SCI_NACK           => ,
+      SCI_DATA_IN        => (others => '0'),
+      SCI_DATA_OUT       => open,
+      SCI_ADDR           => (others => '0'),
+      SCI_READ           => '0',
+      SCI_WRITE          => '0',
+      SCI_ACK            => open,
+      SCI_NACK           => open,
       
       -- Status and control port
       STAT_OP            => phy_stat_op,
@@ -319,7 +333,9 @@ begin
       CTRL_DEBUG         => phy_ctrl_debug
    );
 
+   SFP_RATESEL   <= (others => '1');
    LED_LINKOK(1) <= cbm_link_active;
+   LED_LINKOK(2) <= cbm_SERDES_ready;
    LED_RX(1)     <= phy_stat_op(10);
    LED_TX(1)     <= phy_stat_op(11);
 
@@ -359,23 +375,25 @@ begin
       SERDES_ready => cbm_SERDES_ready
    );
 
-  TEST_LINE(7 downto 0)   <= cbm_data_from_link(7 downto 0);
-  TEST_LINE(8)            <= cbm_SERDES_ready;
-  TEST_LINE(9)            <= cbm_link_active;
---TEST_LINE(10) see FEE/MST switch below
-  TEST_LINE(11)           <= rreset_i;
-  TEST_LINE(15 downto 12) <= (others => '0');
+   TEST_LINE(7 downto 0)   <= phy_stat_debug(7 downto 0);
+   TEST_LINE(8)            <= cbm_SERDES_ready;
+   TEST_LINE(9)            <= cbm_link_active;
+ --TEST_LINE(10) see FEE/MST switch below
+   TEST_LINE(11)           <= rreset_i;
+   TEST_LINE(15 downto 12) <= (others => '0');
 
-   GEN_FEE_TEST_LOGIC: if CBM_FEE_MODE generate
+   GEN_FEE_TEST_LOGIC: if CBM_FEE_MODE = c_YES generate
       TEST_LINE(10)           <= cbm_dlm_rec_va;
    end generate;
 
 
-   GEN_MST_TEST_LOGIC: if not CBM_FEE_MODE generate
-      process(rclk_125_i) is
+   GEN_MST_TEST_LOGIC: if CBM_FEE_MODE = c_NO generate
+      process is
          constant counter_max : integer := 1250000;
          variable counter : integer range 0 to counter_max := 0;
       begin
+         wait until rising_edge(rclk_125_i);
+      
          cbm_dlm2send_va <= '0';
          if rreset_i = '1' then
             counter := 1;
@@ -392,7 +410,37 @@ begin
       TEST_LINE(10) <= cbm_dlm2send_va;
    end generate;
    
+   PROC_REGIO_DEBUG: process is 
+      variable address : integer range 0 to 255;
+   begin
+      wait until rising_edge(clk_100_i);
+      address := to_integer(unsigned(debug_addr));
+      
+      debug_data_out <= x"00000000";
+      debug_ack <= '0';
+      
+      debug_ack <= debug_read_en or debug_write_en;
+      case (address) is
+         when 0 => debug_data_out <= x"0000" & phy_stat_op;
+         when 1 => debug_data_out <= x"0000" & phy_ctrl_op;
+         when 2 => debug_data_out <= phy_stat_debug(31 downto  0);
+         when 3 => debug_data_out <= phy_stat_debug(63 downto 32);
+         when 4 => debug_data_out <= phy_ctrl_debug(31 downto  0);
+         when 5 => debug_data_out <= phy_ctrl_debug(63 downto 32);
+         when others => debug_ack <= '0';
+      end case;
    
+      if debug_write_en = '1' then
+         case (address) is
+            when 1 => phy_ctrl_op <= debug_data_in(15 downto 0);
+            when 4 => phy_ctrl_debug(31 downto  0) <= debug_data_in;
+            when 5 => phy_ctrl_debug(63 downto 32) <= debug_data_in;
+            when others => debug_ack <= '0';
+         end case;
+      end if;
+   end process;
+      
+      
 ---------------------------------------------------------------------------
 -- Reset Generation
 ---------------------------------------------------------------------------
@@ -425,8 +473,10 @@ begin
       CLK   => CLK_GPLL_RIGHT,
       CLKOP => clk_100_i,
       CLKOK => clk_200_i,
-      LOCK  => pll_lock
+      LOCK  => pll_lock1
       );
+      
+   pll_lock <= pll_lock1; -- and pll_lock2;
 
 
 ---------------------------------------------------------------------------
@@ -436,7 +486,9 @@ begin
     generic map(
       SERDES_NUM  => 1,                 --number of serdes in quad
       EXT_CLOCK   => c_NO,              --use internal clock
-      USE_200_MHZ => c_YES              --run on 200 MHz clock
+      USE_200_MHZ => c_YES,             --run on 200 MHz clock
+      USE_125_MHZ => c_NO,
+      USE_CTC     => c_NO
       )
     port map(
       CLK                => clk_200_i,
@@ -483,9 +535,9 @@ begin
       BROADCAST_SPECIAL_ADDR    => x"45",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
       REGIO_HARDWARE_VERSION    => x"91000001",
-      REGIO_INIT_ADDRESS        => x"f300",
+      REGIO_INIT_ADDRESS        => x"f301",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
-      CLOCK_FREQUENCY           => 125,
+      CLOCK_FREQUENCY           => 100,
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
       DATA_INTERFACE_NUMBER     => 1,
@@ -584,21 +636,13 @@ begin
       );
 
 ---------------------------------------------------------------------------
--- AddOn
----------------------------------------------------------------------------
---   DQLL <= (others => '0');
---   DQUL <= (others => '0');
---   DQLR <= (others => '0');
---   DQUR <= (others => '0');
-
----------------------------------------------------------------------------
 -- Bus Handler
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 2,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, others => 0)
+      PORT_NUMBER    => 3,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"a000", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 6, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -641,6 +685,20 @@ begin
       BUS_NO_MORE_DATA_IN(1)              => '0',
       BUS_UNKNOWN_ADDR_IN(1)              => '0',
 
+      --Bus Handler (SPI CTRL)
+      BUS_READ_ENABLE_OUT(2)              => debug_read_en,
+      BUS_WRITE_ENABLE_OUT(2)             => debug_write_en,
+      BUS_DATA_OUT(2*32+31 downto 2*32)   => debug_data_in,
+      BUS_ADDR_OUT(2*16+5 downto 2*16)    => debug_addr,
+      BUS_ADDR_OUT(2*16+15 downto 2*16+6) => open,
+      BUS_TIMEOUT_OUT(2)                  => open,
+      BUS_DATA_IN(2*32+31 downto 2*32)    => debug_data_out,
+      BUS_DATAREADY_IN(2)                 => debug_ack,
+      BUS_WRITE_ACK_IN(2)                 => debug_ack,
+      BUS_NO_MORE_DATA_IN(2)              => '0',
+      BUS_UNKNOWN_ADDR_IN(2)              => '0',
+      
+      
       STAT_DEBUG => open
       );
 
@@ -724,5 +782,4 @@ begin
     wait until rising_edge(clk_100_i);
     time_counter <= time_counter + 1;
   end process;
-
 end architecture;
