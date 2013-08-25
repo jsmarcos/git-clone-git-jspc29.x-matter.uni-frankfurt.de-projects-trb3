@@ -1,0 +1,213 @@
+BLOCK RESETPATHS ;
+BLOCK ASYNCPATHS ;
+BLOCK RD_DURING_WR_PATHS ;
+
+#################################################################
+# Basic Settings
+#################################################################
+
+#   SYSCONFIG MCCLK_FREQ = 2.5;
+
+  FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
+  FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;
+  FREQUENCY PORT CLK_GPLL_RIGHT 200 MHz;
+  FREQUENCY PORT CLK_GPLL_LEFT  125 MHz;
+
+#################################################################
+# Clock I/O
+#################################################################
+LOCATE COMP  "CLK_PCLK_RIGHT"       SITE "U20";
+LOCATE COMP  "CLK_PCLK_LEFT"        SITE "M4";
+LOCATE COMP  "CLK_SERDES_INT_RIGHT" SITE "AC18";
+LOCATE COMP  "CLK_SERDES_INT_LEFT"  SITE "AC10";
+LOCATE COMP  "CLK_GPLL_RIGHT"       SITE "W1";
+LOCATE COMP  "CLK_GPLL_LEFT"        SITE "U25";
+
+DEFINE PORT GROUP "CLK_group" "CLK*" ;
+IOBUF GROUP  "CLK_group" IO_TYPE=LVDS25;
+
+
+#################################################################
+# Trigger I/O
+#################################################################
+
+#Trigger from fan-out
+LOCATE COMP  "TRIGGER_LEFT"   SITE "V3";
+LOCATE COMP  "TRIGGER_RIGHT"   SITE "N24";
+IOBUF  PORT  "TRIGGER_RIGHT" IO_TYPE=LVDS25 ; 
+IOBUF  PORT  "TRIGGER_LEFT"  IO_TYPE=LVDS25 ;
+
+
+
+
+#################################################################
+# To central FPGA
+#################################################################
+
+LOCATE COMP  "FPGA5_COMM_0"   SITE "AD4";
+LOCATE COMP  "FPGA5_COMM_1"   SITE "AE3";
+LOCATE COMP  "FPGA5_COMM_2"   SITE "AA7";
+LOCATE COMP  "FPGA5_COMM_3"   SITE "AB7";
+LOCATE COMP  "FPGA5_COMM_4"   SITE "AD3";
+LOCATE COMP  "FPGA5_COMM_5"   SITE "AC4";
+LOCATE COMP  "FPGA5_COMM_6"   SITE "AE2";
+LOCATE COMP  "FPGA5_COMM_7"   SITE "AF3";
+LOCATE COMP  "FPGA5_COMM_8"   SITE "AE4";
+LOCATE COMP  "FPGA5_COMM_9"   SITE "AF4";
+LOCATE COMP  "FPGA5_COMM_10"  SITE "V10";
+LOCATE COMP  "FPGA5_COMM_11"  SITE "W10";
+DEFINE PORT GROUP "FPGA_group" "FPGA*" ;
+IOBUF GROUP "FPGA_group" IO_TYPE=LVCMOS25 PULLMODE=UP ;
+
+LOCATE COMP  "TEST_LINE_0"   SITE "A5";
+LOCATE COMP  "TEST_LINE_1"   SITE "A6";
+LOCATE COMP  "TEST_LINE_2"   SITE "G8";
+LOCATE COMP  "TEST_LINE_3"   SITE "F9";
+LOCATE COMP  "TEST_LINE_4"   SITE "D9";
+LOCATE COMP  "TEST_LINE_5"   SITE "D10";
+LOCATE COMP  "TEST_LINE_6"   SITE "F10";
+LOCATE COMP  "TEST_LINE_7"   SITE "E10";
+LOCATE COMP  "TEST_LINE_8"   SITE "A8";
+LOCATE COMP  "TEST_LINE_9"   SITE "B8";
+LOCATE COMP  "TEST_LINE_10"  SITE "G10";
+LOCATE COMP  "TEST_LINE_11"  SITE "G9";
+LOCATE COMP  "TEST_LINE_12"  SITE "C9";
+LOCATE COMP  "TEST_LINE_13"  SITE "C10";
+LOCATE COMP  "TEST_LINE_14"  SITE "H10";
+LOCATE COMP  "TEST_LINE_15"  SITE "H11";
+DEFINE PORT GROUP "TEST_LINE_group" "TEST_LINE*" ;
+IOBUF GROUP "TEST_LINE_group" IO_TYPE=LVCMOS25 PULLMODE=DOWN DRIVE=12;
+
+#################################################################
+# Connection to AddOn
+#################################################################
+
+LOCATE COMP  "LED_LINKOK_1"  SITE "P1";     #DQLL0_0   #1
+LOCATE COMP  "LED_RX_1"      SITE "P2";     #DQLL0_1   #3
+LOCATE COMP  "LED_TX_1"      SITE "T2";     #DQLL0_2   #5
+LOCATE COMP  "SFP_MOD0_1"    SITE "U3";     #DQLL0_3   #7
+LOCATE COMP  "SFP_MOD1_1"    SITE "R1";     #DQLL0_4   #9
+LOCATE COMP  "SFP_MOD2_1"    SITE "R2";     #DQLL0_5   #11
+LOCATE COMP  "SFP_RATESEL_1" SITE "N3";     #DQSLL0_T  #13
+LOCATE COMP  "SFP_TXDIS_1"   SITE "P3";     #DQSLL0_C  #15
+LOCATE COMP  "SFP_LOS_1"     SITE "P5";     #DQLL0_6   #17
+LOCATE COMP  "SFP_TXFAULT_1" SITE "P6";     #DQLL0_7   #19
+
+LOCATE COMP  "LED_LINKOK_2"  SITE "N5";     #DQLL0_8   #21
+LOCATE COMP  "LED_RX_2"      SITE "N6";     #DQLL0_9   #23
+LOCATE COMP  "LED_TX_2"      SITE "AC2";    #DQLL2_0   #25
+LOCATE COMP  "SFP_MOD0_2"    SITE "AC3";    #DQLL2_1   #27
+LOCATE COMP  "SFP_MOD1_2"    SITE "AB1";    #DQLL2_2   #29
+LOCATE COMP  "SFP_MOD2_2"    SITE "AC1";    #DQLL2_3   #31
+LOCATE COMP  "SFP_RATESEL_2" SITE "AA1";    #DQLL2_4   #33
+LOCATE COMP  "SFP_TXDIS_2"   SITE "AA2";    #DQLL2_5   #35
+LOCATE COMP  "SFP_LOS_2"     SITE "W7";     #DQLL2_T   #37  #should be DQSLL2
+LOCATE COMP  "SFP_TXFAULT_2" SITE "W6";     #DQLL2_C   #39  #should be DQSLL2
+
+LOCATE COMP  "LED_LINKOK_3"    SITE "AD1";    #DQLL3_0   #2
+LOCATE COMP  "LED_RX_3"        SITE "AD2";    #DQLL3_1   #4
+LOCATE COMP  "LED_TX_3"        SITE "AB5";    #DQLL3_2   #6
+LOCATE COMP  "SFP_MOD0_3"      SITE "AB6";    #DQLL3_3   #8
+LOCATE COMP  "SFP_MOD1_3"      SITE "AB3";    #DQLL3_4   #10
+LOCATE COMP  "SFP_MOD2_3"      SITE "AB4";    #DQLL3_5   #12
+LOCATE COMP  "SFP_RATESEL_3"   SITE "Y6";     #DQLL3_T   #14  #should be DQSLL3
+LOCATE COMP  "SFP_TXDIS_3"     SITE "Y7";     #DQLL3_C   #16  #should be DQSLL3
+LOCATE COMP  "SFP_LOS_3"       SITE "AA3";    #DQLL3_6   #18
+LOCATE COMP  "SFP_TXFAULT_3"   SITE "AA4";    #DQLL3_7   #20
+
+LOCATE COMP  "LED_LINKOK_4"    SITE "W8";     #DQLL3_8   #22
+LOCATE COMP  "LED_RX_4"        SITE "W9";     #DQLL3_9   #24
+LOCATE COMP  "LED_TX_4"        SITE "V1";     #DQLL1_0   #26
+LOCATE COMP  "SFP_MOD0_4"      SITE "U2";     #DQLL1_1   #28
+LOCATE COMP  "SFP_MOD1_4"      SITE "T1";     #DQLL1_2   #30
+LOCATE COMP  "SFP_MOD2_4"      SITE "U1";     #DQLL1_3   #32
+LOCATE COMP  "SFP_RATESEL_4"   SITE "P4";     #DQLL1_4   #34
+LOCATE COMP  "SFP_TXDIS_4"     SITE "R3";     #DQLL1_5   #36
+LOCATE COMP  "SFP_LOS_4"       SITE "T3";     #DQSLL1_T  #38
+LOCATE COMP  "SFP_TXFAULT_4"   SITE "R4";     #DQSLL1_C  #40
+
+
+
+LOCATE COMP  "LED_LINKOK_5"   SITE "W23";    #DQLR1_0   #169
+LOCATE COMP  "LED_RX_5"       SITE "W22";    #DQLR1_1   #171
+LOCATE COMP  "LED_TX_5"       SITE "AA25";   #DQLR1_2   #173
+LOCATE COMP  "SFP_MOD0_5"     SITE "Y24";    #DQLR1_3   #175
+LOCATE COMP  "SFP_MOD1_5"     SITE "AA26";   #DQLR1_4   #177
+LOCATE COMP  "SFP_MOD2_5"     SITE "AB26";   #DQLR1_5   #179
+LOCATE COMP  "SFP_RATESEL_5"  SITE "W21";    #DQSLR1_T  #181
+LOCATE COMP  "SFP_TXDIS_5"    SITE "W20";    #DQSLR1_C  #183
+LOCATE COMP  "SFP_LOS_5"      SITE "AA24";   #DQLR1_6   #185
+LOCATE COMP  "SFP_TXFAULT_5"  SITE "AA23";   #DQLR1_7   #187
+
+LOCATE COMP  "LED_LINKOK_6"   SITE "R25";    #DQLR2_0   #170
+LOCATE COMP  "LED_RX_6"       SITE "R26";    #DQLR2_1   #172
+LOCATE COMP  "LED_TX_6"       SITE "T25";    #DQLR2_2   #174
+LOCATE COMP  "SFP_MOD0_6"     SITE "T24";    #DQLR2_3   #176
+LOCATE COMP  "SFP_MOD1_6"     SITE "T26";    #DQLR2_4   #178
+LOCATE COMP  "SFP_MOD2_6"     SITE "U26";    #DQLR2_5   #180
+LOCATE COMP  "SFP_RATESEL_6"  SITE "V21";    #DQSLR2_T  #182
+LOCATE COMP  "SFP_TXDIS_6"    SITE "V22";    #DQSLR2_C  #184
+LOCATE COMP  "SFP_LOS_6"      SITE "U24";    #DQLR2_6   #186
+LOCATE COMP  "SFP_TXFAULT_6"  SITE "V24";    #DQLR2_7   #188
+
+
+DEFINE PORT GROUP "SFP_group" "SFP*" ;
+IOBUF GROUP "SFP_group" IO_TYPE=LVCMOS25 PULLMODE=UP;
+
+
+#################################################################
+# Additional Lines to AddOn
+#################################################################
+
+#Lines 0/1 are terminated with 100 Ohm, pads available on 0-3
+#all lines are input only
+#line 4/5 go to PLL input
+LOCATE COMP  "SPARE_LINE_0"    SITE "M25"; #194
+LOCATE COMP  "SPARE_LINE_1"    SITE "M26"; #196
+LOCATE COMP  "SPARE_LINE_2"    SITE "W4";  #198
+LOCATE COMP  "SPARE_LINE_3"    SITE "W5";  #200
+LOCATE COMP  "SPARE_LINE_4"    SITE "M3";  #DQUL3_8_OUTOFLANE_FPGA__3 #69
+LOCATE COMP  "SPARE_LINE_5"    SITE "M2";  #DQUL3_9_OUTOFLANE_FPGA__3 #71  
+
+#################################################################
+# Flash ROM and Reboot
+#################################################################
+
+LOCATE COMP  "FLASH_CLK"    SITE "B12";
+LOCATE COMP  "FLASH_CS"   SITE "E11";
+LOCATE COMP  "FLASH_DIN"   SITE "E12";
+LOCATE COMP  "FLASH_DOUT"    SITE "A12";
+
+DEFINE PORT GROUP "FLASH_group" "FLASH*" ;
+IOBUF GROUP "FLASH_group" IO_TYPE=LVCMOS25 PULLMODE=NONE;
+
+LOCATE COMP  "PROGRAMN"   SITE "B11";
+IOBUF  PORT "PROGRAMN" IO_TYPE=LVCMOS25 PULLMODE=UP DRIVE=8  ;
+
+
+#################################################################
+# Misc
+#################################################################
+LOCATE COMP  "TEMPSENS"    SITE "A13";
+IOBUF  PORT "TEMPSENS" IO_TYPE=LVCMOS25 PULLMODE=UP DRIVE=8  ;
+
+#coding of FPGA number
+LOCATE COMP "CODE_LINE_1"    SITE "AA20";
+LOCATE COMP "CODE_LINE_0"    SITE "Y21";
+IOBUF  PORT "CODE_LINE_1" IO_TYPE=LVCMOS25 PULLMODE=UP  ;
+IOBUF  PORT "CODE_LINE_0" IO_TYPE=LVCMOS25 PULLMODE=UP  ;
+
+#terminated differential pair to pads
+LOCATE COMP  "SUPPL"   SITE "C14";
+IOBUF  PORT "SUPPL" IO_TYPE=LVDS25   ;
+
+
+#################################################################
+# LED
+#################################################################
+LOCATE COMP  "LED_GREEN"    SITE "F12";
+LOCATE COMP  "LED_ORANGE"   SITE "G13";
+LOCATE COMP  "LED_RED"      SITE "A15";
+LOCATE COMP  "LED_YELLOW"   SITE "A16";
+DEFINE PORT GROUP "LED_group" "LED*" ;
+IOBUF GROUP "LED_group" IO_TYPE=LVCMOS25 PULLMODE=NONE DRIVE=12;

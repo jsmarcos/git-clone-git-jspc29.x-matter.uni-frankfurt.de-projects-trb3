@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+rm -rf workdir
+mkdir workdir
+cd workdir
+../../base/linkdesignfiles.sh
+ln -s ../cores/cbmnet_sfp1.txt cbmnet_sfp1.txt
