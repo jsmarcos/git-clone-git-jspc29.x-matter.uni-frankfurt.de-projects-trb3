@@ -4,28 +4,30 @@
 --
 -- Niklaus Berger, Heidelberg University
 -- nberger@physi.uni-heidelberg.de
---
--- 
---
+--Changed to TRB3 readout by T. Weber, University Mainz
 -----------------------------------------------------------------------------
 
 library ieee;
 use ieee.std_logic_1164.all;
-use ieee.std_logic_unsigned.all;
+use ieee.numeric_std.all;
 
-use work.mupix_comp.all;
+use work.mupix_components.all;
 
 entity spi_if is
   port(
-    clk            : in  std_logic;
-    reset_n        : in  std_logic;
-    threshold_reg  : in  std_logic_vector(15 downto 0);
-    injection1_reg : in  std_logic_vector(15 downto 0);
-    injection2_reg : in  std_logic_vector(15 downto 0);
-    wren           : in  std_logic;
-    spi_data       : out std_logic;
-    spi_clk        : out std_logic;
-    spi_ld         : out std_logic
+    clk                  : in  std_logic;
+    reset_n              : in  std_logic;
+    SLV_READ_IN          : in  std_logic;
+    SLV_WRITE_IN         : in  std_logic;
+    SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
+    SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
+    SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
+    SLV_ACK_OUT          : out std_logic;
+    SLV_NO_MORE_DATA_OUT : out std_logic;
+    SLV_UNKNOWN_ADDR_OUT : out std_logic;
+    spi_data             : out std_logic;
+    spi_clk              : out std_logic;
+    spi_ld               : out std_logic
     );          
 end entity spi_if;
 
@@ -39,11 +41,15 @@ architecture rtl of spi_if is
   signal shiftregister : std_logic_vector(47 downto 0);
   signal write_again   : std_logic;
 
-  signal ckdiv : std_logic_vector(4 downto 0);
+  signal ckdiv : unsigned(5 downto 0);
+
+  signal injection2_reg : std_logic_vector(15 downto 0) := (others => '0');
+  signal injection1_reg : std_logic_vector(15 downto 0);
+  signal threshold_reg  : std_logic_vector(15 downto 0);
+  signal wren           : std_logic;
 
 
-
-  signal cyclecounter : std_logic_vector(7 downto 0);
+  signal cyclecounter : unsigned(7 downto 0);
 
 begin
 
@@ -78,9 +84,9 @@ begin
             write_again <= '1';
           end if;
 
-          ckdiv <= ckdiv + '1';
-          if(ckdiv = "00000") then
-            cyclecounter <= cyclecounter + '1';
+          ckdiv <= ckdiv + 1;
+          if(ckdiv = "000000") then
+            cyclecounter <= cyclecounter + 1;
             if(cyclecounter(0) = '0') then  -- even cycles: push data, clock at '0'
               spi_data                   <= shiftregister(47);
               shiftregister(47 downto 1) <= shiftregister(46 downto 0);
@@ -100,9 +106,9 @@ begin
           if(wren = '1') then
             write_again <= '1';
           end if;
-          ckdiv <= ckdiv + '1';
+          ckdiv <= ckdiv + 1;
           if(ckdiv = "00000") then
-            cyclecounter <= cyclecounter + '1';
+            cyclecounter <= cyclecounter + 1;
             if(cyclecounter = "00000000") then
               spi_ld <= '1';
             elsif(cyclecounter = "00000001") then
@@ -115,5 +121,53 @@ begin
       end case;
     end if;
   end process;
+
+  -----------------------------------------------------------------------------
+  --TRB slave bus
+  --x0040: Threshold-DAC Register 16 bits
+  --x0041: Injection-DACs Register 32 bits
+  --x0042: WriteControl Register bit0: Write DACs
+  -----------------------------------------------------------------------------
+  SLV_HANDLER : process
+  begin  -- process SLV_HANDLER
+    wait until rising_edge(clk);
+    SLV_DATA_OUT         <= (others => '0');
+    SLV_UNKNOWN_ADDR_OUT <= '0';
+    SLV_NO_MORE_DATA_OUT <= '0';
+    SLV_ACK_OUT          <= '0';
+
+    if SLV_READ_IN = '1' then
+      case SLV_ADDR_IN is
+        when x"0040" =>
+          SLV_DATA_OUT <= x"0000" & threshold_reg;
+          SLV_ACK_OUT  <= '1';
+        when x"0041" =>
+          SLV_DATA_OUT <= injection2_reg & injection1_reg;
+          SLV_ACK_OUT  <= '1';
+        when x"0042" =>
+          SLV_DATA_OUT(0) <= wren;
+          SLV_ACK_OUT     <= '1';
+        when others =>
+          SLV_UNKNOWN_ADDR_OUT <= '1';
+      end case;
+    end if;
+
+    if SLV_WRITE_IN = '1' then
+      case SLV_ADDR_IN is
+        when x"0040" =>
+          threshold_reg <= SLV_DATA_IN(15 downto 0);
+          SLV_ACK_OUT  <= '1';
+        when x"0041" =>
+          injection2_reg <= SLV_DATA_IN(31 downto 16);
+          injection1_reg <= SLV_DATA_IN(15 downto 0);
+          SLV_ACK_OUT  <= '1';
+        when x"0042" =>
+          wren <= SLV_DATA_IN(0);
+          SLV_ACK_OUT     <= '1';
+        when others =>
+          SLV_UNKNOWN_ADDR_OUT <= '1';
+      end case;
+    end if;
+  end process SLV_HANDLER;
 
 end rtl;
