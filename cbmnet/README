@@ -1,0 +1,5 @@
+This project aims to integrated the CBMNet implementation developed at (http://ra.ziti.uni-heidelberg.de/index.php) into the TRB3.
+
+The CBMNet source is not included into the TRB3-Git-Repo and can be obtained at https://subversion.gsi.de/cbmsoft/firmware/trunk.
+Make sure the symbolic link "cbmnet" points at the svn-repo. If not existing the link is create within the first compile run pointing
+at ../../cbmnet.

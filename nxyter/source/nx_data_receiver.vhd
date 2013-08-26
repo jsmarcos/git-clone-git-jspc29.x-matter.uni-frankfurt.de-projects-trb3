@@ -133,6 +133,7 @@ architecture Behavioral of nx_data_receiver is
   signal adc_reset         : std_logic;
   
   signal adc_data          : std_logic_vector(11 downto 0);
+  signal test_adc_data     : std_logic_vector(11 downto 0);
   signal adc_data_valid    : std_logic;
 
   signal adc_data_t               : std_logic_vector(11 downto 0);
@@ -167,14 +168,15 @@ begin
 
   DEBUG_OUT(0)            <= CLK_IN;
   DEBUG_OUT(2 downto 1)   <= STATE_d;
-  DEBUG_OUT(3)            <= nx_new_timestamp;
-  DEBUG_OUT(4)            <= adc_new_data;
-  DEBUG_OUT(5)            <= new_data_o;
-  DEBUG_OUT(6)            <= nx_fifo_data_valid;
-  DEBUG_OUT(7)            <= valid_data_d;--(others => '0');
-  DEBUG_OUT(15 downto 8)  <= nx_timestamp_reg;
+  DEBUG_OUT(3)            <= adc_data_valid; -- nx_new_timestamp;
+  --DEBUG_OUT(4)            <= adc_new_data;
+  --DEBUG_OUT(5)            <= new_data_o;
+  --DEBUG_OUT(6)            <= nx_fifo_data_valid;
+  --DEBUG_OUT(7)            <= valid_data_d;--(others => '0');
+  --DEBUG_OUT(15 downto 8)  <= nx_timestamp_reg;
   --DEBUG_OUT(15 downto 8)  <= (others => '0');
-
+  DEBUG_OUT(15 downto 4)  <= test_adc_data;
+  
   PROC_DEBUG: process(NX_TIMESTAMP_CLK_IN)
   begin
     if( rising_edge(NX_TIMESTAMP_CLK_IN) ) then
@@ -209,8 +211,8 @@ begin
       ADCCLK_OUT                 => ADC_SAMPLE_CLK_OUT,
 
       ADC_DATA(0)                => ADC_NX_IN(0), 
-      ADC_DATA(1)                => ADC_A_IN(0),
-      ADC_DATA(2)                => ADC_B_IN(0), 
+      ADC_DATA(1)                => ADC_B_IN(0),
+      ADC_DATA(2)                => ADC_A_IN(0), 
       ADC_DATA(3)                => ADC_D_IN(0), 
 
       ADC_DATA(4)                => ADC_NX_IN(1), 
@@ -222,7 +224,8 @@ begin
       ADC_FCO                    => ADC_FCLK_IN,
 
       DATA_OUT(11 downto  0)     => adc_data,
-      DATA_OUT(95 downto 12)     => open,
+      DATA_OUT(23 downto 12)     => test_adc_data,
+      DATA_OUT(95 downto 24)     => open,
 
       FCO_OUT                    => open,
       DATA_VALID_OUT(0)          => adc_data_valid,

@@ -72,7 +72,8 @@ architecture Behavioral of nx_event_buffer is
   signal fifo_write_enable  : std_logic;
 
   -- NOMORE_DATA RS FlipFlop
-  signal flush_end          : std_logic;
+  signal flush_end_enable_set : std_logic;
+  signal flush_end_enable     : std_logic;
   
   -- FIFO Read Handler
   signal fifo_o             : std_logic_vector(31 downto 0);
@@ -95,17 +96,16 @@ architecture Behavioral of nx_event_buffer is
   signal R_STATE : R_STATES;
 
   -- Event Buffer Output Handler
-  signal evt_data_clk          : std_logic;
-  signal evt_data_flushed      : std_logic;
-  
-  signal fifo_read_enable_f    : std_logic;
-  signal fifo_read_enable_f2   : std_logic;
-  signal fifo_flush_ctr        : unsigned(10 downto 0);
-
-  signal evt_data_flushed_x    : std_logic;
-  signal fifo_flush_ctr_x      : unsigned(10 downto 0);
-  signal flush_end_reset    : std_logic;
-  signal flush_end_reset_x  : std_logic;
+  signal evt_data_clk              : std_logic;
+  signal evt_data_flushed          : std_logic;
+                                   
+  signal fifo_read_enable_f        : std_logic;
+  signal fifo_read_enable_f2       : std_logic;
+  signal fifo_flush_ctr            : unsigned(10 downto 0);
+                                   
+  signal evt_data_flushed_x        : std_logic;
+  signal fifo_flush_ctr_x          : unsigned(10 downto 0);
+  signal flush_end_enable_reset_x  : std_logic;
 
   type F_STATES is (F_IDLE,
                     F_FLUSH,
@@ -124,12 +124,10 @@ architecture Behavioral of nx_event_buffer is
 
   signal data_wait             : std_logic;
 
-  signal evt_data_flush_r      : std_logic;
-
 begin
 
   DEBUG_OUT(0)           <= CLK_IN;
-  --DEBUG_OUT(1)           <= evt_data_flush_r;
+  DEBUG_OUT(1)           <= '0';
   DEBUG_OUT(2)           <= evt_data_clk;
   DEBUG_OUT(3)           <= fifo_empty;
   DEBUG_OUT(4)           <= fifo_read_enable;
@@ -139,7 +137,9 @@ begin
   --DEBUG_OUT(15 downto 8) <= evt_data_o(31 downto 24);
 
   DEBUG_OUT(8)           <= LVL2_TRIGGER_IN;
-  DEBUG_OUT(11 downto 9) <= (others => '0');
+  DEBUG_OUT(9)           <= evt_data_flushed;
+  DEBUG_OUT(10)          <= FAST_CLEAR_IN;
+  DEBUG_OUT(12)          <= flush_end_enable;
   DEBUG_OUT(13)          <= fee_data_write_o;
   DEBUG_OUT(14)          <= fee_data_finished_o;
   DEBUG_OUT(15)          <= FEE_DATA_ALMOST_FULL_IN;
@@ -152,39 +152,47 @@ begin
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
+        evt_data_flush       <= '0';
         fee_data_finished_o  <= '0';
         trigger_busy_o       <= '0';
         STATE                <= S_IDLE;
       else
+        evt_data_flush       <= '0';
         fee_data_finished_o  <= '0';
         trigger_busy_o       <= '1';
-
-        case STATE is
-          when S_IDLE =>
-            if (NXYTER_OFFLINE_IN = '1') then
-              fee_data_finished_o        <= '1';
-              trigger_busy_o             <= '0';
-              STATE                      <= S_IDLE;
-            elsif (LVL2_TRIGGER_IN = '1') then
-              evt_data_flush             <= '1';
-              STATE                      <= S_FLUSH_BUFFER_WAIT;
-            else
-              trigger_busy_o             <= '0';
-              STATE                      <= S_IDLE;
-            end if;
-            
-          when S_FLUSH_BUFFER_WAIT =>
-            if (evt_data_flushed = '0') then
-              STATE                      <= S_FLUSH_BUFFER_WAIT;
-            else                         
-              fee_data_finished_o        <= '1';
-              STATE                      <= S_IDLE;
-            end if;                      
-            
-        end case;
+        DEBUG_OUT(11)          <= '0';
+        
+        if (FAST_CLEAR_IN = '1') then
+          fee_data_finished_o        <= '1';
+          STATE                      <= S_IDLE;
+        else
+          case STATE is
+            when S_IDLE =>
+              if (NXYTER_OFFLINE_IN = '1') then
+                fee_data_finished_o        <= '1';
+                trigger_busy_o             <= '0';
+                STATE                      <= S_IDLE;
+              elsif (LVL2_TRIGGER_IN = '1') then
+                evt_data_flush             <= '1';
+                STATE                      <= S_FLUSH_BUFFER_WAIT;
+              else
+                trigger_busy_o             <= '0';
+                STATE                      <= S_IDLE;
+              end if;
+              
+            when S_FLUSH_BUFFER_WAIT =>
+              DEBUG_OUT(11)          <= '1';
+              if (evt_data_flushed = '0') then
+                STATE                      <= S_FLUSH_BUFFER_WAIT;
+              else                         
+                fee_data_finished_o        <= '1';
+                STATE                      <= S_IDLE;
+              end if;                      
+              
+          end case;
+        end if;
       end if;
     end if;
-
   end process PROC_DATA_HANDLER;
 
   -----------------------------------------------------------------------------
@@ -226,37 +234,37 @@ begin
     end if;
   end process PROC_FIFO_WRITE_HANDLER;
 
-  PROC_FLUSH_END_RS: process(CLK_IN)
+  PROC_FLUSH_END_RS_FF: process(CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then
-      if( RESET_IN = '1' or flush_end_reset = '1') then
-        flush_end <= '0';
+      if( RESET_IN = '1' or flush_end_enable_reset_x = '1') then
+        flush_end_enable <= '0';
       else
-        if (EVT_NOMORE_DATA_IN = '1') then
-          flush_end <= '1';
+        if (flush_end_enable_set = '1') then
+          flush_end_enable <= '1';
         end if;
       end if;
     end if;
-  end process PROC_FLUSH_END_RS;
-  
+  end process PROC_FLUSH_END_RS_FF;
+
+  flush_end_enable_set <= EVT_NOMORE_DATA_IN;  
+    
   PROC_FLUSH_BUFFER_TRANSFER: process(CLK_IN)
   begin 
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        evt_data_clk         <= '0';
-        evt_data_flushed     <= '0';
-        fifo_flush_ctr       <= (others => '0');
-        fifo_read_enable_f2  <= '0';
-        flush_end_reset      <= '0';
-        F_STATE              <= F_IDLE;
+        evt_data_clk           <= '0';
+        evt_data_flushed       <= '0';
+        fifo_flush_ctr         <= (others => '0');
+        fifo_read_enable_f2    <= '0';
+        F_STATE                <= F_IDLE;
       else
-        evt_data_flushed     <= evt_data_flushed_x;
-        fifo_flush_ctr       <= fifo_flush_ctr_x;
-        flush_end_reset      <= flush_end_reset_x;
-        F_STATE              <= F_NEXT_STATE;
+        evt_data_flushed       <= evt_data_flushed_x;
+        fifo_flush_ctr         <= fifo_flush_ctr_x;
+        F_STATE                <= F_NEXT_STATE;
 
-        fifo_read_enable_f2  <= fifo_read_enable_f;
-        evt_data_clk         <= fifo_read_enable_f2;
+        fifo_read_enable_f2    <= fifo_read_enable_f;
+        evt_data_clk           <= fifo_read_enable_f2;
       end if;
     end if;
   end process PROC_FLUSH_BUFFER_TRANSFER;
@@ -265,51 +273,51 @@ begin
                              evt_data_flush,
                              fifo_empty,
                              evt_data_clk,
-                             flush_end
+                             flush_end_enable
                              )
   begin
     -- Defaults
-    fifo_read_enable_f      <= '0';
-    fifo_flush_ctr_x        <= fifo_flush_ctr;
-    evt_data_flushed_x      <= '0';
-    flush_end_reset_x       <= '0';
+    fifo_read_enable_f        <= '0';
+    fifo_flush_ctr_x          <= fifo_flush_ctr;
+    evt_data_flushed_x        <= '0';
+    flush_end_enable_reset_x  <= '0';
 
     -- Multiplexer fee_data_o
     if (evt_data_clk = '1') then
-      fee_data_o                 <= fifo_o;
-      fee_data_write_o           <= '1';
+      fee_data_o                   <= fifo_o;
+      fee_data_write_o             <= '1';
     else
-      fee_data_o                 <= (others => '1');
-      fee_data_write_o           <= '0';
+      fee_data_o                   <= (others => '1');
+      fee_data_write_o             <= '0';
     end if;
     
     -- FIFO Read Handler
     case F_STATE is 
       when F_IDLE =>
         if (evt_data_flush = '1') then
-          fifo_flush_ctr_x       <= (others => '0');
-          flush_end_reset_x      <= '1';
-          F_NEXT_STATE           <= F_FLUSH;
+          fifo_flush_ctr_x         <= (others => '0');
+          flush_end_enable_reset_x <= '1';
+          F_NEXT_STATE             <= F_FLUSH;
         else
-          F_NEXT_STATE           <= F_IDLE; 
+          F_NEXT_STATE             <= F_IDLE; 
         end if;
             
       when F_FLUSH =>
         if (fifo_empty = '0') then
-          fifo_read_enable_f     <= '1';
-          fifo_flush_ctr_x       <= fifo_flush_ctr + 1; 
-          F_NEXT_STATE           <= F_FLUSH; 
+          fifo_read_enable_f       <= '1';
+          fifo_flush_ctr_x         <= fifo_flush_ctr + 1; 
+          F_NEXT_STATE             <= F_FLUSH; 
         else
-          if (flush_end = '0') then
-            F_NEXT_STATE         <= F_FLUSH;
+          if (flush_end_enable = '0') then
+            F_NEXT_STATE           <= F_FLUSH;
           else
-            F_NEXT_STATE         <= F_END;
+            F_NEXT_STATE           <= F_END;
           end if;
         end if;
 
       when F_END =>
-        evt_data_flushed_x       <= '1';
-        F_NEXT_STATE             <= F_IDLE;
+        evt_data_flushed_x         <= '1';
+        F_NEXT_STATE               <= F_IDLE;
         
     end case;
   end process PROC_FLUSH_BUFFER;
@@ -394,7 +402,6 @@ begin
                                
         fifo_read_start        <= '0';
         data_wait              <= '0';
-        evt_data_flush_r       <= '0'; 
       else                     
         slv_data_out_o         <= (others => '0');
         slv_ack_o              <= '0';
@@ -403,7 +410,6 @@ begin
                                
         fifo_read_start        <= '0';
         data_wait              <= '0';
-        evt_data_flush_r       <= '0';
         
         if (data_wait = '1') then
           if (fifo_read_done = '0') then
@@ -445,11 +451,6 @@ begin
             
         elsif (SLV_WRITE_IN  = '1') then
           case SLV_ADDR_IN is
-
-            when x"0000" =>
-              evt_data_flush_r             <= '1';
-              slv_ack_o                    <= '1';
-              
             when others  =>
               slv_unknown_addr_o           <= '1';              
               slv_ack_o                    <= '0';

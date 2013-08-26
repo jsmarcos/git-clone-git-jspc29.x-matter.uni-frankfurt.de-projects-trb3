@@ -202,7 +202,7 @@ begin
 
         if (new_timestamp = '1') then
           case valid_frame_bits is
-
+            
             -- Data Frame
             when "1000" =>
               ---- Check Overflow
