@@ -1,0 +1,14 @@
+#!/usr/bin/env perl
+print "Reset ... Takes a few seconds\n";
+system "trbcmd reset";
+print "Init\n";
+system "trbcmd s 0xa6000002e2e2df28  0x00 0x8000";
+system "trbcmd s 0x51000002e2e22828  0x01 0x9000";
+system "trbcmd s 0x72000002e2eb4628  0x02 0x8001";
+system "trbcmd s 0xb0000002e311b928  0x03 0x9001";
+system "trbcmd i 0xffff";
+
+print "Checks\n";
+my $ver_reg = "0xa006";
+print "\nWRONG VERSION IN MASTER\n" unless(`trbcmd r 0x8000 $ver_reg` =~ m/0x00000000/);
+print "\nWRONG VERSION IN SLAVE\n"  unless(`trbcmd r 0x8001 $ver_reg` =~ m/0x00000001/);
