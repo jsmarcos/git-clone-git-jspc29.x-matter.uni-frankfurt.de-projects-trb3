@@ -97,10 +97,13 @@ architecture Behavioral of nx_trigger_validate is
   signal t_data_o             : std_logic_vector(31 downto 0);
   signal t_data_clk_o         : std_logic;
   signal busy_time_ctr        : unsigned(11 downto 0);
-  
-  -- Timer
-  signal wait_timer_done      : std_logic;
+  signal busy_time_min_done   : std_logic;
+  signal wait_timer_reset     : std_logic;
 
+    -- Timer
+  signal timer_reset          : std_logic;
+  signal wait_timer_done      : std_logic;
+    
   -- Histogram
   signal histogram_fill_o     : std_logic;
   signal histogram_bin_o      : std_logic_vector(6 downto 0);
@@ -123,16 +126,19 @@ begin
 
   -- Debug Line
   DEBUG_OUT(0)            <= CLK_IN;
---  DEBUG_OUT(2)            <= trigger_busy_o;
---  DEBUG_OUT(3)            <= channel_all_done;
---  DEBUG_OUT(4)            <= data_clk_o;
---  DEBUG_OUT(5)            <= t_data_clk_o;
---  DEBUG_OUT(6)            <= out_of_window_l;
-  --DEBUG_OUT(7)            <= out_of_window_h;
-  --DEBUG_OUT(8)            <= NX_TOKEN_RETURN_IN;
-  --DEBUG_OUT(9)            <= NX_NOMORE_DATA_IN;
-  --DEBUG_OUT(10)           <= store_to_fifo;
-  DEBUG_OUT(15 downto 1)  <= SLV_ADDR_IN(15 downto 1);
+  DEBUG_OUT(2)            <= trigger_busy_o;
+  DEBUG_OUT(3)            <= channel_all_done;
+  DEBUG_OUT(4)            <= data_clk_o;
+  DEBUG_OUT(5)            <= t_data_clk_o;
+  DEBUG_OUT(6)            <= out_of_window_l;
+  DEBUG_OUT(7)            <= out_of_window_h;
+  DEBUG_OUT(8)            <= NX_TOKEN_RETURN_IN;
+  DEBUG_OUT(9)            <= NX_NOMORE_DATA_IN;
+  DEBUG_OUT(10)           <= store_to_fifo;
+  DEBUG_OUT(11)           <= wait_timer_done;
+  DEBUG_OUT(12)           <= timer_reset;
+  DEBUG_OUT(13)           <= busy_time_min_done;
+  DEBUG_OUT(15 downto 14) <= (others => '0');
   
   -- Timer
   nx_timer_1: nx_timer
@@ -141,11 +147,13 @@ begin
       )
     port map (
       CLK_IN         => CLK_IN,
-      RESET_IN       => RESET_IN,
+      RESET_IN       => timer_reset,
       TIMER_START_IN => wait_timer_init,
       TIMER_DONE_OUT => wait_timer_done
       );
 
+  timer_reset <= RESET_IN or wait_timer_reset;
+  
   -- Sync Timestamp Ref
   PROC_SYNC_TIMESTAMP_REF: process (CLK_IN)
   begin
@@ -169,7 +177,8 @@ begin
     variable window_lower_thr   : unsigned(11 downto 0);
     variable window_upper_thr   : unsigned(11 downto 0);
     variable deltaT             : unsigned(11 downto 0);
-
+    variable deltaTStore        : unsigned(11 downto 0);
+    
   begin 
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
@@ -195,10 +204,11 @@ begin
             window_lower_thr   := trigger_window_delay;
             window_upper_thr   := window_lower_thr + trigger_window_width;
             deltaT             := unsigned(TIMESTAMP_IN(13 downto 2)) - ts_ref;
-
+            deltaTStore        := deltaT - window_lower_thr;
+              
             window_lower_thr_r <= window_lower_thr;
             window_upper_thr_r <= window_upper_thr;
-
+            
             case readout_mode is
               
               when x"0" =>            -- RefValue + valid and window filter 
@@ -219,46 +229,56 @@ begin
                     -- IN LUT-Data bit setzten.
                     channel_index          <= CHANNEL_IN;
                     ch_status_cmd_pr       <= CS_SET_WAIT;
-                    
-                    data_o(11 downto  0)   <= deltaT;
-                    data_o(23 downto 12)   <= ADC_DATA_IN;
-                    data_o(30 downto 24)   <= CHANNEL_IN;
-                    data_o(31)             <= '0';
-                    data_clk_o <= '1';
+
+                    data_o( 6 downto  0)   <= CHANNEL_IN;
+                    data_o(7)              <= TIMESTAMP_STATUS_IN(1);
+                    data_o( 9 downto  8)   <= TIMESTAMP_IN(1 downto 0);
+                    data_o(18 downto  10)  <= deltaTStore(8 downto 0);
+                    data_o(30 downto 19)   <= ADC_DATA_IN;
+                    data_o(31)             <= TIMESTAMP_STATUS_IN(2);
+                    data_clk_o             <= '1';
                   end if;
                 end if;
                 
               when x"1" =>            -- RefValue + valid filter
                 if (TIMESTAMP_STATUS_IN(1) = '0') then
-                  data_o(11 downto  0)     <= deltaT;
-                  data_o(23 downto 12)     <= ADC_DATA_IN;
-                  data_o(30 downto 24)     <= CHANNEL_IN;
-                  data_o(31)               <= '0';
+                  data_o( 6 downto  0)     <= CHANNEL_IN;
+                  data_o(7)                <= TIMESTAMP_STATUS_IN(1);
+                  data_o( 9 downto  8)     <= TIMESTAMP_IN(1 downto 0);
+                  data_o(18 downto  10)    <= deltaTStore(8 downto 0);
+                  data_o(30 downto 19)     <= ADC_DATA_IN;
+                  data_o(31)               <= TIMESTAMP_STATUS_IN(2);
                   data_clk_o               <= '1';
                 end if;
 
               when x"3" =>            -- RefValue + valid filter
                 if (TIMESTAMP_STATUS_IN(1) = '0') then
-                  data_o(11 downto  0)     <= TIMESTAMP_IN(13 downto 2);
-                  data_o(23 downto 12)     <= ADC_DATA_IN;
-                  data_o(30 downto 24)     <= CHANNEL_IN;
-                  data_o(31)               <= '0';
+                  data_o( 6 downto  0)     <= CHANNEL_IN;
+                  data_o(7)                <= TIMESTAMP_STATUS_IN(1);
+                  data_o( 9 downto  8)     <= TIMESTAMP_IN(1 downto 0);
+                  data_o(18 downto  10)    <= deltaTStore(8 downto 0);
+                  data_o(30 downto 19)     <= ADC_DATA_IN;
+                  data_o(31)               <= TIMESTAMP_STATUS_IN(2);
                   data_clk_o <= '1';
                 end if;
                 
               when x"4" =>            -- RawValue
-                data_o(11 downto  0)       <= TIMESTAMP_IN(13 downto 2);
-                data_o(23 downto 12)       <= ADC_DATA_IN;
-                data_o(30 downto 24)       <= CHANNEL_IN;
-                data_o(31)                 <= '0';
+                data_o( 6 downto  0)       <= CHANNEL_IN;
+                data_o(7)                  <= TIMESTAMP_STATUS_IN(1);
+                data_o( 9 downto  8)       <= TIMESTAMP_IN(1 downto 0);
+                data_o(18 downto  10)      <= deltaTStore(8 downto 0);
+                data_o(30 downto 19)       <= ADC_DATA_IN;
+                data_o(31)                 <= TIMESTAMP_STATUS_IN(2);
                 data_clk_o                 <= '1';
 
               when x"5" =>            -- RawValue + valid filter
                 if (TIMESTAMP_STATUS_IN(1) = '0') then
-                  data_o(11 downto  0)     <= TIMESTAMP_IN(13 downto 2);
-                  data_o(23 downto 12)     <= ADC_DATA_IN;
-                  data_o(30 downto 24)     <= CHANNEL_IN;
-                  data_o(31)               <= '0';
+                  data_o( 6 downto  0)     <= CHANNEL_IN;
+                  data_o(7)                <= TIMESTAMP_STATUS_IN(1);
+                  data_o( 9 downto  8)     <= TIMESTAMP_IN(1 downto 0);
+                  data_o(18 downto  10)    <= deltaTStore(8 downto 0);
+                  data_o(30 downto 19)     <= ADC_DATA_IN;
+                  data_o(31)               <= TIMESTAMP_STATUS_IN(2);
                   data_clk_o               <= '1';
                 end if;
 
@@ -281,24 +301,27 @@ begin
   -----------------------------------------------------------------------------
 
   PROC_TRIGGER_HANDLER: process(CLK_IN)
-    variable min_validation_time : unsigned(23 downto 0);
+    variable min_validation_time : unsigned(11 downto 0);
 
   begin
     if( rising_edge(CLK_IN) ) then
-      if (RESET_IN = '1') then
+      if (RESET_IN = '1' or FAST_CLEAR_IN = '1') then
         store_to_fifo         <= '0';
         trigger_busy_o        <= '0';
         nomore_data_o         <= '0';
         wait_timer_init       <= (others => '0');
+        wait_timer_reset      <= '0';
         t_data_o              <= (others => '0');
         t_data_clk_o          <= '0';
         busy_time_ctr         <= (others => '0');
+        busy_time_min_done    <= '0';
         token_return_ctr      <= '0';
         ch_status_cmd_tr      <= CS_RESET;
         STATE                 <= S_IDLE;
       else
         store_to_fifo         <= '0';
         wait_timer_init       <= (others => '0');
+        wait_timer_reset      <= '0';
         trigger_busy_o        <= '1';
         nomore_data_o         <= '0';
         t_data_o              <= (others => '0');
@@ -306,11 +329,10 @@ begin
         ch_status_cmd_tr      <= CS_NONE;
 
         min_validation_time := x"020" +
-                               (trigger_window_delay * 2 +
-                                trigger_window_delay / 2) +
-                               (trigger_window_width * 2 +
-                                trigger_window_width / 2);
-        
+                               (trigger_window_delay / 2) +
+                               (trigger_window_width / 2);
+
+
         case STATE is
           
           when S_IDLE =>
@@ -347,13 +369,14 @@ begin
                  busy_time_ctr > min_validation_time(11 downto 0))
                 )
             then
+              wait_timer_reset     <= '1';
               STATE                <= S_WRITE_TRAILER;
             else
               store_to_fifo        <= '1';
               STATE                <= S_WAIT_PROCESS_END;
               
               -- Check Token_Return
-              if (busy_time_ctr > min_validation_time(11 downto 0)) then
+              if (busy_time_ctr > min_validation_time) then
                 if (readout_mode = x"0" and NX_TOKEN_RETURN_IN = '1') then
                   if (token_return_ctr = '1') then
                     ch_status_cmd_tr <= CS_TOKEN_UPDATE;
@@ -379,6 +402,11 @@ begin
           busy_time_ctr            <= busy_time_ctr + 1;
         end if;      
 
+        if (busy_time_ctr > min_validation_time) then
+          busy_time_min_done <= '1';
+        else
+          busy_time_min_done <= '0';
+        end if;
       end if;
     end if;
   end process PROC_TRIGGER_HANDLER;

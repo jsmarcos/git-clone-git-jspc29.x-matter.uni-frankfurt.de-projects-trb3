@@ -18,3 +18,7 @@ ln -s ../../../trbnet/media_interfaces/ecp3_sfp/serdes_onboard_full.txt
 ln -s ../../../trbnet/media_interfaces/ecp3_sfp/serdes_sync_0.txt
 ln -s ../../../trbnet/media_interfaces/ecp3_sfp/serdes_sync_125_0.txt
 ln -s ../../../trbnet/media_interfaces/ecp3_sfp/serdes_full_ctc.txt
+ln -s ../../../trbnet/gbe2_ecp3/ipcores_ecp3/sgmii_gbe_pcs36.ngo
+ln -s ../../../trbnet/gbe2_ecp3/ipcores_ecp3/tsmac36.ngo
+ln -s ../../../trbnet/gbe2_ecp3/ipcores_ecp3/pmi_ram_dpEbnonessdn208256208256p13732cfe.ngo
+ln -s ../../../trbnet/gbe2_ecp3/ipcores_ecp3/pmi_ram_dpEbnonessdn96649664p132b6db5.ngo

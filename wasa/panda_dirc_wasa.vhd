@@ -14,8 +14,8 @@ use machxo2.all;
 
 entity panda_dirc_wasa is
   generic(
-    PADIWA_FLAVOUR : integer := 2;
-    TEMP_CORRECTION: integer := 0
+    PADIWA_FLAVOUR : integer := 3;
+    TEMP_CORRECTION: integer := 1
     );
   port(
     CON        : out std_logic_vector(16 downto 1);
@@ -650,10 +650,10 @@ last_inp_long_reg <= inp_long_reg when rising_edge(clk_i);
 TEST_LINE               <= (others => '0');
 
 
-LED_GREEN  <= not leds(0) when led_status(4) = '0' else not led_status(0);
-LED_ORANGE <= not leds(1) when led_status(4) = '0' else not led_status(1);
-LED_RED    <= not leds(2) when led_status(4) = '0' else not led_status(2);
-LED_YELLOW <= not leds(3) when led_status(4) = '0' else not led_status(3);
+LED_GREEN  <= not leds(0) when led_status(4) = '1' else not led_status(0);
+LED_ORANGE <= not leds(1) when led_status(4) = '1' else not led_status(1);
+LED_RED    <= not leds(2) when led_status(4) = '1' else not led_status(2);
+LED_YELLOW <= not leds(3) when led_status(4) = '1' else not led_status(3);
 
 end architecture;
 

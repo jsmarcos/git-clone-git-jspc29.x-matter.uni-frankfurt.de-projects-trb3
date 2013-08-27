@@ -10,6 +10,8 @@ entity nx_trigger_generator is
     CLK_IN               : in    std_logic;
     RESET_IN             : in    std_logic;
 
+    TRIGGER_IN           : in    std_logic;
+    
     TRIGGER_OUT          : out   std_logic;
     TS_RESET_OUT         : out   std_logic;
     TESTPULSE_OUT        : out   std_logic;
@@ -38,6 +40,7 @@ architecture Behavioral of nx_trigger_generator is
   signal trigger_o           : std_logic;
   signal ts_reset_o          : std_logic;
   signal testpulse_o         : std_logic;
+  signal extern_trigger      : std_logic;
   
   type STATES is (S_IDLE,
                   S_NEXT_CYCLE,
@@ -55,7 +58,7 @@ architecture Behavioral of nx_trigger_generator is
   signal reg_trigger_period      : unsigned(15 downto 0);
   signal reg_testpulse_length    : unsigned(15 downto 0);
   signal reg_trigger_num_cycles  : unsigned(7 downto 0);      
-  signal reg_reset_on            : std_logic;
+  signal reg_ts_reset_on         : std_logic;
   
 begin
 
@@ -66,7 +69,8 @@ begin
   DEBUG_OUT(3)           <= wait_timer_done;
   DEBUG_OUT(4)           <= ts_reset_o;
   DEBUG_OUT(5)           <= testpulse_o;
-  DEBUG_OUT(7 downto 6)  <= (others => '0');
+  DEBUG_OUT(6)           <= TRIGGER_IN;
+  DEBUG_OUT(7)           <= extern_trigger;
   DEBUG_OUT(15 downto 8) <= trigger_cycle_ctr;
 
   -- Timer
@@ -94,26 +98,33 @@ begin
         ts_reset_o        <= '0';
         wait_timer_init   <= (others => '0');
         trigger_cycle_ctr <= (others => '0');
+        extern_trigger    <= '0';
         STATE             <= S_IDLE;
       else
         trigger_o         <= '0';
         testpulse_o       <= '0';
         ts_reset_o        <= '0';
         wait_timer_init   <= (others => '0');
-        trigger_cycle_ctr <= trigger_cycle_ctr;
         
         case STATE is
           when  S_IDLE =>
             if (start_cycle = '1') then
               trigger_cycle_ctr <= reg_trigger_num_cycles;
-              if (reg_reset_on = '1') then
+              if (reg_ts_reset_on = '1') then
                 ts_reset_o      <= '1';
                 wait_timer_init <= reg_trigger_period;
                 STATE           <= S_WAIT_TRIGGER_END;
               else
                 STATE           <= S_NEXT_CYCLE;
               end if;
+              extern_trigger    <= '0';
+            elsif (TRIGGER_IN = '1') then
+              trigger_cycle_ctr <= (others => '0');
+              wait_timer_init   <= reg_testpulse_length;
+              extern_trigger    <= '1';
+              STATE             <= S_SET_TESTPULSE;
             else
+              extern_trigger    <= '0';
               STATE             <= S_IDLE;
             end if;
 
@@ -137,7 +148,11 @@ begin
             if (wait_timer_done = '0') then
               STATE             <= S_SET_TESTPULSE;
             else
-              wait_timer_init   <= reg_trigger_period - reg_testpulse_length;
+              if (extern_trigger = '0') then
+                wait_timer_init <= reg_trigger_period - reg_testpulse_length;
+              else
+                wait_timer_init <= x"0001";
+              end if;
               STATE             <= S_WAIT_TRIGGER_END;
             end if;
             
@@ -164,7 +179,7 @@ begin
         reg_trigger_period     <= x"00ff";
         reg_trigger_num_cycles <= x"01";
         reg_testpulse_length   <= (others => '0');
-        reg_reset_on           <= '0';
+        reg_ts_reset_on        <= '0';
         slv_data_out_o         <= (others => '0');
         slv_no_more_data_o     <= '0';
         slv_unknown_addr_o     <= '0';
@@ -192,7 +207,7 @@ begin
               reg_testpulse_length     <= unsigned(SLV_DATA_IN(15 downto 0));
               slv_ack_o                <= '1';
             when x"0004" =>
-              reg_reset_on             <=  SLV_DATA_IN(0);
+              reg_ts_reset_on          <=  SLV_DATA_IN(0);
               slv_ack_o                <= '1';
             when others =>
               slv_unknown_addr_o       <= '1';
@@ -214,7 +229,7 @@ begin
                 std_logic_vector(reg_testpulse_length);
               slv_ack_o                   <= '1';
             when x"0004" =>
-              slv_data_out_o(0)           <= reg_reset_on;
+              slv_data_out_o(0)           <= reg_ts_reset_on;
               slv_ack_o                   <= '1';
             when others =>
               slv_unknown_addr_o          <= '1';

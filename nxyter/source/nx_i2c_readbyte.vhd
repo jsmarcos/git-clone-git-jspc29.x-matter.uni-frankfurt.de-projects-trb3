@@ -56,9 +56,9 @@ architecture Behavioral of nx_i2c_readbyte is
                   S_UNSET_SCL2,
                   S_NEXT_BIT,
 
-                  S_SET_ACK,
-                  S_ACK_SET_SCL,
-                  S_ACK_UNSET_SCL
+                  S_NACK_SET,
+                  S_NACK_SET_SCL,
+                  S_NACK_UNSET_SCL
                   );
   signal STATE, NEXT_STATE : STATES;
   
@@ -194,34 +194,31 @@ begin
           NEXT_STATE         <= S_UNSET_SCL1;
         else
           wait_timer_init_x  <= I2C_SPEED srl 2;
-          NEXT_STATE         <= S_SET_ACK;
+          NEXT_STATE         <= S_NACK_SET;
         end if;
 
-        -- I2C Send ACK Sequence (doesn't work, so just send a clock)
-      when S_SET_ACK =>
-        --sda_o <= '0';
+        -- I2C Send NOT_ACK (NACK) Sequence to tell client to release the bus
+      when S_NACK_SET =>
         scl_o <= '0';
         if (wait_timer_done = '0') then
-          NEXT_STATE <= S_SET_ACK;
+          NEXT_STATE <= S_NACK_SET;
         else
           wait_timer_init_x <= I2C_SPEED srl 1;
-          NEXT_STATE        <= S_ACK_SET_SCL;
+          NEXT_STATE        <= S_NACK_SET_SCL;
         end if;
 
-      when S_ACK_SET_SCL =>
-        -- sda_o <= '0';
+      when S_NACK_SET_SCL =>
         if (wait_timer_done = '0') then
-          NEXT_STATE <= S_ACK_SET_SCL;
+          NEXT_STATE <= S_NACK_SET_SCL;
         else
           wait_timer_init_x <= I2C_SPEED srl 2;
-          NEXT_STATE        <= S_ACK_UNSET_SCL;
+          NEXT_STATE        <= S_NACK_UNSET_SCL;
         end if; 
         
-      when S_ACK_UNSET_SCL =>
-        --sda_o <= '0';
+      when S_NACK_UNSET_SCL =>
         scl_o <= '0';
         if (wait_timer_done = '0') then
-          NEXT_STATE <= S_ACK_UNSET_SCL;
+          NEXT_STATE <= S_NACK_UNSET_SCL;
         else
           sequence_done_o_x <= '1';
           NEXT_STATE        <= S_IDLE;

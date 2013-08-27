@@ -90,7 +90,7 @@ entity cbmtof is
   attribute syn_useioff of FLASH_DIN  : signal is true;
   attribute syn_useioff of FLASH_DOUT : signal is true;
   attribute syn_useioff of TEST_LINE  : signal is true;
-  attribute syn_useioff of SPARE_LINE : signal is true;
+  attribute syn_useioff of SPARE_LINE : signal is false; --true;
   attribute syn_useioff of LVDS       : signal is true;
   attribute syn_useioff of OR_IN      : signal is true;
 
@@ -107,6 +107,7 @@ architecture cbmtof_arch of cbmtof is
   --Clock / Reset
   signal clk_100_i                : std_logic;  --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i                : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
+  signal clk_20_i                 : std_logic;  -- clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
   signal pll_lock                 : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
   signal clear_i                  : std_logic;
   signal reset_i                  : std_logic;
@@ -301,6 +302,14 @@ begin
       CLKOK => clk_200_i,
       LOCK  => pll_lock
       );
+
+  -- generates hits for calibration uncorrelated with tdc clk
+  THE_CALIBRATION_PLL : pll_in125_out20
+    port map (
+      CLK   => CLK_OSC,
+      CLKOP => clk_20_i,
+      CLKOK => open, --clk_125_i,
+      LOCK  => open);
 
 
 ---------------------------------------------------------------------------
@@ -734,14 +743,16 @@ begin
 -------------------------------------------------------------------------------
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 3,             -- Number of TDC channels
-      CONTROL_REG_NR => 5)              -- Number of control regs
+      CHANNEL_NUMBER => 5,             -- Number of TDC channels
+      CONTROL_REG_NR => 5,              -- Number of control regs
+            TDC_VERSION    => "001" & x"51")  -- TDC version numberTDC_VERSION    => "001" & x"51")  -- TDC version number
     port map (
       RESET                 => reset_i,
       CLK_TDC               => CLK_OSC,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
-      HIT_IN                => hit_in_i(2 downto 1),  -- Channel start signals
+      HIT_IN                => hit_in_i(4 downto 1),  -- Channel start signals
+      HIT_CALIBRATION       => clk_20_i,    -- Hits for calibrating the TDC
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --
@@ -806,87 +817,19 @@ begin
       LOGIC_ANALYSER_OUT    => logic_analyser_i,
       CONTROL_REG_IN        => tdc_ctrl_reg);
 
-  --THE_TDC : TDC
-  --  generic map (
-  --    CHANNEL_NUMBER => 5,             -- Number of TDC channels
-  --    CONTROL_REG_NR => 5)
-  --  port map (
-  --    RESET                 => reset_i,
-  --    CLK_TDC               => CLK_OSC,  -- Clock used for the time measurement
-  --    CLK_READOUT           => clk_100_i,   -- Clock for the readout
-  --    REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
-  --    HIT_IN                => hit_in_i(4 downto 1),  -- Channel start signals
-  --    TRG_WIN_PRE           => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
-  --    TRG_WIN_POST          => ctrl_reg(58 downto 48),  -- Post-Trigger window width
-  --    --
-  --    -- Trigger signals from handler
-  --    TRG_DATA_VALID_IN     => trg_data_valid_i,  -- trig data valid signal from trbnet
-  --    VALID_TIMING_TRG_IN   => trg_timing_valid_i,  -- valid timing trigger signal from trbnet
-  --    VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,  -- valid notiming signal from trbnet
-  --    INVALID_TRG_IN        => trg_invalid_i,  -- invalid trigger signal from trbnet
-  --    TMGTRG_TIMEOUT_IN     => trg_timeout_detected_i,  -- timing trigger timeout signal from trbnet
-  --    SPIKE_DETECTED_IN     => trg_spike_detected_i,
-  --    MULTI_TMG_TRG_IN      => trg_multiple_trg_i,
-  --    SPURIOUS_TRG_IN       => trg_spurious_trg_i,
-  --    --
-  --    TRG_NUMBER_IN         => trg_number_i,  -- LVL1 trigger information package
-  --    TRG_CODE_IN           => trg_code_i,  --
-  --    TRG_INFORMATION_IN    => trg_information_i,   --
-  --    TRG_TYPE_IN           => trg_type_i,  -- LVL1 trigger information package
-  --    --
-  --    --Response to handler
-  --    TRG_RELEASE_OUT       => fee_trg_release_i,   -- trigger release signal
-  --    TRG_STATUSBIT_OUT     => fee_trg_statusbits_i,  -- status information of the tdc
-  --    DATA_OUT              => fee_data_i,  -- tdc data
-  --    DATA_WRITE_OUT        => fee_data_write_i,  -- data valid signal
-  --    DATA_FINISHED_OUT     => fee_data_finished_i,  -- readout finished signal
-  --    --
-  --    --Hit Counter Bus
-  --    HCB_READ_EN_IN        => hitreg_read_en,    -- bus read en strobe
-  --    HCB_WRITE_EN_IN       => hitreg_write_en,   -- bus write en strobe
-  --    HCB_ADDR_IN           => hitreg_addr,   -- bus address
-  --    HCB_DATA_OUT          => hitreg_data_out,   -- bus data
-  --    HCB_DATAREADY_OUT     => hitreg_data_ready,   -- bus data ready strobe
-  --    HCB_UNKNOWN_ADDR_OUT  => hitreg_invalid,    -- bus invalid addr
-  --    --Status Registers Bus
-  --    SRB_READ_EN_IN        => srb_read_en,   -- bus read en strobe
-  --    SRB_WRITE_EN_IN       => srb_write_en,  -- bus write en strobe
-  --    SRB_ADDR_IN           => srb_addr,    -- bus address
-  --    SRB_DATA_OUT          => srb_data_out,  -- bus data
-  --    SRB_DATAREADY_OUT     => srb_data_ready,    -- bus data ready strobe
-  --    SRB_UNKNOWN_ADDR_OUT  => srb_invalid,   -- bus invalid addr
-  --    --Encoder Start Registers Bus
-  --    ESB_READ_EN_IN        => esb_read_en,   -- bus read en strobe
-  --    ESB_WRITE_EN_IN       => esb_write_en,  -- bus write en strobe
-  --    ESB_ADDR_IN           => esb_addr,    -- bus address
-  --    ESB_DATA_OUT          => esb_data_out,  -- bus data
-  --    ESB_DATAREADY_OUT     => esb_data_ready,    -- bus data ready strobe
-  --    ESB_UNKNOWN_ADDR_OUT  => esb_invalid,   -- bus invalid addr
-  --    --Fifo Write Registers Bus
-  --    EFB_READ_EN_IN        => efb_read_en,   -- bus read en strobe
-  --    EFB_WRITE_EN_IN       => efb_write_en,  -- bus write en strobe
-  --    EFB_ADDR_IN           => efb_addr,    -- bus address
-  --    EFB_DATA_OUT          => efb_data_out,  -- bus data
-  --    EFB_DATAREADY_OUT     => efb_data_ready,    -- bus data ready strobe
-  --    EFB_UNKNOWN_ADDR_OUT  => efb_invalid,   -- bus invalid addr
-  --    --Lost Hit Registers Bus
-  --    LHB_READ_EN_IN        => '0',  -- lhb_read_en,   -- bus read en strobe
-  --    LHB_WRITE_EN_IN       => '0',  -- lhb_write_en,  -- bus write en strobe
-  --    LHB_ADDR_IN           => (others => '0'),  -- lhb_addr,    -- bus address
-  --    LHB_DATA_OUT          => open,  -- lhb_data_out,  -- bus data
-  --    LHB_DATAREADY_OUT     => open,  -- lhb_data_ready,    -- bus data ready strobe
-  --    LHB_UNKNOWN_ADDR_OUT  => open,  -- lhb_invalid,   -- bus invalid addr
-  --    --
-  --    LOGIC_ANALYSER_OUT    => open,    --TEST_LINE,
-  --    CONTROL_REG_IN        => ctrl_reg);
 
 
 --  hit_in_i <= INPUT;
 
   -- to detect rising & falling edges
-  Gen_Hit_In_Signals : for i in 1 to 32 generate
-    hit_in_i(i*2-1) <= INPUT(i);
-    hit_in_i(i*2)   <= not INPUT(i);
+  --Gen_Hit_In_Signals : for i in 1 to 32 generate
+  --  hit_in_i(i*2-1) <= INPUT(i);
+  --  hit_in_i(i*2)   <= not INPUT(i);
+  --end generate Gen_Hit_In_Signals;
+
+  Gen_Hit_In_Signals : for i in 1 to 2 generate
+    hit_in_i(i*2-1) <= SPARE_LINE(i);
+    hit_in_i(i*2)   <= not SPARE_LINE(i);
   end generate Gen_Hit_In_Signals;
 
 end architecture;

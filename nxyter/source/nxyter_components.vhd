@@ -131,6 +131,7 @@ component nx_i2c_sendbyte
     SDA_OUT           : out std_logic;
     SCL_OUT           : out std_logic;
     SDA_IN            : in  std_logic;
+    SCL_IN            : in  std_logic;
     ACK_OUT           : out std_logic
     );
 end component;
@@ -418,13 +419,15 @@ end component;
 
 component nx_histograms
   generic (
-    NUM_BINS : integer);
+    BUS_WIDTH    : integer;
+    ENABLE       : integer
+    );
   port (
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
     RESET_HISTS_IN       : in  std_logic;
     CHANNEL_STAT_FILL_IN : in  std_logic;
-    CHANNEL_ID_IN        : in  std_logic_vector(NUM_BINS - 1 downto 0);
+    CHANNEL_ID_IN        : in  std_logic_vector(BUS_WIDTH - 1 downto 0);
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
     SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
@@ -574,6 +577,7 @@ component nx_trigger_handler
     EVENT_BUFFER_CLEAR_OUT     : out std_logic;
     FAST_CLEAR_OUT             : out std_logic;
     TRIGGER_BUSY_OUT           : out std_logic;
+    TRIGGER_TESTPULSE_OUT      : out std_logic;
     SLV_READ_IN                : in  std_logic;
     SLV_WRITE_IN               : in  std_logic;
     SLV_DATA_OUT               : out std_logic_vector(31 downto 0);
@@ -590,6 +594,7 @@ component nx_trigger_generator
   port (
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
+    TRIGGER_IN           : out   std_logic;
     TRIGGER_OUT          : out std_logic;
     TS_RESET_OUT         : out std_logic;
     TESTPULSE_OUT        : out std_logic;
@@ -649,6 +654,27 @@ component nxyter_timestamp_sim
     RESET_IN      : in  std_logic;
     TIMESTAMP_OUT : out std_logic_vector(7 downto 0);
     CLK128_OUT    : out std_logic
+    );
+end component;
+
+type debug_array_t is array(integer range <>) of std_logic_vector(15 downto 0);
+
+component debug_multiplexer
+  generic (
+    NUM_PORTS : integer range 1 to 32);
+  port (
+    CLK_IN               : in  std_logic;
+    RESET_IN             : in  std_logic;
+    DEBUG_LINE_IN        : in  debug_array_t(0 to NUM_PORTS-1);
+    DEBUG_LINE_OUT       : out std_logic_vector(15 downto 0);
+    SLV_READ_IN          : in  std_logic;
+    SLV_WRITE_IN         : in  std_logic;
+    SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
+    SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
+    SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
+    SLV_ACK_OUT          : out std_logic;
+    SLV_NO_MORE_DATA_OUT : out std_logic;
+    SLV_UNKNOWN_ADDR_OUT : out std_logic
     );
 end component;
 
