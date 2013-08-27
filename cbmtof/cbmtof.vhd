@@ -13,9 +13,9 @@ use work.version.all;
 entity cbmtof is
   port(
     --Clocks
-    CLK_OSC : in std_logic;                     --for tdc measurements
-    CLK_CM  : in std_logic_vector(8 downto 0);  --from clock manager
-    CLK_EXT : in std_logic;
+    CLK_OSC : in std_logic;                     --for tdc measurements --200MHz
+    CLK_CM  : in std_logic_vector(8 downto 0);  --from clock manager   --125MHz
+    CLK_EXT : in std_logic;                     --from CK_IN1 connection
 
     --Serdes
     --CLK_SERDES_INT_RIGHT : in    std_logic;
@@ -107,7 +107,7 @@ architecture cbmtof_arch of cbmtof is
   --Clock / Reset
   signal clk_100_i                : std_logic;  --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i                : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
-  signal clk_20_i                 : std_logic;  -- clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
+  signal clk_20_i                 : std_logic;  --clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
   signal pll_lock                 : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
   signal clear_i                  : std_logic;
   signal reset_i                  : std_logic;
@@ -297,16 +297,17 @@ begin
 
   THE_MAIN_PLL : pll_in200_out100
     port map(
-      CLK   => CLK_CM(4),
+      CLK   => CLK_OSC, --CLK_CM(4),
       CLKOP => clk_100_i,
       CLKOK => clk_200_i,
+      CLKOS => open,
       LOCK  => pll_lock
       );
 
   -- generates hits for calibration uncorrelated with tdc clk
   THE_CALIBRATION_PLL : pll_in125_out20
     port map (
-      CLK   => CLK_OSC,
+      CLK   => CLK_CM(4),
       CLKOP => clk_20_i,
       CLKOK => open, --clk_125_i,
       LOCK  => open);
@@ -727,7 +728,7 @@ begin
   
   LVDS(1) <= or_all(INPUT);
   LVDS(2) <= SPARE_LINE(0);
-  CLK_MNGR_USER(3 downto 0) <= (others => '0');
+--  CLK_MNGR_USER(3 downto 0) <= (others => '0');
 
 ---------------------------------------------------------------------------
 -- Test Circuits
@@ -745,7 +746,7 @@ begin
     generic map (
       CHANNEL_NUMBER => 5,             -- Number of TDC channels
       CONTROL_REG_NR => 5,              -- Number of control regs
-            TDC_VERSION    => "001" & x"51")  -- TDC version numberTDC_VERSION    => "001" & x"51")  -- TDC version number
+      TDC_VERSION    => "001" & x"51")  -- TDC version numberTDC_VERSION    => "001" & x"51")  -- TDC version number
     port map (
       RESET                 => reset_i,
       CLK_TDC               => CLK_OSC,  -- Clock used for the time measurement
