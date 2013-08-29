@@ -58,7 +58,8 @@ entity cbmnet_phy_ecp3 is
       STAT_OP            : out std_logic_vector (15 downto 0);
       CTRL_OP            : in  std_logic_vector (15 downto 0) := (others => '0');
       STAT_DEBUG         : out std_logic_vector (63 downto 0);
-      CTRL_DEBUG         : in  std_logic_vector (63 downto 0) := (others => '0')
+      CTRL_DEBUG         : in  std_logic_vector (63 downto 0) := (others => '0');
+      DEBUG_OUT          : out std_logic_vector (127 downto 0) := (others => '0')
    );
 end entity;
 
@@ -74,27 +75,37 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    signal clk_125_internal  : std_logic;
    signal clk_rx_full       : std_logic;
    signal clk_rx_half       : std_logic;
-   signal clk_tx_full       : std_logic;
-   signal clk_tx_half       : std_logic;
 
    signal tx_data_i         : std_logic_vector(17 downto 0);
+   signal tx_data_buf_i     : std_logic_vector(17 downto 0);
    signal rx_data_i         : std_logic_vector(17 downto 0);
    
    signal rx_error          : std_logic_vector(1 downto 0);
 
    signal rst_n             : std_logic;
    signal rst               : std_logic;
-   signal rx_serdes_rst     : std_logic;
    signal tx_serdes_rst     : std_logic;
    signal tx_pcs_rst        : std_logic;
-   signal rx_pcs_rst        : std_logic;
    signal rst_qd            : std_logic;
    signal serdes_rst_qd     : std_logic;
    signal sd_los_i          : std_logic;
 
+   signal rx_pcs_rst        : std_logic;
+   signal rx_fsm_pcs_rst    : std_logic:= '0';
+   signal rx_init_pcs_rst   : std_logic:= '0';
+   
+   signal rx_serdes_rst     : std_logic;
+   signal rx_fsm_serdes_rst     : std_logic := '0';
+   signal rx_init_serdes_rst     : std_logic := '0';
+
+
+      
+   
    signal rx_los_low        : std_logic;
    signal rx_cdr_lol        : std_logic;
    signal tx_pll_lol        : std_logic;
+   
+   signal serdes_ready_i    : std_logic;
 
    signal sci_ch_i          : std_logic_vector(3 downto 0);
    signal sci_qd_i          : std_logic;
@@ -109,6 +120,9 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
 
    signal wa_position        : std_logic_vector(15 downto 0) := x"FFFF";
    signal wa_position_rx     : std_logic_vector(15 downto 0) := x"FFFF";
+   
+   signal wa_position_buf    : std_logic_vector(3 downto 0);
+   
    signal request_retr_i     : std_logic;
    signal start_retr_i       : std_logic;
    signal request_retr_position_i  : std_logic_vector(7 downto 0);
@@ -133,6 +147,8 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    signal led_tx, last_led_tx    : std_logic;
    signal led_rx, last_led_rx    : std_logic;
    signal timer    : unsigned(20 downto 0);
+   
+   signal lsm_status_i : std_logic;
 
    
 -- RX READY MODULE
@@ -143,6 +159,8 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    signal rx_saw_ready1_i : std_logic;
    signal rx_valid_char_i : std_logic;
    signal link_init_rx_reset_i : std_logic;
+   
+   signal rx_rm_rst_n :std_logic;
 
    
 -- TX READY MODULE   
@@ -155,12 +173,12 @@ begin
 
    SD_TXDIS_OUT <= '0';
 
-   rst_n <= not (CLEAR or sd_los_i);
-   rst   <=     (CLEAR or sd_los_i);
+   rst_n <= not (CLEAR or sd_los_i or CTRL_OP(0));
+   rst   <=     (CLEAR or sd_los_i or CTRL_OP(0));
 
 
    gen_slave_clock : if IS_SYNC_SLAVE = c_YES generate
-      clk_125_i        <= clk_rx_full;
+      clk_125_i        <= clk_rx_half;
    end generate;
 
    gen_master_clock : if IS_SYNC_SLAVE = c_NO generate
@@ -181,17 +199,20 @@ begin
    -- CLOCKS
       rxiclk_ch0           => clk_125_i,
       txiclk_ch0           => clk_125_i,
+      
       rx_full_clk_ch0      => clk_rx_full,
       rx_half_clk_ch0      => clk_rx_half,
-      tx_full_clk_ch0      => clk_tx_full,
-      tx_half_clk_ch0      => clk_tx_half,
+      
+      tx_full_clk_ch0      => open,
+      tx_half_clk_ch0      => open,
+      
       fpga_rxrefclk_ch0    => clk_125_internal,
 
    -- RESETS
       fpga_txrefclk        => clk_125_i,
       rst_qd_c             => rst_qd,
-      serdes_rst_qd_c      => serdes_rst_qd,
-      tx_serdes_rst_c      => tx_serdes_rst,
+      serdes_rst_qd_c      => serdes_rst_qd, -- always 0
+      tx_serdes_rst_c      => tx_serdes_rst, -- always 0
       rx_serdes_rst_ch0_c  => rx_serdes_rst,
       tx_pcs_rst_ch0_c     => tx_pcs_rst,
       rx_pcs_rst_ch0_c     => rx_pcs_rst,
@@ -200,8 +221,8 @@ begin
       rx_pwrup_ch0_c       => '1',
    
    -- TX DATA PORT    
-      txdata_ch0           => tx_data_i(15 downto 0),
-      tx_k_ch0             => tx_data_i(17 downto 16),
+      txdata_ch0           => tx_data_buf_i(15 downto 0),
+      tx_k_ch0             => tx_data_buf_i(17 downto 16),
 
       tx_force_disp_ch0    => "00",
       tx_disp_sel_ch0      => "00",
@@ -223,6 +244,7 @@ begin
       tx_pll_lol_qd_s      => tx_pll_lol,
       rx_los_low_ch0_s     => rx_los_low,
       rx_cdr_lol_ch0_s     => rx_cdr_lol,
+      lsm_status_ch0_s     => lsm_status_i,
     
       SCI_WRDATA           => sci_data_in_i,
       SCI_RDDATA           => sci_data_out_i,
@@ -232,9 +254,37 @@ begin
       SCI_RD               => sci_read_i,
       SCI_WRN              => sci_write_i
    );
-
+   
+   wa_position_buf <= x"1" when (rx_init_pcs_rst  = '1' and CTRL_OP(2) = '0') or (CTRL_OP(4) = '1') else
+      wa_position_rx(3 downto 0);
+   
+   tx_data_buf_i <=
+    ("01" & x"009c") when CTRL_OP(9 downto 8) = "01" else
+    ("01" & x"00bc") when CTRL_OP(9 downto 8) = "11" else
+    tx_data_i;
+   
+   rx_pcs_rst    <= rx_fsm_pcs_rst;
+   rx_serdes_rst <= rx_fsm_serdes_rst;
+   
    tx_serdes_rst <= '0'; --no function
    serdes_rst_qd <= '0'; --included in rst_qd
+   
+   DEBUG_OUT(17    downto  0) <= tx_data_i;
+   DEBUG_OUT(22    downto 20) <= tx_pll_lol & rx_los_low & rx_cdr_lol;
+   
+   DEBUG_OUT(17+32 downto 32) <= rx_data_i;
+      
+   process is
+      variable cnt, cntr : unsigned(15 downto 0);
+   begin
+      wait until rising_edge(clk_125_i);
+      cnt := cnt + 1;
+      cntr := cntr + 1;
+      if rst_n = '0' then
+         cntr := x"0000";
+      end if;
+      DEBUG_OUT(31 + 64 downto 64) <= std_logic_vector(cnt) & std_logic_vector(cntr);
+   end process;
       
    -------------------------------------------------      
    -- Reset FSM & Link states
@@ -244,11 +294,11 @@ begin
       RST_N               => rst_n,
       RX_REFCLK           => clk_125_i,
       TX_PLL_LOL_QD_S     => tx_pll_lol,
-      RX_SERDES_RST_CH_C  => rx_serdes_rst,
+      RX_SERDES_RST_CH_C  => rx_fsm_serdes_rst,
       RX_CDR_LOL_CH_S     => rx_cdr_lol,
       RX_LOS_LOW_CH_S     => rx_los_low,
-      RX_PCS_RST_CH_C     => rx_pcs_rst,
-      WA_POSITION         => wa_position_rx(3 downto 0),
+      RX_PCS_RST_CH_C     => rx_fsm_pcs_rst,
+      WA_POSITION         => wa_position_buf,
       STATE_OUT           => rx_fsm_state
    );
       
@@ -290,15 +340,20 @@ begin
       end if;
    end process;
 
+   serdes_ready_i <= not (rx_cdr_lol or tx_pll_lol) when 
+      wa_position_rx = x"0000" and
+      tx_fsm_state = x"5" and 
+      rx_fsm_state = x"6" else '0';
+   
    -------------------------------------------------      
    -- CBMNet Link Init
    -------------------------------------------------      
    THE_RX_READY: gtp_rx_ready_module 
-   generic map (INCL_8B10B_DEC => 0)
+   generic map (INCL_8B10B_DEC => c_No)
    port map (
       clk => clk_125_i,
-      res_n => rst_n,
-      ready_MGT2RM => '1',
+      res_n => rx_rm_rst_n,
+      ready_MGT2RM => serdes_ready_i,
       
       rxdata_in(17 downto 0) => rx_data_i,
       rxdata_in(19 downto 18) => "00",
@@ -315,20 +370,22 @@ begin
       saw_ready1 => rx_saw_ready1_i,
       valid_char => rx_valid_char_i,
       
-      reset_rx => link_init_rx_reset_i
+      reset_rx => rx_init_pcs_rst
    );
+   
+   rx_rm_rst_n <= not (rst or CTRL_OP(1)); -- or not serdes_ready_i);
 
    THE_TX_READY: gtp_tx_ready_module
    port map (
       clk => clk_125_i,                   -- :  in std_logic;
-      res_n => rst_n,                     -- :  in std_logic;
-      restart_link => '0',                -- :  in std_logic;
-      ready_MGT2RM => '1',                -- :  in std_logic;
+      res_n => rx_rm_rst_n,                     -- :  in std_logic;
+      restart_link => CTRL_OP(14),                -- :  in std_logic;
+      ready_MGT2RM => serdes_ready_i,     -- :  in std_logic;
       txdata_in => PHY_TXDATA_IN ,        -- :  in std_logic_vector((DATAWIDTH-1) downto 0);
       txcharisk_in => PHY_TXDATA_K_IN,    -- :  in std_logic_vector((WORDS-1) downto 0);
 
       see_ready0 => rx_see_ready0_i,      -- :  in std_logic;
-      saw_ready1 => rx_see_ready0_i,      -- :  in std_logic;
+      saw_ready1 => rx_saw_ready1_i,      -- :  in std_logic;
       valid_char => rx_valid_char_i,      -- :  in std_logic;
       rx_rm_ready => rx_rm_ready_i,       -- :  in std_logic;
 
@@ -459,6 +516,7 @@ begin
    -------------------------------------------------            
    debug_reg(2 downto 0)   <= rx_fsm_state(2 downto 0);
    debug_reg(3)            <= rx_serdes_rst;
+   
    debug_reg(4)            <= CLEAR;
    debug_reg(5)            <= '1';
    debug_reg(6)            <= rx_los_low;
@@ -468,6 +526,7 @@ begin
    debug_reg(9)            <= tx_pll_lol;
    debug_reg(10)           <= '1';
    debug_reg(11)           <= CTRL_OP(15);
+   
    debug_reg(12)           <= '0';
    debug_reg(13)           <= send_link_reset_i;
    debug_reg(14)           <= sd_los_i;
@@ -491,12 +550,34 @@ begin
    sd_los_i <= SD_LOS_IN when rising_edge(CLK);
 
    
+   
+   
 -- STAT_OP REGISTER   
-   STAT_OP(0) <= led_ok;
-   STAT_OP(1) <= led_tx or last_led_tx;
-   STAT_OP(2) <= led_rx or last_led_rx;
-   STAT_OP(3) <= send_link_reset_i when rising_edge(CLK);
-   STAT_OP( 7 downto 4) <= tx_fsm_state;
-   STAT_OP(11 downto 8) <= rx_fsm_state;
-   STAT_OP(15 downto 12) <= (others => '0');
+   STAT_OP(0) <= led_tx;
+   STAT_OP(1) <= led_rx;
+   STAT_OP(2) <= led_ok;
+   
+   STAT_OP(3) <= rx_valid_char_i;
+   STAT_OP(4) <= rx_see_ready0_i;
+   STAT_OP(5) <= rx_saw_ready1_i;
+   STAT_OP(6) <= rx_almost_ready_i;
+   STAT_OP(7) <= rx_ready_i;
+   STAT_OP(8) <= rx_init_pcs_rst;
+   STAT_OP(9) <= tx_almost_ready_i;
+   STAT_OP(10) <= tx_ready_i;
+   STAT_OP(11) <= rst_n;
+   STAT_OP(12) <= serdes_ready_i;
+   STAT_OP(13) <= lsm_status_i;
+   
+
+   
+   
+  -- STAT_OP(11 downto 8) <= rx_fsm_state;
+   
+ --  STAT_OP(15 downto 12) <= wa_position_rx( 3 downto 0);
+   
+   --STAT_OP(12) <= rx_los_low;
+   --STAT_OP(13) <= ;
+   --STAT_OP(14) <= ;
+   --STAT_OP(15) <= ;
 end architecture;

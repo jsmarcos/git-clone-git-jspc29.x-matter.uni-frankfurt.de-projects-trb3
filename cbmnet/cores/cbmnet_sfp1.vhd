@@ -1580,7 +1580,6 @@ entity cbmnet_sfp1 is
     tx_serdes_rst_c    :   in std_logic;
     tx_pll_lol_qd_s   :   out std_logic;
     rst_qd_c    :   in std_logic;
-    refclk2fpga   :   out std_logic;
     serdes_rst_qd_c    :   in std_logic);
 
 end cbmnet_sfp1;
@@ -2138,8 +2137,6 @@ end component;
    attribute FREQUENCY_PIN_FF_TX_H_CLK_2 of PCSD_INST : label is "125.000";
    attribute FREQUENCY_PIN_FF_TX_H_CLK_3: string;
    attribute FREQUENCY_PIN_FF_TX_H_CLK_3 of PCSD_INST : label is "125.000";
-   attribute FREQUENCY_PIN_REFCK2CORE: string;
-   attribute FREQUENCY_PIN_REFCK2CORE of PCSD_INST : label is "125.0";
    attribute black_box_pad_pin: string;
    attribute black_box_pad_pin of PCSD : component is "HDINP0, HDINN0, HDINP1, HDINN1, HDINP2, HDINN2, HDINP3, HDINN3, HDOUTP0, HDOUTN0, HDOUTP1, HDOUTN1, HDOUTP2, HDOUTN2, HDOUTP3, HDOUTN3, REFCLKP, REFCLKN";
 
@@ -2170,7 +2167,6 @@ begin
 vlo_inst : VLO port map(Z => fpsc_vlo);
 vhi_inst : VHI port map(Z => fpsc_vhi);
 
-  refclk2fpga <= refclk2fpga_sig;
     rx_los_low_ch0_s <= rx_los_low_ch0_sig;
     rx_cdr_lol_ch0_s <= rx_cdr_lol_ch0_sig;
   tx_pll_lol_qd_s <= tx_pll_lol_qd_sig;

@@ -1,0 +1,25 @@
+#!/usr/bin/env perl
+my $mode = defined $ARGV[0] ? $ARGV[0] : 'ms';
+
+my $flash_master = ($mode =~ m/m/);
+my $flash_slave  = ($mode =~ m/s/);
+
+if ($flash_master) {
+   print "Flash MASTER\n";
+   system "trbcmd s 0xa6000002e2e2df28 0x00 0x8000";
+   system "trbflash -y program 0x8000 workdir_master/trb3_periph_cbmnet.bit";
+   system "rebootfpga.sh 0x8000";
+} else {
+   print "Skip MASTER\n";
+}
+
+if ($flash_slave) {
+   print "Flash SLAVE\n";
+   system "trbcmd s 0x72000002e2eb4628 0x02 0x8001";
+   system "trbflash -y program 0x8001 workdir_slave/trb3_periph_cbmnet.bit";
+   system "rebootfpga.sh 0x8001";
+} else {
+   print "Skip SLAVE\n";
+}
+
+system "test/start"
