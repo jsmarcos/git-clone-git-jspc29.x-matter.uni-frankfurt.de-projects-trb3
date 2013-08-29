@@ -787,7 +787,8 @@ begin
   THE_TDC : TDC
     generic map (
       CHANNEL_NUMBER => 65,             -- Number of TDC channels
-      CONTROL_REG_NR => 5)
+      CONTROL_REG_NR => 5,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
+      TDC_VERSION    => "001" & x"51")  -- TDC version number
     port map (
       RESET                 => reset_i,
       CLK_TDC               => clk_tdc,  -- Clock used for the time measurement

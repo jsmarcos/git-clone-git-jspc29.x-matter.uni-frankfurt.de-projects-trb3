@@ -504,8 +504,10 @@ begin
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
       PORT_NUMBER    => 9,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"b000", 8 => x"c800", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 9, 8 => 3, others => 0)
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", --2 => x"d400",
+                         3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"b000", 8 => x"c800", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, --2 => 5,
+                         3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 9, 8 => 3, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -546,17 +548,17 @@ begin
       BUS_WRITE_ACK_IN(1)                 => spimem_ack,
       BUS_NO_MORE_DATA_IN(1)              => '0',
       BUS_UNKNOWN_ADDR_IN(1)              => '0',
-      --DAC - not used
-      BUS_READ_ENABLE_OUT(2)              => open,
-      BUS_WRITE_ENABLE_OUT(2)             => open,
-      BUS_DATA_OUT(2*32+31 downto 2*32)   => open,
-      BUS_ADDR_OUT(2*16+15 downto 2*16)   => open,
-      BUS_TIMEOUT_OUT(2)                  => open,
-      BUS_DATA_IN(2*32+31 downto 2*32)    => (others => '0'),
-      BUS_DATAREADY_IN(2)                 => '0',
-      BUS_WRITE_ACK_IN(2)                 => '0',
-      BUS_NO_MORE_DATA_IN(2)              => '0',
-      BUS_UNKNOWN_ADDR_IN(2)              => '0',
+      ----DAC - not used
+      --BUS_READ_ENABLE_OUT(2)              => open,
+      --BUS_WRITE_ENABLE_OUT(2)             => open,
+      --BUS_DATA_OUT(2*32+31 downto 2*32)   => open,
+      --BUS_ADDR_OUT(2*16+15 downto 2*16)   => open,
+      --BUS_TIMEOUT_OUT(2)                  => open,
+      --BUS_DATA_IN(2*32+31 downto 2*32)    => (others => '0'),
+      --BUS_DATAREADY_IN(2)                 => '0',
+      --BUS_WRITE_ACK_IN(2)                 => '0',
+      --BUS_NO_MORE_DATA_IN(2)              => '0',
+      --BUS_UNKNOWN_ADDR_IN(2)              => '0',
 
       --HitRegisters
       BUS_READ_ENABLE_OUT(3)              => hitreg_read_en,
@@ -728,7 +730,7 @@ begin
   LEDG(5)          <= not(or_all(INP(15 downto 12))) when rising_edge(clk_100_i);
   LEDG(6)          <= not(or_all(INP(19 downto 16))) when rising_edge(clk_100_i);
   LEDG(7)          <= not(or_all(INP(23 downto 20))) when rising_edge(clk_100_i);
-  
+
 ---------------------------------------------------------------------------
 -- Test Connector
 ---------------------------------------------------------------------------    
@@ -749,7 +751,8 @@ begin
   THE_TDC : TDC
     generic map (
       CHANNEL_NUMBER => 49,             -- Number of TDC channels
-      CONTROL_REG_NR => 5)
+      CONTROL_REG_NR => 5,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
+      TDC_VERSION    => "001" & x"51")  -- TDC version number
     port map (
       RESET                 => reset_i,
       CLK_TDC               => clk_tdc,  -- Clock used for the time measurement
