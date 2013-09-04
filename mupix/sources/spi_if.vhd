@@ -141,11 +141,9 @@ begin
           when x"0040" =>
             SLV_DATA_OUT <= x"0000" & threshold_reg;
             SLV_ACK_OUT  <= '1';
-            wren <= '1';
           when x"0041" =>
             SLV_DATA_OUT <= injection2_reg & injection1_reg;
             SLV_ACK_OUT  <= '1';
-            wren <= '1';
           when others =>
             SLV_UNKNOWN_ADDR_OUT <= '1';
         end case;
@@ -156,10 +154,12 @@ begin
           when x"0040" =>
             threshold_reg <= SLV_DATA_IN(15 downto 0);
             SLV_ACK_OUT   <= '1';
+            wren <= '1';
           when x"0041" =>
             injection2_reg <= SLV_DATA_IN(31 downto 16);
             injection1_reg <= SLV_DATA_IN(15 downto 0);
             SLV_ACK_OUT    <= '1';
+            wren <= '1';
           when others =>
             SLV_UNKNOWN_ADDR_OUT <= '1';
         end case;
