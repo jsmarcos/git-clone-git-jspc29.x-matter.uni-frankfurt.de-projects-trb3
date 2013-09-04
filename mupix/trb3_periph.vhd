@@ -13,7 +13,7 @@ use work.trb_net_std.all;
 use work.trb_net_components.all;
 use work.trb3_components.all;
 use work.version.all;
-use work.nxyter_components.all;
+use work.mupix_components.all;
 
 library ecp3;
 use ecp3.components.all;
@@ -113,9 +113,6 @@ entity trb3_periph is
   attribute syn_useioff of FPGA5_COMM       : signal is true;
   attribute syn_useioff of TEST_LINE        : signal is true;
   --attribute syn_useioff of INP           : signal is false;
-  attribute syn_useioff of NX1_TIMESTAMP_IN : signal is true;
-  attribute syn_useioff of NX2_TIMESTAMP_IN : signal is true;
-  --attribute syn_useioff of NX1_ADC_NX_IN   : signal is true;
   --attribute syn_useioff of DAC_SDO       : signal is true;
   --attribute syn_useioff of DAC_SDI       : signal is true;
   --attribute syn_useioff of DAC_SCK       : signal is true;
@@ -683,29 +680,6 @@ begin
       --DEBUG_LINE_OUT                => open
       );
 
-
-  -----------------------------------------------------------------------------
-  -- MuPix common Clocks
-  -----------------------------------------------------------------------------
-  pll_nx_clk256_1 : entity work.pll_nx_clk256
-    port map (
-      CLK   => clk_100_i,
-      CLKOP => nx_clk256,
-      LOCK  => pll_lock_clk256
-      );
-
-  NX1_CLK256A_OUT <= nx_clk256;
-  NX2_CLK256A_OUT <= nx_clk256;
-
-  -- ADC Receiver Clock
-  pll_adc_clk192_1 : pll_adc_clk192
-    port map (
-      CLK   => CLK_PCLK_LEFT,
-      CLKOP => clk_adc_dat,
-      LOCK  => clk_adc_dat_lock
-      );
-
- 
 
 
 end architecture;

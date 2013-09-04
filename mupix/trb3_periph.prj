@@ -140,4 +140,19 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.v
 add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
 
 
+#MuPix Files
+add_file -vhdl -lib "work" "trb3_periph.vhd"
 
+add_file -vhdl -lib "work" "sources/mupix_components.vhd"
+add_file -vhdl -lib "work" "sources/BlockMemory.vhd"
+add_file -vhdl -lib "work" "sources/EventBuffer.vhd"
+add_file -vhdl -lib "work" "sources/graycounter.vhd"
+add_file -vhdl -lib "work" "sources/Histogram.vhd"
+add_file -vhdl -lib "work" "sources/HitbusHistogram.vhd"
+add_file -vhdl -lib "work" "sources/injection_generator.vhd"
+add_file -vhdl -lib "work" "sources/MuPix3_board.vhd"
+add_file -vhdl -lib "work" "sources/MuPix3_interface.vhd"
+add_file -vhdl -lib "work" "sources/MuPix3_PixCtr.vhd"
+add_file -vhdl -lib "work" "sources/spi_if.vhd"
+
+add_file -vhdl -lib "work" "cores/fifo_32_data.vhd"
