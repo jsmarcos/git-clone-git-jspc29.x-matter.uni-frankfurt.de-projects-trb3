@@ -61,7 +61,7 @@ begin
         counter1 <= counter_from_slv(15 downto 0);
         counter2 <= counter_from_slv(31 downto 16);
       end if;
-      
+
       if(counter1 > x"0000") then
         testpulse1_i <= '1';
         counter1     <= counter1 - 1;
@@ -81,39 +81,39 @@ begin
 
   testpulse_busy <= '1' when testpulse2_i = '1' or testpulse1_i = '1' else '0';
 
-  SLV_HANDLER : process is
+  SLV_HANDLER : process(clk)
   begin
-    wait until rising_edge(clk);
-    SLV_DATA_OUT         <= (others => '0');
-    SLV_UNKNOWN_ADDR_OUT <= '0';
-    SLV_NO_MORE_DATA_OUT <= '0';
-    SLV_ACK_OUT          <= '0';
-    slv_written          <= slv_written(0) & SLV_WRITE_IN;
+    if rising_edge(clk) then
+      SLV_DATA_OUT         <= (others => '0');
+      SLV_UNKNOWN_ADDR_OUT <= '0';
+      SLV_NO_MORE_DATA_OUT <= '0';
+      SLV_ACK_OUT          <= '0';
+      slv_written          <= slv_written(0) & SLV_WRITE_IN;
 
-    if SLV_READ_IN = '1' then
-      if SLV_ADDR_IN = x"0060" then
-        SLV_DATA_OUT(31 downto 16) <= std_logic_vector(counter2);
-        SLV_DATA_OUT(15 downto 0)  <= std_logic_vector(counter1);
-        SLV_ACK_OUT                <= '1';
-      else
-        SLV_UNKNOWN_ADDR_OUT <= '1';
-      end if;
-    end if;
-
-    if SLV_WRITE_IN = '1' then
-      if SLV_ADDR_IN = x"0060" then
-        if testpulse_busy = '0' then
-          counter_from_slv <= unsigned(SLV_DATA_IN);
-          SLV_ACK_OUT      <= '1';
+      if SLV_READ_IN = '1' then
+        if SLV_ADDR_IN = x"0060" then
+          SLV_DATA_OUT(31 downto 16) <= std_logic_vector(counter2);
+          SLV_DATA_OUT(15 downto 0)  <= std_logic_vector(counter1);
+          SLV_ACK_OUT                <= '1';
         else
-          SLV_ACK_OUT <= '1';
+          SLV_UNKNOWN_ADDR_OUT <= '1';
         end if;
-        
-      else
-        SLV_UNKNOWN_ADDR_OUT <= '1';
+      end if;
+
+      if SLV_WRITE_IN = '1' then
+        if SLV_ADDR_IN = x"0060" then
+          if testpulse_busy = '0' then
+            counter_from_slv <= unsigned(SLV_DATA_IN);
+            SLV_ACK_OUT      <= '1';
+          else
+            SLV_ACK_OUT <= '1';
+          end if;
+          
+        else
+          SLV_UNKNOWN_ADDR_OUT <= '1';
+        end if;
       end if;
     end if;
-    
   end process SLV_HANDLER;
 
 --Output Signals

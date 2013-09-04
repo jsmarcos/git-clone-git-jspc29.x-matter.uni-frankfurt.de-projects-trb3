@@ -128,45 +128,46 @@ begin
   --x0041: Injection-DACs Register 32 bits
   --x0042: WriteControl Register bit0: Write DACs
   -----------------------------------------------------------------------------
-  SLV_HANDLER : process
+  SLV_HANDLER : process(clk)
   begin  -- process SLV_HANDLER
-    wait until rising_edge(clk);
-    SLV_DATA_OUT         <= (others => '0');
-    SLV_UNKNOWN_ADDR_OUT <= '0';
-    SLV_NO_MORE_DATA_OUT <= '0';
-    SLV_ACK_OUT          <= '0';
+    if rising_edge(clk) then
+      SLV_DATA_OUT         <= (others => '0');
+      SLV_UNKNOWN_ADDR_OUT <= '0';
+      SLV_NO_MORE_DATA_OUT <= '0';
+      SLV_ACK_OUT          <= '0';
 
-    if SLV_READ_IN = '1' then
-      case SLV_ADDR_IN is
-        when x"0040" =>
-          SLV_DATA_OUT <= x"0000" & threshold_reg;
-          SLV_ACK_OUT  <= '1';
-        when x"0041" =>
-          SLV_DATA_OUT <= injection2_reg & injection1_reg;
-          SLV_ACK_OUT  <= '1';
-        when x"0042" =>
-          SLV_DATA_OUT(0) <= wren;
-          SLV_ACK_OUT     <= '1';
-        when others =>
-          SLV_UNKNOWN_ADDR_OUT <= '1';
-      end case;
-    end if;
+      if SLV_READ_IN = '1' then
+        case SLV_ADDR_IN is
+          when x"0040" =>
+            SLV_DATA_OUT <= x"0000" & threshold_reg;
+            SLV_ACK_OUT  <= '1';
+          when x"0041" =>
+            SLV_DATA_OUT <= injection2_reg & injection1_reg;
+            SLV_ACK_OUT  <= '1';
+          when x"0042" =>
+            SLV_DATA_OUT(0) <= wren;
+            SLV_ACK_OUT     <= '1';
+          when others =>
+            SLV_UNKNOWN_ADDR_OUT <= '1';
+        end case;
+      end if;
 
-    if SLV_WRITE_IN = '1' then
-      case SLV_ADDR_IN is
-        when x"0040" =>
-          threshold_reg <= SLV_DATA_IN(15 downto 0);
-          SLV_ACK_OUT  <= '1';
-        when x"0041" =>
-          injection2_reg <= SLV_DATA_IN(31 downto 16);
-          injection1_reg <= SLV_DATA_IN(15 downto 0);
-          SLV_ACK_OUT  <= '1';
-        when x"0042" =>
-          wren <= SLV_DATA_IN(0);
-          SLV_ACK_OUT     <= '1';
-        when others =>
-          SLV_UNKNOWN_ADDR_OUT <= '1';
-      end case;
+      if SLV_WRITE_IN = '1' then
+        case SLV_ADDR_IN is
+          when x"0040" =>
+            threshold_reg <= SLV_DATA_IN(15 downto 0);
+            SLV_ACK_OUT   <= '1';
+          when x"0041" =>
+            injection2_reg <= SLV_DATA_IN(31 downto 16);
+            injection1_reg <= SLV_DATA_IN(15 downto 0);
+            SLV_ACK_OUT    <= '1';
+          when x"0042" =>
+            wren        <= SLV_DATA_IN(0);
+            SLV_ACK_OUT <= '1';
+          when others =>
+            SLV_UNKNOWN_ADDR_OUT <= '1';
+        end case;
+      end if;
     end if;
   end process SLV_HANDLER;
 
