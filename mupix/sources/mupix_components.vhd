@@ -61,4 +61,154 @@ package mupix_components is
       REGIO_UNKNOWN_ADDR_OUT     : out std_logic);
   end component;
 
+  --Interface to MuPix 3/4
+  component mupix_interface
+    port (
+      rstn                 : in  std_logic;
+      clk                  : in  std_logic;
+      ldpix                : out std_logic;
+      ldcol                : out std_logic;
+      rdcol                : out std_logic;
+      pulldown             : out std_logic;
+      timestamps           : out std_logic_vector(7 downto 0);
+      priout               : in  std_logic;
+      hit_col              : in  std_logic_vector(5 downto 0);
+      hit_row              : in  std_logic_vector(5 downto 0);
+      hit_time             : in  std_logic_vector(7 downto 0);
+      memdata              : out std_logic_vector(31 downto 0);
+      memwren              : out std_logic;
+      endofevent           : out std_logic;
+      ro_busy              : out std_logic;
+      SLV_READ_IN          : in  std_logic;
+      SLV_WRITE_IN         : in  std_logic;
+      SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
+      SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
+      SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
+      SLV_ACK_OUT          : out std_logic;
+      SLV_NO_MORE_DATA_OUT : out std_logic;
+      SLV_UNKNOWN_ADDR_OUT : out std_logic);
+  end component;
+  
+  --SPI entity to write Sensorboard DACs
+  component spi_if
+    port (
+      clk                  : in  std_logic;
+      reset_n              : in  std_logic;
+      SLV_READ_IN          : in  std_logic;
+      SLV_WRITE_IN         : in  std_logic;
+      SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
+      SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
+      SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
+      SLV_ACK_OUT          : out std_logic;
+      SLV_NO_MORE_DATA_OUT : out std_logic;
+      SLV_UNKNOWN_ADDR_OUT : out std_logic;
+      spi_data             : out std_logic;
+      spi_clk              : out std_logic;
+      spi_ld               : out std_logic);
+  end component;
+
+  --Injection Generator
+  component injection_generator
+    port (
+      rstn                 : in  std_logic;
+      clk                  : in  std_logic;
+      SLV_READ_IN          : in  std_logic;
+      SLV_WRITE_IN         : in  std_logic;
+      SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
+      SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
+      SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
+      SLV_ACK_OUT          : out std_logic;
+      SLV_NO_MORE_DATA_OUT : out std_logic;
+      SLV_UNKNOWN_ADDR_OUT : out std_logic;
+      testpulse1           : out std_logic;
+      testpulse2           : out std_logic);
+  end component;
+
+  --HitBus Histogram
+  component HitbusHistogram
+    generic (
+      HistogramRange : integer);
+    port (
+      clk                  : in  std_logic;
+      hitbus               : in  std_logic;
+      Trigger              : out std_logic;
+      SLV_READ_IN          : in  std_logic;
+      SLV_WRITE_IN         : in  std_logic;
+      SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
+      SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
+      SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
+      SLV_ACK_OUT          : out std_logic;
+      SLV_NO_MORE_DATA_OUT : out std_logic;
+      SLV_UNKNOWN_ADDR_OUT : out std_logic);
+  end component;
+
+  --Graycounter for timestamp Generation
+  component Graycounter
+    generic (
+      COUNTWIDTH : integer);
+    port (
+      clk        : in  std_logic;
+      reset      : in  std_logic;
+      sync_reset : in  std_logic;
+      counter    : out std_logic_vector(COUNTWIDTH-1 downto 0));
+  end component;
+
+
+  --FiFo for Event Buffer
+  component fifo_32_data
+    port (
+      Data        : in  std_logic_vector(31 downto 0);
+      Clock       : in  std_logic;
+      WrEn        : in  std_logic;
+      RdEn        : in  std_logic;
+      Reset       : in  std_logic;
+      Q           : out std_logic_vector(31 downto 0);
+      WCNT        : out std_logic_vector(10 downto 0);
+      Empty       : out std_logic;
+      Full        : out std_logic;
+      AlmostEmpty : out std_logic);
+  end component;
+
+  --Event Buffer
+  component EventBuffer
+    port (
+      CLK                     : in  std_logic;
+      Reset                   : in  std_logic;
+      MuPixData_in            : in  std_logic_vector(31 downto 0);
+      MuPixDataWr_in          : in  std_logic;
+      MuPixEndOfEvent_in      : in  std_logic;
+      FEE_DATA_OUT            : out std_logic_vector(31 downto 0);
+      FEE_DATA_WRITE_OUT      : out std_logic;
+      FEE_DATA_FINISHED_OUT   : out std_logic;
+      FEE_DATA_ALMOST_FULL_IN : in  std_logic;
+      SLV_READ_IN             : in  std_logic;
+      SLV_WRITE_IN            : in  std_logic;
+      SLV_DATA_IN             : in  std_logic_vector(31 downto 0);
+      SLV_ADDR_IN             : in  std_logic_vector(15 downto 0);
+      SLV_DATA_OUT            : out std_logic_vector(31 downto 0);
+      SLV_ACK_OUT             : out std_logic;
+      SLV_NO_MORE_DATA_OUT    : out std_logic;
+      SLV_UNKNOWN_ADDR_OUT    : out std_logic);
+  end component;
+
+  --MuPix DAC and Tune DAC Slow Control
+  component PixCtr
+    port (
+      clk                  : in  std_logic;
+      sout_c_from_mupix    : in  std_logic;
+      sout_d_from_mupix    : in  std_logic;
+      ck_d_to_mupix        : out std_logic;
+      ck_c_to_mupix        : out std_logic;
+      ld_c_to_mupix        : out std_logic;
+      sin_to_mupix         : out std_logic;
+      SLV_READ_IN          : in  std_logic;
+      SLV_WRITE_IN         : in  std_logic;
+      SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
+      SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
+      SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
+      SLV_ACK_OUT          : out std_logic;
+      SLV_NO_MORE_DATA_OUT : out std_logic;
+      SLV_UNKNOWN_ADDR_OUT : out std_logic);
+  end component;
+  
 end mupix_components;
