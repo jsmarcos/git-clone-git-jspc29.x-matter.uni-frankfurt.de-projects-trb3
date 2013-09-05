@@ -137,6 +137,7 @@ begin
             SLV_ACK_OUT  <= '1';
           when x"0025" =>
             SLV_DATA_OUT <= std_logic_vector(eventcounter);
+            SLV_ACK_OUT  <= '1';
           when others =>
             SLV_UNKNOWN_ADDR_OUT <= '1';
         end case;
@@ -303,18 +304,18 @@ begin
           delcounter   <= delcounter - 1;
           memwren      <= '0';
           state        <= loadpix;
-          if(delcounter = "100") then   -- write event header
+          if(delcounter = "0100") then   -- write event header
             memdata <= "11111010101111101010101110111010";     --0xFABEABBA
             memwren <= '1';
-          elsif(delcounter = "011") then  -- write event counter
+          elsif(delcounter = "0011") then  -- write event counter
             memdata <= std_logic_vector(eventcounter);
             memwren <= '1';
-          elsif(delcounter = "001") then
+          elsif(delcounter = "0001") then
             memwren <= '1';
             memdata <= x"00000000";     --add empty trigger
                                         --number
           end if;
-          if(delcounter = "000") then
+          if(delcounter = "0000") then
             state      <= pulld;
             pulldown   <= '1';
             delcounter <= unsigned(delaycounters(7 downto 4));
@@ -328,7 +329,7 @@ begin
           end if;
           delcounter   <= delcounter - 1;
           state        <= pulld;
-          if(delcounter = "000") then
+          if(delcounter = "0000") then
             state      <= loadcol;
             ldcol      <= '1';
             delcounter <= unsigned(delaycounters(11 downto 8));
@@ -363,22 +364,22 @@ begin
           memwren      <= '0';
           state        <= readcol;
           endofevent   <= '0';
-          if(delcounter = "010") then
+          if(delcounter = "0010") then
             memdata    <= "111100001111" & hit_col & hit_row & hit_time;  --0xF0F
             memwren    <= '1';
             hitcounter <= hitcounter + 1;
             state      <= readcol;
-          elsif(delcounter = "000" and hitcounter = "11111111111") then
+          elsif(delcounter = "0000" and hitcounter = "11111111111") then
             -- 2048 hits - force end of event 
             memwren    <= '1';
             memdata    <= "10111110111011111011111011101111";  --0xBEEFBEEF
             endofevent <= '1';
             state      <= waiting;
-          elsif(delcounter = "000" and priout = '1') then
+          elsif(delcounter = "0000" and priout = '1') then
             state      <= readcol;
             rdcol      <= '1';
             delcounter <= unsigned(delaycounters(15 downto 12));
-          elsif(delcounter = "000") then
+          elsif(delcounter = "0000") then
             state      <= pulld;
             pulldown   <= '1';
             delcounter <= unsigned(delaycounters(19 downto 16));
@@ -405,7 +406,7 @@ begin
             memwren    <= '1';
             delcounter <= delcounter - 1;
             endofevent <= '0';
-          elsif(delcounter = "010") then
+          elsif(delcounter = "0010") then
             state      <= hitgenerator;
             memwren    <= '0';
             delcounter <= delcounter - 1;
