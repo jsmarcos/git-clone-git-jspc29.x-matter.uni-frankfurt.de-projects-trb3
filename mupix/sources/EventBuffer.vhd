@@ -65,7 +65,7 @@ begin  -- Behavioral
   -- Send data to FIFO (TODO: generate FiFo Core in Cores-Directory!!)
   fifo_32_data_1 : fifo_32_data
     port map (
-      Data  => MuPixData_in,            --Data In
+      Data  => fifo_data_in,            --Data In
       Clock => CLK,
       WrEn  => fifo_write,
       RdEn  => fifo_read_enable,

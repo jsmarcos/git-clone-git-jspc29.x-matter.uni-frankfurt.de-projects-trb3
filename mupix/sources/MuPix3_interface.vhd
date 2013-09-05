@@ -5,10 +5,6 @@
 -- nberger@physi.uni-heidelberg.de
 -- Adepted to TRBv3 Readout: Tobias Weber, University Mainz
 -----------------------------------------------------------------------------
-
-
-
-
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
@@ -85,9 +81,9 @@ architecture RTL of mupix_interface is
   signal ngeneratehitscounter    : unsigned(15 downto 0);
   signal generatehitswaitcounter : unsigned(31 downto 0);
 
-  signal gen_hit_col  : std_logic_vector(5 downto 0);
-  signal gen_hit_row  : std_logic_vector(5 downto 0);
-  signal gen_hit_time : std_logic_vector(7 downto 0);
+  signal gen_hit_col  : std_logic_vector(5 downto 0) := (others => '0');
+  signal gen_hit_row  : std_logic_vector(5 downto 0) := (others => '0');
+  signal gen_hit_time : std_logic_vector(7 downto 0) := (others => '0');
 
   signal testoutro : std_logic_vector (127 downto 0);
 
@@ -110,6 +106,7 @@ begin
   --x0022: Timestamp Controlbits
   --x0023: Hit Generator
   --x0024: Delay Counters
+  --x0025: EventCounter
   -----------------------------------------------------------------------------
 
   SLV_HANDLER : process(clk)
@@ -138,6 +135,8 @@ begin
           when x"0024" =>
             SLV_DATA_OUT <= delaycounters;
             SLV_ACK_OUT  <= '1';
+          when x"0025" =>
+            SLV_DATA_OUT <= std_logic_vector(eventcounter);
           when others =>
             SLV_UNKNOWN_ADDR_OUT <= '1';
         end case;
@@ -389,7 +388,7 @@ begin
           ro_busy_int  <= '1';
           testoutro(6) <= '1';
           state        <= hitgenerator;
-          if(delcounter = "100") then   -- write event header
+          if(delcounter = "0100") then   -- write event header
             state                   <= hitgenerator;
             memdata                 <= "11111010101111101010101110111010";  --0xFABEABBA
             memwren                 <= '1';
@@ -400,7 +399,7 @@ begin
             gen_hit_time            <= (others => '0');
             delcounter              <= delcounter - 1;
             endofevent              <= '0';
-          elsif(delcounter = "011") then    -- write event counter
+          elsif(delcounter = "0011") then    -- write event counter
             state      <= hitgenerator;
             memdata    <= std_logic_vector(eventcounter);
             memwren    <= '1';
@@ -411,13 +410,13 @@ begin
             memwren    <= '0';
             delcounter <= delcounter - 1;
             endofevent <= '0';
-          elsif(delcounter = "001") then    -- write trigger number
+          elsif(delcounter = "0001") then    -- write trigger number
             state      <= hitgenerator;
             memdata    <= (others => '0');  --empty trigger number
             memwren    <= '1';
             delcounter <= delcounter - 1;
             endofevent <= '0';
-          elsif(delcounter = "000" and ngeneratehitscounter > "0000000000000000") then
+          elsif(delcounter = "0000" and ngeneratehitscounter > "0000000000000000") then
             state                <= hitgenerator;
             delcounter           <= delcounter;
             ngeneratehitscounter <= ngeneratehitscounter - 1;
@@ -429,13 +428,13 @@ begin
             memdata    <= "111100001111" & "0" & gen_hit_col(4 downto 0) & gen_hit_row & graycount;  --0xF0F
             memwren    <= '1';
             endofevent <= '0';
-          elsif(delcounter = "000" and ngeneratehitscounter = "0000000000000000" and generatehits = '0') then
+          elsif(delcounter = "0000" and ngeneratehitscounter = "0000000000000000" and generatehits = '0') then
             state      <= waiting;
             -- end of event
             memwren    <= '1';
             memdata    <= "10111110111011111011111011101111";  --0xBEEFBEEF
             endofevent <= '1';
-          elsif(delcounter = "000" and ngeneratehitscounter = "0000000000000000" and generatehits = '1') then
+          elsif(delcounter = "0000" and ngeneratehitscounter = "0000000000000000" and generatehits = '1') then
             state      <= hitgeneratorwait;
             -- end of event
             memwren    <= '1';
