@@ -55,7 +55,7 @@ architecture Behavioral of EventBuffer is
   signal FiFo_Read_S_fsm  : FiFo_Read_S_States := idle;
   signal fifo_start_read  : std_logic;
   signal fifo_read_s      : std_logic;
-  signal fifo_reading_s   : std_logic;
+  signal fifo_reading_s   : std_logic := '0';
   signal fifo_read_done_s : std_logic;
   signal fifo_read_busy_s : std_logic;
   

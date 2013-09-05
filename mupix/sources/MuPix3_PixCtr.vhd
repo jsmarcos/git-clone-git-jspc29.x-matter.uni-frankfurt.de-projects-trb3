@@ -34,7 +34,7 @@ architecture Behavioral of PixCtr is
   signal slowcontrol_reg_old : std_logic_vector(31 downto 0);
   signal start_write_mupix   : std_logic;
   signal done_write_mupix    : std_logic;
-  signal busy_write_mupix    : std_logic;
+  signal busy_write_mupix    : std_logic := '0';
 
   type   delay_type is (idle, delay1, done);
   signal delay_fsm : delay_type := idle;
