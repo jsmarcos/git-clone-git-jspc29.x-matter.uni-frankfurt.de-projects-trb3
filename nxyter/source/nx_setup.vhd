@@ -54,23 +54,10 @@ architecture Behavioral of nx_setup is
   signal i2c_command_done        : std_logic;
   signal i2c_data                : std_logic_vector(31 downto 0);
 
-  -- Write I2C Registers
-  type W_STATES is (W_IDLE,
-                    W_NEXT_REGISTER,
-                    W_REGISTER,
-                    W_WAIT_DONE
-                    );
-
-  signal W_STATE, W_STATE_RETURN : W_STATES;
-
-  
-  signal nx_write_i2c_command    : std_logic_vector(31 downto 0);
-  signal nx_write_i2c_lock       : std_logic;        
-  signal w_register_ctr          : unsigned(5 downto 0);
-  
   -- Read I2C Registers
   type R_STATES is (R_IDLE,
                     R_REGISTER,
+                    R_REGISTER_STORE,
                     R_NEXT_REGISTER,
                     R_WAIT_DONE
                     );
@@ -81,17 +68,20 @@ architecture Behavioral of nx_setup is
   signal nx_read_i2c_lock        : std_logic;        
   signal r_register_ctr          : unsigned(5 downto 0);
 
-  -- Write DAC I2C Registers
-  type DW_STATES is (DW_IDLE,
-                     DW_NEXT_REGISTER,
-                     DW_REGISTER,
-                     DW_WAIT_DONE
-                     );
-  signal DW_STATE, DW_STATE_RETURN : DW_STATES;
+  -- Write I2C Registers
+  type W_STATES is (W_IDLE,
+                    W_REGISTER,
+                    W_NEXT_REGISTER,
+                    W_WAIT_DONE
+                    );
 
-  signal dac_write_i2c_command   : std_logic_vector(31 downto 0);
-  signal dac_write_i2c_lock      : std_logic;        
-  signal w_fifo_ctr              : unsigned(7 downto 0);
+  signal W_STATE, W_STATE_RETURN : W_STATES;
+
+  
+  signal nx_write_i2c_command    : std_logic_vector(31 downto 0);
+  signal nx_write_i2c_lock       : std_logic;        
+  signal w_register_ctr          : unsigned(5 downto 0);
+  
   
   -- Read DAC I2C Registers
   type DR_STATES is (DR_IDLE,
@@ -108,6 +98,20 @@ architecture Behavioral of nx_setup is
   signal dac_read_i2c_lock       : std_logic;        
   signal r_fifo_ctr              : unsigned(7 downto 0);
 
+  -- Write DAC I2C Registers
+  type DW_STATES is (DW_IDLE,
+                     DW_REGISTER,
+                     DW_WRITE_BACK,
+                     DW_NEXT_REGISTER,
+                     DW_WAIT_DONE
+                     );
+  signal DW_STATE, DW_STATE_RETURN : DW_STATES;
+
+  signal dac_write_i2c_command   : std_logic_vector(31 downto 0);
+  signal dac_write_i2c_lock      : std_logic;        
+  signal w_fifo_ctr              : unsigned(7 downto 0);
+
+  
   -- TRBNet Slave Bus
   signal slv_data_out_o          : std_logic_vector(31 downto 0);
   signal slv_no_more_data_o      : std_logic;
@@ -141,7 +145,7 @@ architecture Behavioral of nx_setup is
      );
   
   -- DAC Trim FIFO RAM
-  type dac_ram_t is array(0 to 129) of std_logic_vector(5 downto 0);
+  type dac_ram_t is array(0 to 130) of std_logic_vector(5 downto 0);
   signal dac_ram                 : dac_ram_t;
   signal dac_ram_write_0         : std_logic;
   signal dac_ram_write_1         : std_logic;
@@ -223,10 +227,12 @@ begin
 
   i2c_lock_o    <= nx_write_i2c_lock or
                    nx_read_i2c_lock or
-                   dac_read_i2c_lock;
+                   dac_read_i2c_lock or
+                   dac_write_i2c_lock;
   i2c_command   <= nx_write_i2c_command or
                    nx_read_i2c_command or
-                   dac_read_i2c_command;
+                   dac_read_i2c_command or
+                   dac_write_i2c_command;
 
   PROC_SEND_I2C_COMMAND: process(CLK_IN)
   begin
@@ -309,7 +315,7 @@ begin
               nx_read_i2c_lock                  <= '0';
               R_STATE                           <= R_IDLE;
             end if;
-            r_register_ctr         <= (others => '0');
+            r_register_ctr                      <= (others => '0');
 
           when R_REGISTER =>
            if (register_access_type(to_integer(r_register_ctr)) = '1') then
@@ -317,13 +323,13 @@ begin
              nx_read_i2c_command(15 downto 14)  <= (others => '0');
              nx_read_i2c_command(13 downto  8)  <= r_register_ctr;
              nx_read_i2c_command( 7 downto  0)  <= (others => '0');
-             R_STATE_RETURN                     <= R_NEXT_REGISTER;
+             R_STATE_RETURN                     <= R_REGISTER_STORE;
              R_STATE                            <= R_WAIT_DONE;
            else
-             R_STATE                            <= R_NEXT_REGISTER;
+             R_STATE                            <= R_REGISTER_STORE;
            end if;
-            
-          when R_NEXT_REGISTER =>
+
+          when R_REGISTER_STORE =>
             if (register_access_type(to_integer(r_register_ctr)) = '1') then
               i2c_ram_input_0                   <= i2c_data(7 downto 0);
             else
@@ -331,9 +337,11 @@ begin
             end if;
             i2c_ram_input_addr_0                <= r_register_ctr;
             i2c_ram_write_0                     <= '1';
-
-            if (r_register_ctr <= x"2d") then
-              r_register_ctr                    <= r_register_ctr + 1;
+            r_register_ctr                      <= r_register_ctr + 1;
+            R_STATE                             <= R_NEXT_REGISTER;
+            
+          when R_NEXT_REGISTER =>
+            if (r_register_ctr < x"2e") then
               R_STATE                           <= R_REGISTER;
             else
               R_STATE                           <= R_IDLE;
@@ -369,19 +377,12 @@ begin
 
           when W_IDLE =>
             if (write_nx_i2c_all_start = '1') then
-              W_STATE                            <= W_NEXT_REGISTER;
+              W_STATE                            <= W_REGISTER;
             else
               nx_write_i2c_lock                  <= '0';
               W_STATE                            <= W_IDLE;
             end if;
-            w_register_ctr           <= (others => '0');
-
-          when W_NEXT_REGISTER =>
-            if (w_register_ctr <= x"2d") then
-              W_STATE                            <= W_REGISTER;
-            else
-              W_STATE                            <= W_IDLE;
-            end if;
+            w_register_ctr                       <= (others => '0');
             
           when W_REGISTER =>
             if (register_access_type(
@@ -397,9 +398,15 @@ begin
             else
               W_STATE                            <= W_NEXT_REGISTER;
             end if;
-
             w_register_ctr                       <= w_register_ctr + 1;
-            
+
+          when W_NEXT_REGISTER =>
+            if (w_register_ctr < x"2e") then
+              W_STATE                            <= W_REGISTER;
+            else
+              W_STATE                            <= W_IDLE;
+            end if;
+
           when W_WAIT_DONE =>
             if (i2c_command_done = '0') then
               W_STATE                            <= W_WAIT_DONE;
@@ -442,7 +449,7 @@ begin
               dac_read_i2c_lock                 <= '0';
               DR_STATE                          <= DR_IDLE;
             end if;
-            r_fifo_ctr                        <= (others => '0');
+            r_fifo_ctr                          <= (others => '0');
 
           when DR_REGISTER =>
             dac_read_i2c_command(31 downto 16)  <= x"ff08";
@@ -460,14 +467,14 @@ begin
             -- Write Data Back to FIFO
             dac_read_i2c_command(31 downto 16)  <= x"bf08";
             dac_read_i2c_command(15 downto 8)   <= x"2a";  -- DAC Reg 42
-            dac_read_i2c_command(4 downto 0)    <= i2c_data(4 downto 0);
-            dac_read_i2c_command(7 downto 5)    <= (others => '0');
+            dac_read_i2c_command(5 downto 0)    <= i2c_data(5 downto 0);
+            dac_read_i2c_command(7 downto 6)    <= (others => '0');
+              r_fifo_ctr                        <= r_fifo_ctr + 1;
             DR_STATE_RETURN                     <= DR_NEXT_REGISTER;
             DR_STATE                            <= DR_WAIT_DONE;
            
           when DR_NEXT_REGISTER =>
-            if (r_fifo_ctr <= x"81") then
-              r_fifo_ctr                        <= r_fifo_ctr + 1;
+            if (r_fifo_ctr < x"81") then
               DR_STATE                          <= DR_REGISTER;
             else
               DR_STATE                          <= DR_IDLE;
@@ -484,7 +491,68 @@ begin
      end if;
     end if;
   end process PROC_READ_DAC_REGISTERS;
- 
+
+  PROC_WRITE_DAC_REGISTERS: process(CLK_IN)
+  begin
+    if( rising_edge(CLK_IN) ) then
+      if( RESET_IN = '1' ) then
+        dac_write_i2c_command  <= (others => '0');
+        dac_write_i2c_lock     <= '0';
+        w_fifo_ctr             <= (others => '0');
+
+        DW_STATE_RETURN        <= DW_IDLE;
+        DW_STATE               <= DW_IDLE;
+      else
+        dac_write_i2c_command  <= (others => '0');
+        dac_write_i2c_lock     <= '1';
+        
+        case DW_STATE is
+          when DW_IDLE =>
+            if (write_dac_all_start = '1') then
+              DW_STATE                          <= DW_REGISTER;
+            else
+              dac_write_i2c_lock                <= '0';
+              DW_STATE                          <= DW_IDLE;
+            end if;
+            w_fifo_ctr                          <= (others => '0');
+
+          when DW_REGISTER =>
+            dac_write_i2c_command(31 downto 16) <= x"ff08";
+            dac_write_i2c_command(15 downto 8)  <= x"2a";  -- DAC Reg 42
+            dac_write_i2c_command(7 downto 0)   <= (others => '0');
+            DW_STATE_RETURN                     <= DW_WRITE_BACK;
+            DW_STATE                            <= DW_WAIT_DONE;
+            
+          when DW_WRITE_BACK =>
+            -- Write Data Back to FIFO
+            dac_write_i2c_command(31 downto 16) <= x"bf08";
+            dac_write_i2c_command(15 downto 8)  <= x"2a";  -- DAC Reg 42
+            dac_write_i2c_command(7 downto 6)   <= (others => '0');
+            dac_write_i2c_command(5 downto 0)   <=
+              dac_ram(to_integer(w_fifo_ctr));
+            w_fifo_ctr                        <= w_fifo_ctr + 1;
+            DW_STATE_RETURN                     <= DW_NEXT_REGISTER;
+            DW_STATE                            <= DW_WAIT_DONE;
+           
+          when DW_NEXT_REGISTER =>
+            if (w_fifo_ctr < x"81") then
+              DW_STATE                          <= DW_REGISTER;
+            else
+              DW_STATE                          <= DW_IDLE;
+            end if;
+            
+          when DW_WAIT_DONE =>
+            if (i2c_command_done = '0') then
+              DW_STATE                          <= DW_WAIT_DONE;
+            else
+              DW_STATE                          <= DW_STATE_RETURN;
+            end if;
+
+        end case;
+     end if;
+    end if;
+  end process PROC_WRITE_DAC_REGISTERS;
+  
   -----------------------------------------------------------------------------
   
   PROC_SLAVE_BUS: process(CLK_IN)
@@ -552,7 +620,7 @@ begin
               -- Write value to ram
               mem_address := unsigned(SLV_ADDR_IN(7 downto 0)) - x"60";
               dac_ram_input_1          <= SLV_DATA_IN(5 downto 0);
-              dac_ram_input_addr_1     <= SLV_ADDR_IN(7 downto 0);
+              dac_ram_input_addr_1     <= mem_address;
               dac_ram_write_1          <= '1';
               slv_ack_o                <= '1';
             end if;

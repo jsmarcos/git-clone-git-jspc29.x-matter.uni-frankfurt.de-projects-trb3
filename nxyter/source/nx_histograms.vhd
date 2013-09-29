@@ -36,7 +36,7 @@ end entity;
 
 architecture nx_histograms of nx_histograms is
 
-  type histogram_t is array(0 to 2**BUS_WIDTH - 1) of unsigned(23 downto 0);
+  type histogram_t is array(0 to 2**BUS_WIDTH - 1) of unsigned(31 downto 0);
 
   -- PROC_CHANNEL_HIST
   signal hist_channel_stat    : histogram_t;
@@ -130,17 +130,17 @@ hist_enable_1: if ENABLE = 1 generate
         if (SLV_READ_IN  = '1') then
           if (unsigned(SLV_ADDR_IN) >= x"0000" and
               unsigned(SLV_ADDR_IN) <= x"007f") then
-            slv_data_out_o(23 downto 0)  <= std_logic_vector(
+            slv_data_out_o(31 downto 0)  <= std_logic_vector(
               hist_channel_stat(to_integer(unsigned(SLV_ADDR_IN(7 downto 0))))
               );
-            slv_data_out_o(31 downto 24) <= (others => '0');
+           -- slv_data_out_o(31 downto 24) <= (others => '0');
             slv_ack_o                    <= '1';
           elsif (unsigned(SLV_ADDR_IN) >= x"0080" and
                  unsigned(SLV_ADDR_IN) <= x"00ff") then
-            slv_data_out_o(23 downto 0)  <= std_logic_vector(
+            slv_data_out_o(31 downto 0)  <= std_logic_vector(
               hist_channel_freq(to_integer(unsigned(SLV_ADDR_IN(7 downto 0))))
               );
-            slv_data_out_o(31 downto 24) <= (others => '0');
+           -- slv_data_out_o(31 downto 24) <= (others => '0');
             slv_ack_o                    <= '1';
           else
             slv_ack_o                    <= '0';

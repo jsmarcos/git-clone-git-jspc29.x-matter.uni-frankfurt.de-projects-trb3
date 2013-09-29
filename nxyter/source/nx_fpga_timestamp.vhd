@@ -12,8 +12,8 @@ entity nx_fpga_timestamp is
 
     TIMESTAMP_SYNC_IN     : in  std_logic;
     TRIGGER_IN            : in  std_logic;
-
-    TIMESTAMP_OUT         : out unsigned(11 downto 0);
+    TIMESTAMP_CURRENT_OUT : out unsigned(11 downto 0);
+    TIMESTAMP_HOLD_OUT    : out unsigned(11 downto 0);
     NX_TIMESTAMP_SYNC_OUT : out std_logic;
 
     -- Slave bus         
@@ -33,7 +33,8 @@ end entity;
 architecture Behavioral of nx_fpga_timestamp is
 
   signal timestamp_ctr       : unsigned(11 downto 0);
-  signal timestamp_o         : unsigned(11 downto 0);
+  signal timestamp_current_o : unsigned(11 downto 0);
+  signal timestamp_hold_o    : unsigned(11 downto 0);
   signal trigger_x           : std_logic;
   signal trigger_l           : std_logic;
   signal trigger             : std_logic;
@@ -49,10 +50,9 @@ begin
   DEBUG_OUT(1)           <= trigger;
   DEBUG_OUT(2)           <= timestamp_sync;
   DEBUG_OUT(3)           <= '0';
-  DEBUG_OUT(15 downto 4) <= TIMESTAMP_OUT;
+  DEBUG_OUT(15 downto 4) <= timestamp_hold_o;
   
-  -- Cross the abyss for trigger and sync signal
-
+  -- Cross Clockdomain for TRIGGER and SYNC signal
   PROC_SYNC: process (CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then
@@ -71,7 +71,6 @@ begin
   end process PROC_SYNC;
 
   -- Convert TRIGGER_IN to Pulse
-
   level_to_pulse_1: level_to_pulse
     port map (
       CLK_IN    => CLK_IN,
@@ -81,7 +80,6 @@ begin
       );
 
   -- Convert TIMESTAMP_SYNC_IN to Pulse
-
   level_to_pulse_2: level_to_pulse
     port map (
       CLK_IN    => CLK_IN,
@@ -96,19 +94,19 @@ begin
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        timestamp_ctr       <= (others => '0');
-        timestamp_o         <= (others => '0');
-        nx_timestamp_sync_o <= '0';
+        timestamp_ctr         <= (others => '0');
+        timestamp_hold_o      <= (others => '0');
+        nx_timestamp_sync_o   <= '0';
       else
-        nx_timestamp_sync_o <= '0';
+        nx_timestamp_sync_o   <= '0';
         
         if (timestamp_sync = '1') then
           timestamp_ctr       <= (others => '0');
-          timestamp_o         <= (others => '0');
+          timestamp_hold_o    <= (others => '0');
           nx_timestamp_sync_o <= '1';
         else
           if (trigger = '1') then
-            timestamp_o       <= timestamp_ctr - 3;
+            timestamp_hold_o  <= timestamp_ctr - 3;
           end if;
           timestamp_ctr       <= timestamp_ctr + 1;
         end if;
@@ -116,12 +114,15 @@ begin
     end if;
   end process;
 
+  timestamp_current_o         <= timestamp_ctr;
+
   
   -----------------------------------------------------------------------------
   -- Output Signals
   -----------------------------------------------------------------------------
-
-  TIMESTAMP_OUT         <= timestamp_o;
-  NX_TIMESTAMP_SYNC_OUT <= nx_timestamp_sync_o;
+  
+  TIMESTAMP_CURRENT_OUT  <= timestamp_current_o;
+  TIMESTAMP_HOLD_OUT     <= timestamp_hold_o;
+  NX_TIMESTAMP_SYNC_OUT  <= nx_timestamp_sync_o;
 
 end Behavioral;

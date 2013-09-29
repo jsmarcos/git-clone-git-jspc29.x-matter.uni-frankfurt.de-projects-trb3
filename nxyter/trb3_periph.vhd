@@ -65,7 +65,7 @@ entity trb3_periph is
     NX1B_ADC_B_IN              : in    std_logic;
     NX1B_ADC_NX_IN             : in    std_logic;
     NX1B_ADC_D_IN              : in    std_logic;
-
+    
     --Connections to NXYTER-FEB 2
 
     NX2_RESET_OUT              : out   std_logic;     
@@ -93,7 +93,9 @@ entity trb3_periph is
     NX2B_ADC_B_IN              : in    std_logic;
     NX2B_ADC_NX_IN             : in    std_logic;
     NX2B_ADC_D_IN              : in    std_logic;
-     
+
+    ADDON_TRIGGER_OUT          : out   std_logic;
+    
     ---------------------------------------------------------------------------
     -- END AddonBoard nXyter
     ---------------------------------------------------------------------------
@@ -274,7 +276,7 @@ architecture trb3_periph_arch of trb3_periph is
   signal time_counter : unsigned(31 downto 0);
 
 
-  -- nXyter-FEE-Board Clocks
+  -- nXyter-FEB-Board Clocks
   signal nx_clk256                   : std_logic;
   signal pll_lock_clk256             : std_logic;
   signal clk_adc_dat                 : std_logic;
@@ -294,7 +296,8 @@ architecture trb3_periph_arch of trb3_periph is
   
   signal nx1_timestamp_sim_o         : std_logic_vector(7 downto 0);
   signal nx1_clk128_sim_o            : std_logic;
-
+  signal fee1_trigger                : std_logic;
+  
   -- nXyter 2 Regio Bus
   signal nx2_regio_addr_in           : std_logic_vector (15 downto 0);
   signal nx2_regio_data_in           : std_logic_vector (31 downto 0);
@@ -309,7 +312,8 @@ architecture trb3_periph_arch of trb3_periph is
            
   signal nx2_timestamp_sim_o         : std_logic_vector(7 downto 0);
   signal nx2_clk128_sim_o            : std_logic;
-           
+  signal fee2_trigger                : std_logic;
+
 begin
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -404,7 +408,7 @@ begin
       BROADCAST_SPECIAL_ADDR    => x"48",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
       REGIO_HARDWARE_VERSION    => x"9100_6000",
-      REGIO_INIT_ADDRESS        => x"1100",
+      REGIO_INIT_ADDRESS        => x"8900",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
       CLOCK_FREQUENCY           => 125,
       TIMING_TRIGGER_RAW        => c_YES,
@@ -434,7 +438,7 @@ begin
 
       --Timing trigger in
       TRG_TIMING_TRG_RECEIVED_IN  => timing_trg_received_i,
-      --LVL1 trigger to FEE
+      --LVL1 trigger to FEB
       LVL1_TRG_DATA_VALID_OUT     => trg_data_valid_i,
       LVL1_VALID_TIMING_TRG_OUT   => trg_timing_valid_i,
       LVL1_VALID_NOTIMING_TRG_OUT => trg_notiming_valid_i,
@@ -453,7 +457,7 @@ begin
       TRG_MISSING_TMG_TRG_OUT  => trg_missing_tmg_trg_i,
       TRG_SPIKE_DETECTED_OUT   => trg_spike_detected_i,
 
-      --Response from FEE, i.e. nXyter #0
+      --Response from FEB, i.e. nXyter #0
       FEE_TRG_RELEASE_IN(0)                       => fee_trg_release_i(0),
       FEE_TRG_STATUSBITS_IN(0*32+31  downto 0*32) => fee_trg_statusbits_i(0*32+31 downto 0*32),
       FEE_DATA_IN(0*32+31  downto 0*32)           => fee_data_i(0*32+31 downto 0*32),
@@ -695,7 +699,8 @@ begin
       RESET_IN                   => reset_i,
       CLK_NX_IN                  => nx_clk256,
       CLK_ADC_IN                 => clk_adc_dat,
-                                 
+      TRIGGER_OUT                => fee1_trigger,                       
+
       I2C_SDA_INOUT              => NX1_I2C_SDA_INOUT,
       I2C_SCL_INOUT              => NX1_I2C_SCL_INOUT,
       I2C_SM_RESET_OUT           => NX1_I2C_SM_RESET_OUT,
@@ -712,7 +717,7 @@ begin
                                  
       NX_RESET_OUT               => NX1_RESET_OUT,
       NX_TESTPULSE_OUT           => NX1_TESTPULSE_OUT,
-                                 
+           
       ADC_FCLK_IN(0)             => NX1_ADC_FCLK_IN,
       ADC_FCLK_IN(1)             => NX1B_ADC_FCLK_IN,
       ADC_DCLK_IN(0)             => NX1_ADC_DCLK_IN,
@@ -736,7 +741,7 @@ begin
       LVL1_TRG_CODE_IN           => trg_code_i,
       LVL1_TRG_INFORMATION_IN    => trg_information_i,
       LVL1_INT_TRG_NUMBER_IN     => trg_int_number_i,
-
+      
       FEE_TRG_RELEASE_OUT        => fee_trg_release_i(0),
       FEE_TRG_STATUSBITS_OUT     => fee_trg_statusbits_i(31 downto 0),
       FEE_DATA_OUT               => fee_data_i(31 downto 0),
@@ -772,7 +777,8 @@ begin
       RESET_IN                   => reset_i,
       CLK_NX_IN                  => nx_clk256,
       CLK_ADC_IN                 => clk_adc_dat,
-                                 
+      TRIGGER_OUT                => fee2_trigger,
+      
       I2C_SDA_INOUT              => NX2_I2C_SDA_INOUT,
       I2C_SCL_INOUT              => NX2_I2C_SCL_INOUT,
       I2C_SM_RESET_OUT           => NX2_I2C_SM_RESET_OUT,
@@ -833,6 +839,9 @@ begin
       --DEBUG_LINE_OUT            => TEST_LINE
       DEBUG_LINE_OUT                => open
       );
+
+
+  ADDON_TRIGGER_OUT              <= fee1_trigger or fee2_trigger;
 
   -----------------------------------------------------------------------------
   -- nXyter common Clocks

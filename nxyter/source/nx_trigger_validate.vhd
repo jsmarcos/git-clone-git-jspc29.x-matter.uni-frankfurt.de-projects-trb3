@@ -6,6 +6,9 @@ library work;
 use work.nxyter_components.all;
 
 entity nx_trigger_validate is
+  generic (
+    BOARD_ID : std_logic_vector(15 downto 0) := x"ffff"
+    );
   port (
     CLK_IN               : in  std_logic;  
     RESET_IN             : in  std_logic;
@@ -87,6 +90,7 @@ architecture Behavioral of nx_trigger_validate is
   type STATES is (S_IDLE,
                   S_TRIGGER,
                   S_WAIT_DATA,
+                  S_WRITE_HEADER,
                   S_PROCESS_START,
                   S_WAIT_PROCESS_END,
                   S_WRITE_TRAILER,
@@ -302,7 +306,7 @@ begin
 
   PROC_TRIGGER_HANDLER: process(CLK_IN)
     variable min_validation_time : unsigned(11 downto 0);
-
+    variable ts_ref              : unsigned(11 downto 0);
   begin
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1' or FAST_CLEAR_IN = '1') then
@@ -332,7 +336,7 @@ begin
                                (trigger_window_delay / 2) +
                                (trigger_window_width / 2);
 
-
+        
         case STATE is
           
           when S_IDLE =>
@@ -348,14 +352,22 @@ begin
             ch_status_cmd_tr       <= CS_RESET;
             wait_timer_init        <= x"020";    -- wait 320ns for first event
             STATE                  <= S_WAIT_DATA;
-            
+
           when S_WAIT_DATA =>
             if (wait_timer_done = '0') then
               STATE                <= S_WAIT_DATA;
             else
-              STATE                <= S_PROCESS_START;
+              STATE                <= S_WRITE_HEADER;
             end if;
-            
+
+          when S_WRITE_HEADER =>
+            --ts_ref                 := timestamp_ref - x"010";
+            t_data_o(11 downto 0)  <=  timestamp_ref;
+            t_data_o(15 downto 12) <= (others => '0');
+            t_data_o(31 downto 16) <= BOARD_ID;
+            t_data_clk_o           <= '1';
+            STATE                  <= S_PROCESS_START;
+                        
           when S_PROCESS_START =>
             token_return_ctr       <= '0';
             wait_timer_init        <= readout_time_max; 
@@ -388,7 +400,9 @@ begin
             end if;
                     
           when S_WRITE_TRAILER =>
-            t_data_o               <= x"deadaffe";
+            t_data_o(11 downto  0) <= busy_time_ctr;
+            t_data_o(15 downto 12) <= (others => '0');
+            t_data_o(31 downto 16) <= BOARD_ID;
             t_data_clk_o           <= '1';
             ch_status_cmd_tr       <= CS_RESET;
             STATE                  <= S_SET_NOMORE_DATA;
