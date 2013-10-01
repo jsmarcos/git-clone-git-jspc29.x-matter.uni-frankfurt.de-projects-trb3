@@ -9,8 +9,8 @@ use strict;
 ###################################################################################
 #Settings for this project
 my $TOPNAME                      = "panda_dirc_wasa";  #Name of top-level entity
-my $lattice_path                 = '/d/jspc29/lattice/diamond/2.01';
-my $synplify_path                = '/d/jspc29/lattice/synplify/F-2012.03-SP1/';
+my $lattice_path                 = '/d/jspc29/lattice/diamond/2.2_x64';
+my $synplify_path                = '/d/jspc29/lattice/synplify/G-2012.09-SP1/';
 my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
 my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
 ###################################################################################
@@ -44,7 +44,7 @@ my $SPEEDGRADE="6";
 
 #create full lpf file
 system("cp ../base/".$TOPNAME."1.lpf workdir/$TOPNAME.lpf");
-system("cat ".$TOPNAME."1_constraints.lpf >> workdir/$TOPNAME.lpf");
+system("cat ".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
 
 
 #set -e
@@ -118,9 +118,9 @@ execute($c);
 system("rm $TOPNAME.ncd");
 
 #$c=qq|mpartrce -p "../$TOPNAME.p2t" -log "$TOPNAME.log" -o "$TOPNAME.rpt" -pr "$TOPNAME.prf" -tf "$TOPNAME.pt" "|.$TOPNAME.qq|_map.ncd" "$TOPNAME.ncd"|;
- $c=qq|$lattice_path/ispfpga/bin/lin/multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
+#  $c=qq|$lattice_path/ispfpga/bin/lin/multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
+$c=qq|$lattice_path/ispfpga/bin/lin/par -w -l 5 -i 6 -t 1 -c 0 -e 0 -exp parUseNBR=1:parCDP=0:parCDR=0:parPathBased=OFF $tpmap.ncd $TOPNAME.ncd $TOPNAME.prf|;
 execute($c);
-
 # IOR IO Timing Report
 # $c=qq|$lattice_path/ispfpga/bin/lin/iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;
 # execute($c);
@@ -135,7 +135,7 @@ execute($c);
 # $c=qq|$lattice_path/ispfpga/bin/lin/ltxt2ptxt $TOPNAME.ncd|;
 # execute($c);
 
-$c=qq|$lattice_path/ispfpga/bin/lin/bitgen -w -g CfgMode:Disable -g RamCfg:Reset -g ES:No  $TOPNAME.ncd $TOPNAME.jed $TOPNAME.prf|;
+$c=qq|$lattice_path/ispfpga/bin/lin/bitgen -w -g CfgMode:Disable -g RamCfg:Reset -jedec  $TOPNAME.ncd $TOPNAME.jed $TOPNAME.prf|;
 # $c=qq|$lattice_path/ispfpga/bin/lin/bitgen  -w "$TOPNAME.ncd"  "$TOPNAME.prf"|;
 execute($c);
 
