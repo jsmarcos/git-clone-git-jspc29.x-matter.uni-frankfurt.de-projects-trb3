@@ -114,7 +114,25 @@ package cbmnet_phy_pkg is
    --      refclk2fpga   :   out std_logic;
          serdes_rst_qd_c    :   in std_logic
       );
-   end component;  
+   end component;
+   
+   component cbmnet_phy_ecp3_rx_reset_fsm is
+      port (
+         RST_N             : in std_logic;
+         RX_REFCLK         : in std_logic;
+         TX_PLL_LOL_QD_S   : in std_logic;
+         RX_CDR_LOL_CH_S   : in std_logic;
+         RX_LOS_LOW_CH_S   : in std_logic;
+
+         RM_RESET_IN          : in std_logic := '0';
+         PROPER_BYTE_ALIGN_IN : in std_logic := '1';
+         PROPER_WORD_ALIGN_IN : in std_logic := '1';
+
+         RX_SERDES_RST_CH_C: out std_logic;
+         RX_PCS_RST_CH_C   : out std_logic;
+         STATE_OUT         : out std_logic_vector(3 downto 0)
+      );
+   end component ;
 end package cbmnet_phy_pkg;
 
 package body cbmnet_phy_pkg is
