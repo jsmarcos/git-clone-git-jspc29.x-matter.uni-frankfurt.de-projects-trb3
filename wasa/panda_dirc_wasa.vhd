@@ -485,7 +485,7 @@ end process;
 gen_ffarr : if TDCTEST = 1 generate
  THE_FFARR : entity work.ffarray
    port map(
-    CLK        => clk_i,
+    CLK        => clk_osc,
     SIGNAL_IN  => SPI_IN,
     
     DATA_OUT   => ffarr_data(7 downto 0),

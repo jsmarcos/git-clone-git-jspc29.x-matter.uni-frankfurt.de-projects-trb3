@@ -59,18 +59,21 @@ CLKa(7 downto 4) <= not CLKt(3 downto 0);
 
 gen_ffarr_first : for i in 0 to 7 generate
   ffarr(0)(i) <= SIGNAL_IN when rising_edge(CLKa(i));
+  ffarr(1)(i) <= ffarr(0)(i) when rising_edge(CLKa((i/4)*4));
+  ffarr(2)(i) <= ffarr(1)(i) when rising_edge(CLKa(0));
 end generate;
 
-gen_ffarr_j : for j in 1 to 3 generate
-  gen_ffarr_i : for i in 0 to 7 generate
-    ffarr(j)(i) <= ffarr(j-1)(i) when rising_edge(CLKa(maximum(i-j*2,0)));
-  end generate;
-end generate;
+
+-- gen_ffarr_j : for j in 1 to 3 generate
+--   gen_ffarr_i : for i in 0 to 7 generate
+--     ffarr(j)(i) <= ffarr(j-1)(i) when rising_edge(CLKa(maximum(i-j*2-1,0)));
+--   end generate;
+-- end generate;
 
 
 process begin
   wait until rising_edge(CLK);
-  final_t <= ffarr(3);
+  final_t <= ffarr(2);
   if ((not and_all(final_t) and or_all(final_t)) = '1') then
     fifo_write <= '1';
     final <= final_t;

@@ -5,40 +5,42 @@ FREQUENCY NET clk_i_c  133 MHz;
 UGROUP "ffarr0group" 
   BLKNAME gen_ffarr_THE_FFARR/ffarr_0_0
   BLKNAME gen_ffarr_THE_FFARR/ffarr_1_0
-  BLKNAME gen_ffarr_THE_FFARR/ffarr_1_1
-  BLKNAME gen_ffarr_THE_FFARR/ffarr_1_2
   BLKNAME gen_ffarr_THE_FFARR/ffarr_2_0
-  BLKNAME gen_ffarr_THE_FFARR/ffarr_2_1
-  BLKNAME gen_ffarr_THE_FFARR/ffarr_2_2
-  BLKNAME gen_ffarr_THE_FFARR/ffarr_3_0
-  BLKNAME gen_ffarr_THE_FFARR/ffarr_3_1
-  BLKNAME gen_ffarr_THE_FFARR/ffarr_3_2
   BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_1_ffarr_0_1
   BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_2_ffarr_0_2
   BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_3_ffarr_0_3
   BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_4_ffarr_0_4
   BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_5_ffarr_0_5
   BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_6_ffarr_0_6
-  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_7_ffarr_0_7
-  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_j_1_gen_ffarr_i_3_ffarr_1_3
-  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_j_1_gen_ffarr_i_4_ffarr_1_4
-  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_j_1_gen_ffarr_i_5_ffarr_1_5
-  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_j_1_gen_ffarr_i_6_ffarr_1_6
-  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_j_1_gen_ffarr_i_7_ffarr_1_7
-  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_j_2_gen_ffarr_i_3_ffarr_2_3
-  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_j_2_gen_ffarr_i_4_ffarr_2_4
-  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_j_2_gen_ffarr_i_5_ffarr_2_5
-  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_j_2_gen_ffarr_i_6_ffarr_2_6
-  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_j_2_gen_ffarr_i_7_ffarr_2_7
-  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_j_3_gen_ffarr_i_3_ffarr_3_3
-  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_j_3_gen_ffarr_i_4_ffarr_3_4
-  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_j_3_gen_ffarr_i_5_ffarr_3_5
-  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_j_3_gen_ffarr_i_6_ffarr_3_6
-  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_j_3_gen_ffarr_i_7_ffarr_3_7;  
+  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_7_ffarr_0_7;
   
-REGION "FFARR0" "R19C26" 2 4 DEVSIZE;
-LOCATE UGROUP "ffarr0group" REGION "FFARR0";
+UGROUP "ffarr12group" 
+  BLKNAME gen_ffarr_THE_FFARR/ffarr_1_0
+  BLKNAME gen_ffarr_THE_FFARR/ffarr_2_0
+  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_1_ffarr_1_1
+  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_1_ffarr_2_1
+  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_2_ffarr_1_2
+  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_2_ffarr_2_2
+  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_3_ffarr_1_3
+  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_3_ffarr_2_3
+  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_4_ffarr_1_4
+  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_4_ffarr_2_4
+  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_5_ffarr_1_5
+  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_5_ffarr_2_5
+  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_6_ffarr_1_6
+  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_6_ffarr_2_6
+  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_7_ffarr_1_7
+  BLKNAME gen_ffarr_THE_FFARR/gen_ffarr_first_7_ffarr_2_7;  
+  
+  
+REGION "FFARR0"  "R19C26" 1 2 DEVSIZE;
+REGION "FFARR12" "R19C27" 2 2 DEVSIZE;
+LOCATE UGROUP "ffarr0group"  REGION "FFARR0";
+LOCATE UGROUP "ffarr12group" REGION "FFARR12";
 
-
-USE SECONDARY NET "gen_ffarr_THE_FFARR/CLKa*";
-USE SECONDARY NET "gen_ffarr_THE_FFARR_CLKa*";
+USE PRIMARY NET "gen_ffarr_THE_FFARR/CLKa*";
+USE PRIMARY NET "gen_ffarr_THE_FFARR_CLKa*";
+USE PRIMARY NET "gen_ffarr_THE_FFARR/CLKa_0";
+USE PRIMARY NET "gen_ffarr_THE_FFARR/CLKa_1";
+USE PRIMARY NET "gen_ffarr_THE_FFARR/CLKa_2";
+USE PRIMARY NET "gen_ffarr_THE_FFARR/CLKa_3";
