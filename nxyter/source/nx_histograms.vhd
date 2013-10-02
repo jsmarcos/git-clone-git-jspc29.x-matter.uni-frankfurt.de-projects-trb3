@@ -15,10 +15,11 @@ entity nx_histograms is
     RESET_IN             : in  std_logic;
                          
     RESET_HISTS_IN       : in  std_logic;
-                         
+
     CHANNEL_STAT_FILL_IN : in  std_logic;
     CHANNEL_ID_IN        : in  std_logic_vector(BUS_WIDTH - 1 downto 0);
-
+    CHANNEL_ADC_IN       : in  std_logic_vector(11 downto 0);
+    
     -- Slave bus         
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
@@ -41,9 +42,13 @@ architecture nx_histograms of nx_histograms is
   -- PROC_CHANNEL_HIST
   signal hist_channel_stat    : histogram_t;
   signal hist_channel_freq    : histogram_t;
+
   signal wait_timer_init      : unsigned(27 downto 0);
   signal wait_timer_done      : std_logic;
 
+  -- PROC_CHANNEL_HIST
+  signal hist_channel_adc     : histogram_t;
+  
   -- Slave Bus                    
   signal slv_data_out_o       : std_logic_vector(31 downto 0);
   signal slv_no_more_data_o   : std_logic;
@@ -58,21 +63,24 @@ hist_enable_1: if ENABLE = 1 generate
   DEBUG_OUT(1)           <= RESET_IN;  
   DEBUG_OUT(2)           <= RESET_HISTS_IN; 
   DEBUG_OUT(3)           <= reset_hists_r;
-  DEBUG_OUT(4)           <= slv_ack_o;
-  DEBUG_OUT(5)           <= SLV_READ_IN;
-  DEBUG_OUT(6)           <= SLV_WRITE_IN;
-  DEBUG_OUT(7)           <= wait_timer_done;
-  DEBUG_OUT(15 downto 8) <= (others => '0');
+  DEBUG_OUT(4)           <= CHANNEL_STAT_FILL_IN;
+  DEBUG_OUT(5)           <= slv_ack_o;
+  DEBUG_OUT(6)           <= SLV_READ_IN;
+  DEBUG_OUT(7)           <= SLV_WRITE_IN;
+  DEBUG_OUT(8)           <= wait_timer_done;
+  DEBUG_OUT(15 downto 9) <= CHANNEL_ID_IN;
   
   -----------------------------------------------------------------------------
   
   PROC_CHANNEL_HIST : process (CLK_IN)
+    variable value : unsigned(31 downto 0);
   begin
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1' or reset_hists_r = '1' or RESET_HISTS_IN = '1') then
         for I in 0 to (2**BUS_WIDTH - 1) loop
          hist_channel_stat(I) <= (others => '0');
          hist_channel_freq(I) <= (others => '0');
+         hist_channel_adc(I) <= (others => '0');
         end loop;
         wait_timer_init       <= x"000_0001";
       else
@@ -88,12 +96,16 @@ hist_enable_1: if ENABLE = 1 generate
           if (CHANNEL_STAT_FILL_IN = '1') then
             hist_channel_stat(to_integer(unsigned(CHANNEL_ID_IN))) <=
               hist_channel_stat(to_integer(unsigned(CHANNEL_ID_IN))) + 1;
+            
+            value := (hist_channel_adc(to_integer(unsigned(CHANNEL_ID_IN)))
+                      + unsigned(CHANNEL_ADC_IN)) / 2;
+            hist_channel_adc(to_integer(unsigned(CHANNEL_ID_IN))) <= value;
           end if;
         end if;
       end if;
     end if;
   end process PROC_CHANNEL_HIST;  
-
+  
   -- Timer
   nx_timer_1: nx_timer
     generic map (
@@ -133,14 +145,18 @@ hist_enable_1: if ENABLE = 1 generate
             slv_data_out_o(31 downto 0)  <= std_logic_vector(
               hist_channel_stat(to_integer(unsigned(SLV_ADDR_IN(7 downto 0))))
               );
-           -- slv_data_out_o(31 downto 24) <= (others => '0');
             slv_ack_o                    <= '1';
           elsif (unsigned(SLV_ADDR_IN) >= x"0080" and
                  unsigned(SLV_ADDR_IN) <= x"00ff") then
             slv_data_out_o(31 downto 0)  <= std_logic_vector(
               hist_channel_freq(to_integer(unsigned(SLV_ADDR_IN(7 downto 0))))
               );
-           -- slv_data_out_o(31 downto 24) <= (others => '0');
+            slv_ack_o                    <= '1';
+          elsif (unsigned(SLV_ADDR_IN) >= x"0100" and
+                 unsigned(SLV_ADDR_IN) <= x"017f") then
+            slv_data_out_o(31 downto 0)  <= std_logic_vector(
+              hist_channel_adc(to_integer(unsigned(SLV_ADDR_IN(7 downto 0))))
+              );
             slv_ack_o                    <= '1';
           else
             slv_ack_o                    <= '0';

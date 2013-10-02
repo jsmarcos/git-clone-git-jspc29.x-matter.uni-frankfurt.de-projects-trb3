@@ -64,9 +64,9 @@ architecture Behavioral of nxyter_registers is
   
 begin
 
-  DEBUG_OUT(0) <=  I2C_SM_RESET_OUT ;
-  DEBUG_OUT(1) <=  I2C_REG_RESET_OUT;
-  DEBUG_OUT(2) <=  NX_TS_RESET_OUT;
+  DEBUG_OUT(0) <=  i2c_sm_reset_o ;
+  DEBUG_OUT(1) <=  i2c_reg_reset_o;
+  DEBUG_OUT(2) <=  nx_ts_reset_o;
 
   DEBUG_OUT(15 downto 3) <= (others => '0');
   

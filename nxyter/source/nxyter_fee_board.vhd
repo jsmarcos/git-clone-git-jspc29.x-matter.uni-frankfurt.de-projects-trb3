@@ -163,6 +163,7 @@ architecture Behavioral of nXyter_FEE_board is
   
   signal trigger_validate_fill : std_logic;
   signal trigger_validate_bin  : std_logic_vector(6 downto 0);
+  signal trigger_validate_adc  : std_logic_vector(11 downto 0);
   
   -- Event Buffer               
   signal trigger_evt_busy      : std_logic;
@@ -281,7 +282,7 @@ begin
                                 7 => 2,          -- Trigger Handler
                                 8 => 4,          -- Trigger Validate
                                 9 => 8,          -- NX Register Setup
-                               10 => 8,          -- NX Histograms
+                               10 => 9,          -- NX Histograms
                                11 => 0,          -- Debug Handler
                                12 => 2,          -- Data Delay
                                 others => 0
@@ -432,8 +433,9 @@ begin
   
   nx_fpga_timestamp_1: nx_fpga_timestamp
     port map (
-      CLK_IN                => CLK_NX_IN,
+      CLK_IN                => CLK_IN,
       RESET_IN              => RESET_IN,
+      NX_CLK_IN             => CLK_NX_IN,
       TIMESTAMP_SYNC_IN     => nx_ts_reset_o,
       TRIGGER_IN            => timestamp_trigger,
       TIMESTAMP_CURRENT_OUT => timestamp_current,
@@ -655,6 +657,7 @@ begin
 
       HISTOGRAM_FILL_OUT     => trigger_validate_fill,
       HISTOGRAM_BIN_OUT      => trigger_validate_bin,
+      HISTOGRAM_ADC_OUT      => trigger_validate_adc,
       
       SLV_READ_IN            => slv_read(8),
       SLV_WRITE_IN           => slv_write(8),
@@ -716,10 +719,11 @@ begin
       CLK_IN                      => CLK_IN,
       RESET_IN                    => RESET_IN,
                                   
-      RESET_HISTS_IN              => open,
+      RESET_HISTS_IN              => '0',
       CHANNEL_STAT_FILL_IN        => trigger_validate_fill,
       CHANNEL_ID_IN               => trigger_validate_bin,
-                                  
+      CHANNEL_ADC_IN              => trigger_validate_adc,
+      
       SLV_READ_IN                 => slv_read(10),
       SLV_WRITE_IN                => slv_write(10),
       SLV_DATA_OUT                => slv_data_rd(10*32+31 downto 10*32),

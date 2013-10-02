@@ -21,7 +21,7 @@
 0x8145 :  r             : Testpulse Rate (in Hz)    
 
 -- Trigger Handler
-0x8160 :  r/w  Bit 15-0 : Delay Timestamp Hold Signal (8bit, 10ns)
+0x8160 :  r/w  Bit 7-0  : Delay Testpulse Signal after Trigger (10ns)
 0x8161 :  r/w  Bit 0    : Enable Testpulse Signal (default: off)
 0x8162 :  r             : Accepted Trigger Rate (in Hz)
 
@@ -72,10 +72,13 @@
 0x8183 :  r/w  Readout Time Max (12 bit, in 10ns)
 0x8184 :  r    Busy Time Counter (12 bit, in 10ns)
 
-0x8185 :  r    done counter
-0x8186 :  r    done counter
-0x8187 :  r    done counter
-0x8188 :  r    done counter
+0x8185 :  r    timestamp_ref
+0x8186 :  r    window_lower_thr
+0x8187 :  r    window_upper_thr
+0x8188 :  r    done counter ch 0..31
+0x8189 :  r    done counter ch 32..63
+0x818a :  r    done counter ch 94..95
+0x818b :  r    done counter ch 96..127
 
 -- Event Data Buffer
 0x8600 :  r    read FIFO buffer
@@ -97,6 +100,7 @@
 0x8800 :      r: Read Channel Statistic (128 channel in a row)
               w: reset all Histograms
 0x8880 :      r: Read Channel Trigger Rate (128 channel in a row, 1/s)
+0x8900 :      r: Read Channel ADC Value (128 channel in a row)
 
 -- Debug Multiplexer
 0x8020 : r/w   Select Debug Entity

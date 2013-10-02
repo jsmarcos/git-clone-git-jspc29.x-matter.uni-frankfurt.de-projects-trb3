@@ -205,7 +205,7 @@ begin
         data_valid_o         <= '0';
         trigger_rate_inc     <= '0';
         frame_rate_inc       <= '0';
-        invalid_adc <= '0';
+        invalid_adc          <= '0';
 
         if (new_timestamp = '1') then
           case valid_frame_bits is
@@ -297,8 +297,16 @@ begin
         else
           nx_trigger_rate      <= nx_trigger_ctr_t;
           nx_frame_rate        <= nx_frame_ctr_t;
-          nx_trigger_ctr_t     <= (others => '0');
-          nx_frame_ctr_t       <= (others => '0');
+          if (trigger_rate_inc = '0') then
+            nx_trigger_ctr_t   <= (others => '0');
+          else
+            nx_trigger_ctr_t   <= x"000_0001";
+          end if;
+          if (frame_rate_inc = '0') then
+            nx_frame_ctr_t     <= (others => '0');
+          else
+            nx_frame_ctr_t     <= x"000_0001";
+          end if;
           nx_rate_timer        <= (others => '0');
         end if;
       end if;
