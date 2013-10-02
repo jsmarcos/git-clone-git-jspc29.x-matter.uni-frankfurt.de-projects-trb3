@@ -16,7 +16,7 @@ entity panda_dirc_wasa is
   generic(
     PADIWA_FLAVOUR : integer := 3;
     TEMP_CORRECTION: integer := c_YES;
-    TDCTEST        : integer := c_YES
+    TDCTEST        : integer := c_NO
     );
   port(
     CON        : out std_logic_vector(16 downto 1);
