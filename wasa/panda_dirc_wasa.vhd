@@ -16,7 +16,7 @@ entity panda_dirc_wasa is
   generic(
     PADIWA_FLAVOUR : integer := 3;
     TEMP_CORRECTION: integer := c_YES;
-    TDCTEST        : integer := c_NO
+    TDCTEST        : integer := c_YES
     );
   port(
     CON        : out std_logic_vector(16 downto 1);
@@ -485,7 +485,8 @@ end process;
 gen_ffarr : if TDCTEST = 1 generate
  THE_FFARR : entity work.ffarray
    port map(
-    CLK        => clk_osc,
+    CLK        => clk_i,
+    RESET_IN   => onewire_reset,
     SIGNAL_IN  => SPI_IN,
     
     DATA_OUT   => ffarr_data(7 downto 0),

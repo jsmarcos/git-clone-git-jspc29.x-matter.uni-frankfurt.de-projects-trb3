@@ -9,6 +9,7 @@ use work.trb_net_std.all;
 entity ffarray is
   port(
     CLK        : in std_logic;
+    RESET_IN   : in std_logic;    
     SIGNAL_IN  : in std_logic;
     
     DATA_OUT   : out std_logic_vector(7 downto 0);
@@ -22,7 +23,7 @@ architecture ffarray_arch of ffarray is
 signal CLKt  : std_logic_vector(3 downto 0);
 signal CLKa  : std_logic_vector(7 downto 0);
 
-signal final     : std_logic_vector(7 downto 0);
+signal final, final1, final2     : std_logic_vector(7 downto 0);
 signal final_t   : std_logic_vector(7 downto 0);
 
 type ffarr_t is array(0 to 3) of std_logic_vector(7 downto 0);
@@ -63,20 +64,22 @@ gen_ffarr_first : for i in 0 to 7 generate
   ffarr(2)(i) <= ffarr(1)(i) when rising_edge(CLKa(0));
 end generate;
 
-
--- gen_ffarr_j : for j in 1 to 3 generate
---   gen_ffarr_i : for i in 0 to 7 generate
---     ffarr(j)(i) <= ffarr(j-1)(i) when rising_edge(CLKa(maximum(i-j*2-1,0)));
---   end generate;
--- end generate;
+process begin
+  wait until falling_edge(CLK);
+  final_t <= ffarr(2);
+end process;
 
 
 process begin
   wait until rising_edge(CLK);
-  final_t <= ffarr(2);
-  if ((not and_all(final_t) and or_all(final_t)) = '1') then
+  final1 <= final_t;
+  final2 <= ffarr(2);
+  if (final1(7) xor final1(0)) = '1' then
     fifo_write <= '1';
-    final <= final_t;
+    final <= final1;
+  elsif (final2(7) xor final2(0)) = '1' then
+    fifo_write <= '1';
+    final <= final2;
   else
     fifo_write <= '0';
   end if;
@@ -86,12 +89,12 @@ end process;
 THE_FIFO : entity work.fifo_1kx8
   port map(
     Data        => final,
-    WrClock     => CLK,    --wrong!
+    WrClock     => CLK,
     RdClock     => CLK, 
     WrEn        => fifo_write, 
     RdEn        => READ_IN,
-    Reset       => '0',
-    RPReset     => '0', 
+    Reset       => RESET_IN,
+    RPReset     => RESET_IN, 
     Q           => DATA_OUT,
     Empty       => EMPTY_OUT,
     Full        => open,
