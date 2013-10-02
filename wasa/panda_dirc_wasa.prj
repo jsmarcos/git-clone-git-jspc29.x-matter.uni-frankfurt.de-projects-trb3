@@ -4,8 +4,9 @@
 #--  Written on Mon Aug  6 18:53:10 2012
 
 
+
 #project files
-add_file -vhdl -lib work "/d/jspc29/lattice/diamond/1.4.2.105/cae_library/synthesis/vhdl/machxo2.vhd"
+add_file -vhdl -lib work "/d/jspc29/lattice/diamond/2.2_x64/cae_library/synthesis/vhdl/machxo2.vhd"
 add_file -vhdl -lib work "../..//trbnet/trb_net_std.vhd"
 add_file -vhdl -lib work "../base/trb3_components.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_components.vhd"
@@ -13,6 +14,9 @@ add_file -vhdl -lib work "source/spi_slave.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_onewire.vhd"
 add_file -vhdl -lib work "version.vhd"
 add_file -vhdl -lib work "source/pwm.vhd"
+add_file -vhdl -lib work "cores/pll_shifted_clocks.vhd"
+add_file -vhdl -lib work "cores/fifo_1kx8.vhd"
+add_file -vhdl -lib work "source/ffarray.vhd"
 
 
 add_file -vhdl -lib work "cores/oddr16.vhd"
