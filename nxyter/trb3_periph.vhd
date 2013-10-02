@@ -279,7 +279,8 @@ architecture trb3_periph_arch of trb3_periph is
   -- nXyter-FEB-Board Clocks
   signal nx_main_clk                   : std_logic;
   signal pll_nx_clk_lock             : std_logic;
-  signal clk_adc_dat                 : std_logic;
+  signal clk_adc_dat_2               : std_logic;
+  signal clk_adc_dat_1               : std_logic;
   signal pll_adc_clk_lock            : std_logic;
   
   -- nXyter 1 Regio Bus
@@ -344,7 +345,7 @@ begin
 ---------------------------------------------------------------------------
   THE_MAIN_PLL : pll_in200_out100
     port map(
-      CLK   => CLK_GPLL_RIGHT,
+      CLK   => CLK_PCLK_RIGHT,
       CLKOP => clk_100_i,
       CLKOK => clk_200_i,
       LOCK  => pll_lock
@@ -692,7 +693,7 @@ begin
       CLK_IN                     => clk_100_i,
       RESET_IN                   => reset_i,
       CLK_NX_IN                  => nx_main_clk,
-      CLK_ADC_IN                 => clk_adc_dat,
+      CLK_ADC_IN                 => clk_adc_dat_1,
       TRIGGER_OUT                => fee1_trigger,                       
 
       I2C_SDA_INOUT              => NX1_I2C_SDA_INOUT,
@@ -770,7 +771,7 @@ begin
       CLK_IN                     => clk_100_i,
       RESET_IN                   => reset_i,
       CLK_NX_IN                  => nx_main_clk,
-      CLK_ADC_IN                 => clk_adc_dat,
+      CLK_ADC_IN                 => clk_adc_dat_2,
       TRIGGER_OUT                => fee2_trigger,
       
       I2C_SDA_INOUT              => NX2_I2C_SDA_INOUT,
@@ -856,8 +857,14 @@ begin
   -- ClockSource as nXyter Main Clock)
   pll_adc_clk_1: pll_adc_clk
     port map (
-      CLK   => clk_200_i,
-      CLKOP => clk_adc_dat,
+      CLK   => CLK_PCLK_RIGHT,
+      CLKOP => clk_adc_dat_1,
+      LOCK  => pll_adc_clk_lock
+      );
+  pll_adc_clk_2: pll_adc_clk
+    port map (
+      CLK   => CLK_PCLK_RIGHT,
+      CLKOP => clk_adc_dat_2,
       LOCK  => pll_adc_clk_lock
       );
 
