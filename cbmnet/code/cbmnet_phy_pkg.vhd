@@ -1,3 +1,5 @@
+-- Hardware Dependent CBMNet PHY for the Lattice ECP3
+
 library ieee;
    use ieee.std_logic_1164.all;
    use ieee.numeric_std.all;
@@ -23,7 +25,7 @@ package cbmnet_phy_pkg is
 
          CLK_RX_HALF_OUT    : out std_logic := '0';  -- recovered 125 MHz
          CLK_RX_FULL_OUT    : out std_logic := '0';  -- recovered 250 MHz
-         CLK_RX_RESET_OUT   : out std_logic := '1';  -- set to 0, ~1us after link is assumed to be stable
+         CLK_RX_RESET_OUT   : out std_logic := '1';  -- set to 0, ~1us after link is recognised to be stable
 
          LINK_ACTIVE_OUT    : out std_logic; -- link is active and can send and receive data
          SERDES_ready       : out std_logic;
@@ -38,24 +40,20 @@ package cbmnet_phy_pkg is
          SD_LOS_IN          : in  std_logic;  -- SFP Loss Of Signal ('0' = OK, '1' = no signal)
          SD_TXDIS_OUT       : out  std_logic := '0'; -- SFP disable
 
-         --Control Interface
-         SCI_DATA_IN        : in  std_logic_vector(7 downto 0) := (others => '0');
-         SCI_DATA_OUT       : out std_logic_vector(7 downto 0) := (others => '0');
-         SCI_ADDR           : in  std_logic_vector(8 downto 0) := (others => '0');
-         SCI_READ           : in  std_logic := '0';
-         SCI_WRITE          : in  std_logic := '0';
-         SCI_ACK            : out std_logic := '0';
-         SCI_NACK           : out std_logic := '0';
-
+         LED_RX_OUT         : out std_logic;
+         LED_TX_OUT         : out std_logic;
+         LED_OK_OUT         : out std_logic;
+         
          -- Status and control port
          STAT_OP            : out std_logic_vector (15 downto 0);
          CTRL_OP            : in  std_logic_vector (15 downto 0) := (others => '0');
-         STAT_DEBUG         : out std_logic_vector (63 downto 0);
-         CTRL_DEBUG         : in  std_logic_vector (63 downto 0) := (others => '0');
          DEBUG_OUT          : out std_logic_vector (127 downto 0) := (others => '0')
       );
    end component;
    
+-----------------------------------------------------------------------------------------------------------------------
+-- INTERNAL
+-----------------------------------------------------------------------------------------------------------------------
    component CBMNET_PHY_GEAR is
       port (
       -- SERDES PORT
@@ -73,7 +71,6 @@ package cbmnet_phy_pkg is
    end component;   
    
   
---------------------------------------------------- INTERNAL
    COMPONENT cbmnet_sfp1
    PORT(
       hdinp_ch0 : IN std_logic;

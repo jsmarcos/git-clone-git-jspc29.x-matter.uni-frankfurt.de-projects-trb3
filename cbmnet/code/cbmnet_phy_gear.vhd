@@ -1,5 +1,3 @@
---Media interface for Lattice ECP3 using PCS at 2.5GHz
-
 LIBRARY IEEE;
    USE IEEE.std_logic_1164.ALL;
    USE IEEE.numeric_std.all;
@@ -27,7 +25,10 @@ entity CBMNET_PHY_GEAR is
    );
 end entity;
 
-architecture RTL of CBMNET_PHY_GEAR is
+architecture CBMNET_PHY_GEAR_ARCH of CBMNET_PHY_GEAR is
+   attribute HGROUP : string;
+   attribute HGROUP of CBMNET_PHY_GEAR_ARCH : architecture  is "cbmnet_phy_gear";
+
    type FSM_STATES_T is (FSM_START, FSM_WAIT_FOR_LOCK, FSM_RESET, FSM_DELAY, FSM_LOCKED);
    signal fsm_i, fsm_next_i : FSM_STATES_T;
    
@@ -157,4 +158,4 @@ begin
    indi_misalignment_i <= '1' when data_out_buf_i(17 downto 16) = "10" and data_out_buf_i(7 downto 0) = x"00" and
       (data_out_buf_i(15 downto 8) = CBMNET_READY_CHAR0 or data_out_buf_i(15 downto 8) = CBMNET_READY_CHAR1 or data_out_buf_i(15 downto 8) = CBMNET_ALIGN_CHAR) else '0';
    
-end architecture RTL;  
+end architecture CBMNET_PHY_GEAR_ARCH;  

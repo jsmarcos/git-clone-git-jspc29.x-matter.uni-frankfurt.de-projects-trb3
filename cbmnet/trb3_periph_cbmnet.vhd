@@ -319,29 +319,19 @@ begin
       SD_PRSNT_N_IN      => SFP_MOD0(1),
       SD_LOS_IN          => SFP_LOS(1),
       SD_TXDIS_OUT       => SFP_TXDIS(1),
-
-      --Control Interface (not used, default values set in component def)
-      SCI_DATA_IN        => (others => '0'),
-      SCI_DATA_OUT       => open,
-      SCI_ADDR           => (others => '0'),
-      SCI_READ           => '0',
-      SCI_WRITE          => '0',
-      SCI_ACK            => open,
-      SCI_NACK           => open,
+      
+      LED_RX_OUT         => LED_RX(1),
+      LED_TX_OUT         => LED_TX(1),
+      LED_OK_OUT         => LED_LINKOK(1),
       
       -- Status and control port
       STAT_OP            => phy_stat_op,
       CTRL_OP            => phy_ctrl_op,
-      STAT_DEBUG         => phy_stat_debug,
-      CTRL_DEBUG         => phy_ctrl_debug,
       DEBUG_OUT          => phy_debug_i
    );
 
    SFP_RATESEL   <= (others => '1');
-   LED_LINKOK(1) <= cbm_link_active;
-   LED_LINKOK(2) <= cbm_SERDES_ready;
-   LED_RX(1)     <= phy_stat_op(10);
-   LED_TX(1)     <= phy_stat_op(11);
+
 
    THE_CBM_ENDPOINT: lp_top 
    generic map (

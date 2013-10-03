@@ -11,8 +11,14 @@ version.vhd
 *tmpl.vhd
 *.log
 workdir
-*.kate-swp
+workdir_*
+*.bit
+*.kate-swp*
+*.kate-swap*
 .run_manager.ini
 reportview.xml
 .kateproject.d
 cts/project*
+cbmnet/project*
+cbmnet/sim*
+

@@ -1,3 +1,5 @@
+-- Hardware Independent CBMNet components (merely an interface definition for the Verilog modules)
+
 library ieee;
    use ieee.std_logic_1164.all;
    use ieee.numeric_std.all;
