@@ -31,13 +31,6 @@ if ($build_master and $build_slave) {
    system "xterm -e './compile_periph_frankfurt.pl s; read' &";
    sleep 5;
    system "xterm -e './compile_periph_frankfurt.pl w; read' &";      
-   sleep 5;
-   local $| = 1;
-   while ( (-e '.lock_slave') or (-e '.lock_master')) {
-      sleep 3;
-      print '.';
-   }
-   
    exit;
 }
 
@@ -55,7 +48,6 @@ my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
 
 my $workdir = "workdir_" . ($build_slave ? 'slave' : 'master');
 
-system "touch .lock_" . ($build_slave ? 'slave' : 'master');
 symlink($CbmNetPath, 'cbmnet') unless (-e 'cbmnet');
 
 unless(-e $workdir) {
@@ -182,14 +174,6 @@ execute($c);
 
 chdir "..";
 
-unlink ".lock_" . ($build_slave ? 'slave' : 'master');
-
-print "DONE\n";
-
-unless (-e "$workdir/trb3_periph_cbmnet.bit") {
-   print "no bit file found. press enter to continue\n\a"; <>;
-}
-  
 
 sub execute {
     my ($c, $op) = @_;

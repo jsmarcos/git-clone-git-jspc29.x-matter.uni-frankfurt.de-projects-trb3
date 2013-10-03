@@ -80,10 +80,10 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
 
    signal tx_data_i         : std_logic_vector(17 downto 0);
    
-   signal rx_data_i         : std_logic_vector(17 downto 0);
+   signal rx_data_i         : std_logic_vector(8 downto 0);
    signal rx_data_buf_i     : std_logic_vector(17 downto 0);
    
-   signal rx_error          : std_logic_vector(1 downto 0);
+   signal rx_error          : std_logic;
 
    signal rst_n             : std_logic;
    signal rst               : std_logic;
@@ -120,10 +120,13 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    
    signal rx_fsm_state       : std_logic_vector(3 downto 0);
    signal tx_fsm_state       : std_logic_vector(3 downto 0);
+   signal tx_rst_fsm_ready_i  : std_logic;
+   signal tx_rst_fsm_ready_buf_i  : std_logic;
+   
 
    type sci_ctrl is (IDLE, GET_WA, GET_WA_WAIT, GET_WA_WAIT2, GET_WA_FINISH);
    signal sci_state         : sci_ctrl;
-   signal sci_timer         : unsigned(7 downto 0) := (others => '0');
+   signal sci_timer         : unsigned( 4 downto 0) := (others => '0');
    signal start_timer       : unsigned(18 downto 0) := (others => '0');
 
    signal led_ok                 : std_logic;
@@ -132,8 +135,19 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    signal led_timer              : unsigned(20 downto 0);
 
    signal proper_byte_align_i : std_logic;
-   signal proper_word_align_i : std_logic;
+   signal byte_alignment_to_fsm_i : std_logic;
    
+   signal gear_to_serder_rst_i : std_logic;
+   signal word_alignment_to_fsm_i : std_logic;
+   
+   signal rx_rm_to_gear_reset_i : std_logic;
+   
+   signal rx_rst_fsm_ready_i : std_logic;
+   signal rx_serdes_ready_for_gear_i : std_logic;
+   
+   signal lsm_status_i : std_logic;
+   
+   signal rx_error_delay : std_logic_vector(3 downto 0);
    
 -- RX READY MODULE
    signal rx_ready_i : std_logic;
@@ -145,6 +159,11 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    signal link_init_rx_reset_i : std_logic;
    
    signal rx_rm_rst_n, tx_rm_rst_n :std_logic;
+   
+   signal dummy_output_i : std_logic_vector(8 downto 0);
+   
+   signal gear_to_rm_rst_i : std_logic;
+   signal gear_to_rm_n_rst_i : std_logic;
    
 -- TX READY MODULE   
    signal tx_ready_i : std_logic;
@@ -179,11 +198,11 @@ begin
       hdoutn_ch0           => SD_TXD_N_OUT,
       
    -- CLOCKS
-      rxiclk_ch0           => clk_125_i,
+      --rxiclk_ch0           => clk_125_i,
       txiclk_ch0           => clk_125_i,
       
       rx_full_clk_ch0      => clk_rx_full,
-      rx_half_clk_ch0      => clk_rx_half,
+   --   rx_half_clk_ch0      => clk_rx_half,
       
       tx_full_clk_ch0      => open,
       tx_half_clk_ch0      => open,
@@ -211,8 +230,8 @@ begin
       tx_div2_mode_ch0_c   => '0',
       
    -- RX DATA PORT
-      rxdata_ch0           => rx_data_i(15 downto 0),
-      rx_k_ch0             => rx_data_i(17 downto 16),
+      rxdata_ch0           => rx_data_i(7 downto 0),
+      rx_k_ch0             => rx_data_i(8),
 
       rx_disp_err_ch0      => open,
       rx_cv_err_ch0        => rx_error,
@@ -226,7 +245,7 @@ begin
       tx_pll_lol_qd_s      => tx_pll_lol,
       rx_los_low_ch0_s     => rx_los_low,
       rx_cdr_lol_ch0_s     => rx_cdr_lol,
-      lsm_status_ch0_s     => open,
+      lsm_status_ch0_s     => lsm_status_i,
     
       SCI_WRDATA           => sci_data_in_i,
       SCI_RDDATA           => sci_data_out_i,
@@ -242,26 +261,16 @@ begin
    
    DEBUG_OUT(19 downto  0) <= "00" & tx_data_i;
    DEBUG_OUT(23 downto 20) <= "0" & tx_pll_lol & rx_los_low & rx_cdr_lol;
-   DEBUG_OUT(27 downto 24) <= proper_word_align_i & proper_byte_align_i & SD_PRSNT_N_IN & SD_LOS_IN;
+   DEBUG_OUT(27 downto 24) <= gear_to_serder_rst_i & proper_byte_align_i & SD_PRSNT_N_IN & SD_LOS_IN;
    DEBUG_OUT(31 downto 28) <= rst_qd & rx_serdes_rst & tx_pcs_rst & rx_pcs_rst;
    
    DEBUG_OUT(51 downto 32) <= "00" & rx_data_buf_i;
    DEBUG_OUT(59 downto 52) <= rx_fsm_state & tx_fsm_state;
       
-   DEBUG_OUT(63 downto 60) <= "00" &  tx_ready_i & tx_almost_ready_i;
+   DEBUG_OUT(63 downto 60) <= SERDES_ready & rx_ready_i &  tx_ready_i & tx_almost_ready_i;
    DEBUG_OUT(99 downto 96) <= rx_almost_ready_i & rx_see_ready0_i & rx_saw_ready1_i & rx_valid_char_i;
-      
-   process is
-      variable cnt, cntr : unsigned(15 downto 0);
-   begin
-      wait until rising_edge(clk_125_i);
-      cnt := cnt + 1;
-      cntr := cntr + 1;
-      if rst_n = '0' then
-         cntr := x"0000";
-      end if;
-      DEBUG_OUT(31 + 64 downto 64) <= std_logic_vector(cnt) & std_logic_vector(cntr);
-   end process;
+   DEBUG_OUT(103 downto 100) <= wa_position(3 downto 0);
+   DEBUG_OUT(107 downto 104) <= "00" & rx_rm_to_gear_reset_i & gear_to_rm_rst_i;
       
    -------------------------------------------------      
    -- Reset FSM & Link states
@@ -274,14 +283,18 @@ begin
       RX_CDR_LOL_CH_S     => rx_cdr_lol,
       RX_LOS_LOW_CH_S     => rx_los_low,
       
-      RM_RESET_IN         => '0', --rx_reset_from_rm_i,
-      PROPER_BYTE_ALIGN_IN=> proper_byte_align_i,
-      PROPER_WORD_ALIGN_IN=> proper_word_align_i,
+      RM_RESET_IN         => CTRL_OP(4), --rx_reset_from_rm_i,
+      PROPER_BYTE_ALIGN_IN=> byte_alignment_to_fsm_i,
+      PROPER_WORD_ALIGN_IN=> word_alignment_to_fsm_i,
       
       RX_SERDES_RST_CH_C  => rx_serdes_rst,
       RX_PCS_RST_CH_C     => rx_pcs_rst,
       STATE_OUT           => rx_fsm_state
    );
+   byte_alignment_to_fsm_i <=  proper_byte_align_i or CTRL_OP(1);
+   word_alignment_to_fsm_i <= not (gear_to_serder_rst_i or AND_ALL(rx_error_delay)) or CTRL_OP(2);
+   rx_error_delay <= rx_error_delay(rx_error_delay'high - 1 downto 0) & rx_error when rising_edge(clk_125_local);
+   
       
    THE_TX_FSM : tx_reset_fsm
    port map(
@@ -292,73 +305,36 @@ begin
       TX_PCS_RST_CH_C => tx_pcs_rst,
       STATE_OUT       => tx_fsm_state
    );
+   --tx_data_i <= "01" & x"00" & CBMNET_READY_CHAR0;
    
-   sd_los_i <= SD_LOS_IN when rising_edge(CLK);
+   proc_rst_fsms_ready: process is begin
+      wait until rising_edge(clk_125_local);
+      rx_rst_fsm_ready_i <= '0';
+      if rx_fsm_state = x"6" then
+         rx_rst_fsm_ready_i <= '1';
+      end if;
 
-   gen_wa_fixation: if WA_FIXATION = c_YES generate
-      -- In slave mode, we need the barrel shifter to lock on the lowest position in 
-      -- order to avoid a non-deterministic skew in the clock/data phase
-      -- If we're the master, we don't care about the proper barrel shifter alignment
-      proper_byte_align_i <= 
-         '1' when IS_SYNC_SLAVE = c_NO else
-         proper_byte_align_i when not rising_edge(clk_125_i) else
-         '1' when wa_position(3 downto 0) = x"0" else '0';
-         
-      -- detect misaligned gearing fifo
-      proper_word_align_i <= 
-         '1' when rst_n = '0' or rx_serdes_rst = '1' else
-         proper_word_align_i when not rising_edge(clk_125_i) else
-        -- '0' when rx_serdes_rst ='1' or rst = '1' else
-         '0' when rx_data_i(17 downto 16) = "10" and
-            (rx_data_i(15 downto 8) = K284 or rx_data_i(15 downto 8) = K285 or rx_data_i(15 downto 8) = K287)
-            and rx_data_i(7 downto 0) = x"00" else '1';
-
-      serdes_rx_ready_i <= (not rx_cdr_lol) and proper_word_align_i and proper_byte_align_i when rx_fsm_state = x"6" else '0';
-      serdes_tx_ready_i <= (not tx_pll_lol) when tx_fsm_state = x"5" else '0';
-      serdes_ready_i <= serdes_rx_ready_i and serdes_tx_ready_i;
-      
-      rx_data_buf_i <= rx_data_i;
-   end generate;
+      tx_rst_fsm_ready_i <= '0';
+      if tx_fsm_state = x"5" then
+         tx_rst_fsm_ready_i <= '1';
+      end if;
+   end process;
    
-   gen_wa_no_fixation: if WA_FIXATION = c_NO generate
-      proper_byte_align_i <= '1';
-      serdes_ready_i <= not (rx_cdr_lol or tx_pll_lol) when tx_fsm_state = x"5" and rx_fsm_state = x"6" else '0';
-      
-      proc_wa: process is
-         variable locked : std_logic;
-         variable locked_with_delay : std_logic;
-         
-         variable delay  : std_logic_vector(8 downto 0);
-         variable rx_pcs_rst_del : std_logic := '0';
-      begin
-         wait until rising_edge(clk_125_i);
+   THE_GEAR: CBMNET_PHY_GEAR port map (
+      -- SERDES PORT
+         CLK_250_IN      => clk_rx_full,             -- in std_logic;
+         PCS_READY_IN    => rx_serdes_ready_for_gear_i, -- in std_logic;
+         SERDES_RESET_OUT=> gear_to_serder_rst_i,    -- out std_logic;
+         DATA_IN         => rx_data_i,               -- in  std_logic_vector( 8 downto 0);
 
-         if locked_with_delay = '1' then
-            rx_data_buf_i <= delay(8) & rx_data_i(17) & delay(7 downto 0) &  rx_data_i(15 downto 8);
-         else
-            rx_data_buf_i <= rx_data_i;
-         end if;
-         
-         delay := rx_data_i(16) & rx_data_i(7 downto 0);
-         
-         if rx_pcs_rst = '1' and rx_pcs_rst_del = '0' then
-            locked := '0';
-            
-         elsif locked = '0' then
-            if rx_data_i(17 downto 16) = "10" and (rx_data_i(15 downto 8) = K284 or rx_data_i(15 downto 8) = K285 or rx_data_i(15 downto 8) = K287) and rx_data_i(7 downto 0) = x"00" then
-               locked_with_delay := '1';
-               locked := '1';
-            elsif rx_data_i(17 downto 16) = "01" and (rx_data_i(7 downto 0) = K284 or rx_data_i(7 downto 0) = K285 or rx_data_i(7 downto 0) = K287) and rx_data_i(15 downto 8) = x"00" then
-               locked_with_delay := '0';
-               locked := '1';
-            end if;
-            
-         end if;
-
-         rx_pcs_rst_del := rx_pcs_rst;
-         proper_word_align_i <= locked;
-      end process;
-   end generate;
+      -- RM PORT
+         RM_RESET_IN => rx_rm_to_gear_reset_i,      -- in std_logic;
+         CLK_125_OUT => clk_rx_half,                -- out std_logic;
+         RESET_OUT   => gear_to_rm_rst_i,           -- out std_logic;
+         DATA_OUT    => rx_data_buf_i               -- out std_logic_vector(17 downto 0)
+   );
+   rx_serdes_ready_for_gear_i <= (rx_rst_fsm_ready_i and proper_byte_align_i) or CTRL_OP(5);
+   rx_rm_to_gear_reset_i <= rx_reset_from_rm_i and not CTRL_OP(6);
    
    -------------------------------------------------      
    -- CBMNet Ready Modules
@@ -367,8 +343,8 @@ begin
    generic map (INCL_8B10B_DEC => c_No)
    port map (
       clk => clk_125_i,
-      res_n => rx_rm_rst_n,
-      ready_MGT2RM => serdes_ready_i,
+      res_n => gear_to_rm_n_rst_i,
+      ready_MGT2RM => '1',
       
       rxdata_in(17 downto 0) => rx_data_buf_i,
       rxdata_in(19 downto 18) => "00",
@@ -387,15 +363,14 @@ begin
       
       reset_rx => rx_reset_from_rm_i
    );
+   gear_to_rm_n_rst_i <= not gear_to_rm_rst_i when rising_edge(clk_125_i);
    
-   rx_rm_rst_n <= not (rst or CTRL_OP(1) or not serdes_rx_ready_i); -- or not serdes_ready_i);
-
    THE_TX_READY: gtp_tx_ready_module
    port map (
       clk => clk_125_i,                   -- :  in std_logic;
-      res_n => rx_rm_rst_n,               -- :  in std_logic;
+      res_n => tx_rst_fsm_ready_buf_i,               -- :  in std_logic;
       restart_link => CTRL_OP(14),        -- :  in std_logic;
-      ready_MGT2RM => serdes_tx_ready_i,     -- :  in std_logic;
+      ready_MGT2RM => '1',     -- :  in std_logic;
       txdata_in => PHY_TXDATA_IN ,        -- :  in std_logic_vector((DATAWIDTH-1) downto 0);
       txcharisk_in => PHY_TXDATA_K_IN,    -- :  in std_logic_vector((WORDS-1) downto 0);
 
@@ -410,12 +385,24 @@ begin
       gt11_reinit => open                 -- :  out std_logic   
    );
    
-   tx_rm_rst_n <= not (rst or CTRL_OP(2) or not serdes_tx_ready_i);
-   
+   process is begin
+      wait until rising_edge(clk_125_i);
+      
+      if IS_SYNC_SLAVE = c_YES then
+         tx_rst_fsm_ready_buf_i <= tx_rst_fsm_ready_i and not gear_to_rm_rst_i;
+         
+      else
+         tx_rst_fsm_ready_buf_i <= tx_rst_fsm_ready_i;
+         
+      end if;
+   end process;
+      
+      
    rx_rm_ready_i <= rx_almost_ready_i or rx_ready_i;
    
    SERDES_ready <= tx_ready_i and rx_ready_i when rising_edge(clk_125_i);
    led_ok       <= SERDES_ready;
+   
    
    -------------------------------------------------      
    -- SCI
@@ -423,9 +410,12 @@ begin
    --gives access to serdes config port from slow control and reads word alignment every ~ 40 us
    PROC_SCI_CTRL: process 
       variable cnt : integer range 0 to 4 := 0;
+      variable lsm_status_buf : std_logic;
    begin
       wait until rising_edge(CLK);
       SCI_ACK <= '0';
+      proper_byte_align_i <= '1';
+      
       case sci_state is
          when IDLE =>
             sci_ch_i        <= x"0";
@@ -441,15 +431,21 @@ begin
 
       when GET_WA =>
             if cnt = 4 then
-            cnt           := 0;
-            sci_state     <= IDLE;
+               cnt           := 0;
+               sci_state     <= IDLE;
+               
+               if lsm_status_buf = '1' and wa_position(3 downto 0) /= x"0" then
+                  proper_byte_align_i <= '0';
+               end if;
+               
             else
-            sci_state     <= GET_WA_WAIT;
-            sci_addr_i    <= '0' & x"22";
-            sci_ch_i      <= x"0";
-            sci_ch_i(cnt) <= '1';
-            sci_read_i    <= '1';
+               sci_state     <= GET_WA_WAIT;
+               sci_addr_i    <= '0' & x"22";
+               sci_ch_i      <= x"0";
+               sci_ch_i(cnt) <= '1';
+               sci_read_i    <= '1';
             end if;
+            
          when GET_WA_WAIT  =>
             sci_state       <= GET_WA_WAIT2;
             
@@ -460,7 +456,7 @@ begin
             wa_position(cnt*4+3 downto cnt*4) <= sci_data_out_i(3 downto 0);
             sci_state       <= GET_WA;    
             cnt             := cnt + 1;
-            
+         
       end case;
       
       if (SCI_READ = '1' or SCI_WRITE = '1') and sci_state /= IDLE then
@@ -468,6 +464,8 @@ begin
       else
          SCI_NACK <= '0';
       end if;
+      
+      lsm_status_buf := lsm_status_i;
    end process;
 
    -- RX/TX leds are on as soon as the correspondent pll is locked and data
@@ -479,7 +477,7 @@ begin
       led_rx <= not rx_cdr_lol;
       led_tx <= not tx_pll_lol;
       
-      if (led_timer(20) = '1') or (rx_data_i(17 downto 16) = "10" and rx_data_i(15 downto 0) = x"fcce") then
+      if (led_timer(20) = '1') or (rx_data_buf_i(17 downto 16) = "10" and rx_data_buf_i(15 downto 0) = x"fcce") then
          led_rx <= '0';
       end if;
       
@@ -514,25 +512,44 @@ begin
    end process;
    
 -- STAT_OP REGISTER
-STAT_OP(0) <= clk_125_local;
-STAT_OP(1) <= clk_125_i;
-STAT_OP(2) <= rst;
-STAT_OP(3) <= SD_LOS_IN;
+STAT_OP(8 downto 0) <= rx_data_i when CTRL_OP(8) = '0' else dummy_output_i;
 
-STAT_OP(4) <= rx_serdes_rst;
-STAT_OP(5) <= rx_pcs_rst;
-STAT_OP(6) <= tx_pcs_rst;
-STAT_OP(7) <= rst_qd;
+STAT_OP(9)  <= clk_rx_full;
+STAT_OP(10) <= clk_125_i;
+STAT_OP(11) <= rx_cdr_lol;
+STAT_OP(12) <= rx_los_low;
+STAT_OP(13) <= lsm_status_i;
+STAT_OP(14) <= rx_serdes_rst;
+STAT_OP(15) <= rx_pcs_rst;
 
-STAT_OP(8) <= rx_los_low;
-STAT_OP(9) <= rx_cdr_lol;
-STAT_OP(10) <= OR_ALL(rx_error);
-STAT_OP(11) <= rx_reset_from_rm_i;
+dummy_output_i(3 downto 0) <= wa_position(3 downto 0);
 
-STAT_OP(12) <= tx_pll_lol;
-STAT_OP(13) <= proper_byte_align_i;
-STAT_OP(14) <= proper_word_align_i;
-STAT_OP(15) <= serdes_ready_i;
+dummy_output_i(4) <= rx_rst_fsm_ready_i;
+dummy_output_i(5) <= tx_pll_lol;
+dummy_output_i(6) <= tx_pcs_rst;
+dummy_output_i(7) <= rx_serdes_ready_for_gear_i;
+dummy_output_i(8) <= serdes_rx_ready_i;
+
+
+-- STAT_OP(0) <= clk_125_i;
+-- STAT_OP(1) <= rst;
+-- STAT_OP(2) <= rx_serdes_rst;
+-- STAT_OP(3) <= rx_pcs_rst;
+-- 
+-- STAT_OP(4) <= tx_pcs_rst;
+-- STAT_OP(5) <= rst_qd;
+-- STAT_OP(6) <= tx_pll_lol;
+-- STAT_OP(7) <= rx_cdr_lol;
+-- 
+-- STAT_OP(8) <= rx_los_low;
+-- STAT_OP(9) <= rx_rst_fsm_ready_i;
+-- STAT_OP(10) <= proper_byte_align_i;
+-- STAT_OP(11) <= gear_to_serder_rst_i;
+-- 
+-- STAT_OP(12) <= serdes_rx_ready_i;
+-- STAT_OP(13) <= wa_position(0);
+-- STAT_OP(14) <= wa_position(1);
+-- STAT_OP(15) <= wa_position(2);
 
 
 --    STAT_OP(3) <= rx_valid_char_i;

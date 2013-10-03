@@ -14,7 +14,7 @@ use work.cbmnet_phy_pkg.all;
 
 entity trb3_periph_cbmnet is
    generic (
-      CBM_FEE_MODE : integer := c_YES -- in FEE mode, logic will run on recovered clock and (for now) listen only to data received
+      CBM_FEE_MODE : integer := CBM_FEE_MODE_C -- in FEE mode, logic will run on recovered clock and (for now) listen only to data received
                                      -- in Master mode, logic will run on internal clock and regularly send dlms
    );
    port(
@@ -281,6 +281,8 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
 
    signal phy_stat_op,    phy_ctrl_op    : std_logic_vector(15 downto 0) := (others => '0');
    signal phy_stat_debug, phy_ctrl_debug : std_logic_vector(63 downto 0) := (others => '0');
+   
+   signal phy_debug_i : std_logic_vector (127 downto 0) := (others => '0');
 
 begin
    clk_125_i <= CLK_GPLL_LEFT; 
@@ -330,7 +332,8 @@ begin
       STAT_OP            => phy_stat_op,
       CTRL_OP            => phy_ctrl_op,
       STAT_DEBUG         => phy_stat_debug,
-      CTRL_DEBUG         => phy_ctrl_debug
+      CTRL_DEBUG         => phy_ctrl_debug,
+      DEBUG_OUT          => phy_debug_i
    );
 
    SFP_RATESEL   <= (others => '1');
@@ -421,12 +424,17 @@ begin
       
       debug_ack <= debug_read_en or debug_write_en;
       case (address) is
-         when 0 => debug_data_out <= x"0000" & phy_stat_op;
-         when 1 => debug_data_out <= x"0000" & phy_ctrl_op;
-         when 2 => debug_data_out <= phy_stat_debug(31 downto  0);
-         when 3 => debug_data_out <= phy_stat_debug(63 downto 32);
-         when 4 => debug_data_out <= phy_ctrl_debug(31 downto  0);
-         when 5 => debug_data_out <= phy_ctrl_debug(63 downto 32);
+         when 0  => debug_data_out <= x"0000" & phy_stat_op;
+         when 1  => debug_data_out <= x"0000" & phy_ctrl_op;
+         when 2  => debug_data_out <= phy_stat_debug(31 downto  0);
+         when 3  => debug_data_out <= phy_stat_debug(63 downto 32);
+         when 4  => debug_data_out <= phy_ctrl_debug(31 downto  0);
+         when 5  => debug_data_out <= phy_ctrl_debug(63 downto 32);
+         when 6  => debug_data_out <= STD_LOGIC_VECTOR(TO_UNSIGNED(CBM_FEE_MODE, 32));
+         when 8  => debug_data_out <= phy_debug_i(31+32*0 downto 32*0);
+         when 9  => debug_data_out <= phy_debug_i(31+32*1 downto 32*1);
+         when 10 => debug_data_out <= phy_debug_i(31+32*2 downto 32*2);
+         when 11 => debug_data_out <= phy_debug_i(31+32*3 downto 32*3);         
          when others => debug_ack <= '0';
       end case;
    
@@ -439,7 +447,8 @@ begin
          end case;
       end if;
    end process;
-      
+    
+   --TEST_LINE <= phy_stat_op;
       
 ---------------------------------------------------------------------------
 -- Reset Generation

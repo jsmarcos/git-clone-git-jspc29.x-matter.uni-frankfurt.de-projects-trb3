@@ -15,7 +15,11 @@ package cbmnet_interface_pkg is
    constant K277 : std_logic_vector(7 downto 0) := "11111011";
    constant K297 : std_logic_vector(7 downto 0) := "11111101";
    constant K307 : std_logic_vector(7 downto 0) := "11111110";
-
+   
+   constant CBMNET_READY_CHAR0 : std_logic_vector(7 downto 0) :=  K284;
+   constant CBMNET_READY_CHAR1 : std_logic_vector(7 downto 0) :=  K287;
+   constant CBMNET_ALIGN_CHAR  : std_logic_vector(7 downto 0) :=  K285;
+         
    component gtp_rx_ready_module is
       generic (
          READY_CHAR0  : std_logic_vector(7 downto 0) :=  K284;

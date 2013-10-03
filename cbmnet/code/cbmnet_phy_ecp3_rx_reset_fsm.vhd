@@ -74,7 +74,9 @@ begin
          cs <= ns;
          rx_lol_los_del <= rx_lol_los;
          rx_lol_los_int <= rx_lol_los_del;
+         
          tx_pll_lol_qd_s_int <= tx_pll_lol_qd_s;
+         
          RX_PCS_RST_CH_C <= rx_pcs_rst_ch_c_int;
          RX_SERDES_RST_CH_C <= rx_serdes_rst_ch_c_int;
          rx_los_low_int <= rx_los_low_ch_s;
@@ -154,8 +156,8 @@ begin
                else
                   ns <= NORMAL;
                end if;
-            elsif rx_lol_los_int = '0' then
-               ns <= NORMAL;
+          --  elsif rx_lol_los_int = '0' then
+          --     ns <= NORMAL;
             else
                ns <= WAIT_FOR_timer2;
             end if;

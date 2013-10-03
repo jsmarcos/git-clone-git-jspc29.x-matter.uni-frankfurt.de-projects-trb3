@@ -55,66 +55,71 @@ package cbmnet_phy_pkg is
          DEBUG_OUT          : out std_logic_vector (127 downto 0) := (others => '0')
       );
    end component;
+   
+   component CBMNET_PHY_GEAR is
+      port (
+      -- SERDES PORT
+         CLK_250_IN  : in std_logic;
+         PCS_READY_IN: in std_logic;
+         SERDES_RESET_OUT : out std_logic;
+         DATA_IN     : in  std_logic_vector( 8 downto 0);
+
+      -- RM PORT
+         RM_RESET_IN : in std_logic;
+         CLK_125_OUT : out std_logic;
+         RESET_OUT   : out std_logic;
+         DATA_OUT    : out std_logic_vector(17 downto 0)
+      );
+   end component;   
+   
   
 --------------------------------------------------- INTERNAL
-   component cbmnet_sfp1 is
-      generic (
-         USER_CONFIG_FILE    :  String := "cbmnet_sfp1.txt"
+   COMPONENT cbmnet_sfp1
+   PORT(
+      hdinp_ch0 : IN std_logic;
+      hdinn_ch0 : IN std_logic;
+      sci_sel_ch0 : IN std_logic;
+      txiclk_ch0 : IN std_logic;
+      fpga_rxrefclk_ch0 : IN std_logic;
+      txdata_ch0 : IN std_logic_vector(15 downto 0);
+      tx_k_ch0 : IN std_logic_vector(1 downto 0);
+      tx_force_disp_ch0 : IN std_logic_vector(1 downto 0);
+      tx_disp_sel_ch0 : IN std_logic_vector(1 downto 0);
+      rx_serdes_rst_ch0_c : IN std_logic;
+      sb_felb_ch0_c : IN std_logic;
+      sb_felb_rst_ch0_c : IN std_logic;
+      tx_pcs_rst_ch0_c : IN std_logic;
+      tx_pwrup_ch0_c : IN std_logic;
+      rx_pcs_rst_ch0_c : IN std_logic;
+      rx_pwrup_ch0_c : IN std_logic;
+      tx_div2_mode_ch0_c : IN std_logic;
+      rx_div2_mode_ch0_c : IN std_logic;
+      sci_wrdata : IN std_logic_vector(7 downto 0);
+      sci_addr : IN std_logic_vector(5 downto 0);
+      sci_sel_quad : IN std_logic;
+      sci_rd : IN std_logic;
+      sci_wrn : IN std_logic;
+      fpga_txrefclk : IN std_logic;
+      tx_serdes_rst_c : IN std_logic;
+      rst_qd_c : IN std_logic;
+      serdes_rst_qd_c : IN std_logic;          
+      hdoutp_ch0 : OUT std_logic;
+      hdoutn_ch0 : OUT std_logic;
+      rx_full_clk_ch0 : OUT std_logic;
+      rx_half_clk_ch0 : OUT std_logic;
+      tx_full_clk_ch0 : OUT std_logic;
+      tx_half_clk_ch0 : OUT std_logic;
+      rxdata_ch0 : OUT std_logic_vector(7 downto 0);
+      rx_k_ch0 : OUT std_logic;
+      rx_disp_err_ch0 : OUT std_logic;
+      rx_cv_err_ch0 : OUT std_logic;
+      rx_los_low_ch0_s : OUT std_logic;
+      lsm_status_ch0_s : OUT std_logic;
+      rx_cdr_lol_ch0_s : OUT std_logic;
+      sci_rddata : OUT std_logic_vector(7 downto 0);
+      tx_pll_lol_qd_s : OUT std_logic
       );
-      port (
-         ------------------
-         -- CH0 --
-         hdinp_ch0, hdinn_ch0    :   in std_logic;
-         hdoutp_ch0, hdoutn_ch0   :   out std_logic;
-         sci_sel_ch0    :   in std_logic;
-         rxiclk_ch0    :   in std_logic;
-         txiclk_ch0    :   in std_logic;
-         rx_full_clk_ch0   :   out std_logic;
-         rx_half_clk_ch0   :   out std_logic;
-         tx_full_clk_ch0   :   out std_logic;
-         tx_half_clk_ch0   :   out std_logic;
-         fpga_rxrefclk_ch0    :   in std_logic;
-         txdata_ch0    :   in std_logic_vector (15 downto 0);
-         tx_k_ch0    :   in std_logic_vector (1 downto 0);
-         tx_force_disp_ch0    :   in std_logic_vector (1 downto 0);
-         tx_disp_sel_ch0    :   in std_logic_vector (1 downto 0);
-         rxdata_ch0   :   out std_logic_vector (15 downto 0);
-         rx_k_ch0   :   out std_logic_vector (1 downto 0);
-         rx_disp_err_ch0   :   out std_logic_vector (1 downto 0);
-         rx_cv_err_ch0   :   out std_logic_vector (1 downto 0);
-         rx_serdes_rst_ch0_c    :   in std_logic;
-         sb_felb_ch0_c    :   in std_logic;
-         sb_felb_rst_ch0_c    :   in std_logic;
-         --word_align_en_ch0_c    :   in std_logic;
-         tx_pcs_rst_ch0_c    :   in std_logic;
-         tx_pwrup_ch0_c    :   in std_logic;
-         rx_pcs_rst_ch0_c    :   in std_logic;
-         rx_pwrup_ch0_c    :   in std_logic;
-         rx_los_low_ch0_s   :   out std_logic;
-         rx_cdr_lol_ch0_s   :   out std_logic;
-         tx_div2_mode_ch0_c   : in std_logic;
-         rx_div2_mode_ch0_c   : in std_logic;
-         lsm_status_ch0_s : OUT std_logic;
-         
-         -- CH1 --
-         -- CH2 --
-         -- CH3 --
-         ---- Miscillaneous ports
-         sci_wrdata    :   in std_logic_vector (7 downto 0);
-         sci_addr    :   in std_logic_vector (5 downto 0);
-         sci_rddata   :   out std_logic_vector (7 downto 0);
-         sci_sel_quad    :   in std_logic;
-         sci_rd    :   in std_logic;
-         sci_wrn    :   in std_logic;
-         sci_int    :   out std_logic;
-         fpga_txrefclk  :   in std_logic;
-         tx_serdes_rst_c    :   in std_logic;
-         tx_pll_lol_qd_s   :   out std_logic;
-         rst_qd_c    :   in std_logic;
-   --      refclk2fpga   :   out std_logic;
-         serdes_rst_qd_c    :   in std_logic
-      );
-   end component;
+   END COMPONENT;
    
    component cbmnet_phy_ecp3_rx_reset_fsm is
       port (
