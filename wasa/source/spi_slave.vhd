@@ -102,6 +102,7 @@ PROC_GEN_SIGNALS : process begin
   write_i <= (others => '0');
   case state is
     when IDLE =>
+      channel_i   <= x"ff";
       operation_i <= x"7";
       if spi_cs_reg = '0' then
         state       <= WAIT_FOR_CMD;

@@ -10,3 +10,10 @@ system("cp ../base/$TOPNAME.lpf diamond/$TOPNAME.lpf");
 system("cat ../tdc_releases/tdc_v1.5/trbnet_constraints.lpf >> diamond/$TOPNAME.lpf");
 system("cat ../tdc_releases/tdc_v1.5/tdc_constraints.lpf >> diamond/$TOPNAME.lpf");
 
+
+$TOPNAME  = "panda_dirc_wasa"; #Name of top-level entity
+
+#create full lpf file
+system("cp ../base/".$TOPNAME."1.lpf workdir/$TOPNAME.lpf");
+system("cat ".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
+

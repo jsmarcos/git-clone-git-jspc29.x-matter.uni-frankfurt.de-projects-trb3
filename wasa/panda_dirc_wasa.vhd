@@ -15,7 +15,8 @@ use machxo2.all;
 entity panda_dirc_wasa is
   generic(
     PADIWA_FLAVOUR : integer := 3;
-    TEMP_CORRECTION: integer := 1
+    TEMP_CORRECTION: integer := c_YES;
+    TDCTEST        : integer := c_NO
     );
   port(
     CON        : out std_logic_vector(16 downto 1);
@@ -177,6 +178,7 @@ signal spi_channel_i   : std_logic_vector(7 downto 0);
 signal spi_write_i     : std_logic_vector(15 downto 0);
 signal buf_SPI_OUT     : std_logic;
 signal spi_debug_i     : std_logic_vector(15 downto 0);
+signal last_spi_channel: std_logic_vector(7 downto 0);
 
 signal pll_lock : std_logic;
 signal clk_26 : std_logic;
@@ -242,6 +244,9 @@ signal compensate_i     : signed(15 downto 0);
 signal temp_calc_i      : signed(27 downto 0);
 signal temperature_i_s  : std_logic_vector(11 downto 0);
 signal comp_setting_s   : std_logic_vector(15 downto 0);
+
+signal ffarr_data       : std_logic_vector(15 downto 0);
+signal ffarr_read       : std_logic;
 
 begin
 
@@ -477,7 +482,30 @@ begin
 end process;
 
 
-
+gen_ffarr : if TDCTEST = 1 generate
+ THE_FFARR : entity work.ffarray
+   port map(
+    CLK        => clk_i,
+    RESET_IN   => onewire_reset,
+    SIGNAL_IN  => SPI_IN,
+    
+    DATA_OUT   => ffarr_data(7 downto 0),
+    READ_IN    => ffarr_read,
+    EMPTY_OUT  => ffarr_data(12)
+    );
+    
+  process begin
+    wait until rising_edge(clk_i);
+    last_spi_channel <= spi_channel_i;
+    if spi_channel_i = x"0a" and last_spi_channel /= x"0a" then
+      ffarr_read <= '1';
+    else
+      ffarr_read <= '0';
+    end if;
+  end process;
+  
+end generate;
+    
 ---------------------------------------------------------------------------
 -- Temperature Sensor
 ---------------------------------------------------------------------------  
@@ -486,7 +514,7 @@ THE_ONEWIRE : trb_net_onewire
   generic map(
     USE_TEMPERATURE_READOUT => 1,
     PARASITIC_MODE => c_NO,
-    CLK_PERIOD => 40
+    CLK_PERIOD => 33
     )
   port map(
     CLK      => clk_26,
@@ -532,6 +560,7 @@ THE_IO_REG_READ : process begin
       when x"4" => spi_reg20_i <= inp_invert;
       when x"5" => spi_reg20_i <= inp_stretch;
       when x"6" => spi_reg20_i <= comp_setting;
+      when x"a" => spi_reg20_i <= ffarr_data; 
       when others => null;
     end case;
   else

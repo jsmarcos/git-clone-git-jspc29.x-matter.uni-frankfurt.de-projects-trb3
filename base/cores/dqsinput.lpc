@@ -12,12 +12,12 @@ VendorName=Lattice Semiconductor Corporation
 CoreType=LPM
 CoreStatus=Demo
 CoreName=DDR_GENERIC
-CoreRevision=5.3
+CoreRevision=5.4
 ModuleName=dqsinput
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=03/27/2013
-Time=19:58:10
+Date=10/02/2013
+Time=23:39:53
 
 [Parameters]
 Verilog=0

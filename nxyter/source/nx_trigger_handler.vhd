@@ -36,7 +36,7 @@ entity nx_trigger_handler is
     
     -- OUT
     VALIDATE_TRIGGER_OUT       : out std_logic;
-    TIMESTAMP_HOLD_OUT         : out std_logic;
+    TIMESTAMP_TRIGGER_OUT      : out std_logic;
     LVL2_TRIGGER_OUT           : out std_logic;
     EVENT_BUFFER_CLEAR_OUT     : out std_logic;
     FAST_CLEAR_OUT             : out std_logic;
@@ -64,15 +64,15 @@ architecture Behavioral of nx_trigger_handler is
 
   -- Trigger Handler
   signal validate_trigger_o       : std_logic;
-  signal timestamp_hold           : std_logic;
   signal lvl2_trigger_o           : std_logic;
   signal event_buffer_clear_o     : std_logic;
   signal fast_clear_o             : std_logic;
   signal trigger_busy_o           : std_logic;
   signal fee_trg_release_o        : std_logic;
   signal fee_trg_statusbits_o     : std_logic_vector(31 downto 0);
-  signal trigger_testpulse_o      : std_logic;
-
+  signal timestamp_trigger_o      : std_logic;
+  signal send_testpulse           : std_logic;
+  
   type STATES is (S_IDLE,
                   S_CTS_TRIGGER,
                   S_WAIT_TRG_DATA_VALID,
@@ -85,25 +85,32 @@ architecture Behavioral of nx_trigger_handler is
                   );
   signal STATE : STATES;
 
-  -- Timestamp Hold Handler
-  type TS_STATES is (TS_IDLE,
-                     TS_WAIT_TIMER_DONE
-                     );
-  signal TS_STATE : TS_STATES;
+  -- Testpulse Handler
+  type T_STATES is (T_IDLE,
+                    T_WAIT_TIMER,
+                    T_SET_TESTPULSE
+                    );
+  
+  signal T_STATE : T_STATES;
 
-  signal timestamp_hold_o         : std_logic;
-  signal wait_timer_reset         : std_logic;
-  signal wait_timer_init          : unsigned(7 downto 0);
-  signal wait_timer_done          : std_logic;
-                                  
+  signal trigger_testpulse_o      : std_logic;
+  signal wait_timer_reset            : std_logic;
+  signal wait_timer_init             : unsigned(7 downto 0);
+  signal wait_timer_done             : std_logic;
+
+  -- Rate Calculation
+  signal accepted_trigger_rate_t     : unsigned(27 downto 0);
+  signal rate_timer                  : unsigned(27 downto 0);
+  
   -- TRBNet Slave Bus                
-  signal slv_data_out_o           : std_logic_vector(31 downto 0);
-  signal slv_no_more_data_o       : std_logic;
-  signal slv_unknown_addr_o       : std_logic;
-  signal slv_ack_o                : std_logic;
+  signal slv_data_out_o              : std_logic_vector(31 downto 0);
+  signal slv_no_more_data_o          : std_logic;
+  signal slv_unknown_addr_o          : std_logic;
+  signal slv_ack_o                   : std_logic;
 
-  signal reg_timestamp_hold_delay : unsigned(7 downto 0);
-  signal reg_testpulse_enable     : std_logic;
+  signal reg_testpulse_delay         : unsigned(7 downto 0);
+  signal reg_testpulse_enable        : std_logic;
+  signal accepted_trigger_rate       : unsigned(27 downto 0);
   
 begin
 
@@ -116,13 +123,15 @@ begin
   DEBUG_OUT(5)            <= LVL2_TRIGGER_BUSY_IN;
 
   DEBUG_OUT(6)            <= validate_trigger_o;
-  DEBUG_OUT(7)            <= timestamp_hold_o;
+  DEBUG_OUT(7)            <= timestamp_trigger_o;
   DEBUG_OUT(8)            <= lvl2_trigger_o;
   DEBUG_OUT(9)            <= event_buffer_clear_o;
   DEBUG_OUT(10)           <= fee_trg_release_o;
   DEBUG_OUT(11)           <= trigger_busy_o;
-  
-  DEBUG_OUT(15 downto 12) <= (others => '0');
+  DEBUG_OUT(12)           <= timestamp_trigger_o;
+  DEBUG_OUT(13)           <= send_testpulse;
+  DEBUG_OUT(14)           <= trigger_testpulse_o;
+  DEBUG_OUT(15)           <= '0';
 
   -- Timer
   nx_timer_1: nx_timer
@@ -147,25 +156,25 @@ begin
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
         validate_trigger_o   <= '0';
-        timestamp_hold       <= '0';
         lvl2_trigger_o       <= '0';
         fee_trg_release_o    <= '0';
         fee_trg_statusbits_o <= (others => '0');
         fast_clear_o         <= '0';
         event_buffer_clear_o <= '0';
         trigger_busy_o       <= '0';
-        trigger_testpulse_o  <= '0';
+        send_testpulse       <= '0';
+        timestamp_trigger_o  <= '0';
         STATE                <= S_IDLE;
       else
-        validate_trigger_o         <= '0';
-        timestamp_hold       <= '0';
+        validate_trigger_o   <= '0';
         lvl2_trigger_o       <= '0';
         fee_trg_release_o    <= '0';
         fee_trg_statusbits_o <= (others => '0');
         fast_clear_o         <= '0';
         event_buffer_clear_o <= '0';
         trigger_busy_o       <= '1';
-        trigger_testpulse_o  <= '0';
+        send_testpulse       <= '0';
+        timestamp_trigger_o  <= '0';
 
         if (LVL1_INVALID_TRG_IN = '1') then
           fast_clear_o         <= '1';
@@ -190,14 +199,14 @@ begin
                 STATE                <= S_IDLE;
               end if;     
 
-              -- CTS Trigger Handler
+                                        -- CTS Trigger Handler
             when S_CTS_TRIGGER =>
               event_buffer_clear_o   <= '1';
               validate_trigger_o     <= '1';
-              timestamp_hold         <= '1';
+              timestamp_trigger_o    <= '1';
               lvl2_trigger_o         <= '1';
               if (reg_testpulse_enable = '1') then
-                trigger_testpulse_o  <= '1';
+                send_testpulse       <= '1';
               end if;
               STATE                  <= S_WAIT_TRG_DATA_VALID;
 
@@ -229,7 +238,7 @@ begin
               -- Internal Trigger Handler
             when S_INTERNAL_TRIGGER =>
               validate_trigger_o     <= '1';
-              timestamp_hold         <= '1';
+              timestamp_trigger_o    <= '1';
               event_buffer_clear_o   <= '1';
               STATE                  <= S_WAIT_TRIGGER_VALIDATE_ACK;
 
@@ -253,41 +262,68 @@ begin
     end if;
   end process PROC_TRIGGER_HANDLER;
 
-  PROC_SEND_TIMSTAMP_HOLD: process(CLK_IN)
-  begin
+  PROC_TESTPULSE_HANDLER: process (CLK_IN)
+  begin 
     if( rising_edge(CLK_IN) ) then
-      if (RESET_IN = '1' or NXYTER_OFFLINE_IN = '1') then
-        wait_timer_init     <= (others => '0');
-        timestamp_hold_o    <= '0';
-        TS_STATE            <= TS_IDLE;
+      if (RESET_IN = '1' or fast_clear_o = '1') then
+        wait_timer_init      <= (others => '0');
+        trigger_testpulse_o  <= '0';
+        T_STATE              <= T_IDLE;
       else
-        wait_timer_init     <= (others => '0');
-        timestamp_hold_o    <= '0';
+        trigger_testpulse_o  <= '0';
+        wait_timer_init      <= (others => '0');
 
-        case TS_STATE is
+        case T_STATE is
 
-          when TS_IDLE =>
-            if (timestamp_hold = '0') then
-              TS_STATE          <= TS_IDLE;
+          when T_IDLE => 
+            if (send_testpulse = '1') then
+              if (reg_testpulse_delay > 0) then
+                wait_timer_init <= reg_testpulse_delay;
+                T_STATE         <= T_WAIT_TIMER;
+              else
+                T_STATE         <= T_SET_TESTPULSE;
+              end if;
             else
-              wait_timer_init   <= reg_timestamp_hold_delay;
-              TS_STATE          <= TS_WAIT_TIMER_DONE;
+              T_STATE           <= T_IDLE;
             end if;
 
-          when TS_WAIT_TIMER_DONE =>
+          when T_WAIT_TIMER =>
             if (wait_timer_done = '0') then
-              TS_STATE          <= TS_WAIT_TIMER_DONE;
+              T_STATE           <= T_WAIT_TIMER;
             else
-              timestamp_hold_o  <= '1';
-              TS_STATE          <= TS_IDLE;
+              T_STATE           <= T_SET_TESTPULSE;
             end if;
 
-        end case;
-            
+          when T_SET_TESTPULSE =>
+            trigger_testpulse_o <= '1';
+            T_STATE             <= T_IDLE;
+        end case;           
       end if;
     end if;
-  end process PROC_SEND_TIMSTAMP_HOLD;
-
+  end process PROC_TESTPULSE_HANDLER; 
+      
+  PROC_CAL_RATES: process (CLK_IN)
+  begin 
+    if( rising_edge(CLK_IN) ) then
+      if (RESET_IN = '1') then
+        accepted_trigger_rate_t     <= (others => '0');
+        accepted_trigger_rate       <= (others => '0');
+        rate_timer                  <= (others => '0');
+      else
+        if (rate_timer < x"5f5e100") then
+          if (lvl2_trigger_o = '1') then
+            accepted_trigger_rate_t <= accepted_trigger_rate_t + 1;
+          end if;
+          rate_timer                <= rate_timer + 1;
+        else
+          accepted_trigger_rate     <= accepted_trigger_rate_t;
+          accepted_trigger_rate_t   <= (others => '0');
+          rate_timer                <= (others => '0');
+        end if;
+      end if;
+    end if;
+  end process PROC_CAL_RATES;
+  
   -----------------------------------------------------------------------------
   -- TRBNet Slave Bus
   -----------------------------------------------------------------------------
@@ -296,32 +332,30 @@ begin
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        slv_data_out_o           <= (others => '0');
-        slv_no_more_data_o       <= '0';
-        slv_unknown_addr_o       <= '0';
-        slv_ack_o                <= '0';
-        reg_timestamp_hold_delay <= x"01";
-        reg_testpulse_enable     <= '0';
+        slv_data_out_o          <= (others => '0');
+        slv_no_more_data_o      <= '0';
+        slv_unknown_addr_o      <= '0';
+        slv_ack_o               <= '0';
+        reg_testpulse_delay     <= (others => '0');
+        reg_testpulse_enable    <= '0';
       else
-        slv_unknown_addr_o <= '0';
-        slv_no_more_data_o <= '0';
-        slv_data_out_o     <= (others => '0');
-        slv_ack_o          <= '0';
+        slv_unknown_addr_o      <= '0';
+        slv_no_more_data_o      <= '0';
+        slv_data_out_o          <= (others => '0');
+        slv_ack_o               <= '0';
         
         if (SLV_WRITE_IN  = '1') then
           case SLV_ADDR_IN is
             when x"0000" =>
-              if (unsigned(SLV_DATA_IN(7 downto 0)) > 0) then
-                reg_timestamp_hold_delay <= unsigned(SLV_DATA_IN(7 downto 0));
-              end if;
-              slv_ack_o                   <= '1';
+              reg_testpulse_delay          <= unsigned(SLV_DATA_IN(7 downto 0));
+              slv_ack_o                    <= '1';
 
             when x"0001" =>
-              reg_testpulse_enable        <= SLV_DATA_IN(0);
-              slv_ack_o                   <= '1';
-              
+              reg_testpulse_enable         <= SLV_DATA_IN(0);
+              slv_ack_o                    <= '1';
+
             when others =>
-              slv_unknown_addr_o          <= '1';
+              slv_unknown_addr_o           <= '1';
 
           end case;
 
@@ -330,7 +364,7 @@ begin
 
             when x"0000" =>
               slv_data_out_o(7 downto 0)   <=
-                std_logic_vector(reg_timestamp_hold_delay);
+                std_logic_vector(reg_testpulse_delay);
               slv_data_out_o(31 downto 8)  <= (others => '0');
               slv_ack_o                    <= '1';
 
@@ -339,6 +373,12 @@ begin
               slv_data_out_o(31 downto 1)  <= (others => '0');
               slv_ack_o                    <= '1';
 
+            when x"0002" =>
+              slv_data_out_o(27 downto 0)  <=
+                std_logic_vector(accepted_trigger_rate);
+              slv_data_out_o(31 downto 28) <= (others => '0');
+              slv_ack_o                    <= '1';  
+              
             when others =>
               slv_unknown_addr_o           <= '1';
 
@@ -355,7 +395,7 @@ begin
 
   -- Trigger Output
   VALIDATE_TRIGGER_OUT      <= validate_trigger_o;
-  TIMESTAMP_HOLD_OUT        <= timestamp_hold_o;
+  TIMESTAMP_TRIGGER_OUT     <= timestamp_trigger_o;
   LVL2_TRIGGER_OUT          <= lvl2_trigger_o;
   EVENT_BUFFER_CLEAR_OUT    <= event_buffer_clear_o;
   FAST_CLEAR_OUT            <= fast_clear_o;

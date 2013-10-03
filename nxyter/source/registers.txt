@@ -4,12 +4,64 @@
 0x8102 :  w    w: Reset and Sync Timestamps (nXyter and FPGA)
 0x8103 :  r/w  Put nxyter into offline mode 
 
+-- NX I2C Setup Handler
+0x8200 : r/w   I2C Memeory Register (Depth: 0 - 45 ... 0x822c) 
+0x8260 : r/w   DAC Register Memory (Depth: 0 - 128 ... 0x82e0) 
+0x8240 : w     Read all I2C Registers into Memory     
+0x8241 : w     Write all Memory to I2C Registers     
+0x8242 : w     Read Trim DAC Register(129 deep FIFO) to Memory
+0x8243 : w     Write Memory to Trim DAC Register(129 deep FIFO)    
+
+-- Trigger Generator
+0x8140 :  w    If writing just start trigger cycle, keep current setting
+0x8141 :  r/w  Bit 15-0 : periodic time (in 10ns) 
+0x8142 :  r/w  Bit0 7-0 : number of triggers to be sent consecutive
+0x8143 :  r/w  Bit 15-0 : Length of trigger pulse (in 10ns), if 0: skip it
+0x8144 :  r/w  Bit0     : 1: send timestamp-reset before trigger 
+0x8145 :  r             : Testpulse Rate (in Hz)    
+
+-- Trigger Handler
+0x8160 :  r/w  Bit 7-0  : Delay Testpulse Signal after Trigger (10ns)
+0x8161 :  r/w  Bit 0    : Enable Testpulse Signal (default: off)
+0x8162 :  r             : Accepted Trigger Rate (in Hz)
+
+-- NX Data Receiver
+0x8500 :  r    current Timestamp FIFO value
+0x8501 :  r/w  r: FIFO Status 
+				 0: fifo_full
+				 1: fifo_empty
+				 2: fifo_almost_empty
+             3..29: ignore
+				31: nx_frame_synced
+               w: pll reset
+0x8502 :  r/w  r: Resync Counter(12bit)
+               w: clear Resync Counter    
+0x8503 :  r/w  r: Parity Error Counter (12bit)
+               w: clear Parity Error Counter
+0x8505 :  r/w  ADC CLK Delay 4ns steps (3Bit: range 0..7)
+               0:  4ns after frame_valid
+               1:  8ns -------"---------
+               ......  -------"---------
+               6: 28ns -------"--------- 
+               7: 32ns -------"--------- <= this shoud be correct 
+                                            i.e. 2ns before new frame clock
+0x8506 :  r/w  debug multiplexer:
+               0: no ADC Values, normal Debug
+               1: ADC Value Nxyter
+               2: ADC Value Testchannel
+0x8507 :  r    current ADC FIFO value
+
+-- NX Data Delay
+0x8130 :  r/w  FIFO Delay, i.e. Trigger Delay (7Bit, in 10ns, Range 2..120)
+               default: 10
+
 -- NX Data Validate
 0x8120 :  r/w  Invalid Frame Counter (16 bit) / w: clear all counters
 0x8121 :  r    Overflow Counter (16 bit)
 0x8122 :  r    Pileup Counter (16 bit)
 0x8123 :  r    Parity Error Counter (16 bit)
-0x8124 :  r    Trigger Rate (in kHz)
+0x8124 :  r    Trigger Rate (in Hz)
+0x8125 :  r    Frame Rate (in Hz)
 
 -- NX Trigger Validate
 0x8180 :  r/w  Readout Mode (0:Ref + valid + window, 1: Ref + Valid 
@@ -20,45 +72,13 @@
 0x8183 :  r/w  Readout Time Max (12 bit, in 10ns)
 0x8184 :  r    Busy Time Counter (12 bit, in 10ns)
 
-0x8185 :  r    done counter
-0x8186 :  r    done counter
-0x8187 :  r    done counter
-0x8188 :  r    done counter
-
--- Trigger Generator
-0x8140 :  w    If writing just start trigger cycle, keep current setting
-0x8141 :  r/w  Bit 15-0 : periodic time (in 10ns) 
-0x8142 :  r/w  Bit0 7-0 : number of triggers to be sent consecutive
-0x8143 :  r/w  Bit 15-0 : Length of trigger pulse (in 10ns), if 0: skip it
-0x8144 :  r/w  Bit0     : 1: send timestamp-reset before trigger 
-
--- Trigger Handler
-0x8160 :  r/w  Bit 15-0 : Delay Timestamp Hold  signal (8bit, 10ns)
-0x8161 :  r/w  Bit 0    : Enable Testpulse Signal (default: off)
-
--- NX Data Receiver
-0x8500 :  r    current Timestamp FIFO value
-0x8501 :  r/w  r: FIFO Status 
-				 0: fifo_full
-				 1: fifo_empty
-				 2: fifo_almost_empty
-                 4..29: ignore
-				31: nx_frame_synced
-               w: pll reset
-0x8502 :  r/w  r: Resync Counter(12bit)
-               w: clear Resync Counter    
-0x8503 :  r/w  r: Parity Error Counter (12bit)
-               w: clear Parity Error Counter
-0x8504 :  r/w  FIFO Delay, i.e. Trigger Delay (6Bit, in 31.25ns, range 2..60)
-                default: 8
-0x8505 :  r/w  ADC CLK Delay 4ns steps (3Bit: range 0..7)
-               0:  4ns after frame_valid
-               1:  8ns -------"---------
-               ......  -------"---------
-               6: 28ns -------"--------- 
-               7: 32ns -------"--------- <= this shoud be correct 
-                                            i.e. 2ns before new frame clock
-0x8506 :  r    current ADC FIFO value
+0x8185 :  r    timestamp_ref
+0x8186 :  r    window_lower_thr
+0x8187 :  r    window_upper_thr
+0x8188 :  r    done counter ch 0..31
+0x8189 :  r    done counter ch 32..63
+0x818a :  r    done counter ch 94..95
+0x818b :  r    done counter ch 96..127
 
 -- Event Data Buffer
 0x8600 :  r    read FIFO buffer
@@ -66,22 +86,21 @@
 0x8602 :  r    FIFO flush counter
 0x8603 :  r    read FIFO status
 
+--- DEBUG ------------------------------------------------------------
+
 -- I2C Master
 0x8040 :       Access to I2C Interface
                Chip Ids:  0x08   : nXyter
                           0x29   : AD7991-1
                           0x50   : EEPROM
-
 -- SPI Master
 0x8060 :       Access to SPI Interface
 
--- NX I2C Setup Handler
-0x8200 : r/w   I2C Memeory Register (Depth: 0 - 45 ... 0x822c) 
-0x8260 : r/w   DAC Register Memory (Depth: 0 - 129 ... 0x82e0) 
-0x8240 : w     Read all I2C Registers into Memory     
-0x8241 : w     Write all Memory to I2C Registers     
-0x8242 : w     Read Trim DAC Register(129 deep FIFO) to Memory
-0x8243 : w     Write Memory to Trim DAC Register(129 deep FIFO)    
+-- Histogram Handler
+0x8800 :      r: Read Channel Statistic (128 channel in a row)
+              w: reset all Histograms
+0x8880 :      r: Read Channel Trigger Rate (128 channel in a row, 1/s)
+0x8900 :      r: Read Channel ADC Value (128 channel in a row)
 
 -- Debug Multiplexer
 0x8020 : r/w   Select Debug Entity
@@ -93,8 +112,9 @@
                 5: nx_trigger_handler
                 6: nx_trigger_generator
                 7: nx_data_receiver
-                8: nx_data_validate
-                9: nx_trigger_validate
-               10: nx_event_buffer
-               11: nx_histograms
+                8: nx_data_delay
+                9: nx_data_validate
+               10: nx_trigger_validate
+               11: nx_event_buffer
+               12: nx_histograms
 

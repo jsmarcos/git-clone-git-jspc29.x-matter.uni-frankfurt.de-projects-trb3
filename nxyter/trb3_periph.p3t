@@ -1,0 +1,5 @@
+-rem
+-distrce
+-log "trb3_gbe_trb3_gbe.log"
+-o "trb3_gbe_trb3_gbe.csv"
+-pr "trb3_gbe_trb3_gbe.prf"

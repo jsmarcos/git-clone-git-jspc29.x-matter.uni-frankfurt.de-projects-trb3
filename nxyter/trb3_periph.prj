@@ -142,13 +142,12 @@ add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
 
 # nXyter Files
 
-add_file -vhdl -lib "work" "cores/pll_125_hub.vhd"
-add_file -vhdl -lib "work" "cores/pll_nx_clk256.vhd"
 add_file -vhdl -lib "work" "cores/pll_nx_clk250.vhd"
-add_file -vhdl -lib "work" "cores/pll_adc_clk32.vhd"
-add_file -vhdl -lib "work" "cores/pll_adc_clk192.vhd"
+add_file -vhdl -lib "work" "cores/pll_adc_clk.vhd"
 add_file -vhdl -lib "work" "cores/fifo_ts_32to32_dc.vhd"
+add_file -vhdl -lib "work" "cores/fifo_44_data_delay.vhd"
 add_file -vhdl -lib "work" "cores/fifo_32_data.vhd"
+add_file -vhdl -lib "work" "cores/fifo_ts_12to12_dc.vhd"
 
 add_file -vhdl -lib "work" "trb3_periph.vhd"
 
@@ -162,6 +161,7 @@ add_file -vhdl -lib "work" "source/debug_multiplexer.vhd"
 
 add_file -vhdl -lib "work" "source/nxyter_fee_board.vhd"
 add_file -vhdl -lib "work" "source/nx_data_receiver.vhd"
+add_file -vhdl -lib "work" "source/nx_data_delay.vhd"
 add_file -vhdl -lib "work" "source/nx_data_validate.vhd"
 add_file -vhdl -lib "work" "source/nx_trigger_validate.vhd"
 add_file -vhdl -lib "work" "source/nx_event_buffer.vhd"
