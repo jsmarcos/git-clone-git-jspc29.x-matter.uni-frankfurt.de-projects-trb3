@@ -160,8 +160,6 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    
    signal rx_rm_rst_n, tx_rm_rst_n :std_logic;
    
-   signal dummy_output_i : std_logic_vector(8 downto 0);
-   
    signal gear_to_rm_rst_i : std_logic;
    signal gear_to_rm_n_rst_i : std_logic;
    
@@ -512,7 +510,7 @@ begin
    end process;
    
 -- STAT_OP REGISTER
-STAT_OP(8 downto 0) <= rx_data_i when CTRL_OP(8) = '0' else dummy_output_i;
+STAT_OP(8 downto 0) <= rx_data_i;
 
 STAT_OP(9)  <= clk_rx_full;
 STAT_OP(10) <= clk_125_i;
@@ -522,45 +520,4 @@ STAT_OP(13) <= lsm_status_i;
 STAT_OP(14) <= rx_serdes_rst;
 STAT_OP(15) <= rx_pcs_rst;
 
-dummy_output_i(3 downto 0) <= wa_position(3 downto 0);
-
-dummy_output_i(4) <= rx_rst_fsm_ready_i;
-dummy_output_i(5) <= tx_pll_lol;
-dummy_output_i(6) <= tx_pcs_rst;
-dummy_output_i(7) <= rx_serdes_ready_for_gear_i;
-dummy_output_i(8) <= serdes_rx_ready_i;
-
-
--- STAT_OP(0) <= clk_125_i;
--- STAT_OP(1) <= rst;
--- STAT_OP(2) <= rx_serdes_rst;
--- STAT_OP(3) <= rx_pcs_rst;
--- 
--- STAT_OP(4) <= tx_pcs_rst;
--- STAT_OP(5) <= rst_qd;
--- STAT_OP(6) <= tx_pll_lol;
--- STAT_OP(7) <= rx_cdr_lol;
--- 
--- STAT_OP(8) <= rx_los_low;
--- STAT_OP(9) <= rx_rst_fsm_ready_i;
--- STAT_OP(10) <= proper_byte_align_i;
--- STAT_OP(11) <= gear_to_serder_rst_i;
--- 
--- STAT_OP(12) <= serdes_rx_ready_i;
--- STAT_OP(13) <= wa_position(0);
--- STAT_OP(14) <= wa_position(1);
--- STAT_OP(15) <= wa_position(2);
-
-
---    STAT_OP(3) <= rx_valid_char_i;
---    STAT_OP(4) <= rx_see_ready0_i;
---    STAT_OP(5) <= rx_saw_ready1_i;
---    STAT_OP(6) <= rx_almost_ready_i;
---    STAT_OP(7) <= rx_ready_i;
---    STAT_OP(8) <= rx_reset_from_rm_i;
---    STAT_OP(9) <= tx_almost_ready_i;
---    STAT_OP(10) <= tx_ready_i;
---    STAT_OP(11) <= serdes_tx_ready_i;
---    STAT_OP(12) <= proper_byte_align_i;
---    STAT_OP(13) <= proper_word_align_i;
 end architecture;

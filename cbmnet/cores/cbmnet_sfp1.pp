@@ -10,9 +10,9 @@
 #define _ch0_rx_datarange "MEDHIGH"
 #define _ch0_rx_data_rate "FULL"
 #define _ch0_rxrefclk_rate "125.0"
-#define _ch0_rx_data_width "16"
-#define _ch0_rx_fifo "ENABLED"
-#define _ch0_rx_ficlk_rate 125.0
+#define _ch0_rx_data_width "8"
+#define _ch0_rx_fifo "DISABLED"
+#define _ch0_rx_ficlk_rate 250.0
 #define _ch0_tdrv "0"
 #define _ch0_tx_pre "DISABLED"
 #define _ch0_rterm_tx "50"
@@ -185,4 +185,7 @@
 #define _sci_int_port "DISABLED"
 #define _refck2core "DISABLED"
 #define _circuit_name cbmnet_sfp1
+#define _lang vhdl
+
+#include <pcs/PCSD.vhd>
 #include <pcs/pcsd_cfg.txt>

@@ -1538,7 +1538,6 @@ entity cbmnet_sfp1 is
     hdinp_ch0, hdinn_ch0    :   in std_logic;
     hdoutp_ch0, hdoutn_ch0   :   out std_logic;
     sci_sel_ch0    :   in std_logic;
-    rxiclk_ch0    :   in std_logic;
     txiclk_ch0    :   in std_logic;
     rx_full_clk_ch0   :   out std_logic;
     rx_half_clk_ch0   :   out std_logic;
@@ -1549,10 +1548,10 @@ entity cbmnet_sfp1 is
     tx_k_ch0    :   in std_logic_vector (1 downto 0);
     tx_force_disp_ch0    :   in std_logic_vector (1 downto 0);
     tx_disp_sel_ch0    :   in std_logic_vector (1 downto 0);
-    rxdata_ch0   :   out std_logic_vector (15 downto 0);
-    rx_k_ch0   :   out std_logic_vector (1 downto 0);
-    rx_disp_err_ch0   :   out std_logic_vector (1 downto 0);
-    rx_cv_err_ch0   :   out std_logic_vector (1 downto 0);
+    rxdata_ch0   :   out std_logic_vector (7 downto 0);
+    rx_k_ch0   :   out std_logic;
+    rx_disp_err_ch0   :   out std_logic;
+    rx_cv_err_ch0   :   out std_logic;
     rx_serdes_rst_ch0_c    :   in std_logic;
     sb_felb_ch0_c    :   in std_logic;
     sb_felb_rst_ch0_c    :   in std_logic;
@@ -1575,7 +1574,6 @@ entity cbmnet_sfp1 is
     sci_sel_quad    :   in std_logic;
     sci_rd    :   in std_logic;
     sci_wrn    :   in std_logic;
-    sci_int    :   out std_logic;
     fpga_txrefclk  :   in std_logic;
     tx_serdes_rst_c    :   in std_logic;
     tx_pll_lol_qd_s   :   out std_logic;
@@ -2199,7 +2197,7 @@ port map  (
   PCIE_PHYSTATUS_0 => open,
   SCISELCH0 => sci_sel_ch0,
   SCIENCH0 => fpsc_vhi,
-  FF_RXI_CLK_0 => rxiclk_ch0,
+  FF_RXI_CLK_0 => fpsc_vlo,
   FF_TXI_CLK_0 => txiclk_ch0,
   FF_EBRD_CLK_0 => fpsc_vlo,
   FF_RX_F_CLK_0 => rx_full_clk_ch0,
@@ -2239,21 +2237,21 @@ port map  (
   FF_RX_D_0_5 => rxdata_ch0(5),
   FF_RX_D_0_6 => rxdata_ch0(6),
   FF_RX_D_0_7 => rxdata_ch0(7),
-  FF_RX_D_0_8 => rx_k_ch0(0),
-  FF_RX_D_0_9 => rx_disp_err_ch0(0),
-  FF_RX_D_0_10 => rx_cv_err_ch0(0),
+  FF_RX_D_0_8 => rx_k_ch0,
+  FF_RX_D_0_9 => rx_disp_err_ch0,
+  FF_RX_D_0_10 => rx_cv_err_ch0,
   FF_RX_D_0_11 => open,
-  FF_RX_D_0_12 => rxdata_ch0(8),
-  FF_RX_D_0_13 => rxdata_ch0(9),
-  FF_RX_D_0_14 => rxdata_ch0(10),
-  FF_RX_D_0_15 => rxdata_ch0(11),
-  FF_RX_D_0_16 => rxdata_ch0(12),
-  FF_RX_D_0_17 => rxdata_ch0(13),
-  FF_RX_D_0_18 => rxdata_ch0(14),
-  FF_RX_D_0_19 => rxdata_ch0(15),
-  FF_RX_D_0_20 => rx_k_ch0(1),
-  FF_RX_D_0_21 => rx_disp_err_ch0(1),
-  FF_RX_D_0_22 => rx_cv_err_ch0(1),
+  FF_RX_D_0_12 => open,
+  FF_RX_D_0_13 => open,
+  FF_RX_D_0_14 => open,
+  FF_RX_D_0_15 => open,
+  FF_RX_D_0_16 => open,
+  FF_RX_D_0_17 => open,
+  FF_RX_D_0_18 => open,
+  FF_RX_D_0_19 => open,
+  FF_RX_D_0_20 => open,
+  FF_RX_D_0_21 => open,
+  FF_RX_D_0_22 => open,
   FF_RX_D_0_23 => open,
 
   FFC_RRST_0 => rx_serdes_rst_ch0_c,
@@ -2637,7 +2635,7 @@ port map  (
   SCIRD => sci_rd,
   SCIWSTN => sci_wrn,
   CYAWSTN => fpsc_vlo,
-  SCIINT => sci_int,
+  SCIINT => open,
   FFC_CK_CORE_TX => fpga_txrefclk,
   FFC_MACRO_RST => serdes_rst_qd_c,
   FFC_QUAD_RST => rst_qd_c,

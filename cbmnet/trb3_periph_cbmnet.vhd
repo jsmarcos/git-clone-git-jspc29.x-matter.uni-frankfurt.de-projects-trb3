@@ -241,7 +241,6 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
 
    -- CBMNet signals
    constant NUM_LANES : integer := 1;
-   signal cbm_clk               :  std_logic; -- Main clock
    signal cbm_res_n             :  std_logic; -- Active low reset; can be changed by define
    signal cbm_link_active       :  std_logic; -- link is active and can send and receive data
 
@@ -283,6 +282,8 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    signal phy_stat_debug, phy_ctrl_debug : std_logic_vector(63 downto 0) := (others => '0');
    
    signal phy_debug_i : std_logic_vector (127 downto 0) := (others => '0');
+   
+   signal dlm_counter : unsigned(31 downto 0);
 
 begin
    clk_125_i <= CLK_GPLL_LEFT; 
@@ -348,8 +349,18 @@ begin
       TX_SLAVE  => 1
    )
    port map (
-      clk => cbm_clk,
+   -- Clk & Reset
+      clk => rclk_125_i,
       res_n => cbm_res_n,
+
+   -- Phy
+      data_from_link => cbm_data_from_link,
+      data2link => cbm_data2link,
+      link_activeovr => '0',
+      link_readyovr => '0',
+      SERDES_ready => cbm_SERDES_ready,
+
+   -- CBMNet Interface
       link_active => cbm_link_active,
       ctrl2send_stop => cbm_ctrl2send_stop,
       ctrl2send_start => cbm_ctrl2send_start,
@@ -370,13 +381,10 @@ begin
       ctrl_rec => cbm_ctrl_rec,
       ctrl_rec_start => cbm_ctrl_rec_start,
       ctrl_rec_end => cbm_ctrl_rec_end,
-      ctrl_rec_stop => cbm_ctrl_rec_stop,
-      data_from_link => cbm_data_from_link,
-      data2link => cbm_data2link,
-      link_activeovr => cbm_link_activeovr,
-      link_readyovr => cbm_link_readyovr,
-      SERDES_ready => cbm_SERDES_ready
+      ctrl_rec_stop => cbm_ctrl_rec_stop
+      
    );
+   cbm_res_n <= not rreset_i;
 
    TEST_LINE(7 downto 0)   <= phy_stat_debug(7 downto 0);
    TEST_LINE(8)            <= cbm_SERDES_ready;
@@ -384,11 +392,6 @@ begin
  --TEST_LINE(10) see FEE/MST switch below
    TEST_LINE(11)           <= rreset_i;
    TEST_LINE(15 downto 12) <= (others => '0');
-
-   GEN_FEE_TEST_LOGIC: if CBM_FEE_MODE = c_YES generate
-      TEST_LINE(10)           <= cbm_dlm_rec_va;
-   end generate;
-
 
    GEN_MST_TEST_LOGIC: if CBM_FEE_MODE = c_NO generate
       process is
@@ -409,9 +412,22 @@ begin
             end if;
          end if;
       end process;
-
-      TEST_LINE(10) <= cbm_dlm2send_va;
    end generate;
+   
+   
+   PROC_DLM_COUNTER: process is begin
+      wait until rising_edge(rclk_125_i);
+      
+      TEST_LINE(10) <= '0';
+      if rreset_i = '1' then
+         dlm_counter <= TO_UNSIGNED(0,32);
+         
+      elsif cbm_dlm2send_va='1' or cbm_dlm_rec_va='1' then
+         TEST_LINE(10) <= '1';
+         dlm_counter <= dlm_counter + TO_UNSIGNED(1, 32);
+      end if;
+   end process;
+      
    
    PROC_REGIO_DEBUG: process is 
       variable address : integer range 0 to 255;
@@ -435,6 +451,7 @@ begin
          when 9  => debug_data_out <= phy_debug_i(31+32*1 downto 32*1);
          when 10 => debug_data_out <= phy_debug_i(31+32*2 downto 32*2);
          when 11 => debug_data_out <= phy_debug_i(31+32*3 downto 32*3);         
+         when 12 => debug_data_out <= STD_LOGIC_VECTOR(dlm_counter);
          when others => debug_ack <= '0';
       end case;
    
