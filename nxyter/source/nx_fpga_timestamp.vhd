@@ -57,11 +57,17 @@ architecture Behavioral of nx_fpga_timestamp is
   
 begin
 
-  DEBUG_OUT(0)           <= NX_CLK_IN;
-  DEBUG_OUT(1)           <= trigger;
-  DEBUG_OUT(2)           <= timestamp_sync;
-  DEBUG_OUT(3)           <= '0';
-  DEBUG_OUT(15 downto 4) <= timestamp_hold_o;
+  DEBUG_OUT(0)             <= CLK_IN;
+  DEBUG_OUT(1)             <= TIMESTAMP_SYNC_IN;
+  DEBUG_OUT(2)             <= nx_timestamp_sync_o;
+  DEBUG_OUT(3)             <= TRIGGER_IN;
+  DEBUG_OUT(4)             <= fifo_full;
+  DEBUG_OUT(5)             <= fifo_write_enable;
+  DEBUG_OUT(6)             <= fifo_empty;
+  DEBUG_OUT(7)             <= fifo_read_enable;
+  DEBUG_OUT(8)             <= fifo_data_valid_t;
+  DEBUG_OUT(9)             <= fifo_data_valid;
+  DEBUG_OUT(15 downto 10)  <= fifo_data_out(5 downto 0);
 
   -- NX Clock Domain
   
@@ -108,7 +114,7 @@ begin
     if( rising_edge(NX_CLK_IN) ) then
       if( RESET_IN = '1' ) then
         timestamp_ctr         <= (others => '0');
-        timestamp_hold_o      <= (others => '0');
+        timestamp_hold        <= (others => '0');
         nx_timestamp_sync_o   <= '0';
         fifo_write_enable     <= '0';
       else
@@ -117,7 +123,7 @@ begin
 
         if (timestamp_sync = '1') then
           timestamp_ctr       <= (others => '0');
-          timestamp_hold_o    <= (others => '0');
+          timestamp_hold      <= (others => '0');
           nx_timestamp_sync_o <= '1';
         else
           if (trigger = '1' and fifo_full = '0') then
@@ -154,18 +160,18 @@ begin
 
   PROC_RECEIVE_TS: process (CLK_IN)
   begin
-    if( rising_edge(NX_CLK_IN) ) then
+    if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
         fifo_data_valid_t    <= '0';
         fifo_data_valid      <= '0';
-        timestamp_hold       <= (others => '0');
+        timestamp_hold_o     <= (others => '0');
       else
         if (fifo_data_valid = '1') then
-          timestamp_hold       <= unsigned(fifo_data_out);
+          timestamp_hold_o   <= unsigned(fifo_data_out);
         end if;
 
         fifo_data_valid_t    <= fifo_read_enable;
-        fifo_data_valid      <= fifo_data_valid;
+        fifo_data_valid      <= fifo_data_valid_t;
       end if;
     end if;
   end process PROC_RECEIVE_TS;

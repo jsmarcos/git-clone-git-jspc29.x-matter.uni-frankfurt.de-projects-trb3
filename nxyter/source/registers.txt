@@ -28,12 +28,12 @@
 -- NX Data Receiver
 0x8500 :  r    current Timestamp FIFO value
 0x8501 :  r/w  r: FIFO Status 
-				 0: fifo_full
-				 1: fifo_empty
-				 2: fifo_almost_empty
-             3..29: ignore
-				31: nx_frame_synced
-               w: pll reset
+                    0: fifo_full
+                    1: fifo_empty
+                    2: fifo_almost_empty
+                3..29: ignore
+                   31: nx_frame_synced
+               w: adc reset
 0x8502 :  r/w  r: Resync Counter(12bit)
                w: clear Resync Counter    
 0x8503 :  r/w  r: Parity Error Counter (12bit)
@@ -45,14 +45,16 @@
                6: 28ns -------"--------- 
                7: 32ns -------"--------- <= this shoud be correct 
                                             i.e. 2ns before new frame clock
-0x8506 :  r/w  debug multiplexer:
+0x8506 :  r    ADC Reset Counter
+0x8507 :  r/w  Debug Multiplexer:
                0: no ADC Values, normal Debug
                1: ADC Value Nxyter
                2: ADC Value Testchannel
-0x8507 :  r    current ADC FIFO value
+               3: ADC Reset Handler
+0x8508 :  r    current ADC FIFO value
 
 -- NX Data Delay
-0x8130 :  r/w  FIFO Delay, i.e. Trigger Delay (7Bit, in 10ns, Range 2..120)
+0x8130 :  r/w  FIFO Delay, i.e. Trigger Delay (7Bit, in 31.25ns, Range 2..120)
                default: 10
 
 -- NX Data Validate
@@ -75,10 +77,11 @@
 0x8185 :  r    timestamp_ref
 0x8186 :  r    window_lower_thr
 0x8187 :  r    window_upper_thr
-0x8188 :  r    done counter ch 0..31
-0x8189 :  r    done counter ch 32..63
-0x818a :  r    done counter ch 94..95
-0x818b :  r    done counter ch 96..127
+0x8188 :  r    current Data Delay Value
+0x8189 :  r    done counter ch 0..31
+0x818a :  r    done counter ch 32..63
+0x818b :  r    done counter ch 94..95
+0x818c :  r    done counter ch 96..127
 
 -- Event Data Buffer
 0x8600 :  r    read FIFO buffer
@@ -97,24 +100,24 @@
 0x8060 :       Access to SPI Interface
 
 -- Histogram Handler
-0x8800 :      r: Read Channel Statistic (128 channel in a row)
-              w: reset all Histograms
-0x8880 :      r: Read Channel Trigger Rate (128 channel in a row, 1/s)
-0x8900 :      r: Read Channel ADC Value (128 channel in a row)
+0x8800 :  r/w  r: Read Channel Statistic (128 channel in a row)
+               w: reset all Histograms
+0x8880 :  r    Read Channel Trigger Rate (128 channel in a row, 1/s)
+0x8900 :  r    Read Channel ADC Value (128 channel in a row)
 
 -- Debug Multiplexer
-0x8020 : r/w   Select Debug Entity
-                0: nxyter_registers
-                1: nx_setup
-                2: nx_i2c_master
-                3: adc_spi_master
-                4: nx_fpga_timestamp
-                5: nx_trigger_handler
-                6: nx_trigger_generator
-                7: nx_data_receiver
-                8: nx_data_delay
-                9: nx_data_validate
-               10: nx_trigger_validate
-               11: nx_event_buffer
-               12: nx_histograms
+0x8020 :  r/w   Select Debug Entity
+                 0: nxyter_registers
+                 1: nx_setup
+                 2: nx_i2c_master
+                 3: adc_spi_master
+                 4: nx_fpga_timestamp
+                 5: nx_trigger_handler
+                 6: nx_trigger_generator
+                 7: nx_data_receiver
+                 8: nx_data_delay
+                 9: nx_data_validate
+                10: nx_trigger_validate
+                11: nx_event_buffer
+                12: nx_histograms
 

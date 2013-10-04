@@ -21,7 +21,9 @@ entity nx_data_delay is
     NX_FRAME_OUT           : out std_logic_vector(31 downto 0);
     ADC_DATA_OUT           : out std_logic_vector(11 downto 0);
     NEW_DATA_OUT           : out std_logic;
-                           
+
+    DATA_DELAY_VALUE_OUT   : out unsigned(6 downto 0);
+    
     -- Slave bus           
     SLV_READ_IN            : in  std_logic;
     SLV_WRITE_IN           : in  std_logic;
@@ -194,7 +196,7 @@ begin
         elsif (SLV_WRITE_IN  = '1') then
           case SLV_ADDR_IN is
             when x"0000" =>
-              if (unsigned(SLV_DATA_IN(6 downto 0)) >= 2 and
+              if (unsigned(SLV_DATA_IN(6 downto 0)) >= 1 and
                   unsigned(SLV_DATA_IN(6 downto 0)) <= 120) then
                 fifo_delay             <= SLV_DATA_IN(6 downto 0);
                 fifo_delay_reset       <= '1';
@@ -217,7 +219,8 @@ begin
   NX_FRAME_OUT          <= nx_frame_o;
   ADC_DATA_OUT          <= adc_data_o;
   NEW_DATA_OUT          <= new_data_o;
-  
+  DATA_DELAY_VALUE_OUT  <= unsigned(fifo_delay);
+                           
   SLV_DATA_OUT          <= slv_data_o;    
   SLV_NO_MORE_DATA_OUT  <= slv_no_more_data_o; 
   SLV_UNKNOWN_ADDR_OUT  <= slv_unknown_addr_o;

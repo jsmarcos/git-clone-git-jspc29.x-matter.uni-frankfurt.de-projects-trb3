@@ -26,7 +26,8 @@ entity nx_trigger_validate is
     FAST_CLEAR_IN        : in  std_logic;
     TRIGGER_BUSY_OUT     : out std_logic;
     TIMESTAMP_REF_IN     : in  unsigned(11 downto 0);
-        
+    DATA_DELAY_VALUE_IN  : in  unsigned(6 downto 0);
+    
     -- Outputs
     DATA_OUT             : out std_logic_vector(31 downto 0);
     DATA_CLK_OUT         : out std_logic;
@@ -132,19 +133,21 @@ begin
 
   -- Debug Line
   DEBUG_OUT(0)            <= CLK_IN;
+  DEBUG_OUT(1)            <= TRIGGER_IN;
   DEBUG_OUT(2)            <= trigger_busy_o;
-  DEBUG_OUT(3)            <= channel_all_done;
-  DEBUG_OUT(4)            <= data_clk_o;
-  DEBUG_OUT(5)            <= t_data_clk_o;
-  DEBUG_OUT(6)            <= out_of_window_l;
-  DEBUG_OUT(7)            <= out_of_window_h;
-  DEBUG_OUT(8)            <= NX_TOKEN_RETURN_IN;
-  DEBUG_OUT(9)            <= NX_NOMORE_DATA_IN;
-  DEBUG_OUT(10)           <= store_to_fifo;
-  DEBUG_OUT(11)           <= wait_timer_done;
-  DEBUG_OUT(12)           <= timer_reset;
-  DEBUG_OUT(13)           <= busy_time_min_done;
-  DEBUG_OUT(15 downto 14) <= (others => '0');
+  DEBUG_OUT(3)            <= DATA_CLK_IN;
+  DEBUG_OUT(4)            <= out_of_window_l;
+  DEBUG_OUT(5)            <= out_of_window_h;
+  DEBUG_OUT(6)            <= NX_TOKEN_RETURN_IN;
+  DEBUG_OUT(7)            <= NX_NOMORE_DATA_IN;
+  DEBUG_OUT(8)            <= channel_all_done;
+  DEBUG_OUT(9)            <= store_to_fifo;
+  DEBUG_OUT(10)           <= data_clk_o;
+  DEBUG_OUT(11)           <= t_data_clk_o;
+  DEBUG_OUT(12)           <= wait_timer_done;
+  DEBUG_OUT(13)           <= timer_reset;
+  DEBUG_OUT(14)           <= busy_time_min_done;
+  DEBUG_OUT(15)           <= nomore_data_o;
   
   -- Timer
   nx_timer_1: nx_timer
@@ -547,23 +550,29 @@ begin
               slv_data_out_o(11 downto 0)  <= window_upper_thr_r;
               slv_data_out_o(31 downto 12) <= (others => '0');
               slv_ack_o                    <= '1';  
-              
+
             when x"0008" =>
+              slv_data_out_o(6 downto 0)   <=
+                std_logic_vector(DATA_DELAY_VALUE_IN);
+              slv_data_out_o(31 downto 7)  <= (others => '0');
+              slv_ack_o                    <= '1'; 
+                                     
+            when x"0009" =>
               slv_data_out_o               <=
                 std_logic_vector(channel_done(31 downto 0));
               slv_ack_o                    <= '1'; 
 
-            when x"0009" =>
+            when x"000a" =>
               slv_data_out_o               <=
                 std_logic_vector(channel_done(63 downto 32));
               slv_ack_o                    <= '1'; 
 
-            when x"000a" =>
+            when x"000b" =>
               slv_data_out_o               <=
                 std_logic_vector(channel_done(95 downto 64));
               slv_ack_o                    <= '1'; 
 
-            when x"000b" =>
+            when x"000c" =>
               slv_data_out_o               <=
                 std_logic_vector(channel_done(127 downto 96));
               slv_ack_o                    <= '1'; 
@@ -593,7 +602,7 @@ begin
               readout_time_max             <=
                 unsigned(SLV_DATA_IN(11 downto 0));
               slv_ack_o                    <= '1';
-              
+                          
             when others  =>
               slv_unknown_addr_o           <= '1';
               slv_ack_o                    <= '0';

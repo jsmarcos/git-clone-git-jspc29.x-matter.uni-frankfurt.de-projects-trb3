@@ -100,7 +100,6 @@ entity trb3_periph is
     -- END AddonBoard nXyter
     ---------------------------------------------------------------------------
     
-
     --Flash ROM & Reboot
     FLASH_CLK            : out   std_logic;
     FLASH_CS             : out   std_logic;
@@ -279,9 +278,10 @@ architecture trb3_periph_arch of trb3_periph is
   -- nXyter-FEB-Board Clocks
   signal nx_main_clk                   : std_logic;
   signal pll_nx_clk_lock             : std_logic;
-  signal clk_adc_dat_2               : std_logic;
   signal clk_adc_dat_1               : std_logic;
-  signal pll_adc_clk_lock            : std_logic;
+  signal clk_adc_dat_2               : std_logic;
+  signal pll_adc_clk_lock_1          : std_logic;
+  signal pll_adc_clk_lock_2          : std_logic;
   
   -- nXyter 1 Regio Bus
   signal nx1_regio_addr_in           : std_logic_vector (15 downto 0);
@@ -329,7 +329,7 @@ begin
     port map(
       CLEAR_IN      => '0',              -- reset input (high active, async)
       CLEAR_N_IN    => '1',              -- reset input (low active, async)
-      CLK_IN        => clk_200_i,        -- raw master clock, NOT from PLL/DLL!
+      CLK_IN        => CLK_PCLK_RIGHT,   -- raw master clock, NOT from PLL/DLL!
       SYSCLK_IN     => clk_100_i,        -- PLL/DLL remastered clock
       PLL_LOCKED_IN => pll_lock,         -- master PLL lock signal (async)
       RESET_IN      => '0',              -- general reset signal (SYSCLK)
@@ -364,7 +364,7 @@ begin
       USE_CTC     => c_NO
       )
     port map(
-      CLK                => clk_200_i,
+      CLK                => CLK_PCLK_RIGHT,
       SYSCLK             => clk_100_i,
       RESET              => reset_i,
       CLEAR              => clear_i,
@@ -845,7 +845,7 @@ begin
   -- nXyter Main Clock (250/256 MHz)
   pll_nx_clk250_1: entity work.pll_nx_clk250
     port map (
-      CLK   => clk_200_i,
+      CLK   => CLK_PCLK_RIGHT,
       CLKOP => nx_main_clk,
       LOCK  => pll_nx_clk_lock
       );
@@ -853,23 +853,22 @@ begin
   NX1_CLK256A_OUT <= nx_main_clk;
   NX2_CLK256A_OUT <= nx_main_clk;
 
-  -- ADC Receiver Clock (nXyter Main Clock * 3/4 (187.5), must be base on same
-  -- ClockSource as nXyter Main Clock)
+  -- ADC Receiver Clock (nXyter Main Clock * 3/4 (187.5), must be 
+  -- based on same ClockSource as nXyter Main Clock)
   pll_adc_clk_1: pll_adc_clk
     port map (
       CLK   => CLK_PCLK_RIGHT,
       CLKOP => clk_adc_dat_1,
-      LOCK  => pll_adc_clk_lock
+      LOCK  => pll_adc_clk_lock_1
       );
+
   pll_adc_clk_2: pll_adc_clk
     port map (
       CLK   => CLK_PCLK_RIGHT,
       CLKOP => clk_adc_dat_2,
-      LOCK  => pll_adc_clk_lock
+      LOCK  => pll_adc_clk_lock_2
       );
 
-  -----------------------------------------------------------------------------
-  
 -------------------------------------------------------------------------------
 -- Timestamp Simulator
 -------------------------------------------------------------------------------

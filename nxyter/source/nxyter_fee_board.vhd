@@ -143,7 +143,8 @@ architecture Behavioral of nXyter_FEE_board is
   signal new_timestamp_delayed : std_logic_vector(31 downto 0);
   signal new_adc_data_delayed  : std_logic_vector(11 downto 0);
   signal new_data_delayed      : std_logic;
-                               
+  signal new_data_delay_value  : unsigned(6 downto 0);
+
   -- Data Validate             
   signal timestamp             : std_logic_vector(13 downto 0);
   signal timestamp_channel_id  : std_logic_vector(6 downto 0);
@@ -201,53 +202,10 @@ begin
 -------------------------------------------------------------------------------
 -- DEBUG
 -------------------------------------------------------------------------------
---  DEBUG_LINE_OUT(0)            <= nx_testpulse_o; --CLK_IN;
---  DEBUG_LINE_OUT(1)            <= NX_CLK128_IN;
---  DEBUG_LINE_OUT(2)            <= ADC_SAMPLE_CLK_OUT;
---  DEBUG_LINE_OUT(7 downto 3)  <= (others => '0');
---  DEBUG_LINE_OUT(15 downto 8)  <= NX_TIMESTAMP_IN;
---   DEBUG_LINE_OUT(4)            <= nx_new_timestamp;
---   DEBUG_LINE_OUT(5)            <= timestamp_valid;
---   DEBUG_LINE_OUT(6)            <= timestamp_trigger;
---   DEBUG_LINE_OUT(7)            <= nx_token_return;
---   DEBUG_LINE_OUT(8)            <= nx_nomore_data;
---   DEBUG_LINE_OUT(9)            <= trigger;
---   DEBUG_LINE_OUT(10)           <= trigger_busy;
---   DEBUG_LINE_OUT(11)           <= ts_data_clk;
---   DEBUG_LINE_OUT(12)           <= data_fifo_reset;
--- 
---   DEBUG_LINE_OUT(14 downto 13) <= timestamp_status;
---   DEBUG_LINE_OUT(15)           <= slv_ack(3);
+  -- DEBUG_LINE_OUT(0)           <= CLK_IN;
+  -- DEBUG_LINE_OUT(15 downto 0) <= (others => '0');
+  -- See Multiplexer
   
---   DEBUG_LINE_OUT(0)            <= CLK_IN;
---   DEBUG_LINE_OUT(1)            <= CLK_125_IN;
---   DEBUG_LINE_OUT(2)            <= clk_250_o;
---   DEBUG_LINE_OUT(3)            <= NX_CLK128_IN;
---   DEBUG_LINE_OUT(4)            <= nx_timestamp(0);
---   DEBUG_LINE_OUT(15 downto 5)  <= (others => '0');
-  --DEBUG_LINE_OUT(5)            <= timestamp_valid;
-  --DEBUG_LINE_OUT(6)            <= nx_token_return;
-  --DEBUG_LINE_OUT(7)            <= nx_nomore_data;
-
---  DEBUG_LINE_OUT(0)            <= NX_CLK128_IN;
---  DEBUG_LINE_OUT(8 downto 1)   <= NX_TIMESTAMP_IN;
---  DEBUG_LINE_OUT(13 downto 9)  <= (others => '0');
---  DEBUG_LINE_OUT(15)           <= CLK_IN;
---  DEBUG_LINE_OUT(5)            <= '0';
---  DEBUG_LINE_OUT(6)            <= '0';
---  DEBUG_LINE_OUT(7)            <= '0';
---  
---  
---  DEBUG_LINE_OUT(8)            <= ADC_FCLK_IN;        
---  DEBUG_LINE_OUT(10)           <= ADC_SC_CLK32_OUT;
---  DEBUG_LINE_OUT(11)           <= ADC_A_IN;
---  DEBUG_LINE_OUT(12)           <= ADC_B_IN;
---  DEBUG_LINE_OUT(13)           <= ADC_NX_IN;  
---  DEBUG_LINE_OUT(14)           <= ADC_D_IN;  
---  DEBUG_LINE_OUT(15)           <= '0';
-  
---  DEBUG_LINE_OUT(15 downto 8) <= slv_read(9 downto 2);
- 
 -------------------------------------------------------------------------------
 -- Port Maps
 -------------------------------------------------------------------------------
@@ -274,7 +232,7 @@ begin
 
       PORT_ADDR_MASK      => (  0 => 3,          -- Control Register Handler
                                 1 => 0,          -- I2C master
-                                2 => 3,          -- Data Receiver
+                                2 => 4,          -- Data Receiver
                                 3 => 3,          -- Data Buffer
                                 4 => 0,          -- SPI Master
                                 5 => 3,          -- Trigger Generator
@@ -579,7 +537,8 @@ begin
       NX_FRAME_OUT         => new_timestamp_delayed,
       ADC_DATA_OUT         => new_adc_data_delayed,
       NEW_DATA_OUT         => new_data_delayed,
-
+      DATA_DELAY_VALUE_OUT => new_data_delay_value,  
+      
       SLV_READ_IN          => slv_read(12), 
       SLV_WRITE_IN         => slv_write(12), 
       SLV_DATA_OUT         => slv_data_rd(12*32+31 downto 12*32),
@@ -650,6 +609,7 @@ begin
       FAST_CLEAR_IN          => fast_clear,
       TRIGGER_BUSY_OUT       => trigger_validate_busy,
       TIMESTAMP_REF_IN       => timestamp_hold,
+      DATA_DELAY_VALUE_IN    => new_data_delay_value,
       
       DATA_OUT               => trigger_data,
       DATA_CLK_OUT           => trigger_data_clk,
