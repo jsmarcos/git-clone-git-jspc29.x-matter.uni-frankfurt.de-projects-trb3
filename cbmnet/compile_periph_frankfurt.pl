@@ -31,7 +31,7 @@ if ($build_master and $build_slave) {
    system "xterm -e './compile_periph_frankfurt.pl s; read' &";
    sleep 5;
    system "xterm -e './compile_periph_frankfurt.pl w; read' &";      
-   exit;
+   wait;
 }
 
 

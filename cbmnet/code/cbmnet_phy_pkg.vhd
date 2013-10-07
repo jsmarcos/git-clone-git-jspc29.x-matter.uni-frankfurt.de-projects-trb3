@@ -54,7 +54,7 @@ package cbmnet_phy_pkg is
 -----------------------------------------------------------------------------------------------------------------------
 -- INTERNAL
 -----------------------------------------------------------------------------------------------------------------------
-   component CBMNET_PHY_GEAR is
+   component CBMNET_PHY_RX_GEAR is
       port (
       -- SERDES PORT
          CLK_250_IN  : in std_logic;
@@ -70,6 +70,17 @@ package cbmnet_phy_pkg is
       );
    end component;   
    
+   component CBMNET_PHY_TX_GEAR is
+      port (
+         CLK_250_IN  : in std_logic;
+         CLK_125_IN  : in std_logic;
+         RESET_IN    : in std_logic;
+         
+         DATA_IN     : in std_logic_vector(17 downto 0);
+         
+         DATA_OUT    : out std_logic_vector(8 downto 0)
+      );
+   end component;  
   
    COMPONENT cbmnet_sfp1
    PORT(
@@ -78,10 +89,10 @@ package cbmnet_phy_pkg is
       sci_sel_ch0 : IN std_logic;
       txiclk_ch0 : IN std_logic;
       fpga_rxrefclk_ch0 : IN std_logic;
-      txdata_ch0 : IN std_logic_vector(15 downto 0);
-      tx_k_ch0 : IN std_logic_vector(1 downto 0);
-      tx_force_disp_ch0 : IN std_logic_vector(1 downto 0);
-      tx_disp_sel_ch0 : IN std_logic_vector(1 downto 0);
+      txdata_ch0 : IN std_logic_vector(7 downto 0);
+      tx_k_ch0 : IN std_logic;
+      tx_force_disp_ch0 : IN std_logic;
+      tx_disp_sel_ch0 : IN std_logic;
       rx_serdes_rst_ch0_c : IN std_logic;
       sb_felb_ch0_c : IN std_logic;
       sb_felb_rst_ch0_c : IN std_logic;

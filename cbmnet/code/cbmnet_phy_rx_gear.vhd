@@ -9,7 +9,7 @@ library work;
    use work.cbmnet_interface_pkg.all;
    use work.cbmnet_phy_pkg.all;
 
-entity CBMNET_PHY_GEAR is
+entity CBMNET_PHY_RX_GEAR is
    port (
    -- SERDES PORT
       CLK_250_IN  : in std_logic;
@@ -25,10 +25,7 @@ entity CBMNET_PHY_GEAR is
    );
 end entity;
 
-architecture CBMNET_PHY_GEAR_ARCH of CBMNET_PHY_GEAR is
-   attribute HGROUP : string;
-   attribute HGROUP of CBMNET_PHY_GEAR_ARCH : architecture  is "cbmnet_phy_gear";
-
+architecture CBMNET_PHY_RX_GEAR_ARCH of CBMNET_PHY_RX_GEAR is
    type FSM_STATES_T is (FSM_START, FSM_WAIT_FOR_LOCK, FSM_RESET, FSM_DELAY, FSM_LOCKED);
    signal fsm_i, fsm_next_i : FSM_STATES_T;
    
@@ -56,7 +53,7 @@ begin
    end process;
    
    
-   process(fsm_i, indi_alignment_i, indi_misalignment_i) is begin
+   process(fsm_i, timeout_i, indi_alignment_i, indi_misalignment_i, RM_RESET_IN) is begin
       fsm_next_i <= fsm_i;
       
       SERDES_RESET_OUT <= '0';
@@ -158,4 +155,4 @@ begin
    indi_misalignment_i <= '1' when data_out_buf_i(17 downto 16) = "10" and data_out_buf_i(7 downto 0) = x"00" and
       (data_out_buf_i(15 downto 8) = CBMNET_READY_CHAR0 or data_out_buf_i(15 downto 8) = CBMNET_READY_CHAR1 or data_out_buf_i(15 downto 8) = CBMNET_ALIGN_CHAR) else '0';
    
-end architecture CBMNET_PHY_GEAR_ARCH;  
+end architecture CBMNET_PHY_RX_GEAR_ARCH;  

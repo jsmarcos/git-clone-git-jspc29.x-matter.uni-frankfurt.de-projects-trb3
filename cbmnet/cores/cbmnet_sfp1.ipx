@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DiamondModule name="cbmnet_sfp1" module="cbmnet_sfp1" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2013 10 02 13:50:56.873" version="8.1" type="Module" synthesis="synplify" source_format="VHDL">
+<DiamondModule name="cbmnet_sfp1" module="cbmnet_sfp1" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2013 10 05 12:38:00.452" version="8.1" type="Module" synthesis="synplify" source_format="VHDL">
   <Package>
-		<File name="cbmnet_sfp1.lpc" type="lpc" modified="2013 10 02 13:50:31.000"/>
-		<File name="cbmnet_sfp1.pp" type="pp" modified="2013 10 02 13:50:31.000"/>
-		<File name="cbmnet_sfp1.sym" type="sym" modified="2013 10 02 13:50:31.000"/>
-		<File name="cbmnet_sfp1.tft" type="tft" modified="2013 10 02 13:50:31.000"/>
-		<File name="cbmnet_sfp1.txt" type="pcs_module" modified="2013 10 02 13:50:31.000"/>
-		<File name="cbmnet_sfp1.vhd" type="top_level_vhdl" modified="2013 10 02 13:50:31.000"/>
+		<File name="cbmnet_sfp1.lpc" type="lpc" modified="2013 10 05 12:37:58.000"/>
+		<File name="cbmnet_sfp1.pp" type="pp" modified="2013 10 05 12:37:58.000"/>
+		<File name="cbmnet_sfp1.sym" type="sym" modified="2013 10 05 12:37:58.000"/>
+		<File name="cbmnet_sfp1.tft" type="tft" modified="2013 10 05 12:35:38.000"/>
+		<File name="cbmnet_sfp1.txt" type="pcs_module" modified="2013 10 05 12:37:58.000"/>
+		<File name="cbmnet_sfp1.vhd" type="top_level_vhdl" modified="2013 10 05 12:35:38.000"/>
   </Package>
 </DiamondModule>

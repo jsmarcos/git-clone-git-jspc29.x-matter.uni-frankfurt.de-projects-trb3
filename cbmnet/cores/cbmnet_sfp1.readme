@@ -65,10 +65,10 @@ attribute nopad of
 		sci_sel_ch0 : IN std_logic;
 		txiclk_ch0 : IN std_logic;
 		fpga_rxrefclk_ch0 : IN std_logic;
-		txdata_ch0 : IN std_logic_vector(15 downto 0);
-		tx_k_ch0 : IN std_logic_vector(1 downto 0);
-		tx_force_disp_ch0 : IN std_logic_vector(1 downto 0);
-		tx_disp_sel_ch0 : IN std_logic_vector(1 downto 0);
+		txdata_ch0 : IN std_logic_vector(7 downto 0);
+		tx_k_ch0 : IN std_logic;
+		tx_force_disp_ch0 : IN std_logic;
+		tx_disp_sel_ch0 : IN std_logic;
 		rx_serdes_rst_ch0_c : IN std_logic;
 		sb_felb_ch0_c : IN std_logic;
 		sb_felb_rst_ch0_c : IN std_logic;
