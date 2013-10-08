@@ -376,6 +376,8 @@ begin
    );
    cbm_res_n <= not rreset_i;
 
+  -- TEST_LINE <= phy_stat_op;
+   
    TEST_LINE(7 downto 0)   <= phy_stat_debug(7 downto 0);
    TEST_LINE(8)            <= cbm_SERDES_ready;
    TEST_LINE(9)            <= cbm_link_active;

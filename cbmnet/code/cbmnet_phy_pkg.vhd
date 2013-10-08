@@ -71,9 +71,13 @@ package cbmnet_phy_pkg is
    end component;   
    
    component CBMNET_PHY_TX_GEAR is
+      generic (
+         IS_SYNC_SLAVE : integer range 0 to 1 := c_YES
+      );
       port (
          CLK_250_IN  : in std_logic;
          CLK_125_IN  : in std_logic;
+         CLK_125_OUT : out std_logic;
          RESET_IN    : in std_logic;
          
          DATA_IN     : in std_logic_vector(17 downto 0);

@@ -10,10 +10,15 @@ library work;
    use work.cbmnet_phy_pkg.all;
 
 entity CBMNET_PHY_TX_GEAR is
+   generic (
+      IS_SYNC_SLAVE : integer range 0 to 1 := c_YES
+   );
    port (
    -- SERDES PORT
       CLK_250_IN  : in std_logic;
       CLK_125_IN  : in std_logic;
+      CLK_125_OUT : out std_logic;
+      
       RESET_IN    : in std_logic;
       
       DATA_IN     : in std_logic_vector(17 downto 0);
@@ -40,14 +45,16 @@ begin
       
       clk_125_xfer_buf_i <= clk_125_xfer_i;
       clk_125_xfer_del_i <= clk_125_xfer_buf_i;
+      CLK_125_OUT <= '0';
       
       case fsm_i is
          when FSM_WAIT =>
-            if clk_125_xfer_buf_i /= clk_125_xfer_del_i then
+            if clk_125_xfer_buf_i /= clk_125_xfer_del_i or IS_SYNC_SLAVE = c_NO then
                fsm_i <= FSM_HIGH;
             end if;
             
          when FSM_HIGH =>
+            CLK_125_OUT <= '1';
             DATA_OUT   <= data_in_buf125_i(17) & data_in_buf125_i(15 downto 8);
             low_data_i <= data_in_buf125_i(16) & data_in_buf125_i( 7 downto 0);
             fsm_i <= FSM_LOW;
