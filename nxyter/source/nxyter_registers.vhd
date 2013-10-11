@@ -7,26 +7,31 @@ use work.nxyter_components.all;
 
 entity nxyter_registers is
   port(
-    CLK_IN               : in  std_logic;
-    RESET_IN             : in  std_logic;
-    
-    -- Slave bus         
-    SLV_READ_IN          : in  std_logic;
-    SLV_WRITE_IN         : in  std_logic;
-    SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
-    SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
-    SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
-    SLV_ACK_OUT          : out std_logic;
-    SLV_NO_MORE_DATA_OUT : out std_logic;
-    SLV_UNKNOWN_ADDR_OUT : out std_logic;
-
-    -- Signals
-    I2C_SM_RESET_OUT     : out std_logic;
-    I2C_REG_RESET_OUT    : out std_logic;
-    NX_TS_RESET_OUT      : out std_logic;
-    OFFLINE_OUT          : out std_logic;
-    
-    DEBUG_OUT            : out std_logic_vector(15 downto 0)
+    CLK_IN                 : in  std_logic;
+    RESET_IN               : in  std_logic;
+                           
+    -- Monitor PLL Locks           
+    PLL_NX_CLK_LOCK_IN     : in std_logic;
+    PLL_ADC_CLK_LOCK_1_IN  : in std_logic;
+    PLL_ADC_CLK_LOCK_2_IN  : in std_logic;
+                           
+    -- Slave bus           
+    SLV_READ_IN            : in  std_logic;
+    SLV_WRITE_IN           : in  std_logic;
+    SLV_DATA_OUT           : out std_logic_vector(31 downto 0);
+    SLV_DATA_IN            : in  std_logic_vector(31 downto 0);
+    SLV_ADDR_IN            : in  std_logic_vector(15 downto 0);
+    SLV_ACK_OUT            : out std_logic;
+    SLV_NO_MORE_DATA_OUT   : out std_logic;
+    SLV_UNKNOWN_ADDR_OUT   : out std_logic;
+                           
+    -- Signals             
+    I2C_SM_RESET_OUT       : out std_logic;
+    I2C_REG_RESET_OUT      : out std_logic;
+    NX_TS_RESET_OUT        : out std_logic;
+    OFFLINE_OUT            : out std_logic;
+                           
+    DEBUG_OUT              : out std_logic_vector(15 downto 0)
     );
 end entity;
 
@@ -64,11 +69,12 @@ architecture Behavioral of nxyter_registers is
   
 begin
 
-  DEBUG_OUT(0) <=  i2c_sm_reset_o ;
-  DEBUG_OUT(1) <=  i2c_reg_reset_o;
-  DEBUG_OUT(2) <=  nx_ts_reset_o;
+  DEBUG_OUT(0) <=  CLK_IN;
+  DEBUG_OUT(1) <=  i2c_sm_reset_o;
+  DEBUG_OUT(2) <=  i2c_reg_reset_o;
+  DEBUG_OUT(3) <=  nx_ts_reset_o;
 
-  DEBUG_OUT(15 downto 3) <= (others => '0');
+  DEBUG_OUT(15 downto 4) <= (others => '0');
   
   nx_timer_1: nx_timer
     generic map (
@@ -166,7 +172,6 @@ begin
         nx_ts_reset_start   <= '0';
         offline_o           <= '1';
       else
-        slv_ack_o           <= '1';
         slv_unknown_addr_o  <= '0';
         slv_no_more_data_o  <= '0';
         slv_data_out_o      <= (others => '0');    
@@ -178,15 +183,19 @@ begin
           case SLV_ADDR_IN is
             when x"0000" =>
               i2c_sm_reset_start          <= '1';
+              slv_ack_o                   <= '1';
 
             when x"0001" =>               
               i2c_reg_reset_start         <= '1';
+              slv_ack_o                   <= '1';
 
             when x"0002" =>               
               nx_ts_reset_start           <= '1';
+              slv_ack_o                   <= '1';
 
             when x"0003" =>               
               offline_o                   <= SLV_DATA_IN(0);
+              slv_ack_o                   <= '1';
                                           
             when others =>                
               slv_unknown_addr_o          <= '1';
@@ -198,6 +207,22 @@ begin
             when x"0003" =>
               slv_data_out_o(0)           <= offline_o;
               slv_data_out_o(31 downto 1) <= (others => '0');
+              slv_ack_o                   <= '1';
+              
+            when x"0004" =>
+              slv_data_out_o(0)           <= PLL_NX_CLK_LOCK_IN;
+              slv_data_out_o(31 downto 1) <= (others => '0');
+              slv_ack_o                   <= '1';
+              
+            when x"0005" =>
+              slv_data_out_o(0)           <= PLL_ADC_CLK_LOCK_1_IN;
+              slv_data_out_o(31 downto 1) <= (others => '0');
+              slv_ack_o                   <= '1';
+              
+            when x"0006" =>
+              slv_data_out_o(0)           <= PLL_ADC_CLK_LOCK_2_IN;
+              slv_data_out_o(31 downto 1) <= (others => '0');
+              slv_ack_o                   <= '1';
 
             when others =>
               slv_unknown_addr_o          <= '1';
@@ -205,7 +230,7 @@ begin
           end case;
 
         else
-          slv_ack_o <= '0';
+          slv_ack_o                       <= '0';
         end if;
       end if;
     end if;           

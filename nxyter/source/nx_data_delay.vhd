@@ -22,7 +22,7 @@ entity nx_data_delay is
     ADC_DATA_OUT           : out std_logic_vector(11 downto 0);
     NEW_DATA_OUT           : out std_logic;
 
-    DATA_DELAY_VALUE_OUT   : out unsigned(6 downto 0);
+    FIFO_DELAY_IN          : in  std_logic_vector(6 downto 0);
     
     -- Slave bus           
     SLV_READ_IN            : in  std_logic;
@@ -80,7 +80,7 @@ begin
   DEBUG_OUT(6)            <= fifo_read_enable;
   DEBUG_OUT(7)            <= fifo_data_valid;
   DEBUG_OUT(8)            <= new_data_o;
-  DEBUG_OUT(15 downto 9)  <= nx_frame_o(6 downto 0);
+  DEBUG_OUT(15 downto 9)  <= fifo_delay;
 
   -----------------------------------------------------------------------------
   -- FIFO Delay Handler
@@ -159,7 +159,26 @@ begin
       end if;
     end if;
   end process PROC_NX_FIFO_READ;
-        
+
+  PROC_FIFO_DELAY: process(CLK_IN)
+  begin
+    if( rising_edge(CLK_IN) ) then
+      if (RESET_IN = '1') then
+        fifo_delay             <= "0000001";
+        fifo_delay_reset       <= '0';
+      else
+        fifo_delay_reset       <= '0';
+        if (fifo_delay /= FIFO_DELAY_IN) then
+          if (unsigned(FIFO_DELAY_IN) >= 1 and
+              unsigned(FIFO_DELAY_IN) <= 120) then
+            fifo_delay         <= FIFO_DELAY_IN;
+            fifo_delay_reset   <= '1';
+          end if;
+        end if;
+      end if;
+    end if;
+  end process PROC_FIFO_DELAY;
+  
   -----------------------------------------------------------------------------
   -- TRBNet Slave Bus
   -----------------------------------------------------------------------------
@@ -173,13 +192,10 @@ begin
         slv_ack_o               <= '0';
         slv_unknown_addr_o      <= '0';
         slv_no_more_data_o      <= '0';
-        fifo_delay              <= "0001010";
-        fifo_delay_reset        <= '0';
       else                      
         slv_data_o              <= (others => '0');
         slv_unknown_addr_o      <= '0';
         slv_no_more_data_o      <= '0';
-        fifo_delay_reset        <= '0';       
 
         if (SLV_READ_IN  = '1') then
           case SLV_ADDR_IN is
@@ -194,20 +210,8 @@ begin
           end case;
           
         elsif (SLV_WRITE_IN  = '1') then
-          case SLV_ADDR_IN is
-            when x"0000" =>
-              if (unsigned(SLV_DATA_IN(6 downto 0)) >= 1 and
-                  unsigned(SLV_DATA_IN(6 downto 0)) <= 120) then
-                fifo_delay             <= SLV_DATA_IN(6 downto 0);
-                fifo_delay_reset       <= '1';
-              end if;
-              slv_ack_o                <= '1';
-
-            when others =>
-              slv_unknown_addr_o       <= '1';
-              slv_ack_o                <= '0';
-              
-          end case;                
+          slv_unknown_addr_o           <= '1';
+          slv_ack_o                    <= '0';
         else
           slv_ack_o                    <= '0';
         end if;
@@ -219,7 +223,6 @@ begin
   NX_FRAME_OUT          <= nx_frame_o;
   ADC_DATA_OUT          <= adc_data_o;
   NEW_DATA_OUT          <= new_data_o;
-  DATA_DELAY_VALUE_OUT  <= unsigned(fifo_delay);
                            
   SLV_DATA_OUT          <= slv_data_o;    
   SLV_NO_MORE_DATA_OUT  <= slv_no_more_data_o; 

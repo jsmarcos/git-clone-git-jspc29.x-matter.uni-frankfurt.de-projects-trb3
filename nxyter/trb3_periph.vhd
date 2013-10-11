@@ -156,6 +156,12 @@ end entity;
 
 
 architecture trb3_periph_arch of trb3_periph is
+
+  -- For 250MHz PLL nxyter clock, THE_250M_ODDR_1
+  -- attribute ODDRAPPS : string;
+  -- attribute ODDRAPPS of THE_250M_ODDR_1 : label is "SCLK_ALIGNED";
+  -- attribute ODDRAPPS of THE_250M_ODDR_2 : label is "SCLK_ALIGNED";
+
   --Constants
   constant REGIO_NUM_STAT_REGS : integer := 5;
   constant REGIO_NUM_CTRL_REGS : integer := 3;
@@ -405,11 +411,10 @@ begin
       REGIO_NUM_CTRL_REGS       => REGIO_NUM_CTRL_REGS,  --3,  --8 cotrol reg
       ADDRESS_MASK              => x"FFFF",
       BROADCAST_BITMASK         => x"FF",
-      --BROADCAST_SPECIAL_ADDR    => x"45",
-      BROADCAST_SPECIAL_ADDR    => x"48",
+      BROADCAST_SPECIAL_ADDR    => x"49",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
       REGIO_HARDWARE_VERSION    => x"9100_6000",
-      REGIO_INIT_ADDRESS        => x"8900",
+      REGIO_INIT_ADDRESS        => x"3800",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
       CLOCK_FREQUENCY           => 125,
       TIMING_TRIGGER_RAW        => c_YES,
@@ -853,6 +858,22 @@ begin
   NX1_CLK256A_OUT <= nx_main_clk;
   NX2_CLK256A_OUT <= nx_main_clk;
 
+  -- THE_250M_ODDR_1: ODDRXD1
+  --   port map(
+  --     SCLK  => nx_main_clk,
+  --     DA    => '1',
+  --     DB    => '0',
+  --     Q     => NX1_CLK256A_OUT
+  --     );
+  -- 
+  -- THE_250M_ODDR_2: ODDRXD1
+  --   port map(
+  --     SCLK  => nx_main_clk,
+  --     DA    => '1',
+  --     DB    => '0',
+  --     Q     => NX2_CLK256A_OUT
+  --     );
+  
   -- ADC Receiver Clock (nXyter Main Clock * 3/4 (187.5), must be 
   -- based on same ClockSource as nXyter Main Clock)
   pll_adc_clk_1: pll_adc_clk

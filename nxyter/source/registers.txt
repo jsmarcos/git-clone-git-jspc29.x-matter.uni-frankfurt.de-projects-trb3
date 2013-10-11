@@ -3,6 +3,9 @@
 0x8101 :  w    w: reset I2C all Register
 0x8102 :  w    w: Reset and Sync Timestamps (nXyter and FPGA)
 0x8103 :  r/w  Put nxyter into offline mode 
+0x8104 :  r    PLL Lock nXyter Main Clock (250MHz)
+0x8105 :  r    PLL Lock ADC Clock 1 (31.25MHz)
+0x8106 :  r    PLL Lock ADC Clock 2 (31.25MHz)
 
 -- NX I2C Setup Handler
 0x8200 : r/w   I2C Memeory Register (Depth: 0 - 45 ... 0x822c) 
@@ -13,11 +16,11 @@
 0x8243 : w     Write Memory to Trim DAC Register(129 deep FIFO)    
 
 -- Trigger Generator
-0x8140 :  w    If writing just start trigger cycle, keep current setting
-0x8141 :  r/w  Bit 15-0 : periodic time (in 10ns) 
-0x8142 :  r/w  Bit0 7-0 : number of triggers to be sent consecutive
+#0x8140 :  w    If writing just start trigger cycle, keep current setting
+#0x8141 :  r/w  Bit 15-0 : periodic time (in 10ns) 
+#0x8142 :  r/w  Bit0 7-0 : number of triggers to be sent consecutive
 0x8143 :  r/w  Bit 15-0 : Length of trigger pulse (in 10ns), if 0: skip it
-0x8144 :  r/w  Bit0     : 1: send timestamp-reset before trigger 
+#0x8144 :  r/w  Bit0     : 1: send timestamp-reset before trigger 
 0x8145 :  r             : Testpulse Rate (in Hz)    
 
 -- Trigger Handler
@@ -52,36 +55,44 @@
                2: ADC Value Testchannel
                3: ADC Reset Handler
 0x8508 :  r    current ADC FIFO value
+0x8509 :  r/w  Enable Test ADC Input Data Error Test
+0x850a :  r    ADC Input Data Error Counter (16 Bit)
+                (only valid in case of 0x8509 is 1, see line above)
 
 -- NX Data Delay
-0x8130 :  r/w  FIFO Delay, i.e. Trigger Delay (7Bit, in 31.25ns, Range 2..120)
-               default: 10
+0x8130 :  r    FIFO Delay, i.e. Trigger Delay (7Bit, in 32ns, Range 1..120)
 
 -- NX Data Validate
 0x8120 :  r/w  Invalid Frame Counter (16 bit) / w: clear all counters
 0x8121 :  r    Overflow Counter (16 bit)
 0x8122 :  r    Pileup Counter (16 bit)
 0x8123 :  r    Parity Error Counter (16 bit)
-0x8124 :  r    Trigger Rate (in Hz)
+0x8124 :  r    Hit Rate (in Hz)
 0x8125 :  r    Frame Rate (in Hz)
 
 -- NX Trigger Validate
-0x8180 :  r/w  Readout Mode (0:Ref + valid + window, 1: Ref + Valid 
-                             3: Raw and TimeStamp + valid,
-                             4: Raw,  5: Raw + Valid )
-0x8181 :  r/w  Trigger Window Delay (12 bit, in 3.9ns) 
-0x8182 :  r/w  Trigger Window Width (12 bit, in 3.9ns)
-0x8183 :  r/w  Readout Time Max (12 bit, in 10ns)
-0x8184 :  r    Busy Time Counter (12 bit, in 10ns)
+0x8180 :  r/w  Readout Mode (0: Ref + [DeltaTS + ovfl          + parity] valid
+                             1: Ref + [DeltaTS + ovfl + pileup + parity] valid
+                             2: UNDEF
+                             3: UNDEF
+                             4: Ref + [          ovfl +        + parity] valid
+                             5: Ref + [          ovfl + pileup + parity] valid
+                             6: UNDEF
+                             7: UNDEF
+0x8181 :  r/w  Trigger Window Delay (12 bit, in 4ns) 
+0x8182 :  r/w  Trigger Window Width (12 bit, in 4ns)
+0x8183 :  r/w  CTS Trigger Delay (12 bit, in 4ns)
+0x8184 :  r/w  Readout Time Max (12 bit, in 10ns)
 
-0x8185 :  r    timestamp_ref
-0x8186 :  r    window_lower_thr
-0x8187 :  r    window_upper_thr
-0x8188 :  r    current Data Delay Value
-0x8189 :  r    done counter ch 0..31
-0x818a :  r    done counter ch 32..63
-0x818b :  r    done counter ch 94..95
-0x818c :  r    done counter ch 96..127
+0x8185 :  r    Busy Time Counter (12 bit, in 10ns)
+0x8186 :  r    timestamp_ref
+0x8187 :  r    window_lower_thr
+0x8188 :  r    window_upper_thr
+0x8189 :  r    data_fifo_delay (7 bit, in 32ns)
+0x818a :  r    done counter ch 0..31
+0x818b :  r    done counter ch 32..63
+0x818c :  r    done counter ch 94..95
+0x818d :  r    done counter ch 96..127
 
 -- Event Data Buffer
 0x8600 :  r    read FIFO buffer

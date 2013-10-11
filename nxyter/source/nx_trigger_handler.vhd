@@ -14,9 +14,11 @@ entity nx_trigger_handler is
     
     --LVL1 trigger
     LVL1_TRG_DATA_VALID_IN     : in std_logic;  -- timing trigger valid, later
-    LVL1_VALID_TIMING_TRG_IN   : in std_logic;  -- timing trigger synced
-    LVL1_VALID_NOTIMING_TRG_IN : in std_logic;  -- timing trigger raw
-    LVL1_INVALID_TRG_IN        : in std_logic;  -- ???
+    LVL1_VALID_TIMING_TRG_IN   : in std_logic;  -- normal read-out trigger with
+                                                -- reference time
+    LVL1_VALID_NOTIMING_TRG_IN : in std_logic;  -- calibration trigger w/o
+                                                -- reference time
+    LVL1_INVALID_TRG_IN        : in std_logic;  -- 
 
     LVL1_TRG_TYPE_IN           : in std_logic_vector(3 downto 0);
     LVL1_TRG_NUMBER_IN         : in std_logic_vector(15 downto 0);

@@ -143,7 +143,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal new_timestamp_delayed : std_logic_vector(31 downto 0);
   signal new_adc_data_delayed  : std_logic_vector(11 downto 0);
   signal new_data_delayed      : std_logic;
-  signal new_data_delay_value  : unsigned(6 downto 0);
+  signal new_data_fifo_delay   : std_logic_vector(6 downto 0);
 
   -- Data Validate             
   signal timestamp             : std_logic_vector(13 downto 0);
@@ -230,7 +230,7 @@ begin
                                 others => x"0000"
                                 ),
 
-      PORT_ADDR_MASK      => (  0 => 3,          -- Control Register Handler
+      PORT_ADDR_MASK      => (  0 => 4,          -- Control Register Handler
                                 1 => 0,          -- I2C master
                                 2 => 4,          -- Data Receiver
                                 3 => 3,          -- Data Buffer
@@ -242,7 +242,7 @@ begin
                                 9 => 8,          -- NX Register Setup
                                10 => 9,          -- NX Histograms
                                11 => 0,          -- Debug Handler
-                               12 => 2,          -- Data Delay
+                               12 => 1,          -- Data Delay
                                 others => 0
                                 ),
 
@@ -537,7 +537,7 @@ begin
       NX_FRAME_OUT         => new_timestamp_delayed,
       ADC_DATA_OUT         => new_adc_data_delayed,
       NEW_DATA_OUT         => new_data_delayed,
-      DATA_DELAY_VALUE_OUT => new_data_delay_value,  
+      FIFO_DELAY_IN        => new_data_fifo_delay,  
       
       SLV_READ_IN          => slv_read(12), 
       SLV_WRITE_IN         => slv_write(12), 
@@ -609,7 +609,7 @@ begin
       FAST_CLEAR_IN          => fast_clear,
       TRIGGER_BUSY_OUT       => trigger_validate_busy,
       TIMESTAMP_REF_IN       => timestamp_hold,
-      DATA_DELAY_VALUE_IN    => new_data_delay_value,
+      DATA_FIFO_DELAY_OUT    => new_data_fifo_delay,
       
       DATA_OUT               => trigger_data,
       DATA_CLK_OUT           => trigger_data_clk,
@@ -673,7 +673,7 @@ begin
   nx_histograms_1: nx_histograms
     generic map (
       BUS_WIDTH  => 7,
-      ENABLE     => 0
+      ENABLE     => 1
       )
     port map (
       CLK_IN                      => CLK_IN,

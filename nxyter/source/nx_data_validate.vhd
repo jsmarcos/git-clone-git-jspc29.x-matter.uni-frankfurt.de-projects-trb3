@@ -214,63 +214,65 @@ begin
             when "1000" =>
               ---- Check Overflow
               if ((status_bits(0) = '1') and (clear_counters = '0')) then
-                overflow_ctr <= overflow_ctr + 1;
+                overflow_ctr                 <= overflow_ctr + 1;
               end if;
               
               ---- Check Parity
               if ((parity_bit /= parity) and (clear_counters = '0')) then
-                timestamp_status_o(0) <= '1';
-                parity_error_ctr      <= parity_error_ctr + 1;
+                timestamp_status_o(2)        <= '1';
+                parity_error_ctr             <= parity_error_ctr + 1;
+              else
+                timestamp_status_o(2)        <= '0';
               end if;
 
               -- Check PileUp
               if ((status_bits(1) = '1') and (clear_counters = '0')) then
-                pileup_ctr <= pileup_ctr + 1;
+                pileup_ctr                   <= pileup_ctr + 1;
               end if;
               
               -- Take Timestamp
               timestamp_o                    <= nx_timestamp;
               channel_o                      <= nx_channel_id;
-              timestamp_status_o(2 downto 1) <= status_bits;
+              timestamp_status_o(1 downto 0) <= status_bits;
               adc_data_o                     <= adc_data;
               data_valid_o                   <= '1';
               
               if (adc_data = x"aff") then
-                invalid_adc <= '1';
+                invalid_adc                  <= '1';
               end if;
 
-              nx_token_return_o   <= '0';
-              nx_nomore_data_o    <= '0';
-              trigger_rate_inc    <= '1';
+              nx_token_return_o              <= '0';
+              nx_nomore_data_o               <= '0';
+              trigger_rate_inc               <= '1';
                                           
             -- Token return and nomore_data
             when "0000" =>
-              nx_token_return_o   <= '1';
-              nx_nomore_data_o    <= nx_token_return_o;
+              nx_token_return_o              <= '1';
+              nx_nomore_data_o               <= nx_token_return_o;
 
             when others =>
               -- Invalid frame, not empty, discard timestamp
               if (clear_counters = '0') then
-                invalid_frame_ctr <= invalid_frame_ctr + 1;
+                invalid_frame_ctr            <= invalid_frame_ctr + 1;
               end if;
-              nx_token_return_o   <= '0';
-              nx_nomore_data_o    <= '0';
+              nx_token_return_o              <= '0';
+              nx_nomore_data_o               <= '0';
               
           end case;
 
-          frame_rate_inc          <= '1';
+          frame_rate_inc                     <= '1';
         
         else
-          nx_token_return_o       <= nx_token_return_o;
-          nx_nomore_data_o        <= nx_nomore_data_o;
+          nx_token_return_o                  <= nx_token_return_o;
+          nx_nomore_data_o                   <= nx_nomore_data_o;
         end if;  
 
         -- Reset Counters
         if (clear_counters = '1') then
-          invalid_frame_ctr   <= (others => '0');
-          overflow_ctr        <= (others => '0');
-          pileup_ctr          <= (others => '0');
-          parity_error_ctr    <= (others => '0');
+          invalid_frame_ctr                  <= (others => '0');
+          overflow_ctr                       <= (others => '0');
+          pileup_ctr                         <= (others => '0');
+          parity_error_ctr                   <= (others => '0');
         end if;
       end if;
     end if;

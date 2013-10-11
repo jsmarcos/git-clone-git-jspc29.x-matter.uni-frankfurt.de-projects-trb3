@@ -368,7 +368,7 @@ component nx_data_delay
     NX_FRAME_OUT         : out std_logic_vector(31 downto 0);
     ADC_DATA_OUT         : out std_logic_vector(11 downto 0);
     NEW_DATA_OUT         : out std_logic;
-    DATA_DELAY_VALUE_OUT : out unsigned(6 downto 0);
+    FIFO_DELAY_IN        : in  std_logic_vector(6 downto 0);
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
     SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
@@ -425,7 +425,7 @@ component nx_trigger_validate
     FAST_CLEAR_IN        : in  std_logic;
     TRIGGER_BUSY_OUT     : out std_logic;
     TIMESTAMP_REF_IN     : in  unsigned(11 downto 0);
-    DATA_DELAY_VALUE_IN  : in  unsigned(6 downto 0);
+    DATA_FIFO_DELAY_OUT  : out std_logic_vector(6 downto 0);
     DATA_OUT             : out std_logic_vector(31 downto 0);
     DATA_CLK_OUT         : out std_logic;
     NOMORE_DATA_OUT      : out std_logic;

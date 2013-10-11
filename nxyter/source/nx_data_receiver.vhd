@@ -146,6 +146,11 @@ architecture Behavioral of nx_data_receiver is
   signal adc_new_data             : std_logic;
   signal adc_new_data_ctr         : unsigned(3 downto 0);
 
+  -- ADC TEST INPUT DATA
+  signal adc_input_error_enable   : std_logic;
+  signal adc_input_error_ctr      : unsigned(15 downto 0);
+  
+  
   -- Data Output Handler
   type STATES is (IDLE,
                   WAIT_ADC,
@@ -170,10 +175,6 @@ architecture Behavioral of nx_data_receiver is
   signal debug_adc                : std_logic_vector(1 downto 0);
   
 begin
-
-  DEBUG_OUT(0)            <= CLK_IN;
-  DEBUG_OUT(1)            <= NX_TIMESTAMP_CLK_IN;
-  DEBUG_OUT(2)            <= TRIGGER_IN;
 
   PROC_DEBUG_MULT: process(debug_adc,
                            adc_data,
@@ -201,24 +202,37 @@ begin
   begin
     case debug_adc is
       when "01" =>
+        DEBUG_OUT(0)            <= CLK_IN;
+        DEBUG_OUT(1)            <= NX_TIMESTAMP_CLK_IN;
+        DEBUG_OUT(2)            <= TRIGGER_IN;
         DEBUG_OUT(3)            <= adc_data_valid;
         DEBUG_OUT(15 downto 4)  <= adc_data;
         
       when "10" =>
+        DEBUG_OUT(0)            <= CLK_IN;
+        DEBUG_OUT(1)            <= NX_TIMESTAMP_CLK_IN;
+        DEBUG_OUT(2)            <= TRIGGER_IN;
         DEBUG_OUT(3)            <= adc_data_valid;
         DEBUG_OUT(15 downto 4)  <= test_adc_data;
 
       when "11" =>
+        DEBUG_OUT(0)            <= NX_TIMESTAMP_CLK_IN;
+        DEBUG_OUT(1)            <= CLK_IN;
+        DEBUG_OUT(2)            <= TRIGGER_IN;
         DEBUG_OUT(3)            <= adc_clk_ok;
         DEBUG_OUT(4)            <= adc_clk_ok_last;
         DEBUG_OUT(5)            <= adc_clk_skip;
-        DEBUG_OUT(6)            <= adc_reset_s;
-        DEBUG_OUT(7)            <= adc_reset;
-        DEBUG_OUT(8)            <= '0';
-        DEBUG_OUT(9)            <= nx_new_frame;
-        DEBUG_OUT(15 downto 10) <= adc_reset_ctr(5 downto 0) ;
+        DEBUG_OUT(6)            <= adc_reset_r;
+        DEBUG_OUT(7)            <= adc_reset_l;
+        DEBUG_OUT(8)            <= adc_reset_s;
+        DEBUG_OUT(9)            <= adc_reset;
+        DEBUG_OUT(10)           <= nx_new_frame;
+        DEBUG_OUT(15 downto 11) <= adc_reset_ctr(4 downto 0) ;
         
       when others => 
+        DEBUG_OUT(0)            <= CLK_IN;
+        DEBUG_OUT(1)            <= NX_TIMESTAMP_CLK_IN;
+        DEBUG_OUT(2)            <= TRIGGER_IN;
         DEBUG_OUT(3)            <= nx_fifo_full;
         DEBUG_OUT(4)            <= nx_fifo_write_enable;
         DEBUG_OUT(5)            <= nx_fifo_empty;
@@ -278,7 +292,7 @@ begin
       DEBUG                      => open
       );
 
-  adc_reset <= adc_reset_l or RESET_IN;
+  adc_reset <= adc_reset_s or adc_reset_l or RESET_IN;
 
   pulse_to_level_1: pulse_to_level
     generic map (
@@ -386,9 +400,9 @@ begin
   begin
     if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
       if (RESET_IN = '1') then
-        parity_error   <= '0';
+        parity_error       <= '0';
       else
-        parity_error   <= '0';
+        parity_error       <= '0';
         if (nx_new_frame = '1' and nx_frame_synced = '1') then
           -- Timestamp Bit #6 is excluded (funny nxyter-bug)
           parity_bits         := nx_frame_word(31)           &
@@ -634,7 +648,7 @@ begin
   begin
     if (rising_edge(CLK_IN) ) then
       if (RESET_IN = '1' or reset_parity_error_ctr = '1') then
-        parity_error_counter <= (others => '0');
+        parity_error_counter   <= (others => '0');
       else
         if (parity_error_ctr_inc = '1') then
           parity_error_counter <= parity_error_counter + 1;
@@ -666,7 +680,26 @@ begin
       end if;
     end if;
   end process PROC_ADC_DATA_READ; 
-        
+
+  PROC_ADC_TEST_INPUT_DATA: process(CLK_IN)
+  begin
+    if (rising_edge(CLK_IN) ) then
+      if (RESET_IN = '1') then
+        adc_input_error_ctr      <= (others => '0');
+      else
+        if (adc_input_error_enable = '1') then
+          if (adc_new_data = '1' and
+              adc_data_t /= x"fff" and
+              adc_data_t /= x"000") then
+            adc_input_error_ctr  <= adc_input_error_ctr + 1;
+          end if;
+        else
+          adc_input_error_ctr    <= (others => '0');
+        end if;
+      end if;
+    end if;
+  end process PROC_ADC_TEST_INPUT_DATA;
+  
   -----------------------------------------------------------------------------
   -- Output handler
   -----------------------------------------------------------------------------
@@ -741,54 +774,55 @@ begin
   begin
     if (rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        slv_data_out_o          <= (others => '0');
-        slv_ack_o               <= '0';
-        slv_unknown_addr_o      <= '0';
-        slv_no_more_data_o      <= '0';
-        reset_resync_ctr        <= '0';
-        reset_parity_error_ctr  <= '0';
-        fifo_reset_r            <= '0';
-        adc_clk_delay           <= "111";
-        adc_reset_r             <= '0';
-        debug_adc               <= (others => '0');
+        slv_data_out_o                <= (others => '0');
+        slv_ack_o                     <= '0';
+        slv_unknown_addr_o            <= '0';
+        slv_no_more_data_o            <= '0';
+        reset_resync_ctr              <= '0';
+        reset_parity_error_ctr        <= '0';
+        fifo_reset_r                  <= '0';
+        adc_clk_delay                 <= "111";
+        adc_reset_r                   <= '0';
+        debug_adc                     <= (others => '0');
+        adc_input_error_enable        <= '0';
       else                      
-        slv_data_out_o          <= (others => '0');
-        slv_ack_o               <= '0';
-        slv_unknown_addr_o      <= '0';
-        slv_no_more_data_o      <= '0';
-        reset_resync_ctr        <= '0';
-        reset_parity_error_ctr  <= '0';
-        fifo_reset_r            <= '0';
-        adc_reset_r             <= '0';
+        slv_data_out_o                <= (others => '0');
+        slv_ack_o                     <= '0';
+        slv_unknown_addr_o            <= '0';
+        slv_no_more_data_o            <= '0';
+        reset_resync_ctr              <= '0';
+        reset_parity_error_ctr        <= '0';
+        fifo_reset_r                  <= '0';
+        adc_reset_r                   <= '0';
         
         if (SLV_READ_IN  = '1') then
           case SLV_ADDR_IN is
             when x"0000" =>
-              slv_data_out_o               <= nx_timestamp_t;
-              slv_ack_o                    <= '1';
+              slv_data_out_o                <= nx_timestamp_t;
+              slv_ack_o                     <= '1';
 
             when x"0001" =>
-              slv_data_out_o(0)            <= nx_fifo_full;
-              slv_data_out_o(1)            <= nx_fifo_empty;
-              slv_data_out_o(2)            <= '0';
-              slv_data_out_o(3)            <= '0';
-              slv_data_out_o(4)            <= nx_fifo_data_valid;
-              slv_data_out_o(5)            <= adc_new_data;
-              slv_data_out_o(29 downto 5)  <= (others => '0');
-              slv_data_out_o(30)           <= '0';
-              slv_data_out_o(31)           <= reg_nx_frame_synced;
-              slv_ack_o                    <= '1'; 
+              slv_data_out_o(0)             <= nx_fifo_full;
+              slv_data_out_o(1)             <= nx_fifo_empty;
+              slv_data_out_o(2)             <= '0';
+              slv_data_out_o(3)             <= '0';
+              slv_data_out_o(4)             <= nx_fifo_data_valid;
+              slv_data_out_o(5)             <= adc_new_data;
+              slv_data_out_o(29 downto 5)   <= (others => '0');
+              slv_data_out_o(30)            <= '0';
+              slv_data_out_o(31)            <= reg_nx_frame_synced;
+              slv_ack_o                     <= '1'; 
 
             when x"0002" =>
-              slv_data_out_o(11 downto  0) <= std_logic_vector(resync_counter);
-              slv_data_out_o(31 downto 12) <= (others => '0');
-              slv_ack_o                    <= '1'; 
+              slv_data_out_o(11 downto  0)  <= std_logic_vector(resync_counter);
+              slv_data_out_o(31 downto 12)  <= (others => '0');
+              slv_ack_o                     <= '1'; 
 
             when x"0003" =>
-              slv_data_out_o(11 downto  0) <=
+              slv_data_out_o(11 downto  0)  <=
                 std_logic_vector(parity_error_counter);
-              slv_data_out_o(31 downto 12) <= (others => '0');
-              slv_ack_o                    <= '1'; 
+              slv_data_out_o(31 downto 12)  <= (others => '0');
+              slv_ack_o                     <= '1'; 
 
             when x"0005" =>
               case adc_clk_delay is
@@ -802,41 +836,51 @@ begin
                 when "111" => slv_data_out_o(2 downto 0) <= "111";
               end case;
 
-              slv_data_out_o(31 downto 3)  <= (others => '0');
-              slv_ack_o                    <= '1';   
+              slv_data_out_o(31 downto 3)   <= (others => '0');
+              slv_ack_o                     <= '1';   
 
             when x"0006" =>
-              slv_data_out_o(11 downto  0) <= std_logic_vector(adc_reset_ctr);
-              slv_data_out_o(31 downto 12) <= (others => '0');
-              slv_ack_o                    <= '1';
+              slv_data_out_o(11 downto  0)  <= std_logic_vector(adc_reset_ctr);
+              slv_data_out_o(31 downto 12)  <= (others => '0');
+              slv_ack_o                     <= '1';
 
             when x"0007" =>
-              slv_data_out_o(1 downto 0)   <= debug_adc;
-              slv_data_out_o(31 downto 2)  <= (others => '0');
-              slv_ack_o                    <= '1';
+              slv_data_out_o(1 downto 0)    <= debug_adc;
+              slv_data_out_o(31 downto 2)   <= (others => '0');
+              slv_ack_o                     <= '1';
               
             when x"0008" =>
-              slv_data_out_o(11 downto 0)  <= adc_data_t;
-              slv_data_out_o(31 downto 12) <= (others => '0');
-              slv_ack_o                    <= '1';
-            
+              slv_data_out_o(11 downto 0)   <= adc_data_t;
+              slv_data_out_o(31 downto 12)  <= (others => '0');
+              slv_ack_o                     <= '1';
+
+            when x"0009" =>
+              slv_data_out_o(0)             <= adc_input_error_enable;
+              slv_data_out_o(31 downto 1)   <= (others => '0');
+              slv_ack_o                     <= '1';
+
+            when x"000a" =>
+              slv_data_out_o(15 downto  0)  <= adc_input_error_ctr;
+              slv_data_out_o(31 downto 16)  <= (others => '0');
+              slv_ack_o                     <= '1';
+              
             when others  =>
-              slv_unknown_addr_o           <= '1';
+              slv_unknown_addr_o            <= '1';
           end case;
           
         elsif (SLV_WRITE_IN  = '1') then
           case SLV_ADDR_IN is
             when x"0001" => 
-              adc_reset_r                  <= '1';
-              slv_ack_o                    <= '1';
+              adc_reset_r                   <= '1';
+              slv_ack_o                     <= '1';
               
             when x"0002" => 
-              reset_resync_ctr             <= '1';
-              slv_ack_o                    <= '1'; 
+              reset_resync_ctr              <= '1';
+              slv_ack_o                     <= '1'; 
 
             when x"0003" => 
-              reset_parity_error_ctr       <= '1';
-              slv_ack_o                    <= '1'; 
+              reset_parity_error_ctr        <= '1';
+              slv_ack_o                     <= '1'; 
 
             when x"0005" =>
               if (SLV_DATA_IN  < x"0000_0008") then
@@ -851,14 +895,19 @@ begin
                   when "111" => adc_clk_delay <= "111";
                 end case;
               end if;
-              slv_ack_o                    <= '1';
+              slv_ack_o                     <= '1';
 
             when x"0007" =>
-              debug_adc                    <= SLV_DATA_IN(1 downto 0);
-              slv_ack_o                    <= '1';
-              
+              debug_adc                     <= SLV_DATA_IN(1 downto 0);
+              slv_ack_o                     <= '1';
+
+            when x"0009" =>
+              adc_input_error_enable        <= SLV_DATA_IN(0);
+              slv_ack_o                     <= '1';
+
             when others  =>
-              slv_unknown_addr_o           <= '1';              
+              slv_unknown_addr_o            <= '1';
+              
           end case;                
         end if;
       end if;
