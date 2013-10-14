@@ -535,7 +535,7 @@ begin
       wait until rising_edge(rclk_125_i);
       CLK_RX_RESET_OUT <= '1';
       
-      if rx_cdr_lol_i = '1' then
+      if serdes_ready_i = '0' then
          counter := (others => '0');
          
       elsif counter(counter'high) = '0' then
