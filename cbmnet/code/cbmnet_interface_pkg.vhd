@@ -126,9 +126,114 @@ package cbmnet_interface_pkg is
          SERDES_ready      : in  std_logic    -- signalize when PHY ready
       );
    end component;
+
    
-   
-   
+   component link_tester_be is
+      generic (
+         MIN_CTRL_PACKET_SIZE : integer := 12;
+         MAX_CTRL_PACKET_SIZE : integer := 60;
+
+         DATAWIDTH  : integer := 16;
+         SINGLE_DEST : integer := 1;        
+         DATA_PADDING : integer := 0;
+         CTRL_PADDING : integer := 16#A5A5#;
+         
+         ROC_ADDR : std_logic_vector(15 downto 0) := "00000000XXXXXXXX";
+         OWN_ADDR : std_logic_vector(15 downto 0) := "1000000000000000"
+      );
+      port (
+         clk : in std_logic;
+         res_n : in std_logic;
+         link_active : in std_logic;
+
+         ctrl_en : in std_logic;              --enable ctrl packet generation
+         dlm_en : in std_logic;               --enable dlm generation        
+         force_rec_data_stop : in std_logic;  --force data flow to stop
+         force_rec_ctrl_stop : in std_logic;  --force ctrl flow to stop
+
+         ctrl2send_stop : in std_logic;
+         ctrl2send_start : out std_logic;
+         ctrl2send_end : out std_logic;
+         ctrl2send : out std_logic_vector(15 downto 0);
+
+
+         dlm2send_valid : out std_logic;
+         dlm2send : out std_logic_vector(3 downto 0);
+
+         dlm_rec : in std_logic_vector(3 downto 0);
+         dlm_rec_valid : in std_logic;
+
+         data_rec_start : in std_logic;
+         data_rec_end : in std_logic;
+         data_rec : in std_logic_vector(DATAWIDTH-1 downto 0);
+         data_rec_stop : out std_logic;
+
+         ctrl_rec_start : in std_logic;
+         ctrl_rec_end : in std_logic;
+         ctrl_rec : in std_logic_vector(15 downto 0);
+         ctrl_rec_stop : out std_logic;
+
+         data_valid : out std_logic;
+         ctrl_valid : out std_logic;
+         dlm_valid : out std_logic
+      );
+   end component;
+
+   component link_tester_fe 
+      generic (
+         MIN_PACKET_SIZE : integer := 8;
+         MAX_PACKET_SIZE : integer := 64;
+         PACKET_GRAN : integer := 2;
+
+         MIN_CTRL_PACKET_SIZE : integer := 12;
+         MAX_CTRL_PACKET_SIZE : integer := 60;
+
+         DATAWIDTH  : integer := 16;
+         SINGLE_DEST : integer := 1;        
+         DATA_PADDING : integer := 0;
+         CTRL_PADDING : integer := 16#A5A5#;
+         
+         ROC_ADDR : std_logic_vector(15 downto 0) := "0000000000000000";
+         OWN_ADDR : std_logic_vector(15 downto 0) := "1000000000000000";
+      
+         PACKET_MODE : integer := 1 --if enabled generates another packet size order to test further corner cases
+      );
+      port (
+         clk : in std_logic;
+         res_n : in std_logic;
+         link_active : in std_logic;
+
+         data_en : in std_logic;     -- enable data packet generation
+         ctrl_en : in std_logic;     -- enable ctrl packet generation
+         force_rec_ctrl_stop : in std_logic;  -- force ctrl flow to stop
+
+         ctrl2send_stop : in std_logic;
+         ctrl2send_start : out std_logic;
+         ctrl2send_end : out std_logic;
+         ctrl2send : out std_logic_vector(15 downto 0);
+
+         data2send_stop : in std_logic;
+         data2send_start : out std_logic;
+         data2send_end : out std_logic;
+         data2send : out std_logic_vector(15 downto 0);
+
+         dlm2send_valid : out std_logic;
+         dlm2send : out std_logic_vector(3 downto 0);
+
+         dlm_rec : in std_logic_vector(3 downto 0);
+         dlm_rec_valid : in std_logic;
+
+         data_rec_start : in std_logic;
+         data_rec_end : in std_logic;
+         data_rec : in std_logic_vector(15 downto 0);
+         data_rec_stop : out std_logic;
+
+         ctrl_rec_start : in std_logic;
+         ctrl_rec_end : in std_logic;
+         ctrl_rec : in std_logic_vector(15 downto 0);
+         ctrl_rec_stop : std_logic
+      );
+   end component;
 end package cbmnet_interface_pkg;
 
 package body cbmnet_interface_pkg is

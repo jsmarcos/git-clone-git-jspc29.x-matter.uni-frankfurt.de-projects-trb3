@@ -36,18 +36,13 @@ architecture rx_reset_fsm_arch of cbmnet_phy_ecp3_rx_reset_fsm is
                                                                                                 
    signal   tx_pll_lol_qd_s_int: std_logic;
    signal   rx_los_low_int:         std_logic;
-   signal   plol_los_int:        std_logic;
    signal   rx_lol_los  :  std_logic;
    signal   rx_lol_los_int:      std_logic;
    signal   rx_lol_los_del:      std_logic;
    signal   rx_pcs_rst_ch_c_int: std_logic;
    signal   rx_serdes_rst_ch_c_int: std_logic;
                                                                                                 
-   signal   reset_timer1:  std_logic;
    signal   reset_timer2:  std_logic;
-                                                                                                
-   signal   counter1:   unsigned(1 downto 0);
-   signal   timer1:  std_logic;
                                                                                                 
    signal   counter2: unsigned(19 downto 0);
    signal   timer2   : std_logic;
@@ -107,7 +102,7 @@ begin
    end process;
                                                                                               
                                                                                               
-   proc_fsm_trans: process(cs, tx_pll_lol_qd_s_int, rx_los_low_int, timer1, rx_lol_los_int, timer2)
+   proc_fsm_trans: process(cs, tx_pll_lol_qd_s_int, rx_los_low_int, rx_lol_los_int, timer2)
    begin
    --       reset_timer1 <= '0';
          reset_timer2 <= '0';

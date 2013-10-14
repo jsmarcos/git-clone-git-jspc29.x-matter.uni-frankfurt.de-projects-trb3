@@ -102,8 +102,6 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    signal rx_serdes_rst_i     : std_logic;
    signal rx_pcs_rst_i        : std_logic;
 
-   
-   
    -- data
    signal tx_data_to_serdes_i      : std_logic_vector( 8 downto 0); -- received by SERDES
    signal rx_data_from_serdes_i    : std_logic_vector( 8 downto 0); -- received by SERDES
@@ -133,6 +131,8 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    signal word_alignment_to_fsm_i : std_logic;
 
    signal rx_rst_fsm_ready_i : std_logic;
+   
+   signal serdes_ready_i : std_logic;
    
 -- SCI Logic to obtain the barrel shifter position
    type sci_ctrl is (IDLE, GET_WA, GET_WA_WAIT, GET_WA_WAIT2, GET_WA_FINISH);
@@ -180,6 +180,10 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    
    signal tx_data_debug_i : std_logic_vector(17 downto 0);
    signal tx_data_debug_state_i : std_logic;
+   
+   signal low_level_rx_see_dlm0     : std_logic;
+   signal low_level_tx_see_dlm0     : std_logic;
+   signal low_level_tx_see_dlm0_125 : std_logic;
    
    
 begin
@@ -369,7 +373,7 @@ begin
       
       end if;
    end process;
-   
+         
    -------------------------------------------------      
    -- CBMNet Ready Modules
    -------------------------------------------------      
@@ -433,9 +437,9 @@ begin
       end if;
    end process;
       
-   SERDES_ready <= rm_tx_ready_i and rm_rx_ready_i when rising_edge(clk_125_i);
-   led_ok_i       <= SERDES_ready;
-   
+   serdes_ready_i <= rm_tx_ready_i and rm_rx_ready_i when rising_edge(clk_125_i);
+   led_ok_i       <= serdes_ready_i;
+   SERDES_ready   <= serdes_ready_i;
    
    -------------------------------------------------      
    -- SCI
@@ -560,7 +564,56 @@ begin
          
          last_rx_serdes_rst_i := rx_serdes_rst_i;
       end process;
+      
+      PROC_SENSE_RX_DLM0: process is 
+         variable detected_first_word_v : std_logic := '0';
+      begin
+         wait until rising_edge(rclk_250_i);
+         low_level_rx_see_dlm0 <= '0';
          
+         if detected_first_word_v = '0' then
+            if rx_data_from_serdes_i = "1" & x"fb" then
+               detected_first_word_v := '1';
+            end if;
+            
+         else
+            detected_first_word_v := '0';
+            if rx_data_from_serdes_i = "001101010" then
+               low_level_rx_see_dlm0 <= '1';
+            end if;
+            
+         end if;
+      end process;
+                  
+      PROC_SENSE_TX_DLM0: process is 
+         variable detected_first_word_v : std_logic := '0';
+      begin
+         wait until rising_edge(clk_tx_full_i);
+         low_level_tx_see_dlm0 <= '0';
+         
+         if detected_first_word_v = '0' then
+            if tx_data_to_serdes_i = "1" & x"fb" then
+               detected_first_word_v := '1';
+            end if;
+            
+         else
+            detected_first_word_v := '0';
+            if tx_data_to_serdes_i = "001101010" then
+               low_level_tx_see_dlm0 <= '1';
+            end if;
+            
+         end if;
+      end process;
+      
+      PROC_SENSE_TX_DLM125: process is
+      begin
+         wait until rising_edge(clk_125_i);
+         
+         low_level_tx_see_dlm0_125 <= '0';
+         if tx_data_i = "10" & x"fb6a" then
+            low_level_tx_see_dlm0_125 <= '1';
+         end if;
+      end process;
    
       DEBUG_OUT(19 downto  0) <= "00" & tx_data_i;
       DEBUG_OUT(23 downto 20) <= "0" & tx_pll_lol_i & rx_los_low_i & rx_cdr_lol_i;
@@ -570,7 +623,7 @@ begin
       DEBUG_OUT(51 downto 32) <= "00" & rx_data_i;
       DEBUG_OUT(59 downto 52) <= rx_rst_fsm_state_i & tx_rst_fsm_state_i;
          
-      DEBUG_OUT(63 downto 60) <= SERDES_ready & rm_rx_ready_i &  rm_tx_ready_i & rm_tx_almost_ready_i;
+      DEBUG_OUT(63 downto 60) <= serdes_ready_i & rm_rx_ready_i &  rm_tx_ready_i & rm_tx_almost_ready_i;
       DEBUG_OUT(99 downto 96) <= rm_rx_almost_ready_i & rm_rx_see_ready0_i & rm_rx_saw_ready1_i & rm_rx_valid_char_i;
       DEBUG_OUT(103 downto 100) <= wa_position_i(3 downto 0);
       DEBUG_OUT(107 downto 104) <= "00" & rm_rx_to_gear_reset_i & gear_to_rm_rst_i;
@@ -578,14 +631,16 @@ begin
       DEBUG_OUT(127 downto 108) <= "00" & tx_data_debug_i; --STD_LOGIC_VECTOR(stat_reconnect_counter_i);
       
       -- STAT_OP REGISTER
-      STAT_OP(8 downto 0) <= tx_data_to_serdes_i;
+      STAT_OP(6 downto 0) <= tx_data_to_serdes_i(6 downto 0);
 
-      STAT_OP(9)  <= rclk_250_i;
-      STAT_OP(10) <= clk_125_i;
+      STAT_OP( 7) <= low_level_tx_see_dlm0_125;
+      STAT_OP( 8) <= clk_125_local;
+      STAT_OP( 9) <= rclk_250_i;
+      STAT_OP(10) <= rclk_125_i;
       STAT_OP(11) <= clk_tx_full_i;
-      STAT_OP(12) <= rx_los_low_i;
-      STAT_OP(13) <= lsm_status_i;
-      STAT_OP(14) <= rx_serdes_rst_i;
-      STAT_OP(15) <= rx_pcs_rst_i;
+      STAT_OP(12) <= clk_tx_half_i;
+      
+      STAT_OP(13) <= low_level_rx_see_dlm0;
+      STAT_OP(14) <= low_level_tx_see_dlm0;
    end generate;
 end architecture;
