@@ -1,0 +1,5 @@
+-rem
+-distrce
+-log "trb3_central.log"
+-o "trb3_central.csv"
+-pr "trb3_central.prf"
