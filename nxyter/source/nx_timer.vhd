@@ -4,7 +4,7 @@ use ieee.numeric_std.all;
 
 entity nx_timer is
   generic (
-    CTR_WIDTH : integer := 12
+    CTR_WIDTH : integer range 2 to 32 := 12
     );
   port(
     CLK_IN               : in    std_logic;
@@ -18,56 +18,61 @@ end entity;
 architecture Behavioral of nx_timer is
 
   -- Timer
+  signal timer_ctr_x     : unsigned(CTR_WIDTH - 1 downto 0);
+
   signal timer_ctr       : unsigned(CTR_WIDTH - 1 downto 0);
   signal timer_done_o    : std_logic;
 
   type STATES is (S_IDLE,
-                  S_COUNT,
-                  S_DONE
+                  S_COUNT
                   );
-  signal STATE : STATES;
+  signal STATE, NEXT_STATE : STATES;
 
 begin
   
-  PROC_TIMER: process(CLK_IN)
+  PROC_TIMER_TRANSFER: process(CLK_IN)
   begin 
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        timer_ctr     <= (others => '0');
-        timer_done_o  <= '0';
-        STATE         <= S_IDLE;
+        timer_ctr      <= (others => '0');
+        STATE          <= S_IDLE;
       else
-        timer_done_o  <= '0';
-        
-        if (TIMER_START_IN > 0) then
-          timer_ctr <= TIMER_START_IN;
-          STATE     <= S_COUNT;
-        else
-          case STATE is
-            when S_IDLE =>
-              if (TIMER_START_IN = 0) then
-                STATE      <= S_IDLE;
-              else
-                timer_ctr  <= TIMER_START_IN;
-                STATE      <= S_COUNT;
-              end if;
-        
-            when S_COUNT =>
-              if (timer_ctr > 0) then
-                timer_ctr  <= timer_ctr - 1;
-                STATE      <= S_COUNT;
-              else
-                STATE      <= S_DONE;
-              end if;
-        
-            when S_DONE =>
-              timer_done_o <= '1';
-              STATE        <= S_IDLE;
-
-          end case;
-        end if;
+        timer_ctr      <= timer_ctr_x;
+        STATE          <= NEXT_STATE;
       end if;
     end if;
+  end process PROC_TIMER_TRANSFER; 
+  
+  PROC_TIMER: process(STATE,
+                      TIMER_START_IN,
+                      timer_ctr
+                      )
+  begin 
+    
+    case STATE is
+      when S_IDLE =>
+        timer_done_o      <= '0';
+        if (TIMER_START_IN > 0) then
+          timer_ctr_x     <= TIMER_START_IN - 1;
+          NEXT_STATE      <= S_COUNT;
+        else
+          timer_ctr_x     <= (others => '0');
+          NEXT_STATE      <= S_IDLE;
+        end if;
+        
+      when S_COUNT =>
+        if (timer_ctr > 0) then
+          timer_ctr_x     <= timer_ctr - 1;
+          timer_done_o    <= '0';
+          NEXT_STATE      <= S_COUNT;
+        else
+          timer_ctr_x     <= (others => '0');
+          timer_done_o    <= '1';
+          NEXT_STATE      <= S_IDLE;
+        end if;
+
+    end case;
+
   end process PROC_TIMER;
   
   -----------------------------------------------------------------------------

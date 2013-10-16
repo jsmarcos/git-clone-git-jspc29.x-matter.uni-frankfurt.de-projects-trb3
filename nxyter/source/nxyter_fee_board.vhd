@@ -18,17 +18,19 @@ entity nXyter_FEE_board is
     BOARD_ID : std_logic_vector(15 downto 0) := x"ffff"
     );
   port (
-    CLK_IN                     : in std_logic;  
-    RESET_IN                   : in std_logic;
-    CLK_NX_IN                  : in std_logic;
-    CLK_ADC_IN                 : in std_logic;
+    CLK_IN                     : in  std_logic;  
+    RESET_IN                   : in  std_logic;
+    CLK_NX_MAIN_IN             : in  std_logic;
+    CLK_ADC_IN                 : in  std_logic;
+    PLL_NX_CLK_LOCK_IN         : in  std_logic;
+    PLL_ADC_CLK_LOCK_IN        : in  std_logic;
     TRIGGER_OUT                : out std_logic;
 
     -- I2C Ports                
-    I2C_SDA_INOUT              : inout std_logic;   -- nXyter I2C fdata line
-    I2C_SCL_INOUT              : inout std_logic;   -- nXyter I2C Clock line
-    I2C_SM_RESET_OUT           : out std_logic;     -- reset nXyter I2C SMachine 
-    I2C_REG_RESET_OUT          : out std_logic;     -- reset I2C registers 
+    I2C_SDA_INOUT              : inout std_logic;  -- nXyter I2C fdata line
+    I2C_SCL_INOUT              : inout std_logic;  -- nXyter I2C Clock line
+    I2C_SM_RESET_OUT           : out std_logic;    -- reset nXyter I2C SMachine 
+    I2C_REG_RESET_OUT          : out std_logic;    -- reset I2C registers 
                                 
     -- ADC SPI                  
     SPI_SCLK_OUT               : out std_logic;
@@ -36,11 +38,12 @@ entity nXyter_FEE_board is
     SPI_CSB_OUT                : out std_logic;    
                                 
     -- nXyter Timestamp Ports
-    NX_CLK128_IN               : in std_logic;
-    NX_TIMESTAMP_IN            : in std_logic_vector (7 downto 0);
+    NX_DATA_CLK_IN             : in  std_logic;
+    NX_TIMESTAMP_IN            : in  std_logic_vector (7 downto 0);
     NX_RESET_OUT               : out std_logic;
     NX_TESTPULSE_OUT           : out std_logic;
-                                
+    NX_TIMESTAMP_TRIGGER_OUT   : out std_logic;
+    
     -- ADC nXyter Pulse Hight Ports
     ADC_FCLK_IN                : in  std_logic_vector(1 downto 0);
     ADC_DCLK_IN                : in  std_logic_vector(1 downto 0);
@@ -52,17 +55,17 @@ entity nXyter_FEE_board is
                                 
     -- Event Buffer
     --LVL1 trigger to FEE
-    LVL1_TRG_DATA_VALID_IN     : in std_logic;
-    LVL1_VALID_TIMING_TRG_IN   : in std_logic;
-    LVL1_VALID_NOTIMING_TRG_IN : in std_logic; -- Status + Info TypE
-    LVL1_INVALID_TRG_IN        : in std_logic;
+    LVL1_TRG_DATA_VALID_IN     : in  std_logic;
+    LVL1_VALID_TIMING_TRG_IN   : in  std_logic;
+    LVL1_VALID_NOTIMING_TRG_IN : in  std_logic; -- Status + Info TypE
+    LVL1_INVALID_TRG_IN        : in  std_logic;
 
-    LVL1_TRG_TYPE_IN           : in std_logic_vector(3 downto 0);
-    LVL1_TRG_NUMBER_IN         : in std_logic_vector(15 downto 0);
-    LVL1_TRG_CODE_IN           : in std_logic_vector(7 downto 0);
-    LVL1_TRG_INFORMATION_IN    : in std_logic_vector(23 downto 0);
-    LVL1_INT_TRG_NUMBER_IN     : in std_logic_vector(15 downto 0);
-
+    LVL1_TRG_TYPE_IN           : in  std_logic_vector(3 downto 0);
+    LVL1_TRG_NUMBER_IN         : in  std_logic_vector(15 downto 0);
+    LVL1_TRG_CODE_IN           : in  std_logic_vector(7 downto 0);
+    LVL1_TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0);
+    LVL1_INT_TRG_NUMBER_IN     : in  std_logic_vector(15 downto 0);
+    
     --Response from FEE        
     FEE_TRG_RELEASE_OUT        : out std_logic;
     FEE_TRG_STATUSBITS_OUT     : out std_logic_vector(31 downto 0);
@@ -72,16 +75,16 @@ entity nXyter_FEE_board is
     FEE_DATA_ALMOST_FULL_IN    : in  std_logic;
 
     -- TRBNet RegIO Port for the slave bus
-    REGIO_ADDR_IN              : in    std_logic_vector(15 downto 0);
-    REGIO_DATA_IN              : in    std_logic_vector(31 downto 0);
-    REGIO_DATA_OUT             : out   std_logic_vector(31 downto 0);
-    REGIO_READ_ENABLE_IN       : in    std_logic;                    
-    REGIO_WRITE_ENABLE_IN      : in    std_logic;
-    REGIO_TIMEOUT_IN           : in    std_logic;
-    REGIO_DATAREADY_OUT        : out   std_logic;
-    REGIO_WRITE_ACK_OUT        : out   std_logic;
-    REGIO_NO_MORE_DATA_OUT     : out   std_logic;
-    REGIO_UNKNOWN_ADDR_OUT     : out   std_logic;
+    REGIO_ADDR_IN              : in  std_logic_vector(15 downto 0);
+    REGIO_DATA_IN              : in  std_logic_vector(31 downto 0);
+    REGIO_DATA_OUT             : out std_logic_vector(31 downto 0);
+    REGIO_READ_ENABLE_IN       : in  std_logic;                    
+    REGIO_WRITE_ENABLE_IN      : in  std_logic;
+    REGIO_TIMEOUT_IN           : in  std_logic;
+    REGIO_DATAREADY_OUT        : out std_logic;
+    REGIO_WRITE_ACK_OUT        : out std_logic;
+    REGIO_NO_MORE_DATA_OUT     : out std_logic;
+    REGIO_UNKNOWN_ADDR_OUT     : out std_logic;
     
     -- Debug Signals
     DEBUG_LINE_OUT             : out   std_logic_vector(15 downto 0)
@@ -95,107 +98,106 @@ architecture Behavioral of nXyter_FEE_board is
 -------------------------------------------------------------------------------
 -- Signals
 -------------------------------------------------------------------------------
-  -- Clock 256
-  signal clk_250_o             : std_logic;
-                               
-  -- Bus Handler
-  constant NUM_PORTS           : integer := 13;
-
-  signal slv_read              : std_logic_vector(NUM_PORTS-1 downto 0);
-  signal slv_write             : std_logic_vector(NUM_PORTS-1 downto 0);
-  signal slv_no_more_data      : std_logic_vector(NUM_PORTS-1 downto 0);
-  signal slv_ack               : std_logic_vector(NUM_PORTS-1 downto 0);
-  signal slv_addr              : std_logic_vector(NUM_PORTS*16-1 downto 0);
-  signal slv_data_rd           : std_logic_vector(NUM_PORTS*32-1 downto 0);
-  signal slv_data_wr           : std_logic_vector(NUM_PORTS*32-1 downto 0);
-  signal slv_unknown_addr      : std_logic_vector(NUM_PORTS-1 downto 0);
-                               
-  -- TRB Register              
-  signal i2c_sm_reset_o        : std_logic;   
-  signal nx_ts_reset_1         : std_logic;
-  signal nx_ts_reset_2         : std_logic;
-  signal nx_ts_reset_o         : std_logic;
-  signal i2c_reg_reset_o       : std_logic;
-                               
-  -- NX Register Access        
-  signal i2c_lock              : std_logic;
-  signal i2c_command           : std_logic_vector(31 downto 0);
-  signal i2c_command_busy      : std_logic;
-  signal i2c_data              : std_logic_vector(31 downto 0);
-  signal spi_lock              : std_logic;
-  signal spi_command           : std_logic_vector(31 downto 0);
-  signal spi_command_busy      : std_logic;
-  signal spi_data              : std_logic_vector(31 downto 0);
-                               
-  -- SPI Interface ADC         
-  signal spi_sdi               : std_logic;
-  signal spi_sdo               : std_logic;        
-                               
-  -- Data Receiver             
-  signal adc_data_valid        : std_logic;
-  signal adc_new_data          : std_logic;
-                               
-  signal new_timestamp         : std_logic_vector(31 downto 0);
-  signal new_adc_data          : std_logic_vector(11 downto 0);
-  signal new_data              : std_logic;
-
-  -- Data Delay
-  signal new_timestamp_delayed : std_logic_vector(31 downto 0);
-  signal new_adc_data_delayed  : std_logic_vector(11 downto 0);
-  signal new_data_delayed      : std_logic;
-  signal new_data_fifo_delay   : std_logic_vector(6 downto 0);
+                                
+  -- Bus Handler                
+  constant NUM_PORTS            : integer := 13;
+                                
+  signal slv_read               : std_logic_vector(NUM_PORTS-1 downto 0);
+  signal slv_write              : std_logic_vector(NUM_PORTS-1 downto 0);
+  signal slv_no_more_data       : std_logic_vector(NUM_PORTS-1 downto 0);
+  signal slv_ack                : std_logic_vector(NUM_PORTS-1 downto 0);
+  signal slv_addr               : std_logic_vector(NUM_PORTS*16-1 downto 0);
+  signal slv_data_rd            : std_logic_vector(NUM_PORTS*32-1 downto 0);
+  signal slv_data_wr            : std_logic_vector(NUM_PORTS*32-1 downto 0);
+  signal slv_unknown_addr       : std_logic_vector(NUM_PORTS-1 downto 0);
+                                
+  -- TRB Register               
+  signal i2c_sm_reset_o         : std_logic;   
+  signal nx_ts_reset_1          : std_logic;
+  signal nx_ts_reset_2          : std_logic;
+  signal nx_ts_reset_o          : std_logic;
+  signal i2c_reg_reset_o        : std_logic;
+                                
+  -- NX Register Access         
+  signal i2c_lock               : std_logic;
+  signal i2c_command            : std_logic_vector(31 downto 0);
+  signal i2c_command_busy       : std_logic;
+  signal i2c_data               : std_logic_vector(31 downto 0);
+  signal spi_lock               : std_logic;
+  signal spi_command            : std_logic_vector(31 downto 0);
+  signal spi_command_busy       : std_logic;
+  signal spi_data               : std_logic_vector(31 downto 0);
+                                
+  -- SPI Interface ADC          
+  signal spi_sdi                : std_logic;
+  signal spi_sdo                : std_logic;        
+                                
+  -- Data Receiver              
+  signal adc_data_valid         : std_logic;
+  signal adc_new_data           : std_logic;
+                                
+  signal new_timestamp          : std_logic_vector(31 downto 0);
+  signal new_adc_data           : std_logic_vector(11 downto 0);
+  signal new_data               : std_logic;
+                                
+  -- Data Delay                 
+  signal new_timestamp_delayed  : std_logic_vector(31 downto 0);
+  signal new_adc_data_delayed   : std_logic_vector(11 downto 0);
+  signal new_data_delayed       : std_logic;
+  signal new_data_fifo_delay    : std_logic_vector(6 downto 0);
 
   -- Data Validate             
-  signal timestamp             : std_logic_vector(13 downto 0);
-  signal timestamp_channel_id  : std_logic_vector(6 downto 0);
-  signal timestamp_status      : std_logic_vector(2 downto 0);
-  signal adc_data              : std_logic_vector(11 downto 0);
-  signal data_valid            : std_logic;
-                               
-  signal nx_token_return       : std_logic;
-  signal nx_nomore_data        : std_logic;
-                               
-  -- Trigger Validate          
-  signal trigger_data          : std_logic_vector(31 downto 0);
-  signal trigger_data_clk      : std_logic;
-  signal event_buffer_clear    : std_logic;
-  signal trigger_validate_busy : std_logic;
-  signal validate_nomore_data  : std_logic;
-  
-  signal trigger_validate_fill : std_logic;
-  signal trigger_validate_bin  : std_logic_vector(6 downto 0);
-  signal trigger_validate_adc  : std_logic_vector(11 downto 0);
-  
-  -- Event Buffer               
-  signal trigger_evt_busy      : std_logic;
-  signal fee_trg_statusbits_o  : std_logic_vector(31 downto 0);
-  signal fee_data_o            : std_logic_vector(31 downto 0);
-  signal fee_data_write_o      : std_logic;
-  signal fee_data_finished_o   : std_logic;
-  signal fee_almost_full_i     : std_logic;
-  
-  -- Trigger Handler
-  signal trigger               : std_logic;
-  signal timestamp_trigger     : std_logic;
-  signal lvl2_trigger          : std_logic;
-  signal trigger_busy          : std_logic;
-  signal fast_clear            : std_logic;
-  signal nxyter_offline        : std_logic;
-  signal fee_trg_release_o     : std_logic;
-  signal trigger_testpulse     : std_logic;
+  signal timestamp              : std_logic_vector(13 downto 0);
+  signal timestamp_channel_id   : std_logic_vector(6 downto 0);
+  signal timestamp_status       : std_logic_vector(2 downto 0);
+  signal adc_data               : std_logic_vector(11 downto 0);
+  signal data_valid             : std_logic;
+                                
+  signal nx_token_return        : std_logic;
+  signal nx_nomore_data         : std_logic;
+                                
+  -- Trigger Validate           
+  signal trigger_data           : std_logic_vector(31 downto 0);
+  signal trigger_data_clk       : std_logic;
+  signal event_buffer_clear     : std_logic;
+  signal trigger_validate_busy  : std_logic;
+  signal validate_nomore_data   : std_logic;
+                                
+  signal trigger_validate_fill  : std_logic;
+  signal trigger_validate_bin   : std_logic_vector(6 downto 0);
+  signal trigger_validate_adc   : std_logic_vector(11 downto 0);
+                                
+  -- Event Buffer                
+  signal trigger_evt_busy       : std_logic;
+  signal fee_trg_statusbits_o   : std_logic_vector(31 downto 0);
+  signal fee_data_o             : std_logic_vector(31 downto 0);
+  signal fee_data_write_o       : std_logic;
+  signal fee_data_finished_o    : std_logic;
+  signal fee_almost_full_i      : std_logic;
+                                
+  -- Trigger Handler            
+  signal trigger                : std_logic;
+  signal timestamp_trigger      : std_logic;
+  signal lvl2_trigger           : std_logic;
+  signal trigger_busy           : std_logic;
+  signal fast_clear             : std_logic;
+  signal nxyter_offline         : std_logic;
+  signal fee_trg_release_o      : std_logic;
+  signal trigger_testpulse      : std_logic;
 
   -- FPGA Timestamp
-  signal timestamp_current     : unsigned(11 downto 0);
-  signal timestamp_hold        : unsigned(11 downto 0);
-  signal nx_timestamp_sync     : std_logic;
+  signal timestamp_current      : unsigned(11 downto 0);
+  signal timestamp_hold         : unsigned(11 downto 0);
+  signal nx_timestamp_sync      : std_logic;
+  signal nx_timestamp_trigger_o : std_logic;
   
   -- Trigger Generator
-  signal trigger_intern        : std_logic;
-  signal nx_testpulse_o        : std_logic;
+  signal trigger_intern         : std_logic;
+  signal nx_testpulse_o         : std_logic;
 
   -- Debug Handler
-  constant DEBUG_NUM_PORTS     : integer := 13;
-  signal debug_line            : debug_array_t(0 to DEBUG_NUM_PORTS-1);
+  constant DEBUG_NUM_PORTS      : integer := 13;
+  signal debug_line             : debug_array_t(0 to DEBUG_NUM_PORTS-1);
   
 begin
 
@@ -276,7 +278,7 @@ begin
       BUS_UNKNOWN_ADDR_IN        => slv_unknown_addr,
 
       -- DEBUG
-      STAT_DEBUG          => open
+      STAT_DEBUG                 => open
       );
 
 
@@ -287,7 +289,15 @@ begin
     port map (
       CLK_IN                 => CLK_IN,
       RESET_IN               => RESET_IN,
-                             
+
+      PLL_NX_CLK_LOCK_IN     => PLL_NX_CLK_LOCK_IN, 
+      PLL_ADC_CLK_LOCK_IN    => PLL_ADC_CLK_LOCK_IN,
+     
+      I2C_SM_RESET_OUT       => i2c_sm_reset_o,
+      I2C_REG_RESET_OUT      => i2c_reg_reset_o,
+      NX_TS_RESET_OUT        => nx_ts_reset_1,
+      OFFLINE_OUT            => nxyter_offline,
+
       SLV_READ_IN            => slv_read(0),
       SLV_WRITE_IN           => slv_write(0),
       SLV_DATA_OUT           => slv_data_rd(0*32+31 downto 0*32),
@@ -296,11 +306,7 @@ begin
       SLV_ACK_OUT            => slv_ack(0),
       SLV_NO_MORE_DATA_OUT   => slv_no_more_data(0),
       SLV_UNKNOWN_ADDR_OUT   => slv_unknown_addr(0),
-      I2C_SM_RESET_OUT       => i2c_sm_reset_o,
-      I2C_REG_RESET_OUT      => i2c_reg_reset_o,
-      NX_TS_RESET_OUT        => nx_ts_reset_1,
-      OFFLINE_OUT            => nxyter_offline,
-  
+
       DEBUG_OUT              => debug_line(0)
       );
 
@@ -391,23 +397,24 @@ begin
   
   nx_fpga_timestamp_1: nx_fpga_timestamp
     port map (
-      CLK_IN                => CLK_IN,
-      RESET_IN              => RESET_IN,
-      NX_CLK_IN             => CLK_NX_IN,
-      TIMESTAMP_SYNC_IN     => nx_ts_reset_o,
-      TRIGGER_IN            => timestamp_trigger,
-      TIMESTAMP_CURRENT_OUT => timestamp_current,
-      TIMESTAMP_HOLD_OUT    => timestamp_hold,
-      NX_TIMESTAMP_SYNC_OUT => nx_timestamp_sync,
-      SLV_READ_IN           => open,
-      SLV_WRITE_IN          => open,
-      SLV_DATA_OUT          => open,
-      SLV_DATA_IN           => open,
-      SLV_ACK_OUT           => open,
-      SLV_NO_MORE_DATA_OUT  => open,
-      SLV_UNKNOWN_ADDR_OUT  => open,
-   
-      DEBUG_OUT             => debug_line(4)
+      CLK_IN                   => CLK_IN,
+      RESET_IN                 => RESET_IN,
+      NX_MAIN_CLK_IN           => CLK_NX_MAIN_IN,
+      TIMESTAMP_SYNC_IN        => nx_ts_reset_o,
+      TRIGGER_IN               => timestamp_trigger,
+      TIMESTAMP_CURRENT_OUT    => timestamp_current,
+      TIMESTAMP_HOLD_OUT       => timestamp_hold,
+      NX_TIMESTAMP_SYNC_OUT    => nx_timestamp_sync,
+      NX_TIMESTAMP_TRIGGER_OUT => nx_timestamp_trigger_o,
+      SLV_READ_IN              => open,
+      SLV_WRITE_IN             => open,
+      SLV_DATA_OUT             => open,
+      SLV_DATA_IN              => open,
+      SLV_ACK_OUT              => open,
+      SLV_NO_MORE_DATA_OUT     => open,
+      SLV_UNKNOWN_ADDR_OUT     => open,
+                               
+      DEBUG_OUT                => debug_line(4)
       );
 
 -------------------------------------------------------------------------------
@@ -492,9 +499,10 @@ begin
     port map (
       CLK_IN               => CLK_IN,
       RESET_IN             => RESET_IN,
+      NX_MAIN_CLK_IN       => CLK_NX_MAIN_IN,
       TRIGGER_IN           => lvl2_trigger,
 
-      NX_TIMESTAMP_CLK_IN  => NX_CLK128_IN,
+      NX_TIMESTAMP_CLK_IN  => NX_DATA_CLK_IN,
       NX_TIMESTAMP_IN      => NX_TIMESTAMP_IN,
       
       ADC_CLK_DAT_IN       => CLK_ADC_IN,
@@ -673,7 +681,7 @@ begin
   nx_histograms_1: nx_histograms
     generic map (
       BUS_WIDTH  => 7,
-      ENABLE     => 1
+      ENABLE     => false
       )
     port map (
       CLK_IN                      => CLK_IN,
@@ -710,6 +718,10 @@ begin
   I2C_SM_RESET_OUT  <= not i2c_sm_reset_o;
   I2C_REG_RESET_OUT <= not i2c_reg_reset_o;
 
+-------------------------------------------------------------------------------
+-- Others
+-------------------------------------------------------------------------------
+  NX_TIMESTAMP_TRIGGER_OUT <= nx_timestamp_trigger_o;
 
 -------------------------------------------------------------------------------
 -- DEBUG Line Select

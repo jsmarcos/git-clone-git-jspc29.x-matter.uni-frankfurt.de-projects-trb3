@@ -7,27 +7,28 @@ use work.nxyter_components.all;
 
 entity nx_fpga_timestamp is
   port (
-    CLK_IN                : in std_logic;
-    RESET_IN              : in  std_logic;
-    NX_CLK_IN             : in  std_logic;      
-    
-    TIMESTAMP_SYNC_IN     : in  std_logic;
-    TRIGGER_IN            : in  std_logic;
-    TIMESTAMP_CURRENT_OUT : out unsigned(11 downto 0);
-    TIMESTAMP_HOLD_OUT    : out unsigned(11 downto 0);
-    NX_TIMESTAMP_SYNC_OUT : out std_logic;
+    CLK_IN                   : in std_logic;
+    RESET_IN                 : in  std_logic;
+    NX_MAIN_CLK_IN           : in  std_logic;      
+                             
+    TIMESTAMP_SYNC_IN        : in  std_logic;
+    TRIGGER_IN               : in  std_logic;
+    TIMESTAMP_CURRENT_OUT    : out unsigned(11 downto 0);
+    TIMESTAMP_HOLD_OUT       : out unsigned(11 downto 0);
+    NX_TIMESTAMP_SYNC_OUT    : out std_logic;
+    NX_TIMESTAMP_TRIGGER_OUT : out std_logic;
 
     -- Slave bus         
-    SLV_READ_IN           : in  std_logic;
-    SLV_WRITE_IN          : in  std_logic;
-    SLV_DATA_OUT          : out std_logic_vector(31 downto 0);
-    SLV_DATA_IN           : in  std_logic_vector(31 downto 0);
-    SLV_ACK_OUT           : out std_logic;
-    SLV_NO_MORE_DATA_OUT  : out std_logic;
-    SLV_UNKNOWN_ADDR_OUT  : out std_logic;
-    
-    -- Debug Line
-    DEBUG_OUT             : out std_logic_vector(15 downto 0)
+    SLV_READ_IN              : in  std_logic;
+    SLV_WRITE_IN             : in  std_logic;
+    SLV_DATA_OUT             : out std_logic_vector(31 downto 0);
+    SLV_DATA_IN              : in  std_logic_vector(31 downto 0);
+    SLV_ACK_OUT              : out std_logic;
+    SLV_NO_MORE_DATA_OUT     : out std_logic;
+    SLV_UNKNOWN_ADDR_OUT     : out std_logic;
+                             
+    -- Debug Line            
+    DEBUG_OUT                : out std_logic_vector(15 downto 0)
     );
 end entity;
 
@@ -72,9 +73,9 @@ begin
   -- NX Clock Domain
   
   -- Cross Clockdomain for TRIGGER and SYNC 
-  PROC_SYNC: process (NX_CLK_IN)
+  PROC_SYNC: process (NX_MAIN_CLK_IN)
   begin
-    if( rising_edge(NX_CLK_IN) ) then
+    if( rising_edge(NX_MAIN_CLK_IN) ) then
       if (RESET_IN = '1') then
         trigger_x        <= '0';
         trigger_l        <= '0';
@@ -92,7 +93,7 @@ begin
   -- Convert TRIGGER_IN to Pulse
   level_to_pulse_1: level_to_pulse
     port map (
-      CLK_IN    => NX_CLK_IN,
+      CLK_IN    => NX_MAIN_CLK_IN,
       RESET_IN  => RESET_IN,
       LEVEL_IN  => trigger_l,
       PULSE_OUT => trigger
@@ -101,7 +102,7 @@ begin
   -- Convert TIMESTAMP_SYNC_IN to Pulse
   level_to_pulse_2: level_to_pulse
     port map (
-      CLK_IN    => NX_CLK_IN,
+      CLK_IN    => NX_MAIN_CLK_IN,
       RESET_IN  => RESET_IN,
       LEVEL_IN  => timestamp_sync_l,
       PULSE_OUT => timestamp_sync
@@ -109,9 +110,9 @@ begin
 
   -- Timestamp Process + Trigger
   
-  PROC_TIMESTAMP_CTR: process (NX_CLK_IN)
+  PROC_TIMESTAMP_CTR: process (NX_MAIN_CLK_IN)
   begin
-    if( rising_edge(NX_CLK_IN) ) then
+    if( rising_edge(NX_MAIN_CLK_IN) ) then
       if( RESET_IN = '1' ) then
         timestamp_ctr         <= (others => '0');
         timestamp_hold        <= (others => '0');
@@ -145,7 +146,7 @@ begin
   fifo_ts_12to12_dc_1: fifo_ts_12to12_dc
     port map (
       Data    => timestamp_hold,
-      WrClock => NX_CLK_IN,
+      WrClock => NX_MAIN_CLK_IN,
       RdClock => CLK_IN,
       WrEn    => fifo_write_enable,
       RdEn    => fifo_read_enable,
@@ -180,8 +181,9 @@ begin
   -- Output Signals
   -----------------------------------------------------------------------------
   
-  TIMESTAMP_CURRENT_OUT  <= timestamp_current_o;
-  TIMESTAMP_HOLD_OUT     <= timestamp_hold_o;
-  NX_TIMESTAMP_SYNC_OUT  <= nx_timestamp_sync_o;
+  TIMESTAMP_CURRENT_OUT     <= timestamp_current_o;
+  TIMESTAMP_HOLD_OUT        <= timestamp_hold_o;
+  NX_TIMESTAMP_SYNC_OUT     <= nx_timestamp_sync_o;
+  NX_TIMESTAMP_TRIGGER_OUT  <= trigger;
 
 end Behavioral;

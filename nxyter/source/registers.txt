@@ -4,8 +4,7 @@
 0x8102 :  w    w: Reset and Sync Timestamps (nXyter and FPGA)
 0x8103 :  r/w  Put nxyter into offline mode 
 0x8104 :  r    PLL Lock nXyter Main Clock (250MHz)
-0x8105 :  r    PLL Lock ADC Clock 1 (31.25MHz)
-0x8106 :  r    PLL Lock ADC Clock 2 (31.25MHz)
+0x8105 :  r    PLL Lock ADC Clock (31.25MHz)
 
 -- NX I2C Setup Handler
 0x8200 : r/w   I2C Memeory Register (Depth: 0 - 45 ... 0x822c) 

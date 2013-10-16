@@ -48,10 +48,11 @@ entity trb3_periph is
     NX1_SPI_SCLK_OUT           : out   std_logic;
     NX1_SPI_SDIO_INOUT         : inout std_logic;
     NX1_SPI_CSB_OUT            : out   std_logic;
-    NX1_CLK128_IN              : in    std_logic;
+    NX1_DATA_CLK_IN            : in    std_logic;
     NX1_TIMESTAMP_IN           : in    std_logic_vector (7 downto 0);
-    NX1_CLK256A_OUT            : out   std_logic;
+    NX1_MAIN_CLK_OUT           : out   std_logic;
     NX1_TESTPULSE_OUT          : out   std_logic;
+    NX1_TS_HOLD_OUT            : out   std_logic;
     NX1_ADC_FCLK_IN            : in    std_logic;
     NX1_ADC_DCLK_IN            : in    std_logic;
     NX1_ADC_SAMPLE_CLK_OUT     : out   std_logic;
@@ -76,10 +77,11 @@ entity trb3_periph is
     NX2_SPI_SCLK_OUT           : out   std_logic;
     NX2_SPI_SDIO_INOUT         : inout std_logic;
     NX2_SPI_CSB_OUT            : out   std_logic;
-    NX2_CLK128_IN              : in    std_logic;
+    NX2_DATA_CLK_IN            : in    std_logic;
     NX2_TIMESTAMP_IN           : in    std_logic_vector (7 downto 0);
-    NX2_CLK256A_OUT            : out   std_logic;
+    NX2_MAIN_CLK_OUT           : out   std_logic;
     NX2_TESTPULSE_OUT          : out   std_logic;
+    NX2_TS_HOLD_OUT            : out   std_logic;
     NX2_ADC_FCLK_IN            : in    std_logic;
     NX2_ADC_DCLK_IN            : in    std_logic;
     NX2_ADC_SAMPLE_CLK_OUT     : out   std_logic;
@@ -157,10 +159,10 @@ end entity;
 
 architecture trb3_periph_arch of trb3_periph is
 
-  -- For 250MHz PLL nxyter clock, THE_250M_ODDR_1
-  -- attribute ODDRAPPS : string;
-  -- attribute ODDRAPPS of THE_250M_ODDR_1 : label is "SCLK_ALIGNED";
-  -- attribute ODDRAPPS of THE_250M_ODDR_2 : label is "SCLK_ALIGNED";
+  -- For 250MHz PLL nxyter clock, THE_32M_ODDR_1
+  attribute ODDRAPPS : string;
+  attribute ODDRAPPS of THE_250M_ODDR_1 : label is "SCLK_ALIGNED";
+  attribute ODDRAPPS of THE_250M_ODDR_2 : label is "SCLK_ALIGNED";
 
   --Constants
   constant REGIO_NUM_STAT_REGS : integer := 5;
@@ -282,12 +284,15 @@ architecture trb3_periph_arch of trb3_periph is
   signal time_counter : unsigned(31 downto 0);
 
   -- nXyter-FEB-Board Clocks
-  signal nx_main_clk                   : std_logic;
+  signal nx_main_clk                 : std_logic;
   signal pll_nx_clk_lock             : std_logic;
   signal clk_adc_dat_1               : std_logic;
   signal clk_adc_dat_2               : std_logic;
   signal pll_adc_clk_lock_1          : std_logic;
   signal pll_adc_clk_lock_2          : std_logic;
+
+  signal nx1_adc_sample_clk          : std_logic;
+  signal nx2_adc_sample_clk          : std_logic;
   
   -- nXyter 1 Regio Bus
   signal nx1_regio_addr_in           : std_logic_vector (15 downto 0);
@@ -302,7 +307,6 @@ architecture trb3_periph_arch of trb3_periph is
   signal nx1_regio_unknown_addr_out  : std_logic;
   
   signal nx1_timestamp_sim_o         : std_logic_vector(7 downto 0);
-  signal nx1_clk128_sim_o            : std_logic;
   signal fee1_trigger                : std_logic;
   
   -- nXyter 2 Regio Bus
@@ -318,7 +322,6 @@ architecture trb3_periph_arch of trb3_periph is
   signal nx2_regio_unknown_addr_out  : std_logic;
            
   signal nx2_timestamp_sim_o         : std_logic_vector(7 downto 0);
-  signal nx2_clk128_sim_o            : std_logic;
   signal fee2_trigger                : std_logic;
 
 begin
@@ -697,10 +700,13 @@ begin
     port map (
       CLK_IN                     => clk_100_i,
       RESET_IN                   => reset_i,
-      CLK_NX_IN                  => nx_main_clk,
+      CLK_NX_MAIN_IN             => nx_main_clk,
       CLK_ADC_IN                 => clk_adc_dat_1,
-      TRIGGER_OUT                => fee1_trigger,                       
+      PLL_NX_CLK_LOCK_IN         => pll_nx_clk_lock,
+      PLL_ADC_CLK_LOCK_IN        => pll_adc_clk_lock_1,
 
+      TRIGGER_OUT                => fee1_trigger,                       
+      
       I2C_SDA_INOUT              => NX1_I2C_SDA_INOUT,
       I2C_SCL_INOUT              => NX1_I2C_SCL_INOUT,
       I2C_SM_RESET_OUT           => NX1_I2C_SM_RESET_OUT,
@@ -710,19 +716,18 @@ begin
       SPI_SDIO_INOUT             => NX1_SPI_SDIO_INOUT,
       SPI_CSB_OUT                => NX1_SPI_CSB_OUT,
                                  
-      NX_CLK128_IN               => NX1_CLK128_IN,
+      NX_DATA_CLK_IN             => NX1_DATA_CLK_IN,
       NX_TIMESTAMP_IN            => NX1_TIMESTAMP_IN,
-      -- NX_CLK128_IN               => nx1_clk128_sim_o,
-      -- NX_TIMESTAMP_IN            => nx1_timestamp_sim_o,
                                  
       NX_RESET_OUT               => NX1_RESET_OUT,
       NX_TESTPULSE_OUT           => NX1_TESTPULSE_OUT,
-           
+      NX_TIMESTAMP_TRIGGER_OUT   => NX1_TS_HOLD_OUT,
+      
       ADC_FCLK_IN(0)             => NX1_ADC_FCLK_IN,
       ADC_FCLK_IN(1)             => NX1B_ADC_FCLK_IN,
       ADC_DCLK_IN(0)             => NX1_ADC_DCLK_IN,
       ADC_DCLK_IN(1)             => NX1B_ADC_DCLK_IN,
-      ADC_SAMPLE_CLK_OUT         => NX1_ADC_SAMPLE_CLK_OUT,
+      ADC_SAMPLE_CLK_OUT         => nx1_adc_sample_clk,
       ADC_A_IN(0)                => NX1_ADC_A_IN,
       ADC_A_IN(1)                => NX1B_ADC_A_IN,
       ADC_B_IN(0)                => NX1_ADC_B_IN,
@@ -775,8 +780,10 @@ begin
     port map (
       CLK_IN                     => clk_100_i,
       RESET_IN                   => reset_i,
-      CLK_NX_IN                  => nx_main_clk,
+      CLK_NX_MAIN_IN             => nx_main_clk,
       CLK_ADC_IN                 => clk_adc_dat_2,
+      PLL_NX_CLK_LOCK_IN         => pll_nx_clk_lock,
+      PLL_ADC_CLK_LOCK_IN        => pll_adc_clk_lock_2,
       TRIGGER_OUT                => fee2_trigger,
       
       I2C_SDA_INOUT              => NX2_I2C_SDA_INOUT,
@@ -788,17 +795,18 @@ begin
       SPI_SDIO_INOUT             => NX2_SPI_SDIO_INOUT,
       SPI_CSB_OUT                => NX2_SPI_CSB_OUT,
       
-      NX_CLK128_IN               => NX2_CLK128_IN,
+      NX_DATA_CLK_IN             => NX2_DATA_CLK_IN,
       NX_TIMESTAMP_IN            => NX2_TIMESTAMP_IN,
                                     
       NX_RESET_OUT               => NX2_RESET_OUT,
       NX_TESTPULSE_OUT           => NX2_TESTPULSE_OUT,
-  
+      NX_TIMESTAMP_TRIGGER_OUT   => NX2_TS_HOLD_OUT,
+
       ADC_FCLK_IN(0)             => NX2_ADC_FCLK_IN,
       ADC_FCLK_IN(1)             => NX2B_ADC_FCLK_IN,
       ADC_DCLK_IN(0)             => NX2_ADC_DCLK_IN,
       ADC_DCLK_IN(1)             => NX2B_ADC_DCLK_IN,
-      ADC_SAMPLE_CLK_OUT         => NX2_ADC_SAMPLE_CLK_OUT,
+      ADC_SAMPLE_CLK_OUT         => nx2_adc_sample_clk,
       ADC_A_IN(0)                => NX2_ADC_A_IN,
       ADC_A_IN(1)                => NX2B_ADC_A_IN,
       ADC_B_IN(0)                => NX2_ADC_B_IN,
@@ -847,7 +855,7 @@ begin
   -- nXyter Main and ADC Clocks
   -----------------------------------------------------------------------------
 
-  -- nXyter Main Clock (250/256 MHz)
+  -- nXyter Main Clock (250MHz)
   pll_nx_clk250_1: entity work.pll_nx_clk250
     port map (
       CLK   => CLK_PCLK_RIGHT,
@@ -855,24 +863,25 @@ begin
       LOCK  => pll_nx_clk_lock
       );
 
-  NX1_CLK256A_OUT <= nx_main_clk;
-  NX2_CLK256A_OUT <= nx_main_clk;
-
-  -- THE_250M_ODDR_1: ODDRXD1
-  --   port map(
-  --     SCLK  => nx_main_clk,
-  --     DA    => '1',
-  --     DB    => '0',
-  --     Q     => NX1_CLK256A_OUT
-  --     );
-  -- 
-  -- THE_250M_ODDR_2: ODDRXD1
-  --   port map(
-  --     SCLK  => nx_main_clk,
-  --     DA    => '1',
-  --     DB    => '0',
-  --     Q     => NX2_CLK256A_OUT
-  --     );
+  --NX1_MAIN_CLK_OUT <= nx_main_clk;
+  --NX2_MAIN_CLK_OUT <= nx_main_clk;
+  
+  -- Drivers for Nxyter Main Clocks
+  THE_250M_ODDR_1: ODDRXD1
+    port map(
+      SCLK  => nx_main_clk,
+      DA    => '1',
+      DB    => '0',
+      Q     => NX1_MAIN_CLK_OUT
+      );
+  
+  THE_250M_ODDR_2: ODDRXD1
+    port map(
+      SCLK  => nx_main_clk,
+      DA    => '1',
+      DB    => '0',
+      Q     => NX2_MAIN_CLK_OUT
+      );
   
   -- ADC Receiver Clock (nXyter Main Clock * 3/4 (187.5), must be 
   -- based on same ClockSource as nXyter Main Clock)
@@ -890,24 +899,16 @@ begin
       LOCK  => pll_adc_clk_lock_2
       );
 
--------------------------------------------------------------------------------
--- Timestamp Simulator
--------------------------------------------------------------------------------
---   nxyter_timestamp_sim_1: nxyter_timestamp_sim
---     port map (
---       CLK_IN        => CLK_GPLL_LEFT,
---       RESET_IN      => reset_i,
---       TIMESTAMP_OUT => nx1_timestamp_sim_o,
---       CLK128_OUT    => nx1_clk128_sim_o
---       );
+  -- ADC Sample Clocks
+  NX1_ADC_SAMPLE_CLK_OUT <= nx1_adc_sample_clk;
+  NX2_ADC_SAMPLE_CLK_OUT <= nx2_adc_sample_clk;
 
-  
 ---------------------------------------------------------------------------
 -- Test Connector - Logic Analyser
 ---------------------------------------------------------------------------
 
  -- TEST_LINE(0)           <= clk_100_i;
- -- TEST_LINE(1)           <= NX1_CLK128_IN;
+ -- TEST_LINE(1)           <= NX1_DATA_CLK_IN;
  -- TEST_LINE(15 downto 2) <= (others => '0');
   
 

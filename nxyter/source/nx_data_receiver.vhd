@@ -12,6 +12,7 @@ entity nx_data_receiver is
   port(
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
+    NX_MAIN_CLK_IN       : in  std_logic;
     TRIGGER_IN           : in  std_logic;
     
     -- nXyter Ports
@@ -52,103 +53,116 @@ end entity;
 architecture Behavioral of nx_data_receiver is
 
   -----------------------------------------------------------------------------
+  -- NX_MAIN_CLK Domain
+  -----------------------------------------------------------------------------
+
+  -- Check Nxyter Data Clock
+  signal nx_data_clock_t           : std_logic;
+  signal nx_data_clock             : std_logic;
+  signal nx_data_clock_last        : std_logic;
+  signal nx_data_clock_nok         : std_logic;
+
+  -- CLK_IN Domain
+  signal nx_data_clock_invalid     : std_logic;
+  
+  -----------------------------------------------------------------------------
   -- NX_TIMESTAMP_CLK Domain
   -----------------------------------------------------------------------------
 
   -- FIFO DC Input Handler
-  signal nx_timestamp_reg_t       : std_logic_vector(7 downto 0);
-  signal nx_timestamp_reg         : std_logic_vector(7 downto 0);
-  signal nx_fifo_full             : std_logic;
-  signal nx_fifo_reset            : std_logic;
-  
-  -- NX_TIMESTAMP_IN Process
-  signal frame_byte_ctr           : unsigned(1 downto 0);
-  signal nx_frame_word            : std_logic_vector(31 downto 0);
-  signal nx_new_frame             : std_logic;
-
-  -- Frame Sync Process                 
-  signal frame_byte_pos           : unsigned(1 downto 0);
-
-  -- RS Sync FlipFlop
-  signal nx_frame_synced          : std_logic;
-  signal rs_sync_set              : std_logic;
-  signal rs_sync_reset            : std_logic;
-
-  -- Parity Check
-  signal parity_error             : std_logic;
-
-  -- Write to FIFO Handler
-  signal nx_fifo_data_input       : std_logic_vector(31 downto 0);
-  signal nx_fifo_write_enable     : std_logic;
-
-  -- NX Clock Active
-  signal nx_clk_active_ff_0       : std_logic;
-  signal nx_clk_active_ff_1       : std_logic;
-  signal nx_clk_active_ff_2       : std_logic;
-
-  -- ADC Ckl Generator
-  signal adc_clk_skip             : std_logic;
-  signal adc_sample_clk           : std_logic;
-  signal johnson_ff_0             : std_logic;
-  signal johnson_ff_1             : std_logic;
-  signal adc_clk_inv              : std_logic;
-  signal adc_clk_delay            : std_logic_vector(2 downto 0);
-  signal adc_clk_ok               : std_logic;
-
-  -- ADC RESET
-  signal adc_clk_ok_last          : std_logic;
-  signal adc_reset_s              : std_logic;
-  signal adc_reset_ctr            : unsigned(11 downto 0);
+  signal nx_timestamp_reg_t        : std_logic_vector(7 downto 0);
+  signal nx_timestamp_reg          : std_logic_vector(7 downto 0);
+  signal nx_fifo_full              : std_logic;
+  signal nx_fifo_reset             : std_logic;
+                                   
+  -- NX_TIMESTAMP_IN Process       
+  signal frame_byte_ctr            : unsigned(1 downto 0);
+  signal nx_frame_word             : std_logic_vector(31 downto 0);
+  signal nx_new_frame              : std_logic;
+                                   
+  -- Frame Sync Process                  
+  signal frame_byte_pos            : unsigned(1 downto 0);
+                                   
+  -- RS Sync FlipFlop              
+  signal nx_frame_synced           : std_logic;
+  signal rs_sync_set               : std_logic;
+  signal rs_sync_reset             : std_logic;
+                                   
+  -- Parity Check                  
+  signal parity_error              : std_logic;
+                                   
+  -- Write to FIFO Handler         
+  signal nx_fifo_data_input        : std_logic_vector(31 downto 0);
+  signal nx_fifo_write_enable      : std_logic;
+                                   
+  -- NX Clock Active               
+  signal nx_clk_active_ff_0        : std_logic;
+  signal nx_clk_active_ff_1        : std_logic;
+  signal nx_clk_active_ff_2        : std_logic;
+                                   
+  -- ADC Ckl Generator             
+  signal adc_clk_skip              : std_logic;
+  signal adc_sample_clk            : std_logic;
+  signal johnson_ff_0              : std_logic;
+  signal johnson_ff_1              : std_logic;
+  signal adc_clk_inv               : std_logic;
+  signal adc_clk_delay             : std_logic_vector(2 downto 0);
+  signal adc_clk_ok                : std_logic;
+                                   
+  -- ADC RESET                     
+  signal adc_clk_ok_last           : std_logic;
+  signal adc_reset_s               : std_logic;
+  signal adc_reset_ctr             : unsigned(11 downto 0);
   
   -----------------------------------------------------------------------------
   -- CLK_IN Domain
   -----------------------------------------------------------------------------
 
   -- NX FIFO READ ENABLE
-  signal nx_fifo_read_enable      : std_logic;
-  signal nx_fifo_empty            : std_logic;
-  signal nx_read_enable           : std_logic;
-  signal nx_fifo_data_valid_t     : std_logic;
-  signal nx_fifo_data_valid       : std_logic;
-  
-  -- NX FIFO READ
-  signal nx_timestamp_t           : std_logic_vector(31 downto 0);
-  signal nx_new_timestamp         : std_logic;
-  signal nx_new_timestamp_ctr     : unsigned(3 downto 0);
-  signal nx_fifo_data             : std_logic_vector(31 downto 0);
-  
-  -- Resync Counter Process                 
-  signal resync_counter           : unsigned(11 downto 0);
-  signal resync_ctr_inc           : std_logic;
-  signal nx_clk_active            : std_logic;
-  
-  -- Parity Error Counter Process                 
-  signal parity_error_counter     : unsigned(11 downto 0);
-  signal parity_error_ctr_inc     : std_logic;
-
-  signal reg_nx_frame_synced_t    : std_logic;
-  signal reg_nx_frame_synced      : std_logic;
+  signal nx_fifo_read_enable       : std_logic;
+  signal nx_fifo_empty             : std_logic;
+  signal nx_read_enable            : std_logic;
+  signal nx_fifo_data_valid_t      : std_logic;
+  signal nx_fifo_data_valid        : std_logic;
+                                   
+  -- NX FIFO READ                  
+  signal nx_timestamp_t            : std_logic_vector(31 downto 0);
+  signal nx_new_timestamp          : std_logic;
+  signal nx_new_timestamp_ctr      : unsigned(3 downto 0);
+  signal nx_fifo_data              : std_logic_vector(31 downto 0);
+                                   
+  -- Resync Counter Process                  
+  signal resync_counter            : unsigned(11 downto 0);
+  signal resync_ctr_inc            : std_logic;
+  signal nx_clk_active             : std_logic;
+                                   
+  -- Parity Error Counter Process                  
+  signal parity_error_counter      : unsigned(11 downto 0);
+  signal parity_error_ctr_inc      : std_logic;
+                                   
+  signal reg_nx_frame_synced_t     : std_logic;
+  signal reg_nx_frame_synced       : std_logic;
 
   -----------------------------------------------------------------------------
   -- ADC Data Handler
   -----------------------------------------------------------------------------
 
   -- ADC Handler
-  signal adc_reset_r              : std_logic;
-  signal adc_reset_l              : std_logic;
-  signal adc_reset                : std_logic;
-                                  
-  signal adc_data                 : std_logic_vector(11 downto 0);
-  signal test_adc_data            : std_logic_vector(11 downto 0);
-  signal adc_data_valid           : std_logic;
-
-  signal adc_data_t               : std_logic_vector(11 downto 0);
-  signal adc_new_data             : std_logic;
-  signal adc_new_data_ctr         : unsigned(3 downto 0);
-
-  -- ADC TEST INPUT DATA
-  signal adc_input_error_enable   : std_logic;
-  signal adc_input_error_ctr      : unsigned(15 downto 0);
+  signal adc_reset_r               : std_logic;
+  signal adc_reset_l               : std_logic;
+  signal adc_reset                 : std_logic;
+                                   
+  signal adc_data                  : std_logic_vector(11 downto 0);
+  signal test_adc_data             : std_logic_vector(11 downto 0);
+  signal adc_data_valid            : std_logic;
+                                   
+  signal adc_data_t                : std_logic_vector(11 downto 0);
+  signal adc_new_data              : std_logic;
+  signal adc_new_data_ctr          : unsigned(3 downto 0);
+                                   
+  -- ADC TEST INPUT DATA           
+  signal adc_input_error_enable    : std_logic;
+  signal adc_input_error_ctr       : unsigned(15 downto 0);
   
   
   -- Data Output Handler
@@ -157,25 +171,25 @@ architecture Behavioral of nx_data_receiver is
                   WAIT_TIMESTAMP
                   );
   signal STATE : STATES;
-  signal STATE_d                  : std_logic_vector(1 downto 0);
-  
-  signal nx_timestamp_o           : std_logic_vector(31 downto 0);
-  signal adc_data_o               : std_logic_vector(11 downto 0);
-  signal new_data_o               : std_logic;
+  signal STATE_d                   : std_logic_vector(1 downto 0);
+                                   
+  signal nx_timestamp_o            : std_logic_vector(31 downto 0);
+  signal adc_data_o                : std_logic_vector(11 downto 0);
+  signal new_data_o                : std_logic;
+                                   
+  -- Slave Bus                     
+  signal slv_data_out_o            : std_logic_vector(31 downto 0);
+  signal slv_no_more_data_o        : std_logic;
+  signal slv_unknown_addr_o        : std_logic;
+  signal slv_ack_o                 : std_logic;
+                                   
+  signal reset_resync_ctr          : std_logic;
+  signal reset_parity_error_ctr    : std_logic;
+  signal fifo_reset_r              : std_logic;
+  signal debug_adc                 : std_logic_vector(1 downto 0);
 
-  -- Slave Bus                    
-  signal slv_data_out_o           : std_logic_vector(31 downto 0);
-  signal slv_no_more_data_o       : std_logic;
-  signal slv_unknown_addr_o       : std_logic;
-  signal slv_ack_o                : std_logic;
-
-  signal reset_resync_ctr         : std_logic;
-  signal reset_parity_error_ctr   : std_logic;
-  signal fifo_reset_r             : std_logic;
-  signal debug_adc                : std_logic_vector(1 downto 0);
-  
 begin
-
+  
   PROC_DEBUG_MULT: process(debug_adc,
                            adc_data,
                            adc_data_valid,
@@ -227,7 +241,13 @@ begin
         DEBUG_OUT(8)            <= adc_reset_s;
         DEBUG_OUT(9)            <= adc_reset;
         DEBUG_OUT(10)           <= nx_new_frame;
-        DEBUG_OUT(15 downto 11) <= adc_reset_ctr(4 downto 0) ;
+        DEBUG_OUT(11)           <= nx_data_clock;
+        DEBUG_OUT(12)           <= nx_data_clock_last;
+        DEBUG_OUT(13)           <= nx_data_clock_nok;
+        DEBUG_OUT(14)           <= nx_data_clock_invalid;
+        DEBUG_OUT(15)           <= '0';
+        
+        --DEBUG_OUT(15 downto 11) <= adc_reset_ctr(4 downto 0) ;
         
       when others => 
         DEBUG_OUT(0)            <= CLK_IN;
@@ -243,6 +263,7 @@ begin
         
         DEBUG_OUT(9)            <= nx_new_timestamp;
         DEBUG_OUT(10)           <= adc_new_data;
+
         DEBUG_OUT(12 downto 11) <= STATE_d;
         DEBUG_OUT(13)           <= new_data_o;
         
@@ -251,6 +272,45 @@ begin
     end case;
 
   end process PROC_DEBUG_MULT;
+  
+  -----------------------------------------------------------------------------
+  -- NX_MAIN_CLK Domain
+  -----------------------------------------------------------------------------
+  PROC_CHECK_NX_DATA_CLOCK: process(NX_MAIN_CLK_IN)
+  begin
+    if (rising_edge(NX_MAIN_CLK_IN)) then
+      if( RESET_IN = '1' ) then
+        nx_data_clock_t        <= '0';
+        nx_data_clock          <= '0';
+        nx_data_clock_last     <= '0';
+        nx_data_clock_nok      <= '0';
+      else
+        if (nx_data_clock /= nx_data_clock_last) then
+          nx_data_clock_nok     <= '0';
+        else
+          nx_data_clock_nok     <= '1';
+        end if;
+
+        nx_data_clock_t        <= NX_TIMESTAMP_CLK_IN;
+        nx_data_clock          <= nx_data_clock_t;
+        nx_data_clock_last     <= nx_data_clock;
+      end if;
+    end if;
+  end process PROC_CHECK_NX_DATA_CLOCK;
+
+  pulse_dtrans_1: pulse_dtrans
+    generic map (
+      CLK_RATIO => 3
+      )
+    port map (
+      CLK_A_IN    => NX_MAIN_CLK_IN,
+      RESET_A_IN  => RESET_IN,
+      PULSE_A_IN  => nx_data_clock_nok,
+      CLK_B_IN    => CLK_IN,
+      RESET_B_IN  => RESET_IN,
+      PULSE_B_OUT => nx_data_clock_invalid
+      );
+
   
   -----------------------------------------------------------------------------
   -- ADC CLK DOMAIN
@@ -296,7 +356,7 @@ begin
 
   pulse_to_level_1: pulse_to_level
     generic map (
-      NUM_CYCLES => "10000"
+      NUM_CYCLES => 7
       )
     port map (
       CLK_IN     => CLK_IN,
@@ -550,6 +610,18 @@ begin
       end if;
     end if;
   end process PROC_RESET_CTR;
+
+  -- PROC_CAL_RATES: process (CLK_IN)
+  -- begin 
+  --   if( rising_edge(CLK_IN) ) then
+  --     if (RESET_IN = '1') then
+  --       nx_trigger_ctr_t     <= (others => '0');
+  --       nx_hit_rate          <= (others => '0');
+  --       nx_frame_rate        <= (others => '0');
+  --     else
+  --     end if;
+  --   end if;
+  -- end process PROC_CAL_RATES;
   
   -----------------------------------------------------------------------------
   -- NX CLK_IN Domain
@@ -597,17 +669,23 @@ begin
   -----------------------------------------------------------------------------
 
   -- Domain Transfers
-  pulse_sync_1: pulse_sync
+  pulse_dtrans_2: pulse_dtrans
+    generic map (
+      CLK_RATIO => 3
+      )
     port map (
       CLK_A_IN    => NX_TIMESTAMP_CLK_IN,
       RESET_A_IN  => RESET_IN,
       PULSE_A_IN  => rs_sync_reset,
       CLK_B_IN    => CLK_IN,
       RESET_B_IN  => RESET_IN,
-      PULSE_B_OUT => resync_ctr_inc 
+      PULSE_B_OUT => resync_ctr_inc
       );
 
-  pulse_sync_2: pulse_sync
+  pulse_dtrans_3: pulse_dtrans
+    generic map (
+      CLK_RATIO => 3
+      )
     port map (
       CLK_A_IN    => NX_TIMESTAMP_CLK_IN,
       RESET_A_IN  => RESET_IN,
@@ -616,7 +694,7 @@ begin
       RESET_B_IN  => RESET_IN,
       PULSE_B_OUT => parity_error_ctr_inc
       );
-
+  
   PROC_SYNC_FRAME_SYNC: process(CLK_IN)
   begin
     if (rising_edge(CLK_IN) ) then
@@ -764,7 +842,7 @@ begin
       end if;
     end if;
   end process PROC_OUTPUT_HANDLER;
-  
+
   -----------------------------------------------------------------------------
   -- TRBNet Slave Bus
   -----------------------------------------------------------------------------
@@ -785,6 +863,9 @@ begin
         adc_reset_r                   <= '0';
         debug_adc                     <= (others => '0');
         adc_input_error_enable        <= '0';
+        -- pll_adc_sample_clk_reset      <= '1';
+        -- pll_adc_sample_clk_dphase     <= (others => '0');
+        -- pll_adc_sample_clk_finedelb   <= (others => '0');
       else                      
         slv_data_out_o                <= (others => '0');
         slv_ack_o                     <= '0';
@@ -794,6 +875,9 @@ begin
         reset_parity_error_ctr        <= '0';
         fifo_reset_r                  <= '0';
         adc_reset_r                   <= '0';
+        -- pll_adc_sample_clk_reset      <= '0';
+        -- pll_adc_sample_clk_dphase     <= (others => '0');
+        -- pll_adc_sample_clk_finedelb   <= (others => '0');
         
         if (SLV_READ_IN  = '1') then
           case SLV_ADDR_IN is
@@ -863,6 +947,21 @@ begin
               slv_data_out_o(15 downto  0)  <= adc_input_error_ctr;
               slv_data_out_o(31 downto 16)  <= (others => '0');
               slv_ack_o                     <= '1';
+
+            -- when x"000b" =>
+            --   slv_data_out_o(0)             <= pll_adc_sample_clk_lock;
+            --   slv_data_out_o(31 downto 1)   <= (others => '0');
+            --   slv_ack_o                     <= '1';  
+            -- 
+            -- when x"000c" =>
+            --   slv_data_out_o(3 downto 0)    <= pll_adc_sample_clk_dphase;
+            --   slv_data_out_o(31 downto 4)   <= (others => '0');
+            --   slv_ack_o                     <= '1';
+            -- 
+            -- when x"000d" =>
+            --   slv_data_out_o(3 downto 0)    <= pll_adc_sample_clk_finedelb;
+            --   slv_data_out_o(31 downto 4)   <= (others => '0');
+            --   slv_ack_o                     <= '1';
               
             when others  =>
               slv_unknown_addr_o            <= '1';
@@ -905,6 +1004,18 @@ begin
               adc_input_error_enable        <= SLV_DATA_IN(0);
               slv_ack_o                     <= '1';
 
+            -- when x"000b" =>
+            --   pll_adc_sample_clk_reset      <= '1';
+            --   slv_ack_o                     <= '1'; 
+            -- 
+            -- when x"000c" =>
+            --   pll_adc_sample_clk_dphase     <= SLV_DATA_IN(3 downto 0);
+            --   slv_ack_o                     <= '1'; 
+            -- 
+            -- when x"000d" =>
+            --   pll_adc_sample_clk_finedelb   <= SLV_DATA_IN(3 downto 0);
+            --   slv_ack_o                     <= '1'; 
+              
             when others  =>
               slv_unknown_addr_o            <= '1';
               

@@ -658,8 +658,10 @@ begin
               slv_ack_o                  <= '1';
 
             when x"0004" =>
-              readout_time_max           <=
-                unsigned(SLV_DATA_IN(11 downto 0));
+              if (unsigned(SLV_DATA_IN(11 downto 0)) >= 1) then
+                readout_time_max           <=
+                  unsigned(SLV_DATA_IN(11 downto 0));
+              end if;
               slv_ack_o                  <= '1';
               
             when others  =>

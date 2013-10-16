@@ -9,7 +9,7 @@ use ieee.numeric_std.all;
 
 entity Gray_Encoder is
   generic (
-    WIDTH : integer := 12              -- Register Width
+    WIDTH : integer range 2 to 32 := 12   -- Register Width
     );             
 
   port (

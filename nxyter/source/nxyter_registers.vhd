@@ -12,9 +12,14 @@ entity nxyter_registers is
                            
     -- Monitor PLL Locks           
     PLL_NX_CLK_LOCK_IN     : in std_logic;
-    PLL_ADC_CLK_LOCK_1_IN  : in std_logic;
-    PLL_ADC_CLK_LOCK_2_IN  : in std_logic;
-                           
+    PLL_ADC_CLK_LOCK_IN    : in std_logic;
+
+    -- Signals             
+    I2C_SM_RESET_OUT       : out std_logic;
+    I2C_REG_RESET_OUT      : out std_logic;
+    NX_TS_RESET_OUT        : out std_logic;
+    OFFLINE_OUT            : out std_logic;
+    
     -- Slave bus           
     SLV_READ_IN            : in  std_logic;
     SLV_WRITE_IN           : in  std_logic;
@@ -24,25 +29,13 @@ entity nxyter_registers is
     SLV_ACK_OUT            : out std_logic;
     SLV_NO_MORE_DATA_OUT   : out std_logic;
     SLV_UNKNOWN_ADDR_OUT   : out std_logic;
-                           
-    -- Signals             
-    I2C_SM_RESET_OUT       : out std_logic;
-    I2C_REG_RESET_OUT      : out std_logic;
-    NX_TS_RESET_OUT        : out std_logic;
-    OFFLINE_OUT            : out std_logic;
-                           
+                               
     DEBUG_OUT              : out std_logic_vector(15 downto 0)
     );
 end entity;
 
 architecture Behavioral of nxyter_registers is
-
-  signal slv_data_out_o     : std_logic_vector(31 downto 0);
-  signal slv_no_more_data_o : std_logic;
-  signal slv_unknown_addr_o : std_logic;
-  signal slv_ack_o          : std_logic;
-
-
+  
   -- I2C Reset
   signal i2c_sm_reset_start  : std_logic;
   signal i2c_reg_reset_start : std_logic;
@@ -64,9 +57,21 @@ architecture Behavioral of nxyter_registers is
   signal STATE : STATES;
   
   -- Wait Timer
-  signal wait_timer_init    : unsigned(7 downto 0);
-  signal wait_timer_done    : std_logic;
-  
+  signal wait_timer_init     : unsigned(7 downto 0);
+  signal wait_timer_done     : std_logic;
+
+  -- PLL Locks
+  signal pll_nx_clk_lock_t   : std_logic;
+  signal pll_nx_clk_lock     : std_logic;
+  signal pll_adc_clk_lock_t  : std_logic;
+  signal pll_adc_clk_lock    : std_logic;
+
+  -- Slave Bus
+  signal slv_data_out_o      : std_logic_vector(31 downto 0);
+  signal slv_no_more_data_o  : std_logic;
+  signal slv_unknown_addr_o  : std_logic;
+  signal slv_ack_o           : std_logic;
+
 begin
 
   DEBUG_OUT(0) <=  CLK_IN;
@@ -154,6 +159,23 @@ begin
     
   end process PROC_I2C_SM_RESET;
 
+  PROC_PLL_LOCKS: process (CLK_IN)
+  begin
+    if( rising_edge(CLK_IN) ) then
+      if( RESET_IN = '1' ) then
+        pll_nx_clk_lock_t      <= '0';
+        pll_nx_clk_lock        <= '0';
+        pll_adc_clk_lock_t     <= '0';
+        pll_adc_clk_lock       <= '0';
+      else
+        pll_nx_clk_lock_t      <= PLL_NX_CLK_LOCK_IN;
+        pll_nx_clk_lock        <= pll_nx_clk_lock_t;
+        pll_adc_clk_lock_t     <= PLL_ADC_CLK_LOCK_IN;
+        pll_adc_clk_lock       <= pll_adc_clk_lock_t;
+      end if;
+    end if;
+  end process PROC_PLL_LOCKS;
+  
   -----------------------------------------------------------------------------
   -- Slave Bus
   -----------------------------------------------------------------------------
@@ -210,20 +232,15 @@ begin
               slv_ack_o                   <= '1';
               
             when x"0004" =>
-              slv_data_out_o(0)           <= PLL_NX_CLK_LOCK_IN;
+              slv_data_out_o(0)           <= pll_nx_clk_lock;
               slv_data_out_o(31 downto 1) <= (others => '0');
               slv_ack_o                   <= '1';
               
             when x"0005" =>
-              slv_data_out_o(0)           <= PLL_ADC_CLK_LOCK_1_IN;
+              slv_data_out_o(0)           <= pll_adc_clk_lock;
               slv_data_out_o(31 downto 1) <= (others => '0');
               slv_ack_o                   <= '1';
               
-            when x"0006" =>
-              slv_data_out_o(0)           <= PLL_ADC_CLK_LOCK_2_IN;
-              slv_data_out_o(31 downto 1) <= (others => '0');
-              slv_ack_o                   <= '1';
-
             when others =>
               slv_unknown_addr_o          <= '1';
               slv_ack_o                   <= '0';

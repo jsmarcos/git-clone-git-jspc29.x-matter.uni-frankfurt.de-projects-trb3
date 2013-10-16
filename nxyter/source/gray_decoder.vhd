@@ -10,7 +10,8 @@ use ieee.numeric_std.all;
 entity Gray_Decoder is
   
   generic (
-    WIDTH : integer := 12);             -- Register Width
+    WIDTH : integer range 2 to 32 := 12    -- Register Width
+    );
 
   port (
     CLK_IN     : in std_logic;

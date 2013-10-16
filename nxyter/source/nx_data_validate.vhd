@@ -87,7 +87,7 @@ architecture Behavioral of nx_data_validate is
   signal slv_unknown_addr_o   : std_logic;
   signal slv_ack_o            : std_logic;
   signal clear_counters       : std_logic;
-  signal nx_trigger_rate      : unsigned(27 downto 0);
+  signal nx_hit_rate          : unsigned(27 downto 0);
   signal nx_frame_rate        : unsigned(27 downto 0);
   
   signal invalid_adc : std_logic;
@@ -285,7 +285,7 @@ begin
         nx_trigger_ctr_t     <= (others => '0');
         nx_frame_ctr_t       <= (others => '0');
         nx_rate_timer        <= (others => '0');
-        nx_trigger_rate      <= (others => '0');
+        nx_hit_rate          <= (others => '0');
         nx_frame_rate        <= (others => '0');
       else
         if (nx_rate_timer < x"5f5e100") then
@@ -297,7 +297,7 @@ begin
           end if;
           nx_rate_timer        <= nx_rate_timer + 1;
         else
-          nx_trigger_rate      <= nx_trigger_ctr_t;
+          nx_hit_rate          <= nx_trigger_ctr_t;
           nx_frame_rate        <= nx_frame_ctr_t;
           if (trigger_rate_inc = '0') then
             nx_trigger_ctr_t   <= (others => '0');
@@ -364,7 +364,7 @@ begin
 
             when x"0004" =>
               slv_data_out_o(27 downto 0)  <=
-                std_logic_vector(nx_trigger_rate);
+                std_logic_vector(nx_hit_rate);
               slv_data_out_o(31 downto 28) <= (others => '0');
               slv_ack_o                    <= '1';
 

@@ -11,20 +11,21 @@ BLOCK RD_DURING_WR_PATHS ;
   # CLK_PCLK_RIGHT : real Oszillator 200MHz
   # CLK_PCLK_RIGHT --> PLL#0 --> clk_100_i     -----> Main Clock all entities
   #
-  # CLK_PCLK_RIGHT --> nx_main_clk 1+2 
-  #                        (250/256 MHz)       -----> nXyter Main Clock 1+2
+  # CLK_PCLK_RIGHT         --> nx_main_clk 1+2 
+  #                            (250 MHz)       -----> nXyter Main Clock 1+2
   #                                            | 
   #                                            |----> FPGA Timestamp Entity 1+2
   #
-  # nXyter Main Clock 1+2 --> nXyter Data Clk  -----> FPGA Data Receiver
-  #                        (* 1/2)             |
+  # nx_main_clk 1+2        --> nXyter Data Clk 
+  #                            (1/2 = 125MHz)  -----> FPGA Data Receiver
+  #                                            |
   #                                            |----> Johnson 1/4 --> ADC SCLK
   #
   # CLK_PCLK_RIGHT (PLL#2) --> clk_adc_dat_1
-  #                        (nx_main_clk * 3/4) -----> ADC Handler 1
+  #                (nx_main_clk * 3/4 = 187.5) -----> ADC Handler 1
   #
   # CLK_PCLK_RIGHT (PLL#3) --> clk_adc_dat_2
-  #                        (nx_main_clk * 3/4) -----> ADC Handler 2
+  #                (nx_main_clk * 3/4 = 187.5) -----> ADC Handler 2
 
   # Speed for the configuration Flash access
   SYSCONFIG MCCLK_FREQ = 20;
@@ -35,8 +36,8 @@ BLOCK RD_DURING_WR_PATHS ;
   #FREQUENCY PORT CLK_GPLL_RIGHT 200 MHz;
 
   FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
-  FREQUENCY PORT NX1_CLK128_IN 125 MHz;
-  FREQUENCY PORT NX2_CLK128_IN 125 MHz;
+  FREQUENCY PORT NX1_DATA_CLK_IN 125 MHz;
+  FREQUENCY PORT NX2_DATA_CLK_IN 125 MHz;
   
   USE PRIMARY NET "nx_main_clk"; 
   USE PRIMARY NET "clk_100_i_c";
@@ -79,14 +80,14 @@ MULTICYCLE TO CELL "nXyter_FEE_board_1/nx_fpga_timestamp_1/trigger_x" 5 ns;
 
 # look at .par and .twr.setup file for clocks 
 # and .mrp or errors
-PROHIBIT PRIMARY   NET "NX1_CLK128_IN_c";
-PROHIBIT SECONDARY NET "NX1_CLK128_IN_c";
+PROHIBIT PRIMARY   NET "NX1_DATA_CLK_IN_c";
+PROHIBIT SECONDARY NET "NX1_DATA_CLK_IN_c";
 
-PROHIBIT PRIMARY   NET "NX2_CLK128_IN_c";
-PROHIBIT SECONDARY NET "NX2_CLK128_IN_c";
+PROHIBIT PRIMARY   NET "NX2_DATA_CLK_IN_c";
+PROHIBIT SECONDARY NET "NX2_DATA_CLK_IN_c";
 
 DEFINE PORT GROUP "NX1_IN" "NX1_TIMESTAMP_*";
-INPUT_SETUP GROUP "NX1_IN" 3.0 ns HOLD 3.0 ns CLKPORT="NX1_CLK128_IN"; 
+INPUT_SETUP GROUP "NX1_IN" 3.0 ns HOLD 3.0 ns CLKPORT="NX1_DATA_CLK_IN"; 
 
 DEFINE PORT GROUP "NX2_IN" "NX2_TIMESTAMP_*";
-INPUT_SETUP GROUP "NX2_IN" 3.0 ns HOLD 3.0 ns CLKPORT="NX2_CLK128_IN"; 
+INPUT_SETUP GROUP "NX2_IN" 3.0 ns HOLD 3.0 ns CLKPORT="NX2_DATA_CLK_IN"; 
