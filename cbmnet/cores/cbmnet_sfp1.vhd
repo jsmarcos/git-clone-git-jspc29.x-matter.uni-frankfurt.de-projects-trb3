@@ -1544,10 +1544,10 @@ entity cbmnet_sfp1 is
     tx_full_clk_ch0   :   out std_logic;
     tx_half_clk_ch0   :   out std_logic;
     fpga_rxrefclk_ch0    :   in std_logic;
-    txdata_ch0    :   in std_logic_vector (15 downto 0);
-    tx_k_ch0    :   in std_logic_vector (1 downto 0);
-    tx_force_disp_ch0    :   in std_logic_vector (1 downto 0);
-    tx_disp_sel_ch0    :   in std_logic_vector (1 downto 0);
+    txdata_ch0    :   in std_logic_vector (7 downto 0);
+    tx_k_ch0    :   in std_logic;
+    tx_force_disp_ch0    :   in std_logic;
+    tx_disp_sel_ch0    :   in std_logic;
     rxdata_ch0   :   out std_logic_vector (7 downto 0);
     rx_k_ch0   :   out std_logic;
     rx_disp_err_ch0   :   out std_logic;
@@ -2213,21 +2213,21 @@ port map  (
   FF_TX_D_0_5 => txdata_ch0(5),
   FF_TX_D_0_6 => txdata_ch0(6),
   FF_TX_D_0_7 => txdata_ch0(7),
-  FF_TX_D_0_8 => tx_k_ch0(0),
-  FF_TX_D_0_9 => tx_force_disp_ch0(0),
-  FF_TX_D_0_10 => tx_disp_sel_ch0(0),
+  FF_TX_D_0_8 => tx_k_ch0,
+  FF_TX_D_0_9 => tx_force_disp_ch0,
+  FF_TX_D_0_10 => tx_disp_sel_ch0,
   FF_TX_D_0_11 => fpsc_vlo,
-  FF_TX_D_0_12 => txdata_ch0(8),
-  FF_TX_D_0_13 => txdata_ch0(9),
-  FF_TX_D_0_14 => txdata_ch0(10),
-  FF_TX_D_0_15 => txdata_ch0(11),
-  FF_TX_D_0_16 => txdata_ch0(12),
-  FF_TX_D_0_17 => txdata_ch0(13),
-  FF_TX_D_0_18 => txdata_ch0(14),
-  FF_TX_D_0_19 => txdata_ch0(15),
-  FF_TX_D_0_20 => tx_k_ch0(1),
-  FF_TX_D_0_21 => tx_force_disp_ch0(1),
-  FF_TX_D_0_22 => tx_disp_sel_ch0(1),
+  FF_TX_D_0_12 => fpsc_vlo,
+  FF_TX_D_0_13 => fpsc_vlo,
+  FF_TX_D_0_14 => fpsc_vlo,
+  FF_TX_D_0_15 => fpsc_vlo,
+  FF_TX_D_0_16 => fpsc_vlo,
+  FF_TX_D_0_17 => fpsc_vlo,
+  FF_TX_D_0_18 => fpsc_vlo,
+  FF_TX_D_0_19 => fpsc_vlo,
+  FF_TX_D_0_20 => fpsc_vlo,
+  FF_TX_D_0_21 => fpsc_vlo,
+  FF_TX_D_0_22 => fpsc_vlo,
   FF_TX_D_0_23 => fpsc_vlo,
   FF_RX_D_0_0 => rxdata_ch0(0),
   FF_RX_D_0_1 => rxdata_ch0(1),

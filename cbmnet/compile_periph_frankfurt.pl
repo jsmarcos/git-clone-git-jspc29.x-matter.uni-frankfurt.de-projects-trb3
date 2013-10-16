@@ -31,7 +31,7 @@ if ($build_master and $build_slave) {
    system "xterm -e './compile_periph_frankfurt.pl s; read' &";
    sleep 5;
    system "xterm -e './compile_periph_frankfurt.pl w; read' &";      
-   exit;
+   wait;
 }
 
 
@@ -138,7 +138,7 @@ execute($c);
 $c=qq|$lattice_path/ispfpga/bin/lin/edfupdate   -t "$TOPNAME.tcy" -w "$TOPNAME.ngo" -m "$TOPNAME.ngo" "$TOPNAME.ngx"|;
 execute($c);
 
-$c=qq|$lattice_path/ispfpga/bin/lin/ngdbuild  -a $FAMILYNAME -d $DEVICENAME -p "$lattice_path/ispfpga/ep5c00/data" -dt "$TOPNAME.ngo" "$TOPNAME.ngd"|;
+$c=qq'$lattice_path/ispfpga/bin/lin/ngdbuild  -a $FAMILYNAME -d $DEVICENAME -p "$lattice_path/ispfpga/ep5c00/data" -dt "$TOPNAME.ngo" "$TOPNAME.ngd" | grep -v -e "^WARNING.*has no load"';
 execute($c);
 
 my $tpmap = $TOPNAME . "_map" ;

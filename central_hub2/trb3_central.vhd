@@ -10,8 +10,15 @@ use work.trb_net16_hub_func.all;
 use work.version.all;
 
 
+-- In full uplink mode:
+-- connect CTS to SFP1 (TRB3 sends slow-control to CTS)
+-- connect Slow-Control Master to SFP2 (TRB3 sends no triggers here)
+-- use SFP3/4 as normal downlink (no GbE, hence subevent data is discarded!) 
 
 entity trb3_central is
+  generic(
+    FULL_UPLINK : integer := c_YES
+    );
   port(
     --Clocks
     CLK_EXT                        : in  std_logic_vector(4 downto 3); --from RJ45
@@ -120,7 +127,7 @@ entity trb3_central is
     --important signals _with_ IO-FF
     attribute syn_useioff of FLASH_CLK          : signal is true;
     attribute syn_useioff of FLASH_CS           : signal is true;
-    attribute syn_useioff of FLASH_CIN          : signal is true;
+    attribute syn_useioff of FLASH_DIN          : signal is true;
     attribute syn_useioff of FLASH_DOUT         : signal is true;
     attribute syn_useioff of FPGA1_COMM         : signal is true;
     attribute syn_useioff of FPGA2_COMM         : signal is true;
@@ -134,6 +141,8 @@ architecture trb3_central_arch of trb3_central is
   attribute syn_keep : boolean;
   attribute syn_preserve : boolean;
   
+  constant NUM_PORTS : integer := 5 + FULL_UPLINK*3;
+  
   signal clk_100_i   : std_logic; --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i   : std_logic; --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
   signal pll_lock    : std_logic; --Internal PLL locked. E.g. used to reset all internal logic.
@@ -143,22 +152,20 @@ architecture trb3_central_arch of trb3_central is
   attribute syn_keep of GSR_N : signal is true;
   attribute syn_preserve of GSR_N : signal is true;
   
-  --FPGA Test
-  signal time_counter : unsigned(31 downto 0);
   
   --Media Interface
-  signal med_stat_op             : std_logic_vector (5*16-1  downto 0);
-  signal med_ctrl_op             : std_logic_vector (5*16-1  downto 0);
-  signal med_stat_debug          : std_logic_vector (5*64-1  downto 0);
-  signal med_ctrl_debug          : std_logic_vector (5*64-1  downto 0);
-  signal med_data_out            : std_logic_vector (5*16-1  downto 0);
-  signal med_packet_num_out      : std_logic_vector (5*3-1   downto 0);
-  signal med_dataready_out       : std_logic_vector (5*1-1   downto 0);
-  signal med_read_out            : std_logic_vector (5*1-1   downto 0);
-  signal med_data_in             : std_logic_vector (5*16-1  downto 0);
-  signal med_packet_num_in       : std_logic_vector (5*3-1   downto 0);
-  signal med_dataready_in        : std_logic_vector (5*1-1   downto 0);
-  signal med_read_in             : std_logic_vector (5*1-1   downto 0);
+  signal med_stat_op             : std_logic_vector (NUM_PORTS*16-1  downto 0);
+  signal med_ctrl_op             : std_logic_vector (NUM_PORTS*16-1  downto 0);
+  signal med_stat_debug          : std_logic_vector (NUM_PORTS*64-1  downto 0);
+  signal med_ctrl_debug          : std_logic_vector (NUM_PORTS*64-1  downto 0);
+  signal med_data_out            : std_logic_vector (NUM_PORTS*16-1  downto 0);
+  signal med_packet_num_out      : std_logic_vector (NUM_PORTS*3-1   downto 0);
+  signal med_dataready_out       : std_logic_vector (NUM_PORTS*1-1   downto 0);
+  signal med_read_out            : std_logic_vector (NUM_PORTS*1-1   downto 0);
+  signal med_data_in             : std_logic_vector (NUM_PORTS*16-1  downto 0);
+  signal med_packet_num_in       : std_logic_vector (NUM_PORTS*3-1   downto 0);
+  signal med_dataready_in        : std_logic_vector (NUM_PORTS*1-1   downto 0);
+  signal med_read_in             : std_logic_vector (NUM_PORTS*1-1   downto 0);
   
   --Hub
   signal common_stat_regs        : std_logic_vector (std_COMSTATREG*32-1 downto 0);
@@ -175,25 +182,23 @@ architecture trb3_central_arch of trb3_central is
   signal regio_unknown_addr_in   : std_logic;
   signal regio_timeout_out       : std_logic;
   
-  signal spictrl_read_en         : std_logic;
-  signal spictrl_write_en        : std_logic;
-  signal spictrl_data_in         : std_logic_vector(31 downto 0);
-  signal spictrl_addr            : std_logic;
-  signal spictrl_data_out        : std_logic_vector(31 downto 0);
-  signal spictrl_ack             : std_logic;
-  signal spictrl_busy            : std_logic;
   signal spimem_read_en          : std_logic;
   signal spimem_write_en         : std_logic;
   signal spimem_data_in          : std_logic_vector(31 downto 0);
-  signal spimem_addr             : std_logic_vector(5 downto 0);
+  signal spimem_addr             : std_logic_vector(8 downto 0);
   signal spimem_data_out         : std_logic_vector(31 downto 0);
-  signal spimem_ack              : std_logic;
-
-  signal spi_bram_addr           : std_logic_vector(7 downto 0);
-  signal spi_bram_wr_d           : std_logic_vector(7 downto 0);
-  signal spi_bram_rd_d           : std_logic_vector(7 downto 0);
-  signal spi_bram_we             : std_logic;
-
+  signal spimem_dataready_out    : std_logic;
+  signal spimem_no_more_data_out : std_logic;
+  signal spimem_unknown_addr_out : std_logic;
+  signal spimem_write_ack_out    : std_logic;
+  
+  signal sci1_ack      : std_logic;
+  signal sci1_write    : std_logic;
+  signal sci1_read     : std_logic;
+  signal sci1_data_in  : std_logic_vector(7 downto 0);
+  signal sci1_data_out : std_logic_vector(7 downto 0);
+  signal sci1_addr     : std_logic_vector(8 downto 0);  
+  
 
 begin
 
@@ -235,48 +240,108 @@ THE_MAIN_PLL : pll_in200_out100
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (Uplink)
 ---------------------------------------------------------------------------
-THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
-  generic map(
-    SERDES_NUM  => 0,     --number of serdes in quad
-    EXT_CLOCK   => c_NO,  --use internal clock
-    USE_200_MHZ => c_YES,  --run on 200 MHz clock
-    USE_CTC     => c_YES
-    )
-  port map(
-    CLK                => clk_200_i,
-    SYSCLK             => clk_100_i,
-    RESET              => reset_i,
-    CLEAR              => clear_i,
-    CLK_EN             => '1',
-    --Internal Connection
-    MED_DATA_IN        => med_data_out(79 downto 64),
-    MED_PACKET_NUM_IN  => med_packet_num_out(14 downto 12),
-    MED_DATAREADY_IN   => med_dataready_out(4),
-    MED_READ_OUT       => med_read_in(4),
-    MED_DATA_OUT       => med_data_in(79 downto 64),
-    MED_PACKET_NUM_OUT => med_packet_num_in(14 downto 12),
-    MED_DATAREADY_OUT  => med_dataready_in(4),
-    MED_READ_IN        => med_read_out(4),
-    REFCLK2CORE_OUT    => open,
-    --SFP Connection
-    SD_RXD_P_IN        => SFP_RX_P(1),
-    SD_RXD_N_IN        => SFP_RX_N(1),
-    SD_TXD_P_OUT       => SFP_TX_P(1),
-    SD_TXD_N_OUT       => SFP_TX_N(1),
-    SD_REFCLK_P_IN     => open,
-    SD_REFCLK_N_IN     => open,
-    SD_PRSNT_N_IN      => SFP_MOD0(1),
-    SD_LOS_IN          => SFP_LOS(1),
-    SD_TXDIS_OUT       => SFP_TXDIS(1),
-    -- Status and control port
-    STAT_OP            => med_stat_op(79 downto 64),
-    CTRL_OP            => med_ctrl_op(79 downto 64),
-    STAT_DEBUG         => med_stat_debug(4*64+63 downto 4*64),
-    CTRL_DEBUG         => (others => '0')
-   );
+gen_single : if FULL_UPLINK = c_NO generate
+  THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
+    generic map(
+      SERDES_NUM  => 0,     --number of serdes in quad
+      EXT_CLOCK   => c_NO,  --use internal clock
+      USE_200_MHZ => c_YES,  --run on 200 MHz clock
+      USE_CTC     => c_YES
+      )
+    port map(
+      CLK                => clk_200_i,
+      SYSCLK             => clk_100_i,
+      RESET              => reset_i,
+      CLEAR              => clear_i,
+      CLK_EN             => '1',
+      --Internal Connection
+      MED_DATA_IN        => med_data_out(79 downto 64),
+      MED_PACKET_NUM_IN  => med_packet_num_out(14 downto 12),
+      MED_DATAREADY_IN   => med_dataready_out(4),
+      MED_READ_OUT       => med_read_in(4),
+      MED_DATA_OUT       => med_data_in(79 downto 64),
+      MED_PACKET_NUM_OUT => med_packet_num_in(14 downto 12),
+      MED_DATAREADY_OUT  => med_dataready_in(4),
+      MED_READ_IN        => med_read_out(4),
+      REFCLK2CORE_OUT    => open,
+      --SFP Connection
+      SD_RXD_P_IN        => SFP_RX_P(1),
+      SD_RXD_N_IN        => SFP_RX_N(1),
+      SD_TXD_P_OUT       => SFP_TX_P(1),
+      SD_TXD_N_OUT       => SFP_TX_N(1),
+      SD_REFCLK_P_IN     => open,
+      SD_REFCLK_N_IN     => open,
+      SD_PRSNT_N_IN      => SFP_MOD0(1),
+      SD_LOS_IN          => SFP_LOS(1),
+      SD_TXDIS_OUT       => SFP_TXDIS(1),
+      
+        
+      SCI_DATA_IN        => sci1_data_in,
+      SCI_DATA_OUT       => sci1_data_out,
+      SCI_ADDR           => sci1_addr,
+      SCI_READ           => sci1_read,
+      SCI_WRITE          => sci1_write,
+      SCI_ACK            => sci1_ack,     
+      -- Status and control port
+      STAT_OP            => med_stat_op(79 downto 64),
+      CTRL_OP            => med_ctrl_op(79 downto 64),
+      STAT_DEBUG         => med_stat_debug(4*64+63 downto 4*64),
+      CTRL_DEBUG         => (others => '0')
+    );
+  SFP_TXDIS(8 downto 2) <= (others => '1');
+end generate;
 
+gen_full : if FULL_UPLINK = c_YES generate
+  THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp_4
+    generic map(
+      REVERSE_ORDER => c_NO,              --order of ports
+      FREQUENCY     => 200                --run on 200 MHz clock
+      )
+    port map(
+      CLK                => clk_200_i,
+      SYSCLK             => clk_100_i,
+      RESET              => reset_i,
+      CLEAR              => clear_i,
+      CLK_EN             => '1',
+      --Internal Connection
+      MED_DATA_IN => med_data_out(127 downto 64),
+      MED_PACKET_NUM_IN   => med_packet_num_out(23 downto 12),
+      MED_DATAREADY_IN    => med_dataready_out(7 downto 4),
+      MED_READ_OUT        => med_read_in(7 downto 4),
+      MED_DATA_OUT        => med_data_in(127 downto 64),
+      MED_PACKET_NUM_OUT  => med_packet_num_in(23 downto 12),
+      MED_DATAREADY_OUT   => med_dataready_in(7 downto 4),
+      MED_READ_IN         => med_read_out(7 downto 4),
 
-SFP_TXDIS(8 downto 2) <= (others => '1');
+      REFCLK2CORE_OUT    => open,
+      --SFP Connection
+      SD_RXD_P_IN        => SFP_RX_P(8 downto 5),
+      SD_RXD_N_IN        => SFP_RX_N(8 downto 5),
+      SD_TXD_P_OUT       => SFP_TX_P(8 downto 5),
+      SD_TXD_N_OUT       => SFP_TX_N(8 downto 5),
+      SD_REFCLK_P_IN     => open,
+      SD_REFCLK_N_IN     => open,
+      SD_PRSNT_N_IN      => SFP_MOD0(4 downto 1),
+      SD_LOS_IN          => SFP_LOS(4 downto 1),
+      SD_TXDIS_OUT       => SFP_TXDIS(4 downto 1),
+      
+      SCI_DATA_IN       => sci1_data_in,
+      SCI_DATA_OUT      => sci1_data_out,
+      SCI_ADDR          => sci1_addr,
+      SCI_READ          => sci1_read,
+      SCI_WRITE         => sci1_write,
+      SCI_ACK           => sci1_ack,
+      -- Status and control port
+      
+      STAT_OP => med_stat_op(7*16+15 downto 4*16),
+      CTRL_OP => med_ctrl_op(7*16+15 downto 4*16),
+      
+      STAT_DEBUG         => open,
+      CTRL_DEBUG         => (others => '0')
+      );
+  SFP_TXDIS(7 downto 5) <= (others => '1');      
+end generate; 
+
 
 
 ---------------------------------------------------------------------------
@@ -326,7 +391,6 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
    );
 
 
-
 ---------------------------------------------------------------------------
 -- The TrbNet Hub
 ---------------------------------------------------------------------------
@@ -335,12 +399,12 @@ THE_HUB : trb_net16_hub_base
   generic map (
     HUB_USED_CHANNELS => (c_YES,c_YES,c_NO,c_YES),
     IBUF_SECURE_MODE  => c_YES,
-    MII_NUMBER        => 5,
-    MII_IS_UPLINK     => (4 => 1, others => 0),
-    MII_IS_DOWNLINK   => (4 => 0, others => 1),
-    MII_IS_UPLINK_ONLY=> (4 => 1, others => 0),
+    MII_NUMBER        => NUM_PORTS,
+    MII_IS_UPLINK     => (0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0),
+    MII_IS_DOWNLINK   => (1,1,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0),
+    MII_IS_UPLINK_ONLY=> (0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0),
     INT_NUMBER        => 0,
-    INT_CHANNELS      => (0,1,3,3,3,3,3,3),
+    INT_CHANNELS      => (others => 0),
     USE_ONEWIRE       => c_YES,
     COMPILE_TIME      => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME,32)),
     HARDWARE_VERSION  => x"90000000",
@@ -354,16 +418,16 @@ THE_HUB : trb_net16_hub_base
     CLK_EN => '1',
 
     --Media interfacces
-    MED_DATAREADY_OUT(5*1-1 downto 0)   => med_dataready_out,
-    MED_DATA_OUT(5*16-1 downto 0)       => med_data_out,
-    MED_PACKET_NUM_OUT(5*3-1 downto 0)  => med_packet_num_out,
-    MED_READ_IN(5*1-1 downto 0)         => med_read_in,
-    MED_DATAREADY_IN(5*1-1 downto 0)    => med_dataready_in,
-    MED_DATA_IN(5*16-1 downto 0)        => med_data_in,
-    MED_PACKET_NUM_IN(5*3-1 downto 0)   => med_packet_num_in,
-    MED_READ_OUT(5*1-1 downto 0)        => med_read_out,
-    MED_STAT_OP(5*16-1 downto 0)        => med_stat_op,
-    MED_CTRL_OP(5*16-1 downto 0)        => med_ctrl_op,
+    MED_DATAREADY_OUT(NUM_PORTS*1-1 downto 0)   => med_dataready_out,
+    MED_DATA_OUT(NUM_PORTS*16-1 downto 0)       => med_data_out,
+    MED_PACKET_NUM_OUT(NUM_PORTS*3-1 downto 0)  => med_packet_num_out,
+    MED_READ_IN(NUM_PORTS*1-1 downto 0)         => med_read_in,
+    MED_DATAREADY_IN(NUM_PORTS*1-1 downto 0)    => med_dataready_in,
+    MED_DATA_IN(NUM_PORTS*16-1 downto 0)        => med_data_in,
+    MED_PACKET_NUM_IN(NUM_PORTS*3-1 downto 0)   => med_packet_num_in,
+    MED_READ_OUT(NUM_PORTS*1-1 downto 0)        => med_read_out,
+    MED_STAT_OP(NUM_PORTS*16-1 downto 0)        => med_stat_op,
+    MED_CTRL_OP(NUM_PORTS*16-1 downto 0)        => med_ctrl_op,
 
     COMMON_STAT_REGS                => common_stat_regs,
     COMMON_CTRL_REGS                => common_ctrl_regs,
@@ -395,8 +459,8 @@ THE_HUB : trb_net16_hub_base
 THE_BUS_HANDLER : trb_net16_regio_bus_handler
   generic map(
     PORT_NUMBER    => 2,
-    PORT_ADDRESSES => (0 => x"d000", 1 => x"d100",  others => x"0000"),
-    PORT_ADDR_MASK => (0 => 1,       1 => 6,        others => 0)
+    PORT_ADDRESSES => (0 => x"d000", 1 => x"b000", others => x"0000"),
+    PORT_ADDR_MASK => (0 => 9,       1 => 9,       others => 0)
     )
   port map(
     CLK                   => clk_100_i,
@@ -413,95 +477,63 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
     DAT_NO_MORE_DATA_OUT  => regio_no_more_data_in,
     DAT_UNKNOWN_ADDR_OUT  => regio_unknown_addr_in,
 
-  --Bus Handler (SPI CTRL)
-    BUS_READ_ENABLE_OUT(0)              => spictrl_read_en,
-    BUS_WRITE_ENABLE_OUT(0)             => spictrl_write_en,
-    BUS_DATA_OUT(0*32+31 downto 0*32)   => spictrl_data_in,
-    BUS_ADDR_OUT(0*16)                  => spictrl_addr,
-    BUS_ADDR_OUT(0*16+15 downto 0*16+1) => open,
-    BUS_TIMEOUT_OUT(0)                  => open,
-    BUS_DATA_IN(0*32+31 downto 0*32)    => spictrl_data_out,
-    BUS_DATAREADY_IN(0)                 => spictrl_ack,
-    BUS_WRITE_ACK_IN(0)                 => spictrl_ack,
-    BUS_NO_MORE_DATA_IN(0)              => spictrl_busy,
-    BUS_UNKNOWN_ADDR_IN(0)              => '0',
   --Bus Handler (SPI Memory)
-    BUS_READ_ENABLE_OUT(1)              => spimem_read_en,
-    BUS_WRITE_ENABLE_OUT(1)             => spimem_write_en,
-    BUS_DATA_OUT(1*32+31 downto 1*32)   => spimem_data_in,
-    BUS_ADDR_OUT(1*16+5 downto 1*16)    => spimem_addr,
-    BUS_ADDR_OUT(1*16+15 downto 1*16+6) => open,
+    BUS_READ_ENABLE_OUT(0)              => spimem_read_en,
+    BUS_WRITE_ENABLE_OUT(0)             => spimem_write_en,
+    BUS_DATA_OUT(0*32+31 downto 0*32)   => spimem_data_in,
+    BUS_ADDR_OUT(0*16+8 downto 0*16)    => spimem_addr,
+    BUS_ADDR_OUT(0*16+15 downto 0*16+9) => open,
+    BUS_TIMEOUT_OUT(0)                  => open,
+    BUS_DATA_IN(0*32+31 downto 0*32)    => spimem_data_out,
+    BUS_DATAREADY_IN(0)                 => spimem_dataready_out,
+    BUS_WRITE_ACK_IN(0)                 => spimem_write_ack_out,
+    BUS_NO_MORE_DATA_IN(0)              => spimem_no_more_data_out,
+    BUS_UNKNOWN_ADDR_IN(0)              => spimem_unknown_addr_out,
+
+    --SCI first Media Interface
+    BUS_READ_ENABLE_OUT(1)              => sci1_read,
+    BUS_WRITE_ENABLE_OUT(1)             => sci1_write,
+    BUS_DATA_OUT(1*32+7 downto 1*32)    => sci1_data_in,
+    BUS_DATA_OUT(1*32+31 downto 1*32+8) => open,
+    BUS_ADDR_OUT(1*16+8 downto 1*16)    => sci1_addr,
+    BUS_ADDR_OUT(1*16+15 downto 1*16+9) => open,
     BUS_TIMEOUT_OUT(1)                  => open,
-    BUS_DATA_IN(1*32+31 downto 1*32)    => spimem_data_out,
-    BUS_DATAREADY_IN(1)                 => spimem_ack,
-    BUS_WRITE_ACK_IN(1)                 => spimem_ack,
+    BUS_DATA_IN(1*32+7 downto 1*32)     => sci1_data_out,
+    BUS_DATAREADY_IN(1)                 => sci1_ack,
+    BUS_WRITE_ACK_IN(1)                 => sci1_ack,
     BUS_NO_MORE_DATA_IN(1)              => '0',
     BUS_UNKNOWN_ADDR_IN(1)              => '0',
-
+     
     STAT_DEBUG  => open
     );
-
 ---------------------------------------------------------------------------
 -- SPI / Flash
 ---------------------------------------------------------------------------
 
-THE_SPI_MASTER: spi_master
+THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
   port map(
-    CLK_IN         => clk_100_i,
-    RESET_IN       => reset_i,
-    -- Slave bus
-    BUS_READ_IN    => spictrl_read_en,
-    BUS_WRITE_IN   => spictrl_write_en,
-    BUS_BUSY_OUT   => spictrl_busy,
-    BUS_ACK_OUT    => spictrl_ack,
-    BUS_ADDR_IN(0) => spictrl_addr,
-    BUS_DATA_IN    => spictrl_data_in,
-    BUS_DATA_OUT   => spictrl_data_out,
-    -- SPI connections
-    SPI_CS_OUT     => FLASH_CS,
-    SPI_SDI_IN     => FLASH_DOUT,
-    SPI_SDO_OUT    => FLASH_DIN,
-    SPI_SCK_OUT    => FLASH_CLK,
-    -- BRAM for read/write data
-    BRAM_A_OUT     => spi_bram_addr,
-    BRAM_WR_D_IN   => spi_bram_wr_d,
-    BRAM_RD_D_OUT  => spi_bram_rd_d,
-    BRAM_WE_OUT    => spi_bram_we,
-    -- Status lines
-    STAT           => open
+    CLK_IN               => clk_100_i,
+    RESET_IN             => reset_i,
+    
+    BUS_ADDR_IN          => spimem_addr,
+    BUS_READ_IN          => spimem_read_en,
+    BUS_WRITE_IN         => spimem_write_en,
+    BUS_DATAREADY_OUT    => spimem_dataready_out,
+    BUS_WRITE_ACK_OUT    => spimem_write_ack_out,
+    BUS_UNKNOWN_ADDR_OUT => spimem_unknown_addr_out,
+    BUS_NO_MORE_DATA_OUT => spimem_no_more_data_out,
+    BUS_DATA_IN          => spimem_data_in,
+    BUS_DATA_OUT         => spimem_data_out,
+    
+    DO_REBOOT_IN         => common_ctrl_regs(15),     
+    PROGRAMN             => PROGRAMN,
+    
+    SPI_CS_OUT           => FLASH_CS,
+    SPI_SCK_OUT          => FLASH_CLK,
+    SPI_SDO_OUT          => FLASH_DIN,
+    SPI_SDI_IN           => FLASH_DOUT
     );
 
--- data memory for SPI accesses
-THE_SPI_MEMORY: spi_databus_memory
-  port map(
-    CLK_IN        => clk_100_i,
-    RESET_IN      => reset_i,
-    -- Slave bus
-    BUS_ADDR_IN   => spimem_addr,
-    BUS_READ_IN   => spimem_read_en,
-    BUS_WRITE_IN  => spimem_write_en,
-    BUS_ACK_OUT   => spimem_ack,
-    BUS_DATA_IN   => spimem_data_in,
-    BUS_DATA_OUT  => spimem_data_out,
-    -- state machine connections
-    BRAM_ADDR_IN  => spi_bram_addr,
-    BRAM_WR_D_OUT => spi_bram_wr_d,
-    BRAM_RD_D_IN  => spi_bram_rd_d,
-    BRAM_WE_IN    => spi_bram_we,
-    -- Status lines
-    STAT          => open
-    );
-    
----------------------------------------------------------------------------
--- Reboot FPGA
----------------------------------------------------------------------------
-THE_FPGA_REBOOT : fpga_reboot
-  port map(
-    CLK       => clk_100_i,
-    RESET     => reset_i,
-    DO_REBOOT => common_ctrl_regs(15),
-    PROGRAMN  => PROGRAMN
-    );
 
     
 ---------------------------------------------------------------------------
@@ -567,14 +599,5 @@ THE_FPGA_REBOOT : fpga_reboot
   
   TEST_LINE(31 downto 10) <= (others => '0');
 
-
----------------------------------------------------------------------------
--- Test Circuits
----------------------------------------------------------------------------
-  process
-    begin
-      wait until rising_edge(clk_100_i);
-      time_counter <= time_counter + 1;
-    end process;
 
 end architecture;

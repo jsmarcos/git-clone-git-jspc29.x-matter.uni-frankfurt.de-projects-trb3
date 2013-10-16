@@ -80,8 +80,7 @@ entity trb3_periph_cbmnet is
       SD_TXD_N_OUT    : out std_logic;
       SD_TXD_P_OUT    : out std_logic
    );
-
-
+   
    attribute syn_useioff                  : boolean;
    --no IO-FF for LEDs relaxes timing constraints
    attribute syn_useioff of LED_GREEN     : signal is false;
@@ -108,20 +107,17 @@ entity trb3_periph_cbmnet is
    attribute nopad : string;
    attribute nopad of SD_RXD_N_IN, SD_RXD_P_IN, SD_TXD_N_OUT, SD_TXD_P_OUT : signal is "true";
    
+   attribute syn_keep : boolean;
+   attribute syn_keep of CLK_GPLL_LEFT, CLK_GPLL_RIGHT, CLK_PCLK_LEFT, CLK_PCLK_RIGHT, TRIGGER_LEFT, TRIGGER_RIGHT : signal is true;
    attribute syn_keep     : boolean;
-   attribute syn_keep of  CLK_GPLL_LEFT, CLK_GPLL_RIGHT, CLK_PCLK_LEFT, 
-   CLK_PCLK_RIGHT, TRIGGER_LEFT, TRIGGER_RIGHT : signal is true;
-
-   
+   attribute syn_preserve : boolean;
 end entity;
 
 architecture trb3_periph_arch of trb3_periph_cbmnet is
-   --Constants
+--Constants
    constant REGIO_NUM_STAT_REGS : integer := 2;
    constant REGIO_NUM_CTRL_REGS : integer := 2;
 
-   attribute syn_keep     : boolean;
-   attribute syn_preserve : boolean;
 
    --Clock / Reset
    signal clk_125_i                : std_logic; -- clock reference for CBMNet serdes
@@ -282,12 +278,44 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    signal phy_stat_debug, phy_ctrl_debug : std_logic_vector(63 downto 0) := (others => '0');
    
    signal phy_debug_i : std_logic_vector (127 downto 0) := (others => '0');
-   
-   signal dlm_counter : unsigned(31 downto 0);
 
+-- Link Tester
+   signal link_tester_ctrl_en   :std_logic;
+   signal link_tester_dlm_en    :std_logic;
+   signal link_tester_data_en   :std_logic;
+                                           
+   signal link_tester_data_stop :std_logic;
+   signal link_tester_ctrl_stop :std_logic;
+                                           
+   signal link_tester_data_valid:std_logic;
+   signal link_tester_ctrl_valid:std_logic;
+   signal link_tester_dlm_valid :std_logic;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   
+
+
+   signal link_tester_ctrl : std_logic_vector(31 downto 0) := (others => '0');
+   signal link_tester_stat : std_logic_vector(31 downto 0) := (others => '0');
+   
 begin
    clk_125_i <= CLK_GPLL_LEFT; 
 
+---------------------------------------------------------------------------
+-- CBMNet and PHY
+---------------------------------------------------------------------------   
    THE_CBM_PHY: cbmnet_phy_ecp3
    generic map (IS_SYNC_SLAVE => CBM_FEE_MODE)
    port map (
@@ -331,6 +359,9 @@ begin
    );
 
    SFP_RATESEL   <= (others => '1');
+   
+   TEST_LINE(14 downto 0) <= phy_stat_op(14 downto 0);
+   TEST_LINE(15) <= cbm_dlm2send_va when CBM_FEE_MODE = c_YES else cbm_dlm_rec_va;
 
 
    THE_CBM_ENDPOINT: lp_top 
@@ -356,18 +387,23 @@ begin
       ctrl2send_start => cbm_ctrl2send_start,
       ctrl2send_end => cbm_ctrl2send_end,
       ctrl2send => cbm_ctrl2send,
+      
       data2send_stop => cbm_data2send_stop,
       data2send_start => cbm_data2send_start,
       data2send_end => cbm_data2send_end,
       data2send => cbm_data2send,
+      
       dlm2send_va => cbm_dlm2send_va,
       dlm2send => cbm_dlm2send,
+      
       dlm_rec_type => cbm_dlm_rec_type,
       dlm_rec_va => cbm_dlm_rec_va,
+
       data_rec => cbm_data_rec,
       data_rec_start => cbm_data_rec_start,
       data_rec_end => cbm_data_rec_end,
       data_rec_stop => cbm_data_rec_stop,
+      
       ctrl_rec => cbm_ctrl_rec,
       ctrl_rec_start => cbm_ctrl_rec_start,
       ctrl_rec_end => cbm_ctrl_rec_end,
@@ -376,48 +412,130 @@ begin
    );
    cbm_res_n <= not rreset_i;
 
-   TEST_LINE(7 downto 0)   <= phy_stat_debug(7 downto 0);
-   TEST_LINE(8)            <= cbm_SERDES_ready;
-   TEST_LINE(9)            <= cbm_link_active;
- --TEST_LINE(10) see FEE/MST switch below
-   TEST_LINE(11)           <= rreset_i;
-   TEST_LINE(15 downto 12) <= (others => '0');
+---------------------------------------------------------------------------
+-- CBMNet Link Tester
+---------------------------------------------------------------------------      
+   GEN_LINK_TESTER_BE: if CBM_FEE_MODE = c_NO generate
+      THE_LINK_TESTER: link_tester_be
+      generic map (
+         MIN_CTRL_PACKET_SIZE => 12, -- : integer := 12;
+         MAX_CTRL_PACKET_SIZE => 60, -- : integer := 60;
 
-   GEN_MST_TEST_LOGIC: if CBM_FEE_MODE = c_NO generate
-      process is
-         constant counter_max : integer := 1250000;
-         variable counter : integer range 0 to counter_max := 0;
-      begin
-         wait until rising_edge(rclk_125_i);
-      
-         cbm_dlm2send_va <= '0';
-         if rreset_i = '1' then
-            counter := 1;
-         else
-            if counter = counter_max then
-               counter := 0;
-               cbm_dlm2send_va <= '1';
-            else
-               counter := counter + 1;
-            end if;
-         end if;
-      end process;
+         DATAWIDTH  => 16, -- : integer := 16;
+         SINGLE_DEST => 1, -- : integer := 1;        
+         DATA_PADDING => 0, -- : integer := 0;
+         CTRL_PADDING => 16#A5A5#, -- : integer := 16#A5A5#;
+         
+         ROC_ADDR => "00000000XXXXXXXX", -- : std_logic_vector(15 downto 0) := "00000000xxxxxxxx";
+         OWN_ADDR => "1000000000000000" -- : std_logic_vector(15 downto 0) := "1000000000000000";
+      )
+      port map (
+         clk => rclk_125_i, -- in std_logic;
+         res_n => cbm_res_n, -- in std_logic;
+         link_active => cbm_link_active, -- in std_logic;
+
+         ctrl_en => link_tester_ctrl_en, -- in std_logic;              //enable ctrl packet generation
+         dlm_en  => link_tester_dlm_en, -- in std_logic;               //enable dlm generation        
+         force_rec_data_stop => link_tester_data_stop, -- in std_logic;  //force data flow to stop
+         force_rec_ctrl_stop => link_tester_ctrl_stop, -- in std_logic;  //force ctrl flow to stop
+
+         ctrl2send_stop => cbm_ctrl2send_stop, -- in std_logic;
+         ctrl2send_start => cbm_ctrl2send_start, -- out std_logic;
+         ctrl2send_end => cbm_ctrl2send_end, -- out std_logic;
+         ctrl2send => cbm_ctrl2send, -- out std_logic_vector(15 downto 0);
+
+         dlm2send_valid => cbm_dlm2send_va, -- out std_logic;
+         dlm2send => cbm_dlm2send, -- out std_logic_vector(3 downto 0);
+
+         dlm_rec => cbm_dlm_rec_type, -- in std_logic_vector(3 downto 0);
+         dlm_rec_valid => cbm_dlm_rec_va, -- in std_logic;
+
+         data_rec_start => cbm_data_rec_start(0), -- in std_logic;
+         data_rec_end => cbm_data_rec_end(0), -- in std_logic;
+         data_rec => cbm_data_rec, -- in std_logic_vector(DATAWIDTH-1 downto 0);
+         data_rec_stop => cbm_data_rec_stop(0), -- out std_logic;
+
+         ctrl_rec_start => cbm_ctrl_rec_start, -- in std_logic;
+         ctrl_rec_end => cbm_ctrl_rec_end, -- in std_logic;
+         ctrl_rec => cbm_ctrl_rec, -- in std_logic_vector(15 downto 0);
+         ctrl_rec_stop => cbm_ctrl_rec_stop, -- out std_logic;
+
+         data_valid => link_tester_data_valid, -- out std_logic;
+         ctrl_valid => link_tester_ctrl_valid, -- out std_logic;
+         dlm_valid => link_tester_dlm_valid -- out std_logic
+      );
+   end generate;
+
+   GEN_LINK_TESTER_FE: if CBM_FEE_MODE = c_YES generate
+      THE_LINK_TESTER: link_tester_fe 
+   --   generic map (
+   --       MIN_PACKET_SIZE => 8, -- : integer := 8;
+   --       MAX_PACKET_SIZE => 64, -- : integer := 64;
+   --       PACKET_GRAN => 2, -- : integer := 2;
+   -- 
+   --       MIN_CTRL_PACKET_SIZE => 12, -- : integer := 12;
+   --       MAX_CTRL_PACKET_SIZE => 60, -- : integer := 60;
+   -- 
+   --       DATAWIDTH  => 16, -- : integer := 16;
+   --       SINGLE_DEST => 1, -- : integer := 1;        
+   --       DATA_PADDING => 0, -- : integer := 0;
+   --       CTRL_PADDING => 16#A5A5#, -- : integer := 16#A5A5#;
+   --       
+   --       ROC_ADDR => "0000000000000000", -- : std_logic_vector(15 downto 0) := "0000000000000000";
+   --       OWN_ADDR => "1000000000000000", -- : std_logic_vector(15 downto 0) := "1000000000000000";
+   --    
+   --       PACKET_MODE : integer := 1 --if enabled generates another packet size order to test further corner cases
+   --  )
+      port map (
+         clk => rclk_125_i, -- in std_logic;
+         res_n => cbm_res_n, -- in std_logic;
+         link_active => cbm_link_active, -- in std_logic;
+
+         data_en => link_tester_data_en, -- in std_logic;     //enable data packet generation
+         ctrl_en => link_tester_ctrl_en, -- in std_logic;     //enable ctrl packet generation
+         force_rec_ctrl_stop => link_tester_ctrl_stop, -- in std_logic;  //force ctrl flow to stop
+
+         ctrl2send_stop => cbm_ctrl2send_stop, -- in std_logic;
+         ctrl2send_start => cbm_ctrl2send_start, -- out std_logic;
+         ctrl2send_end => cbm_ctrl2send_end, -- out std_logic;
+         ctrl2send => cbm_ctrl2send, -- out std_logic_vector(15 downto 0);
+
+         data2send_stop => cbm_data2send_stop(0), -- in std_logic;
+         data2send_start => cbm_data2send_start(0), -- out std_logic;
+         data2send_end => cbm_data2send_end(0), -- out std_logic;
+         data2send => cbm_data2send, -- out std_logic_vector(15 downto 0);
+
+         dlm2send_valid => cbm_dlm2send_va, -- out std_logic;
+         dlm2send => cbm_dlm2send, -- out std_logic_vector(3 downto 0);
+
+         dlm_rec => cbm_dlm_rec_type, -- in std_logic_vector(3 downto 0);
+         dlm_rec_valid => cbm_dlm_rec_va, -- in std_logic;
+
+         data_rec_start => cbm_data_rec_start(0), -- in std_logic;
+         data_rec_end => cbm_data_rec_end(0), -- in std_logic;
+         data_rec => cbm_data_rec, -- in std_logic_vector(15 downto 0);
+         data_rec_stop => cbm_data_rec_stop(0), -- out std_logic;
+
+         ctrl_rec_start => cbm_ctrl_rec_start, -- in std_logic;
+         ctrl_rec_end => cbm_ctrl_rec_end, -- in std_logic;
+         ctrl_rec => cbm_ctrl_rec, -- in std_logic_vector(15 downto 0);
+         ctrl_rec_stop => cbm_ctrl_rec_stop -- std_logic
+      );
    end generate;
    
-   
-   PROC_DLM_COUNTER: process is begin
-      wait until rising_edge(rclk_125_i);
-      
-      TEST_LINE(10) <= '0';
-      if rreset_i = '1' then
-         dlm_counter <= TO_UNSIGNED(0,32);
-         
-      elsif cbm_dlm2send_va='1' or cbm_dlm_rec_va='1' then
-         TEST_LINE(10) <= '1';
-         dlm_counter <= dlm_counter + TO_UNSIGNED(1, 32);
-      end if;
-   end process;
-      
+   link_tester_stat <= (
+      0 => link_tester_data_valid,
+      1 => link_tester_ctrl_valid,
+      2 => link_tester_dlm_valid,
+      others => '0'
+   );
+
+   link_tester_data_en <= link_tester_ctrl(0);
+   link_tester_ctrl_en <= link_tester_ctrl(1);
+   link_tester_dlm_en  <= link_tester_ctrl(2);
+
+   link_tester_data_stop <= link_tester_ctrl(4);
+   link_tester_ctrl_stop <= link_tester_ctrl(5);
    
    PROC_REGIO_DEBUG: process is 
       variable address : integer range 0 to 255;
@@ -429,34 +547,37 @@ begin
       debug_ack <= '0';
       
       debug_ack <= debug_read_en or debug_write_en;
-      case (address) is
-         when 0  => debug_data_out <= x"0000" & phy_stat_op;
-         when 1  => debug_data_out <= x"0000" & phy_ctrl_op;
-         when 2  => debug_data_out <= phy_stat_debug(31 downto  0);
-         when 3  => debug_data_out <= phy_stat_debug(63 downto 32);
-         when 4  => debug_data_out <= phy_ctrl_debug(31 downto  0);
-         when 5  => debug_data_out <= phy_ctrl_debug(63 downto 32);
-         when 6  => debug_data_out <= STD_LOGIC_VECTOR(TO_UNSIGNED(CBM_FEE_MODE, 32));
-         when 8  => debug_data_out <= phy_debug_i(31+32*0 downto 32*0);
-         when 9  => debug_data_out <= phy_debug_i(31+32*1 downto 32*1);
-         when 10 => debug_data_out <= phy_debug_i(31+32*2 downto 32*2);
-         when 11 => debug_data_out <= phy_debug_i(31+32*3 downto 32*3);         
-         when 12 => debug_data_out <= STD_LOGIC_VECTOR(dlm_counter);
+      case address is
+         when 16#0# => debug_data_out <= x"0000" & phy_stat_op;
+         when 16#1# => debug_data_out <= x"0000" & phy_ctrl_op;
+         when 16#2# => debug_data_out <= phy_stat_debug(31 downto  0);
+         when 16#3# => debug_data_out <= phy_stat_debug(63 downto 32);
+         when 16#4# => debug_data_out <= phy_ctrl_debug(31 downto  0);
+         when 16#5# => debug_data_out <= phy_ctrl_debug(63 downto 32);
+         when 16#6# => debug_data_out <= STD_LOGIC_VECTOR(TO_UNSIGNED(CBM_FEE_MODE, 32));
+         when 16#8# => debug_data_out <= phy_debug_i(31+32*0 downto 32*0);
+         when 16#9# => debug_data_out <= phy_debug_i(31+32*1 downto 32*1);
+         when 16#a# => debug_data_out <= phy_debug_i(31+32*2 downto 32*2);
+         when 16#b# => debug_data_out <= phy_debug_i(31+32*3 downto 32*3);         
+
+         when 16#c# => debug_data_out <= link_tester_stat;
+         when 16#d# => debug_data_out <= link_tester_ctrl;
+         
          when others => debug_ack <= '0';
       end case;
    
       if debug_write_en = '1' then
          case (address) is
-            when 1 => phy_ctrl_op <= debug_data_in(15 downto 0);
-            when 4 => phy_ctrl_debug(31 downto  0) <= debug_data_in;
-            when 5 => phy_ctrl_debug(63 downto 32) <= debug_data_in;
+            when 16#1# => phy_ctrl_op <= debug_data_in(15 downto 0);
+            when 16#4# => phy_ctrl_debug(31 downto  0) <= debug_data_in;
+            when 16#5# => phy_ctrl_debug(63 downto 32) <= debug_data_in;
+            
+            when 16#d# => link_tester_ctrl <= debug_data_in;   
             when others => debug_ack <= '0';
          end case;
       end if;
    end process;
     
-   --TEST_LINE <= phy_stat_op;
-      
 ---------------------------------------------------------------------------
 -- Reset Generation
 ---------------------------------------------------------------------------
@@ -489,6 +610,7 @@ begin
       CLK   => CLK_GPLL_RIGHT,
       CLKOP => clk_100_i,
       CLKOK => clk_200_i,
+      CLKOS => open,
       LOCK  => pll_lock1
       );
       
@@ -536,7 +658,11 @@ begin
       STAT_OP            => med_stat_op,
       CTRL_OP            => med_ctrl_op,
       STAT_DEBUG         => med_stat_debug,
-      CTRL_DEBUG         => (others => '0')
+      CTRL_DEBUG         => (others => '0'),
+      
+      sci_ack => open,
+      clk_rx_full_out => open,
+      clk_rx_half_out => open
       );
 
 ---------------------------------------------------------------------------
