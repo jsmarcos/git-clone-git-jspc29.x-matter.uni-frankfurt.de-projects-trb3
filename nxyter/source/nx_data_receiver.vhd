@@ -12,10 +12,11 @@ entity nx_data_receiver is
   port(
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
+    TRIGGER_IN           : in  std_logic;
     
     -- nXyter Ports
-    NX_TIMESTAMP_CLK_IN  : in std_logic;
-    NX_TIMESTAMP_IN      : in std_logic_vector (7 downto 0);
+    NX_TIMESTAMP_CLK_IN  : in  std_logic;
+    NX_TIMESTAMP_IN      : in  std_logic_vector (7 downto 0);
 
     -- ADC Ports
     ADC_CLK_DAT_IN       : in  std_logic;
@@ -31,13 +32,15 @@ entity nx_data_receiver is
     NX_TIMESTAMP_OUT     : out std_logic_vector(31 downto 0);
     ADC_DATA_OUT         : out std_logic_vector(11 downto 0);
     NEW_DATA_OUT         : out std_logic;
-        
+
+    TIMESTAMP_CURRENT_IN : in  unsigned(11 downto 0);
+    
     -- Slave bus         
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
     SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
-    SLV_DATA_IN          : in std_logic_vector(31 downto 0);
-    SLV_ADDR_IN          : in std_logic_vector(15 downto 0);
+    SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
+    SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
     SLV_ACK_OUT          : out std_logic;
     SLV_NO_MORE_DATA_OUT : out std_logic;
     SLV_UNKNOWN_ADDR_OUT : out std_logic;
@@ -90,26 +93,29 @@ architecture Behavioral of nx_data_receiver is
   signal johnson_ff_1             : std_logic;
   signal adc_clk_inv              : std_logic;
   signal adc_clk_delay            : std_logic_vector(2 downto 0);
+  signal adc_clk_ok               : std_logic;
 
+  -- ADC RESET
+  signal adc_clk_ok_last          : std_logic;
+  signal adc_reset_s              : std_logic;
+  signal adc_reset_ctr            : unsigned(11 downto 0);
+  
   -----------------------------------------------------------------------------
   -- CLK_IN Domain
   -----------------------------------------------------------------------------
 
-  -- NX FIFO_READ
+  -- NX FIFO READ ENABLE
+  signal nx_fifo_read_enable      : std_logic;
+  signal nx_fifo_empty            : std_logic;
+  signal nx_read_enable           : std_logic;
+  signal nx_fifo_data_valid_t     : std_logic;
+  signal nx_fifo_data_valid       : std_logic;
+  
+  -- NX FIFO READ
   signal nx_timestamp_t           : std_logic_vector(31 downto 0);
   signal nx_new_timestamp         : std_logic;
   signal nx_new_timestamp_ctr     : unsigned(3 downto 0);
-
-  signal nx_fifo_delay_r          : std_logic_vector(4 downto 0);
-  signal nx_fifo_almost_empty     : std_logic;
-  
-  -- NX FIFO Output Handler
   signal nx_fifo_data             : std_logic_vector(31 downto 0);
-  signal nx_fifo_empty            : std_logic;
-  signal nx_fifo_read_enable      : std_logic;
-  signal nx_fifo_data_valid_t     : std_logic;
-  signal nx_fifo_data_valid       : std_logic;
-  signal nx_read_enable_pause     : std_logic;
   
   -- Resync Counter Process                 
   signal resync_counter           : unsigned(11 downto 0);
@@ -128,13 +134,13 @@ architecture Behavioral of nx_data_receiver is
   -----------------------------------------------------------------------------
 
   -- ADC Handler
-  signal adc_reset_r       : std_logic;
-  signal adc_reset_l       : std_logic;
-  signal adc_reset         : std_logic;
-  
-  signal adc_data          : std_logic_vector(11 downto 0);
-  signal test_adc_data     : std_logic_vector(11 downto 0);
-  signal adc_data_valid    : std_logic;
+  signal adc_reset_r              : std_logic;
+  signal adc_reset_l              : std_logic;
+  signal adc_reset                : std_logic;
+                                  
+  signal adc_data                 : std_logic_vector(11 downto 0);
+  signal test_adc_data            : std_logic_vector(11 downto 0);
+  signal adc_data_valid           : std_logic;
 
   signal adc_data_t               : std_logic_vector(11 downto 0);
   signal adc_new_data             : std_logic;
@@ -161,38 +167,77 @@ architecture Behavioral of nx_data_receiver is
   signal reset_resync_ctr         : std_logic;
   signal reset_parity_error_ctr   : std_logic;
   signal fifo_reset_r             : std_logic;
-
-  signal valid_data_d             : std_logic;
+  signal debug_adc                : std_logic_vector(1 downto 0);
   
 begin
 
   DEBUG_OUT(0)            <= CLK_IN;
-  DEBUG_OUT(2 downto 1)   <= STATE_d;
-  DEBUG_OUT(3)            <= adc_data_valid; -- nx_new_timestamp;
-  --DEBUG_OUT(4)            <= adc_new_data;
-  --DEBUG_OUT(5)            <= new_data_o;
-  --DEBUG_OUT(6)            <= nx_fifo_data_valid;
-  --DEBUG_OUT(7)            <= valid_data_d;--(others => '0');
-  --DEBUG_OUT(15 downto 8)  <= nx_timestamp_reg;
-  --DEBUG_OUT(15 downto 8)  <= (others => '0');
-  DEBUG_OUT(15 downto 4)  <= test_adc_data;
-  
-  PROC_DEBUG: process(NX_TIMESTAMP_CLK_IN)
-  begin
-    if( rising_edge(NX_TIMESTAMP_CLK_IN) ) then
-      if( RESET_IN = '1' ) then
-        valid_data_d <= '0';
-      else
-        if ((nx_timestamp_reg /= x"7f") and
-            (nx_timestamp_reg /= x"06")) then
-         valid_data_d <= '1';
-        else
-         valid_data_d <= '0';
-        end if;
-      end if;
-    end if;
-  end process PROC_DEBUG;
+  DEBUG_OUT(1)            <= NX_TIMESTAMP_CLK_IN;
+  DEBUG_OUT(2)            <= TRIGGER_IN;
 
+  PROC_DEBUG_MULT: process(debug_adc,
+                           adc_data,
+                           adc_data_valid,
+                           test_adc_data,
+                           adc_clk_ok,
+                           adc_clk_ok_last,
+                           adc_clk_skip,
+                           adc_reset_s,
+                           adc_reset,
+                           nx_new_frame,
+                           adc_reset_ctr,
+                           nx_fifo_full,
+                           nx_fifo_write_enable,
+                           nx_fifo_empty,
+                           nx_fifo_read_enable,
+                           nx_fifo_data_valid,
+                           nx_new_timestamp,
+                           adc_new_data,
+                           STATE_d,
+                           new_data_o,
+                           nx_frame_synced,
+                           rs_sync_reset
+                           )
+  begin
+    case debug_adc is
+      when "01" =>
+        DEBUG_OUT(3)            <= adc_data_valid;
+        DEBUG_OUT(15 downto 4)  <= adc_data;
+        
+      when "10" =>
+        DEBUG_OUT(3)            <= adc_data_valid;
+        DEBUG_OUT(15 downto 4)  <= test_adc_data;
+
+      when "11" =>
+        DEBUG_OUT(3)            <= adc_clk_ok;
+        DEBUG_OUT(4)            <= adc_clk_ok_last;
+        DEBUG_OUT(5)            <= adc_clk_skip;
+        DEBUG_OUT(6)            <= adc_reset_s;
+        DEBUG_OUT(7)            <= adc_reset;
+        DEBUG_OUT(8)            <= '0';
+        DEBUG_OUT(9)            <= nx_new_frame;
+        DEBUG_OUT(15 downto 10) <= adc_reset_ctr(5 downto 0) ;
+        
+      when others => 
+        DEBUG_OUT(3)            <= nx_fifo_full;
+        DEBUG_OUT(4)            <= nx_fifo_write_enable;
+        DEBUG_OUT(5)            <= nx_fifo_empty;
+        DEBUG_OUT(6)            <= nx_fifo_read_enable;
+        DEBUG_OUT(7)            <= nx_fifo_data_valid;
+
+        DEBUG_OUT(8)            <= adc_data_valid;
+        
+        DEBUG_OUT(9)            <= nx_new_timestamp;
+        DEBUG_OUT(10)           <= adc_new_data;
+        DEBUG_OUT(12 downto 11) <= STATE_d;
+        DEBUG_OUT(13)           <= new_data_o;
+        
+        DEBUG_OUT(14)           <= nx_frame_synced;
+        DEBUG_OUT(15)           <= rs_sync_reset;
+    end case;
+
+  end process PROC_DEBUG_MULT;
+  
   -----------------------------------------------------------------------------
   -- ADC CLK DOMAIN
   -----------------------------------------------------------------------------
@@ -255,7 +300,7 @@ begin
   -- Transfer 8 to 32Bit 
   PROC_8_TO_32_BIT: process(NX_TIMESTAMP_CLK_IN)
   begin
-    if( rising_edge(NX_TIMESTAMP_CLK_IN) ) then
+    if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
       if( RESET_IN = '1' ) then
         frame_byte_ctr   <= (others => '0');
         nx_frame_word    <= (others => '0');
@@ -275,9 +320,9 @@ begin
                        
           when "00" => nx_frame_word( 7 downto  0) <= nx_timestamp_reg;
                        if (frame_byte_ctr = "11") then
-                         nx_new_frame   <= '1';
+                         nx_new_frame              <= '1';
                        end if;
-                       frame_byte_ctr   <= (others => '0'); 
+                       frame_byte_ctr              <= (others => '0'); 
         end case;
       end if;
     end if;
@@ -286,11 +331,11 @@ begin
   -- Frame Sync process
   PROC_SYNC_TO_NX_FRAME: process(NX_TIMESTAMP_CLK_IN)
   begin
-    if( rising_edge(NX_TIMESTAMP_CLK_IN) ) then
+    if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        frame_byte_pos   <= "11";
-        rs_sync_set      <= '0';
-        rs_sync_reset    <= '0';
+        frame_byte_pos    <= "11";
+        rs_sync_set       <= '0';
+        rs_sync_reset     <= '0';
       else
         rs_sync_set       <= '0';
         rs_sync_reset     <= '0';
@@ -325,7 +370,7 @@ begin
   -- RS FlipFlop to hold Sync Status
   PROC_RS_FRAME_SYNCED: process(NX_TIMESTAMP_CLK_IN)
   begin
-    if( rising_edge(NX_TIMESTAMP_CLK_IN) ) then
+    if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
       if (RESET_IN = '1' or rs_sync_reset = '1') then
         nx_frame_synced <= '0';
       elsif (rs_sync_set = '1') then
@@ -339,7 +384,7 @@ begin
     variable parity_bits : std_logic_vector(22 downto 0);
     variable parity      : std_logic;
   begin
-    if( rising_edge(NX_TIMESTAMP_CLK_IN) ) then
+    if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
       if (RESET_IN = '1') then
         parity_error   <= '0';
       else
@@ -364,14 +409,16 @@ begin
   -- Write to FIFO
   PROC_WRITE_TO_FIFO: process(NX_TIMESTAMP_CLK_IN)
   begin
-    if( rising_edge(NX_TIMESTAMP_CLK_IN) ) then
+    if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
       if (RESET_IN = '1') then
         nx_fifo_data_input      <= (others => '0');
         nx_fifo_write_enable    <= '0';
       else
         nx_fifo_data_input      <= x"deadbeef";
         nx_fifo_write_enable    <= '0';
-        if (nx_new_frame = '1' and nx_frame_synced = '1') then
+        if (nx_new_frame    = '1' and
+            nx_frame_synced = '1' and
+            nx_fifo_full    = '0') then
           nx_fifo_data_input    <= nx_frame_word; 
           nx_fifo_write_enable  <= '1';
         end if;
@@ -388,35 +435,16 @@ begin
       RdEn          => nx_fifo_read_enable,
       Reset         => nx_fifo_reset,
       RPReset       => nx_fifo_reset,
-      AmEmptyThresh => nx_fifo_delay_r,
       Q             => nx_fifo_data,
       Empty         => nx_fifo_empty,
-      Full          => nx_fifo_full,
-      AlmostEmpty   => nx_fifo_almost_empty
+      Full          => nx_fifo_full
       );
   
   nx_fifo_reset     <= RESET_IN or fifo_reset_r;
 
---   -- Reset NX_TIMESTAMP_CLK Domain
---   PROC_NX_CLK_DOMAIN_RESET: process(CLK_IN)
---   begin
---     if( rising_edge(CLK_IN) ) then
---       if( RESET_IN = '1' ) then
---         reset_nx_domain_ctr <= (others => '0');
---         reset_nx_domain <= '1';
---       else
---         if (nx_clk_pulse = '1') then
---           nx_clk_pulse_ctr <= nx_clk_pulse_ctr + 1;
---         end if;
---         
---       end if;
--- 
---     end if;
---   end process PROC_NX_CLK_DOMAIN_RESET;
-
   PROC_NX_CLK_ACT: process(NX_TIMESTAMP_CLK_IN)
   begin
-    if(rising_edge(NX_TIMESTAMP_CLK_IN)) then
+    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
       if(RESET_IN = '1' ) then
         nx_clk_active_ff_0 <= '0';
         nx_clk_active_ff_1 <= '0';
@@ -432,7 +460,7 @@ begin
   -- Johnson Counter
   PROC_ADC_CLK_GENERATOR: process(NX_TIMESTAMP_CLK_IN)
   begin
-    if(rising_edge(NX_TIMESTAMP_CLK_IN)) then
+    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
       if (RESET_IN = '1') then
         johnson_ff_0  <= '0';
         johnson_ff_1  <= '0';
@@ -447,7 +475,7 @@ begin
 
   PROC_ADC_CLK_DELAY_4NS: process(NX_TIMESTAMP_CLK_IN)
   begin
-    if(falling_edge(NX_TIMESTAMP_CLK_IN)) then
+    if (falling_edge(NX_TIMESTAMP_CLK_IN)) then
       if (RESET_IN = '1') then
         adc_clk_inv <= '0';
       else
@@ -461,55 +489,78 @@ begin
   PROC_ADC_CLK_DELAY: process(NX_TIMESTAMP_CLK_IN)
     variable adc_clk_state : std_logic_vector(1 downto 0);
   begin
-    if(rising_edge(NX_TIMESTAMP_CLK_IN)) then
+    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
       if (RESET_IN = '1') then
-        adc_clk_skip  <= '0';
+        adc_clk_skip       <= '0';
+        adc_clk_ok         <= '0';
       else
-        adc_clk_state := johnson_ff_1 & johnson_ff_0;
-        adc_clk_skip  <= '0';
-
+        adc_clk_state      := johnson_ff_1 & johnson_ff_0;
+        adc_clk_skip       <= '0';
         if (nx_new_frame = '1') then
           if (adc_clk_state /= adc_clk_delay(2 downto 1)) then
-            adc_clk_skip <= '1';
+            adc_clk_skip   <= '1';
+            adc_clk_ok     <= '0';
+          else
+            adc_clk_ok     <= '1';        
           end if;
         end if;
       end if;
     end if;
   end process PROC_ADC_CLK_DELAY;
+
+  PROC_ADC_RESET: process(NX_TIMESTAMP_CLK_IN)
+  begin
+    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
+      if (RESET_IN = '1') then
+        adc_clk_ok_last  <= '0';
+        adc_reset_s      <= '0';
+      else
+        adc_reset_s      <= '0';
+        adc_clk_ok_last  <= adc_clk_ok;
+        if (adc_clk_ok_last = '0' and adc_clk_ok = '1') then
+          adc_reset_s    <= '1';
+        end if;
+      end if;
+    end if;
+  end process PROC_ADC_RESET;
+  
+  PROC_RESET_CTR: process(NX_TIMESTAMP_CLK_IN)
+  begin
+    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
+      if (RESET_IN = '1') then
+        adc_reset_ctr        <= (others => '0');
+      else
+        if (adc_reset = '1') then
+          adc_reset_ctr      <= adc_reset_ctr + 1;
+        end if;
+      end if;
+    end if;
+  end process PROC_RESET_CTR;
   
   -----------------------------------------------------------------------------
   -- NX CLK_IN Domain
   -----------------------------------------------------------------------------
 
   -- FIFO Read Handler
+  nx_fifo_read_enable     <= not nx_fifo_empty;
+
   PROC_NX_FIFO_READ_ENABLE: process(CLK_IN)
   begin
-    if( rising_edge(CLK_IN) ) then
+    if (rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' or fifo_reset_r = '1') then
-        nx_fifo_read_enable       <= '0';
-        nx_read_enable_pause      <= '0';
         nx_fifo_data_valid_t      <= '0';
         nx_fifo_data_valid        <= '0';
       else
-        if (nx_fifo_almost_empty = '0' and nx_read_enable_pause = '0') then
-          nx_fifo_read_enable     <= '1';
-          nx_read_enable_pause    <= '1';
-        else
-          nx_fifo_read_enable     <= '0';
-          nx_read_enable_pause    <= '0';
-        end if;
-
         -- Delay read signal by one CLK
         nx_fifo_data_valid_t      <= nx_fifo_read_enable;
         nx_fifo_data_valid        <= nx_fifo_data_valid_t;
-
       end if;
     end if;
   end process PROC_NX_FIFO_READ_ENABLE;
 
   PROC_NX_FIFO_READ: process(CLK_IN)
   begin
-    if( rising_edge(CLK_IN) ) then
+    if (rising_edge(CLK_IN) ) then
       if (RESET_IN = '1' or fifo_reset_r = '1') then
         nx_timestamp_t         <= (others => '0');
         nx_new_timestamp       <= '0';
@@ -554,7 +605,7 @@ begin
 
   PROC_SYNC_FRAME_SYNC: process(CLK_IN)
   begin
-    if( rising_edge(CLK_IN) ) then
+    if (rising_edge(CLK_IN) ) then
       if(RESET_IN = '1' ) then
         reg_nx_frame_synced_t <= '0';
         reg_nx_frame_synced   <= '0';
@@ -568,9 +619,9 @@ begin
   -- Counters
   PROC_RESYNC_COUNTER: process(CLK_IN)
   begin
-    if( rising_edge(CLK_IN) ) then
+    if (rising_edge(CLK_IN) ) then
       if (RESET_IN = '1' or reset_resync_ctr = '1') then
-        resync_counter <= (others => '0');
+        resync_counter   <= (others => '0');
       else
         if (resync_ctr_inc = '1') then
           resync_counter <= resync_counter + 1;
@@ -581,7 +632,7 @@ begin
 
   PROC_PARITY_ERROR_COUNTER: process(CLK_IN)
   begin
-    if( rising_edge(CLK_IN) ) then
+    if (rising_edge(CLK_IN) ) then
       if (RESET_IN = '1' or reset_parity_error_ctr = '1') then
         parity_error_counter <= (others => '0');
       else
@@ -598,7 +649,7 @@ begin
   -----------------------------------------------------------------------------
   PROC_ADC_DATA_READ: process(CLK_IN)
   begin
-    if( rising_edge(CLK_IN) ) then
+    if (rising_edge(CLK_IN) ) then
       if (RESET_IN = '1' or fifo_reset_r = '1') then
         adc_data_t         <= (others => '0');
         adc_new_data       <= '0';
@@ -621,7 +672,7 @@ begin
   -----------------------------------------------------------------------------
   PROC_OUTPUT_HANDLER: process(CLK_IN)
   begin
-    if( rising_edge(CLK_IN) ) then
+    if (rising_edge(CLK_IN) ) then
       if (RESET_IN = '1' or fifo_reset_r = '1') then
         nx_timestamp_o <= (others => '0');
         adc_data_o     <= (others => '0');
@@ -688,7 +739,7 @@ begin
   -- Give status info to the TRB Slow Control Channel
   PROC_FIFO_REGISTERS: process(CLK_IN)
   begin
-    if( rising_edge(CLK_IN) ) then
+    if (rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
         slv_data_out_o          <= (others => '0');
         slv_ack_o               <= '0';
@@ -696,10 +747,10 @@ begin
         slv_no_more_data_o      <= '0';
         reset_resync_ctr        <= '0';
         reset_parity_error_ctr  <= '0';
-        nx_fifo_delay_r         <= "01000";
         fifo_reset_r            <= '0';
         adc_clk_delay           <= "111";
         adc_reset_r             <= '0';
+        debug_adc               <= (others => '0');
       else                      
         slv_data_out_o          <= (others => '0');
         slv_ack_o               <= '0';
@@ -729,18 +780,14 @@ begin
               slv_ack_o                    <= '1'; 
 
             when x"0002" =>
-              slv_data_out_o(11 downto  0) <= resync_counter;
+              slv_data_out_o(11 downto  0) <= std_logic_vector(resync_counter);
               slv_data_out_o(31 downto 12) <= (others => '0');
               slv_ack_o                    <= '1'; 
 
             when x"0003" =>
-              slv_data_out_o(11 downto  0) <= parity_error_counter;
+              slv_data_out_o(11 downto  0) <=
+                std_logic_vector(parity_error_counter);
               slv_data_out_o(31 downto 12) <= (others => '0');
-              slv_ack_o                    <= '1'; 
-
-            when x"0004" =>
-              slv_data_out_o( 4 downto 0)  <= nx_fifo_delay_r;
-              slv_data_out_o(31 downto 5)  <= (others => '0');
               slv_ack_o                    <= '1'; 
 
             when x"0005" =>
@@ -759,6 +806,16 @@ begin
               slv_ack_o                    <= '1';   
 
             when x"0006" =>
+              slv_data_out_o(11 downto  0) <= std_logic_vector(adc_reset_ctr);
+              slv_data_out_o(31 downto 12) <= (others => '0');
+              slv_ack_o                    <= '1';
+
+            when x"0007" =>
+              slv_data_out_o(1 downto 0)   <= debug_adc;
+              slv_data_out_o(31 downto 2)  <= (others => '0');
+              slv_ack_o                    <= '1';
+              
+            when x"0008" =>
               slv_data_out_o(11 downto 0)  <= adc_data_t;
               slv_data_out_o(31 downto 12) <= (others => '0');
               slv_ack_o                    <= '1';
@@ -781,14 +838,6 @@ begin
               reset_parity_error_ctr       <= '1';
               slv_ack_o                    <= '1'; 
 
-            when x"0004" => 
-              if (SLV_DATA_IN  < x"0000_001c" and
-                  SLV_DATA_IN  > x"0000_0001") then
-                nx_fifo_delay_r            <= SLV_DATA_IN(4 downto 0);
-                fifo_reset_r               <= '1';
-              end if;
-              slv_ack_o                    <= '1';
-
             when x"0005" =>
               if (SLV_DATA_IN  < x"0000_0008") then
                 case SLV_DATA_IN(2 downto 0) is
@@ -801,8 +850,11 @@ begin
                   when "110" => adc_clk_delay <= "110";
                   when "111" => adc_clk_delay <= "111";
                 end case;
-                adc_reset_r                <= '1';
               end if;
+              slv_ack_o                    <= '1';
+
+            when x"0007" =>
+              debug_adc                    <= SLV_DATA_IN(1 downto 0);
               slv_ack_o                    <= '1';
               
             when others  =>

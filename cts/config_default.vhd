@@ -63,11 +63,11 @@ package config is
     constant INTERNAL_NUM_ARR     : hub_mii_t := (5,5);
     constant INTERFACE_NUM_ARR    : hub_mii_t := (5,8);
     constant IS_UPLINK_ARR        : hub_cfg_t := ((0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0),
-                                                  (0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0));
+                                                  (0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0));
     constant IS_DOWNLINK_ARR      : hub_cfg_t := ((1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0),
-                                                  (1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0));
+                                                  (1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0));
     constant IS_UPLINK_ONLY_ARR   : hub_cfg_t := ((0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0),
-                                                  (0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0)); 
+                                                  (0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0)); 
     constant HARDWARE_INFO_ARR    : hw_info_t := (x"9000CEE0",x"9000CEE2");
                           
     constant INTERNAL_NUM         : integer;

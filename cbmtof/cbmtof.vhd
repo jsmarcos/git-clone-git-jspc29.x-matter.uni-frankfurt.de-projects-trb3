@@ -13,9 +13,9 @@ use work.version.all;
 entity cbmtof is
   port(
     --Clocks
-    CLK_OSC : in std_logic;                     --for tdc measurements
-    CLK_CM  : in std_logic_vector(8 downto 0);  --from clock manager
-    CLK_EXT : in std_logic;
+    CLK_OSC : in std_logic;                     --for tdc measurements --200MHz
+    CLK_CM  : in std_logic_vector(8 downto 0);  --from clock manager   --125MHz
+    CLK_EXT : in std_logic;                     --from CK_IN1 connection
 
     --Serdes
     --CLK_SERDES_INT_RIGHT : in    std_logic;
@@ -90,7 +90,7 @@ entity cbmtof is
   attribute syn_useioff of FLASH_DIN  : signal is true;
   attribute syn_useioff of FLASH_DOUT : signal is true;
   attribute syn_useioff of TEST_LINE  : signal is true;
-  attribute syn_useioff of SPARE_LINE : signal is false; --true;
+  attribute syn_useioff of SPARE_LINE : signal is true;
   attribute syn_useioff of LVDS       : signal is true;
   attribute syn_useioff of OR_IN      : signal is true;
 
@@ -107,7 +107,7 @@ architecture cbmtof_arch of cbmtof is
   --Clock / Reset
   signal clk_100_i                : std_logic;  --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i                : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
-  signal clk_20_i                 : std_logic;  -- clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
+  signal clk_20_i                 : std_logic;  --clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
   signal pll_lock                 : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
   signal clear_i                  : std_logic;
   signal reset_i                  : std_logic;
@@ -297,16 +297,17 @@ begin
 
   THE_MAIN_PLL : pll_in200_out100
     port map(
-      CLK   => CLK_CM(4),
+      CLK   => CLK_OSC, --CLK_CM(4),
       CLKOP => clk_100_i,
       CLKOK => clk_200_i,
+      CLKOS => open,
       LOCK  => pll_lock
       );
 
   -- generates hits for calibration uncorrelated with tdc clk
   THE_CALIBRATION_PLL : pll_in125_out20
     port map (
-      CLK   => CLK_OSC,
+      CLK   => CLK_CM(4),
       CLKOP => clk_20_i,
       CLKOK => open, --clk_125_i,
       LOCK  => open);
@@ -360,6 +361,18 @@ begin
 ---------------------------------------------------------------------------
 -- Endpoint
 ---------------------------------------------------------------------------
+  --regio_hardware_version_i <= x"9100" & addOn_type_i & edge_type_i & tdc_channel_no_i & x"0";
+
+  --addOn_type_i     <= x"0";             -- x"0" - ADA AddOn version 1
+  --                                      -- x"1" - ADA AddOn version 2
+  --                                      -- x"2" - multi purpose test AddOn
+  --                                      -- x"3" - SFP hub AddOn
+  --                                      -- x"4" - Wasa AddOn
+  --edge_type_i      <= x"0";             -- x"0" - single edge
+  --                                      -- x"1" - double edge
+  --                                      -- x"8" - double edge on consecutive channels
+  --tdc_channel_no_i <= x"6";             -- 2^n channels
+
   THE_ENDPOINT : trb_net16_endpoint_hades_full_handler
     generic map(
       REGIO_NUM_STAT_REGS       => REGIO_NUM_STAT_REGS,  --4,    --16 stat reg
@@ -368,7 +381,7 @@ begin
       BROADCAST_BITMASK         => x"FF",
       BROADCAST_SPECIAL_ADDR    => x"50",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
-      REGIO_HARDWARE_VERSION    => x"92000000",
+      REGIO_HARDWARE_VERSION    => x"92000860",
       REGIO_INIT_ADDRESS        => x"f300",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
       CLOCK_FREQUENCY           => 100,
@@ -480,7 +493,7 @@ begin
     generic map(
       PORT_NUMBER    => 9,
       PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"c400", 8 => x"c800", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, others => 0)
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 7, 8 => 3, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -727,7 +740,7 @@ begin
   
   LVDS(1) <= or_all(INPUT);
   LVDS(2) <= SPARE_LINE(0);
-  CLK_MNGR_USER(3 downto 0) <= (others => '0');
+--  CLK_MNGR_USER(3 downto 0) <= (others => '0');
 
 ---------------------------------------------------------------------------
 -- Test Circuits
@@ -743,15 +756,16 @@ begin
 -------------------------------------------------------------------------------
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 5,             -- Number of TDC channels
+      CHANNEL_NUMBER => 33,             -- Number of TDC channels
       CONTROL_REG_NR => 5,              -- Number of control regs
-            TDC_VERSION    => "001" & x"51")  -- TDC version numberTDC_VERSION    => "001" & x"51")  -- TDC version number
+      TDC_VERSION    => "001" & x"51")  -- TDC version numberTDC_VERSION    => "001" & x"51")  -- TDC version number
     port map (
       RESET                 => reset_i,
-      CLK_TDC               => CLK_OSC,  -- Clock used for the time measurement
+--    CLK_TDC               => CLK_OSC,  -- Oscillator used for the time measurement
+      CLK_TDC               => CLK_EXT,  -- External Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
-      HIT_IN                => hit_in_i(4 downto 1),  -- Channel start signals
+      HIT_IN                => hit_in_i(32 downto 1),  -- Channel start signals
       HIT_CALIBRATION       => clk_20_i,    -- Hits for calibrating the TDC
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
@@ -822,14 +836,14 @@ begin
 --  hit_in_i <= INPUT;
 
   -- to detect rising & falling edges
-  --Gen_Hit_In_Signals : for i in 1 to 32 generate
-  --  hit_in_i(i*2-1) <= INPUT(i);
-  --  hit_in_i(i*2)   <= not INPUT(i);
-  --end generate Gen_Hit_In_Signals;
-
-  Gen_Hit_In_Signals : for i in 1 to 2 generate
-    hit_in_i(i*2-1) <= SPARE_LINE(i);
-    hit_in_i(i*2)   <= not SPARE_LINE(i);
+  Gen_Hit_In_Signals : for i in 1 to 32 generate
+    hit_in_i(i*2-1) <= INPUT(i);
+    hit_in_i(i*2)   <= not INPUT(i);
   end generate Gen_Hit_In_Signals;
+
+  --Gen_Hit_In_Signals : for i in 1 to 2 generate
+  --  hit_in_i(i*2-1) <= SPARE_LINE(i);
+  --  hit_in_i(i*2)   <= not SPARE_LINE(i);
+  --end generate Gen_Hit_In_Signals;
 
 end architecture;

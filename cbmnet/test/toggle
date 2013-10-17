@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+trbcmd setbit $1 0xa001 $2
+trbcmd clearbit $1 0xa001 $2

@@ -4,15 +4,15 @@
 #define _ch0_protocol "G8B10B"
 #define _ch0_ldr "DISABLED"
 #define _ch0_tx_data_rate "FULL"
-#define _ch0_tx_data_width "16"
-#define _ch0_tx_fifo "ENABLED"
-#define _ch0_tx_ficlk_rate 125.0
+#define _ch0_tx_data_width "8"
+#define _ch0_tx_fifo "DISABLED"
+#define _ch0_tx_ficlk_rate 250.0
 #define _ch0_rx_datarange "MEDHIGH"
 #define _ch0_rx_data_rate "FULL"
 #define _ch0_rxrefclk_rate "125.0"
-#define _ch0_rx_data_width "16"
-#define _ch0_rx_fifo "ENABLED"
-#define _ch0_rx_ficlk_rate 125.0
+#define _ch0_rx_data_width "8"
+#define _ch0_rx_fifo "DISABLED"
+#define _ch0_rx_ficlk_rate 250.0
 #define _ch0_tdrv "0"
 #define _ch0_tx_pre "DISABLED"
 #define _ch0_rterm_tx "50"
@@ -28,9 +28,9 @@
 #define _ch0_rxwa "ENABLED"
 #define _ch0_ilsm "ENABLED"
 #define _ch0_scomma "User Defined"
-#define _ch0_comma_a "1100000101"
-#define _ch0_comma_b "0011111010"
-#define _ch0_comma_m "1111111100"
+#define _ch0_comma_a "1100001101"
+#define _ch0_comma_b "0011110010"
+#define _ch0_comma_m "1111111111"
 #define _ch0_ctc "DISABLED"
 #define _ch0_cc_match_mode "1"
 #define _ch0_byten "0100011100"
@@ -182,10 +182,7 @@
 #define _cclmark "7"
 #define _rst_gen "DISABLED"
 #define _sci_ports "ENABLED"
-#define _sci_int_port "ENABLED"
-#define _refck2core "ENABLED"
+#define _sci_int_port "DISABLED"
+#define _refck2core "DISABLED"
 #define _circuit_name cbmnet_sfp1
-#define _lang vhdl
-
-#include <pcs/PCSD.vhd>
 #include <pcs/pcsd_cfg.txt>

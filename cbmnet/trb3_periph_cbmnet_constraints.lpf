@@ -13,14 +13,18 @@
   FREQUENCY PORT CLK_GPLL_RIGHT 200 MHz;
   FREQUENCY PORT CLK_GPLL_LEFT  125 MHz;
 
-
+  FREQUENCY NET "THE_CBM_PHY/CLK_TX_FULL_I" 250 MHz;
+  FREQUENCY NET "THE_CBM_PHY/RCLK_250_I" 250 MHz;
+  
 #Change the next two lines to the clk_fast signal of the ADC  
   USE PRIMARY2EDGE NET "THE_MAIN_PLL/PLLInst_0";
   USE PRIMARY NET "THE_MAIN_PLL/PLLInst_0";
-
-  
   USE PRIMARY NET "CLK_PCLK_LEFT";
   USE PRIMARY NET "CLK_PCLK_LEFT_c";
+  
+  USE PRIMARY NET "THE_CBM_PHY/RCLK_250_I";
+  USE SECONDARY NET "THE_CBM_PHY/CLK_TX_FULL_I";
+  
 #################################################################
 # Reset Nets
 #################################################################  

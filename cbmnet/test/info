@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+echo "MASTER"
+trbcmd rm 0x8000 0xa008 8 0
+
+echo "SLAVE"
+trbcmd rm 0x8001 0xa008 8 0

@@ -19,11 +19,13 @@ add_file -verilog -lib work "./cbmnet/cores/CBMnet/cores_fpga/common/fwft_fifo_s
 add_file -verilog -lib work "./cbmnet/cores/CBMnet/cores_fpga/common/fwft_fifo_spec/full_logic_spec_si.v"
 add_file -verilog -lib work "./cbmnet/cores/CBMnet/cores_fpga/common/fwft_fifo_spec/full_logic_wo_spec.v"
 add_file -verilog -lib work "./cbmnet/cores/CBMnet/cores_fpga/common/fwft_fifo_spec/full_logic_spec_si_all.v"
+
 add_file -verilog -lib work "./cbmnet/cores/CBMnet/building_blocks/link_init/async_input_sync.v"
 add_file -verilog -lib work "./cbmnet/cores/CBMnet/building_blocks/link_init/gtp_rx_ready_module.v"
 add_file -verilog -lib work "./cbmnet/cores/CBMnet/building_blocks/link_init/gtp_rx_rm_fsm.v"
 add_file -verilog -lib work "./cbmnet/cores/CBMnet/building_blocks/link_init/gtp_tx_ready_module.v"
 add_file -verilog -lib work "./cbmnet/cores/CBMnet/building_blocks/link_init/gtp_tx_rm_fsm.v"
+
 add_file -verilog -lib work "./cbmnet/cores/CBMnet/building_blocks/LP/lp_top.v"
 add_file -verilog -lib work "./cbmnet/cores/CBMnet/building_blocks/LP/lp_arbiter_fsm.v"
 add_file -verilog -lib work "./cbmnet/cores/CBMnet/building_blocks/LP/lp_crc_generator.v"
@@ -46,6 +48,11 @@ add_file -verilog -lib work "./cbmnet/cores/CBMnet/building_blocks/LP/lp_send_bu
 add_file -verilog -lib work "./cbmnet/cores/CBMnet/building_blocks/LP/lp_send_fsm.v"
 add_file -verilog -lib work "./cbmnet/cores/CBMnet/building_blocks/LP/lp_tx_slave_top.v"
 add_file -verilog -lib work "./cbmnet/cores/CBMnet/building_blocks/LP/lp_tx_top.v"
+
+add_file -verilog -lib work "./cbmnet/cores/CBMnet/building_blocks/link_tester/lt_send_fsm.v"
+add_file -verilog -lib work "./cbmnet/cores/CBMnet/building_blocks/link_tester/lt_random_stopper.v"
+add_file -verilog -lib work "./cbmnet/cores/CBMnet/building_blocks/link_tester/link_tester_be.v"
+add_file -verilog -lib work "./cbmnet/cores/CBMnet/building_blocks/link_tester/link_tester_fe.v"
 
 add_file -vhdl -lib work "./version.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_std.vhd"
@@ -137,7 +144,7 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.v
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4_onboard.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4.vhd"
 
-add_file -vhdl -lib work "./code/cbmnet_pkg.vhd"
+add_file -vhdl -lib work "./code/cbmnet_interface_pkg.vhd"
 add_file -vhdl -lib work "./code/cbmnet_phy_pkg.vhd"
 
 add_file -vhdl -lib work "./cores/cbmnet_sfp1.vhd"
@@ -146,6 +153,9 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/med_sync_define.vhd
 add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/rx_reset_fsm.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/tx_reset_fsm.vhd"
 
+add_file -vhdl -lib work "./code/cbmnet_phy_ecp3_rx_reset_fsm.vhd"
+add_file -vhdl -lib work "./code/cbmnet_phy_rx_gear.vhd"
+add_file -vhdl -lib work "./code/cbmnet_phy_tx_gear.vhd"
 add_file -vhdl -lib work "./code/cbmnet_phy_ecp3.vhd"
 
 add_file -vhdl -lib work "./trb3_periph_cbmnet.vhd"

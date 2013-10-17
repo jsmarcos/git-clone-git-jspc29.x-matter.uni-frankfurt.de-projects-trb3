@@ -1,68 +1,77 @@
-# BLOCK RESETPATHS ;
-# BLOCK ASYNCPATHS ;
-# BLOCK RD_DURING_WR_PATHS ;
+BLOCK RESETPATHS ;
+BLOCK ASYNCPATHS ;
+BLOCK RD_DURING_WR_PATHS ;
 
 #################################################################
 # Basic Settings
 #################################################################
 
+  # nXyter FEB Clock Setup:
+  #
+  # CLK_PCLK_RIGHT : real Oszillator 200MHz
+  # CLK_PCLK_RIGHT --> PLL#0 --> clk_100_i     -----> Main Clock all entities
+  #
+  # CLK_PCLK_RIGHT --> nx_main_clk 1+2 
+  #                        (250/256 MHz)       -----> nXyter Main Clock 1+2
+  #                                            | 
+  #                                            |----> FPGA Timestamp Entity 1+2
+  #
+  # nXyter Main Clock 1+2 --> nXyter Data Clk  -----> FPGA Data Receiver
+  #                        (* 1/2)             |
+  #                                            |----> Johnson 1/4 --> ADC SCLK
+  #
+  # CLK_PCLK_RIGHT (PLL#2) --> clk_adc_dat_1
+  #                        (nx_main_clk * 3/4) -----> ADC Handler 1
+  #
+  # CLK_PCLK_RIGHT (PLL#3) --> clk_adc_dat_2
+  #                        (nx_main_clk * 3/4) -----> ADC Handler 2
+
+  # Speed for the configuration Flash access
   SYSCONFIG MCCLK_FREQ = 20;
 
+  # Not used in current design
+  #FREQUENCY PORT CLK_GPLL_LEFT  125 MHz;
+  #FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;
+  #FREQUENCY PORT CLK_GPLL_RIGHT 200 MHz;
+
   FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
-  FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;
-  FREQUENCY PORT CLK_GPLL_RIGHT 200 MHz;
-  FREQUENCY PORT CLK_GPLL_LEFT  125 MHz;
-
-  FREQUENCY PORT NX1_CLK256A_OUT 256 MHz;
-  FREQUENCY PORT NX2_CLK256A_OUT 256 MHz;
-    
-#Put the names of your nxyter inputs here:  
-  FREQUENCY PORT NX1_CLK128_IN 128 MHz;
-  FREQUENCY PORT NX2_CLK128_IN 128 MHz;
-  FREQUENCY PORT NX1_ADC_DCLK_IN 192 MHz;   
-  FREQUENCY PORT NX2_ADC_DCLK_IN 192 MHz;  
-
-#Change the next two lines to the clk_fast signal of the ADC  
-  USE PRIMARY2EDGE NET "THE_MAIN_PLL/PLLInst_0";
-  USE PRIMARY NET "THE_MAIN_PLL/PLLInst_0";
-
+  FREQUENCY PORT NX1_CLK128_IN 125 MHz;
+  FREQUENCY PORT NX2_CLK128_IN 125 MHz;
   
-  USE PRIMARY NET "CLK_PCLK_LEFT";
-  USE PRIMARY NET "CLK_PCLK_LEFT_c";
-  
-  USE PRIMARY NET "NX1_ADC_SAMPLE_CLK_OUT";
-  USE PRIMARY NET "NX1_ADC_SAMPLE_CLK_OUT_c";
-
-  USE PRIMARY NET "NX2_ADC_SAMPLE_CLK_OUT";
-  USE PRIMARY NET "NX2_ADC_SAMPLE_CLK_OUT_c";
-
-  USE PRIMARY2EDGE NET "nXyter_FEE_board_0/nx_data_receiver_1/adc_dat_clk";
-  USE PRIMARY NET "nXyter_FEE_board_0/nx_data_receiver_1/adc_dat_clk";
-  
-  #USE PRIMARY2EDGE NET "nXyter_FEE_board_0/nx_data_receiver_1/adc_dat_clk";
-  #USE PRIMARY NET "nXyter_FEE_board_0/nx_data_receiver_1/adc_dat_clk";
+  USE PRIMARY NET "nx_main_clk"; 
+  USE PRIMARY NET "clk_100_i_c";
+  USE PRIMARY NET "CLK_PCLK_RIGHT_c";
   
 #################################################################
 # Reset Nets
 #################################################################  
-GSR_NET NET "GSR_N";  
 
+# GSR_NET NET "GSR_N";  
 
 #################################################################
 # Locate Serdes and media interfaces
 #################################################################
+
 LOCATE COMP   "THE_MEDIA_UPLINK/gen_serdes_1_200_THE_SERDES/PCSD_INST" SITE "PCSA" ;
 REGION "MEDIA_UPLINK" "R102C95D" 13 25;
 LOCATE UGROUP "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLINK" ;
 
-
 #################################################################
 # Relax some of the timing constraints
 #################################################################
-MULTICYCLE TO CELL "THE_MEDIA_DOWNLINK/SCI_DATA_OUT*" 50 ns;
-MULTICYCLE TO CELL "THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
-MULTICYCLE TO CELL "THE_ADC/restart_i" 20 ns;
 
+MULTICYCLE TO CELL "nXyter_FEE_board_0/nx_data_receiver_1/adc_ad9222_1/restart_i" 20 ns;
+MULTICYCLE TO CELL "nXyter_FEE_board_1/nx_data_receiver_1/adc_ad9222_1/restart_i" 20 ns;
+
+MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset*" 20 ns;
+MULTICYCLE FROM CLKNET "nXyter_FEE_board_1/nx_data_receiver_1/adc_ad9222_1/un1_adc_ad9222*" TO CLKNET "clk_100_i_c" 10 ns;
+MULTICYCLE FROM CLKNET "nXyter_FEE_board_0/nx_data_receiver_1/adc_ad9222_1/un1_adc_ad9222*" TO CLKNET "clk_100_i_c" 10 ns;
+
+MULTICYCLE TO CELL "nXyter_FEE_board_0/nx_fpga_timestamp_1/timestamp_sync_x" 5 ns;
+MULTICYCLE TO CELL "nXyter_FEE_board_0/nx_fpga_timestamp_1/trigger_x" 5 ns;
+
+MULTICYCLE TO CELL "nXyter_FEE_board_1/nx_fpga_timestamp_1/timestamp_sync_x" 5 ns;
+MULTICYCLE TO CELL "nXyter_FEE_board_1/nx_fpga_timestamp_1/trigger_x" 5 ns;
 
 #################################################################
 # Constraints for nxyter inputs
@@ -70,24 +79,14 @@ MULTICYCLE TO CELL "THE_ADC/restart_i" 20 ns;
 
 # look at .par and .twr.setup file for clocks 
 # and .mrp or errors
-PROHIBIT PRIMARY NET "NX1_CLK128_IN_c";
+PROHIBIT PRIMARY   NET "NX1_CLK128_IN_c";
 PROHIBIT SECONDARY NET "NX1_CLK128_IN_c";
 
-PROHIBIT PRIMARY NET "NX2_CLK128_IN_c";
+PROHIBIT PRIMARY   NET "NX2_CLK128_IN_c";
 PROHIBIT SECONDARY NET "NX2_CLK128_IN_c";
 
-PROHIBIT PRIMARY NET "TEST_LINE_c_0_1";
-PROHIBIT SECONDARY NET "TEST_LINE_c_0_1";
-
 DEFINE PORT GROUP "NX1_IN" "NX1_TIMESTAMP_*";
-INPUT_SETUP GROUP "NX1_IN" 3.0 ns HOLD 3.0 ns CLKPORT="NX1_CLK128_IN" ; 
+INPUT_SETUP GROUP "NX1_IN" 3.0 ns HOLD 3.0 ns CLKPORT="NX1_CLK128_IN"; 
 
 DEFINE PORT GROUP "NX2_IN" "NX2_TIMESTAMP_*";
-INPUT_SETUP GROUP "NX2_IN" 3.0 ns HOLD 3.0 ns CLKPORT="NX2_CLK128_IN" ; 
-
-MULTICYCLE FROM CLKNET "NX1_CLK256A_OUT_c" 50 ns;
-MULTICYCLE FROM CLKNET "NX2_CLK256A_OUT_c" 50 ns;
-
-#PROHIBIT PRIMARY NET "NX1_ADC_DCLK_IN_c";
-#PROHIBIT SECONDARY NET "NX1_ADC_DCLK_IN_c";
-
+INPUT_SETUP GROUP "NX2_IN" 3.0 ns HOLD 3.0 ns CLKPORT="NX2_CLK128_IN"; 

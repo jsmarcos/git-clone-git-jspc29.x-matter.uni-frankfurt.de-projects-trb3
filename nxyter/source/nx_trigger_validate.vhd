@@ -6,6 +6,9 @@ library work;
 use work.nxyter_components.all;
 
 entity nx_trigger_validate is
+  generic (
+    BOARD_ID : std_logic_vector(15 downto 0) := x"ffff"
+    );
   port (
     CLK_IN               : in  std_logic;  
     RESET_IN             : in  std_logic;
@@ -23,7 +26,8 @@ entity nx_trigger_validate is
     FAST_CLEAR_IN        : in  std_logic;
     TRIGGER_BUSY_OUT     : out std_logic;
     TIMESTAMP_REF_IN     : in  unsigned(11 downto 0);
-        
+    DATA_DELAY_VALUE_IN  : in  unsigned(6 downto 0);
+    
     -- Outputs
     DATA_OUT             : out std_logic_vector(31 downto 0);
     DATA_CLK_OUT         : out std_logic;
@@ -32,6 +36,7 @@ entity nx_trigger_validate is
     -- Histogram
     HISTOGRAM_FILL_OUT   : out std_logic;
     HISTOGRAM_BIN_OUT    : out std_logic_vector(6 downto 0);
+    HISTOGRAM_ADC_OUT    : out std_logic_vector(11 downto 0);
     
     -- Slave bus         
     SLV_READ_IN          : in  std_logic;
@@ -49,10 +54,6 @@ entity nx_trigger_validate is
 end entity;
 
 architecture Behavioral of nx_trigger_validate is
-
-  -- Sync Ref
-  signal timestamp_ref_x      : unsigned(11 downto 0);
-  signal timestamp_ref        : unsigned(11 downto 0);
 
   -- Process Channel_Status
   signal channel_index        : std_logic_vector(6 downto 0);
@@ -87,6 +88,7 @@ architecture Behavioral of nx_trigger_validate is
   type STATES is (S_IDLE,
                   S_TRIGGER,
                   S_WAIT_DATA,
+                  S_WRITE_HEADER,
                   S_PROCESS_START,
                   S_WAIT_PROCESS_END,
                   S_WRITE_TRAILER,
@@ -99,14 +101,19 @@ architecture Behavioral of nx_trigger_validate is
   signal busy_time_ctr        : unsigned(11 downto 0);
   signal busy_time_min_done   : std_logic;
   signal wait_timer_reset     : std_logic;
+  signal event_counter        : unsigned(9 downto 0);
+  
+  signal readout_mode         : std_logic_vector(3 downto 0);
+  signal timestamp_ref        : unsigned(11 downto 0);
 
-    -- Timer
+  -- Timer
   signal timer_reset          : std_logic;
   signal wait_timer_done      : std_logic;
     
   -- Histogram
   signal histogram_fill_o     : std_logic;
   signal histogram_bin_o      : std_logic_vector(6 downto 0);
+  signal histogram_adc_o      : std_logic_vector(11 downto 0);
 
   -- Slave Bus                    
   signal slv_data_out_o       : std_logic_vector(31 downto 0);
@@ -114,7 +121,7 @@ architecture Behavioral of nx_trigger_validate is
   signal slv_unknown_addr_o   : std_logic;
   signal slv_ack_o            : std_logic;
 
-  signal readout_mode         : std_logic_vector(3 downto 0);
+  signal readout_mode_r       : std_logic_vector(3 downto 0);
   signal trigger_window_width : unsigned(11 downto 0);
   signal trigger_window_delay : unsigned(11 downto 0);
   signal readout_time_max     : unsigned(11 downto 0);
@@ -126,19 +133,21 @@ begin
 
   -- Debug Line
   DEBUG_OUT(0)            <= CLK_IN;
+  DEBUG_OUT(1)            <= TRIGGER_IN;
   DEBUG_OUT(2)            <= trigger_busy_o;
-  DEBUG_OUT(3)            <= channel_all_done;
-  DEBUG_OUT(4)            <= data_clk_o;
-  DEBUG_OUT(5)            <= t_data_clk_o;
-  DEBUG_OUT(6)            <= out_of_window_l;
-  DEBUG_OUT(7)            <= out_of_window_h;
-  DEBUG_OUT(8)            <= NX_TOKEN_RETURN_IN;
-  DEBUG_OUT(9)            <= NX_NOMORE_DATA_IN;
-  DEBUG_OUT(10)           <= store_to_fifo;
-  DEBUG_OUT(11)           <= wait_timer_done;
-  DEBUG_OUT(12)           <= timer_reset;
-  DEBUG_OUT(13)           <= busy_time_min_done;
-  DEBUG_OUT(15 downto 14) <= (others => '0');
+  DEBUG_OUT(3)            <= DATA_CLK_IN;
+  DEBUG_OUT(4)            <= out_of_window_l;
+  DEBUG_OUT(5)            <= out_of_window_h;
+  DEBUG_OUT(6)            <= NX_TOKEN_RETURN_IN;
+  DEBUG_OUT(7)            <= NX_NOMORE_DATA_IN;
+  DEBUG_OUT(8)            <= channel_all_done;
+  DEBUG_OUT(9)            <= store_to_fifo;
+  DEBUG_OUT(10)           <= data_clk_o;
+  DEBUG_OUT(11)           <= t_data_clk_o;
+  DEBUG_OUT(12)           <= wait_timer_done;
+  DEBUG_OUT(13)           <= timer_reset;
+  DEBUG_OUT(14)           <= busy_time_min_done;
+  DEBUG_OUT(15)           <= nomore_data_o;
   
   -- Timer
   nx_timer_1: nx_timer
@@ -154,25 +163,11 @@ begin
 
   timer_reset <= RESET_IN or wait_timer_reset;
   
-  -- Sync Timestamp Ref
-  PROC_SYNC_TIMESTAMP_REF: process (CLK_IN)
-  begin
-    if( rising_edge(CLK_IN) ) then
-      if (RESET_IN = '1') then
-        timestamp_ref_x <= (others => '0');
-        timestamp_ref   <= (others => '0');
-      else
-        timestamp_ref_x <= TIMESTAMP_REF_IN;
-        timestamp_ref   <= timestamp_ref_x;
-      end if;
-    end if;
-  end process PROC_SYNC_TIMESTAMP_REF;
-  
   -----------------------------------------------------------------------------
   -- Filter only valid events
   -----------------------------------------------------------------------------
 
-  PROC_PROCESS_TIMESTAMP: process (CLK_IN)
+  PROC_FILTER_TIMESTAMPS: process (CLK_IN)
     variable ts_ref             : unsigned(11 downto 0);
     variable window_lower_thr   : unsigned(11 downto 0);
     variable window_upper_thr   : unsigned(11 downto 0);
@@ -197,6 +192,7 @@ begin
 
         histogram_fill_o     <= '0';
         histogram_bin_o      <= (others => '0');
+        histogram_adc_o      <= (others => '0');
         
         if (DATA_CLK_IN = '1') then
           if (store_to_fifo = '1') then
@@ -211,7 +207,7 @@ begin
             
             case readout_mode is
               
-              when x"0" =>            -- RefValue + valid and window filter 
+              when x"0" =>            -- RefValue + valid + window filter limit
                 if (TIMESTAMP_STATUS_IN(1) = '0') then
                   if (deltaT < window_lower_thr) then
                     out_of_window_l        <= '1';
@@ -229,59 +225,52 @@ begin
                     -- IN LUT-Data bit setzten.
                     channel_index          <= CHANNEL_IN;
                     ch_status_cmd_pr       <= CS_SET_WAIT;
-
-                    data_o( 6 downto  0)   <= CHANNEL_IN;
-                    data_o(7)              <= TIMESTAMP_STATUS_IN(1);
-                    data_o( 9 downto  8)   <= TIMESTAMP_IN(1 downto 0);
-                    data_o(18 downto  10)  <= deltaTStore(8 downto 0);
-                    data_o(30 downto 19)   <= ADC_DATA_IN;
+                    
+                    data_o( 1 downto  0)   <= TIMESTAMP_IN(1 downto 0);
+                    data_o(11 downto  2)   <= deltaTStore(9 downto 0);
+                    data_o(23 downto 12)   <= ADC_DATA_IN;
+                    data_o(30 downto 24)   <= CHANNEL_IN;
                     data_o(31)             <= TIMESTAMP_STATUS_IN(2);
                     data_clk_o             <= '1';
                   end if;
                 end if;
                 
-              when x"1" =>            -- RefValue + valid filter
+              when x"1" =>            -- RefValue + valid filter + maxtime limit
                 if (TIMESTAMP_STATUS_IN(1) = '0') then
-                  data_o( 6 downto  0)     <= CHANNEL_IN;
-                  data_o(7)                <= TIMESTAMP_STATUS_IN(1);
-                  data_o( 9 downto  8)     <= TIMESTAMP_IN(1 downto 0);
-                  data_o(18 downto  10)    <= deltaTStore(8 downto 0);
-                  data_o(30 downto 19)     <= ADC_DATA_IN;
+                  data_o( 1 downto  0)     <= TIMESTAMP_IN(1 downto 0);
+                  data_o(11 downto  2)     <= deltaTStore(9 downto 0);
+                  data_o(23 downto 12)     <= ADC_DATA_IN;
+                  data_o(30 downto 24)     <= CHANNEL_IN;
                   data_o(31)               <= TIMESTAMP_STATUS_IN(2);
                   data_clk_o               <= '1';
                 end if;
 
               when x"3" =>            -- RefValue + valid filter
                 if (TIMESTAMP_STATUS_IN(1) = '0') then
-                  data_o( 6 downto  0)     <= CHANNEL_IN;
-                  data_o(7)                <= TIMESTAMP_STATUS_IN(1);
-                  data_o( 9 downto  8)     <= TIMESTAMP_IN(1 downto 0);
-                  data_o(18 downto  10)    <= deltaTStore(8 downto 0);
-                  data_o(30 downto 19)     <= ADC_DATA_IN;
-                  data_o(31)               <= TIMESTAMP_STATUS_IN(2);
-                  data_clk_o <= '1';
-                end if;
-                
-              when x"4" =>            -- RawValue
-                data_o( 6 downto  0)       <= CHANNEL_IN;
-                data_o(7)                  <= TIMESTAMP_STATUS_IN(1);
-                data_o( 9 downto  8)       <= TIMESTAMP_IN(1 downto 0);
-                data_o(18 downto  10)      <= deltaTStore(8 downto 0);
-                data_o(30 downto 19)       <= ADC_DATA_IN;
-                data_o(31)                 <= TIMESTAMP_STATUS_IN(2);
-                data_clk_o                 <= '1';
-
-              when x"5" =>            -- RawValue + valid filter
-                if (TIMESTAMP_STATUS_IN(1) = '0') then
-                  data_o( 6 downto  0)     <= CHANNEL_IN;
-                  data_o(7)                <= TIMESTAMP_STATUS_IN(1);
-                  data_o( 9 downto  8)     <= TIMESTAMP_IN(1 downto 0);
-                  data_o(18 downto  10)    <= deltaTStore(8 downto 0);
-                  data_o(30 downto 19)     <= ADC_DATA_IN;
+                  data_o( 1 downto  0)     <= TIMESTAMP_IN(1 downto 0);
+                  data_o(11 downto  2)     <= deltaTStore(9 downto 0);
+                  data_o(23 downto 12)     <= ADC_DATA_IN;
+                  data_o(30 downto 24)     <= CHANNEL_IN;
                   data_o(31)               <= TIMESTAMP_STATUS_IN(2);
                   data_clk_o               <= '1';
                 end if;
 
+              when x"4" =>            -- RawValue + valid filter
+                if (TIMESTAMP_STATUS_IN(1) = '0') then
+                  data_o(11 downto  0)       <= TIMESTAMP_IN(13 downto 2);
+                  data_o(23 downto 12)       <= ADC_DATA_IN;
+                  data_o(30 downto 24)       <= CHANNEL_IN;
+                  data_o(31)                 <= TIMESTAMP_STATUS_IN(2);
+                  data_clk_o                 <= '1';
+                end if;
+  
+              when x"5" =>            -- RawValue + maxtime limit
+                data_o(11 downto  0)       <= TIMESTAMP_IN(13 downto 2);
+                data_o(23 downto 12)       <= ADC_DATA_IN;
+                data_o(30 downto 24)       <= CHANNEL_IN;
+                data_o(31)                 <= TIMESTAMP_STATUS_IN(2);
+                data_clk_o                 <= '1';
+              
               when others => null;
 
             end case;
@@ -291,10 +280,11 @@ begin
           -- Fill Histogram
           histogram_fill_o    <= '1';
           histogram_bin_o     <= CHANNEL_IN;
+          histogram_adc_o     <= ADC_DATA_IN;
         end if;
       end if;
     end if;
-  end process PROC_PROCESS_TIMESTAMP;
+  end process PROC_FILTER_TIMESTAMPS;
 
   -----------------------------------------------------------------------------
   -- Trigger Handler
@@ -302,7 +292,7 @@ begin
 
   PROC_TRIGGER_HANDLER: process(CLK_IN)
     variable min_validation_time : unsigned(11 downto 0);
-
+    variable ts_ref              : unsigned(11 downto 0);
   begin
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1' or FAST_CLEAR_IN = '1') then
@@ -317,6 +307,9 @@ begin
         busy_time_min_done    <= '0';
         token_return_ctr      <= '0';
         ch_status_cmd_tr      <= CS_RESET;
+        event_counter         <= (others => '0');
+        readout_mode          <= (others => '0');
+        timestamp_ref         <= (others => '0');
         STATE                 <= S_IDLE;
       else
         store_to_fifo         <= '0';
@@ -331,8 +324,7 @@ begin
         min_validation_time := x"020" +
                                (trigger_window_delay / 2) +
                                (trigger_window_width / 2);
-
-
+        
         case STATE is
           
           when S_IDLE =>
@@ -345,17 +337,38 @@ begin
             end if;
             
           when S_TRIGGER =>
+            readout_mode           <= readout_mode_r;
             ch_status_cmd_tr       <= CS_RESET;
             wait_timer_init        <= x"020";    -- wait 320ns for first event
             STATE                  <= S_WAIT_DATA;
-            
+
           when S_WAIT_DATA =>
             if (wait_timer_done = '0') then
               STATE                <= S_WAIT_DATA;
             else
-              STATE                <= S_PROCESS_START;
+              timestamp_ref        <= TIMESTAMP_REF_IN;
+              STATE                <= S_WRITE_HEADER;
             end if;
+
+          when S_WRITE_HEADER =>
+            t_data_o(11 downto 0)  <= timestamp_ref;
+            t_data_o(21 downto 12) <= event_counter;
+            -- Readout Mode Mapping (so far)
+            -- 00: Standard
+            -- 01: Special
+            -- 10: DEBUG
+            -- 11: UNDEF
+            case readout_mode is
+              when x"0"   => t_data_o(23 downto 22) <= "00";
+              when x"1"   => t_data_o(23 downto 22) <= "01";
+              when others => t_data_o(23 downto 22) <= "11";
+            end case;
+            t_data_o(31 downto 24) <= BOARD_ID(7 downto 0);
+            t_data_clk_o           <= '1';
             
+            event_counter          <= event_counter + 1;
+            STATE                  <= S_PROCESS_START;
+                        
           when S_PROCESS_START =>
             token_return_ctr       <= '0';
             wait_timer_init        <= readout_time_max; 
@@ -363,10 +376,10 @@ begin
             STATE                  <= S_WAIT_PROCESS_END;
             
           when S_WAIT_PROCESS_END =>
-            if (wait_timer_done   = '1' or
-                channel_all_done  = '1' or
+            if (wait_timer_done    = '1' or
+                channel_all_done   = '1' or
                 (NX_NOMORE_DATA_IN = '1' and
-                 busy_time_ctr > min_validation_time(11 downto 0))
+                 busy_time_ctr     > min_validation_time(11 downto 0))
                 )
             then
               wait_timer_reset     <= '1';
@@ -388,7 +401,7 @@ begin
             end if;
                     
           when S_WRITE_TRAILER =>
-            t_data_o               <= x"deadaffe";
+            t_data_o               <= (others => '1');
             t_data_clk_o           <= '1';
             ch_status_cmd_tr       <= CS_RESET;
             STATE                  <= S_SET_NOMORE_DATA;
@@ -483,7 +496,7 @@ begin
         slv_ack_o              <= '0';
         slv_unknown_addr_o     <= '0';
         slv_no_more_data_o     <= '0';
-        readout_mode           <= "0000";
+        readout_mode_r         <= x"0";
         trigger_window_delay   <= (others => '0');
         trigger_window_width   <= x"020";
         readout_time_max       <= x"640";
@@ -495,7 +508,7 @@ begin
         if (SLV_READ_IN  = '1') then
           case SLV_ADDR_IN is
             when x"0000" =>
-              slv_data_out_o(3 downto 0)   <= readout_mode;
+              slv_data_out_o(3 downto 0)   <= readout_mode_r;
               slv_data_out_o(31 downto 4)  <= (others => '0');
               slv_ack_o                    <= '1';
 
@@ -537,23 +550,29 @@ begin
               slv_data_out_o(11 downto 0)  <= window_upper_thr_r;
               slv_data_out_o(31 downto 12) <= (others => '0');
               slv_ack_o                    <= '1';  
-              
+
             when x"0008" =>
+              slv_data_out_o(6 downto 0)   <=
+                std_logic_vector(DATA_DELAY_VALUE_IN);
+              slv_data_out_o(31 downto 7)  <= (others => '0');
+              slv_ack_o                    <= '1'; 
+                                     
+            when x"0009" =>
               slv_data_out_o               <=
                 std_logic_vector(channel_done(31 downto 0));
               slv_ack_o                    <= '1'; 
 
-            when x"0009" =>
+            when x"000a" =>
               slv_data_out_o               <=
                 std_logic_vector(channel_done(63 downto 32));
               slv_ack_o                    <= '1'; 
 
-            when x"000a" =>
+            when x"000b" =>
               slv_data_out_o               <=
                 std_logic_vector(channel_done(95 downto 64));
               slv_ack_o                    <= '1'; 
 
-            when x"000b" =>
+            when x"000c" =>
               slv_data_out_o               <=
                 std_logic_vector(channel_done(127 downto 96));
               slv_ack_o                    <= '1'; 
@@ -567,7 +586,7 @@ begin
         elsif (SLV_WRITE_IN  = '1') then
           case SLV_ADDR_IN is
             when x"0000" =>
-              readout_mode                 <= SLV_DATA_IN(3 downto 0);
+              readout_mode_r               <= SLV_DATA_IN(3 downto 0);
               slv_ack_o                    <= '1';
 
             when x"0001" =>
@@ -583,7 +602,7 @@ begin
               readout_time_max             <=
                 unsigned(SLV_DATA_IN(11 downto 0));
               slv_ack_o                    <= '1';
-              
+                          
             when others  =>
               slv_unknown_addr_o           <= '1';
               slv_ack_o                    <= '0';
@@ -606,6 +625,7 @@ begin
 
   HISTOGRAM_FILL_OUT    <= histogram_fill_o;
   HISTOGRAM_BIN_OUT     <= histogram_bin_o;
+  HISTOGRAM_ADC_OUT     <= histogram_adc_o;
   
   -- Slave 
   SLV_DATA_OUT          <= slv_data_out_o;    

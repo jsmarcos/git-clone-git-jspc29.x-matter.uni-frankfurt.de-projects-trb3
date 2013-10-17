@@ -4,6 +4,35 @@ use warnings;
 use strict;
 
 
+my $build_master = 1;
+my $build_slave  = 1;
+
+my $mode = $ARGV[0];
+$mode = 's' unless defined $mode;
+ 
+$build_master = 0 if $mode eq 's';
+$build_slave  = 0 if $mode eq 'm' or $mode eq 'w';
+
+print "Will build:\n";
+print " -> Slave\n" if $build_slave;
+print " -> Master\n" if $build_master;
+
+print "\n\n";
+ local $| = 1;
+if ($mode eq 'w') {
+   print "Wait for slave process\n";
+   while(-e 'workdir') {
+      sleep 3;
+      print ('.');
+   }
+}
+
+if ($build_master and $build_slave) {
+   system "xterm -e './compile_periph_frankfurt.pl s; read' &";
+   sleep 5;
+   system "xterm -e './compile_periph_frankfurt.pl w; read' &";      
+   wait;
+}
 
 
 ###################################################################################
@@ -17,7 +46,20 @@ my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
 my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
 ###################################################################################
 
+my $workdir = "workdir_" . ($build_slave ? 'slave' : 'master');
+
 symlink($CbmNetPath, 'cbmnet') unless (-e 'cbmnet');
+
+unless(-e $workdir) {
+   mkdir $workdir;
+   chdir $workdir;
+   system '../../base/linkdesignfiles.sh';
+   symlink '../cores/cbmnet_sfp1.txt', 'cbmnet_sfp1.txt';
+   chdir '..';
+}
+
+unlink 'workdir';
+symlink $workdir, 'workdir';
 
 use FileHandle;
 
@@ -26,17 +68,14 @@ $ENV{'SYN_DISABLE_RAINBOW_DONGLE'}=1;
 $ENV{'LM_LICENSE_FILE'}=$lm_license_file_for_synplify;
 
 
-
-
 my $FAMILYNAME="LatticeECP3";
 my $DEVICENAME="LFE3-150EA";
 my $PACKAGE="FPBGA672";
 my $SPEEDGRADE="8";
 
-
 #create full lpf file
-system("cp $BasePath/$TOPNAME.lpf workdir/$TOPNAME.lpf");
-system("cat ".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
+system("cp $BasePath/$TOPNAME.lpf $workdir/$TOPNAME.lpf");
+system("cat ".$TOPNAME."_constraints.lpf >> $workdir/$TOPNAME.lpf");
 
 #set -e
 #set -o errexit
@@ -57,6 +96,7 @@ use ieee.numeric_std.all;
 package version is
 
     constant VERSION_NUMBER_TIME  : integer   := $t;
+    constant CBM_FEE_MODE_C       : integer   := $build_slave;
 
 end package version;
 EOF
@@ -68,8 +108,9 @@ my $r = "";
 my $c="$synplify_path/bin/synplify_premier_dp -batch $TOPNAME.prj";
 $r=execute($c, "do_not_exit" );
 
+system 'rm -f workdir';
 
-chdir "workdir";
+chdir $workdir;
 $fh = new FileHandle("<$TOPNAME".".srr");
 my @a = <$fh>;
 $fh -> close;
@@ -97,7 +138,7 @@ execute($c);
 $c=qq|$lattice_path/ispfpga/bin/lin/edfupdate   -t "$TOPNAME.tcy" -w "$TOPNAME.ngo" -m "$TOPNAME.ngo" "$TOPNAME.ngx"|;
 execute($c);
 
-$c=qq|$lattice_path/ispfpga/bin/lin/ngdbuild  -a $FAMILYNAME -d $DEVICENAME -p "$lattice_path/ispfpga/ep5c00/data" -dt "$TOPNAME.ngo" "$TOPNAME.ngd"|;
+$c=qq'$lattice_path/ispfpga/bin/lin/ngdbuild  -a $FAMILYNAME -d $DEVICENAME -p "$lattice_path/ispfpga/ep5c00/data" -dt "$TOPNAME.ngo" "$TOPNAME.ngd" | grep -v -e "^WARNING.*has no load"';
 execute($c);
 
 my $tpmap = $TOPNAME . "_map" ;
@@ -109,6 +150,7 @@ execute($c);
 system("rm $TOPNAME.ncd");
 
 $c=qq|$lattice_path/ispfpga/bin/lin/multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
+#$c=qq|$lattice_path/ispfpga/bin/lin/par -f "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.dir" "$TOPNAME.prf"|;
 execute($c);
 
 #Make Bitfile
@@ -132,7 +174,6 @@ execute($c);
 
 chdir "..";
 
-exit;
 
 sub execute {
     my ($c, $op) = @_;
@@ -143,10 +184,11 @@ sub execute {
     if($r) {
   print "$!";
   if($op ne "do_not_exit") {
-      exit;
+      wait;
   }
     }
 
     return $r;
 
 }
+

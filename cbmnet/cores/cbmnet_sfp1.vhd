@@ -1538,21 +1538,20 @@ entity cbmnet_sfp1 is
     hdinp_ch0, hdinn_ch0    :   in std_logic;
     hdoutp_ch0, hdoutn_ch0   :   out std_logic;
     sci_sel_ch0    :   in std_logic;
-    rxiclk_ch0    :   in std_logic;
     txiclk_ch0    :   in std_logic;
     rx_full_clk_ch0   :   out std_logic;
     rx_half_clk_ch0   :   out std_logic;
     tx_full_clk_ch0   :   out std_logic;
     tx_half_clk_ch0   :   out std_logic;
     fpga_rxrefclk_ch0    :   in std_logic;
-    txdata_ch0    :   in std_logic_vector (15 downto 0);
-    tx_k_ch0    :   in std_logic_vector (1 downto 0);
-    tx_force_disp_ch0    :   in std_logic_vector (1 downto 0);
-    tx_disp_sel_ch0    :   in std_logic_vector (1 downto 0);
-    rxdata_ch0   :   out std_logic_vector (15 downto 0);
-    rx_k_ch0   :   out std_logic_vector (1 downto 0);
-    rx_disp_err_ch0   :   out std_logic_vector (1 downto 0);
-    rx_cv_err_ch0   :   out std_logic_vector (1 downto 0);
+    txdata_ch0    :   in std_logic_vector (7 downto 0);
+    tx_k_ch0    :   in std_logic;
+    tx_force_disp_ch0    :   in std_logic;
+    tx_disp_sel_ch0    :   in std_logic;
+    rxdata_ch0   :   out std_logic_vector (7 downto 0);
+    rx_k_ch0   :   out std_logic;
+    rx_disp_err_ch0   :   out std_logic;
+    rx_cv_err_ch0   :   out std_logic;
     rx_serdes_rst_ch0_c    :   in std_logic;
     sb_felb_ch0_c    :   in std_logic;
     sb_felb_rst_ch0_c    :   in std_logic;
@@ -1575,12 +1574,10 @@ entity cbmnet_sfp1 is
     sci_sel_quad    :   in std_logic;
     sci_rd    :   in std_logic;
     sci_wrn    :   in std_logic;
-    sci_int    :   out std_logic;
     fpga_txrefclk  :   in std_logic;
     tx_serdes_rst_c    :   in std_logic;
     tx_pll_lol_qd_s   :   out std_logic;
     rst_qd_c    :   in std_logic;
-    refclk2fpga   :   out std_logic;
     serdes_rst_qd_c    :   in std_logic);
 
 end cbmnet_sfp1;
@@ -2138,8 +2135,6 @@ end component;
    attribute FREQUENCY_PIN_FF_TX_H_CLK_2 of PCSD_INST : label is "125.000";
    attribute FREQUENCY_PIN_FF_TX_H_CLK_3: string;
    attribute FREQUENCY_PIN_FF_TX_H_CLK_3 of PCSD_INST : label is "125.000";
-   attribute FREQUENCY_PIN_REFCK2CORE: string;
-   attribute FREQUENCY_PIN_REFCK2CORE of PCSD_INST : label is "125.0";
    attribute black_box_pad_pin: string;
    attribute black_box_pad_pin of PCSD : component is "HDINP0, HDINN0, HDINP1, HDINN1, HDINP2, HDINN2, HDINP3, HDINN3, HDOUTP0, HDOUTN0, HDOUTP1, HDOUTN1, HDOUTP2, HDOUTN2, HDOUTP3, HDOUTN3, REFCLKP, REFCLKN";
 
@@ -2170,7 +2165,6 @@ begin
 vlo_inst : VLO port map(Z => fpsc_vlo);
 vhi_inst : VHI port map(Z => fpsc_vhi);
 
-  refclk2fpga <= refclk2fpga_sig;
     rx_los_low_ch0_s <= rx_los_low_ch0_sig;
     rx_cdr_lol_ch0_s <= rx_cdr_lol_ch0_sig;
   tx_pll_lol_qd_s <= tx_pll_lol_qd_sig;
@@ -2203,7 +2197,7 @@ port map  (
   PCIE_PHYSTATUS_0 => open,
   SCISELCH0 => sci_sel_ch0,
   SCIENCH0 => fpsc_vhi,
-  FF_RXI_CLK_0 => rxiclk_ch0,
+  FF_RXI_CLK_0 => fpsc_vlo,
   FF_TXI_CLK_0 => txiclk_ch0,
   FF_EBRD_CLK_0 => fpsc_vlo,
   FF_RX_F_CLK_0 => rx_full_clk_ch0,
@@ -2219,21 +2213,21 @@ port map  (
   FF_TX_D_0_5 => txdata_ch0(5),
   FF_TX_D_0_6 => txdata_ch0(6),
   FF_TX_D_0_7 => txdata_ch0(7),
-  FF_TX_D_0_8 => tx_k_ch0(0),
-  FF_TX_D_0_9 => tx_force_disp_ch0(0),
-  FF_TX_D_0_10 => tx_disp_sel_ch0(0),
+  FF_TX_D_0_8 => tx_k_ch0,
+  FF_TX_D_0_9 => tx_force_disp_ch0,
+  FF_TX_D_0_10 => tx_disp_sel_ch0,
   FF_TX_D_0_11 => fpsc_vlo,
-  FF_TX_D_0_12 => txdata_ch0(8),
-  FF_TX_D_0_13 => txdata_ch0(9),
-  FF_TX_D_0_14 => txdata_ch0(10),
-  FF_TX_D_0_15 => txdata_ch0(11),
-  FF_TX_D_0_16 => txdata_ch0(12),
-  FF_TX_D_0_17 => txdata_ch0(13),
-  FF_TX_D_0_18 => txdata_ch0(14),
-  FF_TX_D_0_19 => txdata_ch0(15),
-  FF_TX_D_0_20 => tx_k_ch0(1),
-  FF_TX_D_0_21 => tx_force_disp_ch0(1),
-  FF_TX_D_0_22 => tx_disp_sel_ch0(1),
+  FF_TX_D_0_12 => fpsc_vlo,
+  FF_TX_D_0_13 => fpsc_vlo,
+  FF_TX_D_0_14 => fpsc_vlo,
+  FF_TX_D_0_15 => fpsc_vlo,
+  FF_TX_D_0_16 => fpsc_vlo,
+  FF_TX_D_0_17 => fpsc_vlo,
+  FF_TX_D_0_18 => fpsc_vlo,
+  FF_TX_D_0_19 => fpsc_vlo,
+  FF_TX_D_0_20 => fpsc_vlo,
+  FF_TX_D_0_21 => fpsc_vlo,
+  FF_TX_D_0_22 => fpsc_vlo,
   FF_TX_D_0_23 => fpsc_vlo,
   FF_RX_D_0_0 => rxdata_ch0(0),
   FF_RX_D_0_1 => rxdata_ch0(1),
@@ -2243,21 +2237,21 @@ port map  (
   FF_RX_D_0_5 => rxdata_ch0(5),
   FF_RX_D_0_6 => rxdata_ch0(6),
   FF_RX_D_0_7 => rxdata_ch0(7),
-  FF_RX_D_0_8 => rx_k_ch0(0),
-  FF_RX_D_0_9 => rx_disp_err_ch0(0),
-  FF_RX_D_0_10 => rx_cv_err_ch0(0),
+  FF_RX_D_0_8 => rx_k_ch0,
+  FF_RX_D_0_9 => rx_disp_err_ch0,
+  FF_RX_D_0_10 => rx_cv_err_ch0,
   FF_RX_D_0_11 => open,
-  FF_RX_D_0_12 => rxdata_ch0(8),
-  FF_RX_D_0_13 => rxdata_ch0(9),
-  FF_RX_D_0_14 => rxdata_ch0(10),
-  FF_RX_D_0_15 => rxdata_ch0(11),
-  FF_RX_D_0_16 => rxdata_ch0(12),
-  FF_RX_D_0_17 => rxdata_ch0(13),
-  FF_RX_D_0_18 => rxdata_ch0(14),
-  FF_RX_D_0_19 => rxdata_ch0(15),
-  FF_RX_D_0_20 => rx_k_ch0(1),
-  FF_RX_D_0_21 => rx_disp_err_ch0(1),
-  FF_RX_D_0_22 => rx_cv_err_ch0(1),
+  FF_RX_D_0_12 => open,
+  FF_RX_D_0_13 => open,
+  FF_RX_D_0_14 => open,
+  FF_RX_D_0_15 => open,
+  FF_RX_D_0_16 => open,
+  FF_RX_D_0_17 => open,
+  FF_RX_D_0_18 => open,
+  FF_RX_D_0_19 => open,
+  FF_RX_D_0_20 => open,
+  FF_RX_D_0_21 => open,
+  FF_RX_D_0_22 => open,
   FF_RX_D_0_23 => open,
 
   FFC_RRST_0 => rx_serdes_rst_ch0_c,
@@ -2641,7 +2635,7 @@ port map  (
   SCIRD => sci_rd,
   SCIWSTN => sci_wrn,
   CYAWSTN => fpsc_vlo,
-  SCIINT => sci_int,
+  SCIINT => open,
   FFC_CK_CORE_TX => fpga_txrefclk,
   FFC_MACRO_RST => serdes_rst_qd_c,
   FFC_QUAD_RST => rst_qd_c,

@@ -69,8 +69,14 @@ architecture Behavioral of nx_data_validate is
   signal overflow_ctr         : unsigned(15 downto 0);
   signal pileup_ctr           : unsigned(15 downto 0);
   signal parity_error_ctr     : unsigned(15 downto 0);
-  signal nx_valid_ctr         : unsigned(19 downto 0);
-  signal nx_rate_timer        : unsigned(19 downto 0);
+
+  signal trigger_rate_inc     : std_logic;
+  signal frame_rate_inc       : std_logic;
+
+  -- Rate Calculation
+  signal nx_trigger_ctr_t     : unsigned(27 downto 0);
+  signal nx_frame_ctr_t       : unsigned(27 downto 0);
+  signal nx_rate_timer        : unsigned(27 downto 0);
 
   -- Config
   signal readout_type         : std_logic_vector(1 downto 0);
@@ -81,8 +87,9 @@ architecture Behavioral of nx_data_validate is
   signal slv_unknown_addr_o   : std_logic;
   signal slv_ack_o            : std_logic;
   signal clear_counters       : std_logic;
-  signal nx_trigger_rate      : unsigned(19 downto 0);
-
+  signal nx_trigger_rate      : unsigned(27 downto 0);
+  signal nx_frame_rate        : unsigned(27 downto 0);
+  
   signal invalid_adc : std_logic;
   
 begin
@@ -183,22 +190,22 @@ begin
         data_valid_o         <= '0';
         nx_token_return_o    <= '0';
         nx_nomore_data_o     <= '0';
+        trigger_rate_inc     <= '0';
+        frame_rate_inc       <= '0';
 
         invalid_frame_ctr    <= (others => '0');
         overflow_ctr         <= (others => '0');
         pileup_ctr           <= (others => '0');
         parity_error_ctr     <= (others => '0');
-        nx_valid_ctr         <= (others => '0');
-        nx_trigger_rate      <= (others => '0');
-        nx_rate_timer        <= (others => '0');
       else
         timestamp_o          <= (others => '0');
         channel_o            <= (others => '0');
         timestamp_status_o   <= (others => '0');
         adc_data_o           <= (others => '0');
         data_valid_o         <= '0';
-       
-        invalid_adc <= '0';
+        trigger_rate_inc     <= '0';
+        frame_rate_inc       <= '0';
+        invalid_adc          <= '0';
 
         if (new_timestamp = '1') then
           case valid_frame_bits is
@@ -228,23 +235,19 @@ begin
               adc_data_o                     <= adc_data;
               data_valid_o                   <= '1';
               
-              -- Rate Counter
-              if (nx_rate_timer < x"186a0") then
-                nx_valid_ctr    <= nx_valid_ctr + 1;
-              end if;
-
               if (adc_data = x"aff") then
                 invalid_adc <= '1';
               end if;
 
               nx_token_return_o   <= '0';
               nx_nomore_data_o    <= '0';
-                            
+              trigger_rate_inc    <= '1';
+                                          
             -- Token return and nomore_data
             when "0000" =>
               nx_token_return_o   <= '1';
               nx_nomore_data_o    <= nx_token_return_o;
-              
+
             when others =>
               -- Invalid frame, not empty, discard timestamp
               if (clear_counters = '0') then
@@ -254,20 +257,14 @@ begin
               nx_nomore_data_o    <= '0';
               
           end case;
+
+          frame_rate_inc          <= '1';
+        
         else
           nx_token_return_o       <= nx_token_return_o;
           nx_nomore_data_o        <= nx_nomore_data_o;
-        end if;  -- new_timestamp = '1'
+        end if;  
 
-        -- Trigger Rate
-        if (nx_rate_timer < x"186a0") then
-          nx_rate_timer   <= nx_rate_timer + 1;
-        else
-          nx_rate_timer   <= (others => '0');
-          nx_trigger_rate <= nx_valid_ctr;
-          nx_valid_ctr    <= (others => '0');
-        end if;
-        
         -- Reset Counters
         if (clear_counters = '1') then
           invalid_frame_ctr   <= (others => '0');
@@ -278,6 +275,43 @@ begin
       end if;
     end if;
   end process PROC_VALIDATE_TIMESTAMP;
+
+  PROC_CAL_RATES: process (CLK_IN)
+  begin 
+    if( rising_edge(CLK_IN) ) then
+      if (RESET_IN = '1') then
+        nx_trigger_ctr_t     <= (others => '0');
+        nx_frame_ctr_t       <= (others => '0');
+        nx_rate_timer        <= (others => '0');
+        nx_trigger_rate      <= (others => '0');
+        nx_frame_rate        <= (others => '0');
+      else
+        if (nx_rate_timer < x"5f5e100") then
+          if (trigger_rate_inc = '1') then
+            nx_trigger_ctr_t   <= nx_trigger_ctr_t + 1;
+          end if;
+          if (frame_rate_inc = '1') then
+            nx_frame_ctr_t     <= nx_frame_ctr_t + 1;
+          end if;
+          nx_rate_timer        <= nx_rate_timer + 1;
+        else
+          nx_trigger_rate      <= nx_trigger_ctr_t;
+          nx_frame_rate        <= nx_frame_ctr_t;
+          if (trigger_rate_inc = '0') then
+            nx_trigger_ctr_t   <= (others => '0');
+          else
+            nx_trigger_ctr_t   <= x"000_0001";
+          end if;
+          if (frame_rate_inc = '0') then
+            nx_frame_ctr_t     <= (others => '0');
+          else
+            nx_frame_ctr_t     <= x"000_0001";
+          end if;
+          nx_rate_timer        <= (others => '0');
+        end if;
+      end if;
+    end if;
+  end process PROC_CAL_RATES;
 
   -----------------------------------------------------------------------------
   -- TRBNet Slave Bus
@@ -327,9 +361,15 @@ begin
               slv_ack_o                    <= '1';
 
             when x"0004" =>
-              slv_data_out_o(19 downto 0)  <=
+              slv_data_out_o(27 downto 0)  <=
                 std_logic_vector(nx_trigger_rate);
-              slv_data_out_o(31 downto 20) <= (others => '0');
+              slv_data_out_o(31 downto 28) <= (others => '0');
+              slv_ack_o                    <= '1';
+
+            when x"0005" =>
+              slv_data_out_o(27 downto 0)  <=
+                std_logic_vector(nx_frame_rate);
+              slv_data_out_o(31 downto 28) <= (others => '0');
               slv_ack_o                    <= '1';
               
             when others  =>
@@ -348,7 +388,7 @@ begin
               slv_ack_o                    <= '0';
           end case;                
         else
-          slv_ack_o <= '0';
+          slv_ack_o                        <= '0';
         end if;
       end if;
     end if;
