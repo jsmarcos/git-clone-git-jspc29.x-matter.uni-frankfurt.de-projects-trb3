@@ -54,9 +54,9 @@ package cbmnet_interface_pkg is
 
    component gtp_tx_ready_module is
       generic (
-         READY_CHAR0  : std_logic_vector(7 downto 0) :=  K284;
-         READY_CHAR1  : std_logic_vector(7 downto 0) :=  K287;
-         ALIGN_CHAR  : std_logic_vector(7 downto 0) :=  K285;
+--          READY_CHAR0  : std_logic_vector(7 downto 0) :=  K284;
+--          READY_CHAR1  : std_logic_vector(7 downto 0) :=  K287;
+--          ALIGN_CHAR  : std_logic_vector(7 downto 0) :=  K285;
          DATAWIDTH  : integer :=  16;
          WORDS :integer := 2 --DATAWIDTH/8;
       );

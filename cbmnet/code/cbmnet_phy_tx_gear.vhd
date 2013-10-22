@@ -28,7 +28,7 @@ entity CBMNET_PHY_TX_GEAR is
 end entity;
 
 architecture CBMNET_PHY_TX_GEAR_ARCH of CBMNET_PHY_TX_GEAR is
-   type   FSM_STATES is (FSM_WAIT, FSM_HIGH, FSM_LOW);
+   type   FSM_STATES is (FSM_HIGH, FSM_LOW);
    signal fsm_i : FSM_STATES;
    
    signal data_in_buf125_i : std_logic_vector(17 downto 0);
@@ -48,26 +48,23 @@ begin
       CLK_125_OUT <= '0';
       
       case fsm_i is
-         when FSM_WAIT =>
-            if clk_125_xfer_buf_i /= clk_125_xfer_del_i or IS_SYNC_SLAVE = c_NO then
-               fsm_i <= FSM_HIGH;
-            end if;
-            
          when FSM_HIGH =>
             CLK_125_OUT <= '1';
+            
             DATA_OUT   <= data_in_buf125_i(17) & data_in_buf125_i(15 downto 8);
             low_data_i <= data_in_buf125_i(16) & data_in_buf125_i( 7 downto 0);
             fsm_i <= FSM_LOW;
+
+            if clk_125_xfer_buf_i /= clk_125_xfer_del_i then
+               fsm_i <= FSM_HIGH;
+            end if;
+
             
-         when FSM_LOW =>
+         when others =>
             DATA_OUT <= low_data_i;
             fsm_i <= FSM_HIGH;
       end case;
-      
-      if RESET_IN = '1' then
-         fsm_i <= FSM_WAIT;
-      end if;
-   end process;
+  end process;
    
    process is begin
       wait until rising_edge(CLK_125_IN);

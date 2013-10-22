@@ -14,6 +14,7 @@ use work.cbmnet_phy_pkg.all;
 entity cbmnet_phy_ecp3 is
    generic(
       IS_SYNC_SLAVE   : integer := c_NO;       --select slave mode
+      IS_SIMULATED    : integer := c_NO;
       INCL_DEBUG_AIDS : integer := c_YES
    );
    port(
@@ -155,7 +156,8 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    signal tx_data_i     : std_logic_vector(17 downto 0); -- 16(+2) bit word generated fed to gear
    signal tx_gear_reset_i : std_logic;
    
-
+   signal rx_gear_debug_i : std_logic_vector(15 downto 0);
+   
 -- CBMNet Ready Managers
    signal rm_rx_ready_i : std_logic;
    signal rm_rx_almost_ready_i : std_logic;
@@ -283,6 +285,9 @@ begin
    -- Reset FSM & Link states
    -------------------------------------------------      
    THE_RX_FSM : cbmnet_phy_ecp3_rx_reset_fsm
+   generic map (
+      IS_SIMULATED => IS_SIMULATED
+   )
    port map(
       RST_N               => rst_n_i,
       RX_REFCLK           => clk_125_local,
@@ -303,7 +308,10 @@ begin
    rx_error_delay <= rx_error_delay(rx_error_delay'high - 1 downto 0) & rx_dec_error_i when rising_edge(clk_125_local);
    
       
-   THE_TX_FSM : tx_reset_fsm
+   THE_TX_FSM : cbmnet_phy_ecp3_tx_reset_fsm
+   generic map (
+      IS_SIMULATED => IS_SIMULATED
+   )
    port map(
       RST_N           => rst_n_i,
       TX_REFCLK       => clk_125_local,
@@ -337,7 +345,9 @@ begin
       RM_RESET_IN => rm_rx_to_gear_reset_i,     -- in std_logic;
       CLK_125_OUT => rclk_125_i,                -- out std_logic;
       RESET_OUT   => gear_to_rm_rst_i,          -- out std_logic;
-      DATA_OUT    => rx_data_from_gear_i        -- out std_logic_vector(17 downto 0)
+      DATA_OUT    => rx_data_from_gear_i,       -- out std_logic_vector(17 downto 0)
+      
+      DEBUG_OUT   => rx_gear_debug_i
    );
    
    rx_data_i <= rx_data_from_gear_i when rising_edge(clk_125_local) or (IS_SYNC_SLAVE = c_YES);
@@ -345,8 +355,8 @@ begin
    THE_TX_GEAR: CBMNET_PHY_TX_GEAR
    generic map (IS_SYNC_SLAVE => IS_SYNC_SLAVE)
    port map (
-      CLK_250_IN  => clk_tx_full_i, -- in std_logic;
-      CLK_125_IN  => clk_125_i, -- in std_logic;
+      CLK_250_IN  => clk_tx_full_i,     -- in std_logic;
+      CLK_125_IN  => clk_serdes_tx_ref, -- in std_logic;
       CLK_125_OUT => clk_tx_half_i,
       
       RESET_IN    => tx_gear_reset_i, -- in std_logic;
@@ -624,6 +634,9 @@ begin
       DEBUG_OUT(59 downto 52) <= rx_rst_fsm_state_i & tx_rst_fsm_state_i;
          
       DEBUG_OUT(63 downto 60) <= serdes_ready_i & rm_rx_ready_i &  rm_tx_ready_i & rm_tx_almost_ready_i;
+      
+      DEBUG_OUT(71 downto 64) <= rx_gear_debug_i(7 downto 0);
+      
       DEBUG_OUT(99 downto 96) <= rm_rx_almost_ready_i & rm_rx_see_ready0_i & rm_rx_saw_ready1_i & rm_rx_valid_char_i;
       DEBUG_OUT(103 downto 100) <= wa_position_i(3 downto 0);
       DEBUG_OUT(107 downto 104) <= "00" & rm_rx_to_gear_reset_i & gear_to_rm_rst_i;

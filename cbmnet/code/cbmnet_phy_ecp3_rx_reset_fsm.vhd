@@ -7,24 +7,29 @@
 LIBRARY IEEE;
    USE IEEE.std_logic_1164.ALL;
    USE IEEE.numeric_std.all;
+   use work.trb_net_std.all;
+
 
 
 entity cbmnet_phy_ecp3_rx_reset_fsm is
-  port (
-    RST_N             : in std_logic;
-    RX_REFCLK         : in std_logic;
-    TX_PLL_LOL_QD_S   : in std_logic;
-    RX_CDR_LOL_CH_S   : in std_logic;
-    RX_LOS_LOW_CH_S   : in std_logic;
-    
-    RM_RESET_IN          : in std_logic := '0';
-    PROPER_BYTE_ALIGN_IN : in std_logic := '1';
-    PROPER_WORD_ALIGN_IN : in std_logic := '1';
-    
-    RX_SERDES_RST_CH_C: out std_logic;
-    RX_PCS_RST_CH_C   : out std_logic;
-    STATE_OUT         : out std_logic_vector(3 downto 0)
-    );
+   generic (
+      IS_SIMULATED : integer range 0 to 1 := c_NO
+   );
+   port (
+      RST_N             : in std_logic;
+      RX_REFCLK         : in std_logic;
+      TX_PLL_LOL_QD_S   : in std_logic;
+      RX_CDR_LOL_CH_S   : in std_logic;
+      RX_LOS_LOW_CH_S   : in std_logic;
+
+      RM_RESET_IN          : in std_logic := '0';
+      PROPER_BYTE_ALIGN_IN : in std_logic := '1';
+      PROPER_WORD_ALIGN_IN : in std_logic := '1';
+
+      RX_SERDES_RST_CH_C: out std_logic;
+      RX_PCS_RST_CH_C   : out std_logic;
+      STATE_OUT         : out std_logic_vector(3 downto 0)
+   );
 end entity ;
                                                                                               
 architecture rx_reset_fsm_arch of cbmnet_phy_ecp3_rx_reset_fsm is
@@ -92,7 +97,7 @@ begin
       counter2 <= "00000000000000000000";
       timer2 <= '0';
     else
-      if counter2(count_index) = '1' then
+      if counter2(count_index) = '1' or (IS_SIMULATED = c_YES and counter2(5) = '1') then
         timer2 <='1';
       else
         timer2 <='0';
