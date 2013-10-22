@@ -10,8 +10,8 @@ use strict;
 #Settings for this project
 my $TOPNAME                      = "trb3_central";  #Name of top-level entity
 my $BasePath                     = "../base/";     #path to "base" directory
-my $lattice_path                 = '/d/sugar/lattice/diamond/1.3';
-my $synplify_path                = '/d/sugar/lattice/synplify/D-2010.03/';
+my $lattice_path                 = '/d/jspc29/lattice/diamond/2.2_x64';
+my $synplify_path                = '/d/jspc29/lattice/synplify/F-2012.03-SP1/';
 my $lm_license_file_for_synplify = "27000\@localhost";
 my $lm_license_file_for_par      = "1710\@cronos.e12.physik.tu-muenchen.de";
 ###################################################################################
@@ -112,7 +112,7 @@ execute($c);
 
 system("rm $TOPNAME.ncd");
 
-$c=qq|$lattice_path/ispfpga/bin/lin/multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
+$c=qq|mpartrce -p "../$TOPNAME.p2t" -f "../$TOPNAME.p3t" -tf "$TOPNAME.pt" "|.$TOPNAME.qq|_map.ncd" "$TOPNAME.ncd"|;
 execute($c);
 
 # IOR IO Timing Report

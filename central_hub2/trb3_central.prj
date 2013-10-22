@@ -100,6 +100,7 @@ add_file -vhdl -lib work "../../trbnet/special/spi_master.vhd"
 add_file -vhdl -lib work "../../trbnet/special/spi_slim.vhd"
 add_file -vhdl -lib work "../../trbnet/special/spi_databus_memory.vhd"
 add_file -vhdl -lib work "../../trbnet/special/fpga_reboot.vhd"
+add_file -vhdl -lib work "../../trbnet/special/spi_flash_and_fpga_reload.vhd"
 
 
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/spi_dpram_32_to_8.vhd"
@@ -112,11 +113,16 @@ add_file -vhdl -lib work "../../trbnet/lattice/ecp3/trb_net16_fifo_arch.vhd"
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/trb_net_fifo_16bit_bram_dualport.vhd"
 
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/serdes_onboard_full.vhd"
+add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/serdes_onboard_full_125.vhd"
+add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/serdes_full_ctc.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_int.vhd"
+add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_ctc.vhd"
+add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_1_125_int.vhd"
 
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_lsm_sfp.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4_onboard.vhd"
+add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4.vhd"
 
 add_file -vhdl -lib work "../base/cores/pll_in200_out100.vhd"
 add_file -vhdl -lib work "./trb3_central.vhd"
