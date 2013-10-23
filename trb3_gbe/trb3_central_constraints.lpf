@@ -150,8 +150,8 @@ UGROUP "gbe_rx_tx"
 #Normal design
 REGION "GBE_REGION" "R30C20D" 35 40 DEVSIZE;
 REGION "GBE_MAIN_REGION" "R74C40C" 38 36 DEVSIZE;
-LOCATE UGROUP "controllers" REGION "GBE_MAIN_REGION" ;
-LOCATE UGROUP "gbe_rx_tx" REGION "GBE_REGION" ;
+#LOCATE UGROUP "controllers" REGION "GBE_MAIN_REGION" ;
+#LOCATE UGROUP "gbe_rx_tx" REGION "GBE_REGION" ;
 
 #Reduced design
 # REGION "GBE_REGION" "R40C2D" 35 40 DEVSIZE;
@@ -164,7 +164,7 @@ LOCATE UGROUP "gbe_rx_tx" REGION "GBE_REGION" ;
 REGION "MED0" "R69C4D" 35 40 DEVSIZE;
 FREQUENCY NET "gen_ethernet_hub_GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/un1_PCS_SERDES_1" 125.000000 MHz ;
 FREQUENCY NET "gen_ethernet_hub_GBE/serdes_clk_125_c" 125.000000 MHz ;
-LOCATE UGROUP "tsmac" REGION "MED0" ;
+#LOCATE UGROUP "tsmac" REGION "MED0" ;
 BLOCK JTAGPATHS ;
 UGROUP "sd_tx_to_pcs" 
 	BLKNAME gen_ethernet_hub_GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_correct_disp_q
