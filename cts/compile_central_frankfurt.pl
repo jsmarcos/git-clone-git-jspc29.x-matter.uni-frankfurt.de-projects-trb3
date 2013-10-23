@@ -9,7 +9,7 @@ use strict;
 ###################################################################################
 #Settings for this project
 my $TOPNAME                      = "trb3_central";  #Name of top-level entity
-my $lattice_path                 = '/d/jspc29/lattice/diamond/2.01';
+my $lattice_path                 = '/d/jspc29/lattice/diamond/2.1_x64';
 #my $lattice_path                 = '/d/jspc29/lattice/diamond/2.0';
 #my $lattice_path                 = '/d/jspc29/lattice/diamond/1.4.2.105';
 #my $synplify_path                = '/d/jspc29/lattice/synplify/G-2012.09-SP1/';
@@ -39,7 +39,12 @@ my $DEVICENAME="LFE3-150EA";
 my $PACKAGE="FPBGA1156";
 my $SPEEDGRADE="8";
 
-
+unless(-e 'workdir') {
+  print "Creating workdir\n";
+  system ("mkdir workdir");
+  system ("cd workdir; ../../base/linkdesignfiles.sh; cd ..;");
+  }
+  
 #create full lpf file
 system("cp ../base/trb3_central_cts.lpf workdir/$TOPNAME.lpf");
 system("cat tdc_release/tdc_constraints.lpf >> workdir/$TOPNAME.lpf");
@@ -121,9 +126,10 @@ $c=qq|$lattice_path/ispfpga/bin/lin/map                  -retime -split_node -a 
 execute($c);
 
 
-$c=qq|multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
+# $c=qq|multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
 #$c=qq|$lattice_path/ispfpga/bin/lin/par -f "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd" "$TOPNAME.prf"|;
 #$c=qq|$lattice_path/ispfpga/bin/lin/par -f "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.dir" "$TOPNAME.prf"|;
+$c=qq|mpartrce -p "../$TOPNAME.p2t" -f "../$TOPNAME.p3t" -tf "$TOPNAME.pt" "|.$TOPNAME.qq|_map.ncd" "$TOPNAME.ncd"|;
 execute($c);
 
 # IOR IO Timing Report

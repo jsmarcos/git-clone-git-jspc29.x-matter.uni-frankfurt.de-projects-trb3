@@ -140,6 +140,14 @@ add_file -verilog -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/sgmii33/reset_c
 add_file -verilog -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/sgmii33/register_interface_hb.v"
 add_file -verilog -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/sgmii33/rate_resolution.v"
 
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_transmit_control2.vhd"
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_response_constructor_TrbNetData.vhd"
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_4kx18x9.vhd"
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_4kx8_ecp3.vhd"
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_512x32x8.vhd"
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_ipu_interface.vhd"
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_event_constr.vhd"
+
 
 #trbnet and base files
 
