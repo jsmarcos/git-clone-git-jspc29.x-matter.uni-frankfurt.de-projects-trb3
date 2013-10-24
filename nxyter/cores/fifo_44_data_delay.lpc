@@ -16,8 +16,8 @@ CoreRevision=4.8
 ModuleName=fifo_44_data_delay
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=09/29/2013
-Time=20:18:14
+Date=10/20/2013
+Time=20:31:33
 
 [Parameters]
 Verilog=0
@@ -28,7 +28,7 @@ Expression=BusA(0 to 7)
 Order=Big Endian [MSB:LSB]
 IO=0
 FIFOImp=EBR Based
-Depth=128
+Depth=256
 Width=44
 regout=1
 CtrlByRdEn=1

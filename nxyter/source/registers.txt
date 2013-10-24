@@ -2,9 +2,12 @@
 0x8100 :  w    w: reset I2C State Machine
 0x8101 :  w    w: reset I2C all Register
 0x8102 :  w    w: Reset and Sync Timestamps (nXyter and FPGA)
-0x8103 :  r/w  Put nxyter into offline mode 
-0x8104 :  r    PLL Lock nXyter Main Clock (250MHz)
-0x8105 :  r    PLL Lock ADC Clock (31.25MHz)
+0x8103 :  r/w  Put Nxyter into offline mode 
+0x8104 :  r    Nxyter Main Clock Lock (125 MHz)
+0x8105 :  r    ADC Data Clock Lock    (187.5MHz)
+0x810a :  r/w  r: PLL Nxyter Main Clock NotLock Counter
+               w: Clear all pll_nx_clk_notlock_ctr
+0x810b :  r    PLL ADC Data Clock NotLock Counter
 
 -- NX I2C Setup Handler
 0x8200 : r/w   I2C Memeory Register (Depth: 0 - 45 ... 0x822c) 
@@ -15,12 +18,8 @@
 0x8243 : w     Write Memory to Trim DAC Register(129 deep FIFO)    
 
 -- Trigger Generator
-#0x8140 :  w    If writing just start trigger cycle, keep current setting
-#0x8141 :  r/w  Bit 15-0 : periodic time (in 10ns) 
-#0x8142 :  r/w  Bit0 7-0 : number of triggers to be sent consecutive
-0x8143 :  r/w  Bit 15-0 : Length of trigger pulse (in 10ns), if 0: skip it
-#0x8144 :  r/w  Bit0     : 1: send timestamp-reset before trigger 
-0x8145 :  r             : Testpulse Rate (in Hz)    
+0x8141 :  r/w  Length of Trigger TestPulse (12 Bit, in 10ns)
+0x8145 :  r    Testpulse Rate (in Hz)
 
 -- Trigger Handler
 0x8160 :  r/w  Bit 7-0  : Delay Testpulse Signal after Trigger (10ns)
@@ -36,62 +35,63 @@
                 3..29: ignore
                    31: nx_frame_synced
                w: adc reset
-0x8502 :  r/w  r: Resync Counter(12bit)
+0x8502 :  r/w  r: Resync Counter(12 Bit)
                w: clear Resync Counter    
-0x8503 :  r/w  r: Parity Error Counter (12bit)
-               w: clear Parity Error Counter
-0x8505 :  r/w  ADC CLK Delay 4ns steps (3Bit: range 0..7)
-               0:  4ns after frame_valid
-               1:  8ns -------"---------
-               ......  -------"---------
-               6: 28ns -------"--------- 
-               7: 32ns -------"--------- <= this shoud be correct 
-                                            i.e. 2ns before new frame clock
-0x8506 :  r    ADC Reset Counter
-0x8507 :  r/w  Debug Multiplexer:
+0x8503 :  r/w  r: Parity Error Counter (12 Bit)
+               w: clear Parity Error Counter   
+0x8504 :  r/w  ADC Sampling PLL Clock Not Lock Counter
+               w: clear counter
+0x8505 :  r/w  johnson_counter_sync(2 Bit), do not touch, experts only register
+0x8506 :  r/w  PLL ADC Sampling Clock DPHASE (4 Bit)
+0x8507 :  r/w  PLL ADC Sampling Clock FINEDELB (4 Bit)
+
+0x8508 :  r    current ADC FIFO value
+0x8509 :  w    PLL ADC Sampling CLK Reset
+0x850a :  r/w  Enable Test ADC Input Data Error Test
+0x850b :  r    ADC Input Data Error Counter (16 Bit)
+                (only valid in case of 0x8509 is 1, see line above)
+0x850c :  r    Nxyter Data Clock Status (1 = O.K.)
+
+0x850f :  r/w  Debug Multiplexer:
                0: no ADC Values, normal Debug
                1: ADC Value Nxyter
                2: ADC Value Testchannel
                3: ADC Reset Handler
-0x8508 :  r    current ADC FIFO value
-0x8509 :  r/w  Enable Test ADC Input Data Error Test
-0x850a :  r    ADC Input Data Error Counter (16 Bit)
-                (only valid in case of 0x8509 is 1, see line above)
 
 -- NX Data Delay
-0x8130 :  r    FIFO Delay, i.e. Trigger Delay (7Bit, in 32ns, Range 1..120)
-
--- NX Data Validate
-0x8120 :  r/w  Invalid Frame Counter (16 bit) / w: clear all counters
-0x8121 :  r    Overflow Counter (16 bit)
-0x8122 :  r    Pileup Counter (16 bit)
-0x8123 :  r    Parity Error Counter (16 bit)
-0x8124 :  r    Hit Rate (in Hz)
-0x8125 :  r    Frame Rate (in Hz)
+0x8130 :  r    FIFO Delay, i.e. Trigger Delay (8 Bit, in 32ns).
+              Calculation is based on CTS Trigger Delay
+              (see NX Trigger Validate)
 
 -- NX Trigger Validate
-0x8180 :  r/w  Readout Mode (0: Ref + [DeltaTS + ovfl          + parity] valid
-                             1: Ref + [DeltaTS + ovfl + pileup + parity] valid
-                             2: UNDEF
-                             3: UNDEF
-                             4: Ref + [          ovfl +        + parity] valid
-                             5: Ref + [          ovfl + pileup + parity] valid
-                             6: UNDEF
-                             7: UNDEF
-0x8181 :  r/w  Trigger Window Delay (12 bit, in 4ns) 
-0x8182 :  r/w  Trigger Window Width (12 bit, in 4ns)
-0x8183 :  r/w  CTS Trigger Delay (12 bit, in 4ns)
-0x8184 :  r/w  Readout Time Max (12 bit, in 10ns)
+0x8180 :  r/w  Readout Mode: 3 Bits
+               Bit #2:    0: activate TS Selection Window
+                          1: data wil be written to disk as long as
+                             Readout Time Max (Reg.: 0x8184) is valid
+               Bit #1..0     0: TS Ovfl and Parity Bit valid
+                             1: TS Ovfl, Parity and Pileup Bit valid
+                             2: ignore TS Status Bits
+                             3: -------- " -------
+                           
+0x8181 :  r/w  Trigger Window Offset [TS_Offset] (11 Bit signed, in 4ns) 
+0x8182 :  r/w  Trigger Window Width [TS_Width] (10 Bit, in 4ns)
+0x8183 :  r/w  CTS Trigger Delay [CTS_Delay] (10 Bit, in 4ns)
+               FPGA_Timestamp = TS_Ref
+               Trigger Window Lower Threshold =
+                  TS_FPGA - CTS_Delay +/- TS_Offset 
+               Trigger Window Upper Threshold =
+                  TS_FPGA - CTS_Delay + TS_Offset + TS_Width
+0x8184 :  r/w  Readout Time Max (10 Bit, in 10ns)
 
-0x8185 :  r    Busy Time Counter (12 bit, in 10ns)
-0x8186 :  r    timestamp_ref
-0x8187 :  r    window_lower_thr
-0x8188 :  r    window_upper_thr
-0x8189 :  r    data_fifo_delay (7 bit, in 32ns)
-0x818a :  r    done counter ch 0..31
-0x818b :  r    done counter ch 32..63
-0x818c :  r    done counter ch 94..95
-0x818d :  r    done counter ch 96..127
+0x8185 :  r/w  FPGA Timestamp Offset (12 Bit, in 4ns)
+0x8186 :  r    Busy Time Counter (12 Bit, in 10ns)
+0x8187 :  r    timestamp_ref
+0x8188 :  r    window_lower_thr
+0x818a :  r    data_fifo_delay (7 Bit, in 32ns)
+0x818b :  r    done counter ch 0..31
+0x818c :  r    done counter ch 32..63
+0x818d :  r    done counter ch 94..95
+0x818e :  r    done counter ch 96..127
 
 -- Event Data Buffer
 0x8600 :  r    read FIFO buffer
@@ -113,7 +113,7 @@
 0x8800 :  r/w  r: Read Channel Statistic (128 channel in a row)
                w: reset all Histograms
 0x8880 :  r    Read Channel Trigger Rate (128 channel in a row, 1/s)
-0x8900 :  r    Read Channel ADC Value (128 channel in a row)
+0x8900 :  r    Read Channel ADC Value    (128 channel in a row)
 
 -- Debug Multiplexer
 0x8020 :  r/w   Select Debug Entity
@@ -130,4 +130,33 @@
                 10: nx_trigger_validate
                 11: nx_event_buffer
                 12: nx_histograms
+
+
+--- Trigger Selction Window Setup
+
+                                      _
+Physics Trigger [PT]  _______________| |___________________________________
+                                           _
+NX_TS_Trigger   [NXT] ____________________| |______________________________
+                                                            _
+CTS Trigger     [CT]  _____________________________________| |_____________
+                                                                _
+FPGA TS Trigger [FT]  _________________________________________| |_________
+                                                               |
+CTS+FPGA Trigger Delay                    |--------------------|
+                                          |                    |
+FPGA TS-Ref stored in Event Header        |                    |
+                                          |                    |
+Trigger Window Offset(-)       |----------|                    | 
+Trigger Window Width(-)        |----------------|              | 
+Timestamps stored in Event(-)  |--|---|--|-||--|---------------|
+                                          |                    |
+                                          |                    |
+Trigger Window Offset(+)                  |-----|              |
+Trigger Window Width(+)                         |---------|    |    
+Timestamps stored in Event(+)  -----------------|--||--|-|-----|
+
+TIME   ---------------------------------------------------------------------->
+                                
+
 

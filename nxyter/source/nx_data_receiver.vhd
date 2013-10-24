@@ -12,7 +12,7 @@ entity nx_data_receiver is
   port(
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
-    NX_MAIN_CLK_IN       : in  std_logic;
+    NX_DATA_CLK_TEST_IN  : in std_logic;
     TRIGGER_IN           : in  std_logic;
     
     -- nXyter Ports
@@ -52,26 +52,17 @@ end entity;
 
 architecture Behavioral of nx_data_receiver is
 
-  -----------------------------------------------------------------------------
-  -- NX_MAIN_CLK Domain
-  -----------------------------------------------------------------------------
-
-  -- Check Nxyter Data Clock
-  signal nx_data_clock_t           : std_logic;
-  signal nx_data_clock             : std_logic;
-  signal nx_data_clock_last        : std_logic;
-  signal nx_data_clock_nok         : std_logic;
-
-  -- CLK_IN Domain
-  signal nx_data_clock_invalid     : std_logic;
+  -- Clock Check
+  signal counter_nx_domain     : unsigned(7 downto 0);
+  signal counter_nx_ref_domain : unsigned(7 downto 0);
+  signal counter_nx_diff       : unsigned(7 downto 0);
   
   -----------------------------------------------------------------------------
   -- NX_TIMESTAMP_CLK Domain
   -----------------------------------------------------------------------------
 
   -- FIFO DC Input Handler
-  signal nx_timestamp_reg_t        : std_logic_vector(7 downto 0);
-  signal nx_timestamp_reg          : std_logic_vector(7 downto 0);
+  signal nx_timestamp_ff           : std_logic_vector(7 downto 0);
   signal nx_fifo_full              : std_logic;
   signal nx_fifo_reset             : std_logic;
                                    
@@ -102,13 +93,21 @@ architecture Behavioral of nx_data_receiver is
                                    
   -- ADC Ckl Generator             
   signal adc_clk_skip              : std_logic;
-  signal adc_sample_clk            : std_logic;
+  signal adc_sampling_clk          : std_logic;
   signal johnson_ff_0              : std_logic;
   signal johnson_ff_1              : std_logic;
-  signal adc_clk_inv               : std_logic;
-  signal adc_clk_delay             : std_logic_vector(2 downto 0);
+  signal johnson_counter_sync      : std_logic_vector(1 downto 0);
   signal adc_clk_ok                : std_logic;
-                                   
+
+  signal pll_adc_sampling_clk_o     : std_logic;
+  signal pll_adc_sampling_clk_lock  : std_logic;
+  signal pll_adc_sampling_clk_reset : std_logic;
+
+  -- PLL ADC Monitor
+  signal pll_adc_not_lock           : std_logic;
+  signal pll_adc_not_lock_ctr       : unsigned(11 downto 0);
+  signal pll_adc_not_lock_ctr_clear : std_logic;
+  
   -- ADC RESET                     
   signal adc_clk_ok_last           : std_logic;
   signal adc_reset_s               : std_logic;
@@ -140,7 +139,6 @@ architecture Behavioral of nx_data_receiver is
   signal parity_error_counter      : unsigned(11 downto 0);
   signal parity_error_ctr_inc      : std_logic;
                                    
-  signal reg_nx_frame_synced_t     : std_logic;
   signal reg_nx_frame_synced       : std_logic;
 
   -----------------------------------------------------------------------------
@@ -176,7 +174,17 @@ architecture Behavioral of nx_data_receiver is
   signal nx_timestamp_o            : std_logic_vector(31 downto 0);
   signal adc_data_o                : std_logic_vector(11 downto 0);
   signal new_data_o                : std_logic;
-                                   
+
+  -- Check Nxyter Data Clock via Johnson Counter
+  signal nx_data_clock_test_0      : std_logic;
+  signal nx_data_clock_test_1      : std_logic;
+  signal nx_data_clock             : std_logic;
+  signal nx_data_clock_state       : std_logic_vector(3 downto 0);
+  signal nx_data_clock_ok          : std_logic;
+
+  signal pll_adc_sample_clk_dphase   : std_logic_vector(3 downto 0);
+  signal pll_adc_sample_clk_finedelb : std_logic_vector(3 downto 0);
+  
   -- Slave Bus                     
   signal slv_data_out_o            : std_logic_vector(31 downto 0);
   signal slv_no_more_data_o        : std_logic;
@@ -187,7 +195,7 @@ architecture Behavioral of nx_data_receiver is
   signal reset_parity_error_ctr    : std_logic;
   signal fifo_reset_r              : std_logic;
   signal debug_adc                 : std_logic_vector(1 downto 0);
-
+  signal pll_adc_sampling_clk_reset_r :std_logic;
 begin
   
   PROC_DEBUG_MULT: process(debug_adc,
@@ -227,7 +235,9 @@ begin
         DEBUG_OUT(1)            <= NX_TIMESTAMP_CLK_IN;
         DEBUG_OUT(2)            <= TRIGGER_IN;
         DEBUG_OUT(3)            <= adc_data_valid;
-        DEBUG_OUT(15 downto 4)  <= test_adc_data;
+        DEBUG_OUT(7 downto 4)   <= (others => '0');
+        DEBUG_OUT(15 downto 8)  <= counter_nx_diff;
+        --DEBUG_OUT(15 downto 4)  <= test_adc_data;
 
       when "11" =>
         DEBUG_OUT(0)            <= NX_TIMESTAMP_CLK_IN;
@@ -241,10 +251,10 @@ begin
         DEBUG_OUT(8)            <= adc_reset_s;
         DEBUG_OUT(9)            <= adc_reset;
         DEBUG_OUT(10)           <= nx_new_frame;
-        DEBUG_OUT(11)           <= nx_data_clock;
-        DEBUG_OUT(12)           <= nx_data_clock_last;
-        DEBUG_OUT(13)           <= nx_data_clock_nok;
-        DEBUG_OUT(14)           <= nx_data_clock_invalid;
+        DEBUG_OUT(11)           <= nx_data_clock_ok;
+        DEBUG_OUT(12)           <= '0'; --adc_sampling_clk;
+        DEBUG_OUT(13)           <= pll_adc_sampling_clk_lock;
+        DEBUG_OUT(14)           <= pll_adc_sampling_clk_o;
         DEBUG_OUT(15)           <= '0';
         
         --DEBUG_OUT(15 downto 11) <= adc_reset_ctr(4 downto 0) ;
@@ -274,48 +284,86 @@ begin
   end process PROC_DEBUG_MULT;
   
   -----------------------------------------------------------------------------
-  -- NX_MAIN_CLK Domain
+  -- Check NX Data Clk
   -----------------------------------------------------------------------------
-  PROC_CHECK_NX_DATA_CLOCK: process(NX_MAIN_CLK_IN)
+  PROC_COUNTER_NX_CLOCK: process(NX_TIMESTAMP_CLK_IN)
   begin
-    if (rising_edge(NX_MAIN_CLK_IN)) then
+    if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        nx_data_clock_t        <= '0';
-        nx_data_clock          <= '0';
-        nx_data_clock_last     <= '0';
-        nx_data_clock_nok      <= '0';
+        counter_nx_domain <= (others => '0');
       else
-        if (nx_data_clock /= nx_data_clock_last) then
-          nx_data_clock_nok     <= '0';
-        else
-          nx_data_clock_nok     <= '1';
-        end if;
-
-        nx_data_clock_t        <= NX_TIMESTAMP_CLK_IN;
-        nx_data_clock          <= nx_data_clock_t;
-        nx_data_clock_last     <= nx_data_clock;
+        counter_nx_domain <= counter_nx_domain + 1;
       end if;
     end if;
-  end process PROC_CHECK_NX_DATA_CLOCK;
+  end process PROC_COUNTER_NX_CLOCK; 
 
-  pulse_dtrans_1: pulse_dtrans
-    generic map (
-      CLK_RATIO => 3
-      )
-    port map (
-      CLK_A_IN    => NX_MAIN_CLK_IN,
-      RESET_A_IN  => RESET_IN,
-      PULSE_A_IN  => nx_data_clock_nok,
-      CLK_B_IN    => CLK_IN,
-      RESET_B_IN  => RESET_IN,
-      PULSE_B_OUT => nx_data_clock_invalid
-      );
+  PROC_COUNTER_NX_REF_CLOCK: process(NX_DATA_CLK_TEST_IN)
+  begin
+    if (rising_edge(NX_DATA_CLK_TEST_IN) ) then
+      if( RESET_IN = '1' ) then
+        counter_nx_ref_domain <= (others => '0');
+      else
+        counter_nx_ref_domain <= counter_nx_ref_domain + 1;
+      end if;
+    end if;
+  end process PROC_COUNTER_NX_REF_CLOCK;
 
-  
+  counter_nx_diff <= counter_nx_ref_domain - counter_nx_domain;
+    
   -----------------------------------------------------------------------------
   -- ADC CLK DOMAIN
   -----------------------------------------------------------------------------
 
+  pll_adc_sampling_clk_2: pll_adc_sampling_clk
+    port map (
+      CLK       => adc_sampling_clk,
+      
+      RESET     => pll_adc_sampling_clk_reset,
+      FINEDELB0 => pll_adc_sample_clk_finedelb(0),
+      FINEDELB1 => pll_adc_sample_clk_finedelb(1),
+      FINEDELB2 => pll_adc_sample_clk_finedelb(2),
+      FINEDELB3 => pll_adc_sample_clk_finedelb(3),
+      DPHASE0   => pll_adc_sample_clk_dphase(0),
+      DPHASE1   => pll_adc_sample_clk_dphase(1),
+      DPHASE2   => pll_adc_sample_clk_dphase(2),
+      DPHASE3   => pll_adc_sample_clk_dphase(3),
+      CLKOP     => open,
+      CLKOS     => pll_adc_sampling_clk_o,
+      LOCK      => pll_adc_sampling_clk_lock
+      );
+
+  pulse_to_level_2: pulse_to_level
+    generic map (
+      NUM_CYCLES => 10 
+      )
+    port map (
+      CLK_IN    => CLK_IN,
+      RESET_IN  => RESET_IN,
+      PULSE_IN  => pll_adc_sampling_clk_reset_r,
+      LEVEL_OUT => pll_adc_sampling_clk_reset
+      );
+
+  pulse_async_trans_1: pulse_async_trans
+    port map (
+      CLK_IN     => CLK_IN,
+      RESET_IN   => RESET_IN,
+      PULSE_A_IN => not pll_adc_sampling_clk_lock,
+      PULSE_OUT  => pll_adc_not_lock
+      );
+  
+  PROC_PLL_LOCK_COUNTER: process(CLK_IN)
+  begin
+    if (rising_edge(CLK_IN) ) then
+      if( RESET_IN = '1' or pll_adc_not_lock_ctr_clear = '1') then
+        pll_adc_not_lock_ctr   <= (others => '0');
+      else
+        if (pll_adc_not_lock = '1') then
+          pll_adc_not_lock_ctr <= pll_adc_not_lock_ctr + 1;
+        end if;
+      end if;
+    end if;
+  end process PROC_PLL_LOCK_COUNTER;
+  
   adc_ad9222_1: entity work.adc_ad9222
     generic map (
       CHANNELS => 4,
@@ -324,28 +372,28 @@ begin
       )
     port map (
       CLK                        => CLK_IN,
-      CLK_ADCREF                 => adc_sample_clk,
+      CLK_ADCREF                 => pll_adc_sampling_clk_o,
       CLK_ADCDAT                 => ADC_CLK_DAT_IN,
       RESTART_IN                 => adc_reset,
       ADCCLK_OUT                 => ADC_SAMPLE_CLK_OUT,
-
+      
       ADC_DATA(0)                => ADC_NX_IN(0), 
       ADC_DATA(1)                => ADC_B_IN(0),
       ADC_DATA(2)                => ADC_A_IN(0), 
       ADC_DATA(3)                => ADC_D_IN(0), 
-
+      
       ADC_DATA(4)                => ADC_NX_IN(1), 
       ADC_DATA(5)                => ADC_A_IN(1), 
       ADC_DATA(6)                => ADC_B_IN(1), 
       ADC_DATA(7)                => ADC_D_IN(1),
-
+      
       ADC_DCO                    => ADC_DCLK_IN,
       ADC_FCO                    => ADC_FCLK_IN,
-
+      
       DATA_OUT(11 downto  0)     => adc_data,
       DATA_OUT(23 downto 12)     => test_adc_data,
       DATA_OUT(95 downto 24)     => open,
-
+      
       FCO_OUT                    => open,
       DATA_VALID_OUT(0)          => adc_data_valid,
       DATA_VALID_OUT(1)          => open,
@@ -353,7 +401,7 @@ begin
       );
 
   adc_reset <= adc_reset_s or adc_reset_l or RESET_IN;
-
+  
   pulse_to_level_1: pulse_to_level
     generic map (
       NUM_CYCLES => 7
@@ -369,9 +417,9 @@ begin
   -- NX_TIMESTAMP_CLK_IN Domain
   -----------------------------------------------------------------------------
 
-  nx_timestamp_reg   <= NX_TIMESTAMP_IN when rising_edge(NX_TIMESTAMP_CLK_IN);
+  nx_timestamp_ff   <= NX_TIMESTAMP_IN when rising_edge(NX_TIMESTAMP_CLK_IN);
 
-  -- Transfer 8 to 32Bit 
+  -- Merge TS Data 8bit to 32Bit Timestamp Frame
   PROC_8_TO_32_BIT: process(NX_TIMESTAMP_CLK_IN)
   begin
     if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
@@ -383,16 +431,16 @@ begin
         nx_new_frame     <= '0';
         
         case frame_byte_pos is
-          when "11" => nx_frame_word(31 downto 24) <= nx_timestamp_reg;
+          when "11" => nx_frame_word(31 downto 24) <= nx_timestamp_ff;
                        frame_byte_ctr              <= frame_byte_ctr + 1;
                        
-          when "10" => nx_frame_word(23 downto 16) <= nx_timestamp_reg;
+          when "10" => nx_frame_word(23 downto 16) <= nx_timestamp_ff;
                        frame_byte_ctr              <= frame_byte_ctr + 1;
                        
-          when "01" => nx_frame_word(15 downto  8) <= nx_timestamp_reg;
+          when "01" => nx_frame_word(15 downto  8) <= nx_timestamp_ff;
                        frame_byte_ctr              <= frame_byte_ctr + 1;
                        
-          when "00" => nx_frame_word( 7 downto  0) <= nx_timestamp_reg;
+          when "00" => nx_frame_word( 7 downto  0) <= nx_timestamp_ff;
                        if (frame_byte_ctr = "11") then
                          nx_new_frame              <= '1';
                        end if;
@@ -531,36 +579,25 @@ begin
     end if;
   end process PROC_NX_CLK_ACT;
 
-  -- Johnson Counter
-  PROC_ADC_CLK_GENERATOR: process(NX_TIMESTAMP_CLK_IN)
+  -- ADC Sampling Clock Generator using a Johnson Counter
+  PROC_ADC_SAMPLING_CLK_GENERATOR: process(NX_TIMESTAMP_CLK_IN)
   begin
     if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
       if (RESET_IN = '1') then
-        johnson_ff_0  <= '0';
-        johnson_ff_1  <= '0';
+        johnson_ff_0   <= '0';
+        johnson_ff_1   <= '0';
       else
         if (adc_clk_skip = '0') then
-          johnson_ff_0 <= not johnson_ff_1;
-          johnson_ff_1 <= johnson_ff_0;
+          johnson_ff_0     <= not johnson_ff_1;
+          johnson_ff_1     <= johnson_ff_0;
+          adc_sampling_clk <= not johnson_ff_1;
         end if;
       end if;
     end if;
-  end process PROC_ADC_CLK_GENERATOR;
+    adc_sampling_clk <= johnson_ff_0;
+  end process PROC_ADC_SAMPLING_CLK_GENERATOR;
 
-  PROC_ADC_CLK_DELAY_4NS: process(NX_TIMESTAMP_CLK_IN)
-  begin
-    if (falling_edge(NX_TIMESTAMP_CLK_IN)) then
-      if (RESET_IN = '1') then
-        adc_clk_inv <= '0';
-      else
-        adc_clk_inv <= johnson_ff_0;
-      end if;
-    end if;
-  end process PROC_ADC_CLK_DELAY_4NS;
-  
-  adc_sample_clk <= adc_clk_inv when adc_clk_delay(0) = '1' else johnson_ff_0;
-  
-  PROC_ADC_CLK_DELAY: process(NX_TIMESTAMP_CLK_IN)
+  PROC_ADC_SAMPLING_CLK_SYNC: process(NX_TIMESTAMP_CLK_IN)
     variable adc_clk_state : std_logic_vector(1 downto 0);
   begin
     if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
@@ -571,7 +608,7 @@ begin
         adc_clk_state      := johnson_ff_1 & johnson_ff_0;
         adc_clk_skip       <= '0';
         if (nx_new_frame = '1') then
-          if (adc_clk_state /= adc_clk_delay(2 downto 1)) then
+          if (adc_clk_state /= johnson_counter_sync) then
             adc_clk_skip   <= '1';
             adc_clk_ok     <= '0';
           else
@@ -580,7 +617,7 @@ begin
         end if;
       end if;
     end if;
-  end process PROC_ADC_CLK_DELAY;
+  end process PROC_ADC_SAMPLING_CLK_SYNC;
 
   PROC_ADC_RESET: process(NX_TIMESTAMP_CLK_IN)
   begin
@@ -611,18 +648,6 @@ begin
     end if;
   end process PROC_RESET_CTR;
 
-  -- PROC_CAL_RATES: process (CLK_IN)
-  -- begin 
-  --   if( rising_edge(CLK_IN) ) then
-  --     if (RESET_IN = '1') then
-  --       nx_trigger_ctr_t     <= (others => '0');
-  --       nx_hit_rate          <= (others => '0');
-  --       nx_frame_rate        <= (others => '0');
-  --     else
-  --     end if;
-  --   end if;
-  -- end process PROC_CAL_RATES;
-  
   -----------------------------------------------------------------------------
   -- NX CLK_IN Domain
   -----------------------------------------------------------------------------
@@ -694,20 +719,16 @@ begin
       RESET_B_IN  => RESET_IN,
       PULSE_B_OUT => parity_error_ctr_inc
       );
-  
-  PROC_SYNC_FRAME_SYNC: process(CLK_IN)
-  begin
-    if (rising_edge(CLK_IN) ) then
-      if(RESET_IN = '1' ) then
-        reg_nx_frame_synced_t <= '0';
-        reg_nx_frame_synced   <= '0';
-      else
-        reg_nx_frame_synced_t <= nx_frame_synced;
-        reg_nx_frame_synced   <= reg_nx_frame_synced_t; 
-      end if;
-    end if;
-  end process PROC_SYNC_FRAME_SYNC;
 
+  -- nx_frame_synced --> CLK_IN Domain
+  signal_async_trans_1: signal_async_trans
+    port map (
+      CLK_IN      => CLK_IN,
+      RESET_IN    => RESET_IN,
+      SIGNAL_A_IN => nx_frame_synced,
+      SIGNAL_OUT  => reg_nx_frame_synced
+      );
+  
   -- Counters
   PROC_RESYNC_COUNTER: process(CLK_IN)
   begin
@@ -843,6 +864,69 @@ begin
     end if;
   end process PROC_OUTPUT_HANDLER;
 
+
+  -----------------------------------------------------------------------------
+  -- Reset Handler CLK_IN Domain
+  -----------------------------------------------------------------------------
+
+  -- Check NX Data Clock
+  -- Johnson Counter 2
+  --PROC_NX_DATA_CLOCK_TEST: process(NX_TIMESTAMP_CLK_IN)
+  --begin
+  --  if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
+  --    if (RESET_IN = '1') then
+  --      nx_data_clock_test_0  <= '0';
+  --      nx_data_clock_test_1  <= '0';
+  --    else
+  --      nx_data_clock_test_0  <= not nx_data_clock_test_1;
+  --      nx_data_clock_test_1  <= nx_data_clock_test_0;
+  --    end if;
+  --  end if;
+  --end process PROC_NX_DATA_CLOCK_TEST; 
+  --
+  --signal_async_trans_2: signal_async_trans
+  --  generic map (
+  --    NUM_FF => 2
+  --    )
+  --  port map (
+  --    CLK_IN      => CLK_IN,
+  --    RESET_IN    => RESET_IN,
+  --    SIGNAL_A_IN => nx_data_clock_test_0,
+  --    SIGNAL_OUT  => nx_data_clock
+  --    );
+  --
+  --PROC_CHECK_NX_DATA_CLOCK: process(CLK_IN)
+  --begin
+  --  if (rising_edge(CLK_IN)) then
+  --    if( RESET_IN = '1' ) then
+  --      nx_data_clock_state    <= (others => '0');
+  --      nx_data_clock_ok       <= '0';
+  --    else
+  --      if (nx_data_clock_state = "1111" or
+  --          nx_data_clock_state = "0000" or
+  --
+  --          nx_data_clock_state = "1110" or
+  --          nx_data_clock_state = "0111" or
+  --
+  --          nx_data_clock_state = "1100" or
+  --          nx_data_clock_state = "0011" or
+  --
+  --          nx_data_clock_state = "1000" or
+  --          nx_data_clock_state = "0001"
+  --          ) then
+  --        nx_data_clock_ok     <= '0';
+  --      else
+  --        nx_data_clock_ok     <= '1';
+  --      end if;
+  --
+  --      nx_data_clock_state(0) <= nx_data_clock;
+  --      nx_data_clock_state(1) <= nx_data_clock_state(0);
+  --      nx_data_clock_state(2) <= nx_data_clock_state(1);
+  --      nx_data_clock_state(3) <= nx_data_clock_state(2);
+  --    end if;
+  --  end if;
+  --end process PROC_CHECK_NX_DATA_CLOCK;
+ 
   -----------------------------------------------------------------------------
   -- TRBNet Slave Bus
   -----------------------------------------------------------------------------
@@ -859,13 +943,14 @@ begin
         reset_resync_ctr              <= '0';
         reset_parity_error_ctr        <= '0';
         fifo_reset_r                  <= '0';
-        adc_clk_delay                 <= "111";
         adc_reset_r                   <= '0';
         debug_adc                     <= (others => '0');
         adc_input_error_enable        <= '0';
-        -- pll_adc_sample_clk_reset      <= '1';
-        -- pll_adc_sample_clk_dphase     <= (others => '0');
-        -- pll_adc_sample_clk_finedelb   <= (others => '0');
+        johnson_counter_sync          <= "00";
+        pll_adc_sample_clk_dphase     <= (others => '0');
+        pll_adc_sample_clk_finedelb   <= (others => '0');
+        pll_adc_sampling_clk_reset_r  <= '0';
+        pll_adc_not_lock_ctr_clear    <= '0';
       else                      
         slv_data_out_o                <= (others => '0');
         slv_ack_o                     <= '0';
@@ -875,9 +960,8 @@ begin
         reset_parity_error_ctr        <= '0';
         fifo_reset_r                  <= '0';
         adc_reset_r                   <= '0';
-        -- pll_adc_sample_clk_reset      <= '0';
-        -- pll_adc_sample_clk_dphase     <= (others => '0');
-        -- pll_adc_sample_clk_finedelb   <= (others => '0');
+        pll_adc_sampling_clk_reset_r  <= '0';
+        pll_adc_not_lock_ctr_clear    <= '0';
         
         if (SLV_READ_IN  = '1') then
           case SLV_ADDR_IN is
@@ -898,7 +982,8 @@ begin
               slv_ack_o                     <= '1'; 
 
             when x"0002" =>
-              slv_data_out_o(11 downto  0)  <= std_logic_vector(resync_counter);
+              slv_data_out_o(11 downto  0)  <=
+                std_logic_vector(resync_counter);
               slv_data_out_o(31 downto 12)  <= (others => '0');
               slv_ack_o                     <= '1'; 
 
@@ -908,61 +993,52 @@ begin
               slv_data_out_o(31 downto 12)  <= (others => '0');
               slv_ack_o                     <= '1'; 
 
-            when x"0005" =>
-              case adc_clk_delay is
-                when "010" => slv_data_out_o(2 downto 0) <= "000";
-                when "011" => slv_data_out_o(2 downto 0) <= "001";
-                when "000" => slv_data_out_o(2 downto 0) <= "010";
-                when "001" => slv_data_out_o(2 downto 0) <= "011";
-                when "100" => slv_data_out_o(2 downto 0) <= "100";
-                when "101" => slv_data_out_o(2 downto 0) <= "101";
-                when "110" => slv_data_out_o(2 downto 0) <= "110";
-                when "111" => slv_data_out_o(2 downto 0) <= "111";
-              end case;
+            when x"0004" =>
+              slv_data_out_o(11 downto  0)  <=
+                std_logic_vector(pll_adc_not_lock_ctr);
+              slv_data_out_o(31 downto 12)  <= (others => '0');
+              slv_ack_o                     <= '1';     
 
-              slv_data_out_o(31 downto 3)   <= (others => '0');
-              slv_ack_o                     <= '1';   
+            when x"0005" =>
+              slv_data_out_o(1 downto  0)   <= johnson_counter_sync;
+              slv_data_out_o(31 downto 2)   <= (others => '0');
+              slv_ack_o                     <= '1';
 
             when x"0006" =>
-              slv_data_out_o(11 downto  0)  <= std_logic_vector(adc_reset_ctr);
-              slv_data_out_o(31 downto 12)  <= (others => '0');
+              slv_data_out_o(3 downto 0)    <= pll_adc_sample_clk_dphase;
+              slv_data_out_o(31 downto 4)   <= (others => '0');
               slv_ack_o                     <= '1';
 
             when x"0007" =>
-              slv_data_out_o(1 downto 0)    <= debug_adc;
-              slv_data_out_o(31 downto 2)   <= (others => '0');
-              slv_ack_o                     <= '1';
+              slv_data_out_o(3 downto 0)    <= pll_adc_sample_clk_finedelb;
+              slv_data_out_o(31 downto 4)   <= (others => '0');
+              slv_ack_o                     <= '1'; 
               
             when x"0008" =>
               slv_data_out_o(11 downto 0)   <= adc_data_t;
               slv_data_out_o(31 downto 12)  <= (others => '0');
               slv_ack_o                     <= '1';
 
-            when x"0009" =>
+            when x"000a" =>
               slv_data_out_o(0)             <= adc_input_error_enable;
               slv_data_out_o(31 downto 1)   <= (others => '0');
               slv_ack_o                     <= '1';
 
-            when x"000a" =>
+            when x"000b" =>
               slv_data_out_o(15 downto  0)  <= adc_input_error_ctr;
               slv_data_out_o(31 downto 16)  <= (others => '0');
               slv_ack_o                     <= '1';
 
-            -- when x"000b" =>
-            --   slv_data_out_o(0)             <= pll_adc_sample_clk_lock;
-            --   slv_data_out_o(31 downto 1)   <= (others => '0');
-            --   slv_ack_o                     <= '1';  
-            -- 
-            -- when x"000c" =>
-            --   slv_data_out_o(3 downto 0)    <= pll_adc_sample_clk_dphase;
-            --   slv_data_out_o(31 downto 4)   <= (others => '0');
-            --   slv_ack_o                     <= '1';
-            -- 
-            -- when x"000d" =>
-            --   slv_data_out_o(3 downto 0)    <= pll_adc_sample_clk_finedelb;
-            --   slv_data_out_o(31 downto 4)   <= (others => '0');
-            --   slv_ack_o                     <= '1';
-              
+            when x"000c" =>
+              slv_data_out_o(0)             <= nx_data_clock_ok;
+              slv_data_out_o(31 downto 1)   <= (others => '0');
+              slv_ack_o                     <= '1';  
+
+            when x"000f" =>
+              slv_data_out_o(1 downto 0)    <= debug_adc;
+              slv_data_out_o(31 downto 2)   <= (others => '0');
+              slv_ack_o                     <= '1';
+                       
             when others  =>
               slv_unknown_addr_o            <= '1';
           end case;
@@ -980,42 +1056,35 @@ begin
             when x"0003" => 
               reset_parity_error_ctr        <= '1';
               slv_ack_o                     <= '1'; 
-
-            when x"0005" =>
-              if (SLV_DATA_IN  < x"0000_0008") then
-                case SLV_DATA_IN(2 downto 0) is
-                  when "000" => adc_clk_delay <= "010";
-                  when "001" => adc_clk_delay <= "011";
-                  when "010" => adc_clk_delay <= "000";
-                  when "011" => adc_clk_delay <= "001";
-                  when "100" => adc_clk_delay <= "100";
-                  when "101" => adc_clk_delay <= "101";
-                  when "110" => adc_clk_delay <= "110";
-                  when "111" => adc_clk_delay <= "111";
-                end case;
-              end if;
+    
+            when x"0004" =>
+              pll_adc_not_lock_ctr_clear    <= '1';
               slv_ack_o                     <= '1';
+              
+            when x"0005" =>
+              johnson_counter_sync          <= SLV_DATA_IN(1 downto 0);
+              slv_ack_o                     <= '1'; 
+
+            when x"0006" =>
+              pll_adc_sample_clk_dphase     <= SLV_DATA_IN(3 downto 0);
+              slv_ack_o                     <= '1';   
 
             when x"0007" =>
-              debug_adc                     <= SLV_DATA_IN(1 downto 0);
-              slv_ack_o                     <= '1';
-
+              pll_adc_sample_clk_finedelb   <= SLV_DATA_IN(3 downto 0);
+              slv_ack_o                     <= '1';   
+          
             when x"0009" =>
+              pll_adc_sampling_clk_reset_r  <= '1';
+              slv_ack_o                     <= '1';   
+              
+            when x"000a" =>
               adc_input_error_enable        <= SLV_DATA_IN(0);
               slv_ack_o                     <= '1';
 
-            -- when x"000b" =>
-            --   pll_adc_sample_clk_reset      <= '1';
-            --   slv_ack_o                     <= '1'; 
-            -- 
-            -- when x"000c" =>
-            --   pll_adc_sample_clk_dphase     <= SLV_DATA_IN(3 downto 0);
-            --   slv_ack_o                     <= '1'; 
-            -- 
-            -- when x"000d" =>
-            --   pll_adc_sample_clk_finedelb   <= SLV_DATA_IN(3 downto 0);
-            --   slv_ack_o                     <= '1'; 
-              
+            when x"000f" =>
+              debug_adc                     <= SLV_DATA_IN(1 downto 0);
+              slv_ack_o                     <= '1';
+
             when others  =>
               slv_unknown_addr_o            <= '1';
               

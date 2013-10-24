@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DiamondModule name="fifo_44_data_delay" module="FIFO" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2013 09 29 20:18:24.914" version="4.8" type="Module" synthesis="synplify" source_format="VHDL">
+<DiamondModule name="fifo_44_data_delay" module="FIFO" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2013 10 20 20:31:36.041" version="4.8" type="Module" synthesis="" source_format="VHDL">
   <Package>
-		<File name="fifo_44_data_delay.lpc" type="lpc" modified="2013 09 29 20:18:14.000"/>
-		<File name="fifo_44_data_delay.vhd" type="top_level_vhdl" modified="2013 09 29 20:18:15.000"/>
-		<File name="fifo_44_data_delay_tmpl.vhd" type="template_vhdl" modified="2013 09 29 20:18:15.000"/>
-		<File name="tb_fifo_44_data_delay_tmpl.vhd" type="testbench_vhdl" modified="2013 09 29 20:18:15.000"/>
+		<File name="fifo_44_data_delay.lpc" type="lpc" modified="2013 10 20 20:31:33.000"/>
+		<File name="fifo_44_data_delay.vhd" type="top_level_vhdl" modified="2013 10 20 20:31:33.000"/>
+		<File name="fifo_44_data_delay_tmpl.vhd" type="template_vhdl" modified="2013 10 20 20:31:33.000"/>
+		<File name="tb_fifo_44_data_delay_tmpl.vhd" type="testbench_vhdl" modified="2013 10 20 20:31:33.000"/>
   </Package>
 </DiamondModule>

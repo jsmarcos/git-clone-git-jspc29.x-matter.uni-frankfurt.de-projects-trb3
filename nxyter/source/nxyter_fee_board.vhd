@@ -24,8 +24,9 @@ entity nXyter_FEE_board is
     CLK_ADC_IN                 : in  std_logic;
     PLL_NX_CLK_LOCK_IN         : in  std_logic;
     PLL_ADC_CLK_LOCK_IN        : in  std_logic;
+    NX_DATA_CLK_TEST_IN        : in  std_logic;
     TRIGGER_OUT                : out std_logic;
-
+    
     -- I2C Ports                
     I2C_SDA_INOUT              : inout std_logic;  -- nXyter I2C fdata line
     I2C_SCL_INOUT              : inout std_logic;  -- nXyter I2C Clock line
@@ -144,7 +145,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal new_timestamp_delayed  : std_logic_vector(31 downto 0);
   signal new_adc_data_delayed   : std_logic_vector(11 downto 0);
   signal new_data_delayed       : std_logic;
-  signal new_data_fifo_delay    : std_logic_vector(6 downto 0);
+  signal new_data_fifo_delay    : std_logic_vector(7 downto 0);
 
   -- Data Validate             
   signal timestamp              : std_logic_vector(13 downto 0);
@@ -191,13 +192,21 @@ architecture Behavioral of nXyter_FEE_board is
   signal nx_timestamp_sync      : std_logic;
   signal nx_timestamp_trigger_o : std_logic;
   
-  -- Trigger Generator
+  -- Trigger Generatorg
   signal trigger_intern         : std_logic;
   signal nx_testpulse_o         : std_logic;
 
   -- Debug Handler
   constant DEBUG_NUM_PORTS      : integer := 13;
   signal debug_line             : debug_array_t(0 to DEBUG_NUM_PORTS-1);
+
+  -- Nxyter Data Clock Handler
+  signal nx1_data_clk_dphase    : std_logic_vector(3 downto 0);
+  signal nx1_data_clk_finedelb  : std_logic_vector(3 downto 0);
+  signal nx1_data_clk_lock      : std_logic;
+  signal nx1_data_clk_clkop     : std_logic;
+  signal nx1_data_clk_clkos     : std_logic;
+  signal nx1_data_clk_clkok     : std_logic;
   
 begin
 
@@ -298,6 +307,13 @@ begin
       NX_TS_RESET_OUT        => nx_ts_reset_1,
       OFFLINE_OUT            => nxyter_offline,
 
+      NX_DATA_CLK_DPHASE_OUT   => nx1_data_clk_dphase,
+      NX_DATA_CLK_FINEDELB_OUT => nx1_data_clk_finedelb,
+      NX_DATA_CLK_LOCK_IN      => nx1_data_clk_lock,
+      NX_DATA_CLK_CLKOP_IN     => nx1_data_clk_clkop,
+      NX_DATA_CLK_CLKOS_IN     => nx1_data_clk_clkos,
+      NX_DATA_CLK_CLKOK_IN     => nx1_data_clk_clkok,
+      
       SLV_READ_IN            => slv_read(0),
       SLV_WRITE_IN           => slv_write(0),
       SLV_DATA_OUT           => slv_data_rd(0*32+31 downto 0*32),
@@ -479,6 +495,7 @@ begin
       TRIGGER_OUT          => trigger_intern,
       TS_RESET_OUT         => nx_ts_reset_2,
       TESTPULSE_OUT        => nx_testpulse_o,
+      TEST_IN              => new_timestamp,
       SLV_READ_IN          => slv_read(5),
       SLV_WRITE_IN         => slv_write(5),
       SLV_DATA_OUT         => slv_data_rd(5*32+31 downto 5*32),
@@ -499,7 +516,7 @@ begin
     port map (
       CLK_IN               => CLK_IN,
       RESET_IN             => RESET_IN,
-      NX_MAIN_CLK_IN       => CLK_NX_MAIN_IN,
+      NX_DATA_CLK_TEST_IN  => NX_DATA_CLK_TEST_IN,
       TRIGGER_IN           => lvl2_trigger,
 
       NX_TIMESTAMP_CLK_IN  => NX_DATA_CLK_IN,
@@ -519,7 +536,7 @@ begin
       NEW_DATA_OUT         => new_data,
 
       TIMESTAMP_CURRENT_IN => timestamp_current,
-      
+
       SLV_READ_IN          => slv_read(2),                      
       SLV_WRITE_IN         => slv_write(2),                     
       SLV_DATA_OUT         => slv_data_rd(2*32+31 downto 2*32), 
@@ -616,7 +633,7 @@ begin
       TRIGGER_IN             => trigger,
       FAST_CLEAR_IN          => fast_clear,
       TRIGGER_BUSY_OUT       => trigger_validate_busy,
-      TIMESTAMP_REF_IN       => timestamp_hold,
+      TIMESTAMP_FPGA_IN      => timestamp_hold,
       DATA_FIFO_DELAY_OUT    => new_data_fifo_delay,
       
       DATA_OUT               => trigger_data,

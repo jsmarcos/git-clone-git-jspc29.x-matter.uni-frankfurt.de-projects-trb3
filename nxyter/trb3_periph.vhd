@@ -161,8 +161,10 @@ architecture trb3_periph_arch of trb3_periph is
 
   -- For 250MHz PLL nxyter clock, THE_32M_ODDR_1
   attribute ODDRAPPS : string;
-  attribute ODDRAPPS of THE_250M_ODDR_1 : label is "SCLK_ALIGNED";
-  attribute ODDRAPPS of THE_250M_ODDR_2 : label is "SCLK_ALIGNED";
+  attribute ODDRAPPS of THE_NX_MAIN_ODDR_1       : label is "SCLK_ALIGNED";
+  attribute ODDRAPPS of THE_NX_MAIN_ODDR_2       : label is "SCLK_ALIGNED";
+  -- attribute ODDRAPPS of THE_ADC_SAMPLE_ODDR_1    : label is "SCLK_ALIGNED";
+  -- attribute ODDRAPPS of THE_ADC_SAMPLE_ODDR_2    : label is "SCLK_ALIGNED";
 
   --Constants
   constant REGIO_NUM_STAT_REGS : integer := 5;
@@ -285,6 +287,7 @@ architecture trb3_periph_arch of trb3_periph is
 
   -- nXyter-FEB-Board Clocks
   signal nx_main_clk                 : std_logic;
+  signal nx_data_clk_test            : std_logic;
   signal pll_nx_clk_lock             : std_logic;
   signal clk_adc_dat_1               : std_logic;
   signal clk_adc_dat_2               : std_logic;
@@ -704,6 +707,7 @@ begin
       CLK_ADC_IN                 => clk_adc_dat_1,
       PLL_NX_CLK_LOCK_IN         => pll_nx_clk_lock,
       PLL_ADC_CLK_LOCK_IN        => pll_adc_clk_lock_1,
+      NX_DATA_CLK_TEST_IN        => nx_data_clk_test,
 
       TRIGGER_OUT                => fee1_trigger,                       
       
@@ -784,6 +788,7 @@ begin
       CLK_ADC_IN                 => clk_adc_dat_2,
       PLL_NX_CLK_LOCK_IN         => pll_nx_clk_lock,
       PLL_ADC_CLK_LOCK_IN        => pll_adc_clk_lock_2,
+      NX_DATA_CLK_TEST_IN        => nx_data_clk_test,
       TRIGGER_OUT                => fee2_trigger,
       
       I2C_SDA_INOUT              => NX2_I2C_SDA_INOUT,
@@ -848,7 +853,6 @@ begin
       DEBUG_LINE_OUT                => open
       );
 
-
   ADDON_TRIGGER_OUT              <= fee1_trigger or fee2_trigger;
 
   -----------------------------------------------------------------------------
@@ -860,14 +864,12 @@ begin
     port map (
       CLK   => CLK_PCLK_RIGHT,
       CLKOP => nx_main_clk,
+      CLKOK => nx_data_clk_test,
       LOCK  => pll_nx_clk_lock
       );
-
-  --NX1_MAIN_CLK_OUT <= nx_main_clk;
-  --NX2_MAIN_CLK_OUT <= nx_main_clk;
   
-  -- Drivers for Nxyter Main Clocks
-  THE_250M_ODDR_1: ODDRXD1
+  -- Port FF for Nxyter Main Clocks
+  THE_NX_MAIN_ODDR_1: ODDRXD1
     port map(
       SCLK  => nx_main_clk,
       DA    => '1',
@@ -875,13 +877,36 @@ begin
       Q     => NX1_MAIN_CLK_OUT
       );
   
-  THE_250M_ODDR_2: ODDRXD1
+  THE_NX_MAIN_ODDR_2: ODDRXD1
     port map(
       SCLK  => nx_main_clk,
       DA    => '1',
       DB    => '0',
       Q     => NX2_MAIN_CLK_OUT
       );
+
+  --NX1_MAIN_CLK_OUT <= nx_main_clk;
+  --NX2_MAIN_CLK_OUT <= nx_main_clk;
+
+  -- -- ADC Sample Clocks
+  -- THE_ADC_SAMPLE_ODDR_1: ODDRXD1
+  --   port map(
+  --     SCLK  => nx1_adc_sample_clk,
+  --     DA    => '1',
+  --     DB    => '0',
+  --     Q     => NX1_ADC_SAMPLE_CLK_OUT
+  --     );
+  -- 
+  -- THE_ADC_SAMPLE_ODDR_2: ODDRXD1
+  --   port map(
+  --     SCLK  => nx2_adc_sample_clk,
+  --     DA    => '1',
+  --     DB    => '0',
+  --     Q     => NX2_ADC_SAMPLE_CLK_OUT 
+  --     );
+  
+  NX1_ADC_SAMPLE_CLK_OUT <= nx1_adc_sample_clk;
+  NX2_ADC_SAMPLE_CLK_OUT <= nx2_adc_sample_clk;
   
   -- ADC Receiver Clock (nXyter Main Clock * 3/4 (187.5), must be 
   -- based on same ClockSource as nXyter Main Clock)
@@ -898,18 +923,5 @@ begin
       CLKOP => clk_adc_dat_2,
       LOCK  => pll_adc_clk_lock_2
       );
-
-  -- ADC Sample Clocks
-  NX1_ADC_SAMPLE_CLK_OUT <= nx1_adc_sample_clk;
-  NX2_ADC_SAMPLE_CLK_OUT <= nx2_adc_sample_clk;
-
----------------------------------------------------------------------------
--- Test Connector - Logic Analyser
----------------------------------------------------------------------------
-
- -- TEST_LINE(0)           <= clk_100_i;
- -- TEST_LINE(1)           <= NX1_DATA_CLK_IN;
- -- TEST_LINE(15 downto 2) <= (others => '0');
-  
 
 end architecture;

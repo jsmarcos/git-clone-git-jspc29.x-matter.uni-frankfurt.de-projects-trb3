@@ -22,7 +22,7 @@ entity nx_data_delay is
     ADC_DATA_OUT           : out std_logic_vector(11 downto 0);
     NEW_DATA_OUT           : out std_logic;
 
-    FIFO_DELAY_IN          : in  std_logic_vector(6 downto 0);
+    FIFO_DELAY_IN          : in  std_logic_vector(7 downto 0);
     
     -- Slave bus           
     SLV_READ_IN            : in  std_logic;
@@ -65,7 +65,7 @@ architecture Behavioral of nx_data_delay is
   signal slv_no_more_data_o    : std_logic;
   signal slv_unknown_addr_o    : std_logic;
   signal slv_ack_o             : std_logic;
-  signal fifo_delay            : std_logic_vector(6 downto 0);
+  signal fifo_delay            : std_logic_vector(7 downto 0);
   signal fifo_delay_reset      : std_logic;
   
 begin
@@ -80,7 +80,7 @@ begin
   DEBUG_OUT(6)            <= fifo_read_enable;
   DEBUG_OUT(7)            <= fifo_data_valid;
   DEBUG_OUT(8)            <= new_data_o;
-  DEBUG_OUT(15 downto 9)  <= fifo_delay;
+  DEBUG_OUT(15 downto 9)  <= fifo_delay(6 downto 0);
 
   -----------------------------------------------------------------------------
   -- FIFO Delay Handler
@@ -164,16 +164,18 @@ begin
   begin
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
-        fifo_delay             <= "0000001";
+        fifo_delay             <= x"01";
         fifo_delay_reset       <= '0';
       else
         fifo_delay_reset       <= '0';
-        if (fifo_delay /= FIFO_DELAY_IN) then
-          if (unsigned(FIFO_DELAY_IN) >= 1 and
-              unsigned(FIFO_DELAY_IN) <= 120) then
+        if ((FIFO_DELAY_IN /= fifo_delay) and
+            (unsigned(FIFO_DELAY_IN) >= 1)          and
+            (unsigned(FIFO_DELAY_IN) <= 250)
+            ) then
             fifo_delay         <= FIFO_DELAY_IN;
             fifo_delay_reset   <= '1';
-          end if;
+        else
+          fifo_delay_reset       <= '0';
         end if;
       end if;
     end if;
@@ -200,8 +202,8 @@ begin
         if (SLV_READ_IN  = '1') then
           case SLV_ADDR_IN is
             when x"0000" =>
-              slv_data_o( 6 downto 0)  <= fifo_delay;
-              slv_data_o(31 downto 7)  <= (others => '0');
+              slv_data_o( 7 downto 0)  <= fifo_delay;
+              slv_data_o(31 downto 8)  <= (others => '0');
               slv_ack_o                <= '1';
               
             when others =>

@@ -4,7 +4,8 @@ use ieee.numeric_std.all;
 
 entity nx_timer is
   generic (
-    CTR_WIDTH : integer range 2 to 32 := 12
+    CTR_WIDTH : integer range 2 to 32  := 12;
+    STEP_SIZE : integer range 1 to 100 := 1
     );
   port(
     CLK_IN               : in    std_logic;
@@ -61,8 +62,8 @@ begin
         end if;
         
       when S_COUNT =>
-        if (timer_ctr > 0) then
-          timer_ctr_x     <= timer_ctr - 1;
+        if (timer_ctr > to_unsigned(STEP_SIZE - 1, CTR_WIDTH)) then
+          timer_ctr_x     <= timer_ctr - to_unsigned(STEP_SIZE, CTR_WIDTH);
           timer_done_o    <= '0';
           NEXT_STATE      <= S_COUNT;
         else

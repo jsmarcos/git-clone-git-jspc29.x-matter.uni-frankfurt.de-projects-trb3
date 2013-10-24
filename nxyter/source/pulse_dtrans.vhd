@@ -22,9 +22,6 @@ end entity;
 architecture Behavioral of pulse_dtrans is
 
   signal pulse_a_l      : std_logic;
-
-  signal pulse_b_t      : std_logic;
-  signal pulse_b_l      : std_logic; 
   signal pulse_b_o      : std_logic;
 
 begin
@@ -47,25 +44,15 @@ begin
   -- Clock B Domain
   -----------------------------------------------------------------------------
 
-  PROC_SYNC_PULSE: process(CLK_B_IN)
-  begin
-    if( rising_edge(CLK_B_IN) ) then
-      if( RESET_B_IN = '1' ) then
-        pulse_b_t   <= '0';
-        pulse_b_l   <= '0';
-      else
-        pulse_b_t   <= pulse_a_l;
-        pulse_b_l   <= pulse_b_t;
-      end if;
-    end if;
-  end process PROC_SYNC_PULSE;
-
-  level_to_pulse_1: level_to_pulse
+  pulse_async_trans_1: pulse_async_trans
+    generic map (
+      NUM_FF => 2
+      )
     port map (
-      CLK_IN    => CLK_B_IN,
-      RESET_IN  => RESET_B_IN,
-      LEVEL_IN  => pulse_b_l,
-      PULSE_OUT => pulse_b_o
+      CLK_IN     => CLK_B_IN,
+      RESET_IN   => RESET_B_IN,
+      PULSE_A_IN => pulse_a_l,
+      PULSE_OUT  => pulse_b_o
       );
 
   -- Outputs

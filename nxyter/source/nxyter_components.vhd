@@ -20,6 +20,7 @@ package nxyter_components is
       CLK_ADC_IN                 : in    std_logic;
       PLL_NX_CLK_LOCK_IN         : in    std_logic;
       PLL_ADC_CLK_LOCK_IN        : in    std_logic;
+      NX_DATA_CLK_TEST_IN        : in    std_logic;
 
       TRIGGER_OUT                : out   std_logic;
 
@@ -254,6 +255,14 @@ component nxyter_registers
     I2C_REG_RESET_OUT      : out std_logic;
     NX_TS_RESET_OUT        : out std_logic;
     OFFLINE_OUT            : out std_logic;
+    
+    NX_DATA_CLK_DPHASE_OUT   : out std_logic_vector(3 downto 0);
+    NX_DATA_CLK_FINEDELB_OUT : out std_logic_vector(3 downto 0);
+    NX_DATA_CLK_LOCK_IN      : in std_logic;
+    NX_DATA_CLK_CLKOP_IN     : in std_logic;
+    NX_DATA_CLK_CLKOS_IN     : in std_logic;
+    NX_DATA_CLK_CLKOK_IN     : in std_logic;
+    
     SLV_READ_IN            : in  std_logic;
     SLV_WRITE_IN           : in  std_logic;
     SLV_DATA_OUT           : out std_logic_vector(31 downto 0);
@@ -289,21 +298,6 @@ component fifo_ts_32to32_dc
     );
 end component;
 
-component fifo_ts_12to12_dc
-  port (
-    Data    : in  std_logic_vector(11 downto 0);
-    WrClock : in  std_logic;
-    RdClock : in  std_logic;
-    WrEn    : in  std_logic;
-    RdEn    : in  std_logic;
-    Reset   : in  std_logic;
-    RPReset : in  std_logic;
-    Q       : out std_logic_vector(11 downto 0);
-    Empty   : out std_logic;
-    Full    : out std_logic
-    );
-end component;
-
 component fifo_44_data_delay
   port (
     Data          : in  std_logic_vector(43 downto 0);
@@ -311,7 +305,7 @@ component fifo_44_data_delay
     WrEn          : in  std_logic;
     RdEn          : in  std_logic;
     Reset         : in  std_logic;
-    AmEmptyThresh : in  std_logic_vector(6 downto 0);
+    AmEmptyThresh : in  std_logic_vector(7 downto 0);
     Q             : out std_logic_vector(43 downto 0);
     Empty         : out std_logic;
     Full          : out std_logic;
@@ -337,7 +331,7 @@ component nx_data_receiver
   port (
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
-    NX_MAIN_CLK_IN       : in  std_logic;
+    NX_DATA_CLK_TEST_IN  : in  std_logic;
     TRIGGER_IN           : in  std_logic;
     NX_TIMESTAMP_CLK_IN  : in  std_logic;
     NX_TIMESTAMP_IN      : in  std_logic_vector (7 downto 0);
@@ -375,7 +369,7 @@ component nx_data_delay
     NX_FRAME_OUT         : out std_logic_vector(31 downto 0);
     ADC_DATA_OUT         : out std_logic_vector(11 downto 0);
     NEW_DATA_OUT         : out std_logic;
-    FIFO_DELAY_IN        : in  std_logic_vector(6 downto 0);
+    FIFO_DELAY_IN        : in  std_logic_vector(7 downto 0);
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
     SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
@@ -431,8 +425,8 @@ component nx_trigger_validate
     TRIGGER_IN           : in  std_logic;
     FAST_CLEAR_IN        : in  std_logic;
     TRIGGER_BUSY_OUT     : out std_logic;
-    TIMESTAMP_REF_IN     : in  unsigned(11 downto 0);
-    DATA_FIFO_DELAY_OUT  : out std_logic_vector(6 downto 0);
+    TIMESTAMP_FPGA_IN    : in  unsigned(11 downto 0);
+    DATA_FIFO_DELAY_OUT  : out std_logic_vector(7 downto 0);
     DATA_OUT             : out std_logic_vector(31 downto 0);
     DATA_CLK_OUT         : out std_logic;
     NOMORE_DATA_OUT      : out std_logic;
@@ -545,6 +539,30 @@ component pulse_to_level
     );
 end component;
 
+component pulse_async_trans
+  generic (
+    NUM_FF : integer range 2 to 4
+    );
+  port (
+    CLK_IN     : in  std_logic;
+    RESET_IN   : in  std_logic;
+    PULSE_A_IN : in  std_logic;
+    PULSE_OUT  : out std_logic
+    );
+end component;
+
+component signal_async_trans
+  generic (
+    NUM_FF : integer range 2 to 4
+    );
+  port (
+    CLK_IN      : in  std_logic;
+    RESET_IN    : in  std_logic;
+    SIGNAL_A_IN : in  std_logic;
+    SIGNAL_OUT  : out std_logic
+    );
+end component;
+
 component pulse_dtrans
   generic (
     CLK_RATIO : integer range 2 to 15
@@ -591,6 +609,7 @@ component pll_nx_clk250
   port (
     CLK   : in  std_logic;
     CLKOP : out std_logic;
+    CLKOK : out std_logic;
     LOCK  : out std_logic
     );
 end component;
@@ -600,6 +619,24 @@ component pll_adc_clk
     CLK   : in  std_logic;
     CLKOP : out std_logic;
     LOCK  : out std_logic
+    );
+end component;
+
+component pll_adc_sampling_clk
+  port (
+    CLK       : in  std_logic;
+    RESET     : in  std_logic;
+    FINEDELB0 : in  std_logic;
+    FINEDELB1 : in  std_logic;
+    FINEDELB2 : in  std_logic;
+    FINEDELB3 : in  std_logic;
+    DPHASE0   : in  std_logic;
+    DPHASE1   : in  std_logic;
+    DPHASE2   : in  std_logic;
+    DPHASE3   : in  std_logic;
+    CLKOP     : out std_logic;
+    CLKOS     : out std_logic;
+    LOCK      : out std_logic
     );
 end component;
 
@@ -667,10 +704,11 @@ component nx_trigger_generator
   port (
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
-    TRIGGER_IN           : out   std_logic;
+    TRIGGER_IN           : in  std_logic;
     TRIGGER_OUT          : out std_logic;
     TS_RESET_OUT         : out std_logic;
     TESTPULSE_OUT        : out std_logic;
+    TEST_IN              : in  std_logic_vector(31 downto 0);
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
     SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
@@ -689,7 +727,8 @@ end component;
 
 component nx_timer
   generic (
-    CTR_WIDTH : integer range 2 to 32
+    CTR_WIDTH : integer range 2 to 32;
+    STEP_SIZE : integer
     );
   port (
     CLK_IN         : in  std_logic;
