@@ -42,15 +42,6 @@ architecture TB of TB_PHY_ECP3 is
    signal m_SD_LOS_IN,          s_SD_LOS_IN          : std_logic;
    signal m_SD_TXDIS_OUT,       s_SD_TXDIS_OUT       : std_logic := '0';
 
-   --Control Interface
-   signal m_SCI_DATA_IN,        s_SCI_DATA_IN        : std_logic_vector(7 downto 0) := (others => '0');
-   signal m_SCI_DATA_OUT,       s_SCI_DATA_OUT       : std_logic_vector(7 downto 0) := (others => '0');
-   signal m_SCI_ADDR,           s_SCI_ADDR           : std_logic_vector(8 downto 0) := (others => '0');
-   signal m_SCI_READ,           s_SCI_READ           : std_logic := '0';
-   signal m_SCI_WRITE,          s_SCI_WRITE          : std_logic := '0';
-   signal m_SCI_ACK,            s_SCI_ACK            : std_logic := '0';
-   signal m_SCI_NACK,           s_SCI_NACK           : std_logic := '0';
-
    -- Status and control port
    signal m_STAT_OP,            s_STAT_OP            : std_logic_vector (15 downto 0);
    signal m_CTRL_OP,            s_CTRL_OP            : std_logic_vector (15 downto 0) := (others => '0');
@@ -58,7 +49,7 @@ architecture TB of TB_PHY_ECP3 is
    signal m_CTRL_DEBUG,         s_CTRL_DEBUG         : std_logic_vector (63 downto 0) := (others => '0');
 begin
    THE_MASTER: CBMNET_PHY_ECP3
-   generic map (IS_SYNC_SLAVE => c_YES)
+   generic map (IS_SYNC_SLAVE => c_NO, IS_SIMULATED => c_YES)
    port map (
       CLK                => m_CLK,
       RESET              => m_RESET,
@@ -89,25 +80,14 @@ begin
       SD_LOS_IN          => m_SD_LOS_IN,
       SD_TXDIS_OUT       => m_SD_TXDIS_OUT,
 
-      --Control Interface
-      SCI_DATA_IN        => m_SCI_DATA_IN,
-      SCI_DATA_OUT       => m_SCI_DATA_OUT,
-      SCI_ADDR           => m_SCI_ADDR,
-      SCI_READ           => m_SCI_READ,
-      SCI_WRITE          => m_SCI_WRITE,
-      SCI_ACK            => m_SCI_ACK,
-      SCI_NACK           => m_SCI_NACK,
-
       -- Status and control port
       STAT_OP            => m_STAT_OP,
-      CTRL_OP            => m_CTRL_OP,
-      STAT_DEBUG         => m_STAT_DEBUG,
-      CTRL_DEBUG         => m_CTRL_DEBUG
+      CTRL_OP            => m_CTRL_OP
    );
 
 
    THE_CLIENT: CBMNET_PHY_ECP3
-   generic map (IS_SYNC_SLAVE => c_NO) 
+   generic map (IS_SYNC_SLAVE => c_YES, IS_SIMULATED => c_YES) 
    port map (
       CLK                => s_CLK,
       RESET              => s_RESET,
@@ -138,20 +118,9 @@ begin
       SD_LOS_IN          => s_SD_LOS_IN,
       SD_TXDIS_OUT       => s_SD_TXDIS_OUT,
 
-      --Control Interface
-      SCI_DATA_IN        => s_SCI_DATA_IN,
-      SCI_DATA_OUT       => s_SCI_DATA_OUT,
-      SCI_ADDR           => s_SCI_ADDR,
-      SCI_READ           => s_SCI_READ,
-      SCI_WRITE          => s_SCI_WRITE,
-      SCI_ACK            => s_SCI_ACK,
-      SCI_NACK           => s_SCI_NACK,
-
       -- Status and control port
       STAT_OP            => s_STAT_OP,
-      CTRL_OP            => s_CTRL_OP,
-      STAT_DEBUG         => s_STAT_DEBUG,
-      CTRL_DEBUG         => s_CTRL_DEBUG
+      CTRL_OP            => s_CTRL_OP
    );
 
    m_CLK <= not m_CLK after 8 ns;

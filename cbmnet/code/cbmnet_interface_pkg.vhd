@@ -54,9 +54,9 @@ package cbmnet_interface_pkg is
 
    component gtp_tx_ready_module is
       generic (
-         READY_CHAR0  : std_logic_vector(7 downto 0) :=  K284;
-         READY_CHAR1  : std_logic_vector(7 downto 0) :=  K287;
-         ALIGN_CHAR  : std_logic_vector(7 downto 0) :=  K285;
+--          READY_CHAR0  : std_logic_vector(7 downto 0) :=  K284;
+--          READY_CHAR1  : std_logic_vector(7 downto 0) :=  K287;
+--          ALIGN_CHAR  : std_logic_vector(7 downto 0) :=  K285;
          DATAWIDTH  : integer :=  16;
          WORDS :integer := 2 --DATAWIDTH/8;
       );
@@ -136,10 +136,12 @@ package cbmnet_interface_pkg is
          DATAWIDTH  : integer := 16;
          SINGLE_DEST : integer := 1;        
          DATA_PADDING : integer := 0;
-         CTRL_PADDING : integer := 16#A5A5#;
-         
-         ROC_ADDR : std_logic_vector(15 downto 0) := "00000000XXXXXXXX";
-         OWN_ADDR : std_logic_vector(15 downto 0) := "1000000000000000"
+         CTRL_PADDING : integer := 16#A5A5#
+
+    -- cannot use X's here, as the synplify seems to not support this for
+    -- multi-language projects
+    --     ROC_ADDR : std_logic_vector(15 downto 0) := "00000000XXXXXXXX";
+    --     OWN_ADDR : std_logic_vector(15 downto 0) := "1000000000000000"
       );
       port (
          clk : in std_logic;
@@ -184,18 +186,13 @@ package cbmnet_interface_pkg is
          MIN_PACKET_SIZE : integer := 8;
          MAX_PACKET_SIZE : integer := 64;
          PACKET_GRAN : integer := 2;
-
          MIN_CTRL_PACKET_SIZE : integer := 12;
          MAX_CTRL_PACKET_SIZE : integer := 60;
 
-         DATAWIDTH  : integer := 16;
-         SINGLE_DEST : integer := 1;        
-         DATA_PADDING : integer := 0;
+
          CTRL_PADDING : integer := 16#A5A5#;
-         
-         ROC_ADDR : std_logic_vector(15 downto 0) := "0000000000000000";
          OWN_ADDR : std_logic_vector(15 downto 0) := "1000000000000000";
-      
+         DEST_ADDR : std_logic_vector(15 downto 0) := "0000000000000000";
          PACKET_MODE : integer := 1 --if enabled generates another packet size order to test further corner cases
       );
       port (
@@ -231,7 +228,7 @@ package cbmnet_interface_pkg is
          ctrl_rec_start : in std_logic;
          ctrl_rec_end : in std_logic;
          ctrl_rec : in std_logic_vector(15 downto 0);
-         ctrl_rec_stop : std_logic
+         ctrl_rec_stop : out std_logic
       );
    end component;
 end package cbmnet_interface_pkg;

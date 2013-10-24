@@ -111,6 +111,7 @@ entity trb3_periph_cbmnet is
    attribute syn_keep of CLK_GPLL_LEFT, CLK_GPLL_RIGHT, CLK_PCLK_LEFT, CLK_PCLK_RIGHT, TRIGGER_LEFT, TRIGGER_RIGHT : signal is true;
    attribute syn_keep     : boolean;
    attribute syn_preserve : boolean;
+   
 end entity;
 
 architecture trb3_periph_arch of trb3_periph_cbmnet is
@@ -128,6 +129,7 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    signal clear_i                  : std_logic;
    signal reset_i                  : std_logic;
    signal GSR_N                    : std_logic;
+
    attribute syn_keep of GSR_N     : signal is true;
    attribute syn_preserve of GSR_N : signal is true;
 
@@ -264,7 +266,7 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    signal cbm_ctrl_rec          :  std_logic_vector(15 downto 0);       -- receive control interface
    signal cbm_ctrl_rec_start    :  std_logic;
    signal cbm_ctrl_rec_end      :  std_logic;                 
-   signal cbm_ctrl_rec_stop     :  std_logic := '0';
+   signal cbm_ctrl_rec_stop     :  std_logic;
 
    signal cbm_data_from_link    :  std_logic_vector((18*NUM_LANES)-1 downto 0);   -- interface from the PHY
    signal cbm_data2link         :  std_logic_vector((18*NUM_LANES)-1 downto 0);   -- interface to the PHY
@@ -292,23 +294,10 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    signal link_tester_dlm_valid :std_logic;
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-   
-
-
    signal link_tester_ctrl : std_logic_vector(31 downto 0) := (others => '0');
    signal link_tester_stat : std_logic_vector(31 downto 0) := (others => '0');
+   
+   signal dummy : std_logic;
    
 begin
    clk_125_i <= CLK_GPLL_LEFT; 
@@ -416,76 +405,69 @@ begin
 -- CBMNet Link Tester
 ---------------------------------------------------------------------------      
    GEN_LINK_TESTER_BE: if CBM_FEE_MODE = c_NO generate
-      THE_LINK_TESTER: link_tester_be
-      generic map (
-         MIN_CTRL_PACKET_SIZE => 12, -- : integer := 12;
-         MAX_CTRL_PACKET_SIZE => 60, -- : integer := 60;
-
-         DATAWIDTH  => 16, -- : integer := 16;
-         SINGLE_DEST => 1, -- : integer := 1;        
-         DATA_PADDING => 0, -- : integer := 0;
-         CTRL_PADDING => 16#A5A5#, -- : integer := 16#A5A5#;
-         
-         ROC_ADDR => "00000000XXXXXXXX", -- : std_logic_vector(15 downto 0) := "00000000xxxxxxxx";
-         OWN_ADDR => "1000000000000000" -- : std_logic_vector(15 downto 0) := "1000000000000000";
-      )
-      port map (
-         clk => rclk_125_i, -- in std_logic;
-         res_n => cbm_res_n, -- in std_logic;
-         link_active => cbm_link_active, -- in std_logic;
-
-         ctrl_en => link_tester_ctrl_en, -- in std_logic;              //enable ctrl packet generation
-         dlm_en  => link_tester_dlm_en, -- in std_logic;               //enable dlm generation        
-         force_rec_data_stop => link_tester_data_stop, -- in std_logic;  //force data flow to stop
-         force_rec_ctrl_stop => link_tester_ctrl_stop, -- in std_logic;  //force ctrl flow to stop
-
-         ctrl2send_stop => cbm_ctrl2send_stop, -- in std_logic;
-         ctrl2send_start => cbm_ctrl2send_start, -- out std_logic;
-         ctrl2send_end => cbm_ctrl2send_end, -- out std_logic;
-         ctrl2send => cbm_ctrl2send, -- out std_logic_vector(15 downto 0);
-
-         dlm2send_valid => cbm_dlm2send_va, -- out std_logic;
-         dlm2send => cbm_dlm2send, -- out std_logic_vector(3 downto 0);
-
-         dlm_rec => cbm_dlm_rec_type, -- in std_logic_vector(3 downto 0);
-         dlm_rec_valid => cbm_dlm_rec_va, -- in std_logic;
-
-         data_rec_start => cbm_data_rec_start(0), -- in std_logic;
-         data_rec_end => cbm_data_rec_end(0), -- in std_logic;
-         data_rec => cbm_data_rec, -- in std_logic_vector(DATAWIDTH-1 downto 0);
-         data_rec_stop => cbm_data_rec_stop(0), -- out std_logic;
-
-         ctrl_rec_start => cbm_ctrl_rec_start, -- in std_logic;
-         ctrl_rec_end => cbm_ctrl_rec_end, -- in std_logic;
-         ctrl_rec => cbm_ctrl_rec, -- in std_logic_vector(15 downto 0);
-         ctrl_rec_stop => cbm_ctrl_rec_stop, -- out std_logic;
-
-         data_valid => link_tester_data_valid, -- out std_logic;
-         ctrl_valid => link_tester_ctrl_valid, -- out std_logic;
-         dlm_valid => link_tester_dlm_valid -- out std_logic
-      );
+--       THE_LINK_TESTER: link_tester_be
+--       generic map (
+--          MIN_CTRL_PACKET_SIZE => 12, -- : integer := 12;
+--          MAX_CTRL_PACKET_SIZE => 60, -- : integer := 60;
+-- 
+--          DATAWIDTH  => 16, -- : integer := 16;
+--          SINGLE_DEST => 1, -- : integer := 1;        
+--          DATA_PADDING => 0, -- : integer := 0;
+--          CTRL_PADDING => 16#A5A5# -- : integer := 16#A5A5#;
+--       )
+--       port map (
+--          clk => rclk_125_i, -- in std_logic;
+--          res_n => cbm_res_n, -- in std_logic;
+--          link_active => cbm_link_active, -- in std_logic;
+-- 
+--          ctrl_en => link_tester_ctrl_en, -- in std_logic;              //enable ctrl packet generation
+--          dlm_en  => link_tester_dlm_en, -- in std_logic;               //enable dlm generation        
+--          force_rec_data_stop => link_tester_data_stop, -- in std_logic;  //force data flow to stop
+--          force_rec_ctrl_stop => link_tester_ctrl_stop, -- in std_logic;  //force ctrl flow to stop
+-- 
+--          ctrl2send_stop => cbm_ctrl2send_stop, -- in std_logic;
+--          ctrl2send_start => cbm_ctrl2send_start, -- out std_logic;
+--          ctrl2send_end => cbm_ctrl2send_end, -- out std_logic;
+--          ctrl2send => cbm_ctrl2send, -- out std_logic_vector(15 downto 0);
+-- 
+--          dlm2send_valid => cbm_dlm2send_va, -- out std_logic;
+--          dlm2send => cbm_dlm2send, -- out std_logic_vector(3 downto 0);
+-- 
+--          dlm_rec => cbm_dlm_rec_type, -- in std_logic_vector(3 downto 0);
+--          dlm_rec_valid => cbm_dlm_rec_va, -- in std_logic;
+-- 
+--          data_rec_start => cbm_data_rec_start(0), -- in std_logic;
+--          data_rec_end => cbm_data_rec_end(0), -- in std_logic;
+--          data_rec => cbm_data_rec, -- in std_logic_vector(DATAWIDTH-1 downto 0);
+--          data_rec_stop => cbm_data_rec_stop(0), -- out std_logic;
+-- 
+--          ctrl_rec_start => cbm_ctrl_rec_start, -- in std_logic;
+--          ctrl_rec_end => cbm_ctrl_rec_end, -- in std_logic;
+--          ctrl_rec => cbm_ctrl_rec, -- in std_logic_vector(15 downto 0);
+--          ctrl_rec_stop => cbm_ctrl_rec_stop, -- out std_logic;
+-- 
+--          data_valid => link_tester_data_valid, -- out std_logic;
+--          ctrl_valid => link_tester_ctrl_valid, -- out std_logic;
+--          dlm_valid => link_tester_dlm_valid -- out std_logic
+--       );
    end generate;
 
    GEN_LINK_TESTER_FE: if CBM_FEE_MODE = c_YES generate
       THE_LINK_TESTER: link_tester_fe 
-   --   generic map (
-   --       MIN_PACKET_SIZE => 8, -- : integer := 8;
-   --       MAX_PACKET_SIZE => 64, -- : integer := 64;
-   --       PACKET_GRAN => 2, -- : integer := 2;
-   -- 
-   --       MIN_CTRL_PACKET_SIZE => 12, -- : integer := 12;
-   --       MAX_CTRL_PACKET_SIZE => 60, -- : integer := 60;
-   -- 
-   --       DATAWIDTH  => 16, -- : integer := 16;
-   --       SINGLE_DEST => 1, -- : integer := 1;        
-   --       DATA_PADDING => 0, -- : integer := 0;
-   --       CTRL_PADDING => 16#A5A5#, -- : integer := 16#A5A5#;
-   --       
-   --       ROC_ADDR => "0000000000000000", -- : std_logic_vector(15 downto 0) := "0000000000000000";
-   --       OWN_ADDR => "1000000000000000", -- : std_logic_vector(15 downto 0) := "1000000000000000";
-   --    
-   --       PACKET_MODE : integer := 1 --if enabled generates another packet size order to test further corner cases
-   --  )
+     generic map (
+         MIN_PACKET_SIZE => 8, -- : integer := 8;
+         MAX_PACKET_SIZE => 64, -- : integer := 64;
+         PACKET_GRAN => 2, -- : integer := 2;
+         MIN_CTRL_PACKET_SIZE => 12, -- : integer := 12;
+         MAX_CTRL_PACKET_SIZE => 60, -- : integer := 60;
+   
+         CTRL_PADDING => 16#A5A5#, -- : integer := 16#A5A5#;
+         
+         OWN_ADDR  => "1000000000000000", -- : std_logic_vector(15 downto 0) := "1000000000000000";
+         DEST_ADDR => "1000000000000000", -- : std_logic_vector(15 downto 0) := "0000000000000000";
+      
+         PACKET_MODE => 1 -- : integer := 1 --if enabled generates another packet size order to test further corner cases
+    )
       port map (
          clk => rclk_125_i, -- in std_logic;
          res_n => cbm_res_n, -- in std_logic;
@@ -519,7 +501,7 @@ begin
          ctrl_rec_start => cbm_ctrl_rec_start, -- in std_logic;
          ctrl_rec_end => cbm_ctrl_rec_end, -- in std_logic;
          ctrl_rec => cbm_ctrl_rec, -- in std_logic_vector(15 downto 0);
-         ctrl_rec_stop => cbm_ctrl_rec_stop -- std_logic
+         ctrl_rec_stop => cbm_ctrl_rec_stop -- out std_logic
       );
    end generate;
    

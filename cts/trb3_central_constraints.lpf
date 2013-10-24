@@ -47,9 +47,9 @@ MULTICYCLE TO CELL "gen_single_sfp_THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
 MULTICYCLE TO CELL "gen_four_sfp_THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
 
 #SPI Interface
-REGION "REGION_SPI" "R13C150D" 12 16 DEVSIZE;
-#LOCATE UGROUP "THE_SPI_MASTER/SPI_group" REGION "REGION_SPI" ; 
-#LOCATE UGROUP "THE_SPI_MEMORY/SPI_group" REGION "REGION_SPI" ;
+REGION "REGION_SPI" "R13C150D" 20 20 DEVSIZE;
+LOCATE UGROUP "THE_SPI_MASTER/SPI_group" REGION "REGION_SPI" ; 
+LOCATE UGROUP "THE_SPI_MEMORY/SPI_group" REGION "REGION_SPI" ;
 
 REGION "REGION_CTS" "R42C38D" 37 57 DEVSIZE;
 # UGROUP "cts_group" 
@@ -59,7 +59,7 @@ MULTICYCLE TO CELL "THE_MBS/trg_sync" 20 ns;
 MULTICYCLE TO CELL "THE_MBS/error_reg" 20 ns;
 
 #TrbNet Hub 
-REGION "REGION_IOBUF" "R40C90D" 55 75 DEVSIZE;
+REGION "REGION_IOBUF" "R30C90D" 55 75 DEVSIZE;
 LOCATE UGROUP "THE_HUB/THE_HUB/gen_muxes_0_MPLEX/MUX_group" REGION "REGION_IOBUF" ;
 LOCATE UGROUP "THE_HUB/THE_HUB/gen_muxes_1_MPLEX/MUX_group" REGION "REGION_IOBUF" ;
 LOCATE UGROUP "THE_HUB/THE_HUB/gen_muxes_2_MPLEX/MUX_group" REGION "REGION_IOBUF" ;
@@ -115,62 +115,6 @@ LOCATE UGROUP "THE_HUB/THE_HUB/gen_bufs_4_gen_iobufs_0_gen_iobuf_IOBUF/genINITOB
 LOCATE UGROUP "THE_HUB/THE_HUB/gen_bufs_4_gen_iobufs_1_gen_iobuf_IOBUF/genINITOBUF2_gen_INITOBUF3_INITOBUF/OBUF_group" REGION "REGION_IOBUF";
 LOCATE UGROUP "THE_HUB/THE_HUB/gen_bufs_4_gen_iobufs_3_gen_iobuf_IOBUF/genINITOBUF2_gen_INITOBUF3_INITOBUF/OBUF_group" REGION "REGION_IOBUF";
 
-#                THE_HUB.THE_HUB.gen_bufs.0.gen_iobufs.1.gen_iobuf.IOBUF.GEN_IBUF.THE_IBUF
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_muxes.0_MPLEX/MUX_group" REGION "REGION_IOBUF" ;
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_muxes.1_MPLEX/MUX_group" REGION "REGION_IOBUF" ;
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_muxes.2_MPLEX/MUX_group" REGION "REGION_IOBUF" ;
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_muxes.3_MPLEX/MUX_group" REGION "REGION_IOBUF" ;
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_muxes.4_MPLEX/MUX_group" REGION "REGION_IOBUF" ;
-# 
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_hub_logic.1_gen_logic_gen_select_logic2_HUBLOGIC/HUBIPULOGIC_group"  REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_hub_logic.0_gen_logic_gen_select_logic1_HUBLOGIC/HUBLOGIC_group"     REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_hub_logic.3_gen_logic_gen_select_logic1_HUBLOGIC/HUBLOGIC_group"     REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.0_gen_iobufs.0_gen_iobuf.IOBUF.genINITOBUF1_INITOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.1_gen_iobufs.0_gen_iobuf.IOBUF.genINITOBUF1_INITOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.2_gen_iobufs.0_gen_iobuf.IOBUF.genINITOBUF1_INITOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.3_gen_iobufs.0_gen_iobuf.IOBUF.genINITOBUF1_INITOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.0_gen_iobufs.1_gen_iobuf.IOBUF.genINITOBUF1_INITOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.1_gen_iobufs.1_gen_iobuf.IOBUF.genINITOBUF1_INITOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.2_gen_iobufs.1_gen_iobuf.IOBUF.genINITOBUF1_INITOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.3_gen_iobufs.1_gen_iobuf.IOBUF.genINITOBUF1_INITOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.0_gen_iobufs.3_gen_iobuf.IOBUF.genINITOBUF1_INITOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.1_gen_iobufs.3_gen_iobuf.IOBUF.genINITOBUF1_INITOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.2_gen_iobufs.3_gen_iobuf.IOBUF.genINITOBUF1_INITOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.3_gen_iobufs.3_gen_iobuf.IOBUF.genINITOBUF1_INITOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.4_gen_iobufs.0_gen_iobuf.IOBUF.genREPLYOBUF1_REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.4_gen_iobufs.1_gen_iobuf.IOBUF.genREPLYOBUF1_REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.4_gen_iobufs.3_gen_iobuf.IOBUF.genREPLYOBUF1_REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.0_gen_iobufs.0_gen_iobuf.IOBUF.GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.1_gen_iobufs.0_gen_iobuf.IOBUF.GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.2_gen_iobufs.0_gen_iobuf.IOBUF.GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.3_gen_iobufs.0_gen_iobuf.IOBUF.GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.4_gen_iobufs.0_gen_iobuf.IOBUF.GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.0_gen_iobufs.1_gen_iobuf.IOBUF.GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.1_gen_iobufs.1_gen_iobuf.IOBUF.GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.2_gen_iobufs.1_gen_iobuf.IOBUF.GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.3_gen_iobufs.1_gen_iobuf.IOBUF.GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.4_gen_iobufs.1_gen_iobuf.IOBUF.GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.0_gen_iobufs.3_gen_iobuf.IOBUF.GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.1_gen_iobufs.3_gen_iobuf.IOBUF.GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.2_gen_iobufs.3_gen_iobuf.IOBUF.GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.3_gen_iobufs.3_gen_iobuf.IOBUF.GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.4_gen_iobufs.3_gen_iobuf.IOBUF.GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.0_gen_iobufs.0_gen_iobuf.IOBUF.genREPLYOBUF2_gen_REPLYOBUF3_REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.0_gen_iobufs.1_gen_iobuf.IOBUF.genREPLYOBUF2_gen_REPLYOBUF3_REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.0_gen_iobufs.3_gen_iobuf.IOBUF.genREPLYOBUF2_gen_REPLYOBUF3_REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.1_gen_iobufs.0_gen_iobuf.IOBUF.genREPLYOBUF2_gen_REPLYOBUF3_REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.1_gen_iobufs.1_gen_iobuf.IOBUF.genREPLYOBUF2_gen_REPLYOBUF3_REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.1_gen_iobufs.3_gen_iobuf.IOBUF.genREPLYOBUF2_gen_REPLYOBUF3_REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.2_gen_iobufs.0_gen_iobuf.IOBUF.genREPLYOBUF2_gen_REPLYOBUF3_REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.2_gen_iobufs.1_gen_iobuf.IOBUF.genREPLYOBUF2_gen_REPLYOBUF3_REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.2_gen_iobufs.3_gen_iobuf.IOBUF.genREPLYOBUF2_gen_REPLYOBUF3_REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.3_gen_iobufs.0_gen_iobuf.IOBUF.genREPLYOBUF2_gen_REPLYOBUF3_REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.3_gen_iobufs.1_gen_iobuf.IOBUF.genREPLYOBUF2_gen_REPLYOBUF3_REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.3_gen_iobufs.3_gen_iobuf.IOBUF.genREPLYOBUF2_gen_REPLYOBUF3_REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.4_gen_iobufs.0_gen_iobuf.IOBUF.genINITOBUF2_gen_INITOBUF3_INITOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.4_gen_iobufs.1_gen_iobuf.IOBUF.genINITOBUF2_gen_INITOBUF3_INITOBUF/OBUF_group" REGION "REGION_IOBUF";
-# LOCATE UGROUP "THE_HUB.THE_HUB.gen_bufs.4_gen_iobufs.3_gen_iobuf.IOBUF.genINITOBUF2_gen_INITOBUF3_INITOBUF/OBUF_group" REGION "REGION_IOBUF";
-
 #GbE Part
 
 FREQUENCY NET "GBE/serdes_clk_125"                              125.000000 MHz ;
@@ -190,98 +134,98 @@ FREQUENCY PORT "GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/clk_int_SERDES_GBE/PCSC
 
 
 UGROUP "tsmac" 
-	BLKNAME GBE/imp_gen_MAC
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SGMII_GBE_PCS
-	BLKNAME GBE/FRAME_RECEIVER
-	BLKNAME GBE/FRAME_TRANSMITTER;
+  BLKNAME GBE/imp_gen_MAC
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SGMII_GBE_PCS
+  BLKNAME GBE/FRAME_RECEIVER
+  BLKNAME GBE/FRAME_TRANSMITTER;
 UGROUP "controllers" 
-	BLKNAME GBE/MAIN_CONTROL
-	BLKNAME GBE/RECEIVE_CONTROLLER
-	BLKNAME GBE/TRANSMIT_CONTROLLER;
+  BLKNAME GBE/MAIN_CONTROL
+  BLKNAME GBE/RECEIVE_CONTROLLER
+  BLKNAME GBE/TRANSMIT_CONTROLLER;
 UGROUP "gbe_rx_tx" 
-	BLKNAME GBE/FRAME_CONSTRUCTOR
-	BLKNAME GBE/MB_IP_CONFIG
-	BLKNAME GBE/THE_IP_CONFIGURATOR
-#	BLKNAME GBE/PACKET_CONSTRUCTOR
-#	BLKNAME GBE/THE_IPU_INTERFACE
-	BLKNAME GBE/setup_imp_gen_SETUP;
+  BLKNAME GBE/FRAME_CONSTRUCTOR
+  BLKNAME GBE/MAIN_CONTROL/protocol_selector/TrbNetData/MB_IP_CONFIG
+  BLKNAME GBE/MAIN_CONTROL/protocol_selector/TrbNetData/THE_IP_CONFIGURATOR
+# BLKNAME GBE/MAIN_CONTROL/protocol_selector/TrbNetData/PACKET_CONSTRUCTOR
+# BLKNAME GBE/MAIN_CONTROL/protocol_selector/TrbNetData/THE_IPU_INTERFACE
+  BLKNAME GBE/setup_imp_gen_SETUP;
 
-	
+  
 REGION "GBE_REGION" "R44C45D" 36 42 DEVSIZE;
 REGION "MED0" "R81C10D" 34 40 DEVSIZE;
-LOCATE UGROUP "gbe_rx_tx" REGION "GBE_REGION" ;
+#LOCATE UGROUP "gbe_rx_tx" REGION "GBE_REGION" ;
 FREQUENCY NET "GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/un1_PCS_SERDES_1" 125.000000 MHz ;
 FREQUENCY NET "GBE/serdes_clk_125_c" 125.000000 MHz ;
-REGION "GBE_MAIN_REGION" "R78C50C" 37 34 DEVSIZE;
-LOCATE UGROUP "controllers" REGION "GBE_MAIN_REGION" ;
-LOCATE UGROUP "tsmac" REGION "MED0" ;
+REGION "GBE_MAIN_REGION" "R50C30C" 65 64 DEVSIZE;
+#LOCATE UGROUP "controllers" REGION "GBE_MAIN_REGION" ;
+#LOCATE UGROUP "tsmac" REGION "MED0" ;
 BLOCK JTAGPATHS ;
 UGROUP "sd_tx_to_pcs" 
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_correct_disp_q
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_data_q_0
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_data_q_1
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_data_q_2
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_data_q_3
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_data_q_4
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_data_q_5
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_data_q_6
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_data_q_7
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_kcntl_q;
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_correct_disp_q
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_data_q_0
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_data_q_1
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_data_q_2
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_data_q_3
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_data_q_4
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_data_q_5
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_data_q_6
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_data_q_7
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_TX_PROC_sd_tx_kcntl_q;
 UGROUP "sd_rx_to_pcs" 
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_cv_error_q
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_data_q_0
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_data_q_1
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_data_q_2
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_data_q_3
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_data_q_4
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_data_q_5
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_data_q_6
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_data_q_7
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_disp_error_q
-	BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_kcntl_q;
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_cv_error_q
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_data_q_0
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_data_q_1
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_data_q_2
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_data_q_3
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_data_q_4
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_data_q_5
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_data_q_6
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_data_q_7
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_disp_error_q
+  BLKNAME GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/SYNC_RX_PROC_sd_rx_kcntl_q;
 UGROUP "pcs_tx_to_mac" 
-	BLKNAME GBE/pcs_tx_en_q
-	BLKNAME GBE/pcs_tx_en_qq
-	BLKNAME GBE/pcs_tx_er_q
-	BLKNAME GBE/pcs_tx_er_qq
-	BLKNAME GBE/pcs_txd_q_0
-	BLKNAME GBE/pcs_txd_q_1
-	BLKNAME GBE/pcs_txd_q_2
-	BLKNAME GBE/pcs_txd_q_3
-	BLKNAME GBE/pcs_txd_q_4
-	BLKNAME GBE/pcs_txd_q_5
-	BLKNAME GBE/pcs_txd_q_6
-	BLKNAME GBE/pcs_txd_q_7
-	BLKNAME GBE/pcs_txd_qq_0
-	BLKNAME GBE/pcs_txd_qq_1
-	BLKNAME GBE/pcs_txd_qq_2
-	BLKNAME GBE/pcs_txd_qq_3
-	BLKNAME GBE/pcs_txd_qq_4
-	BLKNAME GBE/pcs_txd_qq_5
-	BLKNAME GBE/pcs_txd_qq_6
-	BLKNAME GBE/pcs_txd_qq_7;
+  BLKNAME GBE/pcs_tx_en_q
+  BLKNAME GBE/pcs_tx_en_qq
+  BLKNAME GBE/pcs_tx_er_q
+  BLKNAME GBE/pcs_tx_er_qq
+  BLKNAME GBE/pcs_txd_q_0
+  BLKNAME GBE/pcs_txd_q_1
+  BLKNAME GBE/pcs_txd_q_2
+  BLKNAME GBE/pcs_txd_q_3
+  BLKNAME GBE/pcs_txd_q_4
+  BLKNAME GBE/pcs_txd_q_5
+  BLKNAME GBE/pcs_txd_q_6
+  BLKNAME GBE/pcs_txd_q_7
+  BLKNAME GBE/pcs_txd_qq_0
+  BLKNAME GBE/pcs_txd_qq_1
+  BLKNAME GBE/pcs_txd_qq_2
+  BLKNAME GBE/pcs_txd_qq_3
+  BLKNAME GBE/pcs_txd_qq_4
+  BLKNAME GBE/pcs_txd_qq_5
+  BLKNAME GBE/pcs_txd_qq_6
+  BLKNAME GBE/pcs_txd_qq_7;
 UGROUP "pcs_rx_to_mac" 
-	BLKNAME GBE/pcs_rx_en_q
-	BLKNAME GBE/pcs_rx_en_qq
-	BLKNAME GBE/pcs_rx_er_q
-	BLKNAME GBE/pcs_rx_er_qq
-	BLKNAME GBE/pcs_rxd_q_0
-	BLKNAME GBE/pcs_rxd_q_1
-	BLKNAME GBE/pcs_rxd_q_2
-	BLKNAME GBE/pcs_rxd_q_3
-	BLKNAME GBE/pcs_rxd_q_4
-	BLKNAME GBE/pcs_rxd_q_5
-	BLKNAME GBE/pcs_rxd_q_6
-	BLKNAME GBE/pcs_rxd_q_7
-	BLKNAME GBE/pcs_rxd_qq_0
-	BLKNAME GBE/pcs_rxd_qq_1
-	BLKNAME GBE/pcs_rxd_qq_2
-	BLKNAME GBE/pcs_rxd_qq_3
-	BLKNAME GBE/pcs_rxd_qq_4
-	BLKNAME GBE/pcs_rxd_qq_5
-	BLKNAME GBE/pcs_rxd_qq_6
-	BLKNAME GBE/pcs_rxd_qq_7;
+  BLKNAME GBE/pcs_rx_en_q
+  BLKNAME GBE/pcs_rx_en_qq
+  BLKNAME GBE/pcs_rx_er_q
+  BLKNAME GBE/pcs_rx_er_qq
+  BLKNAME GBE/pcs_rxd_q_0
+  BLKNAME GBE/pcs_rxd_q_1
+  BLKNAME GBE/pcs_rxd_q_2
+  BLKNAME GBE/pcs_rxd_q_3
+  BLKNAME GBE/pcs_rxd_q_4
+  BLKNAME GBE/pcs_rxd_q_5
+  BLKNAME GBE/pcs_rxd_q_6
+  BLKNAME GBE/pcs_rxd_q_7
+  BLKNAME GBE/pcs_rxd_qq_0
+  BLKNAME GBE/pcs_rxd_qq_1
+  BLKNAME GBE/pcs_rxd_qq_2
+  BLKNAME GBE/pcs_rxd_qq_3
+  BLKNAME GBE/pcs_rxd_qq_4
+  BLKNAME GBE/pcs_rxd_qq_5
+  BLKNAME GBE/pcs_rxd_qq_6
+  BLKNAME GBE/pcs_rxd_qq_7;
 USE PRIMARY NET "CLK_GPLL_RIGHT_c" ;
 FREQUENCY NET "GBE/serdes_rx_clk_c" 125.000000 MHz PAR_ADJ 25.000000 ;
 FREQUENCY NET "GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/clk_int_SERDES_GBE/FF_TX_F_CLK_0" 125.000000 MHz PAR_ADJ 25.000000 ;
@@ -301,9 +245,9 @@ MAXDELAY NET "GBE/pcs_rxd_q_6" 1.5 ns;
 MAXDELAY NET "GBE/pcs_rxd_q_7" 1.5 ns;
 
 DEFINE PORT GROUP "RX_GRP" "GBE/pcs_rx_en_q"
-							"GBE/pcs_rx_er_q"
-							"GBE/pcs_rxd_q_*";
-INPUT_SETUP GROUP "GBE/RX_GRP" 3.500000 ns HOLD 0.000000 ns CLKPORT "GBE/serdes_rx_clk_c" ;							
+              "GBE/pcs_rx_er_q"
+              "GBE/pcs_rxd_q_*";
+INPUT_SETUP GROUP "GBE/RX_GRP" 3.500000 ns HOLD 0.000000 ns CLKPORT "GBE/serdes_rx_clk_c" ;
 
 PRIORITIZE NET "GBE/pcs_rx_en_q" 100;
 PRIORITIZE NET "GBE/pcs_rx_er_q" 100;
@@ -317,16 +261,3 @@ PRIORITIZE NET "GBE/pcs_rxd_q_6" 100;
 PRIORITIZE NET "GBE/pcs_rxd_q_7" 100;
 PRIORITIZE NET "GBE/pcs_rxd_q_0" 100;
 PRIORITIZE NET "GBE/serdes_rx_clk_c" 80;
-# 
-# BLOCK PATH FROM CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_cpu_if*" TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac*" ;
-# BLOCK PATH FROM CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_cpu_if*" TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_rx_mac*" ;
-# 
-# MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_gmii/sync_rxd_m*"           2.000000 X ;
-# MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_gmii/ipg_shrink_m*"         2.000000 X ;
-# MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_gmii/nib_alig*"             2.000000 X ;
-# MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac/U1_tx_rfifo/rd_ptr*" 2.000000 X ;
-# MULTICYCLE FROM CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac/U1_tx_rfifo/rd_ptr*" 2.000000 X ;
-# MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac/U1_tx_rfifo/wr_ptr*" 2.000000 X ;
-# MULTICYCLE FROM CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac/U1_tx_rfifo/wr_ptr*" 2.000000 X ;
-
-#BLOCK INTERCLOCKDOMAIN PATHS ;
