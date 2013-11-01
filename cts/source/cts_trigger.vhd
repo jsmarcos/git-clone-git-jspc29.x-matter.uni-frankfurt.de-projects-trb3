@@ -12,6 +12,10 @@ entity CTS_TRIGGER is
       TRIGGER_COIN_COUNT   : integer range 0 to 15 := 4;
       TRIGGER_PULSER_COUNT : integer range 0 to 15 := 2;
       TRIGGER_RAND_PULSER  : integer range 0 to 15 := 1;
+      TRIGGER_ADDON_COUNT  : integer range 0 to 15 := 2;
+      
+      ADDON_LINE_COUNT     : integer range 0 to 255 := 22;
+      
       EXTERNAL_TRIGGER_ID  : std_logic_vector(7 downto 0) := X"00"
    );
 
@@ -20,7 +24,8 @@ entity CTS_TRIGGER is
       RESET_IN     : in  std_logic;      
       
     -- Trigger Inputs
-      TRIGGERS_IN : in std_logic_vector(TRIGGER_INPUT_COUNT - 1 downto 0);
+      TRIGGERS_IN        : in std_logic_vector(TRIGGER_INPUT_COUNT-1 downto 0);
+      ADDON_TRIGGERS_IN  : in std_logic_vector(ADDON_LINE_COUNT-1 downto 0) := (others => '0');
       
     -- External 
       EXT_TRIGGER_IN  : in std_logic;
@@ -33,8 +38,8 @@ entity CTS_TRIGGER is
       TRIGGER_BITMASK_OUT : out std_logic_vector(15 downto 0);
       
     -- Counters
-      INPUT_COUNTERS_OUT         : out std_logic_vector(32 * TRIGGER_INPUT_COUNT - 1 downto 0) := (others => '0');
-      INPUT_EDGE_COUNTERS_OUT    : out std_logic_vector(32 * TRIGGER_INPUT_COUNT - 1 downto 0) := (others => '0');
+      INPUT_COUNTERS_OUT         : out std_logic_vector(32 * (TRIGGER_INPUT_COUNT + TRIGGER_ADDON_COUNT) - 1 downto 0) := (others => '0');
+      INPUT_EDGE_COUNTERS_OUT    : out std_logic_vector(32 * (TRIGGER_INPUT_COUNT + TRIGGER_ADDON_COUNT) - 1 downto 0) := (others => '0');
       CHANNEL_COUNTERS_OUT       : out std_logic_vector(32 * 16 - 1 downto 0) := (others => '0');
       CHANNEL_EDGE_COUNTERS_OUT  : out std_logic_vector(32 * 16 - 1 downto 0) := (others => '0');
       NUM_OF_ITC_USED_OUT        : out std_logic_vector(4 downto 0);
@@ -59,20 +64,23 @@ architecture RTL of CTS_TRIGGER is
    signal channels_i : std_logic_vector(15 downto 0) := (others => '0');
    signal channel_mask_i : std_logic_vector(15 downto 0);
    signal channel_edge_select_i : std_logic_vector(15 downto 0);
+   
+   -- internal trigger lines (i.e. all signals that are piped through the trigger input modules)
+   constant ITL_NUM : integer := TRIGGER_INPUT_COUNT + TRIGGER_ADDON_COUNT;
 
    constant ITC_NUM_EXT_BUF : unsigned(0 downto 0) := (others => or_all(EXTERNAL_TRIGGER_ID));  -- oh, that's dirty, but dont know a better solution (but define a func)
    constant ITC_NUM_EXT     : integer := to_integer( ITC_NUM_EXT_BUF )  ;
    
-   constant ITC_BASE_EXT    : integer := 0; 
+   constant ITC_BASE_EXT    : integer      := 0; 
    constant ITC_BASE_PULSER : integer      := ITC_BASE_EXT         + ITC_NUM_EXT;
    constant ITC_BASE_RAND_PULSER : integer := ITC_BASE_PULSER      + TRIGGER_PULSER_COUNT;
    constant ITC_BASE_INPUTS : integer      := ITC_BASE_RAND_PULSER + TRIGGER_RAND_PULSER;
-   constant ITC_BASE_COINS  : integer      := ITC_BASE_INPUTS      + TRIGGER_INPUT_COUNT;
+   constant ITC_BASE_COINS  : integer      := ITC_BASE_INPUTS      + ITL_NUM;
 
-   constant ITC_NUM_USED    : integer := ITC_BASE_COINS + TRIGGER_COIN_COUNT;
+   constant ITC_NUM_USED    : integer := ITC_BASE_COINS       + TRIGGER_COIN_COUNT;
 
-   alias trigger_inputs_i : std_logic_vector(TRIGGER_INPUT_COUNT - 1 downto 0) 
-      is channels_i(ITC_BASE_INPUTS + TRIGGER_INPUT_COUNT - 1 downto ITC_BASE_INPUTS);
+   alias trigger_inputs_i : std_logic_vector(ITL_NUM - 1 downto 0) 
+      is channels_i(ITC_BASE_INPUTS + ITL_NUM - 1 downto ITC_BASE_INPUTS);
       
    alias coins_i          : std_logic_vector(TRIGGER_COIN_COUNT - 1 downto 0) 
       is channels_i(ITC_BASE_COINS + TRIGGER_COIN_COUNT - 1 downto ITC_BASE_COINS);
@@ -88,12 +96,12 @@ architecture RTL of CTS_TRIGGER is
    signal channel_edge_counters_i : channel_counters_t;
    
 -- Trigger Inputs (Spike Rejection, Negation, Override ...)
-   signal triggers_i : std_logic_vector(TRIGGERS_IN'RANGE);
+   signal triggers_i : std_logic_vector(ITL_NUM - 1 downto 0);
 
-   type trigger_input_configs_t is array(TRIGGER_INPUT_COUNT - 1 downto 0) of std_logic_vector(10 downto 0);
+   type trigger_input_configs_t is array(ITL_NUM - 1 downto 0) of std_logic_vector(10 downto 0);
    signal trigger_input_configs_i : trigger_input_configs_t;
 
-   type   trigger_input_counters_t is array(TRIGGER_INPUT_COUNT - 1 downto 0) of unsigned(31 downto 0);
+   type   trigger_input_counters_t is array(ITL_NUM - 1 downto 0) of unsigned(31 downto 0);
    signal trigger_input_counters_i : trigger_input_counters_t;
    signal trigger_input_edge_counters_i : trigger_input_counters_t;
    
@@ -111,6 +119,10 @@ architecture RTL of CTS_TRIGGER is
    type   rand_pulser_threshold_t is array(TRIGGER_RAND_PULSER - 1 downto 0) of std_logic_vector(31 downto 0);
    signal rand_pulser_threshold_i : rand_pulser_threshold_t := (others => (others => '0'));
 
+-- Add On 
+   type trigger_addon_configs_t is array(TRIGGER_ADDON_COUNT - 1 downto 0) of std_logic_vector(7 downto 0);
+   signal trigger_addon_configs_i : trigger_addon_configs_t;
+   
 -- Trigger Type Assoc 
    type trigger_type_assoc_t is array(0 to 15) of std_logic_vector(3 downto 0);
    signal trigger_type_assoc_i : trigger_type_assoc_t := (others => X"1");
@@ -129,7 +141,17 @@ begin
    proc_input_ffs: process(CLK_IN) is
    begin
       if rising_edge(CLK_IN) then
-         triggers_i <= TRIGGERS_IN;
+         triggers_i(TRIGGER_INPUT_COUNT-1 downto 0) <= TRIGGERS_IN;
+      end if;
+   end process;
+   
+   proc_addon_multi: process(CLK_IN) is
+   begin
+      if rising_edge(CLK_IN) then
+         for i in 0 to TRIGGER_ADDON_COUNT - 1 loop
+            triggers_i(TRIGGER_INPUT_COUNT + i) 
+               <= ADDON_TRIGGERS_IN( to_integer( UNSIGNED(trigger_addon_configs_i(i)) ) );
+         end loop;
       end if;
    end process;
 
@@ -137,7 +159,7 @@ begin
       channels_i(ITC_BASE_EXT) <= EXT_TRIGGER_IN;
    end generate;
          
-   gen_trigger_inputs: for i in 0 to TRIGGER_INPUT_COUNT-1 generate
+   gen_trigger_inputs: for i in 0 to ITL_NUM-1 generate
       my_trigger_input: CTS_TRG_INPUT port map (
          CLK_IN => CLK_IN,
          RST_IN => RESET_IN,
@@ -146,11 +168,11 @@ begin
          CONFIG_IN => trigger_input_configs_i(i)
       );
    end generate;
-
+   
    gen_coin: for i in 0 to TRIGGER_COIN_COUNT - 1 generate
       my_coin: CTS_TRG_COIN 
       generic map (
-         INPUT_COUNT => TRIGGER_INPUT_COUNT
+         INPUT_COUNT => ITL_NUM
       )
       port map (
          CLK_IN => CLK_IN,
@@ -190,8 +212,8 @@ begin
       end if;
    end process;
 
--- Common   
    
+-- Common   
    proc_output: process(CLK_IN) is
       variable channels_delay_v : std_logic_vector(15 downto 0) := (others => '1');
    begin
@@ -237,7 +259,7 @@ begin
             channel_edge_counters_i       <= (others => (others => '0'));
          
          else
-            for i in 0 to TRIGGER_INPUT_COUNT-1 loop
+            for i in 0 to ITL_NUM-1 loop
                if triggers_i(i) = '1' then
                   trigger_input_counters_i(i) <= trigger_input_counters_i(i) + "1";
                   
@@ -264,7 +286,7 @@ begin
       end if;
    end process;
    
-   gen_input_counter: for i in 0 to TRIGGER_INPUT_COUNT-1 generate
+   gen_input_counter: for i in 0 to ITL_NUM-1 generate
       INPUT_COUNTERS_OUT(i*32 + 31 downto i*32) <= trigger_input_counters_i(i);
       INPUT_EDGE_COUNTERS_OUT(i*32 + 31 downto i*32) <= trigger_input_edge_counters_i(i);
    end generate;
@@ -356,15 +378,15 @@ begin
                REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
                REGIO_DATA_OUT <= CTS_BLOCK_HEADER(
                   id => 16#10#,
-                  len => TRIGGER_INPUT_COUNT,
+                  len => ITL_NUM,
                   itc_base => ITC_BASE_INPUTS,
-                  itc_num  => TRIGGER_INPUT_COUNT
+                  itc_num  => ITL_NUM
                );
             end if;
             ref_addr := ref_addr + 1;            
 
 -- INPUT CONFIGURATION
-            for i in 0 to TRIGGER_INPUT_COUNT - 1 loop
+            for i in 0 to ITL_NUM - 1 loop
                if addr = ref_addr then
                   REGIO_UNKNOWN_ADDR_OUT <= '0';
                   REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
@@ -383,11 +405,11 @@ begin
             if addr = ref_addr then
                REGIO_UNKNOWN_ADDR_OUT <= '0';
                REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
-               REGIO_DATA_OUT <= CTS_BLOCK_HEADER(id => 16#11#, len => 2*TRIGGER_INPUT_COUNT);
+               REGIO_DATA_OUT <= CTS_BLOCK_HEADER(id => 16#11#, len => 2*ITL_NUM);
             end if;
             ref_addr := ref_addr + 1;
             
-            for i in 0 to TRIGGER_INPUT_COUNT - 1 loop
+            for i in 0 to ITL_NUM - 1 loop
                if addr = ref_addr then
                   REGIO_UNKNOWN_ADDR_OUT <= '0';
                   REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
@@ -435,6 +457,38 @@ begin
    
                end loop;
             end if;
+            
+-- ADDON MULTIPLEXER
+            if TRIGGER_ADDON_COUNT > 0 then
+               if addr = ref_addr then
+                  REGIO_UNKNOWN_ADDR_OUT <= '0';
+                  REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
+                  REGIO_DATA_OUT <= CTS_BLOCK_HEADER(
+                     id => 16#12#,
+                     len => TRIGGER_ADDON_COUNT,
+                     itc_base => ITC_BASE_INPUTS + TRIGGER_INPUT_COUNT,
+                     itc_num  => TRIGGER_ADDON_COUNT
+                  );
+               end if;
+               ref_addr := ref_addr + 1;  
+               
+               for i in 0 to TRIGGER_ADDON_COUNT - 1 loop
+                  if addr=ref_addr then
+                     REGIO_UNKNOWN_ADDR_OUT <= '0';
+                     REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
+                     REGIO_WRITE_ACK_OUT <= REGIO_WRITE_ENABLE_IN;
+                     
+                     REGIO_DATA_OUT <= (others => '0');
+                     REGIO_DATA_OUT(trigger_addon_configs_i(i)'RANGE) <= trigger_addon_configs_i(i);
+                     
+                     if REGIO_WRITE_ENABLE_IN = '1' then
+                        trigger_addon_configs_i(i) <= REGIO_DATA_IN(trigger_addon_configs_i(i)'RANGE);
+                     end if;
+                  end if;
+                  ref_addr := ref_addr + 1;                 
+   
+               end loop;
+            end if;            
 
 -- TRIGGER_PULSER_COUNT CONFIGURATION
             if TRIGGER_PULSER_COUNT > 0 then

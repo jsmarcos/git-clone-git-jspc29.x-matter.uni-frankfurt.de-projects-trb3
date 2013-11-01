@@ -330,7 +330,8 @@ architecture trb3_central_arch of trb3_central is
   signal cts_rdo_trg_information            : std_logic_vector(23 downto 0);
   signal cts_rdo_trg_number                 : std_logic_vector(15 downto 0);
       
-  
+  constant CTS_ADDON_LINE_COUNT      : integer := 14;
+  signal cts_addon_triggers_in       : std_logic_vector(CTS_ADDON_LINE_COUNT-1 downto 0);
   
   signal cts_trg_send                : std_logic;
   signal cts_trg_type                : std_logic_vector(3 downto 0);
@@ -484,14 +485,17 @@ begin
       EXTERNAL_TRIGGER_ID  => X"60"+ETM_CHOICE_type'pos(ETM_CHOICE), --, fill in trigger logic enumeration id of external trigger logic
       TRIGGER_INPUT_COUNT  => 4,
       TRIGGER_COIN_COUNT   => 4,
-      TRIGGER_PULSER_COUNT => 4,
-      TRIGGER_RAND_PULSER  => 1
+      TRIGGER_PULSER_COUNT => 2,
+      TRIGGER_RAND_PULSER  => 1,
+      TRIGGER_ADDON_COUNT  => 2,
+      ADDON_LINE_COUNT     => CTS_ADDON_LINE_COUNT
    )
    port map ( 
       CLK => clk_100_i,
       RESET => reset_i,
       
       TRIGGERS_IN => trigger_in_buf_i,
+      ADDON_TRIGGERS_IN => cts_addon_triggers_in,
       TRIGGER_BUSY_OUT => trigger_busy_i,
       TIME_REFERENCE_OUT => cts_trigger_out,
       
@@ -535,6 +539,16 @@ begin
       FEE_DATA_WRITE_OUT      => cts_rdo_write,
       FEE_DATA_FINISHED_OUT   => cts_rdo_finished
    );   
+   
+   process is begin
+      wait until rising_edge(clk_100_i);
+      cts_addon_triggers_in( 3 downto  0) <= ECL_IN;
+      cts_addon_triggers_in( 7 downto  4) <= JIN1;
+      cts_addon_triggers_in(11 downto  8) <= JIN2;
+      cts_addon_triggers_in(13 downto 12) <= NIM_IN;
+   end process;
+   
+
    
 --    cts_rdo_trg_status_bits <= cts_rdo_trg_status_bits_cts OR cts_rdo_trg_status_bits_additional;
    
@@ -1350,6 +1364,7 @@ process begin
   wait until rising_edge(clk_200_i);
   TRIGGER_OUT    <= cts_trigger_out;
   TRIGGER_OUT2   <= cts_trigger_out;
+  TRG_FANOUT_ADDON <= cts_trigger_out;
 end process;
   
   
@@ -1381,7 +1396,6 @@ end process;
     JOUT2                          <= x"0";
     JOUTLVDS                       <= x"00";
     JTTL                           <= x"0000";
-    TRG_FANOUT_ADDON               <= '0';
     
     LED_BANK                       <= x"FF";
     LED_RJ_GREEN                   <= "111111";

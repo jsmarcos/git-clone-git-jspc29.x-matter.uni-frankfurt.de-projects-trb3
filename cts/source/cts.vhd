@@ -101,6 +101,10 @@ entity CTS is
       TRIGGER_COIN_COUNT  : integer range 0 to 15 := 4;
       TRIGGER_PULSER_COUNT: integer range 0 to 15 := 4;
       TRIGGER_RAND_PULSER : integer range 0 to  1 := 1;
+      
+      ADDON_LINE_COUNT : integer := 22;                 -- number of lines available from add-on board
+      TRIGGER_ADDON_COUNT : integer range 0 to 15 := 2;  -- number of module instances used to patch through those lines
+      
       EXTERNAL_TRIGGER_ID  : std_logic_vector(7 downto 0) := X"00";
 
       TIME_REFERENCE_COUNT : positive := 10;
@@ -115,6 +119,8 @@ entity CTS is
       TRIGGERS_IN        : in std_logic_vector(TRIGGER_INPUT_COUNT-1 downto 0);
       TRIGGER_BUSY_OUT   : out std_logic;
       TIME_REFERENCE_OUT : out std_logic;
+      
+      ADDON_TRIGGERS_IN  : in std_logic_vector(ADDON_LINE_COUNT-1 downto 0) := (others => '0');
       
    -- External trigger logic
       EXT_TRIGGER_IN  : in std_logic;
@@ -184,7 +190,7 @@ architecture RTL of CTS is
    signal input_counters_i,
           input_counters_buf_i,
           input_edge_counters_i,
-          input_edge_counters_buf_i    : std_logic_vector(32 * TRIGGER_INPUT_COUNT - 1 downto 0);
+          input_edge_counters_buf_i    : std_logic_vector(32 * (TRIGGER_INPUT_COUNT+TRIGGER_ADDON_COUNT) - 1 downto 0);
           
    signal channel_counters_i,
           channel_counters_buf_i,
@@ -319,7 +325,7 @@ begin
 -- Trigger Distribution
 -----------------------------------------
    td_proc: process(CLK) is
-      variable fee_input_counter_v : integer range 0 to 2*TRIGGER_INPUT_COUNT - 1 := 0;
+      variable fee_input_counter_v : integer range 0 to 2*(TRIGGER_INPUT_COUNT+TRIGGER_ADDON_COUNT) - 1 := 0;
       variable fee_channel_counter_v : integer range 0 to 2* channel_counters_i'LENGTH / 32 - 1 := 0;
       
    begin
@@ -411,7 +417,7 @@ begin
                   -- write packet header
                      FEE_DATA_OUT(15 downto  0) <= trigger_bitmask_buf_i;
                      if ro_configuration_buf_i(0) = '1' then
-                        FEE_DATA_OUT(19 downto 16) <= STD_LOGIC_VECTOR(TO_UNSIGNED(TRIGGER_INPUT_COUNT, 4));
+                        FEE_DATA_OUT(19 downto 16) <= STD_LOGIC_VECTOR(TO_UNSIGNED(TRIGGER_INPUT_COUNT+TRIGGER_ADDON_COUNT, 4));
                      end if;
                      
                      if ro_configuration_buf_i(1) = '1' then
@@ -441,7 +447,7 @@ begin
                      end if;
                   end if;
 
-                  if fee_input_counter_v = 2*TRIGGER_INPUT_COUNT - 1 or ro_configuration_buf_i(0) = '0' then
+                  if fee_input_counter_v = 2*(TRIGGER_INPUT_COUNT+TRIGGER_ADDON_COUNT) - 1 or ro_configuration_buf_i(0) = '0' then
                      td_fsm_i <= TD_FSM_FEE_ENQUEUE_CHANNEL_COUNTER;
                   end if;
 
@@ -701,6 +707,8 @@ begin
       TRIGGER_COIN_COUNT   => TRIGGER_COIN_COUNT,
       TRIGGER_PULSER_COUNT => TRIGGER_PULSER_COUNT,
       TRIGGER_RAND_PULSER  => TRIGGER_RAND_PULSER,
+      ADDON_LINE_COUNT     => ADDON_LINE_COUNT,
+      TRIGGER_ADDON_COUNT  => TRIGGER_ADDON_COUNT,
       EXTERNAL_TRIGGER_ID  => EXTERNAL_TRIGGER_ID
    )
    port map (
@@ -708,6 +716,7 @@ begin
       RESET_IN    => RESET,
          
       TRIGGERS_IN => TRIGGERS_IN,
+      ADDON_TRIGGERS_IN => ADDON_TRIGGERS_IN,
       
       EXT_TRIGGER_IN  => EXT_TRIGGER_IN,
       EXT_STATUS_IN   => EXT_STATUS_IN,
