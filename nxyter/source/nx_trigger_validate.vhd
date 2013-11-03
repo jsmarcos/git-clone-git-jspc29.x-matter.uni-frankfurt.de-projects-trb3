@@ -17,9 +17,9 @@ entity nx_trigger_validate is
     DATA_CLK_IN          : in  std_logic;
     TIMESTAMP_IN         : in  std_logic_vector(13 downto 0);
     CHANNEL_IN           : in  std_logic_vector(6 downto 0);
-    TIMESTAMP_STATUS_IN  : in  std_logic_vector(2 downto 0);
-    ADC_DATA_IN          : in  std_logic_vector(11 downto 0);
-    NX_TOKEN_RETURN_IN   : in  std_logic;
+    TIMESTAMP_STATUS_IN  : in  std_logic_vector(2 downto 0);   -- 2: parity
+    ADC_DATA_IN          : in  std_logic_vector(11 downto 0);  -- 1: pileup
+    NX_TOKEN_RETURN_IN   : in  std_logic;                      -- 0: ovfl
     NX_NOMORE_DATA_IN    : in  std_logic;
 
     TRIGGER_IN           : in  std_logic;
@@ -60,7 +60,7 @@ architecture Behavioral of nx_trigger_validate is
   signal channel_wait         : std_logic_vector(127 downto 0);
   signal channel_done         : std_logic_vector(127 downto 0);
   signal channel_all_done     : std_logic;
-
+  
   -- Channel Status Commands
   type CS_CMDS is (CS_RESET,
                    CS_TOKEN_UPDATE,
@@ -74,8 +74,8 @@ architecture Behavioral of nx_trigger_validate is
   signal ts_window_lower_thr  : unsigned(11 downto 0);
   
   -- Process Timestamp
-  signal data_o               : std_logic_vector(31 downto 0);
-  signal data_clk_o           : std_logic;
+  signal d_data_o             : std_logic_vector(31 downto 0);
+  signal d_data_clk_o         : std_logic;
   signal out_of_window_l      : std_logic;
   signal out_of_window_h      : std_logic;
   signal out_of_window_error  : std_logic;
@@ -108,7 +108,7 @@ architecture Behavioral of nx_trigger_validate is
   signal wait_timer_reset      : std_logic;
   signal min_val_time_expired  : std_logic;
   signal event_counter         : unsigned(9 downto 0);
-
+  signal out_of_window_error_ctr : unsigned(15 downto 0);
   
   signal readout_mode          : std_logic_vector(2 downto 0);
   signal timestamp_fpga        : unsigned(11 downto 0);
@@ -127,7 +127,11 @@ architecture Behavioral of nx_trigger_validate is
                                
   -- Data FIFO Delay           
   signal data_fifo_delay_o     : unsigned(7 downto 0);
-                               
+
+  -- Output
+  signal data_clk_o            : std_logic;
+  signal data_o                : std_logic_vector(31 downto 0);
+  
   -- Slave Bus                     
   signal slv_data_out_o        : std_logic_vector(31 downto 0);
   signal slv_no_more_data_o    : std_logic;
@@ -135,6 +139,7 @@ architecture Behavioral of nx_trigger_validate is
   signal slv_ack_o             : std_logic;
                                
   signal readout_mode_r        : std_logic_vector(2 downto 0);
+  signal out_of_window_error_ctr_clear : std_logic;
   
   -- Timestamp Trigger Window Settings
   constant nxyter_cv_time      : unsigned(11 downto 0) := x"190";  -- 400ns
@@ -142,7 +147,8 @@ architecture Behavioral of nx_trigger_validate is
   signal ts_window_offset      : signed(11 downto 0);
   signal ts_window_width       : unsigned(9 downto 0);
   signal readout_time_max      : unsigned(11 downto 0);
-  signal fpga_timestamp_offset : unsigned(11 downto 0);  
+  signal fpga_timestamp_offset : unsigned(11 downto 0);
+
 
 begin
   
@@ -153,12 +159,12 @@ begin
   DEBUG_OUT(3)            <= DATA_CLK_IN;
   DEBUG_OUT(4)            <= out_of_window_l;
   DEBUG_OUT(5)            <= out_of_window_h;
-  DEBUG_OUT(6)            <= out_of_window_error; --NX_TOKEN_RETURN_IN;
+  DEBUG_OUT(6)            <= NX_TOKEN_RETURN_IN;
   DEBUG_OUT(7)            <= NX_NOMORE_DATA_IN;
   DEBUG_OUT(8)            <= channel_all_done;
   DEBUG_OUT(9)            <= store_to_fifo;
   DEBUG_OUT(10)           <= data_clk_o;
-  DEBUG_OUT(11)           <= t_data_clk_o;
+  DEBUG_OUT(11)           <= out_of_window_error;
   DEBUG_OUT(12)           <= wait_timer_done;
   DEBUG_OUT(13)           <= wait_timer_done_ns;
   DEBUG_OUT(14)           <= busy_time_min_done;
@@ -204,28 +210,31 @@ begin
   begin 
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
-        data_o               <= (others => '0');
-        data_clk_o           <= '0';
-        out_of_window_l      <= '0';
-        out_of_window_h      <= '0';
-        out_of_window_error  <= '0';
-        ts_window_lower_thr  <= (others => '0');
+        d_data_o                <= (others => '0');
+        d_data_clk_o            <= '0';
+        out_of_window_l         <= '0';
+        out_of_window_h         <= '0';
+        out_of_window_error     <= '0';
+        ts_window_lower_thr     <= (others => '0');
+        out_of_window_error_ctr <= (others => '0');
       else
-        data_o               <= (others => '0');
-        data_clk_o           <= '0';
-        out_of_window_l      <= '0';
-        out_of_window_h      <= '0';
-        out_of_window_error  <= '0';
-        ch_status_cmd_pr     <= CS_NONE;
-
-        histogram_fill_o     <= '0';
-        histogram_bin_o      <= (others => '0');
-        histogram_adc_o      <= (others => '0');
-        window_lower_thr         := timestamp_fpga - cts_trigger_delay;
+        d_data_o                <= (others => '0');
+        d_data_clk_o            <= '0';
+        out_of_window_l         <= '0';
+        out_of_window_h         <= '0';
+        out_of_window_error     <= '0';
+        ch_status_cmd_pr        <= CS_NONE;
+                                
+        histogram_fill_o        <= '0';
+        histogram_bin_o         <= (others => '0');
+        histogram_adc_o         <= (others => '0');
         
         -----------------------------------------------------------------------
         -- Calculate Thresholds and values for FIFO Delay
         -----------------------------------------------------------------------
+
+        window_lower_thr        := timestamp_fpga - cts_trigger_delay;
+
         if (ts_window_offset(11) = '1') then
           ts_window_offset_unsigned :=
             (unsigned(ts_window_offset) xor x"fff") + 1;
@@ -253,20 +262,18 @@ begin
           window_lower_thr + resize(ts_window_width, 12);
         ts_window_check_value    :=
           unsigned(TIMESTAMP_IN(13 downto 2)) - window_lower_thr;
+
+        -- Timestamp to be stored
+        deltaTStore(13 downto 2)   := ts_window_check_value;
+        deltaTStore( 1 downto 0)   := unsigned(TIMESTAMP_IN(1 downto 0));
         
         -----------------------------------------------------------------------
         -- Validate incomming Data
         -----------------------------------------------------------------------
         if (DATA_CLK_IN = '1') then
           if (store_to_fifo = '1') then
-            -- Timestamp to be stored
-            
+                   
             if (readout_mode(2) = '0') then
-              -- Timestamp to be stored
-              deltaTStore(13 downto 2)   := ts_window_check_value;
-              deltaTStore( 1 downto 0)   :=
-                "00" - unsigned(TIMESTAMP_IN(1 downto 0));
-
               -- TS Window Active --> do TS check
               
               if (ts_window_check_value(11) = '1') then
@@ -284,89 +291,103 @@ begin
                 -- TS in between Window: Set WAIT Bit in LUT and Take Data
                 channel_index                  <= CHANNEL_IN;
                 ch_status_cmd_pr               <= CS_SET_WAIT;
-                data_clk_o                     <= '1';
                 
                 case readout_mode(1 downto 0) is              
                   when "00" =>
                     -- RefValue + TS window filter + ovfl valid + parity valid
                     if (TIMESTAMP_STATUS_IN(2) = '0' and
                         TIMESTAMP_STATUS_IN(0) = '0') then 
-                      data_o(11 downto  0)     <= deltaTStore(11 downto  0);
-                      data_o(23 downto 12)     <= ADC_DATA_IN;
-                      data_o(30 downto 24)     <= CHANNEL_IN;
-                      data_o(31)               <= TIMESTAMP_STATUS_IN(1);
+                      d_data_o(11 downto  0)     <= deltaTStore(11 downto  0);
+                      d_data_o(23 downto 12)     <= ADC_DATA_IN;
+                      d_data_o(30 downto 24)     <= CHANNEL_IN;
+                      d_data_o(31)               <= TIMESTAMP_STATUS_IN(1);
+                      d_data_clk_o               <= '1';
                     end if;
 
                   when "01" =>
                     -- RefValue + TS window filter + ovfl and pileup valid
                     -- + parity valid
-                    if (TIMESTAMP_STATUS_IN(2 downto 1) = "000") then 
-                      data_o(11 downto  0)     <= deltaTStore(11 downto  0);
-                      data_o(23 downto 12)     <= ADC_DATA_IN;
-                      data_o(30 downto 24)     <= CHANNEL_IN;
-                      data_o(31)               <= TIMESTAMP_STATUS_IN(1);
+                    if (TIMESTAMP_STATUS_IN = "000") then 
+                      d_data_o(11 downto  0)     <= deltaTStore(11 downto  0);
+                      d_data_o(23 downto 12)     <= ADC_DATA_IN;
+                      d_data_o(30 downto 24)     <= CHANNEL_IN;
+                      d_data_o(31)               <= TIMESTAMP_STATUS_IN(1);
+                      d_data_clk_o               <= '1';
                     end if;
+
+                  -- when "11" =>
+                  --   -- RefValue + TS window filter + ovfl and pileup valid
+                  --   -- + parity valid
+                  --   if (TIMESTAMP_STATUS_IN = "000") then 
+                  --     d_data_o(11 downto  0)     <= deltaTStore(11 downto  0);
+                  --     d_data_o(23 downto 12)     <= ADC_DATA_IN;
+                  --     d_data_o(30 downto 24)     <= CHANNEL_IN;
+                  --     d_data_o(30)               <= TIMESTAMP_STATUS_IN(0);
+                  --     d_data_o(31)               <= TIMESTAMP_STATUS_IN(1);
+                  --     d_data_clk_o               <= '1';
+                  --   end if;
 
                   when others =>
                     -- RefValue + TS window filter + ignore status       
-                    data_o(11 downto  0)       <= deltaTStore(11 downto  0);
-                    data_o(23 downto 12)       <= ADC_DATA_IN;
-                    data_o(30 downto 24)       <= CHANNEL_IN;
-                    data_o(31)                 <= TIMESTAMP_STATUS_IN(1);
-                    
+                    d_data_o(11 downto  0)       <= deltaTStore(11 downto  0);
+                    d_data_o(23 downto 12)       <= ADC_DATA_IN;
+                    d_data_o(30 downto 24)       <= CHANNEL_IN;
+                    d_data_o(31)                 <= TIMESTAMP_STATUS_IN(1);
+                    d_data_clk_o                 <= '1';
                 end case;
 
               else
                 -- TS Window Error condition, do nothing
-                out_of_window_error  <= '0';
+                out_of_window_error          <= '0';
+                if (out_of_window_error_ctr_clear = '0') then
+                  out_of_window_error_ctr      <= out_of_window_error_ctr + 1;
+                end if;
               end if;
 
             else
-              -- Timestamp to be stored
-              deltaTStore(13 downto 2)   :=
-                (timestamp_fpga - cts_trigger_delay) -
-                unsigned(TIMESTAMP_IN(13 downto 2));
-              deltaTStore( 1 downto 0)   :=
-                "00" - unsigned(TIMESTAMP_IN(1 downto 0));
-
-              -- TS Window Inactive,take data anyhow
-              data_clk_o               <= '1';              
-
+              -- TS Window Inactive, take data anyhow
               case readout_mode(1 downto 0) is              
                 when "00" =>
                   -- RefValue + ovfl valid + parity valid
                   if (TIMESTAMP_STATUS_IN(2) = '0' and
                       TIMESTAMP_STATUS_IN(0) = '0') then 
-                    data_o(11 downto  0)       <= deltaTStore(11 downto  0);
-                    data_o(23 downto 12)       <= ADC_DATA_IN;
-                    data_o(30 downto 24)       <= CHANNEL_IN;
-                    data_o(31)                 <= TIMESTAMP_STATUS_IN(1);
+                    d_data_o(11 downto  0)       <= deltaTStore(11 downto  0);
+                    d_data_o(23 downto 12)       <= ADC_DATA_IN;
+                    d_data_o(30 downto 24)       <= CHANNEL_IN;
+                    d_data_o(31)                 <= TIMESTAMP_STATUS_IN(1);
+                    d_data_clk_o                 <= '1';
                   end if;
 
                 when "01" =>
                   -- RefValue + ovfl and pileup valid
                   -- + parity valid
-                  if (TIMESTAMP_STATUS_IN(2 downto 1) = "000") then 
-                    data_o(11 downto  0)       <= deltaTStore(11 downto  0);
-                    data_o(23 downto 12)       <= ADC_DATA_IN;
-                    data_o(30 downto 24)       <= CHANNEL_IN;
-                    data_o(31)                 <= TIMESTAMP_STATUS_IN(1);
+                  if (TIMESTAMP_STATUS_IN = "000") then 
+                    d_data_o(11 downto  0)       <= deltaTStore(11 downto  0);
+                    d_data_o(23 downto 12)       <= ADC_DATA_IN;
+                    d_data_o(30 downto 24)       <= CHANNEL_IN;
+                    d_data_o(31)                 <= TIMESTAMP_STATUS_IN(1);
+                    d_data_clk_o                 <= '1';
                   end if;
 
                 when others =>
                   -- RefValue + ignore status       
-                  data_o(11 downto  0)         <= deltaTStore(11 downto  0);
-                  data_o(23 downto 12)         <= ADC_DATA_IN;
-                  data_o(30 downto 24)         <= CHANNEL_IN;
-                  data_o(31)                   <= TIMESTAMP_STATUS_IN(1);
-                  
+                  d_data_o(11 downto  0)         <= deltaTStore(11 downto  0);
+                  d_data_o(23 downto 12)         <= ADC_DATA_IN;
+                  d_data_o(30 downto 24)         <= CHANNEL_IN;
+                  d_data_o(31)                   <= TIMESTAMP_STATUS_IN(1);
+                  d_data_clk_o                   <= '1';
+
               end case;
+            end if;
+
+            if (out_of_window_error_ctr_clear = '1') then
+              out_of_window_error_ctr <= (others => '0');
             end if;
             
             -- Fill Histogram
-            histogram_fill_o                   <= '1';
-            histogram_bin_o                    <= CHANNEL_IN;
-            histogram_adc_o                    <= ADC_DATA_IN;
+            histogram_fill_o                     <= '1';
+            histogram_bin_o                      <= CHANNEL_IN;
+            histogram_adc_o                      <= ADC_DATA_IN;
           end if;
           
         end if;
@@ -461,7 +482,7 @@ begin
               when "001"    => t_data_o(23 downto 22) <= "01";
               when "100"    => t_data_o(23 downto 22) <= "10";
               when "101"    => t_data_o(23 downto 22) <= "11";
-              when others => t_data_o(23 downto 22) <= "11";
+              when others   => t_data_o(23 downto 22) <= "11";
             end case;
             t_data_o(31 downto 24)        <= BOARD_ID(7 downto 0);
             t_data_clk_o                  <= '1';
@@ -608,25 +629,27 @@ begin
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        slv_data_out_o         <= (others => '0');
-        slv_ack_o              <= '0';
-        slv_unknown_addr_o     <= '0';
-        slv_no_more_data_o     <= '0';
-
-        ts_window_offset       <= (others => '0');
-        ts_window_width        <= "0000110010";  -- 50
-        cts_trigger_delay      <= x"0c8";
-        readout_mode_r         <= "000";
-        readout_time_max       <= x"3e8";
-        fpga_timestamp_offset  <= (others => '0');
+        slv_data_out_o                <= (others => '0');
+        slv_ack_o                     <= '0';
+        slv_unknown_addr_o            <= '0';
+        slv_no_more_data_o            <= '0';
+                                      
+        ts_window_offset              <= (others => '0');
+        ts_window_width               <= "0000110010";  -- 50
+        cts_trigger_delay             <= x"0c8";
+        readout_mode_r                <= "000";
+        readout_time_max              <= x"3e8";
+        fpga_timestamp_offset         <= (others => '0');
+        out_of_window_error_ctr_clear <= '0';
       else
-        slv_data_out_o         <= (others => '0');
-        slv_unknown_addr_o     <= '0';
-        slv_no_more_data_o     <= '0';
+        slv_data_out_o                <= (others => '0');
+        slv_unknown_addr_o            <= '0';
+        slv_no_more_data_o            <= '0';
 
         cts_trigger_delay(11 downto 10)  <= (others => '0'); 
         readout_time_max(11 downto 10)   <= (others => '0'); 
-        
+        out_of_window_error_ctr_clear    <= '0';
+
         if (SLV_READ_IN  = '1') then
           case SLV_ADDR_IN is
             when x"0000" =>
@@ -679,6 +702,11 @@ begin
               slv_data_out_o(11 downto  0)    <= ts_window_lower_thr;
               slv_data_out_o(31 downto 12)    <= (others => '0');
               slv_ack_o                       <= '1';  
+
+            when x"0009" =>
+              slv_data_out_o(15 downto  0)    <= out_of_window_error_ctr;
+              slv_data_out_o(31 downto 16)    <= (others => '0');
+              slv_ack_o                       <= '1'; 
 
             when x"000a" =>
               slv_data_out_o(7 downto  0)     <=
@@ -746,7 +774,11 @@ begin
             when x"0005" =>
               fpga_timestamp_offset(11 downto 0) <=
                 unsigned(SLV_DATA_IN(11 downto 0));
-              slv_ack_o                       <= '1';                                  
+              slv_ack_o                       <= '1';
+
+            when x"0009" =>
+              out_of_window_error_ctr_clear   <= '1';
+              slv_ack_o                       <= '1'; 
 
             when others  =>                   
               slv_unknown_addr_o              <= '1';
@@ -763,9 +795,12 @@ begin
   -- Output Signals
   -----------------------------------------------------------------------------
 
+  data_clk_o <= d_data_clk_o or t_data_clk_o;
+  data_o     <= d_data_o or t_data_o;
+  
   TRIGGER_BUSY_OUT      <= trigger_busy_o;
   DATA_OUT              <= data_o or t_data_o;
-  DATA_CLK_OUT          <= data_clk_o or t_data_clk_o;
+  DATA_CLK_OUT          <= data_clk_o;
   NOMORE_DATA_OUT       <= nomore_data_o;
   DATA_FIFO_DELAY_OUT   <= std_logic_vector(data_fifo_delay_o);
   

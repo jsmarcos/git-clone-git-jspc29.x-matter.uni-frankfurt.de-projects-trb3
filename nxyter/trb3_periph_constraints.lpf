@@ -68,9 +68,11 @@ MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset*" 20 ns;
 MULTICYCLE FROM CLKNET "nXyter_FEE_board_1/nx_data_receiver_1/adc_ad9222_1/un1_adc_ad9222*" TO CLKNET "clk_100_i_c" 10 ns;
 MULTICYCLE FROM CLKNET "nXyter_FEE_board_0/nx_data_receiver_1/adc_ad9222_1/un1_adc_ad9222*" TO CLKNET "clk_100_i_c" 10 ns;
 
+#MULTICYCLE TO CELL "nXyter_FEE_board_0/nx_fpga_timestamp_1/pulse_dtrans_2/pulse_async_trans_1/pulse_ff_1" 5 ns;
 MULTICYCLE TO CELL "nXyter_FEE_board_0/nx_fpga_timestamp_1/timestamp_sync_x" 5 ns;
 MULTICYCLE TO CELL "nXyter_FEE_board_0/nx_fpga_timestamp_1/trigger_x" 5 ns;
 
+#MULTICYCLE TO CELL "nXyter_FEE_board_1/nx_fpga_timestamp_1/pulse_dtrans_2/pulse_async_trans_1/pulse_ff_1" 5 ns;
 MULTICYCLE TO CELL "nXyter_FEE_board_1/nx_fpga_timestamp_1/timestamp_sync_x" 5 ns;
 MULTICYCLE TO CELL "nXyter_FEE_board_1/nx_fpga_timestamp_1/trigger_x" 5 ns;
 
@@ -80,11 +82,14 @@ MULTICYCLE TO CELL "nXyter_FEE_board_1/nx_fpga_timestamp_1/trigger_x" 5 ns;
 
 # look at .par and .twr.setup file for clocks 
 # and .mrp or errors
-PROHIBIT PRIMARY   NET "NX1_DATA_CLK_IN_c";
-PROHIBIT SECONDARY NET "NX1_DATA_CLK_IN_c";
 
-PROHIBIT PRIMARY   NET "NX2_DATA_CLK_IN_c";
-PROHIBIT SECONDARY NET "NX2_DATA_CLK_IN_c";
+#DEFINE PORT GROUP "NX1_CLK_IN" "NX1_DATA_CLK_*";
+PROHIBIT PRIMARY   NET "NX1_DATA_CLK_*";
+PROHIBIT SECONDARY NET "NX1_DATA_CLK_*";
+
+#DEFINE PORT GROUP "NX1_CLK_IN" "NX1_DATA_CLK_*";
+PROHIBIT PRIMARY   NET "NX2_DATA_CLK_*";
+PROHIBIT SECONDARY NET "NX2_DATA_CLK_*";
 
 DEFINE PORT GROUP "NX1_IN" "NX1_TIMESTAMP_*";
 INPUT_SETUP GROUP "NX1_IN" 3.0 ns HOLD 3.0 ns CLKPORT="NX1_DATA_CLK_IN"; 

@@ -54,8 +54,8 @@ entity nXyter_FEE_board is
     ADC_NX_IN                  : in  std_logic_vector(1 downto 0);
     ADC_D_IN                   : in  std_logic_vector(1 downto 0);        
                                 
-    -- Event Buffer
-    --LVL1 trigger to FEE
+    -- Input Triggers
+    TIMING_TRIGGER_IN          : in  std_logic;  
     LVL1_TRG_DATA_VALID_IN     : in  std_logic;
     LVL1_VALID_TIMING_TRG_IN   : in  std_logic;
     LVL1_VALID_NOTIMING_TRG_IN : in  std_logic; -- Status + Info TypE
@@ -234,7 +234,7 @@ begin
                                 6 => x"0120",    -- Data Validate
                                 7 => x"0160",    -- Trigger Handler
                                 8 => x"0180",    -- Trigger Validate
-                                9 => x"0200",    -- NX Register Setup
+                                9 => x"0200",    -- NX Setup
                                10 => x"0800",    -- NX Histograms
                                11 => x"0020",    -- Debug Handler
                                12 => x"0130",    -- Data Delay
@@ -248,9 +248,9 @@ begin
                                 4 => 0,          -- SPI Master
                                 5 => 3,          -- Trigger Generator
                                 6 => 4,          -- Data Validate
-                                7 => 2,          -- Trigger Handler
+                                7 => 4,          -- Trigger Handler
                                 8 => 4,          -- Trigger Validate
-                                9 => 8,          -- NX Register Setup
+                                9 => 8,          -- NX Setup
                                10 => 9,          -- NX Histograms
                                11 => 0,          -- Debug Handler
                                12 => 1,          -- Data Delay
@@ -326,7 +326,7 @@ begin
       DEBUG_OUT              => debug_line(0)
       );
 
-  nx_register_setup_1: nx_setup
+  nx_setup_1: nx_setup
     port map (
       CLK_IN               => CLK_IN,
       RESET_IN             => RESET_IN,
@@ -420,8 +420,8 @@ begin
       TRIGGER_IN               => timestamp_trigger,
       TIMESTAMP_CURRENT_OUT    => timestamp_current,
       TIMESTAMP_HOLD_OUT       => timestamp_hold,
-      NX_TIMESTAMP_SYNC_OUT    => nx_timestamp_sync,
-      NX_TIMESTAMP_TRIGGER_OUT => nx_timestamp_trigger_o,
+      TIMESTAMP_SYNCED_OUT     => nx_timestamp_sync,
+      TIMESTAMP_TRIGGER_OUT    => nx_timestamp_trigger_o,
       SLV_READ_IN              => open,
       SLV_WRITE_IN             => open,
       SLV_DATA_OUT             => open,
@@ -441,8 +441,10 @@ begin
     port map (
       CLK_IN                     => CLK_IN,
       RESET_IN                   => RESET_IN,
+      NX_MAIN_CLK_IN             => CLK_NX_MAIN_IN,
       NXYTER_OFFLINE_IN          => nxyter_offline,
 
+      TIMING_TRIGGER_IN          => TIMING_TRIGGER_IN,
       LVL1_TRG_DATA_VALID_IN     => LVL1_TRG_DATA_VALID_IN,
       LVL1_VALID_TIMING_TRG_IN   => LVL1_VALID_TIMING_TRG_IN,
       LVL1_VALID_NOTIMING_TRG_IN => LVL1_VALID_NOTIMING_TRG_IN,
@@ -491,6 +493,7 @@ begin
     port map (
       CLK_IN               => CLK_IN,
       RESET_IN             => RESET_IN,
+      NX_MAIN_CLK_IN       => CLK_NX_MAIN_IN,
       TRIGGER_IN           => trigger_testpulse,
       TRIGGER_OUT          => trigger_intern,
       TS_RESET_OUT         => nx_ts_reset_2,

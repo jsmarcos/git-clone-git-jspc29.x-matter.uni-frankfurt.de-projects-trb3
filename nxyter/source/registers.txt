@@ -18,13 +18,15 @@
 0x8243 : w     Write Memory to Trim DAC Register(129 deep FIFO)    
 
 -- Trigger Generator
-0x8141 :  r/w  Length of Trigger TestPulse (12 Bit, in 10ns)
-0x8145 :  r    Testpulse Rate (in Hz)
+0x8140 :  r/w  Length of Trigger TestPulse (12 Bit, in 4ns)
+0x8141 :  r    Testpulse Rate (in Hz)
 
 -- Trigger Handler
-0x8160 :  r/w  Bit 7-0  : Delay Testpulse Signal after Trigger (10ns)
-0x8161 :  r/w  Bit 0    : Enable Testpulse Signal (default: off)
-0x8162 :  r             : Accepted Trigger Rate (in Hz)
+0x8160 :  r/w  Enable Testpulse Signal (default: off)
+0x8161 :  r/w  Delay Testpulse Signal after Trigger (12 Bit, in 10ns)
+0x8162 :  r    Accepted Trigger Rate (in Hz)
+0x8163 :  r/w  r: Invalid Timing Trigger Counter
+               w: clear Counter
 
 -- NX Data Receiver
 0x8500 :  r    current Timestamp FIFO value
@@ -34,19 +36,18 @@
                     2: fifo_almost_empty
                 3..29: ignore
                    31: nx_frame_synced
-               w: adc reset
 0x8502 :  r/w  r: Resync Counter(12 Bit)
                w: clear Resync Counter    
 0x8503 :  r/w  r: Parity Error Counter (12 Bit)
                w: clear Parity Error Counter   
 0x8504 :  r/w  ADC Sampling PLL Clock Not Lock Counter
                w: clear counter
-0x8505 :  r/w  johnson_counter_sync(2 Bit), do not touch, experts only register
+0x8505 :  r/w  johnson_counter_sync (2 Bit), do not touch, experts only register
 0x8506 :  r/w  PLL ADC Sampling Clock DPHASE (4 Bit)
 0x8507 :  r/w  PLL ADC Sampling Clock FINEDELB (4 Bit)
 
 0x8508 :  r    current ADC FIFO value
-0x8509 :  w    PLL ADC Sampling CLK Reset
+0x8509 :  w    Reset ADC Handler
 0x850a :  r/w  Enable Test ADC Input Data Error Test
 0x850b :  r    ADC Input Data Error Counter (16 Bit)
                 (only valid in case of 0x8509 is 1, see line above)
@@ -58,9 +59,17 @@
                2: ADC Value Testchannel
                3: ADC Reset Handler
 
+-- NX Data Validate
+0x8120 :  r/w  Invalid Frame Counter (16 bit) / w: clear all counters
+0x8121 :  r    Overflow Counter (16 bit)
+0x8122 :  r    Pileup Counter (16 bit)
+0x8123 :  r    Parity Error Counter (16 bit)
+0x8124 :  r    Nxyter Hit Rate (in Hz)
+0x8125 :  r    Frame Rate (in Hz)
+
 -- NX Data Delay
-0x8130 :  r    FIFO Delay, i.e. Trigger Delay (8 Bit, in 32ns).
-              Calculation is based on CTS Trigger Delay
+0x8130 :  r   FIFO Delay, i.e. Trigger Delay (8 Bit, in 32ns).
+               Calculation is based on CTS Trigger Delay
               (see NX Trigger Validate)
 
 -- NX Trigger Validate
@@ -87,6 +96,8 @@
 0x8186 :  r    Busy Time Counter (12 Bit, in 10ns)
 0x8187 :  r    timestamp_ref
 0x8188 :  r    window_lower_thr
+0x8189 :  r/w  Out of Window Error Counter (16 Bit)
+               w: Clear Counter
 0x818a :  r    data_fifo_delay (7 Bit, in 32ns)
 0x818b :  r    done counter ch 0..31
 0x818c :  r    done counter ch 32..63
@@ -144,9 +155,10 @@ CTS Trigger     [CT]  _____________________________________| |_____________
 FPGA TS Trigger [FT]  _________________________________________| |_________
                                                                |
 CTS+FPGA Trigger Delay                    |--------------------|
-                                          |                    |
-FPGA TS-Ref stored in Event Header        |                    |
-                                          |                    |
+                                                               |
+FPGA TS-Ref stored                                             |
+in Event Header                -----------|--------------------|
+                                                               |
 Trigger Window Offset(-)       |----------|                    | 
 Trigger Window Width(-)        |----------------|              | 
 Timestamps stored in Event(-)  |--|---|--|-||--|---------------|
@@ -156,7 +168,5 @@ Trigger Window Offset(+)                  |-----|              |
 Trigger Window Width(+)                         |---------|    |    
 Timestamps stored in Event(+)  -----------------|--||--|-|-----|
 
-TIME   ---------------------------------------------------------------------->
-                                
-
+         ---------------------------------------------------------------> Time t
 

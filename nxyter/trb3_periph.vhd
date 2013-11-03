@@ -22,7 +22,8 @@ entity trb3_periph is
     CLK_PCLK_RIGHT       : in    std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
     --Trigger
     TRIGGER_LEFT         : in    std_logic;  --left side trigger input from fan-out
-    TRIGGER_RIGHT        : in    std_logic;  --right side trigger input from fan-out
+    TRIGGER_RIGHT        : in    std_logic;  --Den Da nehmen sagt Jan midestend
+                                             -- , right side trigger input from fan-out
     --Serdes
     CLK_SERDES_INT_LEFT  : in    std_logic;  --Clock Manager 1/(1357), off, 125 MHz possible
     CLK_SERDES_INT_RIGHT : in    std_logic;  --Clock Manager 2/(1357), 200 MHz, only in case of problems
@@ -741,6 +742,7 @@ begin
       ADC_D_IN(0)                => NX1_ADC_D_IN,
       ADC_D_IN(1)                => NX1B_ADC_D_IN,
 
+      TIMING_TRIGGER_IN          => TRIGGER_RIGHT, 
       LVL1_TRG_DATA_VALID_IN     => trg_data_valid_i,
       LVL1_VALID_TIMING_TRG_IN   => trg_timing_valid_i,
       LVL1_VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,
@@ -820,7 +822,8 @@ begin
       ADC_NX_IN(1)               => NX2B_ADC_NX_IN,
       ADC_D_IN(0)                => NX2_ADC_D_IN,
       ADC_D_IN(1)                => NX2B_ADC_D_IN,
-      
+
+      TIMING_TRIGGER_IN          => TRIGGER_RIGHT,
       LVL1_TRG_DATA_VALID_IN     => trg_data_valid_i,
       LVL1_VALID_TIMING_TRG_IN   => trg_timing_valid_i,
       LVL1_VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,

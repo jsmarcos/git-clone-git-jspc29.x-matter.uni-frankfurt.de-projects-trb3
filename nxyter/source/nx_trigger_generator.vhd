@@ -9,8 +9,9 @@ entity nx_trigger_generator is
   port (
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
+    NX_MAIN_CLK_IN       : in  std_logic;
 
-    TRIGGER_IN           : in  std_logic;
+    TRIGGER_IN           : in  std_logic;  -- must be in NX_MAIN_CLK_DOMAIN
     TRIGGER_OUT          : out std_logic;
     TS_RESET_OUT         : out std_logic;
     TESTPULSE_OUT        : out std_logic;
@@ -33,6 +34,7 @@ end entity;
 
 architecture Behavioral of nx_trigger_generator is
 
+  signal trigger             : std_logic;
   signal start_cycle         : std_logic;
   signal trigger_cycle_ctr   : unsigned(7 downto 0);
   signal wait_timer_init     : unsigned(15 downto 0);
@@ -43,9 +45,7 @@ architecture Behavioral of nx_trigger_generator is
   signal extern_trigger      : std_logic;
   
   type STATES is (S_IDLE,
-                  S_NEXT_CYCLE,
-                  S_SET_TESTPULSE,
-                  S_WAIT_TRIGGER_END
+                  S_WAIT_TESTPULSE_END
                   );
   signal STATE : STATES;
 
@@ -61,7 +61,7 @@ architecture Behavioral of nx_trigger_generator is
   signal slv_ack_o               : std_logic;
 
   signal reg_trigger_period      : unsigned(15 downto 0);
-  signal reg_testpulse_length    : unsigned(15 downto 0);
+  signal reg_testpulse_length    : unsigned(11 downto 0);
   signal reg_trigger_num_cycles  : unsigned(7 downto 0);      
   signal reg_ts_reset_on         : std_logic;
   signal testpulse_rate          : unsigned(27 downto 0);
@@ -73,13 +73,14 @@ begin
   -- Debug Line
   DEBUG_OUT(0)           <= CLK_IN;
   DEBUG_OUT(1)           <= TRIGGER_IN;
-  DEBUG_OUT(2)           <= start_cycle;
-  DEBUG_OUT(3)           <= wait_timer_done;
-  DEBUG_OUT(4)           <= ts_reset_o;
-  DEBUG_OUT(5)           <= testpulse_o;
-  DEBUG_OUT(6)           <= extern_trigger;
-  DEBUG_OUT(7)           <= test_debug;
-  DEBUG_OUT(15 downto 8) <= (others => '0');
+  DEBUG_OUT(2)           <= trigger;
+  DEBUG_OUT(3)           <= start_cycle;
+  DEBUG_OUT(4)           <= wait_timer_done;
+  DEBUG_OUT(5)           <= ts_reset_o;
+  DEBUG_OUT(6)           <= testpulse_o;
+  DEBUG_OUT(7)           <= testpulse_p;
+  DEBUG_OUT(8)           <= test_debug;
+  DEBUG_OUT(15 downto 9) <= (others => '0');
   
   PROC_TEST_DEBUG: process(CLK_IN)
   begin
@@ -95,25 +96,42 @@ begin
       end if;
     end if;
   end process PROC_TEST_DEBUG;
+
   -- Timer
   nx_timer_1: nx_timer
     generic map (
       CTR_WIDTH => 16
       )
     port map (
-      CLK_IN         => CLK_IN,
+      CLK_IN         => NX_MAIN_CLK_IN,
       RESET_IN       => RESET_IN,
       TIMER_START_IN => wait_timer_init,
       TIMER_DONE_OUT => wait_timer_done
       );
 
   -----------------------------------------------------------------------------
-  -- Gernerate Trigger
+  -- Generate Trigger
   -----------------------------------------------------------------------------
 
-  PROC_TRIGGER_OUT: process(CLK_IN)
+  -- signal_async_to_pulse_1: signal_async_to_pulse
+  --   port map (
+  --     CLK_IN     => NX_MAIN_CLK_IN,
+  --     RESET_IN   => RESET_IN,   
+  --     PULSE_A_IN => TRIGGER_IN, 
+  --     PULSE_OUT  => trigger
+  --     );
+
+  level_to_pulse_1: level_to_pulse
+    port map (
+      CLK_IN    => NX_MAIN_CLK_IN,
+      RESET_IN  => RESET_IN,
+      LEVEL_IN  => TRIGGER_IN,
+      PULSE_OUT => trigger
+      );
+    
+  PROC_TESTPULSE_OUT: process(NX_MAIN_CLK_IN)
   begin
-    if( rising_edge(CLK_IN) ) then
+    if( rising_edge(NX_MAIN_CLK_IN) ) then
       if (RESET_IN = '1') then
         trigger_o         <= '0';
         testpulse_o       <= '0';
@@ -130,37 +148,46 @@ begin
         
         case STATE is
           when  S_IDLE =>
-            if (TRIGGER_IN = '1') then
-              extern_trigger    <= '1';
-              wait_timer_init   <= reg_testpulse_length;
-              STATE             <= S_SET_TESTPULSE;
+            if (trigger = '1') then
+              extern_trigger                  <= '1';
+              testpulse_o                     <= '1';
+              if (reg_testpulse_length > 1) then
+                wait_timer_init(11 downto  0) <= reg_testpulse_length - 1;
+                wait_timer_init(15 downto 12) <= (others => '0');
+                STATE                         <= S_WAIT_TESTPULSE_END;
+              else
+                STATE                         <= S_IDLE;
+              end if;
             else
-              extern_trigger    <= '0';
-              STATE             <= S_IDLE;
+              extern_trigger                  <= '0';
+              STATE                           <= S_IDLE;
             end if;
  
-          when S_SET_TESTPULSE =>
-            testpulse_o         <= '1';
+          when S_WAIT_TESTPULSE_END =>
             if (wait_timer_done = '0') then
-              STATE             <= S_SET_TESTPULSE;
+              testpulse_o                     <= '1';
+              STATE                           <= S_WAIT_TESTPULSE_END;
             else
-              STATE             <= S_IDLE;
+              STATE                           <= S_IDLE;
             end if;
-
-          when others =>
-            STATE               <= S_IDLE;
+            
         end case;
       end if;
     end if;
-  end process PROC_TRIGGER_OUT;
+  end process PROC_TESTPULSE_OUT;
   
-  -- Convert TRIGGER_IN to Pulse
-  level_to_pulse_1: level_to_pulse
+  -- Transfer testpulse_o to CLK_IN Domain
+  pulse_dtrans_1: pulse_dtrans
+    generic map (
+      CLK_RATIO => 4
+      )
     port map (
-      CLK_IN    => CLK_IN,
-      RESET_IN  => RESET_IN,
-      LEVEL_IN  => testpulse_o,
-      PULSE_OUT => testpulse_p
+      CLK_A_IN    => NX_MAIN_CLK_IN,
+      RESET_A_IN  => RESET_IN,
+      PULSE_A_IN  => testpulse_o,
+      CLK_B_IN    => CLK_IN,
+      RESET_B_IN  => RESET_IN,
+      PULSE_B_OUT => testpulse_p 
       );
 
   PROC_CAL_RATES: process (CLK_IN)
@@ -195,7 +222,7 @@ begin
       if( RESET_IN = '1' ) then
         reg_trigger_period     <= x"00ff";
         reg_trigger_num_cycles <= x"01";
-        reg_testpulse_length   <= x"0001";
+        reg_testpulse_length   <= x"001";
         reg_ts_reset_on        <= '0';
         slv_data_out_o         <= (others => '0');
         slv_no_more_data_o     <= '0';
@@ -212,13 +239,9 @@ begin
         if (SLV_WRITE_IN  = '1') then
           case SLV_ADDR_IN is
             when x"0000" =>
-              start_cycle                  <= '1';
-              slv_ack_o                    <= '1';
-
-            when x"0001" =>
-              if (reg_testpulse_length > 0) then
+              if (unsigned(SLV_DATA_IN(11 downto 0)) > 0) then
                 reg_testpulse_length       <=
-                  unsigned(SLV_DATA_IN(15 downto 0));
+                  unsigned(SLV_DATA_IN(11 downto 0));
               end if;
               slv_ack_o                    <= '1';
 
@@ -229,12 +252,13 @@ begin
 
         elsif (SLV_READ_IN = '1') then
           case SLV_ADDR_IN is
-            when x"0001" =>
-              slv_data_out_o(15 downto 0)  <=
+            when x"0000" =>
+              slv_data_out_o(11 downto 0)  <=
                 std_logic_vector(reg_testpulse_length);
+              slv_data_out_o(31 downto 12) <= (others => '0');
               slv_ack_o                    <= '1';
 
-            when x"0005" =>
+            when x"0001" =>
               slv_data_out_o(27 downto 0)  <= std_logic_vector(testpulse_rate);
               slv_data_out_o(31 downto 28) <= (others => '0');
               slv_ack_o                    <= '1';

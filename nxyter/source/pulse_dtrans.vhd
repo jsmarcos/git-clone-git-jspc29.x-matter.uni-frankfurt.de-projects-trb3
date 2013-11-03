@@ -44,7 +44,7 @@ begin
   -- Clock B Domain
   -----------------------------------------------------------------------------
 
-  pulse_async_trans_1: pulse_async_trans
+  signal_async_to_pulse_1: signal_async_to_pulse
     generic map (
       NUM_FF => 2
       )

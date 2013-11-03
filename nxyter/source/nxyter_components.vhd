@@ -10,35 +10,28 @@ package nxyter_components is
 
   component nXyter_FEE_board
     generic (
-    BOARD_ID : std_logic_vector(15 downto 0)
-    );
+      BOARD_ID : std_logic_vector(15 downto 0));
     port (
       CLK_IN                     : in    std_logic;
       RESET_IN                   : in    std_logic;
-
       CLK_NX_MAIN_IN             : in    std_logic;
       CLK_ADC_IN                 : in    std_logic;
       PLL_NX_CLK_LOCK_IN         : in    std_logic;
       PLL_ADC_CLK_LOCK_IN        : in    std_logic;
       NX_DATA_CLK_TEST_IN        : in    std_logic;
-
       TRIGGER_OUT                : out   std_logic;
-
       I2C_SDA_INOUT              : inout std_logic;
       I2C_SCL_INOUT              : inout std_logic;
       I2C_SM_RESET_OUT           : out   std_logic;
       I2C_REG_RESET_OUT          : out   std_logic;
-
       SPI_SCLK_OUT               : out   std_logic;
       SPI_SDIO_INOUT             : inout std_logic;
       SPI_CSB_OUT                : out   std_logic;
-
       NX_DATA_CLK_IN             : in    std_logic;
       NX_TIMESTAMP_IN            : in    std_logic_vector (7 downto 0);
       NX_RESET_OUT               : out   std_logic;
       NX_TESTPULSE_OUT           : out   std_logic;
       NX_TIMESTAMP_TRIGGER_OUT   : out   std_logic;
-
       ADC_FCLK_IN                : in    std_logic_vector(1 downto 0);
       ADC_DCLK_IN                : in    std_logic_vector(1 downto 0);
       ADC_SAMPLE_CLK_OUT         : out   std_logic;
@@ -46,7 +39,7 @@ package nxyter_components is
       ADC_B_IN                   : in    std_logic_vector(1 downto 0);
       ADC_NX_IN                  : in    std_logic_vector(1 downto 0);
       ADC_D_IN                   : in    std_logic_vector(1 downto 0);
-
+      TIMING_TRIGGER_IN          : in    std_logic;
       LVL1_TRG_DATA_VALID_IN     : in    std_logic;
       LVL1_VALID_TIMING_TRG_IN   : in    std_logic;
       LVL1_VALID_NOTIMING_TRG_IN : in    std_logic;
@@ -56,14 +49,12 @@ package nxyter_components is
       LVL1_TRG_CODE_IN           : in    std_logic_vector(7 downto 0);
       LVL1_TRG_INFORMATION_IN    : in    std_logic_vector(23 downto 0);
       LVL1_INT_TRG_NUMBER_IN     : in    std_logic_vector(15 downto 0);
-
       FEE_TRG_RELEASE_OUT        : out   std_logic;
       FEE_TRG_STATUSBITS_OUT     : out   std_logic_vector(31 downto 0);
       FEE_DATA_OUT               : out   std_logic_vector(31 downto 0);
       FEE_DATA_WRITE_OUT         : out   std_logic;
       FEE_DATA_FINISHED_OUT      : out   std_logic;
       FEE_DATA_ALMOST_FULL_IN    : in    std_logic;
-
       REGIO_ADDR_IN              : in    std_logic_vector(15 downto 0);
       REGIO_DATA_IN              : in    std_logic_vector(31 downto 0);
       REGIO_DATA_OUT             : out   std_logic_vector(31 downto 0);
@@ -74,11 +65,10 @@ package nxyter_components is
       REGIO_WRITE_ACK_OUT        : out   std_logic;
       REGIO_NO_MORE_DATA_OUT     : out   std_logic;
       REGIO_UNKNOWN_ADDR_OUT     : out   std_logic;
-
       DEBUG_LINE_OUT             : out   std_logic_vector(15 downto 0)
       );
   end component;
-
+  
 -------------------------------------------------------------------------------
 -- nXyter I2C Interface
 -------------------------------------------------------------------------------
@@ -539,7 +529,7 @@ component pulse_to_level
     );
 end component;
 
-component pulse_async_trans
+component signal_async_to_pulse
   generic (
     NUM_FF : integer range 2 to 4
     );
@@ -649,8 +639,8 @@ component nx_fpga_timestamp
     TRIGGER_IN               : in  std_logic;
     TIMESTAMP_CURRENT_OUT    : out unsigned(11 downto 0);
     TIMESTAMP_HOLD_OUT       : out unsigned(11 downto 0);
-    NX_TIMESTAMP_SYNC_OUT    : out std_logic;
-    NX_TIMESTAMP_TRIGGER_OUT : out std_logic;
+    TIMESTAMP_SYNCED_OUT     : out std_logic;
+    TIMESTAMP_TRIGGER_OUT    : out std_logic;
     SLV_READ_IN              : in  std_logic;
     SLV_WRITE_IN             : in  std_logic;
     SLV_DATA_OUT             : out std_logic_vector(31 downto 0);
@@ -666,7 +656,9 @@ component nx_trigger_handler
   port (
     CLK_IN                     : in  std_logic;
     RESET_IN                   : in  std_logic;
+    NX_MAIN_CLK_IN             : in  std_logic;
     NXYTER_OFFLINE_IN          : in  std_logic;
+    TIMING_TRIGGER_IN          : in  std_logic;
     LVL1_TRG_DATA_VALID_IN     : in  std_logic;
     LVL1_VALID_TIMING_TRG_IN   : in  std_logic;
     LVL1_VALID_NOTIMING_TRG_IN : in  std_logic;
@@ -704,6 +696,7 @@ component nx_trigger_generator
   port (
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
+    NX_MAIN_CLK_IN       : in  std_logic;
     TRIGGER_IN           : in  std_logic;
     TRIGGER_OUT          : out std_logic;
     TS_RESET_OUT         : out std_logic;
