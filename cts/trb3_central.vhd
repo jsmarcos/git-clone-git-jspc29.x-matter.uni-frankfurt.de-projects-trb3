@@ -332,6 +332,8 @@ architecture trb3_central_arch of trb3_central is
       
   constant CTS_ADDON_LINE_COUNT      : integer := 14;
   signal cts_addon_triggers_in       : std_logic_vector(CTS_ADDON_LINE_COUNT-1 downto 0);
+  signal cts_addon_activity_i,
+         cts_addon_selected_i        : std_logic_vector(4 downto 0);
   
   signal cts_trg_send                : std_logic;
   signal cts_trg_type                : std_logic_vector(3 downto 0);
@@ -422,7 +424,7 @@ architecture trb3_central_arch of trb3_central is
   signal tdc_ctrl_reg   : std_logic_vector(5*32-1 downto 0);
   signal tdc_debug      : std_logic_vector(15 downto 0);  
 
-
+  signal led_time_ref_i : std_logic;
 begin
 -- MBS Module
 	gen_mbs_vulom_as_etm : if ETM_CHOICE = ETM_CHOICE_MBS_VULOM generate
@@ -488,16 +490,22 @@ begin
       TRIGGER_PULSER_COUNT => 2,
       TRIGGER_RAND_PULSER  => 1,
       TRIGGER_ADDON_COUNT  => 2,
-      ADDON_LINE_COUNT     => CTS_ADDON_LINE_COUNT
+      
+      ADDON_LINE_COUNT     => CTS_ADDON_LINE_COUNT,
+      ADDON_GROUPS         => 5,
+      ADDON_GROUP_UPPER    => (3,7,11,12,13, others=>0)
    )
    port map ( 
       CLK => clk_100_i,
       RESET => reset_i,
       
       TRIGGERS_IN => trigger_in_buf_i,
-      ADDON_TRIGGERS_IN => cts_addon_triggers_in,
       TRIGGER_BUSY_OUT => trigger_busy_i,
       TIME_REFERENCE_OUT => cts_trigger_out,
+      
+      ADDON_TRIGGERS_IN        => cts_addon_triggers_in,
+      ADDON_GROUP_ACTIVITY_OUT => cts_addon_activity_i,
+      ADDON_GROUP_SELECTED_OUT => cts_addon_selected_i,
       
       EXT_TRIGGER_IN => cts_ext_trigger,
       EXT_STATUS_IN  => cts_ext_status,
@@ -540,13 +548,29 @@ begin
       FEE_DATA_FINISHED_OUT   => cts_rdo_finished
    );   
    
-   process is begin
+   process is
+   begin
       wait until rising_edge(clk_100_i);
       cts_addon_triggers_in( 3 downto  0) <= ECL_IN;
       cts_addon_triggers_in( 7 downto  4) <= JIN1;
       cts_addon_triggers_in(11 downto  8) <= JIN2;
       cts_addon_triggers_in(13 downto 12) <= NIM_IN;
    end process;
+   
+   LED_BANK(7 downto 6) <= cts_addon_activity_i(4 downto 3);
+   LED_RJ_GREEN <= (
+      0 => cts_addon_activity_i(1),
+      1 => cts_addon_activity_i(2),
+      5 => cts_addon_activity_i(0),
+      others => '0'
+   );
+      
+   LED_RJ_RED <= (
+      0 => cts_addon_selected_i(1),
+      1 => cts_addon_selected_i(2),
+      5 => cts_addon_selected_i(0),
+      others => '0'
+   );
    
 
    
@@ -1365,6 +1389,17 @@ process begin
   TRIGGER_OUT    <= cts_trigger_out;
   TRIGGER_OUT2   <= cts_trigger_out;
   TRG_FANOUT_ADDON <= cts_trigger_out;
+  
+end process;
+
+process(clk_100_i) is begin
+   if rising_edge(clk_100_i) then
+      if timer_ticks(0) = '1' then
+         led_time_ref_i <= '0';
+      else
+         led_time_ref_i <= led_time_ref_i or cts_trigger_out;
+      end if;
+   end if;
 end process;
   
   
@@ -1397,13 +1432,11 @@ end process;
     JOUTLVDS                       <= x"00";
     JTTL                           <= x"0000";
     
-    LED_BANK                       <= x"FF";
-    LED_RJ_GREEN                   <= "111111";
-    LED_RJ_RED                     <= "111111";
-    LED_FAN_GREEN                  <= '1';
-    LED_FAN_ORANGE                 <= '1';
-    LED_FAN_RED                    <= '1';
-    LED_FAN_YELLOW                 <= '1';
+    LED_BANK(5 downto 0)           <= (others => '0');
+    LED_FAN_GREEN                  <= led_time_ref_i;
+    LED_FAN_ORANGE                 <= '0';
+    LED_FAN_RED                    <= trigger_busy_i;
+    LED_FAN_YELLOW                 <= '0';
 
 
 ---------------------------------------------------------------------------

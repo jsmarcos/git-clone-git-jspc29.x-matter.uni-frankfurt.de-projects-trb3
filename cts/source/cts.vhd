@@ -4,6 +4,7 @@ library IEEE;
    
 library work;
    use work.trb_net_components.all;
+   use work.trb_net_std.all;
    use work.CTS_PKG.ALL;
 
 -- Debug and status registers
@@ -20,7 +21,7 @@ library work;
 --
 --    0x04        Buffered trigger status
 --      15 : 00   Trigger bitmask (before filtering)
---      19 : 16   Trigger type
+--      19  :16   Trigger type
 --
 --    0x05        TD FSM State (Trigger Distribution). One-Hot-Encoding:
 --            0   TD_FSM_IDLE
@@ -75,7 +76,7 @@ library work;
 --   
 --    0x0d        Event Builder selection
 --      15 : 00   Event Builder mask (default: 0x1)
---      23 : 16   Number of events before selecting next builder (useful to aggregate events to support large data packets
+--      23 : 16   Number of events before selecting next builder (useful to aggregate events to support large data packets)
 --      27 : 24   Event Builder number of calibration trigger
 --        28      If asserted: Use special event builder for calibration trigger, otherwise, use ordinary round robin selection.
 -- </address_table>
@@ -103,7 +104,10 @@ entity CTS is
       TRIGGER_RAND_PULSER : integer range 0 to  1 := 1;
       
       ADDON_LINE_COUNT : integer := 22;                 -- number of lines available from add-on board
+      
       TRIGGER_ADDON_COUNT : integer range 0 to 15 := 2;  -- number of module instances used to patch through those lines
+      ADDON_GROUPS        : integer range 1 to 8 := 5;
+      ADDON_GROUP_UPPER   : CTS_GROUP_CONFIG_T  := (3,7,11,12,13, others=>'0');
       
       EXTERNAL_TRIGGER_ID  : std_logic_vector(7 downto 0) := X"00";
 
@@ -121,6 +125,8 @@ entity CTS is
       TIME_REFERENCE_OUT : out std_logic;
       
       ADDON_TRIGGERS_IN  : in std_logic_vector(ADDON_LINE_COUNT-1 downto 0) := (others => '0');
+      ADDON_GROUP_ACTIVITY_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
+      ADDON_GROUP_SELECTED_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
       
    -- External trigger logic
       EXT_TRIGGER_IN  : in std_logic;
@@ -683,7 +689,12 @@ begin
                -- we can switch to a sequential process instead of a parallel priority encoder
                eb_sel_loop: for i in 0 to 15 loop
                   if eb_mask_buf_i(i) = '1' then
-                     eb_mask_buf_i(i) <= '0';
+                     if OR_ALL(eb_mask_buf_i(15 downto i+1)) = '0' then
+                        eb_mask_buf_i <= eb_mask_i;
+                     else
+                        eb_mask_buf_i(i downto 0) <= (others => '0');
+                     end if;
+                     
                      eb_selection_i <= STD_LOGIC_VECTOR(TO_UNSIGNED(i, 4));
                      exit eb_sel_loop;
                      
@@ -707,16 +718,23 @@ begin
       TRIGGER_COIN_COUNT   => TRIGGER_COIN_COUNT,
       TRIGGER_PULSER_COUNT => TRIGGER_PULSER_COUNT,
       TRIGGER_RAND_PULSER  => TRIGGER_RAND_PULSER,
+      
       ADDON_LINE_COUNT     => ADDON_LINE_COUNT,
+      ADDON_GROUPS         => ADDON_GROUPS,
+      ADDON_GROUP_UPPER    => ADDON_GROUP_UPPER,
+      
       TRIGGER_ADDON_COUNT  => TRIGGER_ADDON_COUNT,
       EXTERNAL_TRIGGER_ID  => EXTERNAL_TRIGGER_ID
    )
    port map (
       CLK_IN      => CLK,
+      CLK_1KHZ_IN => clk_1khz_i,
       RESET_IN    => RESET,
          
       TRIGGERS_IN => TRIGGERS_IN,
       ADDON_TRIGGERS_IN => ADDON_TRIGGERS_IN,
+      ADDON_GROUP_ACTIVITY_OUT => ADDON_GROUP_ACTIVITY_OUT,
+      ADDON_GROUP_SELECTED_OUT => ADDON_GROUP_SELECTED_OUT,
       
       EXT_TRIGGER_IN  => EXT_TRIGGER_IN,
       EXT_STATUS_IN   => EXT_STATUS_IN,

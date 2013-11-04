@@ -3,6 +3,8 @@ library ieee;
    use ieee.numeric_std.all;
 
 package cts_pkg is
+   type CTS_GROUP_CONFIG_T is array(0 to 7) of integer;
+
    component CTS is
       generic (
          -- The total number of trigger units below has to be below 16
@@ -13,6 +15,8 @@ package cts_pkg is
       
          ADDON_LINE_COUNT    : integer range 0 to 255 := 22;                 -- number of lines available from add-on board
          TRIGGER_ADDON_COUNT : integer range 0 to 15 := 2;  -- number of module instances used to patch through those lines
+         ADDON_GROUPS        : integer range 1 to 8 := 5;
+         ADDON_GROUP_UPPER   : CTS_GROUP_CONFIG_T  := (3,7,11,12,13, others=>'0');
 
          EXTERNAL_TRIGGER_ID : std_logic_vector(7 downto 0) := X"00";
          
@@ -30,6 +34,8 @@ package cts_pkg is
          TIME_REFERENCE_OUT : out std_logic;
 
          ADDON_TRIGGERS_IN  : in std_logic_vector(ADDON_LINE_COUNT-1 downto 0) := (others => '0');
+         ADDON_GROUP_ACTIVITY_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
+         ADDON_GROUP_SELECTED_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
          
    -- External trigger logic
          EXT_TRIGGER_IN  : in std_logic;
@@ -164,17 +170,23 @@ package cts_pkg is
          
          ADDON_LINE_COUNT     : integer range 0 to 255 := 22;  -- number of lines available from add-on board
          TRIGGER_ADDON_COUNT  : integer range 0 to 15 := 2;  -- number of module instances used to patch through those lines
+         ADDON_GROUPS        : integer range 1 to 8 := 5;
+         ADDON_GROUP_UPPER   : CTS_GROUP_CONFIG_T  := (3,7,11,12,13, others=>'0');
+      
          
          EXTERNAL_TRIGGER_ID  : std_logic_vector(7 downto 0) := X"00"
       );
 
       port (
          CLK_IN       : in  std_logic;
+         CLK_1KHZ_IN  : in  std_logic;
          RESET_IN     : in  std_logic;      
          
       -- Input pins
          TRIGGERS_IN : in std_logic_vector(TRIGGER_INPUT_COUNT - 1 downto 0);
          ADDON_TRIGGERS_IN  : in std_logic_vector(ADDON_LINE_COUNT-1 downto 0) := (others => '0');
+         ADDON_GROUP_ACTIVITY_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
+         ADDON_GROUP_SELECTED_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
       
       -- External 
          EXT_TRIGGER_IN  : in std_logic;

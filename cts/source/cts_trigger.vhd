@@ -12,21 +12,27 @@ entity CTS_TRIGGER is
       TRIGGER_COIN_COUNT   : integer range 0 to 15 := 4;
       TRIGGER_PULSER_COUNT : integer range 0 to 15 := 2;
       TRIGGER_RAND_PULSER  : integer range 0 to 15 := 1;
-      TRIGGER_ADDON_COUNT  : integer range 0 to 15 := 2;
       
+      TRIGGER_ADDON_COUNT  : integer range 0 to 15 := 2;
       ADDON_LINE_COUNT     : integer range 0 to 255 := 22;
+      ADDON_GROUPS        : integer range 1 to 8 := 5;
+      ADDON_GROUP_UPPER   : CTS_GROUP_CONFIG_T  := (3,7,11,12,13, others=>'0');
       
       EXTERNAL_TRIGGER_ID  : std_logic_vector(7 downto 0) := X"00"
    );
 
    port (
       CLK_IN       : in  std_logic;
+      CLK_1KHZ_IN  : in  std_logic;
       RESET_IN     : in  std_logic;      
       
     -- Trigger Inputs
       TRIGGERS_IN        : in std_logic_vector(TRIGGER_INPUT_COUNT-1 downto 0);
+
       ADDON_TRIGGERS_IN  : in std_logic_vector(ADDON_LINE_COUNT-1 downto 0) := (others => '0');
-      
+      ADDON_GROUP_ACTIVITY_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
+      ADDON_GROUP_SELECTED_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
+
     -- External 
       EXT_TRIGGER_IN  : in std_logic;
       EXT_STATUS_IN   : in std_logic_vector(31 downto 0) := X"00000000";
@@ -122,6 +128,8 @@ architecture RTL of CTS_TRIGGER is
 -- Add On 
    type trigger_addon_configs_t is array(TRIGGER_ADDON_COUNT - 1 downto 0) of std_logic_vector(7 downto 0);
    signal trigger_addon_configs_i : trigger_addon_configs_t;
+   signal addon_group_activity_i : std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
+   signal addon_group_selected_i : std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
    
 -- Trigger Type Assoc 
    type trigger_type_assoc_t is array(0 to 15) of std_logic_vector(3 downto 0);
@@ -295,7 +303,41 @@ begin
       CHANNEL_COUNTERS_OUT(i*32 + 31 downto i*32) <= channel_counters_i(i);
       CHANNEL_EDGE_COUNTERS_OUT(i*32 + 31 downto i*32) <= channel_edge_counters_i(i);
    end generate;
+
+-- AddOn Leds
+-----------------------------------------
+   process(CLK_IN) is
+      variable from : integer;
+   begin
+      if rising_edge(CLK_IN) then
+         from := 0;
+         if CLK_1KHZ_IN ='1' then
+            addon_group_activity_i <= (others => '0');
+         
+         else
+            for i in 0 to ADDON_GROUPS-1 loop
+               addon_group_activity_i(i) <= addon_group_activity_i(i) or
+                  OR_ALL(ADDON_TRIGGERS_IN(ADDON_GROUP_UPPER(i) downto from));
+               
+               addon_group_selected_i(i) <= '0';
+               for j in 0 to TRIGGER_ADDON_COUNT-1 loop
+                  if from <= to_integer( UNSIGNED(trigger_addon_configs_i(j)) ) and 
+                     to_integer( UNSIGNED(trigger_addon_configs_i(j)) ) <= ADDON_GROUP_UPPER(i) then
+                     addon_group_selected_i(i) <= '1';
+                  end if;
+               end loop;
+               
+               from := ADDON_GROUP_UPPER(i)+1;
+            end loop;
+         end if;
+      end if;
+   end process;
    
+   ADDON_GROUP_ACTIVITY_OUT <= addon_group_activity_i;
+   ADDON_GROUP_SELECTED_OUT <= addon_group_selected_i;
+   
+-- RegIO
+-----------------------------------------
    proc_regio: process(CLK_IN) is
       variable addr : integer range 0 to 255;
       variable ref_addr : integer range 0 to 255;
