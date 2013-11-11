@@ -219,6 +219,8 @@ component nx_setup
     I2C_COMMAND_BUSY_IN  : in  std_logic;
     I2C_DATA_IN          : in  std_logic_vector(31 downto 0);
     I2C_LOCK_OUT         : out std_logic;
+    I2C_ONLINE_OUT       : out std_logic;
+    I2C_REG_RESET_IN     : in  std_logic;
     SPI_COMMAND_OUT      : out std_logic_vector(31 downto 0);
     SPI_COMMAND_BUSY_IN  : in  std_logic;
     SPI_DATA_IN          : in  std_logic_vector(31 downto 0);
@@ -588,6 +590,17 @@ component Gray_Encoder
     RESET_IN  : in  std_logic;
     BINARY_IN : in  std_logic_vector(WIDTH - 1 downto 0);
     GRAY_OUT  : out std_logic_vector(WIDTH - 1 downto 0)
+    );
+end component;
+
+component pulse_delay
+  generic (
+    DELAY : integer range 2 to 16777216);
+  port (
+    CLK_IN    : in  std_logic;
+    RESET_IN  : in  std_logic;
+    PULSE_IN  : in  std_logic;
+    PULSE_OUT : out std_logic
     );
 end component;
 

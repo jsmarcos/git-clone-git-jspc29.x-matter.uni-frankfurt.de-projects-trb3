@@ -11,11 +11,17 @@
 
 -- NX I2C Setup Handler
 0x8200 : r/w   I2C Memeory Register (Depth: 0 - 45 ... 0x822c) 
-0x8260 : r/w   DAC Register Memory (Depth: 0 - 128 ... 0x82e0) 
-0x8240 : w     Read all I2C Registers into Memory     
-0x8241 : w     Write all Memory to I2C Registers     
-0x8242 : w     Read Trim DAC Register(129 deep FIFO) to Memory
-0x8243 : w     Write Memory to Trim DAC Register(129 deep FIFO)    
+0x8300 : r/w   DAC Register Memory (Depth: 0 - 128 ... 0x82e0) 
+0x8250 : r/w   Enable Nxyter Clock 
+0x8251 : r/w   Nxyter Polarity
+0x8252 : r     Nxyter Testpulse Polarity 
+0x8253 : r/w   Enable Nxyter Testpulse
+0x8254 : r/w   Enable Nxyter Testtrigger
+0x8255 : r/w   Nxyter Testpulse Channels (0: 0,4,..   1: 1,5,..
+                                          2: 2,6,..   3: 3,7,..)
+0x8256 : r     Nxyter I2C Online
+0x8260 : w     Read all I2C Registers into Memory     
+0x8261 : w     Read Trim DAC Register(129 deep FIFO) into Memory
 
 -- Trigger Generator
 0x8140 :  r/w  Length of Trigger TestPulse (12 Bit, in 4ns)
@@ -24,7 +30,7 @@
 -- Trigger Handler
 0x8160 :  r/w  Enable Testpulse Signal (default: off)
 0x8161 :  r/w  Delay Testpulse Signal after Trigger (12 Bit, in 10ns)
-0x8162 :  r    Accepted Trigger Rate (in Hz)
+0x8162 :  r    Accepted Trigger Rate (28 Bit, in Hz)
 0x8163 :  r/w  r: Invalid Timing Trigger Counter
                w: clear Counter
 

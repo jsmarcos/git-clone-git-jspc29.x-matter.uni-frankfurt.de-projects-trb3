@@ -118,7 +118,9 @@ architecture Behavioral of nXyter_FEE_board is
   signal nx_ts_reset_2          : std_logic;
   signal nx_ts_reset_o          : std_logic;
   signal i2c_reg_reset_o        : std_logic;
-                                
+  signal nxyter_offline_reg     : std_logic;
+  signal nxyter_offline         : std_logic;
+  
   -- NX Register Access         
   signal i2c_lock               : std_logic;
   signal i2c_command            : std_logic_vector(31 downto 0);
@@ -128,6 +130,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal spi_command            : std_logic_vector(31 downto 0);
   signal spi_command_busy       : std_logic;
   signal spi_data               : std_logic_vector(31 downto 0);
+  signal nxyter_online_i2c      : std_logic;
                                 
   -- SPI Interface ADC          
   signal spi_sdi                : std_logic;
@@ -182,7 +185,6 @@ architecture Behavioral of nXyter_FEE_board is
   signal lvl2_trigger           : std_logic;
   signal trigger_busy           : std_logic;
   signal fast_clear             : std_logic;
-  signal nxyter_offline         : std_logic;
   signal fee_trg_release_o      : std_logic;
   signal trigger_testpulse      : std_logic;
 
@@ -250,7 +252,7 @@ begin
                                 6 => 4,          -- Data Validate
                                 7 => 4,          -- Trigger Handler
                                 8 => 4,          -- Trigger Validate
-                                9 => 8,          -- NX Setup
+                                9 => 9,          -- NX Setup
                                10 => 9,          -- NX Histograms
                                11 => 0,          -- Debug Handler
                                12 => 1,          -- Data Delay
@@ -296,16 +298,16 @@ begin
 -------------------------------------------------------------------------------
   nxyter_registers_1: nxyter_registers
     port map (
-      CLK_IN                 => CLK_IN,
-      RESET_IN               => RESET_IN,
+      CLK_IN                   => CLK_IN,
+      RESET_IN                 => RESET_IN,
 
-      PLL_NX_CLK_LOCK_IN     => PLL_NX_CLK_LOCK_IN, 
-      PLL_ADC_CLK_LOCK_IN    => PLL_ADC_CLK_LOCK_IN,
+      PLL_NX_CLK_LOCK_IN       => PLL_NX_CLK_LOCK_IN, 
+      PLL_ADC_CLK_LOCK_IN      => PLL_ADC_CLK_LOCK_IN,
      
-      I2C_SM_RESET_OUT       => i2c_sm_reset_o,
-      I2C_REG_RESET_OUT      => i2c_reg_reset_o,
-      NX_TS_RESET_OUT        => nx_ts_reset_1,
-      OFFLINE_OUT            => nxyter_offline,
+      I2C_SM_RESET_OUT         => i2c_sm_reset_o,
+      I2C_REG_RESET_OUT        => i2c_reg_reset_o,
+      NX_TS_RESET_OUT          => nx_ts_reset_1,
+      OFFLINE_OUT              => nxyter_offline_reg,
 
       NX_DATA_CLK_DPHASE_OUT   => nx1_data_clk_dphase,
       NX_DATA_CLK_FINEDELB_OUT => nx1_data_clk_finedelb,
@@ -314,16 +316,16 @@ begin
       NX_DATA_CLK_CLKOS_IN     => nx1_data_clk_clkos,
       NX_DATA_CLK_CLKOK_IN     => nx1_data_clk_clkok,
       
-      SLV_READ_IN            => slv_read(0),
-      SLV_WRITE_IN           => slv_write(0),
-      SLV_DATA_OUT           => slv_data_rd(0*32+31 downto 0*32),
-      SLV_DATA_IN            => slv_data_wr(0*32+31 downto 0*32),
-      SLV_ADDR_IN            => slv_addr(0*16+15 downto 0*16),
-      SLV_ACK_OUT            => slv_ack(0),
-      SLV_NO_MORE_DATA_OUT   => slv_no_more_data(0),
-      SLV_UNKNOWN_ADDR_OUT   => slv_unknown_addr(0),
+      SLV_READ_IN              => slv_read(0),
+      SLV_WRITE_IN             => slv_write(0),
+      SLV_DATA_OUT             => slv_data_rd(0*32+31 downto 0*32),
+      SLV_DATA_IN              => slv_data_wr(0*32+31 downto 0*32),
+      SLV_ADDR_IN              => slv_addr(0*16+15 downto 0*16),
+      SLV_ACK_OUT              => slv_ack(0),
+      SLV_NO_MORE_DATA_OUT     => slv_no_more_data(0),
+      SLV_UNKNOWN_ADDR_OUT     => slv_unknown_addr(0),
 
-      DEBUG_OUT              => debug_line(0)
+      DEBUG_OUT                => debug_line(0)
       );
 
   nx_setup_1: nx_setup
@@ -334,6 +336,8 @@ begin
       I2C_COMMAND_BUSY_IN  => i2c_command_busy,
       I2C_DATA_IN          => i2c_data,
       I2C_LOCK_OUT         => i2c_lock,
+      I2C_ONLINE_OUT       => nxyter_online_i2c,
+      I2C_REG_RESET_IN     => i2c_reg_reset_o,
       SPI_COMMAND_OUT      => spi_command,
       SPI_COMMAND_BUSY_IN  => spi_command_busy,
       SPI_DATA_IN          => spi_data,
@@ -349,6 +353,8 @@ begin
  
       DEBUG_OUT            => debug_line(1)
       );
+
+  nxyter_offline <= (not nxyter_online_i2c) or nxyter_offline_reg;
   
 -------------------------------------------------------------------------------
 -- I2C master block for accessing the nXyter

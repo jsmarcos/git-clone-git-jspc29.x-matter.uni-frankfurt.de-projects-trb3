@@ -19,7 +19,7 @@ entity nxyter_registers is
     I2C_REG_RESET_OUT      : out std_logic;
     NX_TS_RESET_OUT        : out std_logic;
     OFFLINE_OUT            : out std_logic;
-
+        
     -- NX Data Clock Handler
     NX_DATA_CLK_DPHASE_OUT   : out std_logic_vector(3 downto 0);
     NX_DATA_CLK_FINEDELB_OUT : out std_logic_vector(3 downto 0);
