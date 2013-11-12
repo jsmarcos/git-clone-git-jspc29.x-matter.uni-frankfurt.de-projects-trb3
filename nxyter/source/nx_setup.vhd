@@ -406,12 +406,20 @@ begin
   -----------------------------------------------------------------------------
   
   PROC_I2C_TOKEN_HANDLER: process(CLK_IN)
+    variable read_token_mask : std_logic_vector(45 downto 0) := (others => '1');
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
         i2c_read_token      <= (others => '0');
         i2c_write_token     <= (others => '0');
       else
+        if (i2c_ram(32)(3) = '1') then
+          read_token_mask(15 downto 0)  := (others => '0');
+          read_token_mask(45 downto 16) := (others => '1');
+        else
+          read_token_mask               := (others => '1');
+        end if;
+        
         -- Write Token
         if (unsigned(i2c_write_token_r)    /= 0) then
           i2c_write_token   <= i2c_write_token or i2c_write_token_r;
@@ -421,9 +429,10 @@ begin
 
         -- Read Token
         if (i2c_update_memory = '1') then
-          i2c_read_token    <= (others => '1');
+          i2c_read_token    <= read_token_mask;
         elsif (unsigned(i2c_read_token_r) /= 0) then
-          i2c_read_token    <= i2c_read_token or i2c_read_token_r;
+          i2c_read_token    <= (i2c_read_token or i2c_read_token_r) and
+                               read_token_mask;
         elsif (unsigned(read_token_clear) /= 0) then
           i2c_read_token    <= i2c_read_token and (not read_token_clear); 
         end if;
@@ -835,7 +844,7 @@ begin
 
   pulse_delay_1: pulse_delay
     generic map (
-      DELAY => 10000
+      DELAY => 1000000
       )
     port map (
       CLK_IN    => CLK_IN,

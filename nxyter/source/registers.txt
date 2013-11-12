@@ -22,6 +22,7 @@
 0x8256 : r     Nxyter I2C Online
 0x8260 : w     Read all I2C Registers into Memory     
 0x8261 : w     Read Trim DAC Register(129 deep FIFO) into Memory
+0x8262 : w     Read ALL: Read Trim DAC Register(129 deep FIFO) into Memory
 
 -- Trigger Generator
 0x8140 :  r/w  Length of Trigger TestPulse (12 Bit, in 4ns)
