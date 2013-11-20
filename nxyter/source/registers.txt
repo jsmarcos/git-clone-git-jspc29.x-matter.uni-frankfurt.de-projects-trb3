@@ -1,13 +1,21 @@
+----------------------------------------------------------------------
+-- NXyter BVoradcast Address is: 0xfe49                             --
+----------------------------------------------------------------------
+
 -- Control Register
 0x8100 :  w    w: reset I2C State Machine
 0x8101 :  w    w: reset I2C all Register
 0x8102 :  w    w: Reset and Sync Timestamps (nXyter and FPGA)
-0x8103 :  r/w  Put Nxyter into offline mode 
-0x8104 :  r    Nxyter Main Clock Lock (125 MHz)
-0x8105 :  r    ADC Data Clock Lock    (187.5MHz)
-0x810a :  r/w  r: PLL Nxyter Main Clock NotLock Counter
+0x8103 :  r/w  Force Nxyter offline mode 
+0x8104 :  r    Nxyter I2C Online Status
+0x8105 :  r    Nxyter Offline
+0x8106 :  r    Nxyter Main Clock Lock (250 MHz)
+0x8107 :  r    ADC Data Clock Lock    (187.5 MHz)
+0x8108 :  r    ADC Sample Clock Lock    (31.25 MHz)
+0x8109 :  r/w  r: PLL Nxyter Main Clock NotLock Counter (16 Bit)
                w: Clear all pll_nx_clk_notlock_ctr
-0x810b :  r    PLL ADC Data Clock NotLock Counter
+0x810a :  r    PLL ADC Data Clock NotLock Counter (16 Bit)
+0x810b :  r    PLL ADC Sample Clock NotLock Counter (16 Bit)
 
 -- NX I2C Setup Handler
 0x8200 : r/w   I2C Memeory Register (Depth: 0 - 45 ... 0x822c) 
@@ -33,7 +41,7 @@
 0x8161 :  r/w  Delay Testpulse Signal after Trigger (12 Bit, in 10ns)
 0x8162 :  r    Accepted Trigger Rate (28 Bit, in Hz)
 0x8163 :  r/w  r: Invalid Timing Trigger Counter
-               w: clear Counter
+               w: Clear Counter
 
 -- NX Data Receiver
 0x8500 :  r    current Timestamp FIFO value
@@ -44,22 +52,23 @@
                 3..29: ignore
                    31: nx_frame_synced
 0x8502 :  r/w  r: Resync Counter(12 Bit)
-               w: clear Resync Counter    
+               w: Clear Resync Counter    
 0x8503 :  r/w  r: Parity Error Counter (12 Bit)
-               w: clear Parity Error Counter   
+               w: Clear Parity Error Counter   
 0x8504 :  r/w  ADC Sampling PLL Clock Not Lock Counter
-               w: clear counter
+               w: Clear Counter
 0x8505 :  r/w  johnson_counter_sync (2 Bit), do not touch, experts only register
 0x8506 :  r/w  PLL ADC Sampling Clock DPHASE (4 Bit)
 0x8507 :  r/w  PLL ADC Sampling Clock FINEDELB (4 Bit)
 
 0x8508 :  r    current ADC FIFO value
-0x8509 :  w    Reset ADC Handler
-0x850a :  r/w  Enable Test ADC Input Data Error Test
-0x850b :  r    ADC Input Data Error Counter (16 Bit)
+0x8509 :  r/w  Enable Test ADC Input Data Error Test
+0x850a :  r    ADC Input Data Error Counter (16 Bit)
                 (only valid in case of 0x8509 is 1, see line above)
-0x850c :  r    Nxyter Data Clock Status (1 = O.K.)
-
+0x850b :  r    Nxyter Data Clock Status (1 = O.K.)
+0x850c :  r/w  r: Reset Handler Counter (16 Bit)
+               w: Clear Counter
+0x850e :  w    Reset ADC Handler
 0x850f :  r/w  Debug Multiplexer:
                0: no ADC Values, normal Debug
                1: ADC Value Nxyter
@@ -80,36 +89,48 @@
               (see NX Trigger Validate)
 
 -- NX Trigger Validate
-0x8180 :  r/w  Readout Mode: 3 Bits
+0x8400 :  r/w  Readout Mode: 4 Bits
+               Bit #3:    Self Trigger Mode
                Bit #2:    0: activate TS Selection Window
-                          1: data wil be written to disk as long as
+                          1: disable TS Selection Window, i.e.
+                             data will be written to disk as long as
                              Readout Time Max (Reg.: 0x8184) is valid
                Bit #1..0     0: TS Ovfl and Parity Bit valid
                              1: TS Ovfl, Parity and Pileup Bit valid
                              2: ignore TS Status Bits
                              3: -------- " -------
                            
-0x8181 :  r/w  Trigger Window Offset [TS_Offset] (11 Bit signed, in 4ns) 
-0x8182 :  r/w  Trigger Window Width [TS_Width] (10 Bit, in 4ns)
-0x8183 :  r/w  CTS Trigger Delay [CTS_Delay] (10 Bit, in 4ns)
+0x8401 :  r/w  Trigger Window Offset [TS_Offset] (11 Bit signed, in 4ns) 
+0x8402 :  r/w  Trigger Window Width [TS_Width] (10 Bit, in 4ns)
+0x8403 :  r/w  CTS Trigger Delay [CTS_Delay] (10 Bit, in 4ns)
                FPGA_Timestamp = TS_Ref
                Trigger Window Lower Threshold =
                   TS_FPGA - CTS_Delay +/- TS_Offset 
                Trigger Window Upper Threshold =
                   TS_FPGA - CTS_Delay + TS_Offset + TS_Width
-0x8184 :  r/w  Readout Time Max (10 Bit, in 10ns)
+0x8404 :  r/w  Readout Time Max (10 Bit, in 10ns)
 
-0x8185 :  r/w  FPGA Timestamp Offset (12 Bit, in 4ns)
-0x8186 :  r    Busy Time Counter (12 Bit, in 10ns)
-0x8187 :  r    timestamp_ref
-0x8188 :  r    window_lower_thr
-0x8189 :  r/w  Out of Window Error Counter (16 Bit)
+0x8405 :  r/w  FPGA Timestamp Offset (12 Bit, in 4ns)
+0x8406 :  r    Busy Time Counter (12 Bit, in 10ns)
+0x8407 :  r    timestamp_ref
+0x8408 :  r    window_lower_thr
+0x8409 :  r/w  Out of Window Error Counter (16 Bit)
                w: Clear Counter
-0x818a :  r    data_fifo_delay (7 Bit, in 32ns)
-0x818b :  r    done counter ch 0..31
-0x818c :  r    done counter ch 32..63
-0x818d :  r    done counter ch 94..95
-0x818e :  r    done counter ch 96..127
+0x840a :  r    data_fifo_delay (7 Bit, in 32ns)
+0x840b :  r    WAIT flags ch 0..31
+0x840c :  r    WAIT flags ch 32..63
+0x840d :  r    WAIT flags ch 94..95
+0x840e :  r    WAIT flags ch 96..127
+0x840f :  r    HIT flags ch 0..31
+0x8410 :  r    HIT flags ch 32..63
+0x8411 :  r    HIT flags ch 94..95
+0x8412 :  r    HIT flags ch 96..127
+0x8413 :  r    DONE flags ch 0..31
+0x8414 :  r    DONE flags ch 32..63
+0x8415 :  r    DONE flags ch 94..95
+0x8416 :  r    DONE flags ch 96..127
+0x8417 :  r    channel_all_done
+0x8418 :  r    EVT_BUFFER_FULL_IN    
 
 -- Event Data Buffer
 0x8600 :  r    read FIFO buffer

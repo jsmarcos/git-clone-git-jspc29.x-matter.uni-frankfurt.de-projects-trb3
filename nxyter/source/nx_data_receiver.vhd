@@ -28,7 +28,8 @@ entity nx_data_receiver is
     ADC_B_IN             : in  std_logic_vector(1 downto 0);
     ADC_NX_IN            : in  std_logic_vector(1 downto 0);
     ADC_D_IN             : in  std_logic_vector(1 downto 0);
-
+    ADC_SCLK_LOCK_OUT    : out std_logic;
+    
     -- Outputs
     NX_TIMESTAMP_OUT     : out std_logic_vector(31 downto 0);
     ADC_DATA_OUT         : out std_logic_vector(11 downto 0);
@@ -53,70 +54,70 @@ end entity;
 architecture Behavioral of nx_data_receiver is
 
   -- Clock Check
-  signal counter_nx_domain     : unsigned(7 downto 0);
-  signal counter_nx_ref_domain : unsigned(7 downto 0);
-  signal counter_nx_diff       : unsigned(7 downto 0);
+  signal counter_nx_domain           : unsigned(7 downto 0);
+  signal counter_nx_ref_domain       : unsigned(7 downto 0);
+  signal counter_nx_diff             : unsigned(7 downto 0);
   
   -----------------------------------------------------------------------------
   -- NX_TIMESTAMP_CLK Domain
   -----------------------------------------------------------------------------
 
   -- FIFO DC Input Handler
-  signal nx_timestamp_ff           : std_logic_vector(7 downto 0);
-  signal nx_fifo_full              : std_logic;
-  signal nx_fifo_reset             : std_logic;
-                                   
-  -- NX_TIMESTAMP_IN Process       
-  signal frame_byte_ctr            : unsigned(1 downto 0);
-  signal nx_frame_word             : std_logic_vector(31 downto 0);
-  signal nx_new_frame              : std_logic;
-                                   
-  -- Frame Sync Process                  
-  signal frame_byte_pos            : unsigned(1 downto 0);
-                                   
-  -- RS Sync FlipFlop              
-  signal nx_frame_synced           : std_logic;
-  signal rs_sync_set               : std_logic;
-  signal rs_sync_reset             : std_logic;
-                                   
-  -- Parity Check                  
-  signal parity_error              : std_logic;
-                                   
-  -- Write to FIFO Handler         
-  signal nx_fifo_data_input        : std_logic_vector(31 downto 0);
-  signal nx_fifo_write_enable      : std_logic;
-                                   
-  -- NX Clock Active               
-  signal nx_clk_active_ff_0        : std_logic;
-  signal nx_clk_active_ff_1        : std_logic;
-  signal nx_clk_active_ff_2        : std_logic;
-                                   
-  -- ADC Ckl Generator             
-  signal adc_clk_skip              : std_logic;
-  signal adc_sampling_clk          : std_logic;
-  signal johnson_ff_0              : std_logic;
-  signal johnson_ff_1              : std_logic;
-  signal johnson_counter_sync      : std_logic_vector(1 downto 0);
-  signal adc_clk_ok                : std_logic;
+  signal nx_timestamp_ff             : std_logic_vector(7 downto 0);
+  signal nx_fifo_full                : std_logic;
+  signal nx_fifo_reset               : std_logic;
+                                     
+  -- NX_TIMESTAMP_IN Process         
+  signal frame_byte_ctr              : unsigned(1 downto 0);
+  signal nx_frame_word               : std_logic_vector(31 downto 0);
+  signal nx_new_frame                : std_logic;
+                                     
+  -- Frame Sync Process                    
+  signal frame_byte_pos              : unsigned(1 downto 0);
+                                     
+  -- RS Sync FlipFlop                
+  signal nx_frame_synced             : std_logic;
+  signal rs_sync_set                 : std_logic;
+  signal rs_sync_reset               : std_logic;
+                                     
+  -- Parity Check                    
+  signal parity_error                : std_logic;
+                                     
+  -- Write to FIFO Handler           
+  signal nx_fifo_data_input          : std_logic_vector(31 downto 0);
+  signal nx_fifo_write_enable        : std_logic;
+                                     
+  -- NX Clock Active                 
+  signal nx_clk_active_ff_0          : std_logic;
+  signal nx_clk_active_ff_1          : std_logic;
+  signal nx_clk_active_ff_2          : std_logic;
+                                     
+  -- ADC Ckl Generator               
+  signal adc_clk_skip                : std_logic;
+  signal adc_sampling_clk            : std_logic;
+  signal johnson_ff_0                : std_logic;
+  signal johnson_ff_1                : std_logic;
+  signal johnson_counter_sync        : std_logic_vector(1 downto 0);
+  signal adc_clk_ok                  : std_logic;
 
-  signal pll_adc_sampling_clk_o     : std_logic;
-  signal pll_adc_sampling_clk_lock  : std_logic;
-  signal pll_adc_sampling_clk_reset : std_logic;
+  signal pll_adc_sampling_clk_o      : std_logic;
+  signal pll_adc_sampling_clk_lock   : std_logic;
+  signal pll_adc_sampling_clk_reset  : std_logic;
 
   -- PLL ADC Monitor
-  signal pll_adc_not_lock           : std_logic;
-  signal pll_adc_not_lock_ctr       : unsigned(11 downto 0);
-  signal pll_adc_not_lock_ctr_clear : std_logic;
+  signal pll_adc_not_lock            : std_logic;
+  signal pll_adc_not_lock_ctr        : unsigned(11 downto 0);
+  signal pll_adc_not_lock_ctr_clear  : std_logic;
   
   -- ADC RESET                     
-  signal adc_clk_ok_last           : std_logic;
-  signal adc_reset_s               : std_logic;
-  signal adc_reset_ctr             : unsigned(11 downto 0);
+  signal adc_clk_ok_last             : std_logic;
+  signal adc_reset_s                 : std_logic;
+  signal adc_reset_ctr               : unsigned(11 downto 0);
 
   -- Reset Handler
-  signal r_wait_timer_init         : unsigned(27 downto 0);
-  signal r_wait_timer_done         : std_logic;
-  signal reset_adc_handler         : std_logic;
+  signal r_wait_timer_init           : unsigned(27 downto 0);
+  signal r_wait_timer_done           : std_logic;
+  signal reset_adc_handler           : std_logic;
   
   type R_STATES is (R_IDLE,
                     R_PLL_RESET,
@@ -128,57 +129,58 @@ architecture Behavioral of nx_data_receiver is
                     );
   signal R_STATE : R_STATES;
 
-  signal sampling_clk_reset_p      : std_logic;
-  signal sampling_clk_reset        : std_logic;
-  signal adc_reset_p               : std_logic;
-  signal adc_reset                 : std_logic;
-  signal data_handler_reset_p      : std_logic;
-  signal data_handler_reset        : std_logic;
+  signal sampling_clk_reset_p        : std_logic;
+  signal sampling_clk_reset          : std_logic;
+  signal adc_reset_p                 : std_logic;
+  signal adc_reset                   : std_logic;
+  signal data_handler_reset_p        : std_logic;
+  signal data_handler_reset          : std_logic;
+  signal reset_handler_counter       : unsigned(15 downto 0);
   
   -----------------------------------------------------------------------------
   -- CLK_IN Domain
   -----------------------------------------------------------------------------
 
   -- NX FIFO READ ENABLE
-  signal nx_fifo_read_enable       : std_logic;
-  signal nx_fifo_empty             : std_logic;
-  signal nx_read_enable            : std_logic;
-  signal nx_fifo_data_valid_t      : std_logic;
-  signal nx_fifo_data_valid        : std_logic;
-                                   
-  -- NX FIFO READ                  
-  signal nx_timestamp_t            : std_logic_vector(31 downto 0);
-  signal nx_new_timestamp          : std_logic;
-  signal nx_new_timestamp_ctr      : unsigned(3 downto 0);
-  signal nx_fifo_data              : std_logic_vector(31 downto 0);
-                                   
-  -- Resync Counter Process                  
-  signal resync_counter            : unsigned(11 downto 0);
-  signal resync_ctr_inc            : std_logic;
-  signal nx_clk_active             : std_logic;
-                                   
-  -- Parity Error Counter Process                  
-  signal parity_error_counter      : unsigned(11 downto 0);
-  signal parity_error_ctr_inc      : std_logic;
-                                   
-  signal reg_nx_frame_synced       : std_logic;
+  signal nx_fifo_read_enable         : std_logic;
+  signal nx_fifo_empty               : std_logic;
+  signal nx_read_enable              : std_logic;
+  signal nx_fifo_data_valid_t        : std_logic;
+  signal nx_fifo_data_valid          : std_logic;
+                                     
+  -- NX FIFO READ                    
+  signal nx_timestamp_t              : std_logic_vector(31 downto 0);
+  signal nx_new_timestamp            : std_logic;
+  signal nx_new_timestamp_ctr        : unsigned(3 downto 0);
+  signal nx_fifo_data                : std_logic_vector(31 downto 0);
+                                     
+  -- Resync Counter Process                    
+  signal resync_counter              : unsigned(11 downto 0);
+  signal resync_ctr_inc              : std_logic;
+  signal nx_clk_active               : std_logic;
+                                     
+  -- Parity Error Counter Process                    
+  signal parity_error_counter        : unsigned(11 downto 0);
+  signal parity_error_ctr_inc        : std_logic;
+                                     
+  signal reg_nx_frame_synced         : std_logic;
 
   -----------------------------------------------------------------------------
   -- ADC Data Handler
   -----------------------------------------------------------------------------
 
   -- ADC Handler
-  signal adc_data                  : std_logic_vector(11 downto 0);
-  signal test_adc_data             : std_logic_vector(11 downto 0);
-  signal adc_data_valid            : std_logic;
+  signal adc_data                    : std_logic_vector(11 downto 0);
+  signal test_adc_data               : std_logic_vector(11 downto 0);
+  signal adc_data_valid              : std_logic;
                                    
-  signal adc_data_t                : std_logic_vector(11 downto 0);
-  signal adc_new_data              : std_logic;
-  signal adc_new_data_ctr          : unsigned(3 downto 0);
+  signal adc_data_t                  : std_logic_vector(11 downto 0);
+  signal adc_new_data                : std_logic;
+  signal adc_new_data_ctr            : unsigned(3 downto 0);
                                    
   -- ADC TEST INPUT DATA           
-  signal adc_input_error_enable    : std_logic;
-  signal adc_input_error_ctr       : unsigned(15 downto 0);
+  signal adc_input_error_enable      : std_logic;
+  signal adc_input_error_ctr         : unsigned(15 downto 0);
   
   
   -- Data Output Handler
@@ -187,34 +189,34 @@ architecture Behavioral of nx_data_receiver is
                   WAIT_TIMESTAMP
                   );
   signal STATE : STATES;
-  signal STATE_d                   : std_logic_vector(1 downto 0);
+  signal STATE_d                     : std_logic_vector(1 downto 0);
                                    
-  signal nx_timestamp_o            : std_logic_vector(31 downto 0);
-  signal adc_data_o                : std_logic_vector(11 downto 0);
-  signal new_data_o                : std_logic;
+  signal nx_timestamp_o              : std_logic_vector(31 downto 0);
+  signal adc_data_o                  : std_logic_vector(11 downto 0);
+  signal new_data_o                  : std_logic;
 
   -- Check Nxyter Data Clock via Johnson Counter
-  signal nx_data_clock_test_0      : std_logic;
-  signal nx_data_clock_test_1      : std_logic;
-  signal nx_data_clock             : std_logic;
-  signal nx_data_clock_state       : std_logic_vector(3 downto 0);
-  signal nx_data_clock_ok          : std_logic;
+  signal nx_data_clock_test_0        : std_logic;
+  signal nx_data_clock_test_1        : std_logic;
+  signal nx_data_clock               : std_logic;
+  signal nx_data_clock_state         : std_logic_vector(3 downto 0);
+  signal nx_data_clock_ok            : std_logic;
 
   signal pll_adc_sample_clk_dphase   : std_logic_vector(3 downto 0);
   signal pll_adc_sample_clk_finedelb : std_logic_vector(3 downto 0);
   
   -- Slave Bus                     
-  signal slv_data_out_o            : std_logic_vector(31 downto 0);
-  signal slv_no_more_data_o        : std_logic;
-  signal slv_unknown_addr_o        : std_logic;
-  signal slv_ack_o                 : std_logic;
+  signal slv_data_out_o              : std_logic_vector(31 downto 0);
+  signal slv_no_more_data_o          : std_logic;
+  signal slv_unknown_addr_o          : std_logic;
+  signal slv_ack_o                   : std_logic;
                                    
-  signal reset_resync_ctr          : std_logic;
-  signal reset_parity_error_ctr    : std_logic;
-  signal fifo_reset_r              : std_logic;
-  signal debug_adc                 : std_logic_vector(1 downto 0);
-  signal reset_adc_handler_r       : std_logic;
-
+  signal reset_resync_ctr            : std_logic;
+  signal reset_parity_error_ctr      : std_logic;
+  signal fifo_reset_r                : std_logic;
+  signal debug_adc                   : std_logic_vector(1 downto 0);
+  signal reset_adc_handler_r         : std_logic;
+  signal reset_handler_counter_clear : std_logic;
 begin
   
   PROC_DEBUG_MULT: process(debug_adc,
@@ -429,6 +431,7 @@ begin
         adc_reset_p                 <= '0';
         data_handler_reset_p        <= '0';   
         r_wait_timer_init           <= x"00f_4240";  -- 1ms to settle down
+        reset_handler_counter       <= (others => '0');
         R_STATE                     <= R_PLL_RESET;
       else
         sampling_clk_reset_p        <= '0';
@@ -436,6 +439,10 @@ begin
         data_handler_reset_p        <= '0';   
         r_wait_timer_init           <= (others => '0');
 
+        if (reset_handler_counter_clear = '1') then
+          reset_handler_counter     <= (others => '0');
+        end if;
+        
         case R_STATE is
           when R_IDLE => 
             if (reset_adc_handler   = '1' or
@@ -448,6 +455,9 @@ begin
             end if;
 
           when R_PLL_RESET =>
+            if (reset_handler_counter_clear = '0') then
+              reset_handler_counter   <= reset_handler_counter + 1;
+            end if;
             if (r_wait_timer_done = '0') then
               R_STATE               <= R_WAIT_RESET_ADC;
             else
@@ -1007,6 +1017,7 @@ begin
         pll_adc_sample_clk_finedelb   <= (others => '0');
         pll_adc_not_lock_ctr_clear    <= '0';
         reset_adc_handler_r           <= '0';
+        reset_handler_counter_clear   <= '0';
       else                      
         slv_data_out_o                <= (others => '0');
         slv_ack_o                     <= '0';
@@ -1017,6 +1028,7 @@ begin
         fifo_reset_r                  <= '0';
         pll_adc_not_lock_ctr_clear    <= '0';
         reset_adc_handler_r           <= '0';
+        reset_handler_counter_clear   <= '0';
         
         if (SLV_READ_IN  = '1') then
           case SLV_ADDR_IN is
@@ -1074,21 +1086,26 @@ begin
               slv_data_out_o(31 downto 12)  <= (others => '0');
               slv_ack_o                     <= '1';
 
-            when x"000a" =>
+            when x"0009" =>
               slv_data_out_o(0)             <= adc_input_error_enable;
               slv_data_out_o(31 downto 1)   <= (others => '0');
               slv_ack_o                     <= '1';
 
-            when x"000b" =>
+            when x"000a" =>
               slv_data_out_o(15 downto  0)  <= adc_input_error_ctr;
               slv_data_out_o(31 downto 16)  <= (others => '0');
               slv_ack_o                     <= '1';
 
-            when x"000c" =>
+            when x"000b" =>
               slv_data_out_o(0)             <= nx_data_clock_ok;
               slv_data_out_o(31 downto 1)   <= (others => '0');
               slv_ack_o                     <= '1';  
 
+            when x"000c" =>
+              slv_data_out_o(15 downto 0)   <= reset_handler_counter;
+              slv_data_out_o(31 downto 6)   <= (others => '0');
+              slv_ack_o                     <= '1';
+              
             when x"000f" =>
               slv_data_out_o(1 downto 0)    <= debug_adc;
               slv_data_out_o(31 downto 2)   <= (others => '0');
@@ -1126,15 +1143,19 @@ begin
               pll_adc_sample_clk_finedelb   <= SLV_DATA_IN(3 downto 0);
               reset_adc_handler_r           <= '1';
               slv_ack_o                     <= '1';   
-          
+
             when x"0009" =>
-              reset_adc_handler_r           <= '1';
-              slv_ack_o                     <= '1';   
-              
-            when x"000a" =>
               adc_input_error_enable        <= SLV_DATA_IN(0);
               slv_ack_o                     <= '1';
 
+            when x"000c" =>
+              reset_handler_counter_clear   <= '1';
+              slv_ack_o                     <= '1';
+            
+            when x"000e" =>
+              reset_adc_handler_r           <= '1';
+              slv_ack_o                     <= '1';
+              
             when x"000f" =>
               debug_adc                     <= SLV_DATA_IN(1 downto 0);
               slv_ack_o                     <= '1';
@@ -1150,13 +1171,14 @@ begin
 
   -- Output Signals
 
-  NX_TIMESTAMP_OUT      <= nx_timestamp_o;
-  ADC_DATA_OUT          <= adc_data_o;
-  NEW_DATA_OUT          <= new_data_o;
-  
-  SLV_DATA_OUT          <= slv_data_out_o;    
-  SLV_NO_MORE_DATA_OUT  <= slv_no_more_data_o; 
-  SLV_UNKNOWN_ADDR_OUT  <= slv_unknown_addr_o;
-  SLV_ACK_OUT           <= slv_ack_o;
+  NX_TIMESTAMP_OUT       <= nx_timestamp_o;
+  ADC_DATA_OUT           <= adc_data_o;
+  NEW_DATA_OUT           <= new_data_o;
+  ADC_SCLK_LOCK_OUT      <= pll_adc_sampling_clk_lock;
+                           
+  SLV_DATA_OUT           <= slv_data_out_o;    
+  SLV_NO_MORE_DATA_OUT   <= slv_no_more_data_o; 
+  SLV_UNKNOWN_ADDR_OUT   <= slv_unknown_addr_o;
+  SLV_ACK_OUT            <= slv_ack_o;
   
 end Behavioral;

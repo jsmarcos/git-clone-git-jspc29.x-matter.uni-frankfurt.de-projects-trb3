@@ -175,7 +175,7 @@ begin
             fifo_delay         <= FIFO_DELAY_IN;
             fifo_delay_reset   <= '1';
         else
-          fifo_delay_reset       <= '0';
+          fifo_delay_reset     <= '0';
         end if;
       end if;
     end if;

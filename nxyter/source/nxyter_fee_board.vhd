@@ -23,7 +23,7 @@ entity nXyter_FEE_board is
     CLK_NX_MAIN_IN             : in  std_logic;
     CLK_ADC_IN                 : in  std_logic;
     PLL_NX_CLK_LOCK_IN         : in  std_logic;
-    PLL_ADC_CLK_LOCK_IN        : in  std_logic;
+    PLL_ADC_DCLK_LOCK_IN       : in  std_logic;
     NX_DATA_CLK_TEST_IN        : in  std_logic;
     TRIGGER_OUT                : out std_logic;
     
@@ -118,7 +118,6 @@ architecture Behavioral of nXyter_FEE_board is
   signal nx_ts_reset_2          : std_logic;
   signal nx_ts_reset_o          : std_logic;
   signal i2c_reg_reset_o        : std_logic;
-  signal nxyter_offline_reg     : std_logic;
   signal nxyter_offline         : std_logic;
   
   -- NX Register Access         
@@ -136,14 +135,15 @@ architecture Behavioral of nXyter_FEE_board is
   signal spi_sdi                : std_logic;
   signal spi_sdo                : std_logic;        
                                 
-  -- Data Receiver              
+  -- Data Receiver
   signal adc_data_valid         : std_logic;
   signal adc_new_data           : std_logic;
                                 
   signal new_timestamp          : std_logic_vector(31 downto 0);
   signal new_adc_data           : std_logic_vector(11 downto 0);
   signal new_data               : std_logic;
-                                
+  signal pll_sadc_clk_lock      : std_logic;
+  
   -- Data Delay                 
   signal new_timestamp_delayed  : std_logic_vector(31 downto 0);
   signal new_adc_data_delayed   : std_logic_vector(11 downto 0);
@@ -173,6 +173,7 @@ architecture Behavioral of nXyter_FEE_board is
                                 
   -- Event Buffer                
   signal trigger_evt_busy       : std_logic;
+  signal evt_buffer_full        : std_logic;
   signal fee_trg_statusbits_o   : std_logic_vector(31 downto 0);
   signal fee_data_o             : std_logic_vector(31 downto 0);
   signal fee_data_write_o       : std_logic;
@@ -202,14 +203,6 @@ architecture Behavioral of nXyter_FEE_board is
   constant DEBUG_NUM_PORTS      : integer := 13;
   signal debug_line             : debug_array_t(0 to DEBUG_NUM_PORTS-1);
 
-  -- Nxyter Data Clock Handler
-  signal nx1_data_clk_dphase    : std_logic_vector(3 downto 0);
-  signal nx1_data_clk_finedelb  : std_logic_vector(3 downto 0);
-  signal nx1_data_clk_lock      : std_logic;
-  signal nx1_data_clk_clkop     : std_logic;
-  signal nx1_data_clk_clkos     : std_logic;
-  signal nx1_data_clk_clkok     : std_logic;
-  
 begin
 
 -------------------------------------------------------------------------------
@@ -227,7 +220,7 @@ begin
     generic map(
       PORT_NUMBER         => NUM_PORTS,
 
-      PORT_ADDRESSES      => (  0 => x"0100",    -- Control Register Handler
+      PORT_ADDRESSES      => (  0 => x"0100",    -- NX Control Handler
                                 1 => x"0040",    -- I2C Master
                                 2 => x"0500",    -- Data Receiver
                                 3 => x"0600",    -- Data Buffer
@@ -235,7 +228,7 @@ begin
                                 5 => x"0140",    -- Trigger Generator
                                 6 => x"0120",    -- Data Validate
                                 7 => x"0160",    -- Trigger Handler
-                                8 => x"0180",    -- Trigger Validate
+                                8 => x"0400",    -- Trigger Validate
                                 9 => x"0200",    -- NX Setup
                                10 => x"0800",    -- NX Histograms
                                11 => x"0020",    -- Debug Handler
@@ -243,7 +236,7 @@ begin
                                 others => x"0000"
                                 ),
 
-      PORT_ADDR_MASK      => (  0 => 4,          -- Control Register Handler
+      PORT_ADDR_MASK      => (  0 => 4,          -- NX Control Handler
                                 1 => 0,          -- I2C master
                                 2 => 4,          -- Data Receiver
                                 3 => 3,          -- Data Buffer
@@ -251,7 +244,7 @@ begin
                                 5 => 3,          -- Trigger Generator
                                 6 => 4,          -- Data Validate
                                 7 => 4,          -- Trigger Handler
-                                8 => 4,          -- Trigger Validate
+                                8 => 5,          -- Trigger Validate
                                 9 => 9,          -- NX Setup
                                10 => 9,          -- NX Histograms
                                11 => 0,          -- Debug Handler
@@ -296,26 +289,21 @@ begin
 -------------------------------------------------------------------------------
 -- Registers
 -------------------------------------------------------------------------------
-  nxyter_registers_1: nxyter_registers
+  nx_control_1: nx_control
     port map (
       CLK_IN                   => CLK_IN,
       RESET_IN                 => RESET_IN,
 
       PLL_NX_CLK_LOCK_IN       => PLL_NX_CLK_LOCK_IN, 
-      PLL_ADC_CLK_LOCK_IN      => PLL_ADC_CLK_LOCK_IN,
+      PLL_ADC_DCLK_LOCK_IN     => PLL_ADC_DCLK_LOCK_IN,
+      PLL_ADC_SCLK_LOCK_IN     => pll_sadc_clk_lock,
      
       I2C_SM_RESET_OUT         => i2c_sm_reset_o,
       I2C_REG_RESET_OUT        => i2c_reg_reset_o,
       NX_TS_RESET_OUT          => nx_ts_reset_1,
-      OFFLINE_OUT              => nxyter_offline_reg,
+      I2C_OFFLINE_IN           => nxyter_online_i2c,
+      OFFLINE_OUT              => nxyter_offline,
 
-      NX_DATA_CLK_DPHASE_OUT   => nx1_data_clk_dphase,
-      NX_DATA_CLK_FINEDELB_OUT => nx1_data_clk_finedelb,
-      NX_DATA_CLK_LOCK_IN      => nx1_data_clk_lock,
-      NX_DATA_CLK_CLKOP_IN     => nx1_data_clk_clkop,
-      NX_DATA_CLK_CLKOS_IN     => nx1_data_clk_clkos,
-      NX_DATA_CLK_CLKOK_IN     => nx1_data_clk_clkok,
-      
       SLV_READ_IN              => slv_read(0),
       SLV_WRITE_IN             => slv_write(0),
       SLV_DATA_OUT             => slv_data_rd(0*32+31 downto 0*32),
@@ -354,8 +342,6 @@ begin
       DEBUG_OUT            => debug_line(1)
       );
 
-  nxyter_offline <= (not nxyter_online_i2c) or nxyter_offline_reg;
-  
 -------------------------------------------------------------------------------
 -- I2C master block for accessing the nXyter
 -------------------------------------------------------------------------------
@@ -473,7 +459,6 @@ begin
       VALIDATE_TRIGGER_OUT       => trigger,
       TIMESTAMP_TRIGGER_OUT      => timestamp_trigger,
       LVL2_TRIGGER_OUT           => lvl2_trigger,
-      EVENT_BUFFER_CLEAR_OUT     => event_buffer_clear,
       FAST_CLEAR_OUT             => fast_clear,
       TRIGGER_BUSY_OUT           => trigger_busy,
 
@@ -640,6 +625,7 @@ begin
       NX_NOMORE_DATA_IN      => nx_nomore_data,
 
       TRIGGER_IN             => trigger,
+      TRIGGER_BUSY_IN        => trigger_busy,
       FAST_CLEAR_IN          => fast_clear,
       TRIGGER_BUSY_OUT       => trigger_validate_busy,
       TIMESTAMP_FPGA_IN      => timestamp_hold,
@@ -648,6 +634,8 @@ begin
       DATA_OUT               => trigger_data,
       DATA_CLK_OUT           => trigger_data_clk,
       NOMORE_DATA_OUT        => validate_nomore_data,
+      EVT_BUFFER_CLEAR_OUT   => event_buffer_clear,
+      EVT_BUFFER_FULL_IN     => evt_buffer_full,
 
       HISTOGRAM_FILL_OUT     => trigger_validate_fill,
       HISTOGRAM_BIN_OUT      => trigger_validate_bin,
@@ -686,6 +674,7 @@ begin
       LVL2_TRIGGER_IN            => lvl2_trigger,
       FAST_CLEAR_IN              => fast_clear,
       TRIGGER_BUSY_OUT           => trigger_evt_busy,
+      EVT_BUFFER_FULL_OUT        => evt_buffer_full,
 
       FEE_DATA_OUT               => FEE_DATA_OUT,
       FEE_DATA_WRITE_OUT         => FEE_DATA_WRITE_OUT,

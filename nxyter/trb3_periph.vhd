@@ -707,7 +707,7 @@ begin
       CLK_NX_MAIN_IN             => nx_main_clk,
       CLK_ADC_IN                 => clk_adc_dat_1,
       PLL_NX_CLK_LOCK_IN         => pll_nx_clk_lock,
-      PLL_ADC_CLK_LOCK_IN        => pll_adc_clk_lock_1,
+      PLL_ADC_DCLK_LOCK_IN       => pll_adc_clk_lock_1,
       NX_DATA_CLK_TEST_IN        => nx_data_clk_test,
 
       TRIGGER_OUT                => fee1_trigger,                       
@@ -789,7 +789,7 @@ begin
       CLK_NX_MAIN_IN             => nx_main_clk,
       CLK_ADC_IN                 => clk_adc_dat_2,
       PLL_NX_CLK_LOCK_IN         => pll_nx_clk_lock,
-      PLL_ADC_CLK_LOCK_IN        => pll_adc_clk_lock_2,
+      PLL_ADC_DCLK_LOCK_IN       => pll_adc_clk_lock_2,
       NX_DATA_CLK_TEST_IN        => nx_data_clk_test,
       TRIGGER_OUT                => fee2_trigger,
       

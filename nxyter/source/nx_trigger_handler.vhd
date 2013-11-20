@@ -41,7 +41,6 @@ entity nx_trigger_handler is
     VALIDATE_TRIGGER_OUT       : out std_logic;
     TIMESTAMP_TRIGGER_OUT      : out std_logic;
     LVL2_TRIGGER_OUT           : out std_logic;
-    EVENT_BUFFER_CLEAR_OUT     : out std_logic;
     FAST_CLEAR_OUT             : out std_logic;
     TRIGGER_BUSY_OUT           : out std_logic;
 
@@ -97,14 +96,14 @@ architecture Behavioral of nx_trigger_handler is
   -- Trigger Handler                
   signal validate_trigger_o         : std_logic;
   signal lvl2_trigger_o             : std_logic;
-  signal event_buffer_clear_o       : std_logic;
   signal fast_clear_o               : std_logic;
   signal trigger_busy_o             : std_logic;
   signal fee_trg_release_o          : std_logic;
   signal fee_trg_statusbits_o       : std_logic_vector(31 downto 0);
   signal send_testpulse_l           : std_logic;
   signal send_testpulse             : std_logic;
-
+  signal event_buffer_clear_o       : std_logic;
+  
   type STATES is (S_IDLE,
                   S_CTS_TRIGGER,
                   S_WAIT_TRG_DATA_VALID,
@@ -158,7 +157,7 @@ begin
   DEBUG_OUT(7)            <= LVL2_TRIGGER_BUSY_IN;
   DEBUG_OUT(8)            <= validate_trigger_o;
   DEBUG_OUT(9)            <= lvl2_trigger_o;
-  DEBUG_OUT(10)           <= event_buffer_clear_o;
+  DEBUG_OUT(10)           <= '0';
   DEBUG_OUT(11)           <= fee_trg_release_o;
   DEBUG_OUT(12)           <= trigger_busy_o;
   DEBUG_OUT(13)           <= timestamp_trigger;
@@ -380,7 +379,6 @@ begin
 
             when S_CTS_TRIGGER =>
               -- Do nothing, Just send Trigger ACK in reply
-              event_buffer_clear_o   <= '1';
               validate_trigger_o     <= '1';
               lvl2_trigger_o         <= '1';
               if (reg_testpulse_enable = '1') then
@@ -416,7 +414,6 @@ begin
               -- Internal Trigger Handler
             when S_INTERNAL_TRIGGER =>
               validate_trigger_o     <= '1';
-              event_buffer_clear_o   <= '1';
               STATE                  <= S_WAIT_TRIGGER_VALIDATE_ACK;
 
             when S_WAIT_TRIGGER_VALIDATE_ACK =>
@@ -614,7 +611,6 @@ begin
   VALIDATE_TRIGGER_OUT      <= validate_trigger_o;
   TIMESTAMP_TRIGGER_OUT     <= timestamp_trigger_o;
   LVL2_TRIGGER_OUT          <= lvl2_trigger_o;
-  EVENT_BUFFER_CLEAR_OUT    <= event_buffer_clear_o;
   FAST_CLEAR_OUT            <= fast_clear_o;
   TRIGGER_BUSY_OUT          <= trigger_busy_o;
   FEE_TRG_RELEASE_OUT       <= fee_trg_release_o;

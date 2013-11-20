@@ -41,6 +41,7 @@ architecture Behavioral of nx_trigger_generator is
   signal wait_timer_done     : std_logic;
   signal trigger_o           : std_logic;
   signal ts_reset_o          : std_logic;
+  signal testpulse_p         : std_logic;
   signal testpulse_o         : std_logic;
   signal extern_trigger      : std_logic;
   
@@ -50,7 +51,7 @@ architecture Behavioral of nx_trigger_generator is
   signal STATE : STATES;
 
   -- Rate Calculation
-  signal testpulse_p             : std_logic;
+  signal testpulse               : std_logic;
   signal testpulse_rate_t        : unsigned(27 downto 0);
   signal rate_timer              : unsigned(27 downto 0);
   
@@ -78,7 +79,7 @@ begin
   DEBUG_OUT(4)           <= wait_timer_done;
   DEBUG_OUT(5)           <= ts_reset_o;
   DEBUG_OUT(6)           <= testpulse_o;
-  DEBUG_OUT(7)           <= testpulse_p;
+  DEBUG_OUT(7)           <= testpulse;
   DEBUG_OUT(8)           <= test_debug;
   DEBUG_OUT(15 downto 9) <= (others => '0');
   
@@ -113,14 +114,6 @@ begin
   -- Generate Trigger
   -----------------------------------------------------------------------------
 
-  -- signal_async_to_pulse_1: signal_async_to_pulse
-  --   port map (
-  --     CLK_IN     => NX_MAIN_CLK_IN,
-  --     RESET_IN   => RESET_IN,   
-  --     PULSE_A_IN => TRIGGER_IN, 
-  --     PULSE_OUT  => trigger
-  --     );
-
   level_to_pulse_1: level_to_pulse
     port map (
       CLK_IN    => NX_MAIN_CLK_IN,
@@ -134,6 +127,7 @@ begin
     if( rising_edge(NX_MAIN_CLK_IN) ) then
       if (RESET_IN = '1') then
         trigger_o         <= '0';
+        testpulse_p       <= '0';
         testpulse_o       <= '0';
         ts_reset_o        <= '0';
         wait_timer_init   <= (others => '0');
@@ -142,6 +136,7 @@ begin
         STATE             <= S_IDLE;
       else
         trigger_o         <= '0';
+        testpulse_p       <= '0';
         testpulse_o       <= '0';
         ts_reset_o        <= '0';
         wait_timer_init   <= (others => '0');
@@ -150,6 +145,7 @@ begin
           when  S_IDLE =>
             if (trigger = '1') then
               extern_trigger                  <= '1';
+              testpulse_p                     <= '1';
               testpulse_o                     <= '1';
               if (reg_testpulse_length > 1) then
                 wait_timer_init(11 downto  0) <= reg_testpulse_length - 1;
@@ -184,10 +180,10 @@ begin
     port map (
       CLK_A_IN    => NX_MAIN_CLK_IN,
       RESET_A_IN  => RESET_IN,
-      PULSE_A_IN  => testpulse_o,
+      PULSE_A_IN  => testpulse_p,
       CLK_B_IN    => CLK_IN,
       RESET_B_IN  => RESET_IN,
-      PULSE_B_OUT => testpulse_p 
+      PULSE_B_OUT => testpulse 
       );
 
   PROC_CAL_RATES: process (CLK_IN)
@@ -199,7 +195,7 @@ begin
         rate_timer                <= (others => '0');
       else
         if (rate_timer < x"5f5e100") then
-          if ( testpulse_p = '1') then
+          if ( testpulse = '1') then
             testpulse_rate_t      <= testpulse_rate_t + 1;
           end if;
           rate_timer              <= rate_timer + 1;

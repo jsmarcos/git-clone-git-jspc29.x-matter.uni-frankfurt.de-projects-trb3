@@ -25,7 +25,8 @@ entity nx_event_buffer is
     LVL2_TRIGGER_IN            : in  std_logic;
     FAST_CLEAR_IN              : in  std_logic;
     TRIGGER_BUSY_OUT           : out std_logic;
-     
+    EVT_BUFFER_FULL_OUT        : out std_logic;
+    
     --Response from FEE        
     FEE_DATA_OUT               : out std_logic_vector(31 downto 0);
     FEE_DATA_WRITE_OUT         : out std_logic;
@@ -53,7 +54,6 @@ architecture Behavioral of nx_event_buffer is
   signal fee_data_o           : std_logic_vector(31 downto 0);
   signal fee_data_write_o     : std_logic;
   signal fee_data_finished_o  : std_logic;
-  signal fee_almost_full_o    : std_logic;
   signal trigger_busy_o       : std_logic;
   signal evt_data_flush       : std_logic;
   
@@ -80,11 +80,13 @@ architecture Behavioral of nx_event_buffer is
   signal fifo_empty         : std_logic;
   signal fifo_write_ctr     : std_logic_vector(10 downto 0);
   signal fifo_read_start    : std_logic;
- 
+  signal fifo_almost_full   : std_logic;
+  
   signal fifo_read_enable_s : std_logic;
   signal fifo_read_busy     : std_logic;
   signal fifo_no_data       : std_logic;
   signal fifo_read_done     : std_logic;
+  signal evt_buffer_full_o  : std_logic;
   signal fifo_data          : std_logic_vector(31 downto 0);
 
   type R_STATES is (R_IDLE,
@@ -127,21 +129,20 @@ architecture Behavioral of nx_event_buffer is
 begin
 
   DEBUG_OUT(0)           <= CLK_IN;
-  DEBUG_OUT(1)           <= '0';
-  DEBUG_OUT(2)           <= evt_data_clk;
-  DEBUG_OUT(3)           <= fifo_empty;
-  DEBUG_OUT(4)           <= fifo_read_enable;
-  DEBUG_OUT(5)           <= evt_data_flushed;
-  DEBUG_OUT(6)           <= '0';
-  DEBUG_OUT(7)           <= EVT_NOMORE_DATA_IN; 
-  --DEBUG_OUT(15 downto 8) <= evt_data_o(31 downto 24);
-
-  DEBUG_OUT(8)           <= LVL2_TRIGGER_IN;
-  DEBUG_OUT(9)           <= evt_data_flushed;
-  DEBUG_OUT(10)          <= FAST_CLEAR_IN;
-  DEBUG_OUT(12)          <= flush_end_enable;
-  DEBUG_OUT(13)          <= fee_data_write_o;
-  DEBUG_OUT(14)          <= fee_data_finished_o;
+  DEBUG_OUT(1)           <= DATA_CLK_IN;
+  DEBUG_OUT(2)           <= fifo_empty;
+  DEBUG_OUT(3)           <= fifo_almost_full;
+  DEBUG_OUT(4)           <= RESET_DATA_BUFFER_IN;
+  DEBUG_OUT(5)           <= trigger_busy_o;
+  DEBUG_OUT(6)           <= LVL2_TRIGGER_IN;
+  DEBUG_OUT(7)           <= evt_data_flush;
+  DEBUG_OUT(8)           <= flush_end_enable;  
+  DEBUG_OUT(9)           <= evt_data_clk;
+  DEBUG_OUT(10)          <= fee_data_write_o;
+  DEBUG_OUT(11)          <= evt_data_flushed;
+  DEBUG_OUT(12)          <= fee_data_finished_o;
+  DEBUG_OUT(13)          <= EVT_NOMORE_DATA_IN; 
+  DEBUG_OUT(14)          <= FAST_CLEAR_IN;
   DEBUG_OUT(15)          <= FEE_DATA_ALMOST_FULL_IN;
   
   -----------------------------------------------------------------------------
@@ -160,7 +161,6 @@ begin
         evt_data_flush       <= '0';
         fee_data_finished_o  <= '0';
         trigger_busy_o       <= '1';
-        DEBUG_OUT(11)          <= '0';
         
         if (FAST_CLEAR_IN = '1') then
           fee_data_finished_o        <= '1';
@@ -181,7 +181,6 @@ begin
               end if;
               
             when S_FLUSH_BUFFER_WAIT =>
-              DEBUG_OUT(11)          <= '1';
               if (evt_data_flushed = '0') then
                 STATE                      <= S_FLUSH_BUFFER_WAIT;
               else                         
@@ -210,7 +209,8 @@ begin
       Q           => fifo_o,
       WCNT        => fifo_write_ctr,
       Empty       => fifo_empty,
-      Full        => fifo_full
+      Full        => fifo_full,
+      AlmostFull  => fifo_almost_full
       );
 
   fifo_reset       <= RESET_IN or RESET_DATA_BUFFER_IN;
@@ -440,7 +440,7 @@ begin
               slv_data_out_o(10 downto 0)  <= std_logic_vector(fifo_flush_ctr);
               slv_data_out_o(31 downto 11) <= (others => '0');
               slv_ack_o                    <= '1';
-
+              
             when x"0003" =>
               slv_data_out_o               <= register_fifo_status;
               slv_ack_o                    <= '1';
@@ -463,8 +463,13 @@ begin
     end if;
   end process PROC_SLAVE_BUS;
 
--- Output Signals
+
+  -- Output Signals
+  
+  evt_buffer_full_o      <= fifo_almost_full;
+  
   TRIGGER_BUSY_OUT       <= trigger_busy_o;
+  EVT_BUFFER_FULL_OUT    <= evt_buffer_full_o;
   
   FEE_DATA_OUT           <= fee_data_o;
   FEE_DATA_WRITE_OUT     <= fee_data_write_o;

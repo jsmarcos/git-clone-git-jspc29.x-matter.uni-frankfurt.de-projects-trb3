@@ -17,7 +17,7 @@ package nxyter_components is
       CLK_NX_MAIN_IN             : in    std_logic;
       CLK_ADC_IN                 : in    std_logic;
       PLL_NX_CLK_LOCK_IN         : in    std_logic;
-      PLL_ADC_CLK_LOCK_IN        : in    std_logic;
+      PLL_ADC_DCLK_LOCK_IN       : in    std_logic;
       NX_DATA_CLK_TEST_IN        : in    std_logic;
       TRIGGER_OUT                : out   std_logic;
       I2C_SDA_INOUT              : inout std_logic;
@@ -237,23 +237,18 @@ component nx_setup
     );
 end component;
 
-component nxyter_registers
+component nx_control
   port (
     CLK_IN                 : in  std_logic;
     RESET_IN               : in  std_logic;
-    PLL_NX_CLK_LOCK_IN     : in std_logic;
-    PLL_ADC_CLK_LOCK_IN    : in std_logic;
+    PLL_NX_CLK_LOCK_IN     : in  std_logic;
+    PLL_ADC_DCLK_LOCK_IN   : in  std_logic;
+    PLL_ADC_SCLK_LOCK_IN  : in  std_logic;
     I2C_SM_RESET_OUT       : out std_logic;
     I2C_REG_RESET_OUT      : out std_logic;
     NX_TS_RESET_OUT        : out std_logic;
+    I2C_OFFLINE_IN         : in  std_logic;
     OFFLINE_OUT            : out std_logic;
-    
-    NX_DATA_CLK_DPHASE_OUT   : out std_logic_vector(3 downto 0);
-    NX_DATA_CLK_FINEDELB_OUT : out std_logic_vector(3 downto 0);
-    NX_DATA_CLK_LOCK_IN      : in std_logic;
-    NX_DATA_CLK_CLKOP_IN     : in std_logic;
-    NX_DATA_CLK_CLKOS_IN     : in std_logic;
-    NX_DATA_CLK_CLKOK_IN     : in std_logic;
     
     SLV_READ_IN            : in  std_logic;
     SLV_WRITE_IN           : in  std_logic;
@@ -315,7 +310,8 @@ component fifo_32_data
     Q           : out std_logic_vector(31 downto 0);
     WCNT        : out std_logic_vector(10 downto 0);
     Empty       : out std_logic;
-    Full        : out std_logic
+    Full        : out std_logic;
+    AlmostFull  : out  std_logic
     );
 end component;
 
@@ -335,6 +331,7 @@ component nx_data_receiver
     ADC_B_IN             : in  std_logic_vector(1 downto 0);
     ADC_NX_IN            : in  std_logic_vector(1 downto 0);
     ADC_D_IN             : in  std_logic_vector(1 downto 0);
+    ADC_SCLK_LOCK_OUT    : out std_logic;
     NX_TIMESTAMP_OUT     : out std_logic_vector(31 downto 0);
     ADC_DATA_OUT         : out std_logic_vector(11 downto 0);
     NEW_DATA_OUT         : out std_logic;
@@ -415,6 +412,7 @@ component nx_trigger_validate
     NX_TOKEN_RETURN_IN   : in  std_logic;
     NX_NOMORE_DATA_IN    : in  std_logic;
     TRIGGER_IN           : in  std_logic;
+    TRIGGER_BUSY_IN      : in  std_logic;
     FAST_CLEAR_IN        : in  std_logic;
     TRIGGER_BUSY_OUT     : out std_logic;
     TIMESTAMP_FPGA_IN    : in  unsigned(11 downto 0);
@@ -422,6 +420,8 @@ component nx_trigger_validate
     DATA_OUT             : out std_logic_vector(31 downto 0);
     DATA_CLK_OUT         : out std_logic;
     NOMORE_DATA_OUT      : out std_logic;
+    EVT_BUFFER_CLEAR_OUT : out std_logic;
+    EVT_BUFFER_FULL_IN   : in  std_logic;
     HISTOGRAM_FILL_OUT   : out std_logic;
     HISTOGRAM_BIN_OUT    : out std_logic_vector(6 downto 0);
     HISTOGRAM_ADC_OUT    : out std_logic_vector(11 downto 0);
@@ -452,6 +452,7 @@ component nx_event_buffer
     LVL2_TRIGGER_IN         : in  std_logic;
     FAST_CLEAR_IN           : in  std_logic;
     TRIGGER_BUSY_OUT        : out std_logic;
+    EVT_BUFFER_FULL_OUT     : out std_logic;
     FEE_DATA_OUT            : out std_logic_vector(31 downto 0);
     FEE_DATA_WRITE_OUT      : out std_logic;
     FEE_DATA_FINISHED_OUT   : out std_logic;
@@ -689,7 +690,6 @@ component nx_trigger_handler
     VALIDATE_TRIGGER_OUT       : out std_logic;
     TIMESTAMP_TRIGGER_OUT      : out std_logic;
     LVL2_TRIGGER_OUT           : out std_logic;
-    EVENT_BUFFER_CLEAR_OUT     : out std_logic;
     FAST_CLEAR_OUT             : out std_logic;
     TRIGGER_BUSY_OUT           : out std_logic;
     TRIGGER_TESTPULSE_OUT      : out std_logic;
