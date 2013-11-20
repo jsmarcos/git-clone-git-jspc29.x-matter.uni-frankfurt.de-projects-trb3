@@ -179,8 +179,8 @@ signal ram   : ram_t;
 
 signal pwm_i : std_logic_vector(32 downto 1);
 signal INP_i       : std_logic_vector(15 downto 0);
-signal fast_input  : std_logic_vector(7  downto 0);
-signal slow_input  : std_logic_vector(7  downto 0);
+signal fast_input  : std_logic_vector(8  downto 1);
+signal slow_input  : std_logic_vector(8  downto 1);
 signal spi_reg00_i : std_logic_vector(15 downto 0);
 signal spi_reg10_i : std_logic_vector(15 downto 0);
 signal spi_reg20_i : std_logic_vector(15 downto 0);
@@ -215,7 +215,11 @@ signal inp_invert   : std_logic_vector(15 downto 0);
 signal input_enable : std_logic_vector(15 downto 0);
 signal inp_status   : std_logic_vector(15 downto 0);
 signal led_status   : std_logic_vector(8  downto 0) := "100000000";
-signal discharge_disable : std_logic_vector(7 downto 0);
+signal discharge_disable  : std_logic_vector(8 downto 1);
+signal discharge_highz    : std_logic_vector(8 downto 1);
+signal discharge_override : std_logic_vector(8 downto 1);
+signal delay_invert       : std_logic_vector(8 downto 1);
+
 
 signal timer    : unsigned(18 downto 0) := (others => '0');
 signal last_inp : std_logic_vector(15 downto 0) := (others => '0');
@@ -558,7 +562,10 @@ THE_IO_REG_WRITE : process begin
       when x"4" => inp_invert <= spi_data_i;
       when x"5" => inp_stretch <= spi_data_i;
       when x"6" => comp_setting <= spi_data_i;
-      when x"7" => discharge_disable <= spi_data_i(7 downto 0);
+      when x"7" => discharge_disable  <= spi_data_i(7 downto 0);
+      when x"8" => discharge_override <= spi_data_i(7 downto 0);
+      when x"9" => discharge_highz    <= spi_data_i(7 downto 0);
+      when x"a" => delay_invert       <= spi_data_i(7 downto 0);
       when others => null;
     end case;
   end if;
@@ -582,12 +589,19 @@ end generate;
 ---------------------------------------------------------------------------
 -- Delay generation
 ---------------------------------------------------------------------------
-DELAY_C_OUT <= fast_input;
 
-DISCHARGE <= DELAY_C_IN and fast_input and not discharge_disable;
 
-fast_input <= INP_i(14) & INP_i(12) & INP_i(10) & INP_i(8) & INP_i(6) & INP_i(4) & INP_i(2) & INP_i(0);
-slow_input <= INP_i(15) & INP_i(13) & INP_i(11) & INP_i(9) & INP_i(7) & INP_i(5) & INP_i(3) & INP_i(1);
+gen_discharge : for i in 1 to 8 generate
+DISCHARGE(i) <= 'Z'                               when  discharge_highz(i) = '1' else
+                (DELAY_C_IN(i) and slow_input(i)) when  discharge_disable(i) = '0' else
+                discharge_override(i)             when  discharge_disable(i) = '1';
+                
+DELAY_C_OUT(i) <= slow_input(i) xor delay_invert(i);
+end generate;
+                
+fast_input <= inp_gated(14) & inp_gated(12) & inp_gated(10) & inp_gated(8) & inp_gated(6) & inp_gated(4) & inp_gated(2) & inp_gated(0);
+slow_input <= inp_gated(15) & inp_gated(13) & inp_gated(11) & inp_gated(9) & inp_gated(7) & inp_gated(5) & inp_gated(3) & inp_gated(1);
+
 
 ---------------------------------------------------------------------------
 -- LED blinking when activity on inputs
@@ -641,7 +655,7 @@ TEST_LINE               <= (others => '0');
 
 
 gen_leds : for i in 1 to 8 generate
-  LED(i) <= not leds((i-1)*2) when led_status(8) = '1' else '1';
+  LED(i) <= not leds((i-1)*2) when led_status(8) = '1' else not led_status(i-1);
 end generate;
 
 
