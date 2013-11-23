@@ -63,8 +63,10 @@ architecture Behavioral of nx_data_receiver is
   -----------------------------------------------------------------------------
 
   -- FIFO DC Input Handler
+  signal nx_timestamp_fff            : std_logic_vector(7 downto 0);
   signal nx_timestamp_ff             : std_logic_vector(7 downto 0);
   signal nx_fifo_full                : std_logic;
+  signal nx_fifo_delay               : unsigned(3 downto 0);
   signal nx_fifo_reset               : std_logic;
                                      
   -- NX_TIMESTAMP_IN Process         
@@ -148,7 +150,9 @@ architecture Behavioral of nx_data_receiver is
   signal nx_fifo_data_valid_t        : std_logic;
   signal nx_fifo_data_valid          : std_logic;
                                      
-  -- NX FIFO READ                    
+  -- NX FIFO READ
+  type delay_array_t is array(0 to 15) of std_logic_vector(31 downto 0);
+  signal nx_timestamp_d              : delay_array_t;
   signal nx_timestamp_t              : std_logic_vector(31 downto 0);
   signal nx_new_timestamp            : std_logic;
   signal nx_new_timestamp_ctr        : unsigned(3 downto 0);
@@ -177,7 +181,7 @@ architecture Behavioral of nx_data_receiver is
   signal adc_data_t                  : std_logic_vector(11 downto 0);
   signal adc_new_data                : std_logic;
   signal adc_new_data_ctr            : unsigned(3 downto 0);
-                                   
+
   -- ADC TEST INPUT DATA           
   signal adc_input_error_enable      : std_logic;
   signal adc_input_error_ctr         : unsigned(15 downto 0);
@@ -217,6 +221,8 @@ architecture Behavioral of nx_data_receiver is
   signal debug_adc                   : std_logic_vector(1 downto 0);
   signal reset_adc_handler_r         : std_logic;
   signal reset_handler_counter_clear : std_logic;
+  signal adc_bit_shift               : unsigned(3 downto 0);
+
 begin
   
   PROC_DEBUG_MULT: process(debug_adc,
@@ -246,7 +252,7 @@ begin
     case debug_adc is
       when "01" =>
         DEBUG_OUT(0)            <= CLK_IN;
-        DEBUG_OUT(1)            <= '0';   
+        DEBUG_OUT(1)            <= nx_new_frame;   
         DEBUG_OUT(2)            <= TRIGGER_IN;
         DEBUG_OUT(3)            <= adc_data_valid;
         DEBUG_OUT(15 downto 4)  <= adc_data;
@@ -280,24 +286,22 @@ begin
         
       when others => 
         DEBUG_OUT(0)            <= CLK_IN;
-        DEBUG_OUT(1)            <= '0';  --NX_TIMESTAMP_CLK_IN;
-        DEBUG_OUT(2)            <= TRIGGER_IN;
-        DEBUG_OUT(3)            <= nx_fifo_full;
-        DEBUG_OUT(4)            <= nx_fifo_write_enable;
+        DEBUG_OUT(1)            <= TRIGGER_IN;
+        DEBUG_OUT(2)            <= nx_fifo_full;
+        DEBUG_OUT(3)            <= nx_fifo_write_enable;
+        DEBUG_OUT(4)            <= nx_fifo_empty;
         DEBUG_OUT(5)            <= nx_fifo_empty;
         DEBUG_OUT(6)            <= nx_fifo_read_enable;
         DEBUG_OUT(7)            <= nx_fifo_data_valid;
-
         DEBUG_OUT(8)            <= adc_data_valid;
-        
         DEBUG_OUT(9)            <= nx_new_timestamp;
         DEBUG_OUT(10)           <= adc_new_data;
-
-        DEBUG_OUT(12 downto 11) <= STATE_d;
-        DEBUG_OUT(13)           <= new_data_o;
-        
-        DEBUG_OUT(14)           <= nx_frame_synced;
-        DEBUG_OUT(15)           <= rs_sync_reset;
+--        DEBUG_OUT(12 downto 11) <= STATE_d;
+        DEBUG_OUT(11)           <= nx_fifo_reset;
+        DEBUG_OUT(12)           <= '0';
+        DEBUG_OUT(13)           <= nx_new_frame;
+        DEBUG_OUT(14)           <= new_data_o;
+        DEBUG_OUT(15)           <= nx_frame_synced;
     end case;
 
   end process PROC_DEBUG_MULT;
@@ -547,18 +551,19 @@ begin
   -- NX_TIMESTAMP_CLK_IN Domain
   -----------------------------------------------------------------------------
 
-  nx_timestamp_ff   <= NX_TIMESTAMP_IN when rising_edge(NX_TIMESTAMP_CLK_IN);
-
   -- Merge TS Data 8bit to 32Bit Timestamp Frame
   PROC_8_TO_32_BIT: process(NX_TIMESTAMP_CLK_IN)
   begin
     if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        frame_byte_ctr   <= (others => '0');
-        nx_frame_word    <= (others => '0');
-        nx_new_frame     <= '0';
+        frame_byte_ctr    <= (others => '0');
+        nx_frame_word     <= (others => '0');
+        nx_timestamp_ff   <= (others => '0');
+        nx_new_frame      <= '0';
       else
-        nx_new_frame     <= '0';
+        nx_timestamp_fff  <= NX_TIMESTAMP_IN;
+        nx_timestamp_ff   <= nx_timestamp_fff;
+        nx_new_frame      <= '0';
         
         case frame_byte_pos is
           when "11" => nx_frame_word(31 downto 24) <= nx_timestamp_ff;
@@ -691,7 +696,7 @@ begin
       Empty         => nx_fifo_empty,
       Full          => nx_fifo_full
       );
-  
+
   nx_fifo_reset     <= RESET_IN or data_handler_reset or fifo_reset_r;
 
   PROC_NX_CLK_ACT: process(NX_TIMESTAMP_CLK_IN)
@@ -789,12 +794,12 @@ begin
   begin
     if (rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' or fifo_reset_r = '1') then
-        nx_fifo_data_valid_t      <= '0';
-        nx_fifo_data_valid        <= '0';
+        nx_fifo_data_valid_t   <= '0';
+        nx_fifo_data_valid     <= '0';
       else
         -- Delay read signal by one CLK
-        nx_fifo_data_valid_t      <= nx_fifo_read_enable;
-        nx_fifo_data_valid        <= nx_fifo_data_valid_t;
+        nx_fifo_data_valid_t   <= nx_fifo_read_enable;
+        nx_fifo_data_valid     <= nx_fifo_data_valid_t;
       end if;
     end if;
   end process PROC_NX_FIFO_READ_ENABLE;
@@ -806,9 +811,18 @@ begin
         nx_timestamp_t         <= (others => '0');
         nx_new_timestamp       <= '0';
         nx_new_timestamp_ctr   <= (others => '0');
+        for I in 1 to 15 loop
+          nx_timestamp_d(I)    <= (others => '0');
+        end loop;
       else
         if (nx_fifo_data_valid = '1') then
-          nx_timestamp_t       <= nx_fifo_data;
+          -- Delay Data relative to ADC by 8 steps
+          for I in 1 to 15 loop
+            nx_timestamp_d(I)  <= nx_timestamp_d(I - 1); 
+          end loop; 
+          nx_timestamp_d(0)    <= nx_fifo_data;
+                    
+          nx_timestamp_t       <= nx_timestamp_d(to_integer(nx_fifo_delay));
           nx_new_timestamp     <= '1';
           nx_new_timestamp_ctr <= nx_new_timestamp_ctr + 1;
         else
@@ -819,6 +833,22 @@ begin
     end if;
   end process PROC_NX_FIFO_READ;
 
+  PROC_NX_FIFO_DELAY: process(CLK_IN)
+  begin
+    if (rising_edge(CLK_IN) ) then
+      if (RESET_IN = '1' or fifo_reset_r = '1') then
+        
+      else
+        if (nx_fifo_data_valid = '1') then
+
+        else
+
+        end if;
+      end if;
+    end if;
+  end process PROC_NX_FIFO_DELAY;
+
+  
   -----------------------------------------------------------------------------
   -- Status Counters
   -----------------------------------------------------------------------------
@@ -886,11 +916,11 @@ begin
     end if;
   end process PROC_PARITY_ERROR_COUNTER;
 
-
   -----------------------------------------------------------------------------
   -- ADC Fifo Handler
   -----------------------------------------------------------------------------
   PROC_ADC_DATA_READ: process(CLK_IN)
+    variable adcval : unsigned(11 downto 0) := (others => '0');
   begin
     if (rising_edge(CLK_IN) ) then
       if (RESET_IN = '1' or fifo_reset_r = '1') then
@@ -898,8 +928,15 @@ begin
         adc_new_data       <= '0';
         adc_new_data_ctr   <= (others => '0');
       else
+        if (adc_bit_shift(3) = '1') then
+          adcval             := unsigned(adc_data) rol
+                                to_integer(adc_bit_shift(2 downto 0));
+        else
+          adcval             := unsigned(adc_data) ror
+                                to_integer(adc_bit_shift(2 downto 0));
+        end if;
         if (adc_data_valid = '1') then
-          adc_data_t       <= adc_data;
+          adc_data_t       <= std_logic_vector(adcval);
           adc_new_data     <= '1';
           adc_new_data_ctr <= adc_new_data_ctr + 1;
         else
@@ -1012,12 +1049,14 @@ begin
         fifo_reset_r                  <= '0';
         debug_adc                     <= (others => '0');
         adc_input_error_enable        <= '0';
-        johnson_counter_sync          <= "00";
+        johnson_counter_sync          <= "01";
         pll_adc_sample_clk_dphase     <= (others => '0');
         pll_adc_sample_clk_finedelb   <= (others => '0');
         pll_adc_not_lock_ctr_clear    <= '0';
+        nx_fifo_delay                 <= x"7";
         reset_adc_handler_r           <= '0';
         reset_handler_counter_clear   <= '0';
+        adc_bit_shift                 <= x"0";
       else                      
         slv_data_out_o                <= (others => '0');
         slv_ack_o                     <= '0';
@@ -1097,7 +1136,7 @@ begin
               slv_ack_o                     <= '1';
 
             when x"000b" =>
-              slv_data_out_o(0)             <= nx_data_clock_ok;
+              slv_data_out_o(0)             <= adc_clk_ok;
               slv_data_out_o(31 downto 1)   <= (others => '0');
               slv_ack_o                     <= '1';  
 
@@ -1105,12 +1144,22 @@ begin
               slv_data_out_o(15 downto 0)   <= reset_handler_counter;
               slv_data_out_o(31 downto 6)   <= (others => '0');
               slv_ack_o                     <= '1';
-              
+
+            when x"000d" =>
+              slv_data_out_o(3 downto 0)    <= std_logic_vector(nx_fifo_delay);
+              slv_data_out_o(31 downto 4)   <= (others => '0');
+              slv_ack_o                     <= '1';
+
+            when x"000e" =>
+              slv_data_out_o(3 downto 0)    <= std_logic_vector(adc_bit_shift);
+              slv_data_out_o(31 downto 4)   <= (others => '0');
+              slv_ack_o                     <= '1';
+                
             when x"000f" =>
               slv_data_out_o(1 downto 0)    <= debug_adc;
               slv_data_out_o(31 downto 2)   <= (others => '0');
               slv_ack_o                     <= '1';
-                       
+                          
             when others  =>
               slv_unknown_addr_o            <= '1';
           end case;
@@ -1148,18 +1197,28 @@ begin
               adc_input_error_enable        <= SLV_DATA_IN(0);
               slv_ack_o                     <= '1';
 
+            when x"000b" =>
+              reset_adc_handler_r           <= '1';
+              slv_ack_o                     <= '1';
+
             when x"000c" =>
               reset_handler_counter_clear   <= '1';
               slv_ack_o                     <= '1';
-            
+
+            when x"000d" =>
+              nx_fifo_delay                 <=
+                unsigned(SLV_DATA_IN(3 downto 0));
+              slv_ack_o                     <= '1';
+
             when x"000e" =>
-              reset_adc_handler_r           <= '1';
+              adc_bit_shift                 <=
+                unsigned(SLV_DATA_IN(3 downto 0));
               slv_ack_o                     <= '1';
               
             when x"000f" =>
               debug_adc                     <= SLV_DATA_IN(1 downto 0);
               slv_ack_o                     <= '1';
-
+              
             when others  =>
               slv_unknown_addr_o            <= '1';
               

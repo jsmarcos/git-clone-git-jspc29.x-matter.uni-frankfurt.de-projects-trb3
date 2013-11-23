@@ -65,10 +65,13 @@
 0x8509 :  r/w  Enable Test ADC Input Data Error Test
 0x850a :  r    ADC Input Data Error Counter (16 Bit)
                 (only valid in case of 0x8509 is 1, see line above)
-0x850b :  r    Nxyter Data Clock Status (1 = O.K.)
+0x850b :  r/w  r: Nxyter Data Clock Status (1 = O.K.)
+               w: reset ADC Handler
 0x850c :  r/w  r: Reset Handler Counter (16 Bit)
                w: Clear Counter
-0x850e :  w    Reset ADC Handler
+0x850d :  r/w  Nxyter Timestamp vs ADC FIFO Delay (4 Bit)
+0x850e :  r/w  ADC Bit Shift  (Bit3: Direction 0=ror, 1=rol)
+                              (Bit2..0: Value)
 0x850f :  r/w  Debug Multiplexer:
                0: no ADC Values, normal Debug
                1: ADC Value Nxyter

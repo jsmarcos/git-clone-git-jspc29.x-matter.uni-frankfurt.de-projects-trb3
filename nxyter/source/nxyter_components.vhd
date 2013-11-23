@@ -247,7 +247,7 @@ component nx_control
     I2C_SM_RESET_OUT       : out std_logic;
     I2C_REG_RESET_OUT      : out std_logic;
     NX_TS_RESET_OUT        : out std_logic;
-    I2C_OFFLINE_IN         : in  std_logic;
+    I2C_ONLINE_IN          : in  std_logic;
     OFFLINE_OUT            : out std_logic;
     
     SLV_READ_IN            : in  std_logic;
@@ -687,7 +687,7 @@ component nx_trigger_handler
     INTERNAL_TRIGGER_IN        : in  std_logic;
     TRIGGER_VALIDATE_BUSY_IN   : in  std_logic;
     LVL2_TRIGGER_BUSY_IN       : in  std_logic;
-    VALIDATE_TRIGGER_OUT       : out std_logic;
+    VALID_TRIGGER_OUT          : out std_logic;
     TIMESTAMP_TRIGGER_OUT      : out std_logic;
     LVL2_TRIGGER_OUT           : out std_logic;
     FAST_CLEAR_OUT             : out std_logic;

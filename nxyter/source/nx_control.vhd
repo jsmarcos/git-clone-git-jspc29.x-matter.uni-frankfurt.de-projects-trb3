@@ -19,7 +19,7 @@ entity nx_control is
     I2C_SM_RESET_OUT       : out std_logic;
     I2C_REG_RESET_OUT      : out std_logic;
     NX_TS_RESET_OUT        : out std_logic;
-    I2C_OFFLINE_IN         : in  std_logic;
+    I2C_ONLINE_IN          : in  std_logic;
     OFFLINE_OUT            : out std_logic;
         
     -- Slave bus           
@@ -110,7 +110,7 @@ begin
   DEBUG_OUT(9)            <= pll_adc_sclk_lock;
 
 
-  DEBUG_OUT(10)           <= I2C_OFFLINE_IN;
+  DEBUG_OUT(10)           <= I2C_ONLINE_IN;
   DEBUG_OUT(11)           <= offline_force;
   DEBUG_OUT(12)           <= offline_force_internal;
   DEBUG_OUT(13)           <= offline_o;
@@ -147,7 +147,7 @@ begin
         if (offline_force = '1' or offline_force_internal = '1') then
           offline_o        <= '1';
         else
-          offline_o        <= I2C_OFFLINE_IN;
+          offline_o        <= not I2C_ONLINE_IN;
         end if;
         
         -- Offline State changes
@@ -384,7 +384,7 @@ begin
               slv_ack_o                   <= '1';
 
             when x"0004" =>
-              slv_data_out_o(0)           <= I2C_OFFLINE_IN;
+              slv_data_out_o(0)           <= I2C_ONLINE_IN;
               slv_data_out_o(31 downto 1) <= (others => '0');
               slv_ack_o                   <= '1';
 

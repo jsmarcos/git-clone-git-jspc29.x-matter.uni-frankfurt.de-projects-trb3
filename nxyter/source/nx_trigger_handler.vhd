@@ -38,7 +38,7 @@ entity nx_trigger_handler is
     LVL2_TRIGGER_BUSY_IN       : in  std_logic;
     
     -- OUT
-    VALIDATE_TRIGGER_OUT       : out std_logic;
+    VALID_TRIGGER_OUT          : out std_logic;
     TIMESTAMP_TRIGGER_OUT      : out std_logic;
     LVL2_TRIGGER_OUT           : out std_logic;
     FAST_CLEAR_OUT             : out std_logic;
@@ -94,7 +94,7 @@ architecture Behavioral of nx_trigger_handler is
   
   
   -- Trigger Handler                
-  signal validate_trigger_o         : std_logic;
+  signal valid_trigger_o            : std_logic;
   signal lvl2_trigger_o             : std_logic;
   signal fast_clear_o               : std_logic;
   signal trigger_busy_o             : std_logic;
@@ -102,7 +102,6 @@ architecture Behavioral of nx_trigger_handler is
   signal fee_trg_statusbits_o       : std_logic_vector(31 downto 0);
   signal send_testpulse_l           : std_logic;
   signal send_testpulse             : std_logic;
-  signal event_buffer_clear_o       : std_logic;
   
   type STATES is (S_IDLE,
                   S_CTS_TRIGGER,
@@ -155,7 +154,7 @@ begin
   DEBUG_OUT(5)            <= INTERNAL_TRIGGER_IN;
   DEBUG_OUT(6)            <= TRIGGER_VALIDATE_BUSY_IN;
   DEBUG_OUT(7)            <= LVL2_TRIGGER_BUSY_IN;
-  DEBUG_OUT(8)            <= validate_trigger_o;
+  DEBUG_OUT(8)            <= valid_trigger_o;
   DEBUG_OUT(9)            <= lvl2_trigger_o;
   DEBUG_OUT(10)           <= '0';
   DEBUG_OUT(11)           <= fee_trg_release_o;
@@ -333,22 +332,20 @@ begin
   begin
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
-        validate_trigger_o   <= '0';
+        valid_trigger_o      <= '0';
         lvl2_trigger_o       <= '0';
         fee_trg_release_o    <= '0';
         fee_trg_statusbits_o <= (others => '0');
         fast_clear_o         <= '0';
-        event_buffer_clear_o <= '0';
         trigger_busy_o       <= '0';
         send_testpulse_l     <= '0';
         STATE                <= S_IDLE;
       else
-        validate_trigger_o   <= '0';
+        valid_trigger_o      <= '0';
         lvl2_trigger_o       <= '0';
         fee_trg_release_o    <= '0';
         fee_trg_statusbits_o <= (others => '0');
         fast_clear_o         <= '0';
-        event_buffer_clear_o <= '0';
         trigger_busy_o       <= '1';
         send_testpulse_l     <= '0';
 
@@ -361,31 +358,33 @@ begin
           case STATE is
             when  S_IDLE =>
               if (LVL1_VALID_NOTIMING_TRG_IN = '1') then
+                -- Calibration Trigger .. ignore
                 STATE                <= S_WAIT_TRG_DATA_VALID;
                 
               elsif (LVL1_VALID_TIMING_TRG_IN = '1') then
-                if (NXYTER_OFFLINE_IN = '1') then
-                  STATE              <= S_WAIT_TRG_DATA_VALID;
-                else
+                if (NXYTER_OFFLINE_IN = '0') then
+                  -- Normal Trigger
                   STATE              <= S_CTS_TRIGGER;
+                else
+                  -- Ignore Trigger for nxyter is offline
+                  STATE              <= S_WAIT_TRG_DATA_VALID;
                 end if;
               elsif (INTERNAL_TRIGGER_IN = '1') then
+                -- Internal Trigger, not defined yet
                 STATE                <= S_INTERNAL_TRIGGER;
               else
                 trigger_busy_o       <= '0';
                 STATE                <= S_IDLE;
               end if;     
-
-
+              
             when S_CTS_TRIGGER =>
-              -- Do nothing, Just send Trigger ACK in reply
-              validate_trigger_o     <= '1';
+              valid_trigger_o        <= '1';
               lvl2_trigger_o         <= '1';
               if (reg_testpulse_enable = '1') then
                 send_testpulse_l     <= '1';
               end if;
               STATE                  <= S_WAIT_TRG_DATA_VALID;
-
+              
             when S_WAIT_TRG_DATA_VALID =>
               if (LVL1_TRG_DATA_VALID_IN = '0') then
                 STATE                <= S_WAIT_TRG_DATA_VALID;
@@ -413,7 +412,7 @@ begin
               
               -- Internal Trigger Handler
             when S_INTERNAL_TRIGGER =>
-              validate_trigger_o     <= '1';
+              valid_trigger_o        <= '1';
               STATE                  <= S_WAIT_TRIGGER_VALIDATE_ACK;
 
             when S_WAIT_TRIGGER_VALIDATE_ACK =>
@@ -608,7 +607,7 @@ begin
   timestamp_trigger_o       <= timestamp_trigger;
   
   -- Trigger Output
-  VALIDATE_TRIGGER_OUT      <= validate_trigger_o;
+  VALID_TRIGGER_OUT         <= valid_trigger_o;
   TIMESTAMP_TRIGGER_OUT     <= timestamp_trigger_o;
   LVL2_TRIGGER_OUT          <= lvl2_trigger_o;
   FAST_CLEAR_OUT            <= fast_clear_o;

@@ -297,11 +297,11 @@ begin
       PLL_NX_CLK_LOCK_IN       => PLL_NX_CLK_LOCK_IN, 
       PLL_ADC_DCLK_LOCK_IN     => PLL_ADC_DCLK_LOCK_IN,
       PLL_ADC_SCLK_LOCK_IN     => pll_sadc_clk_lock,
-     
+      
       I2C_SM_RESET_OUT         => i2c_sm_reset_o,
       I2C_REG_RESET_OUT        => i2c_reg_reset_o,
       NX_TS_RESET_OUT          => nx_ts_reset_1,
-      I2C_OFFLINE_IN           => nxyter_online_i2c,
+      I2C_ONLINE_IN            => nxyter_online_i2c,
       OFFLINE_OUT              => nxyter_offline,
 
       SLV_READ_IN              => slv_read(0),
@@ -456,7 +456,7 @@ begin
       TRIGGER_VALIDATE_BUSY_IN   => trigger_validate_busy,
       LVL2_TRIGGER_BUSY_IN       => trigger_evt_busy,
       
-      VALIDATE_TRIGGER_OUT       => trigger,
+      VALID_TRIGGER_OUT          => trigger,
       TIMESTAMP_TRIGGER_OUT      => timestamp_trigger,
       LVL2_TRIGGER_OUT           => lvl2_trigger,
       FAST_CLEAR_OUT             => fast_clear,
@@ -524,6 +524,7 @@ begin
       ADC_B_IN             => ADC_B_IN,
       ADC_NX_IN            => ADC_NX_IN, 
       ADC_D_IN             => ADC_D_IN,
+      ADC_SCLK_LOCK_OUT    => pll_sadc_clk_lock,
 
       NX_TIMESTAMP_OUT     => new_timestamp,
       ADC_DATA_OUT         => new_adc_data,
@@ -539,6 +540,7 @@ begin
       SLV_ACK_OUT          => slv_ack(2),                       
       SLV_NO_MORE_DATA_OUT => slv_no_more_data(2),              
       SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(2),              
+
       DEBUG_OUT            => debug_line(7)
       );
 
