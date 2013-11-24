@@ -888,7 +888,7 @@ begin
                if i = addr then
                   cts_regio_dataready_out_i <= cts_regio_read_enable_in_i;
                   cts_regio_data_out_i <= cts_status_registers_i(i);
-                  cts_regio_unknown_addr_out_i <= '0';
+                  cts_regio_unknown_addr_out_i <= cts_regio_write_enable_in_i;
                end if;
             end loop;
          
@@ -899,11 +899,13 @@ begin
                transfer_debug_limits_i     <= '1';
                
                cts_regio_write_ack_out_i   <= '1';
+               cts_regio_unknown_addr_out_i <= '0';
             end if;
             
             if addr = 16#09# and cts_regio_write_enable_in_i = '1' then
                ro_configuration_i <= cts_regio_data_in_i(ro_configuration_i'RANGE);
                cts_regio_write_ack_out_i   <= '1';
+               cts_regio_unknown_addr_out_i <= '0';
             end if;
          
             if addr = 16#0c# and cts_regio_write_enable_in_i = '1' then
@@ -911,6 +913,7 @@ begin
                throttle_enabled_i   <= cts_regio_data_in_i(throttle_threshold_i'LENGTH);
                stop_triggers_i      <= cts_regio_data_in_i(31);
                cts_regio_write_ack_out_i   <= '1';
+               cts_regio_unknown_addr_out_i <= '0';
             end if;
 
             eb_regio_updated_i <= '0';
@@ -923,6 +926,7 @@ begin
                eb_regio_updated_i <= '1';
                
                cts_regio_write_ack_out_i <= '1';
+               cts_regio_unknown_addr_out_i <= '0';
             end if;
          end if;
       end if;

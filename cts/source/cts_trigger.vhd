@@ -368,7 +368,7 @@ begin
 
 -- Trigger Channel Masking         
             if addr = ref_addr then
-               REGIO_UNKNOWN_ADDR_OUT <= '0';
+               REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN;
                REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
                REGIO_DATA_OUT <= CTS_BLOCK_HEADER(id => 16#00#, len => 1);
             end if;
@@ -390,7 +390,7 @@ begin
             
 -- Trigger Channel Counters
             if addr = ref_addr then
-               REGIO_UNKNOWN_ADDR_OUT <= '0';
+               REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN;
                REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
                REGIO_DATA_OUT <= CTS_BLOCK_HEADER(id => 16#01#, len => 32);
             end if;
@@ -398,7 +398,7 @@ begin
             
             for i in 0 to channel_counters_i'HIGH loop
                if addr = ref_addr then
-                  REGIO_UNKNOWN_ADDR_OUT <= '0';
+                  REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN;
                   REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
                   
                   REGIO_DATA_OUT <= std_logic_vector( channel_counters_i(i) );
@@ -406,7 +406,7 @@ begin
                ref_addr := ref_addr + 1;
 
                if addr = ref_addr then
-                  REGIO_UNKNOWN_ADDR_OUT <= '0';
+                  REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN;
                   REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
                   
                   REGIO_DATA_OUT <= std_logic_vector( channel_edge_counters_i(i) );
@@ -416,7 +416,7 @@ begin
             
 -- Input Module Configuration            
             if addr = ref_addr then
-               REGIO_UNKNOWN_ADDR_OUT <= '0';
+               REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN;
                REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
                REGIO_DATA_OUT <= CTS_BLOCK_HEADER(
                   id => 16#10#,
@@ -445,7 +445,7 @@ begin
 
 -- Trigger Input Counters
             if addr = ref_addr then
-               REGIO_UNKNOWN_ADDR_OUT <= '0';
+               REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN;
                REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
                REGIO_DATA_OUT <= CTS_BLOCK_HEADER(id => 16#11#, len => 2*ITL_NUM);
             end if;
@@ -453,7 +453,7 @@ begin
             
             for i in 0 to ITL_NUM - 1 loop
                if addr = ref_addr then
-                  REGIO_UNKNOWN_ADDR_OUT <= '0';
+                  REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN;
                   REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
                   
                   REGIO_DATA_OUT <= std_logic_vector( trigger_input_counters_i(i) );
@@ -461,7 +461,7 @@ begin
                ref_addr := ref_addr + 1;
 
                if addr = ref_addr then
-                  REGIO_UNKNOWN_ADDR_OUT <= '0';
+                  REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN;
                   REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
                   
                   REGIO_DATA_OUT <= std_logic_vector( trigger_input_edge_counters_i(i) );
@@ -472,7 +472,7 @@ begin
 -- COIN CONFIGURATION
             if TRIGGER_COIN_COUNT > 0 then
                if addr = ref_addr then
-                  REGIO_UNKNOWN_ADDR_OUT <= '0';
+                  REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN;
                   REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
                   REGIO_DATA_OUT <= CTS_BLOCK_HEADER(
                      id => 16#20#,
@@ -503,7 +503,7 @@ begin
 -- ADDON MULTIPLEXER
             if TRIGGER_ADDON_COUNT > 0 then
                if addr = ref_addr then
-                  REGIO_UNKNOWN_ADDR_OUT <= '0';
+                  REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN;
                   REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
                   REGIO_DATA_OUT <= CTS_BLOCK_HEADER(
                      id => 16#12#,
@@ -535,7 +535,7 @@ begin
 -- TRIGGER_PULSER_COUNT CONFIGURATION
             if TRIGGER_PULSER_COUNT > 0 then
                if addr = ref_addr then
-                  REGIO_UNKNOWN_ADDR_OUT <= '0';
+                  REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN;
                   REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
                   REGIO_DATA_OUT <= CTS_BLOCK_HEADER(
                      id => 16#30#,
@@ -566,7 +566,7 @@ begin
 -- Pseudo Random Pulser
             if TRIGGER_RAND_PULSER /= 0 then
                if addr = ref_addr then
-                  REGIO_UNKNOWN_ADDR_OUT <= '0';
+                  REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN;
                   REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
                   REGIO_DATA_OUT <= CTS_BLOCK_HEADER(
                      id   => 16#50#,
@@ -598,7 +598,7 @@ begin
 -- External Trigger
             if EXTERNAL_TRIGGER_ID /= X"00" then
                if addr = ref_addr then
-                  REGIO_UNKNOWN_ADDR_OUT <= '0';
+                  REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN;
                   REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
                   REGIO_DATA_OUT <= CTS_BLOCK_HEADER(
                      id => to_integer(unsigned(EXTERNAL_TRIGGER_ID)),
@@ -612,7 +612,7 @@ begin
              
              -- status register
                if addr=ref_addr then
-                  REGIO_UNKNOWN_ADDR_OUT <= '0';
+                  REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN;
                   REGIO_DATAREADY_OUT    <= REGIO_READ_ENABLE_IN;
                   REGIO_DATA_OUT         <= EXT_STATUS_IN;
                end if;
@@ -635,7 +635,7 @@ begin
             
 -- Trigger Type Assoc
             if addr = ref_addr then
-               REGIO_UNKNOWN_ADDR_OUT <= '0';
+               REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN;
                REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
                REGIO_DATA_OUT <= CTS_BLOCK_HEADER(
                   id => 16#40#,
