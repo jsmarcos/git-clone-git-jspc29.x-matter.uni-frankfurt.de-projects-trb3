@@ -238,7 +238,7 @@ begin
 
       PORT_ADDR_MASK      => (  0 => 4,          -- NX Control Handler
                                 1 => 0,          -- I2C master
-                                2 => 4,          -- Data Receiver
+                                2 => 5,          -- Data Receiver
                                 3 => 3,          -- Data Buffer
                                 4 => 0,          -- SPI Master
                                 5 => 3,          -- Trigger Generator

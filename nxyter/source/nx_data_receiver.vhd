@@ -5,7 +5,6 @@ use ieee.numeric_std.all;
 library work;
 use work.trb_net_std.all;
 use work.trb_net_components.all;
-use work.trb3_components.all;
 use work.nxyter_components.all;
 
 entity nx_data_receiver is
@@ -115,7 +114,7 @@ architecture Behavioral of nx_data_receiver is
   signal adc_clk_ok_last             : std_logic;
   signal adc_reset_s                 : std_logic;
   signal adc_reset_ctr               : unsigned(11 downto 0);
-
+  
   -- Reset Handler
   signal r_wait_timer_init           : unsigned(27 downto 0);
   signal r_wait_timer_done           : std_logic;
@@ -135,10 +134,11 @@ architecture Behavioral of nx_data_receiver is
   signal sampling_clk_reset          : std_logic;
   signal adc_reset_p                 : std_logic;
   signal adc_reset                   : std_logic;
+  signal adc_reset_h                 : std_logic;
   signal data_handler_reset_p        : std_logic;
   signal data_handler_reset          : std_logic;
   signal reset_handler_counter       : unsigned(15 downto 0);
-  
+
   -----------------------------------------------------------------------------
   -- CLK_IN Domain
   -----------------------------------------------------------------------------
@@ -181,6 +181,8 @@ architecture Behavioral of nx_data_receiver is
   signal adc_data_t                  : std_logic_vector(11 downto 0);
   signal adc_new_data                : std_logic;
   signal adc_new_data_ctr            : unsigned(3 downto 0);
+  signal adc_notlock_ctr             : unsigned(7 downto 0);
+  signal ADC_DEBUG                   : std_logic_vector(15 downto 0);
 
   -- ADC TEST INPUT DATA           
   signal adc_input_error_enable      : std_logic;
@@ -208,6 +210,13 @@ architecture Behavioral of nx_data_receiver is
 
   signal pll_adc_sample_clk_dphase   : std_logic_vector(3 downto 0);
   signal pll_adc_sample_clk_finedelb : std_logic_vector(3 downto 0);
+
+  -- Rate Calculations
+  signal nx_frame_rate_ctr           : unsigned(27 downto 0);
+  signal nx_frame_rate               : unsigned(27 downto 0);
+  signal adc_frame_rate_ctr          : unsigned(27 downto 0);
+  signal adc_frame_rate              : unsigned(27 downto 0);
+  signal rate_timer_ctr              : unsigned(27 downto 0);
   
   -- Slave Bus                     
   signal slv_data_out_o              : std_logic_vector(31 downto 0);
@@ -222,6 +231,8 @@ architecture Behavioral of nx_data_receiver is
   signal reset_adc_handler_r         : std_logic;
   signal reset_handler_counter_clear : std_logic;
   signal adc_bit_shift               : unsigned(3 downto 0);
+  signal johnson_counter_sync_r      : unsigned(1 downto 0);
+  signal pll_adc_sample_clk_dphase_r : unsigned(3 downto 0);
 
 begin
   
@@ -251,18 +262,14 @@ begin
   begin
     case debug_adc is
       when "01" =>
-        DEBUG_OUT(0)            <= CLK_IN;
-        DEBUG_OUT(1)            <= nx_new_frame;   
-        DEBUG_OUT(2)            <= TRIGGER_IN;
-        DEBUG_OUT(3)            <= adc_data_valid;
-        DEBUG_OUT(15 downto 4)  <= adc_data;
+        DEBUG_OUT              <= ADC_DEBUG;
         
       when "10" =>
         DEBUG_OUT(0)            <= CLK_IN;
-        DEBUG_OUT(1)            <= '0';   
+        DEBUG_OUT(1)            <= nx_new_frame;
         DEBUG_OUT(2)            <= TRIGGER_IN;
         DEBUG_OUT(3)            <= adc_data_valid;
-        DEBUG_OUT(15 downto 4)  <= test_adc_data;
+        DEBUG_OUT(15 downto 4)  <= adc_data;
 
       when "11" =>
         DEBUG_OUT(0)            <= CLK_IN;
@@ -338,7 +345,11 @@ begin
   -----------------------------------------------------------------------------
 
   pll_adc_sampling_clk_reset  <=  sampling_clk_reset;
-  
+
+  -- Shift dphase show 0 as optimal value
+  pll_adc_sample_clk_dphase   <=
+    std_logic_vector(pll_adc_sample_clk_dphase_r - 1);
+    
   pll_adc_sampling_clk_2: pll_adc_sampling_clk
     port map (
       CLK       => adc_sampling_clk,
@@ -377,41 +388,50 @@ begin
       end if;
     end if;
   end process PROC_PLL_LOCK_COUNTER;
-  
-  adc_ad9222_1: entity work.adc_ad9222
-    generic map (
-      CHANNELS => 4,
-      DEVICES  => 2,
-      RESOLUTION => 12
-      )
+
+
+  adc_reset_h              <= RESET_IN or adc_reset;
+  adc_ad9228_1: adc_ad9228
     port map (
-      CLK                        => CLK_IN,
-      CLK_ADCREF                 => pll_adc_sampling_clk_o,
-      CLK_ADCDAT                 => ADC_CLK_DAT_IN,
-      RESTART_IN                 => adc_reset,
-      ADCCLK_OUT                 => ADC_SAMPLE_CLK_OUT,
+      CLK_IN               => CLK_IN,
+      RESET_IN             => RESET_IN,
+      CLK_ADCDAT_IN        => ADC_CLK_DAT_IN,
+      RESTART_IN           => adc_reset_h,
+
+      ADC0_SCLK_IN         => pll_adc_sampling_clk_o,
+      ADC0_SCLK_OUT        => ADC_SAMPLE_CLK_OUT,
+      ADC0_DATA_A_IN       => ADC_NX_IN(0),
+      ADC0_DATA_B_IN       => ADC_B_IN(0),
+      ADC0_DATA_C_IN       => ADC_A_IN(0),
+      ADC0_DATA_D_IN       => ADC_D_IN(0),
+      ADC0_DCLK_IN         => ADC_DCLK_IN(0),
+      ADC0_FCLK_IN         => ADC_FCLK_IN(0),
+                           
+      ADC1_SCLK_IN         => pll_adc_sampling_clk_o,
+      ADC1_SCLK_OUT        => open,
+      ADC1_DATA_A_IN       => ADC_NX_IN(1), 
+      ADC1_DATA_B_IN       => ADC_A_IN(1),
+      ADC1_DATA_C_IN       => ADC_B_IN(1),
+      ADC1_DATA_D_IN       => ADC_D_IN(1),
+      ADC1_DCLK_IN         => ADC_DCLK_IN(1),
+      ADC1_FCLK_IN         => ADC_FCLK_IN(1),
+                           
+      ADC0_DATA_A_OUT      => adc_data,
+      ADC0_DATA_B_OUT      => test_adc_data,
+      ADC0_DATA_C_OUT      => open,
+      ADC0_DATA_D_OUT      => open,
+      ADC0_DATA_VALID_OUT  => adc_data_valid,
+                           
+      ADC1_DATA_A_OUT      => open,
+      ADC1_DATA_B_OUT      => open,
+      ADC1_DATA_C_OUT      => open,
+      ADC1_DATA_D_OUT      => open,
+      ADC1_DATA_VALID_OUT  => open,
+
+      ADC0_NOTLOCK_COUNTER => adc_notlock_ctr,
+      ADC1_NOTLOCK_COUNTER => open,
       
-      ADC_DATA(0)                => ADC_NX_IN(0), 
-      ADC_DATA(1)                => ADC_B_IN(0),
-      ADC_DATA(2)                => ADC_A_IN(0), 
-      ADC_DATA(3)                => ADC_D_IN(0), 
-      
-      ADC_DATA(4)                => ADC_NX_IN(1), 
-      ADC_DATA(5)                => ADC_A_IN(1), 
-      ADC_DATA(6)                => ADC_B_IN(1), 
-      ADC_DATA(7)                => ADC_D_IN(1),
-      
-      ADC_DCO                    => ADC_DCLK_IN,
-      ADC_FCO                    => ADC_FCLK_IN,
-      
-      DATA_OUT(11 downto  0)     => adc_data,
-      DATA_OUT(23 downto 12)     => test_adc_data,
-      DATA_OUT(95 downto 24)     => open,
-      
-      FCO_OUT                    => open,
-      DATA_VALID_OUT(0)          => adc_data_valid,
-      DATA_VALID_OUT(1)          => open,
-      DEBUG                      => open
+      DEBUG_OUT            => ADC_DEBUG
       );
 
   nx_timer_1: nx_timer
@@ -732,6 +752,8 @@ begin
     adc_sampling_clk <= johnson_ff_0;
   end process PROC_ADC_SAMPLING_CLK_GENERATOR;
 
+  -- Adjust johnson_counter_sync to show optimal value at 0
+  johnson_counter_sync <= std_logic_vector(johnson_counter_sync_r + 3);
   PROC_ADC_SAMPLING_CLK_SYNC: process(NX_TIMESTAMP_CLK_IN)
     variable adc_clk_state : std_logic_vector(1 downto 0);
   begin
@@ -1032,6 +1054,50 @@ begin
   end process PROC_OUTPUT_HANDLER;
 
   -----------------------------------------------------------------------------
+  -- Rate Counters
+  -----------------------------------------------------------------------------
+  PROC_RATE_COUNTER: process(CLK_IN)
+  begin
+    if (rising_edge(CLK_IN) ) then
+      if (RESET_IN = '1') then
+        nx_frame_rate_ctr      <= (others => '0');
+        nx_frame_rate          <= (others => '0');
+        adc_frame_rate_ctr     <= (others => '0');
+        adc_frame_rate         <= (others => '0');
+        rate_timer_ctr         <= (others => '0');
+      else
+        if (rate_timer_ctr < x"5f5e100") then
+          rate_timer_ctr          <= rate_timer_ctr + 1;
+
+          if (nx_fifo_data_valid = '1') then
+            nx_frame_rate_ctr     <= nx_frame_rate_ctr + 1;
+          end if;
+          
+          if (adc_data_valid = '1') then
+            adc_frame_rate_ctr    <= adc_frame_rate_ctr + 1;
+          end if;
+        else
+          rate_timer_ctr          <= (others => '0');
+          nx_frame_rate           <= nx_frame_rate_ctr;
+          adc_frame_rate          <= adc_frame_rate_ctr;
+
+          if (nx_fifo_data_valid = '0') then
+            nx_frame_rate_ctr     <= (others => '0');
+          else
+            nx_frame_rate_ctr     <= x"000_0001";
+          end if;
+
+          if (adc_data_valid = '0') then
+            adc_frame_rate_ctr    <= (others => '0');
+          else
+            adc_frame_rate_ctr    <= x"000_0001";
+          end if;
+        end if;
+      end if;
+    end if;
+  end process PROC_RATE_COUNTER;
+              
+  -----------------------------------------------------------------------------
   -- TRBNet Slave Bus
   -----------------------------------------------------------------------------
 
@@ -1049,11 +1115,11 @@ begin
         fifo_reset_r                  <= '0';
         debug_adc                     <= (others => '0');
         adc_input_error_enable        <= '0';
-        johnson_counter_sync          <= "01";
-        pll_adc_sample_clk_dphase     <= (others => '0');
+        johnson_counter_sync_r        <= "00";
+        pll_adc_sample_clk_dphase_r   <= x"0";
         pll_adc_sample_clk_finedelb   <= (others => '0');
         pll_adc_not_lock_ctr_clear    <= '0';
-        nx_fifo_delay                 <= x"7";
+        nx_fifo_delay                 <= x"8";
         reset_adc_handler_r           <= '0';
         reset_handler_counter_clear   <= '0';
         adc_bit_shift                 <= x"0";
@@ -1106,12 +1172,13 @@ begin
               slv_ack_o                     <= '1';     
 
             when x"0005" =>
-              slv_data_out_o(1 downto  0)   <= johnson_counter_sync;
+              slv_data_out_o(1 downto  0)   <= johnson_counter_sync_r;
               slv_data_out_o(31 downto 2)   <= (others => '0');
               slv_ack_o                     <= '1';
 
             when x"0006" =>
-              slv_data_out_o(3 downto 0)    <= pll_adc_sample_clk_dphase;
+              slv_data_out_o(3 downto 0)    <=
+                std_logic_vector(pll_adc_sample_clk_dphase_r);
               slv_data_out_o(31 downto 4)   <= (others => '0');
               slv_ack_o                     <= '1';
 
@@ -1154,8 +1221,24 @@ begin
               slv_data_out_o(3 downto 0)    <= std_logic_vector(adc_bit_shift);
               slv_data_out_o(31 downto 4)   <= (others => '0');
               slv_ack_o                     <= '1';
-                
+
             when x"000f" =>
+              slv_data_out_o(7 downto 0)    <=
+                std_logic_vector(adc_notlock_ctr);
+              slv_data_out_o(31 downto 8)   <= (others => '0');
+              slv_ack_o                     <= '1';  
+
+            when x"0010" =>
+              slv_data_out_o(27 downto 0)   <= std_logic_vector(nx_frame_rate);
+              slv_data_out_o(31 downto 28)  <= (others => '0');
+              slv_ack_o                     <= '1';  
+
+            when x"0011" =>
+              slv_data_out_o(27 downto 0)   <= std_logic_vector(adc_frame_rate);
+              slv_data_out_o(31 downto 28)  <= (others => '0');
+              slv_ack_o                     <= '1';  
+              
+            when x"0012" =>
               slv_data_out_o(1 downto 0)    <= debug_adc;
               slv_data_out_o(31 downto 2)   <= (others => '0');
               slv_ack_o                     <= '1';
@@ -1179,12 +1262,13 @@ begin
               slv_ack_o                     <= '1';
               
             when x"0005" =>
-              johnson_counter_sync          <= SLV_DATA_IN(1 downto 0);
+              johnson_counter_sync_r        <= SLV_DATA_IN(1 downto 0);
               reset_adc_handler_r           <= '1';
               slv_ack_o                     <= '1'; 
 
             when x"0006" =>
-              pll_adc_sample_clk_dphase     <= SLV_DATA_IN(3 downto 0);
+              pll_adc_sample_clk_dphase_r   <=
+                unsigned(SLV_DATA_IN(3 downto 0));
               reset_adc_handler_r           <= '1';
               slv_ack_o                     <= '1';   
 
@@ -1214,8 +1298,8 @@ begin
               adc_bit_shift                 <=
                 unsigned(SLV_DATA_IN(3 downto 0));
               slv_ack_o                     <= '1';
-              
-            when x"000f" =>
+
+            when x"0012" =>
               debug_adc                     <= SLV_DATA_IN(1 downto 0);
               slv_ack_o                     <= '1';
               

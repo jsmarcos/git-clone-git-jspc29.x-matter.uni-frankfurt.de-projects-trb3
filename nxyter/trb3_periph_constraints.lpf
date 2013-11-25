@@ -39,7 +39,7 @@ BLOCK RD_DURING_WR_PATHS ;
   FREQUENCY PORT NX1_DATA_CLK_IN 125 MHz;
   FREQUENCY PORT NX2_DATA_CLK_IN 125 MHz;
   
-  USE PRIMARY NET "nx_main_clk_*"; 
+  USE PRIMARY NET "nx_main_clk_c"; 
   USE PRIMARY NET "clk_100_i_c";
   USE PRIMARY NET "CLK_PCLK_RIGHT_c";
   
@@ -61,12 +61,12 @@ LOCATE UGROUP "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLINK" ;
 # Relax some of the timing constraints
 #################################################################
 
-MULTICYCLE TO CELL "nXyter_FEE_board_0/nx_data_receiver_1/adc_ad9222_1/restart_i" 20 ns;
-MULTICYCLE TO CELL "nXyter_FEE_board_1/nx_data_receiver_1/adc_ad9222_1/restart_i" 20 ns;
+#MULTICYCLE TO CELL "nXyter_FEE_board_0/nx_data_receiver_1/adc_ad9222_1/restart_i" 20 ns;
+#MULTICYCLE TO CELL "nXyter_FEE_board_1/nx_data_receiver_1/adc_ad9222_1/restart_i" 20 ns;
 
 MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset*" 20 ns;
-MULTICYCLE FROM CLKNET "nXyter_FEE_board_1/nx_data_receiver_1/adc_ad9222_1/un1_adc_ad9222*" TO CLKNET "clk_100_i_c" 10 ns;
-MULTICYCLE FROM CLKNET "nXyter_FEE_board_0/nx_data_receiver_1/adc_ad9222_1/un1_adc_ad9222*" TO CLKNET "clk_100_i_c" 10 ns;
+MULTICYCLE FROM CLKNET "nXyter_FEE_board_1/nx_data_receiver_1/adc_ad9228_1/un1_adc_ad9222*" TO CLKNET "clk_100_i_c" 10 ns;
+MULTICYCLE FROM CLKNET "nXyter_FEE_board_0/nx_data_receiver_1/adc_ad9228_1/un1_adc_ad9222*" TO CLKNET "clk_100_i_c" 10 ns;
 
 #MULTICYCLE TO CELL "nXyter_FEE_board_0/nx_fpga_timestamp_1/pulse_dtrans_2/pulse_async_trans_1/pulse_ff_1" 5 ns;
 MULTICYCLE TO CELL "nXyter_FEE_board_0/nx_fpga_timestamp_1/timestamp_sync_x" 5 ns;

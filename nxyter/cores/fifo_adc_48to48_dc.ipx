@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="fifo_adc_48to48_dc" module="FIFO_DC" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2013 11 24 18:14:06.867" version="5.4" type="Module" synthesis="" source_format="VHDL">
+  <Package>
+		<File name="fifo_adc_48to48_dc.lpc" type="lpc" modified="2013 11 24 18:14:05.000"/>
+		<File name="fifo_adc_48to48_dc.vhd" type="top_level_vhdl" modified="2013 11 24 18:14:05.000"/>
+		<File name="fifo_adc_48to48_dc_tmpl.vhd" type="template_vhdl" modified="2013 11 24 18:14:05.000"/>
+		<File name="tb_fifo_adc_48to48_dc_tmpl.vhd" type="testbench_vhdl" modified="2013 11 24 18:14:05.000"/>
+  </Package>
+</DiamondModule>

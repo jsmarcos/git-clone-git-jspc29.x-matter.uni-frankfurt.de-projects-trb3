@@ -208,6 +208,84 @@ component adc_spi_readbyte
 end component;
 
 -------------------------------------------------------------------------------
+-- ADC Data Handler 
+-------------------------------------------------------------------------------
+
+component adc_ad9228
+  port (
+    CLK_IN               : in  std_logic;
+    RESET_IN             : in  std_logic;
+    CLK_ADCDAT_IN        : in  std_logic;
+    RESTART_IN           : in  std_logic;
+
+    ADC0_SCLK_IN         : in  std_logic;
+    ADC0_SCLK_OUT        : out std_logic;
+    ADC0_DATA_A_IN       : in  std_logic;
+    ADC0_DATA_B_IN       : in  std_logic;
+    ADC0_DATA_C_IN       : in  std_logic;
+    ADC0_DATA_D_IN       : in  std_logic;
+    ADC0_DCLK_IN         : in  std_logic;
+    ADC0_FCLK_IN         : in  std_logic;
+
+    ADC1_SCLK_IN         : in  std_logic;
+    ADC1_SCLK_OUT        : out std_logic;
+    ADC1_DATA_A_IN       : in  std_logic;
+    ADC1_DATA_B_IN       : in  std_logic;
+    ADC1_DATA_C_IN       : in  std_logic;
+    ADC1_DATA_D_IN       : in  std_logic;
+    ADC1_DCLK_IN         : in  std_logic;
+    ADC1_FCLK_IN         : in  std_logic;
+
+    ADC0_DATA_A_OUT      : out std_logic_vector(11 downto 0);
+    ADC0_DATA_B_OUT      : out std_logic_vector(11 downto 0);
+    ADC0_DATA_C_OUT      : out std_logic_vector(11 downto 0);
+    ADC0_DATA_D_OUT      : out std_logic_vector(11 downto 0);
+    ADC0_DATA_VALID_OUT  : out std_logic;
+
+    ADC1_DATA_A_OUT      : out std_logic_vector(11 downto 0);
+    ADC1_DATA_B_OUT      : out std_logic_vector(11 downto 0);
+    ADC1_DATA_C_OUT      : out std_logic_vector(11 downto 0);
+    ADC1_DATA_D_OUT      : out std_logic_vector(11 downto 0);
+    ADC1_DATA_VALID_OUT  : out std_logic;
+
+    ADC0_NOTLOCK_COUNTER : out unsigned(7 downto 0);
+    ADC1_NOTLOCK_COUNTER : out unsigned(7 downto 0);
+    DEBUG_OUT            : out std_logic_vector(15 downto 0)
+    );
+end component;
+
+component adc_ddr_generic
+  port (
+    clk_0        : in  std_logic;
+    clk_1        : in  std_logic;
+    clkdiv_reset : in  std_logic;
+    eclk         : in  std_logic;
+    reset_0      : in  std_logic;
+    reset_1      : in  std_logic;
+    sclk         : out std_logic;
+    datain_0     : in  std_logic_vector(4 downto 0);
+    datain_1     : in  std_logic_vector(4 downto 0);
+    q_0          : out std_logic_vector(19 downto 0);
+    q_1          : out std_logic_vector(19 downto 0)
+    );
+end component;
+
+component fifo_adc_48to48_dc
+  port (
+    Data    : in  std_logic_vector(47 downto 0);
+    WrClock : in  std_logic;
+    RdClock : in  std_logic;
+    WrEn    : in  std_logic;
+    RdEn    : in  std_logic;
+    Reset   : in  std_logic;
+    RPReset : in  std_logic;
+    Q       : out std_logic_vector(47 downto 0);
+    Empty   : out std_logic;
+    Full    : out std_logic
+    );
+end component;
+
+-------------------------------------------------------------------------------
 -- TRBNet Registers
 -------------------------------------------------------------------------------
 
