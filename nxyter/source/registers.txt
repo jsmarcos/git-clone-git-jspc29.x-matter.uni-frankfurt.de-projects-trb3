@@ -72,7 +72,10 @@
 0x850d :  r/w  Nxyter Timestamp vs ADC FIFO Delay (4 Bit)
 0x850e :  r/w  ADC Bit Shift  (Bit3: Direction 0=ror, 1=rol)
                               (Bit2..0: Value)
-0x850f :  r/w  Debug Multiplexer:
+0x850f :  r    ADC Not Lock Frame Counter, should be constant
+0x8510 :  r    Raw Nxyter Frame Rate, must be 31.25 MHz
+0x8511 :  r    Raw ADC Frame Rate, must be 31.25 MHz
+0x8512 :  r/w  Debug Multiplexer:
                0: no ADC Values, normal Debug
                1: ADC Value Nxyter
                2: ADC Value Testchannel
