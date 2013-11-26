@@ -560,7 +560,7 @@ THE_IO_REG_READ : process begin
       when x"4" => spi_reg20_i <= inp_invert;
       when x"5" => spi_reg20_i <= inp_stretch;
       when x"6" => spi_reg20_i <= comp_setting;
-      when x"a" => spi_reg20_i <= ffarr_data; 
+      when x"f" => spi_reg20_i <= ffarr_data; 
       when others => null;
     end case;
   else

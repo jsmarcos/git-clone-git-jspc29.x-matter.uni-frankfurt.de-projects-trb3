@@ -538,7 +538,10 @@ THE_IO_REG_READ : process begin
       when x"5" => spi_reg20_i <= inp_stretch;
       when x"6" => spi_reg20_i <= comp_setting;
       when x"7" => spi_reg20_i <= x"00" & discharge_disable;
-      when x"a" => spi_reg20_i <= ffarr_data; 
+      when x"8" => spi_reg20_i <= x"00" & discharge_override;
+      when x"9" => spi_reg20_i <= x"00" & discharge_highz;
+      when x"a" => spi_reg20_i <= x"00" & delay_invert;
+      when x"f" => spi_reg20_i <= ffarr_data; 
       when others => null;
     end case;
   else
