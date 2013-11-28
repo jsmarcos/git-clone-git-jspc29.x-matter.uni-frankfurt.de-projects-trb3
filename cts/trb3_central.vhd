@@ -334,6 +334,8 @@ architecture trb3_central_arch of trb3_central is
   signal cts_addon_triggers_in       : std_logic_vector(CTS_ADDON_LINE_COUNT-1 downto 0);
   signal cts_addon_activity_i,
          cts_addon_selected_i        : std_logic_vector(4 downto 0);
+         
+  signal cts_periph_trigger_i        : std_logic_vector(3 downto 0);
   
   signal cts_trg_send                : std_logic;
   signal cts_trg_type                : std_logic_vector(3 downto 0);
@@ -484,12 +486,14 @@ begin
 
  THE_CTS: CTS 
    generic map (
-      EXTERNAL_TRIGGER_ID  => X"60"+ETM_CHOICE_type'pos(ETM_CHOICE), --, fill in trigger logic enumeration id of external trigger logic
+      EXTERNAL_TRIGGER_ID  => X"60"+ETM_CHOICE_type'pos(ETM_CHOICE), -- fill in trigger logic enumeration id of external trigger logic
       TRIGGER_INPUT_COUNT  => 4,
       TRIGGER_COIN_COUNT   => 4,
       TRIGGER_PULSER_COUNT => 2,
       TRIGGER_RAND_PULSER  => 1,
       TRIGGER_ADDON_COUNT  => 2,
+      
+      PERIPH_TRIGGER_COUNT => 1,
       
       ADDON_LINE_COUNT     => CTS_ADDON_LINE_COUNT,
       ADDON_GROUPS         => 5,
@@ -511,6 +515,8 @@ begin
       EXT_STATUS_IN  => cts_ext_status,
       EXT_CONTROL_OUT => cts_ext_control,
       EXT_HEADER_BITS_IN => cts_ext_header,
+      
+      PERIPH_TRIGGER_IN => cts_periph_trigger_i,
       
       CTS_TRG_SEND_OUT => cts_trg_send,
       CTS_TRG_TYPE_OUT => cts_trg_type,
@@ -572,7 +578,7 @@ begin
       others => '0'
    );
    
-
+   cts_periph_trigger_i <= FPGA4_COMM(10) & FPGA3_COMM(10) & FPGA2_COMM(10) & FPGA1_COMM(10);
    
 --    cts_rdo_trg_status_bits <= cts_rdo_trg_status_bits_cts OR cts_rdo_trg_status_bits_additional;
    

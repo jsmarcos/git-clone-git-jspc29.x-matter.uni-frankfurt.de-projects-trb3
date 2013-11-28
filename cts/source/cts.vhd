@@ -109,6 +109,8 @@ entity CTS is
       ADDON_GROUPS        : integer range 1 to 8 := 5;
       ADDON_GROUP_UPPER   : CTS_GROUP_CONFIG_T  := (3,7,11,12,13, others=>'0');
       
+      PERIPH_TRIGGER_COUNT: integer range 0 to 1 := 1;
+      
       EXTERNAL_TRIGGER_ID  : std_logic_vector(7 downto 0) := X"00";
 
       TIME_REFERENCE_COUNT : positive := 10;
@@ -127,6 +129,8 @@ entity CTS is
       ADDON_TRIGGERS_IN  : in std_logic_vector(ADDON_LINE_COUNT-1 downto 0) := (others => '0');
       ADDON_GROUP_ACTIVITY_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
       ADDON_GROUP_SELECTED_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
+
+      PERIPH_TRIGGER_IN : in std_logic_vector(3 downto 0) := (others => '0');
       
    -- External trigger logic
       EXT_TRIGGER_IN  : in std_logic;
@@ -723,6 +727,8 @@ begin
       ADDON_GROUPS         => ADDON_GROUPS,
       ADDON_GROUP_UPPER    => ADDON_GROUP_UPPER,
       
+      PERIPH_TRIGGER_COUNT => PERIPH_TRIGGER_COUNT,
+      
       TRIGGER_ADDON_COUNT  => TRIGGER_ADDON_COUNT,
       EXTERNAL_TRIGGER_ID  => EXTERNAL_TRIGGER_ID
    )
@@ -735,6 +741,8 @@ begin
       ADDON_TRIGGERS_IN => ADDON_TRIGGERS_IN,
       ADDON_GROUP_ACTIVITY_OUT => ADDON_GROUP_ACTIVITY_OUT,
       ADDON_GROUP_SELECTED_OUT => ADDON_GROUP_SELECTED_OUT,
+      
+      PERIPH_TRIGGER_IN => PERIPH_TRIGGER_IN,
       
       EXT_TRIGGER_IN  => EXT_TRIGGER_IN,
       EXT_STATUS_IN   => EXT_STATUS_IN,

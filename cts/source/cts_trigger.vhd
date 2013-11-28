@@ -17,6 +17,8 @@ entity CTS_TRIGGER is
       ADDON_LINE_COUNT     : integer range 0 to 255 := 22;
       ADDON_GROUPS        : integer range 1 to 8 := 5;
       ADDON_GROUP_UPPER   : CTS_GROUP_CONFIG_T  := (3,7,11,12,13, others=>'0');
+
+      PERIPH_TRIGGER_COUNT: integer range 0 to 1 := 1;
       
       EXTERNAL_TRIGGER_ID  : std_logic_vector(7 downto 0) := X"00"
    );
@@ -32,6 +34,8 @@ entity CTS_TRIGGER is
       ADDON_TRIGGERS_IN  : in std_logic_vector(ADDON_LINE_COUNT-1 downto 0) := (others => '0');
       ADDON_GROUP_ACTIVITY_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
       ADDON_GROUP_SELECTED_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
+      
+      PERIPH_TRIGGER_IN : in std_logic_vector(3 downto 0) := (others => '0');
 
     -- External 
       EXT_TRIGGER_IN  : in std_logic;
@@ -81,7 +85,8 @@ architecture RTL of CTS_TRIGGER is
    constant ITC_BASE_PULSER : integer      := ITC_BASE_EXT         + ITC_NUM_EXT;
    constant ITC_BASE_RAND_PULSER : integer := ITC_BASE_PULSER      + TRIGGER_PULSER_COUNT;
    constant ITC_BASE_INPUTS : integer      := ITC_BASE_RAND_PULSER + TRIGGER_RAND_PULSER;
-   constant ITC_BASE_COINS  : integer      := ITC_BASE_INPUTS      + ITL_NUM;
+   constant ITC_BASE_PERIPH : integer      := ITC_BASE_INPUTS      + ITL_NUM;
+   constant ITC_BASE_COINS  : integer      := ITC_BASE_PERIPH      + PERIPH_TRIGGER_COUNT;
 
    constant ITC_NUM_USED    : integer := ITC_BASE_COINS       + TRIGGER_COIN_COUNT;
 
@@ -96,7 +101,7 @@ architecture RTL of CTS_TRIGGER is
       
    alias rand_pulsers_i    : std_logic_vector(TRIGGER_RAND_PULSER - 1 downto 0)
       is channels_i(ITC_BASE_RAND_PULSER + TRIGGER_RAND_PULSER - 1 downto ITC_BASE_RAND_PULSER);
-   
+      
    type   channel_counters_t is array(channels_i'HIGH downto 0) of unsigned(31 downto 0);
    signal channel_counters_i : channel_counters_t;
    signal channel_edge_counters_i : channel_counters_t;
@@ -125,6 +130,10 @@ architecture RTL of CTS_TRIGGER is
    type   rand_pulser_threshold_t is array(TRIGGER_RAND_PULSER - 1 downto 0) of std_logic_vector(31 downto 0);
    signal rand_pulser_threshold_i : rand_pulser_threshold_t := (others => (others => '0'));
 
+   
+-- Peripheral Trigger Inputs
+   signal periph_trigger_mask_i   : std_logic_vector(3 downto 0) := (others => '0');
+   
 -- Add On 
    type trigger_addon_configs_t is array(TRIGGER_ADDON_COUNT - 1 downto 0) of std_logic_vector(7 downto 0);
    signal trigger_addon_configs_i : trigger_addon_configs_t;
@@ -201,6 +210,13 @@ begin
          TRIGGER_OUT  => rand_pulsers_i(i)
       );
    end generate;
+   
+   proc_periph: process(CLK_IN) is
+   begin
+      if rising_edge(clk_in) and PERIPH_TRIGGER_COUNT > 0 then
+         channels_i(ITC_BASE_PERIPH) <= OR_ALL( periph_trigger_mask_i and PERIPH_TRIGGER_IN );
+      end if;
+   end process;
    
    proc_pulser: process(CLK_IN) is
    begin
@@ -532,6 +548,35 @@ begin
                end loop;
             end if;            
 
+-- PERIPH TRIGGER
+            if PERIPH_TRIGGER_COUNT > 0 then
+               if addr = ref_addr then
+                  REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN;
+                  REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
+                  REGIO_DATA_OUT <= CTS_BLOCK_HEADER(
+                     id => 16#13#,
+                     len => 1,
+                     itc_base => ITC_BASE_PERIPH,
+                     itc_num  => 1
+                  );
+               end if;
+               ref_addr := ref_addr + 1;  
+               
+               if addr=ref_addr then
+                  REGIO_UNKNOWN_ADDR_OUT <= '0';
+                  REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
+                  REGIO_WRITE_ACK_OUT <= REGIO_WRITE_ENABLE_IN;
+                  
+                  REGIO_DATA_OUT <= (others => '0');
+                  REGIO_DATA_OUT(periph_trigger_mask_i'range) <= periph_trigger_mask_i;
+                  
+                  if REGIO_WRITE_ENABLE_IN = '1' then
+                     periph_trigger_mask_i <= REGIO_DATA_IN(periph_trigger_mask_i'range);
+                  end if;
+               end if;
+               ref_addr := ref_addr + 1;                 
+            end if;     
+            
 -- TRIGGER_PULSER_COUNT CONFIGURATION
             if TRIGGER_PULSER_COUNT > 0 then
                if addr = ref_addr then
