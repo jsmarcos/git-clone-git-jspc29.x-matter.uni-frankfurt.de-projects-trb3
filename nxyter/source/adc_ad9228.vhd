@@ -45,6 +45,8 @@ entity adc_ad9228 is
     ADC0_NOTLOCK_COUNTER : out unsigned(7 downto 0);
     ADC1_NOTLOCK_COUNTER : out unsigned(7 downto 0);
 
+    ERROR_ADC0_OUT       : out std_logic;
+    ERROR_ADC1_OUT       : out std_logic;
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
 end adc_ad9228;
@@ -110,6 +112,10 @@ architecture Behavioral of  adc_ad9228 is
   signal adc1_read_enable_tt    :  std_logic;
   signal adc1_fifo_reset        :  std_logic;                                
 
+  -- Error
+  signal error_adc0_o           : std_logic;
+  signal error_adc1_o           : std_logic;
+
   -- Output
   signal adc0_data_valid_o      : std_logic;
   signal adc0_data_f            : adc_data_t;
@@ -118,30 +124,34 @@ architecture Behavioral of  adc_ad9228 is
   signal adc1_data_valid_o      : std_logic;
   signal adc1_data_f            : adc_data_t;
   signal adc1_data_o            : adc_data_t;
-  
+
 begin
 
   -- DEBUG
   DEBUG_OUT(0)            <= CLK_IN;
   DEBUG_OUT(1)            <= DDR_DATA_CLK;
-  DEBUG_OUT(2)            <= adc0_bit_shift_change;
-  DEBUG_OUT(3)            <= adc0_write_enable;
-  DEBUG_OUT(4)            <= adc0_fifo_full;
-  DEBUG_OUT(5)            <= adc0_fifo_empty;
-  DEBUG_OUT(6)            <= adc0_frame_locked;
-  DEBUG_OUT(7)            <= adc0_new_data_t;
-  DEBUG_OUT(8)            <= adc0_read_enable;
-  DEBUG_OUT(9)            <= adc0_read_enable_t;
+  --DEBUG_OUT(2)            <= adc0_bit_shift_change;
+  --DEBUG_OUT(3)            <= adc0_write_enable;
+  --DEBUG_OUT(4)            <= adc0_fifo_full;
+  --DEBUG_OUT(5)            <= adc0_fifo_empty;
+  --DEBUG_OUT(6)            <= adc0_frame_locked;
+  --DEBUG_OUT(7)            <= adc0_new_data_t;
+  --DEBUG_OUT(8)            <= adc0_read_enable;
+  --DEBUG_OUT(9)            <= adc0_read_enable_t;
+  --DEBUG_OUT(10)           <= adc0_read_enable_tt;
+  --DEBUG_OUT(11)           <= adc0_data_valid_o;
+  --DEBUG_OUT(15 downto 12) <= adc0_data_f(0)(3 downto 0);
+
+  DEBUG_OUT(5 downto 2)   <= adc0_data_t(0)(3 downto 0);
+  DEBUG_OUT(6)            <= adc0_fifo_full;
+  DEBUG_OUT(7)            <= adc0_write_enable;
+  DEBUG_OUT(8)            <= adc0_fifo_empty;
+  DEBUG_OUT(9)            <= adc0_read_enable;
   DEBUG_OUT(10)           <= adc0_read_enable_tt;
   DEBUG_OUT(11)           <= adc0_data_valid_o;
   DEBUG_OUT(15 downto 12) <= adc0_data_f(0)(3 downto 0);
   
-  reset_0                 <= RESET_IN or RESTART_IN;
-  reset_1                 <= RESET_IN or RESTART_IN;
-  clkdiv_reset            <= RESET_IN;
-
   -----------------------------------------------------------------------------
-  
   adc_ddr_generic_1: adc_ddr_generic
     port map (
       clk_0          => ADC0_DCLK_IN,
@@ -168,6 +178,10 @@ begin
       q_1            => q_1
       );
 
+  reset_0                 <= RESET_IN or RESTART_IN;
+  reset_1                 <= RESET_IN or RESTART_IN;
+  clkdiv_reset            <= RESET_IN;
+  
   -----------------------------------------------------------------------------
   
   PROC_MERGE_DATA0: process(DDR_DATA_CLK)
@@ -348,7 +362,7 @@ begin
       Data(47 downto 36) => adc0_data_t(3),
       WrClock            => DDR_DATA_CLK,
       RdClock            => CLK_IN,
-      WrEn               => adc0_new_data_t,
+      WrEn               => adc0_write_enable,
       RdEn               => adc0_read_enable,
       Reset              => RESET_IN,
       RPReset            => adc0_fifo_reset,
@@ -359,9 +373,10 @@ begin
       Empty              => adc0_fifo_empty,
       Full               => adc0_fifo_full
       );
-  adc0_fifo_reset     <= RESTART_IN;
-  adc0_write_enable   <= adc0_new_data_t and not adc0_fifo_full;
-  adc0_read_enable    <= not adc0_fifo_empty;
+
+  adc0_fifo_reset      <= RESET_IN or RESTART_IN;
+  adc0_write_enable    <= adc0_new_data_t and not adc0_fifo_full;
+  adc0_read_enable     <= not adc0_fifo_empty;
   
   PROC_ADC0_FIFO_READ: process(CLK_IN)
   begin
@@ -411,10 +426,10 @@ begin
       Empty              => adc1_fifo_empty,
       Full               => adc1_fifo_full
       );
-  adc1_fifo_reset     <= RESTART_IN;
-  adc1_write_enable   <= adc1_new_data_t and not adc1_fifo_full;
-  adc1_read_enable    <= not adc1_fifo_empty;
-
+  adc1_fifo_reset      <= RESET_IN or RESTART_IN;
+  adc1_write_enable    <= adc1_new_data_t and not adc1_fifo_full;
+  adc1_read_enable     <= not adc1_fifo_empty;
+  
   PROC_ADC1_FIFO_READ: process(CLK_IN)
   begin
     if (rising_edge(CLK_IN)) then
@@ -505,7 +520,30 @@ begin
       end if;
     end if;
   end process PROC_NOTLOCK_COUNTER;
-  
+
+  PROC_ERROR: process(CLK_IN)
+  begin
+    if (rising_edge(CLK_IN)) then
+      if (RESET_IN = '1') then
+        error_adc0_o     <= '0';
+        error_adc1_o     <= '0';
+      else
+        error_adc0_o     <= '0';
+        error_adc1_o     <= '0';
+        
+        if (adc0_frame_notlocked = '1' or
+            adc0_bit_shift_change = '1') then
+          error_adc0_o   <= '1';
+        end if;
+
+        if (adc1_frame_notlocked = '1' or
+            adc1_bit_shift_change = '1') then
+          error_adc0_o   <= '1';
+        end if;
+      end if;
+    end if;
+  end process PROC_ERROR;
+        
   -- Output
   
   ADC0_SCLK_OUT        <= ADC0_SCLK_IN;
@@ -526,4 +564,7 @@ begin
   ADC0_NOTLOCK_COUNTER <= adc0_notlock_ctr;
   ADC1_NOTLOCK_COUNTER <= adc1_notlock_ctr;
 
+  ERROR_ADC0_OUT       <= error_adc0_o;
+  ERROR_ADC1_OUT       <= error_adc1_o;
+  
 end architecture;

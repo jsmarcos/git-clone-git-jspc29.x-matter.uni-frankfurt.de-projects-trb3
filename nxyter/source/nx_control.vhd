@@ -21,7 +21,10 @@ entity nx_control is
     NX_TS_RESET_OUT        : out std_logic;
     I2C_ONLINE_IN          : in  std_logic;
     OFFLINE_OUT            : out std_logic;
-        
+
+    -- Error
+    ERROR_ALL_IN           : in  std_logic_vector(7 downto 0);
+    
     -- Slave bus           
     SLV_READ_IN            : in  std_logic;
     SLV_WRITE_IN           : in  std_logic;
@@ -421,6 +424,11 @@ begin
             when x"000b" =>
               slv_data_out_o(15 downto 0) <= pll_adc_sclk_notlock_ctr;
               slv_data_out_o(31 downto 6) <= (others => '0');
+              slv_ack_o                   <= '1';
+
+            when x"000c" =>
+              slv_data_out_o(7 downto 0)  <= ERROR_ALL_IN;
+              slv_data_out_o(31 downto 8) <= (others => '0');
               slv_ack_o                   <= '1';
               
             when others =>

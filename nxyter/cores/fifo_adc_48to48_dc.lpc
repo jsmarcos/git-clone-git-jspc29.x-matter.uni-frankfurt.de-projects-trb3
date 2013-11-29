@@ -16,8 +16,8 @@ CoreRevision=5.4
 ModuleName=fifo_adc_48to48_dc
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=11/24/2013
-Time=18:14:05
+Date=11/26/2013
+Time=10:38:44
 
 [Parameters]
 Verilog=0
@@ -33,7 +33,7 @@ Width=48
 RDepth=4
 RWidth=48
 regout=1
-CtrlByRdEn=1
+CtrlByRdEn=0
 EmpFlg=0
 PeMode=Static - Dual Threshold
 PeAssert=10

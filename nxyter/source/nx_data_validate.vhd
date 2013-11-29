@@ -78,6 +78,14 @@ architecture Behavioral of nx_data_validate is
   signal nx_frame_ctr_t       : unsigned(27 downto 0);
   signal nx_rate_timer        : unsigned(27 downto 0);
 
+  -- ADC Averages
+  signal adc_average_divisor  : unsigned(3 downto 0);
+  signal adc_average_ctr      : unsigned(8 downto 0);
+  signal adc_average_sum      : unsigned(24 downto 0);
+  signal adc_average          : unsigned(11 downto 0);
+  signal adc_data_last        : std_logic_vector(11 downto 0);
+  signal adc_av               : std_logic;
+  
   -- Config
   signal readout_type         : std_logic_vector(1 downto 0);
 
@@ -315,6 +323,35 @@ begin
     end if;
   end process PROC_CAL_RATES;
 
+  PROC_ADC_AVERAGE: process(CLK_IN)
+  begin
+    if (rising_edge(CLK_IN) ) then
+      if (RESET_IN = '1') then
+        adc_average_ctr    <= (others => '0');
+        adc_average_sum    <= (others => '0');
+        adc_average        <= (others => '0');
+        adc_data_last      <= (others => '0');
+        adc_av             <= '0';
+      else
+        adc_av             <= '0';
+        if ((adc_average_ctr srl to_integer(adc_average_divisor)) > 0) then
+          adc_average      <= (adc_average_sum srl
+                               to_integer(adc_average_divisor))(11 downto 0);
+          adc_average_sum  <= (others => '0');
+          adc_average_ctr  <= (others => '0');
+          adc_av           <= '1';
+        elsif (data_valid_o = '1') then
+          adc_average_sum  <= adc_average_sum + unsigned(adc_data_o);
+          adc_average_ctr  <= adc_average_ctr + 1;
+        end if;
+
+        if (data_valid_o = '1') then
+          adc_data_last    <= adc_data_o;
+        end if;
+      end if;
+    end if;
+  end process PROC_ADC_AVERAGE;
+  
   -----------------------------------------------------------------------------
   -- TRBNet Slave Bus
   -----------------------------------------------------------------------------
@@ -329,6 +366,7 @@ begin
         slv_unknown_addr_o     <= '0';
         slv_no_more_data_o     <= '0';
         clear_counters         <= '0';
+        adc_average_divisor    <= x"3";
       else
         slv_data_out_o         <= (others => '0');
         slv_unknown_addr_o     <= '0';
@@ -373,6 +411,22 @@ begin
                 std_logic_vector(nx_frame_rate);
               slv_data_out_o(31 downto 28) <= (others => '0');
               slv_ack_o                    <= '1';
+
+            when x"0006" =>
+              slv_data_out_o(11 downto 0)   <= adc_data_last;
+              slv_data_out_o(31 downto 12)  <= (others => '0');
+              slv_ack_o                     <= '1';
+
+            when x"0007" =>
+              slv_data_out_o(11 downto 0)   <= std_logic_vector(adc_average);
+              slv_data_out_o(31 downto 12)  <= (others => '0');
+              slv_ack_o                     <= '1';
+ 
+            when x"0008" =>
+              slv_data_out_o(3 downto 0)    <=
+                std_logic_vector(adc_average_divisor);
+              slv_data_out_o(31 downto 4)   <= (others => '0');
+              slv_ack_o                     <= '1';
               
             when others  =>
               slv_unknown_addr_o           <= '1';
@@ -384,6 +438,10 @@ begin
             when x"0000" =>
               clear_counters               <= '1';
               slv_ack_o                    <= '1';
+
+            when x"0008" =>
+              adc_average_divisor           <= SLV_DATA_IN(3 downto 0);
+              slv_ack_o                     <= '1';
               
             when others  =>
               slv_unknown_addr_o           <= '1';

@@ -195,10 +195,14 @@ architecture Behavioral of nXyter_FEE_board is
   signal nx_timestamp_sync      : std_logic;
   signal nx_timestamp_trigger_o : std_logic;
   
-  -- Trigger Generatorg
+  -- Trigger Generator
   signal trigger_intern         : std_logic;
   signal nx_testpulse_o         : std_logic;
 
+  -- Error
+  signal error_all              : std_logic_vector(7 downto 0);
+  signal error_data_receiver    : std_logic;
+  
   -- Debug Handler
   constant DEBUG_NUM_PORTS      : integer := 13;
   signal debug_line             : debug_array_t(0 to DEBUG_NUM_PORTS-1);
@@ -211,6 +215,12 @@ begin
   -- DEBUG_LINE_OUT(0)           <= CLK_IN;
   -- DEBUG_LINE_OUT(15 downto 0) <= (others => '0');
   -- See Multiplexer
+
+-------------------------------------------------------------------------------
+-- Errors
+-------------------------------------------------------------------------------
+  error_all(0)          <= error_data_receiver;
+  error_all(7 downto 1) <= (others => '0');
   
 -------------------------------------------------------------------------------
 -- Port Maps
@@ -303,6 +313,8 @@ begin
       NX_TS_RESET_OUT          => nx_ts_reset_1,
       I2C_ONLINE_IN            => nxyter_online_i2c,
       OFFLINE_OUT              => nxyter_offline,
+
+      ERROR_ALL_IN             => error_all,
 
       SLV_READ_IN              => slv_read(0),
       SLV_WRITE_IN             => slv_write(0),
@@ -540,7 +552,7 @@ begin
       SLV_ACK_OUT          => slv_ack(2),                       
       SLV_NO_MORE_DATA_OUT => slv_no_more_data(2),              
       SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(2),              
-
+      ERROR_OUT            => error_data_receiver,
       DEBUG_OUT            => debug_line(7)
       );
 

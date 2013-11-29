@@ -250,6 +250,9 @@ component adc_ad9228
 
     ADC0_NOTLOCK_COUNTER : out unsigned(7 downto 0);
     ADC1_NOTLOCK_COUNTER : out unsigned(7 downto 0);
+
+    ERROR_ADC0_OUT       : out std_logic;
+    ERROR_ADC1_OUT       : out std_logic;
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
 end component;
@@ -321,13 +324,13 @@ component nx_control
     RESET_IN               : in  std_logic;
     PLL_NX_CLK_LOCK_IN     : in  std_logic;
     PLL_ADC_DCLK_LOCK_IN   : in  std_logic;
-    PLL_ADC_SCLK_LOCK_IN  : in  std_logic;
+    PLL_ADC_SCLK_LOCK_IN   : in  std_logic;
     I2C_SM_RESET_OUT       : out std_logic;
     I2C_REG_RESET_OUT      : out std_logic;
     NX_TS_RESET_OUT        : out std_logic;
     I2C_ONLINE_IN          : in  std_logic;
     OFFLINE_OUT            : out std_logic;
-    
+    ERROR_ALL_IN           : in  std_logic_vector(7 downto 0);
     SLV_READ_IN            : in  std_logic;
     SLV_WRITE_IN           : in  std_logic;
     SLV_DATA_OUT           : out std_logic_vector(31 downto 0);
@@ -422,6 +425,7 @@ component nx_data_receiver
     SLV_ACK_OUT          : out std_logic;
     SLV_NO_MORE_DATA_OUT : out std_logic;
     SLV_UNKNOWN_ADDR_OUT : out std_logic;
+    ERROR_OUT            : out std_logic;
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
 end component;
