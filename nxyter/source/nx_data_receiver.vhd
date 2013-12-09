@@ -1309,8 +1309,9 @@ begin
 
   -- Output Signals
 
-  NX_TIMESTAMP_OUT       <= nx_timestamp_o;
-  ADC_DATA_OUT           <= adc_data_o;
+  NX_TIMESTAMP_OUT       <= nx_timestamp_o
+                            when new_data_o = '1' else x"0000_0000";
+  ADC_DATA_OUT           <= adc_data_o when new_data_o = '1' else x"000";
   NEW_DATA_OUT           <= new_data_o;
   ADC_SCLK_LOCK_OUT      <= pll_adc_sampling_clk_lock;
   ERROR_OUT              <= error_o;

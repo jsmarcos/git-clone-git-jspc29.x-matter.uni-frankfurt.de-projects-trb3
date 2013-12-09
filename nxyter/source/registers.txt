@@ -90,9 +90,10 @@
 0x8125 :  r    Frame Rate (in Hz)
 
 -- NX Data Delay
-0x8130 :  r   FIFO Delay, i.e. Trigger Delay (8 Bit, in 32ns).
-               Calculation is based on CTS Trigger Delay
-              (see NX Trigger Validate)
+0x8130 :  r    FIFO Delay, i.e. Trigger Delay (8 Bit, in 32ns).
+                Calculation is based on CTS Trigger Delay
+               (see NX Trigger Validate)
+0x8131 : r/w   Debug Multiplexer (0=Dta Delay, 1=FIFO)
 
 -- NX Trigger Validate
 0x8400 :  r/w  Readout Mode: 4 Bits
@@ -147,10 +148,12 @@
 --- DEBUG ------------------------------------------------------------
 
 -- I2C Master
-0x8040 :       Access to I2C Interface
+0x8040 :  r/w  Access to I2C Interface
                Chip Ids:  0x08   : nXyter
                           0x29   : AD7991-1
                           0x50   : EEPROM
+0x8041 :  r    Full I2C Word
+
 -- SPI Master
 0x8060 :       Access to SPI Interface
 

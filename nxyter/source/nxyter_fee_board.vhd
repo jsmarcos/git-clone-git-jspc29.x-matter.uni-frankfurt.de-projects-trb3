@@ -247,7 +247,7 @@ begin
                                 ),
 
       PORT_ADDR_MASK      => (  0 => 4,          -- NX Control Handler
-                                1 => 0,          -- I2C master
+                                1 => 1,          -- I2C master
                                 2 => 5,          -- Data Receiver
                                 3 => 3,          -- Data Buffer
                                 4 => 0,          -- SPI Master
@@ -258,7 +258,7 @@ begin
                                 9 => 9,          -- NX Setup
                                10 => 9,          -- NX Histograms
                                11 => 0,          -- Debug Handler
-                               12 => 1,          -- Data Delay
+                               12 => 2,          -- Data Delay
                                 others => 0
                                 ),
 
@@ -375,6 +375,7 @@ begin
       SLV_WRITE_IN          => slv_write(1),
       SLV_DATA_OUT          => slv_data_rd(1*32+31 downto 1*32),
       SLV_DATA_IN           => slv_data_wr(1*32+31 downto 1*32),
+      SLV_ADDR_IN           => slv_addr(1*16+15 downto 1*16),
       SLV_ACK_OUT           => slv_ack(1), 
       SLV_NO_MORE_DATA_OUT  => slv_no_more_data(1),
       SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(1),
@@ -388,7 +389,7 @@ begin
   
   adc_spi_master_1: adc_spi_master
     generic map (
-      SPI_SPEED => x"32"
+      SPI_SPEED => x"c8"
       )
     port map (
       CLK_IN               => CLK_IN,
@@ -708,19 +709,15 @@ begin
       );
 
   nx_histograms_1: nx_histograms
-    generic map (
-      BUS_WIDTH  => 7,
-      ENABLE     => false
-      )
     port map (
       CLK_IN                      => CLK_IN,
       RESET_IN                    => RESET_IN,
-                                  
+                                 
       RESET_HISTS_IN              => '0',
       CHANNEL_STAT_FILL_IN        => trigger_validate_fill,
       CHANNEL_ID_IN               => trigger_validate_bin,
       CHANNEL_ADC_IN              => trigger_validate_adc,
-      
+     
       SLV_READ_IN                 => slv_read(10),
       SLV_WRITE_IN                => slv_write(10),
       SLV_DATA_OUT                => slv_data_rd(10*32+31 downto 10*32),

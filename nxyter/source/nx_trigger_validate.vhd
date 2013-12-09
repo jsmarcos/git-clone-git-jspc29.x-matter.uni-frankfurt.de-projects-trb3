@@ -285,7 +285,7 @@ begin
         deltaTStore( 1 downto 0)   := unsigned(TIMESTAMP_IN(1 downto 0));
         
         -----------------------------------------------------------------------
-        -- Validate incomming Data
+        -- Validate incoming Data
         -----------------------------------------------------------------------
         if (DATA_CLK_IN = '1') then
           
@@ -362,13 +362,12 @@ begin
             if (out_of_window_error_ctr_clear = '1') then
               out_of_window_error_ctr          <= (others => '0');
             end if;
-            
-            -- Fill Histogram
-            histogram_fill_o                   <= '1';
-            histogram_bin_o                    <= CHANNEL_IN;
-            histogram_adc_o                    <= ADC_DATA_IN;
           end if;
-          
+
+          -- Fill Histogram
+          histogram_fill_o                   <= '1';
+          histogram_bin_o                    <= CHANNEL_IN;
+          histogram_adc_o                    <= ADC_DATA_IN;          
         end if;
       end if;
     end if;

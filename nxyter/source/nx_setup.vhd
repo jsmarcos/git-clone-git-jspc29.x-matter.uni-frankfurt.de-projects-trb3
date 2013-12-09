@@ -509,7 +509,7 @@ begin
 
             -- Write I2C Register
           when T_WRITE_I2C_REGISTER =>
-            nx_i2c_command(31 downto 16)         <= x"bf08";
+            nx_i2c_command(31 downto 16)         <= x"8008";
             nx_i2c_command(15 downto 14)         <= (others => '0');
             nx_i2c_command(13 downto  8)         <= token_ctr;
             nx_i2c_command( 7 downto  0)         <= i2c_ram(index);
@@ -530,7 +530,7 @@ begin
 
             -- Read I2C Register
           when T_READ_I2C_REGISTER =>
-            nx_i2c_command(31 downto 16)         <= x"ff08";
+            nx_i2c_command(31 downto 16)         <= x"c108";
             nx_i2c_command(15 downto 14)         <= (others => '0');
             nx_i2c_command(13 downto  8)         <= token_ctr;
             nx_i2c_command( 7 downto  0)         <= (others => '0');
@@ -607,7 +607,7 @@ begin
             r_fifo_ctr                           <= (others => '0');
 
           when DR_REGISTER =>
-            dac_read_i2c_command(31 downto 16)   <= x"ff08";
+            dac_read_i2c_command(31 downto 16)   <= x"c108";
             dac_read_i2c_command(15 downto 8)    <= x"2a";  -- DAC Reg 42
             dac_read_i2c_command(7 downto 0)     <= (others => '0');
             if (i2c_lock_1 = '0') then
@@ -625,7 +625,7 @@ begin
             dac_ram_write_1                       <= '1';
                                                   
             -- Write Data Back to FIFO            
-            dac_read_i2c_command(31 downto 16)    <= x"bf08";
+            dac_read_i2c_command(31 downto 16)    <= x"8008";
             dac_read_i2c_command(15 downto 8)     <= x"2a";  -- DAC Reg 42
             dac_read_i2c_command(5 downto 0)      <= i2c_data(5 downto 0);
             dac_read_i2c_command(7 downto 6)      <= (others => '0');
@@ -683,7 +683,7 @@ begin
             w_fifo_ctr                            <= (others => '0');
 
           when DW_REGISTER =>
-            dac_write_i2c_command(31 downto 16) <= x"ff08";
+            dac_write_i2c_command(31 downto 16) <= x"c108";
             dac_write_i2c_command(15 downto 8)  <= x"2a";  -- DAC Reg 42
             dac_write_i2c_command(7 downto 0)   <= (others => '0');
             dac_write_token_clear(index)        <= '1';
@@ -697,7 +697,7 @@ begin
             
           when DW_WRITE_BACK =>
             -- Write Data Back to FIFO
-            dac_write_i2c_command(31 downto 16)   <= x"bf08";
+            dac_write_i2c_command(31 downto 16)   <= x"8008";
             dac_write_i2c_command(15 downto 8)    <= x"2a";  -- DAC Reg 42
             dac_write_i2c_command(7 downto 6)     <= (others => '0');
             dac_write_i2c_command(5 downto 0)     <= dac_ram(index);
@@ -756,7 +756,7 @@ begin
         case R_STATE is
 
           when R_TIMER_RESTART =>
-            wait_timer_init                    <= x"1dcd_6500"; -- 5s
+            wait_timer_init                    <= x"5968_2f00"; -- 15s
             R_STATE                            <= R_IDLE;
 
           when R_IDLE =>
@@ -767,7 +767,7 @@ begin
             end if;
 
           when R_READ_DUMMY =>
-            i2c_online_command(31 downto 16)   <= x"ff08";
+            i2c_online_command(31 downto 16)   <= x"c108";
             i2c_online_command(15 downto 8)    <= x"1f";  -- Dummy register
             i2c_online_command(7 downto 0)     <= (others => '0');
             if (i2c_lock_3 = '0') then

@@ -423,7 +423,7 @@ begin
       REGIO_HARDWARE_VERSION    => x"9100_6000",
       REGIO_INIT_ADDRESS        => x"3800",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
-      CLOCK_FREQUENCY           => 125,
+      CLOCK_FREQUENCY           => 100,
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
       DATA_INTERFACE_NUMBER     => 2,

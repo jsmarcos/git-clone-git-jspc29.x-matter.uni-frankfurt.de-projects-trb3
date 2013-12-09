@@ -10,31 +10,31 @@ entity adc_spi_master is
     SPI_SPEED : unsigned(7 downto 0) := x"32"
     );
   port(
-    CLK_IN               : in    std_logic;
-    RESET_IN             : in    std_logic;
-
-    -- SPI connections
-    SCLK_OUT             : out   std_logic;
-    SDIO_INOUT           : inout std_logic;
-    CSB_OUT              : out   std_logic;
-
-    -- Internal Interface
-    INTERNAL_COMMAND_IN  : in    std_logic_vector(31 downto 0);
-    COMMAND_ACK_OUT      : out   std_logic;
-    SPI_DATA             : out   std_logic_vector(31 downto 0);
-    SPI_LOCK_IN          : in    std_logic;
-
-    -- Slave bus         
-    SLV_READ_IN          : in    std_logic;
-    SLV_WRITE_IN         : in    std_logic;
-    SLV_DATA_OUT         : out   std_logic_vector(31 downto 0);
-    SLV_DATA_IN          : in    std_logic_vector(31 downto 0);
-    SLV_ACK_OUT          : out   std_logic;
-    SLV_NO_MORE_DATA_OUT : out   std_logic;
-    SLV_UNKNOWN_ADDR_OUT : out   std_logic;
-    
-    -- Debug Line
-    DEBUG_OUT            : out std_logic_vector(15 downto 0)
+    CLK_IN                 : in    std_logic;
+    RESET_IN               : in    std_logic;
+                           
+    -- SPI connections     
+    SCLK_OUT               : out   std_logic;
+    SDIO_INOUT             : inout std_logic;
+    CSB_OUT                : out   std_logic;
+                           
+    -- Internal Interface  
+    INTERNAL_COMMAND_IN    : in    std_logic_vector(31 downto 0);
+    COMMAND_ACK_OUT        : out   std_logic;
+    SPI_DATA               : out   std_logic_vector(31 downto 0);
+    SPI_LOCK_IN            : in    std_logic;
+                           
+    -- Slave bus           
+    SLV_READ_IN            : in    std_logic;
+    SLV_WRITE_IN           : in    std_logic;
+    SLV_DATA_OUT           : out   std_logic_vector(31 downto 0);
+    SLV_DATA_IN            : in    std_logic_vector(31 downto 0);
+    SLV_ACK_OUT            : out   std_logic;
+    SLV_NO_MORE_DATA_OUT   : out   std_logic;
+    SLV_UNKNOWN_ADDR_OUT   : out   std_logic;
+                           
+    -- Debug Line          
+    DEBUG_OUT              : out   std_logic_vector(15 downto 0)
     );
 end entity;
 

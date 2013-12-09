@@ -16,8 +16,8 @@ CoreRevision=5.4
 ModuleName=fifo_ts_32to32_dc
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=08/16/2013
-Time=20:07:49
+Date=12/01/2013
+Time=06:07:38
 
 [Parameters]
 Verilog=0
@@ -33,7 +33,7 @@ Width=32
 RDepth=4
 RWidth=32
 regout=1
-CtrlByRdEn=1
+CtrlByRdEn=0
 EmpFlg=0
 PeMode=Static - Single Threshold
 PeAssert=2

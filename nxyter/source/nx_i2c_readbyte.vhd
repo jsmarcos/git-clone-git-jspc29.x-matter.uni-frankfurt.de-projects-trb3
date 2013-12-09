@@ -15,9 +15,10 @@ entity nx_i2c_readbyte is
     RESET_IN             : in  std_logic;
 
     START_IN             : in  std_logic;
-    BYTE_OUT             : out std_logic_vector(7 downto 0);
+    NUM_BYTES_IN         : in  unsigned(2 downto 0);
+    BYTE_OUT             : out std_logic_vector(31 downto 0);
     SEQUENCE_DONE_OUT    : out std_logic;
-
+    
     -- I2C connections
     SDA_OUT              : out std_logic;
     SCL_OUT              : out std_logic;
@@ -33,15 +34,17 @@ architecture Behavioral of nx_i2c_readbyte is
   signal i2c_start         : std_logic;
 
   signal sequence_done_o   : std_logic;
-  signal i2c_byte          : unsigned(7 downto 0);
+  signal i2c_byte          : unsigned(31 downto 0);
   signal bit_ctr           : unsigned(3 downto 0);
   signal i2c_ack_o         : std_logic;
+  signal byte_ctr          : unsigned(2 downto 0);
   signal wait_timer_init   : unsigned(11 downto 0);
 
   signal sequence_done_o_x : std_logic;
-  signal i2c_byte_x        : unsigned(7 downto 0);
+  signal i2c_byte_x        : unsigned(31 downto 0);
   signal bit_ctr_x         : unsigned(3 downto 0);
   signal i2c_ack_o_x       : std_logic;
+  signal byte_ctr_x        : unsigned(2 downto 0);
   signal wait_timer_init_x : unsigned(11 downto 0);
   
   type STATES is (S_IDLE,
@@ -56,6 +59,10 @@ architecture Behavioral of nx_i2c_readbyte is
                   S_UNSET_SCL2,
                   S_NEXT_BIT,
 
+                  S_ACK_SET,
+                  S_ACK_SET_SCL,
+                  S_ACK_UNSET_SCL,
+                  
                   S_NACK_SET,
                   S_NACK_SET_SCL,
                   S_NACK_UNSET_SCL
@@ -85,8 +92,10 @@ begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
         sequence_done_o  <= '0';
+        i2c_byte         <= (others => '0');
         bit_ctr          <= (others => '0');
         i2c_ack_o        <= '0';
+        byte_ctr         <= (others => '0');
         wait_timer_init  <= (others => '0');
         STATE            <= S_IDLE;
       else
@@ -94,6 +103,7 @@ begin
         i2c_byte         <= i2c_byte_x;
         bit_ctr          <= bit_ctr_x;
         i2c_ack_o        <= i2c_ack_o_x;
+        byte_ctr         <= byte_ctr_x;
         wait_timer_init  <= wait_timer_init_x;
         STATE            <= NEXT_STATE;
       end if;
@@ -112,96 +122,133 @@ begin
     i2c_byte_x         <= i2c_byte;
     bit_ctr_x          <= bit_ctr;       
     i2c_ack_o_x        <= i2c_ack_o;
+    byte_ctr_x         <= byte_ctr; 
     wait_timer_init_x  <= (others => '0');
     
     case STATE is
       when S_IDLE =>
         if (START_IN = '1') then
-          sda_o       <= '0';
-          scl_o       <= '0';
-          i2c_byte_x  <= (others => '0');
-          NEXT_STATE  <= S_INIT;
+          sda_o              <= '0';
+          scl_o              <= '0';
+          i2c_byte_x         <= (others => '0');
+          byte_ctr_x         <= (others => '0');
+          NEXT_STATE         <= S_INIT;
         else
-          NEXT_STATE <= S_IDLE;
+          NEXT_STATE         <= S_IDLE;
         end if;
 
         -- INIT
       when S_INIT =>
-        sda_o              <= '0';
-        scl_o              <= '0';
-        wait_timer_init_x  <= I2C_SPEED srl 1;
-        NEXT_STATE <= S_INIT_WAIT;
+        sda_o                <= '0';
+        scl_o                <= '0';
+        wait_timer_init_x    <= I2C_SPEED srl 1;
+        NEXT_STATE           <= S_INIT_WAIT;
 
       when S_INIT_WAIT =>
-        sda_o              <= '0';
-        scl_o              <= '0';
+        sda_o                <= '0';
+        scl_o                <= '0';
         if (wait_timer_done = '0') then
-          NEXT_STATE <= S_INIT_WAIT;
+          NEXT_STATE         <= S_INIT_WAIT;
         else
-          NEXT_STATE <= S_READ_BYTE;
+          NEXT_STATE         <= S_READ_BYTE;
         end if;
         
         -- I2C Read byte
       when S_READ_BYTE =>
-        scl_o             <= '0';
-        bit_ctr_x         <= x"7";
-        wait_timer_init_x <= I2C_SPEED srl 2;
-        NEXT_STATE        <= S_UNSET_SCL1;
+        scl_o                <= '0';
+        bit_ctr_x            <= x"7";
+        byte_ctr_x           <= byte_ctr + 1;
+        wait_timer_init_x    <= I2C_SPEED srl 2;
+        NEXT_STATE           <= S_UNSET_SCL1;
 
       when S_UNSET_SCL1 =>
         scl_o <= '0';
         if (wait_timer_done = '0') then
-          NEXT_STATE <= S_UNSET_SCL1;
+          NEXT_STATE         <= S_UNSET_SCL1;
         else
           wait_timer_init_x <= I2C_SPEED srl 2;
-          NEXT_STATE <= S_SET_SCL1;
+          NEXT_STATE         <= S_SET_SCL1;
         end if;
 
       when S_SET_SCL1 =>
         if (wait_timer_done = '0') then
-          NEXT_STATE <= S_SET_SCL1;
+          NEXT_STATE         <= S_SET_SCL1;
         else
-          wait_timer_init_x <= I2C_SPEED srl 2;
-          NEXT_STATE        <= S_GET_BIT;
+          wait_timer_init_x  <= I2C_SPEED srl 2;
+          NEXT_STATE         <= S_GET_BIT;
         end if;
 
       when S_GET_BIT =>
-        i2c_byte_x(0)   <= SDA_IN;
-        NEXT_STATE      <= S_SET_SCL2;
+        i2c_byte_x(0)        <= SDA_IN;
+        NEXT_STATE           <= S_SET_SCL2;
                 
       when S_SET_SCL2 =>
         if (wait_timer_done = '0') then
           NEXT_STATE <= S_SET_SCL2;
         else
-          wait_timer_init_x <= I2C_SPEED srl 2;
-          NEXT_STATE        <= S_UNSET_SCL2;
+          wait_timer_init_x  <= I2C_SPEED srl 2;
+          NEXT_STATE         <= S_UNSET_SCL2;
         end if;
         
       when S_UNSET_SCL2 =>
-        scl_o <= '0';
+        scl_o                <= '0';
         if (wait_timer_done = '0') then
-          NEXT_STATE <= S_UNSET_SCL2;
+          NEXT_STATE         <= S_UNSET_SCL2;
         else
-          NEXT_STATE <= S_NEXT_BIT;
+          NEXT_STATE         <= S_NEXT_BIT;
         end if;
         
       when S_NEXT_BIT =>
-        scl_o <= '0';
+        scl_o                <= '0';
         if (bit_ctr > 0) then
           bit_ctr_x          <= bit_ctr - 1;
           i2c_byte_x         <= i2c_byte sll 1;
           wait_timer_init_x  <= I2C_SPEED srl 2;
           NEXT_STATE         <= S_UNSET_SCL1;
         else
-          wait_timer_init_x  <= I2C_SPEED srl 2;
-          NEXT_STATE         <= S_NACK_SET;
+          if (byte_ctr < NUM_BYTES_IN) then
+            wait_timer_init_x  <= I2C_SPEED srl 2;
+            NEXT_STATE         <= S_ACK_SET;
+          else
+            wait_timer_init_x  <= I2C_SPEED srl 2;
+            NEXT_STATE         <= S_NACK_SET;
+          end if;
+        end if;
+        
+        -- I2C Send ACK (ACK) Sequence to tell client to read next byte
+      when S_ACK_SET =>
+        sda_o               <= '0';
+        scl_o               <= '0';
+        if (wait_timer_done = '0') then
+          NEXT_STATE        <= S_ACK_SET;
+        else
+          wait_timer_init_x <= I2C_SPEED srl 1;
+          NEXT_STATE        <= S_ACK_SET_SCL;
         end if;
 
+      when S_ACK_SET_SCL =>
+        sda_o               <= '0';
+        if (wait_timer_done = '0') then
+          NEXT_STATE        <= S_ACK_SET_SCL;
+        else
+          wait_timer_init_x <= I2C_SPEED srl 2;
+          NEXT_STATE        <= S_ACK_UNSET_SCL;
+        end if; 
+        
+      when S_ACK_UNSET_SCL =>
+        sda_o               <= '0';
+        scl_o               <= '0';
+        if (wait_timer_done = '0') then
+          NEXT_STATE        <= S_ACK_UNSET_SCL;
+        else
+          NEXT_STATE        <= S_READ_BYTE;
+        end if; 
+        
         -- I2C Send NOT_ACK (NACK) Sequence to tell client to release the bus
       when S_NACK_SET =>
-        scl_o <= '0';
+        scl_o               <= '0';
         if (wait_timer_done = '0') then
-          NEXT_STATE <= S_NACK_SET;
+          NEXT_STATE        <= S_NACK_SET;
         else
           wait_timer_init_x <= I2C_SPEED srl 1;
           NEXT_STATE        <= S_NACK_SET_SCL;
@@ -209,16 +256,16 @@ begin
 
       when S_NACK_SET_SCL =>
         if (wait_timer_done = '0') then
-          NEXT_STATE <= S_NACK_SET_SCL;
+          NEXT_STATE        <= S_NACK_SET_SCL;
         else
           wait_timer_init_x <= I2C_SPEED srl 2;
           NEXT_STATE        <= S_NACK_UNSET_SCL;
         end if; 
         
       when S_NACK_UNSET_SCL =>
-        scl_o <= '0';
+        scl_o               <= '0';
         if (wait_timer_done = '0') then
-          NEXT_STATE <= S_NACK_UNSET_SCL;
+          NEXT_STATE        <= S_NACK_UNSET_SCL;
         else
           sequence_done_o_x <= '1';
           NEXT_STATE        <= S_IDLE;

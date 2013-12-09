@@ -91,6 +91,7 @@ component nx_i2c_master
     SLV_WRITE_IN         : in    std_logic;
     SLV_DATA_OUT         : out   std_logic_vector(31 downto 0);
     SLV_DATA_IN          : in    std_logic_vector(31 downto 0);
+    SLV_ADDR_IN          : in    std_logic_vector(15 downto 0);
     SLV_ACK_OUT          : out   std_logic;
     SLV_NO_MORE_DATA_OUT : out   std_logic;
     SLV_UNKNOWN_ADDR_OUT : out   std_logic;
@@ -140,7 +141,8 @@ component nx_i2c_readbyte
     CLK_IN            : in  std_logic;
     RESET_IN          : in  std_logic;
     START_IN          : in  std_logic;
-    BYTE_OUT          : out std_logic_vector(7 downto 0);
+    NUM_BYTES_IN      : in  unsigned(2 downto 0);
+    BYTE_OUT          : out std_logic_vector(31 downto 0);
     SEQUENCE_DONE_OUT : out std_logic;
     SDA_OUT           : out std_logic;
     SCL_OUT           : out std_logic;
@@ -273,6 +275,18 @@ component adc_ddr_generic
     );
 end component;
 
+component ddr_generic_single
+  port (
+    clk_0        : in  std_logic;
+    clkdiv_reset : in  std_logic;
+    eclk         : in  std_logic;
+    reset_0      : in  std_logic;
+    sclk         : out std_logic;
+    datain_0     : in  std_logic_vector(4 downto 0);
+    q_0          : out std_logic_vector(19 downto 0)
+    );
+end component;
+
 component fifo_adc_48to48_dc
   port (
     Data    : in  std_logic_vector(47 downto 0);
@@ -363,6 +377,37 @@ component fifo_ts_32to32_dc
     Q             : out std_logic_vector(31 downto 0);
     Empty         : out std_logic;
     Full          : out std_logic
+    );
+end component;
+
+component ram_fifo_delay_256x44
+  port (
+    WrAddress : in  std_logic_vector(7 downto 0);
+    RdAddress : in  std_logic_vector(7 downto 0);
+    Data      : in  std_logic_vector(43 downto 0);
+    WE        : in  std_logic;
+    RdClock   : in  std_logic;
+    RdClockEn : in  std_logic;
+    Reset     : in  std_logic;
+    WrClock   : in  std_logic;
+    WrClockEn : in  std_logic;
+    Q         : out std_logic_vector(43 downto 0)
+    );
+end component;
+
+component fifo_44_data_delay_my
+  port (
+    Data          : in  std_logic_vector(43 downto 0);
+    Clock         : in  std_logic;
+    WrEn          : in  std_logic;
+    RdEn          : in  std_logic;
+    Reset         : in  std_logic;
+    AmEmptyThresh : in  std_logic_vector(7 downto 0);
+    Q             : out std_logic_vector(43 downto 0);
+    Empty         : out std_logic;
+    Full          : out std_logic;
+    AlmostEmpty   : out std_logic;
+    DEBUG_OUT     : out std_logic_vector(15 downto 0)
     );
 end component;
 
@@ -553,17 +598,34 @@ end component;
 
 -------------------------------------------------------------------------------
 
-component nx_histograms
+component nx_histogram
   generic (
-    BUS_WIDTH    : integer;
-    ENABLE       : boolean
+    BUS_WIDTH  : integer;
+    DATA_WIDTH : integer
     );
+  port (
+    CLK_IN                 : in  std_logic;
+    RESET_IN               : in  std_logic;
+    CHANNEL_ID_IN          : in  std_logic_vector(BUS_WIDTH - 1 downto 0);
+    CHANNEL_DATA_IN        : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
+    CHANNEL_ADD_IN         : in  std_logic;
+    CHANNEL_WRITE_IN       : in  std_logic;
+    CHANNEL_WRITE_BUSY_OUT : out std_logic;
+    CHANNEL_ID_READ_IN     : in  std_logic_vector(BUS_WIDTH - 1 downto 0);
+    CHANNEL_READ_IN        : in  std_logic;
+    CHANNEL_DATA_OUT       : out std_logic_vector(DATA_WIDTH - 1 downto 0);
+    CHANNEL_DATA_VALID_OUT : out std_logic;
+    CHANNEL_READ_BUSY_OUT  : out std_logic;
+    DEBUG_OUT              : out std_logic_vector(15 downto 0));
+end component;
+
+component nx_histograms
   port (
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
     RESET_HISTS_IN       : in  std_logic;
     CHANNEL_STAT_FILL_IN : in  std_logic;
-    CHANNEL_ID_IN        : in  std_logic_vector(BUS_WIDTH - 1 downto 0);
+    CHANNEL_ID_IN        : in  std_logic_vector(6 downto 0);
     CHANNEL_ADC_IN       : in  std_logic_vector(11 downto 0);
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
@@ -573,7 +635,8 @@ component nx_histograms
     SLV_ACK_OUT          : out std_logic;
     SLV_NO_MORE_DATA_OUT : out std_logic;
     SLV_UNKNOWN_ADDR_OUT : out std_logic;
-    DEBUG_OUT            : out std_logic_vector(15 downto 0));
+    DEBUG_OUT            : out std_logic_vector(15 downto 0)
+    );
 end component;
 
 component ram_dp_128x32
