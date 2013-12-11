@@ -1091,7 +1091,7 @@ begin
         pll_adc_sample_clk_dphase_r   <= x"0";
         pll_adc_sample_clk_finedelb   <= (others => '0');
         pll_adc_not_lock_ctr_clear    <= '0';
-        nx_fifo_delay                 <= x"7";
+        nx_fifo_delay                 <= x"8";
         reset_adc_handler_r           <= '0';
         reset_handler_counter_clear   <= '0';
         adc_bit_shift                 <= x"0";

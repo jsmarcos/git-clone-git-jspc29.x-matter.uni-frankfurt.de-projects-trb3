@@ -756,7 +756,7 @@ begin
         case R_STATE is
 
           when R_TIMER_RESTART =>
-            wait_timer_init                    <= x"5968_2f00"; -- 15s
+            wait_timer_init                    <= x"1dcd_6500"; -- 5s
             R_STATE                            <= R_IDLE;
 
           when R_IDLE =>

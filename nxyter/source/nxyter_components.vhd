@@ -827,6 +827,7 @@ component nx_trigger_handler
     LVL1_TRG_CODE_IN           : in  std_logic_vector(7 downto 0);
     LVL1_TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0);
     LVL1_INT_TRG_NUMBER_IN     : in  std_logic_vector(15 downto 0);
+    FEE_DATA_FINISHED_OUT      : out std_logic;
     FEE_TRG_RELEASE_OUT        : out std_logic;
     FEE_TRG_STATUSBITS_OUT     : out std_logic_vector(31 downto 0);
     INTERNAL_TRIGGER_IN        : in  std_logic;

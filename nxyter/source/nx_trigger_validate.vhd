@@ -82,7 +82,7 @@ architecture Behavioral of nx_trigger_validate is
   signal channel_status_cmd   : CS_CMDS; 
   
   -- Process Calculate Trigger Window
-  signal ts_window_lower_thr  : unsigned(11 downto 0);
+  signal fifo_delay_time      : unsigned(11 downto 0);
   
   -- Process Timestamp
   signal d_data_o             : std_logic_vector(31 downto 0);
@@ -104,6 +104,7 @@ architecture Behavioral of nx_trigger_validate is
   signal token_return_last    : std_logic;
   signal token_return_first   : std_logic;
   signal ch_status_cmd_tr     : CS_CMDS;
+  signal wait_for_data_time_r : std_logic_vector(19 downto 0);
   
   type STATES is (S_TEST_SELF_TRIGGER,
                   S_IDLE,
@@ -143,7 +144,7 @@ architecture Behavioral of nx_trigger_validate is
                                
   -- Data FIFO Delay           
   signal data_fifo_delay_o     : unsigned(7 downto 0);
-
+  
   -- Output
   signal data_clk_o            : std_logic;
   signal data_o                : std_logic_vector(31 downto 0);
@@ -232,7 +233,7 @@ begin
         out_of_window_l         <= '0';
         out_of_window_h         <= '0';
         out_of_window_error     <= '0';
-        ts_window_lower_thr     <= (others => '0');
+        fifo_delay_time         <= (others => '0');
         out_of_window_error_ctr <= (others => '0');
       else
         d_data_o                <= (others => '0');
@@ -240,8 +241,9 @@ begin
         out_of_window_l         <= '0';
         out_of_window_h         <= '0';
         out_of_window_error     <= '0';
+        fifo_delay_time         <= (others => '0');
         ch_status_cmd_pr        <= CS_NONE;
-                                
+
         histogram_fill_o        <= '0';
         histogram_bin_o         <= (others => '0');
         histogram_adc_o         <= (others => '0');
@@ -249,31 +251,28 @@ begin
         -----------------------------------------------------------------------
         -- Calculate Thresholds and values for FIFO Delay
         -----------------------------------------------------------------------
-
-        window_lower_thr        := timestamp_fpga - cts_trigger_delay;
-
+        
         if (ts_window_offset(11) = '1') then
+          -- Offset is negative
           ts_window_offset_unsigned :=
             (unsigned(ts_window_offset) xor x"fff") + 1;
           window_lower_thr       :=
-            window_lower_thr - ts_window_offset_unsigned;
-
-          -- TS Window Lower Threshold (needed by FIFO Delay)
-          ts_window_lower_thr    <=
             cts_trigger_delay + ts_window_offset_unsigned;
-
         else
+          -- Offset is positive
           window_lower_thr       :=
-            window_lower_thr + unsigned(ts_window_offset);
-
-          -- TS Window Lower Threshold (needed by FIFO Delay)
-          if (cts_trigger_delay > unsigned(ts_window_offset)) then
-            ts_window_lower_thr  <=
-              cts_trigger_delay - unsigned(ts_window_offset);
-          else
-            ts_window_lower_thr  <= (others => '0');
-          end if;
+            cts_trigger_delay - unsigned(ts_window_offset);
         end if;
+
+        -- Calculate FIFO Delay 
+        if (window_lower_thr(11) = '0') then
+          fifo_delay_time        <= window_lower_thr;  -- unit is 4ns
+        else
+          fifo_delay_time        <= (others => '0');   
+        end if;
+
+        -- Final ower Threshold value relative to TS Reference TS
+        window_lower_thr         := timestamp_fpga - window_lower_thr;  
         
         window_upper_thr         :=
           window_lower_thr + resize(ts_window_width, 12);
@@ -281,8 +280,8 @@ begin
           unsigned(TIMESTAMP_IN(13 downto 2)) - window_lower_thr;
 
         -- Timestamp to be stored
-        deltaTStore(13 downto 2)   := ts_window_check_value;
-        deltaTStore( 1 downto 0)   := unsigned(TIMESTAMP_IN(1 downto 0));
+        deltaTStore(13 downto 2) := ts_window_check_value;
+        deltaTStore( 1 downto 0) := unsigned(TIMESTAMP_IN(1 downto 0));
         
         -----------------------------------------------------------------------
         -- Validate incoming Data
@@ -420,6 +419,7 @@ begin
         timestamp_fpga              <= (others => '0');
         timestamp_ref               <= (others => '0');
         evt_buffer_clear_o          <= '0';
+        wait_for_data_time_r        <= (others => '0');
         STATE                       <= S_TEST_SELF_TRIGGER;
       else
         store_to_fifo               <= '0';
@@ -433,11 +433,12 @@ begin
         ch_status_cmd_tr            <= CS_NONE;
         evt_buffer_clear_o          <= '0';
         
-        --wait_for_data_time          :=
-        --  resize(nxyter_cv_time, 20) + (data_fifo_delay_o * 32);
-        wait_for_data_time          := x"00008";
+        wait_for_data_time          :=
+          resize(nxyter_cv_time, 20) + data_fifo_delay_o * 32;
+        --wait_for_data_time          := x"00008";
         min_validation_time         := resize(ts_window_width * 4, 20);
-
+        wait_for_data_time_r        <= wait_for_data_time;
+        
         -- Check Token Return
         token_return_last           <= NX_TOKEN_RETURN_IN;
         if (store_to_fifo      = '1' and
@@ -465,6 +466,8 @@ begin
                 STATE                     <= S_WRITE_HEADER;
               end if;
             else
+              wait_timer_reset_all        <= '1';
+              min_val_time_expired        <= '0';
               STATE                       <= S_IDLE;
             end if;
                   
@@ -665,15 +668,17 @@ begin
   end process PROC_CHANNEL_STATUS;
 
   PROC_DATA_FIFO_DELAY: process(CLK_IN)
+    variable nx_cvt     : unsigned(11 downto 0);
     variable fifo_delay : unsigned(11 downto 0);
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1') then
         data_fifo_delay_o       <= x"01";
       else
-        fifo_delay := (ts_window_lower_thr / 8) + 1;  -- in 32ns
-        if (fifo_delay > 18 and fifo_delay < 250) then
-          fifo_delay := fifo_delay - 18;
+        -- nxyter delay assumed to be 400ns
+         nx_cvt                 := nxyter_cv_time / 4;
+        if (fifo_delay_time > nx_cvt and fifo_delay_time < 1000) then
+          fifo_delay            := (fifo_delay_time - nx_cvt) / 8;   
           data_fifo_delay_o     <= fifo_delay(7 downto 0);
         else
           data_fifo_delay_o     <= x"01";
@@ -762,7 +767,7 @@ begin
               slv_ack_o                       <= '1';  
 
             when x"0008" =>
-              slv_data_out_o(11 downto  0)    <= ts_window_lower_thr;
+              slv_data_out_o(11 downto  0)    <= fifo_delay_time;
               slv_data_out_o(31 downto 12)    <= (others => '0');
               slv_ack_o                       <= '1';  
 
@@ -852,6 +857,11 @@ begin
               slv_data_out_o(0)               <= EVT_BUFFER_FULL_IN;
               slv_data_out_o(31 downto  1)    <= (others => '0');
               slv_ack_o                       <= '1'; 
+
+            when x"0019" =>
+              slv_data_out_o(19 downto 0)     <= wait_for_data_time_r;
+              slv_data_out_o(31 downto  20)   <= (others => '0');
+              slv_ack_o                       <= '1';  
               
             when others  =>
               slv_unknown_addr_o              <= '1';
