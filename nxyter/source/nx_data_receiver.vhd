@@ -848,21 +848,6 @@ begin
     end if;
   end process PROC_NX_FIFO_READ;
 
-  PROC_NX_FIFO_DELAY: process(CLK_IN)
-  begin
-    if (rising_edge(CLK_IN) ) then
-      if (RESET_IN = '1' or fifo_reset_r = '1') then
-        
-      else
-        if (nx_fifo_data_valid = '1') then
-
-        else
-
-        end if;
-      end if;
-    end if;
-  end process PROC_NX_FIFO_DELAY;
-
   -----------------------------------------------------------------------------
   -- Status Counters
   -----------------------------------------------------------------------------

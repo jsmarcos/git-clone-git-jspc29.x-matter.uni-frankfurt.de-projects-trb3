@@ -33,52 +33,71 @@ end entity;
 
 architecture Behavioral of nx_histogram is
   
-  -- Read Handler
-  type R_STATES is (R_IDLE,
-                    R_WAIT,
-                    R_READ
+  -- Hist Fill/Ctr Handler
+  type H_STATES is (H_IDLE,
+                    H_WRITE_CHANNEL
                     );
-  signal R_STATE, R_NEXT_STATE : R_STATES;
+  signal H_STATE, H_NEXT_STATE : H_STATES;
 
-  signal read_data              : std_logic_vector(DATA_WIDTH - 1 downto 0);
-  signal read_address           : std_logic_vector(BUS_WIDTH - 1 downto 0);
-  signal read_address_f         : std_logic_vector(BUS_WIDTH - 1 downto 0);
-  signal read_enable            : std_logic;
-  signal channel_data_o         : std_logic_vector(DATA_WIDTH - 1 downto 0);
-  signal channel_data_valid_o   : std_logic;
-  signal channel_read_busy_o    : std_logic;
-
-  -- Write Handler
-  type W_STATES is (W_IDLE,
-                    W_WRITE,
-                    W_ADD
-                    );
-  signal W_STATE, W_NEXT_STATE : W_STATES;
-
-  signal write_address          : std_logic_vector(BUS_WIDTH - 1 downto 0);
-  signal write_address_f        : std_logic_vector(BUS_WIDTH - 1 downto 0);
-  signal write_data             : std_logic_vector(DATA_WIDTH - 1 downto 0);
-  signal write_data_f           : std_logic_vector(DATA_WIDTH - 1 downto 0);
-  signal write_enable           : std_logic;
-  signal channel_write_busy_o   : std_logic;
+  signal address_hist_m          : std_logic_vector(6 downto 0);
+  signal address_hist_m_x        : std_logic_vector(6 downto 0);
+  signal data_hist_m             : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal data_hist_m_x           : std_logic_vector(DATA_WIDTH - 1 downto 0);
   
+  signal read_data_hist          : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal read_address_hist       : std_logic_vector(BUS_WIDTH - 1 downto 0);
+  signal read_enable_hist        : std_logic;
+
+  signal write_address_hist      : std_logic_vector(BUS_WIDTH - 1 downto 0);
+  signal write_data_hist         : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal write_enable_hist       : std_logic;
+
+  signal write_address           : std_logic_vector(BUS_WIDTH - 1 downto 0);
+  signal write_data              : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal write_enable            : std_logic;
+
+  signal channel_write_busy_o    : std_logic;
+  
+  -- Hist Read Handler
+  signal read_address            : std_logic_vector(BUS_WIDTH - 1 downto 0);
+  signal read_data               : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal read_enable             : std_logic;
+  signal channel_data_o          : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal channel_data_valid_o    : std_logic;
+  signal channel_data_valid_o_f  : std_logic;
+  signal channel_read_busy_o     : std_logic;
+
 begin
 
   -----------------------------------------------------------------------------
 
   DEBUG_OUT(0)              <= CLK_IN;
   DEBUG_OUT(1)              <= channel_write_busy_o;
-  DEBUG_OUT(2)              <= CHANNEL_WRITE_IN;
-  DEBUG_OUT(3)              <= write_enable;
+  DEBUG_OUT(2)              <= CHANNEL_ADD_IN;
+  DEBUG_OUT(3)              <= write_enable_hist;
   DEBUG_OUT(4)              <= channel_read_busy_o;
   DEBUG_OUT(5)              <= CHANNEL_READ_IN;
-  DEBUG_OUT(6)              <= read_enable;
+  DEBUG_OUT(6)              <= read_enable_hist;
   DEBUG_OUT(7)              <= channel_data_valid_o;
-  DEBUG_OUT(15 downto 8)    <= read_data(7 downto 0);
+  DEBUG_OUT(15 downto 8)    <= channel_data_o(7 downto 0);
 
   -----------------------------------------------------------------------------
 
-  ram_dp_128x32_1: ram_dp_128x32
+  ram_dp_128x32_hist: ram_dp_128x32
+    port map (
+      WrAddress => write_address_hist,
+      RdAddress => read_address_hist,
+      Data      => write_data_hist,
+      WE        => not RESET_IN,
+      RdClock   => CLK_IN,
+      RdClockEn => read_enable_hist,
+      Reset     => RESET_IN,
+      WrClock   => CLK_IN,
+      WrClockEn => write_enable_hist,
+      Q         => read_data_hist
+      );
+
+  ram_dp_128x32_result: ram_dp_128x32
     port map (
       WrAddress => write_address,
       RdAddress => read_address,
@@ -95,117 +114,92 @@ begin
   -----------------------------------------------------------------------------
   -- Memory Handler
   -----------------------------------------------------------------------------
-  PROC_MEM_HANDLER_TRANSFER: process(CLK_IN)
+
+  pulse_to_level_1: pulse_to_level
+    generic map (
+      NUM_CYCLES => 3
+      )
+    port map (
+      CLK_IN    => CLK_IN,
+      RESET_IN  => RESET_IN,
+      PULSE_IN  => read_enable,
+      LEVEL_OUT => channel_read_busy_o
+      );
+
+  read_enable                <= CHANNEL_READ_IN;
+  read_address               <= CHANNEL_ID_READ_IN; 
+  channel_data_valid_o_f     <= CHANNEL_READ_IN when rising_edge(CLK_IN);
+  channel_data_valid_o       <= channel_data_valid_o_f when rising_edge(CLK_IN);
+  channel_data_o             <= read_data when rising_edge(CLK_IN);
+    
+  PROC_HIST_HANDLER_TRANSFER: process(CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        read_address_f      <= (others => '0');
-        R_STATE              <= R_IDLE;
-        
-        write_address_f      <= (others => '0');
-        write_data_f         <= (others => '0');
-        W_STATE              <= W_IDLE;
+        address_hist_m       <= (others => '0');
+        data_hist_m          <= (others => '0');
+        H_STATE              <= H_IDLE;
       else
-        read_address_f       <= read_address;
-        R_STATE              <= R_NEXT_STATE;
-
-        write_address_f      <= write_address;
-        write_data_f         <= write_data;
-        W_STATE              <= W_NEXT_STATE;
+        address_hist_m       <= address_hist_m_x;
+        data_hist_m          <= data_hist_m_x;
+        H_STATE              <= H_NEXT_STATE;
       end if;
     end if;
-  end process PROC_MEM_HANDLER_TRANSFER;
+  end process PROC_HIST_HANDLER_TRANSFER;
 
-  PROC_MEM_HANDLER: process(R_STATE,
-                            CHANNEL_ID_READ_IN,
-                            CHANNEL_READ_IN
-                            )
+  PROC_HIST_HANDLER: process(H_STATE,
+                             CHANNEL_ID_IN,
+                             CHANNEL_DATA_IN,
+                             CHANNEL_ADD_IN,
+                             CHANNEL_WRITE_IN
+                             )
+    variable new_data           : unsigned(31 downto 0);
   begin
-    case R_STATE is
-      when R_IDLE =>
-        channel_data_o          <= (others => '0');
-        channel_data_valid_o    <= '0';
+    address_hist_m_x            <= address_hist_m;
+    data_hist_m_x               <= data_hist_m;
+    
+    case H_STATE is
+      when H_IDLE =>
+        write_address_hist    <= (others => '0');
+        write_data_hist       <= (others => '0');
+        write_enable_hist     <= '0';
+        write_address         <= (others => '0');
+        write_data            <= (others => '0');
+        write_enable          <= '0';
 
-        if (CHANNEL_READ_IN = '1') then
-          read_address          <= CHANNEL_ID_READ_IN;
-          if (CHANNEL_ADD_IN = '1') then
-            read_enable         <= '0';
-            channel_read_busy_o <= '0';
-            R_NEXT_STATE        <= R_WAIT;
-          else
-            read_enable         <= '1';
-            channel_read_busy_o <= '1';
-            R_NEXT_STATE        <= R_READ;
-          end if;
-        else                  
-          read_address          <= (others => '0');
-          read_enable           <= '0';
-          channel_read_busy_o   <= '0';
-          R_NEXT_STATE          <= R_IDLE;
-        end if;               
-
-      when R_WAIT =>
-        read_address            <= read_address_f;
-        if (channel_read_busy_o = '0') then
-          channel_read_busy_o   <= '1';
-          read_enable           <= '1';
-          R_NEXT_STATE          <= R_READ; 
-        else
-          read_enable           <= '0';
-          R_NEXT_STATE          <= R_WAIT;
-        end if;
-        
-      when R_READ =>          
-        read_address            <= (others => '0');
-        read_enable             <= '0';
-        channel_read_busy_o     <= '1';
-        channel_data_o          <= read_data;
-        channel_data_valid_o    <= '1';
-        R_NEXT_STATE            <= R_IDLE;
-
-    end case;
-
-    case W_STATE is
-      when W_IDLE =>
-        if (CHANNEL_WRITE_IN = '1') then
-          write_address         <= CHANNEL_ID_IN;
-          write_data            <= CHANNEL_DATA_IN;
-          write_enable          <= '1';
+        if (CHANNEL_ADD_IN = '1') then
+          read_address_hist     <= CHANNEL_ID_IN;
+          read_enable_hist      <= '1';
+          address_hist_m_x      <= CHANNEL_ID_IN;
+          data_hist_m_x         <= CHANNEL_DATA_IN;
           channel_write_busy_o  <= '1';
-          W_NEXT_STATE          <= W_WRITE;
-        elsif (CHANNEL_ADD_IN = '1') then
-          read_address          <= CHANNEL_ID_IN;
-          read_enable           <= '1';
-          write_address         <= CHANNEL_ID_IN;
-          write_data            <= CHANNEL_DATA_IN;
-          channel_read_busy_o   <= '1';
-          channel_write_busy_o  <= '1';
-          W_NEXT_STATE          <= W_ADD;
+          H_NEXT_STATE          <= H_WRITE_CHANNEL;
         else
-          write_address         <= (others => '0');
-          write_data            <= (others => '0');
-          write_enable          <= '0';
+          read_address_hist     <= (others => '0');
+          read_enable_hist      <= '0';
+          address_hist_m_x      <= (others => '0');
+          data_hist_m_x         <= (others => '0');
           channel_write_busy_o  <= '0';
-          W_NEXT_STATE          <= W_IDLE;
-        end if;               
+          H_NEXT_STATE          <= H_IDLE;
+        end if;                 
 
-      when W_ADD =>          
-        write_address           <= write_address_f;
-        write_data              <=
-          std_logic_vector(unsigned(read_data) + unsigned(write_data_f));
+      when H_WRITE_CHANNEL =>
+        new_data                :=
+          std_logic_vector(unsigned(read_data_hist) + unsigned(data_hist_m));
+        read_address_hist       <= (others => '0');
+        read_enable_hist        <= '0';
+        write_address_hist      <= address_hist_m;
+        write_data_hist         <= new_data;
+        write_enable_hist       <= '1';
+
+        write_address           <= address_hist_m;
+        write_data              <= new_data;
         write_enable            <= '1';
         channel_write_busy_o    <= '1';
-        W_NEXT_STATE            <= W_WRITE;
-                         
-      when W_WRITE =>          
-        write_address           <= (others => '0');
-        write_data              <= (others => '0');
-        write_enable            <= '0';
-        channel_write_busy_o    <= '1';
-        W_NEXT_STATE            <= W_IDLE;
-
+        H_NEXT_STATE            <= H_IDLE;
     end case;
-  end process PROC_MEM_HANDLER;
+        
+  end process PROC_HIST_HANDLER;
 
   -----------------------------------------------------------------------------
   -- Output Signals

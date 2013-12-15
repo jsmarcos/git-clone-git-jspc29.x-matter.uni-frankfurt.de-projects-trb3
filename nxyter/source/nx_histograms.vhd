@@ -141,11 +141,10 @@ begin
         
         if (hist_read_busy = '1') then
           if (hist_read_data_valid = '1') then
-            slv_data_out_o(11 downto 0)   <= hist_read_data(11 downto 0);
-            slv_data_out_o(31 downto 12)  <= (others => '0');
-            slv_ack_o                     <= '1';
+            slv_data_out_o   <= hist_read_data;
+            slv_ack_o        <= '1';
           else
-            slv_ack_o                     <= '0';
+            slv_ack_o        <= '0';
           end if;
           
         elsif (SLV_READ_IN  = '1') then

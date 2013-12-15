@@ -13,9 +13,10 @@
 0x8107 :  r    ADC Data Clock Lock    (187.5 MHz)
 0x8108 :  r    ADC Sample Clock Lock    (31.25 MHz)
 0x8109 :  r/w  r: PLL Nxyter Main Clock NotLock Counter (16 Bit)
-               w: Clear all pll_nx_clk_notlock_ctr
 0x810a :  r    PLL ADC Data Clock NotLock Counter (16 Bit)
+               w: Clear all NotLOck Counters
 0x810b :  r    PLL ADC Sample Clock NotLock Counter (16 Bit)
+0x810c :  r    All ERROR Flags (8 Bit)
 
 -- NX I2C Setup Handler
 0x8200 : r/w   I2C Memeory Register (Depth: 0 - 45 ... 0x822c) 
@@ -138,6 +139,8 @@
 0x8416 :  r    DONE flags ch 96..127
 0x8417 :  r    channel_all_done
 0x8418 :  r    EVT_BUFFER_FULL_IN    
+0x8419 :  r    Wait for Data time (ns)
+0x841a :  r    Nxyter CVT (ns) 
 
 -- Event Data Buffer
 0x8600 :  r    read FIFO buffer
@@ -151,6 +154,10 @@
 0x8040 :  r/w  Access to I2C Interface
                Chip Ids:  0x08   : nXyter
                           0x29   : AD7991-1
+                                   Reg: 0x10   ADC Channel 0 slow nx channel
+                                   Reg: 0x20   ADC Channel 1 fast nx channel
+                                   Reg: 0x40   ADC Channel 2 Temperature
+                                   Reg: 0x80   ADC Channel 3 Current
                           0x50   : EEPROM
 0x8041 :  r    Full I2C Word
 
@@ -178,7 +185,7 @@
                 10: nx_trigger_validate
                 11: nx_event_buffer
                 12: nx_histograms
-
+                13: Checkerboard
 
 --- Trigger Selction Window Setup
 
