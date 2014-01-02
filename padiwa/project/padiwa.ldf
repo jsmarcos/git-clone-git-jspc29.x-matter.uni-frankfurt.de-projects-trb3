@@ -2,55 +2,56 @@
 <BaliProject version="2.0" title="padiwalcd" device="LCMXO2-4000HC-6FTG256C" synthesis="synplify" default_implementation="padiwalcd">
     <Options/>
     <Implementation title="padiwalcd" dir="padiwalcd" description="padiwalcd" default_strategy="Strategy1">
+        <Options def_top="flashram" top="panda_dirc_wasa"/>
         <Source name="../padiwalcd.vhd" type="VHDL" type_short="VHDL">
             <Options top_module="panda_dirc_wasa"/>
         </Source>
-        <Source name="../source/ffarray.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../../wasa/source/ffarray.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../source/pwm.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../../wasa/source/pwm.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../source/spi_slave.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../../wasa/source/spi_slave.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../cores/efb_define_def.v" type="Verilog" type_short="Verilog">
+        <Source name="../../wasa/cores/efb_define_def.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
-        <Source name="../cores/fifo_1kx8.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../../wasa/cores/fifo_1kx8.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../cores/flash.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../../wasa/cores/flash.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../cores/flashram.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../../wasa/cores/flashram.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../cores/pll_shifted_clocks.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../../wasa/cores/pll_shifted_clocks.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../cores/pll.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../../wasa/cores/pll.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../cores/UFM_WB.v" type="Verilog" type_short="Verilog">
+        <Source name="../../wasa/cores/UFM_WB.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
-        <Source name="../../trbnet/trb_net_std.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../../../trbnet/trb_net_std.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../../trbnet/trb_net_components.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../../../trbnet/trb_net_components.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../../trbnet/trb_net_onewire.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../../../trbnet/trb_net_onewire.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../lcd.vhd" type="VHDL" type_short="VHDL">
+        <Source name="../../wasa/source/lcd.vhd" type="VHDL" type_short="VHDL">
             <Options/>
         </Source>
-        <Source name="../panda_dirc_wasa.lpf" type="Logic Preference" type_short="LPF">
+        <Source name="../../base/panda_dirc_wasa1.lpf" type="Logic Preference" type_short="LPF">
             <Options/>
         </Source>
-        <Source name="padiwa/padiwa.xcf" type="Programming Project File" type_short="Programming">
+        <Source name="padiwalcd/padiwalcd.xcf" type="Programming Project File" type_short="Programming">
             <Options/>
         </Source>
     </Implementation>
