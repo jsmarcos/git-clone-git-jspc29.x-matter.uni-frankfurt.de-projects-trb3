@@ -453,7 +453,6 @@ fsm : process begin
             spi_data <= x"20";
           end if;
           spi_send <= '1';
-          pixcnt   <= pixcnt + 1;
         else
           state   <= WRITEWAIT;
           fontpos <= fontpos + 1;
@@ -473,7 +472,8 @@ fsm : process begin
         else
           spi_data <= x"8B";
         end if;
-        state <= WRITEFONT;
+        state   <= WRITEFONT;
+        pixcnt  <= pixcnt + 1;
       end if;
       
       
