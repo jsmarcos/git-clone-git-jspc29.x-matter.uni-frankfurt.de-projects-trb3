@@ -9,7 +9,7 @@ use work.trb3_components.all;
 use work.version.all;
 
 
-entity trb3_periph is
+entity trb3_periph_32PinAddOn is
   port(
     --Clocks
     CLK_GPLL_LEFT        : in    std_logic;  --Clock Manager 1/(2468), 125 MHz
@@ -33,26 +33,29 @@ entity trb3_periph is
     --Connection to ADA AddOn
     SPARE_LINE           : inout std_logic_vector(3 downto 0);  --inputs only
     INP                  : in    std_logic_vector(63 downto 0);
-    --DAC_SDO              : in    std_logic;
-    DAC_SDI              : out   std_logic;
-    DAC_SCK              : out   std_logic;
-    DAC_CS               : out   std_logic_vector(4 downto 1);
+    --DAC
+    DAC_IN_SDI           : in    std_logic;
+    DAC_OUT_SDO          : out   std_logic;
+    DAC_OUT_SCK          : out   std_logic;
+    DAC_OUT_CS           : out   std_logic;
+    DAC_OUT_CLR          : out   std_logic;
+
     --Flash ROM & Reboot
-    FLASH_CLK            : out   std_logic;
-    FLASH_CS             : out   std_logic;
-    FLASH_DIN            : out   std_logic;
-    FLASH_DOUT           : in    std_logic;
-    PROGRAMN             : out   std_logic;  --reboot FPGA
+    FLASH_CLK  : out   std_logic;
+    FLASH_CS   : out   std_logic;
+    FLASH_DIN  : out   std_logic;
+    FLASH_DOUT : in    std_logic;
+    PROGRAMN   : out   std_logic;       --reboot FPGA
     --Misc
-    TEMPSENS             : inout std_logic;  --Temperature Sensor
-    CODE_LINE            : in    std_logic_vector(1 downto 0);
-    LED_GREEN            : out   std_logic;
-    LED_ORANGE           : out   std_logic;
-    LED_RED              : out   std_logic;
-    LED_YELLOW           : out   std_logic;
-    SUPPL                : in    std_logic;  --terminated diff pair, PCLK, Pads
+    TEMPSENS   : inout std_logic;       --Temperature Sensor
+    CODE_LINE  : in    std_logic_vector(1 downto 0);
+    LED_GREEN  : out   std_logic;
+    LED_ORANGE : out   std_logic;
+    LED_RED    : out   std_logic;
+    LED_YELLOW : out   std_logic;
+    SUPPL      : in    std_logic;       --terminated diff pair, PCLK, Pads
     --Test Connectors
-    TEST_LINE            : out   std_logic_vector(15 downto 0)
+    TEST_LINE  : out   std_logic_vector(15 downto 0)
     );
   attribute syn_useioff                  : boolean;
   --no IO-FF for LEDs relaxes timing constraints
@@ -74,15 +77,17 @@ entity trb3_periph is
   attribute syn_useioff of TEST_LINE     : signal is true;
   attribute syn_useioff of INP           : signal is false;
   attribute syn_useioff of SPARE_LINE    : signal is true;
-  --attribute syn_useioff of DAC_SDO       : signal is true;
-  attribute syn_useioff of DAC_SDI       : signal is true;
-  attribute syn_useioff of DAC_SCK       : signal is true;
-  attribute syn_useioff of DAC_CS        : signal is true;
+  attribute syn_useioff of DAC_IN_SDI    : signal is true;
+  attribute syn_useioff of DAC_OUT_SDO   : signal is true;
+  attribute syn_useioff of DAC_OUT_SCK   : signal is true;
+  attribute syn_useioff of DAC_OUT_CS    : signal is true;
+  attribute syn_useioff of DAC_OUT_CLR   : signal is true;
+  
 
 end entity;
 
 
-architecture trb3_periph_arch of trb3_periph is
+architecture trb3_periph_32PinAddOn_arch of trb3_periph_32PinAddOn is
   --Constants
   constant REGIO_NUM_STAT_REGS : integer := 3;
   constant REGIO_NUM_CTRL_REGS : integer := 3;
@@ -235,7 +240,7 @@ architecture trb3_periph_arch of trb3_periph is
   signal tdc_ctrl_addr      : std_logic_vector(2 downto 0);
   signal tdc_ctrl_data_in   : std_logic_vector(31 downto 0);
   signal tdc_ctrl_data_out  : std_logic_vector(31 downto 0);
-  signal tdc_ctrl_reg       : std_logic_vector(5*32-1 downto 0);
+  signal tdc_ctrl_reg       : std_logic_vector(5*32+31 downto 0);
 
   signal spi_bram_addr : std_logic_vector(7 downto 0);
   signal spi_bram_wr_d : std_logic_vector(7 downto 0);
@@ -344,6 +349,9 @@ begin
   --                                      -- x"2" - multi purpose test AddOn
   --                                      -- x"3" - SFP hub AddOn
   --                                      -- x"4" - Wasa AddOn
+  --                                      -- x"5" - GeneralPurpose AddOn
+  --                                      -- x"6" - Nxyter
+  --                                      -- x"7" - 32PinAddOn
   --edge_type_i      <= x"0";             -- x"0" - single edge
   --                                      -- x"1" - double edge
   --                                      -- x"4" - has spi interface
@@ -358,10 +366,10 @@ begin
       BROADCAST_BITMASK         => x"FF",
       BROADCAST_SPECIAL_ADDR    => x"48",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
-      REGIO_HARDWARE_VERSION    => x"91000460",  -- regio_hardware_version_i,
+      REGIO_HARDWARE_VERSION    => x"91007C60",  -- regio_hardware_version_i,
       REGIO_INIT_ADDRESS        => x"f305",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
-      CLOCK_FREQUENCY           => 125,
+      CLOCK_FREQUENCY           => 100,
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
       DATA_INTERFACE_NUMBER     => 1,
@@ -666,29 +674,31 @@ begin
       STAT          => open
       );
 
-  -- dac spi entity
+-------------------------------------------------------------------------------
+-- DAC
+-------------------------------------------------------------------------------
   DAC_SPI : spi_ltc2600
+    generic map (
+      BITS       => 14,
+      WAITCYCLES => 15)
     port map (
-      CLK_IN                  => clk_100_i,
-      RESET_IN                => reset_i,
+      CLK_IN         => clk_100_i,
+      RESET_IN       => reset_i,
       -- Slave bus
-      BUS_READ_IN             => spidac_read_en,
-      BUS_WRITE_IN            => spidac_write_en,
-      BUS_BUSY_OUT            => spidac_busy,
-      BUS_ACK_OUT             => spidac_ack,
-      BUS_ADDR_IN             => spidac_addr,
-      BUS_DATA_IN             => spidac_data_in,
-      BUS_DATA_OUT            => spidac_data_out,
+      BUS_READ_IN    => spidac_read_en,
+      BUS_WRITE_IN   => spidac_write_en,
+      BUS_BUSY_OUT   => spidac_busy,
+      BUS_ACK_OUT    => spidac_ack,
+      BUS_ADDR_IN    => spidac_addr,
+      BUS_DATA_IN    => spidac_data_in,
+      BUS_DATA_OUT   => spidac_data_out,
       -- SPI connections
-      SPI_CS_OUT(15 downto 4) => open,
-      SPI_CS_OUT(3 downto 0)  => dac_cs_i,
-      SPI_SDI_IN              => '0',
-      SPI_SDO_OUT             => dac_sdi_i,
-      SPI_SCK_OUT             => dac_sck_i);
-
-  DAC_CS  <= dac_cs_i;
-  DAC_SDI <= dac_sdi_i;
-  DAC_SCK <= dac_sck_i;
+      SPI_CS_OUT(0)  => DAC_OUT_CS,
+      SPI_SDI_IN     => DAC_IN_SDI,
+      SPI_SDO_OUT    => DAC_OUT_SDO,
+      SPI_SCK_OUT    => DAC_OUT_SCK,
+      SPI_CLR_OUT(0) => DAC_OUT_CLR
+      );
 
 ---------------------------------------------------------------------------
 -- Reboot FPGA
@@ -721,15 +731,17 @@ begin
 
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 65,             -- Number of TDC channels
-      CONTROL_REG_NR => 5,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
-      TDC_VERSION    => "001" & x"51")  -- TDC version number
+      CHANNEL_NUMBER => 5,              -- Number of TDC channels
+      CONTROL_REG_NR => 6,              -- Number of control regs - higher than 8 check tdc_ctrl_addr
+      TDC_VERSION    => x"160",         -- TDC version number
+      DEBUG          => c_YES,
+      SIMULATION     => c_NO)
     port map (
       RESET                 => reset_i,
       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
-      REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
-      HIT_IN                => hit_in_i(64 downto 1),  -- Channel start signals
+      REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
+      HIT_IN                => hit_in_i(4 downto 1),  -- Channel start signals
       HIT_CALIBRATION       => clk_20_i,    -- Hits for calibrating the TDC
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
@@ -796,14 +808,17 @@ begin
       CONTROL_REG_IN        => tdc_ctrl_reg);
 
   -- For single edge measurements
-  hit_in_i <= INP;    
+  --hit_in_i <= INP;    
   --hit_in_i <= (others => timing_trg_received_i);
 
-  ---- For ToT Measurements
-  --Gen_Hit_In_Signals : for i in 1 to 32 generate
-  --  hit_in_i(i*2-1) <= INP(i-1);
-  --  hit_in_i(i*2)   <= not INP(i-1);
-  --end generate Gen_Hit_In_Signals;
+  -- For ToT Measurements
+  Gen_Hit_In_Signals : for i in 1 to 32 generate
+    hit_in_i(i*2-1) <= INP(i-1);
+    hit_in_i(i*2)   <= not INP(i-1);
+  end generate Gen_Hit_In_Signals;
+
+  -- Trigger on a TDC Channel
+  FPGA5_COMM(10) <= hit_in_i(to_integer(unsigned(tdc_ctrl_reg(5*32+7 downto 5*32))));
 
 -- !!!!! IMPORTANT !!!!! Don't forget to set the REGIO_HARDWARE_VERSION !!!!!
 end architecture;

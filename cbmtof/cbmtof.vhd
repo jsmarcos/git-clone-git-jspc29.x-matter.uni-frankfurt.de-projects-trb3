@@ -248,7 +248,7 @@ architecture cbmtof_arch of cbmtof is
   signal tdc_ctrl_read      : std_logic;
   signal last_tdc_ctrl_read : std_logic;
   signal tdc_ctrl_write     : std_logic;
-  signal tdc_ctrl_addr      : std_logic_vector(1 downto 0);
+  signal tdc_ctrl_addr      : std_logic_vector(2 downto 0);
   signal tdc_ctrl_data_in   : std_logic_vector(31 downto 0);
   signal tdc_ctrl_data_out  : std_logic_vector(31 downto 0);
   signal tdc_ctrl_reg       : std_logic_vector(5*32-1 downto 0);
@@ -610,8 +610,8 @@ begin
       BUS_READ_ENABLE_OUT(8)              => tdc_ctrl_read,
       BUS_WRITE_ENABLE_OUT(8)             => tdc_ctrl_write,
       BUS_DATA_OUT(8*32+31 downto 8*32)   => tdc_ctrl_data_in,
-      BUS_ADDR_OUT(8*16+1 downto 8*16)    => tdc_ctrl_addr,
-      BUS_ADDR_OUT(8*16+15 downto 8*16+2) => open,
+      BUS_ADDR_OUT(8*16+2 downto 8*16)    => tdc_ctrl_addr,
+      BUS_ADDR_OUT(8*16+15 downto 8*16+3) => open,
       BUS_TIMEOUT_OUT(8)                  => open,
       BUS_DATA_IN(8*32+31 downto 8*32)    => tdc_ctrl_data_out,
       BUS_DATAREADY_IN(8)                 => last_tdc_ctrl_read,
@@ -689,24 +689,28 @@ begin
 -- DAC
 ---------------------------------------------------------------------------      
   THE_DAC_SPI : spi_ltc2600
+    generic map (
+      BITS       => 14,
+      WAITCYCLES => 15)
     port map(
-      CLK_IN        => clk_100_i,
-      RESET_IN      => reset_i,
+      CLK_IN         => clk_100_i,
+      RESET_IN       => reset_i,
       -- Slave bus
-      BUS_ADDR_IN   => dac_addr,
-      BUS_READ_IN   => dac_read_en,
-      BUS_WRITE_IN  => dac_write_en,
-      BUS_ACK_OUT   => dac_ack,
-      BUS_BUSY_OUT  => dac_busy,
-      BUS_DATA_IN   => dac_data_in,
-      BUS_DATA_OUT  => dac_data_out,
+      BUS_ADDR_IN    => dac_addr,
+      BUS_READ_IN    => dac_read_en,
+      BUS_WRITE_IN   => dac_write_en,
+      BUS_ACK_OUT    => dac_ack,
+      BUS_BUSY_OUT   => dac_busy,
+      BUS_DATA_IN    => dac_data_in,
+      BUS_DATA_OUT   => dac_data_out,
       -- SPI connections
-      SPI_CS_OUT(0) => DAC_CS,
-      SPI_SDI_IN    => DAC_SDO,
-      SPI_SDO_OUT   => DAC_SDI,
-      SPI_SCK_OUT   => DAC_SCK
+      SPI_CS_OUT(0)  => DAC_CS,
+      SPI_SDI_IN     => DAC_SDO,
+      SPI_SDO_OUT    => DAC_SDI,
+      SPI_SCK_OUT    => DAC_SCK,
+      SPI_CLR_OUT(0) => DAC_CLR
       );
-
+  
 ---------------------------------------------------------------------------
 -- Reboot FPGA
 ---------------------------------------------------------------------------
@@ -721,10 +725,10 @@ begin
 ---------------------------------------------------------------------------
 -- LED
 ---------------------------------------------------------------------------
-  LED_GREEN     <= not time_counter(24);
-  LED_ORANGE    <= not time_counter(25);
-  LED_RED       <= not time_counter(26);
-  LED_YELLOW    <= not time_counter(27);
+  LED_GREEN     <= not time_counter(26);
+  LED_ORANGE    <= not time_counter(27);
+  LED_RED       <= not time_counter(28);
+  LED_YELLOW    <= not time_counter(29);
   LED_SFP_GREEN <= not med_stat_op(9);
   LED_SFP_RED   <= not (med_stat_op(10) or med_stat_op(11));
 
@@ -747,7 +751,7 @@ begin
 ---------------------------------------------------------------------------
   process
   begin
-    wait until rising_edge(clk_100_i);
+    wait until rising_edge(CLK_EXT);--(clk_100_i);
     time_counter <= time_counter + 1;
   end process;
 
@@ -756,16 +760,16 @@ begin
 -------------------------------------------------------------------------------
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 33,             -- Number of TDC channels
+      CHANNEL_NUMBER => 65,             -- Number of TDC channels
       CONTROL_REG_NR => 5,              -- Number of control regs
       TDC_VERSION    => "001" & x"51")  -- TDC version numberTDC_VERSION    => "001" & x"51")  -- TDC version number
     port map (
       RESET                 => reset_i,
---    CLK_TDC               => CLK_OSC,  -- Oscillator used for the time measurement
-      CLK_TDC               => CLK_EXT,  -- External Clock used for the time measurement
+      CLK_TDC               => CLK_OSC,  -- Oscillator used for the time measurement
+--      CLK_TDC               => CLK_EXT,  -- External Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
-      HIT_IN                => hit_in_i(32 downto 1),  -- Channel start signals
+      HIT_IN                => hit_in_i(64 downto 1),  -- Channel start signals
       HIT_CALIBRATION       => clk_20_i,    -- Hits for calibrating the TDC
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width

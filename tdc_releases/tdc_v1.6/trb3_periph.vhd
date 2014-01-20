@@ -361,7 +361,7 @@ begin
       REGIO_HARDWARE_VERSION    => x"91000460",  -- regio_hardware_version_i,
       REGIO_INIT_ADDRESS        => x"f305",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
-      CLOCK_FREQUENCY           => 125,
+      CLOCK_FREQUENCY           => 100,
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
       DATA_INTERFACE_NUMBER     => 1,
