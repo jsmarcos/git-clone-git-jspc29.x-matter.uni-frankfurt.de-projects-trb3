@@ -62,6 +62,8 @@ architecture Channel of Channel is
 
   -- time stamp
   signal coarse_cntr_reg    : std_logic_vector(10 downto 0);
+  signal epoch_cntr_reg     : std_logic_vector(27 downto 0);
+  signal epoch_cntr_2reg    : std_logic_vector(27 downto 0);
   signal trig_win_end_tdc_i : std_logic;
   signal trig_win_end_rdo_i : std_logic;
 
@@ -141,7 +143,7 @@ begin
       HIT_IN               => hit_buf,
       TRIGGER_WIN_END_TDC  => trig_win_end_tdc_i,
       TRIGGER_WIN_END_RDO  => trig_win_end_rdo_i,
-      EPOCH_COUNTER_IN     => EPOCH_COUNTER_IN,
+      EPOCH_COUNTER_IN     => epoch_cntr_2reg,  --EPOCH_COUNTER_IN,
       COARSE_COUNTER_IN    => coarse_cntr_reg,
       READ_EN_IN           => READ_EN_IN,
       FIFO_DATA_OUT        => ch_data_i,
@@ -216,6 +218,9 @@ begin
       D_IN  => COARSE_COUNTER_IN,
       D_OUT => coarse_cntr_reg);
 
+  epoch_cntr_reg  <= EPOCH_COUNTER_IN when rising_edge(CLK_200);
+  epoch_cntr_2reg <= epoch_cntr_reg   when rising_edge(CLK_200);
+  
 -------------------------------------------------------------------------------
 -- DEBUG Counters
 -------------------------------------------------------------------------------

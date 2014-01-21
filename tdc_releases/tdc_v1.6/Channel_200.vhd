@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2014-01-20
+-- Last update: 2014-01-21
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -63,7 +63,6 @@ architecture Channel_200 of Channel_200 is
   signal data_b_i      : std_logic_vector(303 downto 0);
   signal result_i      : std_logic_vector(303 downto 0);
   signal ff_array_en_i : std_logic;
-  signal hit_i         : std_logic;
 
   -- hit detection
   signal result_2_reg    : std_logic := '0';
@@ -104,8 +103,8 @@ architecture Channel_200 of Channel_200 is
   signal fifo_data_valid_i      : std_logic;
 
   -- fsm
-  type   FSM_WR is (WRITE_EPOCH, WRITE_DATA, WRITE_STOP_A, WRITE_STOP_B, WRITE_STOP_C, WRITE_STOP_D, WAIT_FOR_HIT,
-                    WAIT_FOR_VALIDITY, EXCEPTION);
+  type FSM_WR is (WRITE_EPOCH, WRITE_DATA, WRITE_STOP_A, WRITE_STOP_B, WRITE_STOP_C, WRITE_STOP_D, WAIT_FOR_HIT,
+                  WAIT_FOR_VALIDITY, EXCEPTION);
   signal FSM_WR_CURRENT            : FSM_WR    := WRITE_EPOCH;
   signal FSM_WR_NEXT               : FSM_WR;
   signal write_epoch_fsm           : std_logic;
@@ -116,6 +115,8 @@ architecture Channel_200 of Channel_200 is
   signal write_stop_a_i            : std_logic := '0';
   signal write_stop_b_fsm          : std_logic;
   signal write_stop_b_i            : std_logic := '0';
+  signal write_data_flag_fsm       : std_logic;
+  signal write_data_flag_i         : std_logic := '0';
   signal trig_win_end_tdc_flag_fsm : std_logic;
   signal trig_win_end_tdc_flag_i   : std_logic := '0';
   signal fsm_wr_debug_fsm          : std_logic_vector(3 downto 0);
@@ -181,18 +182,18 @@ begin  -- Channel_200
   TimeStampCapture : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
-      if encoder_finished_i = '1' then
-        time_stamp_i <= std_logic_vector(unsigned(coarse_cntr_reg) - to_unsigned(8, 11));
+      if hit_detect_reg = '1' then      -- if encoder_finished_i = '1' then
+        time_stamp_i <= std_logic_vector(unsigned(coarse_cntr_reg));  -- - to_unsigned(9, 11));
       end if;
     end if;
   end process TimeStampCapture;
 
-  epoch_capture_time <= "00000001000";
+  epoch_capture_time <= "00000001001";
 
   EpochCounterCapture : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
-      if coarse_cntr_reg = epoch_capture_time then  --or TRIGGER_WIN_END_TDC = '1' then
+      if hit_detect_reg = '1' then  -- if coarse_cntr_reg = epoch_capture_time then
         epoch_cntr_updated <= '1';
         epoch_cntr         <= EPOCH_COUNTER_IN;
       elsif write_epoch_i = '1' then
@@ -250,13 +251,14 @@ begin  -- Channel_200
   FSM_CLK : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
-      FSM_WR_CURRENT          <= FSM_WR_NEXT;
-      write_epoch_i           <= write_epoch_fsm;
-      write_data_i            <= write_data_fsm;
-      write_stop_a_i          <= write_stop_a_fsm;
-      write_stop_b_i          <= write_stop_b_fsm;
+      FSM_WR_CURRENT    <= FSM_WR_NEXT;
+      write_epoch_i     <= write_epoch_fsm;
+      write_data_i      <= write_data_fsm;
+      write_stop_a_i    <= write_stop_a_fsm;
+      write_stop_b_i    <= write_stop_b_fsm;
+      write_data_flag_i <= write_data_flag_fsm;
 --      trig_win_end_tdc_flag_i <= trig_win_end_tdc_flag_fsm;
-      fsm_wr_debug_i          <= fsm_wr_debug_fsm;
+      fsm_wr_debug_i    <= fsm_wr_debug_fsm;
     end if;
   end process FSM_CLK;
 
@@ -265,19 +267,21 @@ begin  -- Channel_200
                         trig_win_end_tdc_flag_i)
     begin
 
-      FSM_WR_NEXT               <= WRITE_EPOCH;
-      write_epoch_fsm           <= '0';
-      write_data_fsm            <= '0';
-      write_stop_a_fsm          <= '0';
-      write_stop_b_fsm          <= '0';
+      FSM_WR_NEXT         <= WRITE_EPOCH;
+      write_epoch_fsm     <= '0';
+      write_data_fsm      <= '0';
+      write_stop_a_fsm    <= '0';
+      write_stop_b_fsm    <= '0';
+      write_data_flag_fsm <= write_data_flag_i;
 --      trig_win_end_tdc_flag_fsm <= trig_win_end_tdc_flag_i;
-      fsm_wr_debug_fsm          <= x"0";
+      fsm_wr_debug_fsm    <= x"0";
 
       case (FSM_WR_CURRENT) is
         when WRITE_EPOCH =>
-          if encoder_finished_i = '1' then
-            write_epoch_fsm <= '1';
-            FSM_WR_NEXT     <= EXCEPTION;
+          if encoder_finished_i = '1' or write_data_flag_i = '1' then
+            write_epoch_fsm     <= '1';
+            write_data_flag_fsm <= '0';
+            FSM_WR_NEXT         <= EXCEPTION;
           elsif trig_win_end_tdc_flag_i = '1' or TRIGGER_WIN_END_TDC = '1' then
             FSM_WR_NEXT <= WRITE_STOP_A;
           else
@@ -336,23 +340,35 @@ begin  -- Channel_200
         when WRITE_STOP_A =>
           write_stop_a_fsm <= '1';
           FSM_WR_NEXT      <= WRITE_STOP_B;
+          if encoder_finished_i = '1' then
+            write_data_flag_fsm <= '1';
+          end if;
           fsm_wr_debug_fsm <= x"5";
 --
         when WRITE_STOP_B =>
           write_stop_a_fsm <= '1';
           FSM_WR_NEXT      <= WRITE_STOP_C;
+          if encoder_finished_i = '1' then
+            write_data_flag_fsm <= '1';
+          end if;
           fsm_wr_debug_fsm <= x"5";
 --
         when WRITE_STOP_C =>
           write_stop_b_fsm <= '1';
           FSM_WR_NEXT      <= WRITE_STOP_D;
+          if encoder_finished_i = '1' then
+            write_data_flag_fsm <= '1';
+          end if;
           fsm_wr_debug_fsm <= x"5";
 --
         when WRITE_STOP_D =>
-          write_stop_b_fsm          <= '1';
+          write_stop_b_fsm <= '1';
 --          trig_win_end_tdc_flag_fsm <= '0';
-          FSM_WR_NEXT               <= WRITE_EPOCH;
-          fsm_wr_debug_fsm          <= x"5";
+          FSM_WR_NEXT      <= WRITE_EPOCH;
+          if encoder_finished_i = '1' then
+            write_data_flag_fsm <= '1';
+          end if;
+          fsm_wr_debug_fsm <= x"5";
 --        
         when others =>
           FSM_WR_NEXT      <= WRITE_EPOCH;
@@ -370,13 +386,13 @@ begin  -- Channel_200
                         trig_win_end_tdc_flag_i, VALID_TIMING_TRG_IN, MULTI_TMG_TRG_IN, SPIKE_DETECTED_IN)
     begin
 
-      FSM_WR_NEXT               <= WRITE_EPOCH;
-      write_epoch_fsm           <= '0';
-      write_data_fsm            <= '0';
-      write_stop_a_fsm          <= '0';
-      write_stop_b_fsm          <= '0';
+      FSM_WR_NEXT      <= WRITE_EPOCH;
+      write_epoch_fsm  <= '0';
+      write_data_fsm   <= '0';
+      write_stop_a_fsm <= '0';
+      write_stop_b_fsm <= '0';
 --      trig_win_end_tdc_flag_fsm <= trig_win_end_tdc_flag_i;
-      fsm_wr_debug_fsm          <= x"0";
+      fsm_wr_debug_fsm <= x"0";
 
       case (FSM_WR_CURRENT) is
         when WRITE_EPOCH =>
@@ -464,10 +480,10 @@ begin  -- Channel_200
           fsm_wr_debug_fsm <= x"5";
 --
         when WRITE_STOP_D =>
-          write_stop_b_fsm          <= '1';
+          write_stop_b_fsm <= '1';
 --          trig_win_end_tdc_flag_fsm <= '0';
-          FSM_WR_NEXT               <= WRITE_EPOCH;
-          fsm_wr_debug_fsm          <= x"5";
+          FSM_WR_NEXT      <= WRITE_EPOCH;
+          fsm_wr_debug_fsm <= x"5";
 --        
         when others =>
           FSM_WR_NEXT      <= WRITE_EPOCH;
@@ -490,7 +506,7 @@ begin  -- Channel_200
       end if;
     end if;
   end process TriggerWindowFlag;
-  
+
   -- purpose: Generate Fifo Wr Signal
   FifoWriteSignal : process (CLK_200)
   begin
