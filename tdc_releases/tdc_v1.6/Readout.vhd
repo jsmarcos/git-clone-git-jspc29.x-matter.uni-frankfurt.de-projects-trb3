@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2014-01-22
+-- Last update: 2014-01-23
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -416,8 +416,8 @@ begin  -- behavioral
             wr_header_fsm <= '1';
             readout_fsm   <= '1';
           else                             -- the other triggers
-            data_finished_fsm <= '1';
             RD_NEXT           <= SEND_TRIG_RELEASE_A;
+            data_finished_fsm <= '1';
           end if;
         elsif INVALID_TRG_IN = '1' then    -- invalid trigger
           RD_NEXT           <= SEND_TRIG_RELEASE_A;
@@ -452,7 +452,7 @@ begin  -- behavioral
           if DEBUG_MODE_EN_IN = '1' then  -- send status after channel data
             RD_NEXT <= SEND_STATUS;
           else
-            RD_NEXT <= WAIT_FOR_DATA_FINISHED; -- WAIT_FOR_LVL1_TRIG_A;
+            RD_NEXT <= WAIT_FOR_LVL1_TRIG_A;
           end if;
         else                            -- go to the next channel
           fifo_nr_rd_fsm <= fifo_nr_rd + 1;
@@ -461,12 +461,12 @@ begin  -- behavioral
         readout_fsm      <= '1';
         rd_fsm_debug_fsm <= x"4";
 
-      when WAIT_FOR_DATA_FINISHED =>    -- wait until the end of the data transfer 
-        if finished_i = '1' then
-          RD_NEXT <= WAIT_FOR_LVL1_TRIG_A;
-        end if;
-        wait_fsm         <= '1';
-        rd_fsm_debug_fsm <= x"5";
+      --when WAIT_FOR_DATA_FINISHED =>    -- wait until the end of the data transfer 
+      --  if finished_i = '1' then
+      --    RD_NEXT <= WAIT_FOR_LVL1_TRIG_A;
+      --  end if;
+      --  wait_fsm         <= '1';
+      --  rd_fsm_debug_fsm <= x"5";
         
       when WAIT_FOR_LVL1_TRIG_A =>      -- wait for trigger data valid
         if TRG_DATA_VALID_IN = '1' then
@@ -486,18 +486,19 @@ begin  -- behavioral
         if SPURIOUS_TRG_IN = '1' then
           wrong_readout_fsm <= '1';
         end if;
-        RD_NEXT          <= SEND_TRIG_RELEASE_A;
-        wait_fsm         <= '1';
-        rd_fsm_debug_fsm <= x"8";
+        RD_NEXT           <= SEND_TRIG_RELEASE_A;
+        data_finished_fsm <= '1';
+        wait_fsm          <= '1';
+        rd_fsm_debug_fsm  <= x"8";
 
       when SEND_STATUS =>
         if stop_status_i = '1' then
           if DEBUG_MODE_EN_IN = '1' then
             RD_NEXT <= WAIT_FOR_LVL1_TRIG_A;
           else
-            RD_NEXT <= SEND_TRIG_RELEASE_A;
-          end if;
-          data_finished_fsm <= '1';
+            RD_NEXT           <= SEND_TRIG_RELEASE_A;
+            data_finished_fsm <= '1';
+          end if;          
         else
           wr_status_fsm <= '1';
         end if;
@@ -700,7 +701,7 @@ begin  -- behavioral
   DATA_OUT                    <= data_out_reg;
   DATA_WRITE_OUT              <= data_wr_reg;
   finished_i                  <= (data_finished or wr_finished_2reg) when rising_edge(CLK_100);
-  DATA_FINISHED_OUT           <= finished_i;
+  DATA_FINISHED_OUT           <= data_finished; --finished_i;
   TRG_RELEASE_OUT             <= trig_release_reg;
   TRG_STATUSBIT_OUT           <= (others => '0');
   READOUT_DEBUG(3 downto 0)   <= rd_fsm_debug;

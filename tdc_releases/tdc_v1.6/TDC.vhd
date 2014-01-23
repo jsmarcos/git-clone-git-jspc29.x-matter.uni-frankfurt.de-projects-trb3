@@ -118,7 +118,7 @@ architecture TDC of TDC is
 -- Logic analyser
   signal logic_anal_data_i            : std_logic_vector(3*32-1 downto 0);
 -- Hit signals
-  signal hit_in_i                     : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
+  signal hit_in_i                     : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
   signal hit_latch                    : std_logic_vector(CHANNEL_NUMBER-1 downto 1) := (others => '0');
   signal hit_reg                      : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
   signal hit_2reg                     : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
@@ -223,6 +223,16 @@ begin
     end process;
   end generate GEN_Channel_Enable;
 
+  -- purpose: Calibration trigger for the reference channel
+  process (calibration_on, HIT_CALIBRATION) is
+  begin  -- process
+    if calibration_on = '1' then
+          hit_in_i(0) <= HIT_CALIBRATION;
+        else
+          hit_in_i(0) <= REFERENCE_TIME;
+        end if;
+  end process;
+
   CalibrationSwitch : process (CLK_READOUT)
   begin
     if rising_edge(CLK_READOUT) then
@@ -279,7 +289,7 @@ begin
         RESET_COUNTERS          => reset_counters_i,
         CLK_200                 => CLK_TDC,
         CLK_100                 => CLK_READOUT,
-        HIT_IN                  => REFERENCE_TIME,
+        HIT_IN                  => hit_in_i(0), --REFERENCE_TIME,
         TRIGGER_WIN_END_TDC     => trig_win_end_tdc,
         TRIGGER_WIN_END_RDO     => trig_win_end_rdo,
         EPOCH_COUNTER_IN        => epoch_cntr,
