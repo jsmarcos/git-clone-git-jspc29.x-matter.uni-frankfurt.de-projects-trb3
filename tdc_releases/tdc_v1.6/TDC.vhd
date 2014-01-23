@@ -12,6 +12,7 @@ use work.version.all;
 entity TDC is
   generic (
     CHANNEL_NUMBER : integer range 2 to 65;
+    STATUS_REG_NR  : integer range 0 to 31;
     CONTROL_REG_NR : integer range 0 to 6;
     TDC_VERSION    : std_logic_vector(11 downto 0);
     DEBUG          : integer range 0 to 1 := c_YES;
@@ -149,6 +150,7 @@ architecture TDC of TDC is
   signal epoch_cntr_up_i              : std_logic;
   signal epoch_cntr_reset_i           : std_logic;
 -- Trigger Handler signals
+  signal trig_in_i                    : std_logic;
   signal trig_rdo_i                   : std_logic;
   signal trig_tdc_i                   : std_logic;
   signal trig_win_en_i                : std_logic;
@@ -161,7 +163,7 @@ architecture TDC of TDC is
   signal ch_200_debug_i         : std_logic_vector_array_32(0 to CHANNEL_NUMBER-1);
   signal readout_debug_i        : std_logic_vector(31 downto 0);
 -- Bus signals
-  signal status_registers_bus_i : std_logic_vector_array_32(0 to 21);
+  signal status_registers_bus_i : std_logic_vector_array_32(0 to STATUS_REG_NR-1);
 
   attribute syn_keep                    : boolean;
   attribute syn_keep of reset_tdc       : signal is true;
@@ -318,7 +320,7 @@ begin
         TRIGGER_WIN_END_TDC     => trig_win_end_tdc,
         TRIGGER_WIN_END_RDO     => trig_win_end_rdo,
         EPOCH_COUNTER_IN        => epoch_cntr,
-        COARSE_COUNTER_IN       => coarse_cntr(integer(floor(real(i)/real(16)))+1),
+        COARSE_COUNTER_IN       => coarse_cntr(integer(ceil(real(i)/real(16)))),
         READ_EN_IN              => rd_en_i(i),
         FIFO_DATA_OUT           => ch_data_i(i),
         FIFO_DATA_VALID_OUT     => ch_data_valid_i(i),
@@ -352,18 +354,20 @@ begin
       RESET_TRG               => reset_rdo,
       RESET_RDO               => reset_rdo,
       RESET_TDC               => reset_tdc,
-      TRIGGER_IN(0)           => REFERENCE_TIME,
+      TRIGGER_IN(0)           => trig_in_i, --REFERENCE_TIME,
       TRIGGER_RDO_OUT(0)      => trig_rdo_i,
       TRIGGER_TDC_OUT(0)      => trig_tdc_i,
       TRIGGER_WIN_EN_IN       => trig_win_en_i,
       TRIGGER_WIN_POST_IN     => unsigned(TRG_WIN_POST),
       TRIGGER_WIN_END_RDO_OUT => trig_win_end_rdo,
       TRIGGER_WIN_END_TDC_OUT => trig_win_end_tdc);
-
+  trig_in_i <= REFERENCE_TIME or VALID_NOTIMING_TRG_IN;
+  
   -- Readout
   TheReadout : Readout
     generic map (
       CHANNEL_NUMBER => CHANNEL_NUMBER,
+      STATUS_REG_NR  => STATUS_REG_NR,
       TDC_VERSION    => TDC_VERSION)
     port map (
       RESET_100                => reset_rdo,
@@ -406,7 +410,7 @@ begin
       COARSE_COUNTER_IN        => coarse_cntr(1),
       EPOCH_COUNTER_IN         => epoch_cntr,
       DEBUG_MODE_EN_IN         => debug_mode_en_i,
-      STATUS_REGISTERS_BUS_OUT => status_registers_bus_i(0 to 20),
+      STATUS_REGISTERS_BUS_OUT => status_registers_bus_i,
       READOUT_DEBUG            => readout_debug_i,
       REFERENCE_TIME           => REFERENCE_TIME,
 -- ports not used after tdc_v1.5.2
@@ -504,7 +508,7 @@ begin
 
   TheStatusRegistersBus : BusHandler
     generic map (
-      BUS_LENGTH => 21)
+      BUS_LENGTH => STATUS_REG_NR - 1)
     port map (
       RESET            => reset_rdo,
       CLK              => CLK_READOUT,
@@ -516,7 +520,7 @@ begin
       DATAREADY_OUT    => SRB_DATAREADY_OUT,
       UNKNOWN_ADDR_OUT => SRB_UNKNOWN_ADDR_OUT);
 
-  status_registers_bus_i(21) <= ch_200_debug_i(0);
+--  status_registers_bus_i(21) <= ch_200_debug_i(0);
   
   --TheLostHitBus : BusHandler
   --  generic map (

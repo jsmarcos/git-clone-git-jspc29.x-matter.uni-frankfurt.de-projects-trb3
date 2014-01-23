@@ -100,6 +100,7 @@ architecture trb3_periph_32PinAddOn_arch of trb3_periph_32PinAddOn is
   signal clk_200_i                : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
   signal clk_125_i                : std_logic;  -- 125 MHz, via Clock Manager and bypassed PLL
   signal clk_20_i                 : std_logic;  -- clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
+  signal osc_int                  : std_logic;  -- clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
   signal pll_lock                 : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
   signal clear_i                  : std_logic;
   signal reset_i                  : std_logic;
@@ -294,6 +295,11 @@ begin
       CLKOP => clk_20_i,
       CLKOK => clk_125_i,
       LOCK  => open);
+
+  OSCInst0 : OSCF  -- internal oscillator with frequency of 2.5MHz
+    port map (
+      OSC => osc_int);
+
 
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (to other FPGA)
@@ -731,8 +737,9 @@ begin
 
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 65,             -- Number of TDC channels
-      CONTROL_REG_NR => 6,              -- Number of control regs - higher than 8 check tdc_ctrl_addr
+      CHANNEL_NUMBER => 5,              -- Number of TDC channels
+      STATUS_REG_NR  => 20,             -- Number of status regs
+      CONTROL_REG_NR => 6,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
       TDC_VERSION    => x"160",         -- TDC version number
       DEBUG          => c_YES,
       SIMULATION     => c_NO)
@@ -740,9 +747,9 @@ begin
       RESET                 => reset_i,
       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
-      REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
-      HIT_IN                => hit_in_i(64 downto 1),  -- Channel start signals
-      HIT_CALIBRATION       => clk_20_i,    -- Hits for calibrating the TDC
+      REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
+      HIT_IN                => hit_in_i(4 downto 1),  -- Channel start signals
+      HIT_CALIBRATION       => osc_int,  --clk_20_i,    -- Hits for calibrating the TDC
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --

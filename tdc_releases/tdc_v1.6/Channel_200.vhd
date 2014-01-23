@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2014-01-21
+-- Last update: 2014-01-22
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -82,6 +82,7 @@ architecture Channel_200 of Channel_200 is
 
   -- epoch counter
   signal epoch_cntr         : std_logic_vector(27 downto 0) := (others => '0');
+  signal epoch_cntr_reg     : std_logic_vector(27 downto 0) := (others => '0');
   signal epoch_cntr_updated : std_logic                     := '0';
   signal epoch_capture_time : std_logic_vector(10 downto 0);
   signal epoch_value        : std_logic_vector(35 downto 0);
@@ -182,26 +183,45 @@ begin  -- Channel_200
   TimeStampCapture : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
-      if hit_detect_reg = '1' then      -- if encoder_finished_i = '1' then
-        time_stamp_i <= std_logic_vector(unsigned(coarse_cntr_reg));  -- - to_unsigned(9, 11));
+      if hit_detect_reg = '1' then
+        time_stamp_i <= coarse_cntr_reg;
       end if;
     end if;
   end process TimeStampCapture;
 
-  epoch_capture_time <= "00000001001";
+  epoch_capture_time <= "00000001000";
 
-  EpochCounterCapture : process (CLK_200)
-  begin
-    if rising_edge(CLK_200) then
-      if hit_detect_reg = '1' then  -- if coarse_cntr_reg = epoch_capture_time then
-        epoch_cntr_updated <= '1';
-        epoch_cntr         <= EPOCH_COUNTER_IN;
-      elsif write_epoch_i = '1' then
-        epoch_cntr_updated <= '0';
+  isChannelEpoch : if REFERENCE = c_NO generate
+    EpochCounterCapture : process (CLK_200)
+    begin
+      if rising_edge(CLK_200) then
+        if coarse_cntr_reg = epoch_capture_time then
+          epoch_cntr         <= EPOCH_COUNTER_IN;
+          epoch_cntr_updated <= '1';
+        elsif write_epoch_i = '1' then
+          epoch_cntr_updated <= '0';
+        end if;
       end if;
-    end if;
-  end process EpochCounterCapture;
+    end process EpochCounterCapture;
+  end generate isChannelEpoch;
 
+  isReferenceEpoch: if REFERENCE = c_YES generate
+    EpochCounterCapture : process (CLK_200)
+    begin
+      if rising_edge(CLK_200) then
+        if hit_detect_reg = '1' then
+          epoch_cntr     <= EPOCH_COUNTER_IN;
+          epoch_cntr_reg <= epoch_cntr;
+        end if;
+        if hit_detect_2reg = '1' and epoch_cntr /= epoch_cntr_reg then
+          epoch_cntr_updated <= '1';
+        elsif write_epoch_i = '1' then
+          epoch_cntr_updated <= '0';
+        end if;
+      end if;
+    end process EpochCounterCapture;
+  end generate isReferenceEpoch;
+  
   --purpose: Encoder
   Encoder : Encoder_304_Bit
     port map (

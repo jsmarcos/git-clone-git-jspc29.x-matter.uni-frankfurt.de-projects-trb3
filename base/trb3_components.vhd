@@ -39,9 +39,15 @@ package trb3_components is
       LOCK  : out std_logic);
   end component pll_in125_out20;
 
+  component OSCF  -- internal oscillator with a frequency of 2MHz
+    port (OSC : out
+          std_logic);
+  end component;
+
   component TDC is
     generic (
       CHANNEL_NUMBER : integer range 2 to 65;
+      STATUS_REG_NR  : integer range 0 to 31;
       CONTROL_REG_NR : integer range 0 to 6;
       TDC_VERSION    : std_logic_vector(11 downto 0);
       DEBUG          : integer range 0 to 1 := c_YES;
@@ -287,6 +293,7 @@ package trb3_components is
   component Readout is
     generic (
       CHANNEL_NUMBER : integer range 2 to 65;
+      STATUS_REG_NR  : integer range 0 to 31;
       TDC_VERSION    : std_logic_vector(11 downto 0));
     port (
       RESET_100                : in  std_logic;
@@ -329,7 +336,7 @@ package trb3_components is
       COARSE_COUNTER_IN        : in  std_logic_vector(10 downto 0);
       EPOCH_COUNTER_IN         : in  std_logic_vector(27 downto 0);
       DEBUG_MODE_EN_IN         : in  std_logic;
-      STATUS_REGISTERS_BUS_OUT : out std_logic_vector_array_32(0 to 20);
+      STATUS_REGISTERS_BUS_OUT : out std_logic_vector_array_32(0 to STATUS_REG_NR-1);
       READOUT_DEBUG            : out std_logic_vector(31 downto 0);
 -- ports not used after tdc_v1.5.2
       TRIGGER_WIN_END_OUT      : out std_logic;
