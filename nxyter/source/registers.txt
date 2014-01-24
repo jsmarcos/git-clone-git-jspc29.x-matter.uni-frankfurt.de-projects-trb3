@@ -141,6 +141,11 @@
 0x8418 :  r    EVT_BUFFER_FULL_IN    
 0x8419 :  r    Wait for Data time (ns)
 0x841a :  r    Nxyter CVT (ns) 
+0x841b :  r    Minimum validation Time    
+0x841c :  r    Out of Window Counter last Event Low 
+0x841d :  r    Window Hit Counter last Event
+0x841e :  r    Out of Window Counter last Event High
+0x841f :  r    Data Rate being written to Event Buffer (Hz)
 
 -- Event Data Buffer
 0x8600 :  r    read FIFO buffer

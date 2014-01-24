@@ -10,48 +10,50 @@ entity nx_trigger_validate is
     BOARD_ID : std_logic_vector(15 downto 0) := x"ffff"
     );
   port (
-    CLK_IN               : in  std_logic;  
-    RESET_IN             : in  std_logic;
-
-    -- Inputs
-    DATA_CLK_IN          : in  std_logic;
-    TIMESTAMP_IN         : in  std_logic_vector(13 downto 0);
-    CHANNEL_IN           : in  std_logic_vector(6 downto 0);
-    TIMESTAMP_STATUS_IN  : in  std_logic_vector(2 downto 0);   -- 2: parity
-    ADC_DATA_IN          : in  std_logic_vector(11 downto 0);  -- 1: pileup
-    NX_TOKEN_RETURN_IN   : in  std_logic;                      -- 0: ovfl
-    NX_NOMORE_DATA_IN    : in  std_logic;
-    
-    TRIGGER_IN           : in  std_logic;
-    TRIGGER_BUSY_IN      : in  std_logic;
-    FAST_CLEAR_IN        : in  std_logic;
-    TRIGGER_BUSY_OUT     : out std_logic;
-    TIMESTAMP_FPGA_IN    : in  unsigned(11 downto 0);
-    DATA_FIFO_DELAY_OUT  : out std_logic_vector(7 downto 0);
-    
-    -- Event Buffer I/O
-    DATA_OUT             : out std_logic_vector(31 downto 0);
-    DATA_CLK_OUT         : out std_logic;
-    NOMORE_DATA_OUT      : out std_logic;
-    EVT_BUFFER_CLEAR_OUT : out std_logic;
-    EVT_BUFFER_FULL_IN   : in  std_logic; 
+    CLK_IN                 : in  std_logic;  
+    RESET_IN               : in  std_logic;
+                           
+    -- Inputs              
+    DATA_CLK_IN            : in  std_logic;
+    TIMESTAMP_IN           : in  std_logic_vector(13 downto 0);
+    CHANNEL_IN             : in  std_logic_vector(6 downto 0);
+    TIMESTAMP_STATUS_IN    : in  std_logic_vector(2 downto 0);   -- 2: parity
+    ADC_DATA_IN            : in  std_logic_vector(11 downto 0);  -- 1: pileup
+    NX_TOKEN_RETURN_IN     : in  std_logic;                      -- 0: ovfl
+    NX_NOMORE_DATA_IN      : in  std_logic;
+                           
+    TRIGGER_IN             : in  std_logic;
+    TRIGGER_BUSY_IN        : in  std_logic;
+    FAST_CLEAR_IN          : in  std_logic;
+    TRIGGER_BUSY_OUT       : out std_logic;
+    TIMESTAMP_FPGA_IN      : in  unsigned(11 downto 0);
+    DATA_FIFO_DELAY_OUT    : out std_logic_vector(7 downto 0);
+                           
+    -- Event Buffer I/O    
+    DATA_OUT               : out std_logic_vector(31 downto 0);
+    DATA_CLK_OUT           : out std_logic;
+    NOMORE_DATA_OUT        : out std_logic;
+    EVT_BUFFER_CLEAR_OUT   : out std_logic;
+    EVT_BUFFER_FULL_IN     : in  std_logic; 
     
     -- Histogram
-    HISTOGRAM_FILL_OUT   : out std_logic;
-    HISTOGRAM_BIN_OUT    : out std_logic_vector(6 downto 0);
-    HISTOGRAM_ADC_OUT    : out std_logic_vector(11 downto 0);
+    HISTOGRAM_FILL_OUT     : out std_logic;
+    HISTOGRAM_BIN_OUT      : out std_logic_vector(6 downto 0);
+    HISTOGRAM_ADC_OUT      : out std_logic_vector(11 downto 0);
+    HISTOGRAM_PILEUP_OUT   : out std_logic;
+    HISTOGRAM_OVERFLOW_OUT : out std_logic;
     
     -- Slave bus         
-    SLV_READ_IN          : in  std_logic;
-    SLV_WRITE_IN         : in  std_logic;
-    SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
-    SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
-    SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
-    SLV_ACK_OUT          : out std_logic;
-    SLV_NO_MORE_DATA_OUT : out std_logic;
-    SLV_UNKNOWN_ADDR_OUT : out std_logic;
-    
-    DEBUG_OUT            : out std_logic_vector(15 downto 0)
+    SLV_READ_IN            : in  std_logic;
+    SLV_WRITE_IN           : in  std_logic;
+    SLV_DATA_OUT           : out std_logic_vector(31 downto 0);
+    SLV_DATA_IN            : in  std_logic_vector(31 downto 0);
+    SLV_ADDR_IN            : in  std_logic_vector(15 downto 0);
+    SLV_ACK_OUT            : out std_logic;
+    SLV_NO_MORE_DATA_OUT   : out std_logic;
+    SLV_UNKNOWN_ADDR_OUT   : out std_logic;
+                           
+    DEBUG_OUT              : out std_logic_vector(15 downto 0)
     );
 
 end entity;
@@ -159,6 +161,8 @@ architecture Behavioral of nx_trigger_validate is
   signal histogram_fill_o      : std_logic;
   signal histogram_bin_o       : std_logic_vector(6 downto 0);
   signal histogram_adc_o       : std_logic_vector(11 downto 0);
+  signal histogram_pileup_o    : std_logic;
+  signal histogram_ovfl_o      : std_logic;
                                
   -- Data FIFO Delay           
   signal data_fifo_delay_o     : unsigned(7 downto 0);
@@ -267,6 +271,8 @@ begin
         histogram_fill_o        <= '0';
         histogram_bin_o         <= (others => '0');
         histogram_adc_o         <= (others => '0');
+        histogram_pileup_o      <= '0';
+        histogram_ovfl_o        <= '0';
         
         -----------------------------------------------------------------------
         -- Calculate Thresholds and values for FIFO Delay
@@ -387,7 +393,10 @@ begin
           -- Fill Histogram
           histogram_fill_o                   <= '1';
           histogram_bin_o                    <= CHANNEL_IN;
-          histogram_adc_o                    <= ADC_DATA_IN;          
+          histogram_adc_o                    <= ADC_DATA_IN;
+          histogram_pileup_o                 <= TIMESTAMP_STATUS_IN(1);
+          histogram_ovfl_o                   <= TIMESTAMP_STATUS_IN(0);
+
         end if;
       end if;
     end if;
@@ -1085,21 +1094,23 @@ begin
   data_clk_o <= d_data_clk_o or t_data_clk_o;
   data_o     <= d_data_o or t_data_o;
   
-  TRIGGER_BUSY_OUT      <= trigger_busy_o;
-  DATA_OUT              <= data_o or t_data_o;
-  DATA_CLK_OUT          <= data_clk_o;
-  NOMORE_DATA_OUT       <= nomore_data_o;
-  DATA_FIFO_DELAY_OUT   <= std_logic_vector(data_fifo_delay_o);
-  EVT_BUFFER_CLEAR_OUT  <= evt_buffer_clear_o;
+  TRIGGER_BUSY_OUT       <= trigger_busy_o;
+  DATA_OUT               <= data_o or t_data_o;
+  DATA_CLK_OUT           <= data_clk_o;
+  NOMORE_DATA_OUT        <= nomore_data_o;
+  DATA_FIFO_DELAY_OUT    <= std_logic_vector(data_fifo_delay_o);
+  EVT_BUFFER_CLEAR_OUT   <= evt_buffer_clear_o;
   
-  HISTOGRAM_FILL_OUT    <= histogram_fill_o;
-  HISTOGRAM_BIN_OUT     <= histogram_bin_o;
-  HISTOGRAM_ADC_OUT     <= histogram_adc_o;
+  HISTOGRAM_FILL_OUT     <= histogram_fill_o;
+  HISTOGRAM_BIN_OUT      <= histogram_bin_o;
+  HISTOGRAM_ADC_OUT      <= histogram_adc_o;
+  HISTOGRAM_PILEUP_OUT   <= histogram_pileup_o;
+  HISTOGRAM_OVERFLOW_OUT <= histogram_ovfl_o;
   
   -- Slave 
-  SLV_DATA_OUT          <= slv_data_out_o;    
-  SLV_NO_MORE_DATA_OUT  <= slv_no_more_data_o; 
-  SLV_UNKNOWN_ADDR_OUT  <= slv_unknown_addr_o;
-  SLV_ACK_OUT           <= slv_ack_o;
+  SLV_DATA_OUT           <= slv_data_out_o;    
+  SLV_NO_MORE_DATA_OUT   <= slv_no_more_data_o; 
+  SLV_UNKNOWN_ADDR_OUT   <= slv_unknown_addr_o;
+  SLV_ACK_OUT            <= slv_ack_o;
 
 end Behavioral;

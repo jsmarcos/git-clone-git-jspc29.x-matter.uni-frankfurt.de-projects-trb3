@@ -582,4 +582,4 @@ begin
   ERROR_ADC0_OUT       <= error_adc0_o;
   ERROR_ADC1_OUT       <= error_adc1_o;
   
-end architecture;
+end Behavioral;

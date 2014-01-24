@@ -16,8 +16,8 @@ CoreRevision=6.1
 ModuleName=ram_dp_128x32
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=12/13/2013
-Time=22:59:16
+Date=12/15/2013
+Time=15:22:59
 
 [Parameters]
 Verilog=0
@@ -35,7 +35,7 @@ enByte=0
 ByteSize=9
 adPipeline=0
 inPipeline=0
-outPipeline=0
+outPipeline=1
 MOR=0
 InData=Registered
 AdControl=Registered

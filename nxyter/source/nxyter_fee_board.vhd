@@ -167,9 +167,11 @@ architecture Behavioral of nXyter_FEE_board is
   signal trigger_validate_busy  : std_logic;
   signal validate_nomore_data   : std_logic;
                                 
-  signal trigger_validate_fill  : std_logic;
-  signal trigger_validate_bin   : std_logic_vector(6 downto 0);
-  signal trigger_validate_adc   : std_logic_vector(11 downto 0);
+  signal trigger_validate_fill   : std_logic;
+  signal trigger_validate_bin    : std_logic_vector(6 downto 0);
+  signal trigger_validate_adc    : std_logic_vector(11 downto 0);
+  signal trigger_validate_pileup : std_logic;
+  signal trigger_validate_ovfl   : std_logic;
                                 
   -- Event Buffer                
   signal trigger_evt_busy       : std_logic;
@@ -256,7 +258,7 @@ begin
                                 7 => 4,          -- Trigger Handler
                                 8 => 5,          -- Trigger Validate
                                 9 => 9,          -- NX Setup
-                               10 => 9,          -- NX Histograms
+                               10 => 10,         -- NX Histograms
                                11 => 0,          -- Debug Handler
                                12 => 2,          -- Data Delay
                                 others => 0
@@ -629,44 +631,46 @@ begin
       BOARD_ID => BOARD_ID
       )
     port map (
-      CLK_IN                 => CLK_IN,
-      RESET_IN               => RESET_IN,
-      
-      DATA_CLK_IN            => data_valid,
-      TIMESTAMP_IN           => timestamp,
-      CHANNEL_IN             => timestamp_channel_id,
-      TIMESTAMP_STATUS_IN    => timestamp_status,
-      ADC_DATA_IN            => adc_data,
-      NX_TOKEN_RETURN_IN     => nx_token_return,
-      NX_NOMORE_DATA_IN      => nx_nomore_data,
-
-      TRIGGER_IN             => trigger,
-      TRIGGER_BUSY_IN        => trigger_busy,
-      FAST_CLEAR_IN          => fast_clear,
-      TRIGGER_BUSY_OUT       => trigger_validate_busy,
-      TIMESTAMP_FPGA_IN      => timestamp_hold,
-      DATA_FIFO_DELAY_OUT    => new_data_fifo_delay,
-      
-      DATA_OUT               => trigger_data,
-      DATA_CLK_OUT           => trigger_data_clk,
-      NOMORE_DATA_OUT        => validate_nomore_data,
-      EVT_BUFFER_CLEAR_OUT   => event_buffer_clear,
-      EVT_BUFFER_FULL_IN     => evt_buffer_full,
-
-      HISTOGRAM_FILL_OUT     => trigger_validate_fill,
-      HISTOGRAM_BIN_OUT      => trigger_validate_bin,
-      HISTOGRAM_ADC_OUT      => trigger_validate_adc,
-      
-      SLV_READ_IN            => slv_read(8),
-      SLV_WRITE_IN           => slv_write(8),
-      SLV_DATA_OUT           => slv_data_rd(8*32+31 downto 8*32),
-      SLV_DATA_IN            => slv_data_wr(8*32+31 downto 8*32),
-      SLV_ADDR_IN            => slv_addr(8*16+15 downto 8*16),
-      SLV_ACK_OUT            => slv_ack(8),
-      SLV_NO_MORE_DATA_OUT   => slv_no_more_data(8),
-      SLV_UNKNOWN_ADDR_OUT   => slv_unknown_addr(8),
-
-      DEBUG_OUT              => debug_line(10)
+      CLK_IN                   => CLK_IN,
+      RESET_IN                 => RESET_IN,
+                               
+      DATA_CLK_IN              => data_valid,
+      TIMESTAMP_IN             => timestamp,
+      CHANNEL_IN               => timestamp_channel_id,
+      TIMESTAMP_STATUS_IN      => timestamp_status,
+      ADC_DATA_IN              => adc_data,
+      NX_TOKEN_RETURN_IN       => nx_token_return,
+      NX_NOMORE_DATA_IN        => nx_nomore_data,
+                               
+      TRIGGER_IN               => trigger,
+      TRIGGER_BUSY_IN          => trigger_busy,
+      FAST_CLEAR_IN            => fast_clear,
+      TRIGGER_BUSY_OUT         => trigger_validate_busy,
+      TIMESTAMP_FPGA_IN        => timestamp_hold,
+      DATA_FIFO_DELAY_OUT      => new_data_fifo_delay,
+                               
+      DATA_OUT                 => trigger_data,
+      DATA_CLK_OUT             => trigger_data_clk,
+      NOMORE_DATA_OUT          => validate_nomore_data,
+      EVT_BUFFER_CLEAR_OUT     => event_buffer_clear,
+      EVT_BUFFER_FULL_IN       => evt_buffer_full,
+                               
+      HISTOGRAM_FILL_OUT       => trigger_validate_fill,
+      HISTOGRAM_BIN_OUT        => trigger_validate_bin,
+      HISTOGRAM_ADC_OUT        => trigger_validate_adc,
+      HISTOGRAM_PILEUP_OUT     => trigger_validate_pileup,
+      HISTOGRAM_OVERFLOW_OUT   => trigger_validate_ovfl,
+                               
+      SLV_READ_IN              => slv_read(8),
+      SLV_WRITE_IN             => slv_write(8),
+      SLV_DATA_OUT             => slv_data_rd(8*32+31 downto 8*32),
+      SLV_DATA_IN              => slv_data_wr(8*32+31 downto 8*32),
+      SLV_ADDR_IN              => slv_addr(8*16+15 downto 8*16),
+      SLV_ACK_OUT              => slv_ack(8),
+      SLV_NO_MORE_DATA_OUT     => slv_no_more_data(8),
+      SLV_UNKNOWN_ADDR_OUT     => slv_unknown_addr(8),
+                               
+      DEBUG_OUT                => debug_line(10)
       );
 
 -------------------------------------------------------------------------------
@@ -715,9 +719,11 @@ begin
       RESET_IN                    => RESET_IN,
                                  
       RESET_HISTS_IN              => '0',
-      CHANNEL_STAT_FILL_IN        => trigger_validate_fill,
+      CHANNEL_FILL_IN             => trigger_validate_fill,
       CHANNEL_ID_IN               => trigger_validate_bin,
       CHANNEL_ADC_IN              => trigger_validate_adc,
+      CHANNEL_PILEUP_IN           => trigger_validate_pileup,
+      CHANNEL_OVERFLOW_IN         => trigger_validate_ovfl,
      
       SLV_READ_IN                 => slv_read(10),
       SLV_WRITE_IN                => slv_write(10),
