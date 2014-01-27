@@ -13,7 +13,7 @@ entity TDC is
   generic (
     CHANNEL_NUMBER : integer range 2 to 65;
     CONTROL_REG_NR : integer range 0 to 6;
-    TDC_VERSION    : std_logic_vector(10 downto 0));
+    TDC_VERSION    : std_logic_vector(11 downto 0));
   port (
     RESET                 : in  std_logic;
     CLK_TDC               : in  std_logic;
@@ -244,7 +244,7 @@ begin
 
 -- Channels
   GEN_Channels : for i in 1 to CHANNEL_NUMBER - 1 generate
-    Channels : Channel
+    Channels : entity work.Channel
       generic map (
         CHANNEL_ID => i)
       port map (
@@ -276,7 +276,7 @@ begin
   TheReadout : Readout
     generic map (
       CHANNEL_NUMBER => CHANNEL_NUMBER,
-      TDC_VERSION    => TDC_VERSION)
+      TDC_VERSION    => TDC_VERSION(10 downto 0))
     port map (
       CLK_200                  => CLK_TDC,
       RESET_200                => reset_tdc,
