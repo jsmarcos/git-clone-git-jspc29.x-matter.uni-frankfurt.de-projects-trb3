@@ -449,7 +449,7 @@ begin
   --   D[29:27] RESERVED        set all to '0'
   --   D[26:24] I2C_NUM_BYTES   number of bytes to be read 1..4       
   --   D[23:16] I2C_ADDRESS     address of I2C chip
-  --   D[15:8]  I2C_CMD         command byte for access
+  --   D[15:8]  I2C_REG_ADDRESS command byte for access
   --   D[7:0]   I2C_DATA        data to be written
   --   
   --   Read bit definition

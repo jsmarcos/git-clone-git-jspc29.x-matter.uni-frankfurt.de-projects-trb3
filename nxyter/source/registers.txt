@@ -19,7 +19,8 @@
 0x810c :  r    All ERROR Flags (8 Bit)
 
 -- NX I2C Setup Handler
-0x8200 : r/w   I2C Memeory Register (Depth: 0 - 45 ... 0x822c) 
+0x8200 : r/w   I2C Memory Register (Depth: 0 - 45 ... 0x822c) 
+0x8280 : r     ADC Memory Register (Depth: 0 - 3  ... 0x8283) 
 0x8300 : r/w   DAC Register Memory (Depth: 0 - 128 ... 0x82e0) 
 0x8250 : r/w   Enable Nxyter Clock 
 0x8251 : r/w   Nxyter Polarity
@@ -170,10 +171,19 @@
 0x8060 :       Access to SPI Interface
 
 -- Histogram Handler
-0x8800 :  r/w  r: Read Channel Statistic (128 channel in a row)
-               w: reset all Histograms
-0x8880 :  r    Read Channel Trigger Rate (128 channel in a row, 1/s)
-0x8900 :  r    Read Channel ADC Value    (128 channel in a row)
+0x8800 :  r/w  r: Read Channel HIt Statistic (128 channel in a row)
+0x8900 :  r    Read Channel Trigger Rate (128 channel in a row, 1/s)
+0x8a00 :  r    Read Channel averaged ADC Value (128 channel in a row)
+0x8b00 :  r    Read Channel PileUp Rate (128 channel in a row, 1/s)
+
+0x8880 :  r/w  Hit Rate num averages (3 Bit)
+0x8881 :  r/w  Hit Rate average enable 
+0x8980 :  r/w  ADC num averages (3 Bit)
+0x8981 :  r/w  ADC average enable 
+0x8a80 :  r/w  PileUp Rate num averages (3 Bit)
+0x8a81 :  r/w  PileUp Rate average enable 
+0x8b80 :  r/w  Overflow Rate num averages (3 Bit)
+0x8b81 :  r/w  Overflow Rate average enable 
 
 -- Debug Multiplexer
 0x8020 :  r/w   Select Debug Entity

@@ -352,36 +352,56 @@ begin
             end if;
             
             if (store_data = '1') then
+
               case readout_mode(1 downto 0) is              
                 when "00" =>
-                  -- RefValue + TS window filter + ovfl valid + parity valid
-                  if (TIMESTAMP_STATUS_IN(2) = '0' and
-                      TIMESTAMP_STATUS_IN(0) = '0') then 
-                    d_data_o(11 downto  0)     <= deltaTStore(11 downto  0);
-                    d_data_o(23 downto 12)     <= ADC_DATA_IN;
-                    d_data_o(30 downto 24)     <= CHANNEL_IN;
-                    d_data_o(31)               <= TIMESTAMP_STATUS_IN(1);
+                  -- RefValue + TS window filter + parity valid
+                  if (TIMESTAMP_STATUS_IN(2) = '0') then
+                    d_data_o(10 downto  0)     <= deltaTStore(10 downto  0);
+                    d_data_o(22 downto 11)     <= ADC_DATA_IN;
+                    d_data_o(29 downto 23)     <= CHANNEL_IN;
+                    d_data_o(31 downto 30)     <=
+                      TIMESTAMP_STATUS_IN(1 downto 0);
                     d_data_clk_o               <= '1';
                   end if;
 
                 when "01" =>
-                  -- RefValue + TS window filter + ovfl and pileup valid
-                  -- + parity valid
-                  if (TIMESTAMP_STATUS_IN = "000") then 
-                    d_data_o(11 downto  0)     <= deltaTStore(11 downto  0);
-                    d_data_o(23 downto 12)     <= ADC_DATA_IN;
-                    d_data_o(30 downto 24)     <= CHANNEL_IN;
-                    d_data_o(31)               <= TIMESTAMP_STATUS_IN(1);
+                  -- RefValue + TS window filter + pileup and Overflow valid
+                  -- parity valid
+                  if (TIMESTAMP_STATUS_IN(2) = '0' and
+                      TIMESTAMP_STATUS_IN(0) = '0') then 
+                    d_data_o(10 downto  0)     <= deltaTStore(10 downto  0);
+                    d_data_o(22 downto 11)     <= ADC_DATA_IN;
+                    d_data_o(29 downto 23)     <= CHANNEL_IN;
+                    d_data_o(31 downto 30)     <=
+                      TIMESTAMP_STATUS_IN(1 downto 0);
                     d_data_clk_o               <= '1';
                   end if;
-                    
+
+                when "10" =>
+                  -- RefValue + TS window filter + pileup, Overflow and pileup
+                  -- valid
+                  -- parity valid
+                  if (TIMESTAMP_STATUS_IN(2) = '0' and
+                      TIMESTAMP_STATUS_IN(1) = '0' and 
+                      TIMESTAMP_STATUS_IN(0) = '0') then 
+                    d_data_o(10 downto  0)     <= deltaTStore(10 downto  0);
+                    d_data_o(22 downto 11)     <= ADC_DATA_IN;
+                    d_data_o(29 downto 23)     <= CHANNEL_IN;
+                    d_data_o(31 downto 30)     <=
+                      TIMESTAMP_STATUS_IN(1 downto 0);
+                    d_data_clk_o               <= '1';
+                  end if;
+                  
                 when others =>
+                  d_data_o(10 downto  0)     <= deltaTStore(10 downto  0);
+                  d_data_o(22 downto 11)     <= ADC_DATA_IN;
+                  d_data_o(29 downto 23)     <= CHANNEL_IN;
+                  d_data_o(31 downto 30)     <=
+                    TIMESTAMP_STATUS_IN(1 downto 0);
+                  d_data_clk_o               <= '1';
                   -- RefValue + ignore status
-                  d_data_o(11 downto  0)       <= deltaTStore(11 downto  0);
-                  d_data_o(23 downto 12)       <= ADC_DATA_IN;
-                  d_data_o(30 downto 24)       <= CHANNEL_IN;
-                  d_data_o(31)                 <= TIMESTAMP_STATUS_IN(1);
-                  d_data_clk_o                 <= '1';
+                  
               end case;
             end if;
 
