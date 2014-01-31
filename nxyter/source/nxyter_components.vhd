@@ -10,7 +10,7 @@ package nxyter_components is
 
   component nXyter_FEE_board
     generic (
-      BOARD_ID : std_logic_vector(15 downto 0));
+      BOARD_ID : std_logic_vector(1 downto 0));
     port (
       CLK_IN                     : in    std_logic;
       RESET_IN                   : in    std_logic;
@@ -86,6 +86,7 @@ component nx_i2c_master
     INTERNAL_COMMAND_IN  : in    std_logic_vector(31 downto 0);
     COMMAND_BUSY_OUT     : out   std_logic;
     I2C_DATA_OUT         : out   std_logic_vector(31 downto 0);
+    I2C_DATA_BYTES_OUT   : out   std_logic_vector(31 downto 0);
     I2C_LOCK_IN          : in    std_logic;
     SLV_READ_IN          : in    std_logic;
     SLV_WRITE_IN         : in    std_logic;
@@ -313,6 +314,7 @@ component nx_setup
     I2C_COMMAND_OUT      : out std_logic_vector(31 downto 0);
     I2C_COMMAND_BUSY_IN  : in  std_logic;
     I2C_DATA_IN          : in  std_logic_vector(31 downto 0);
+    I2C_DATA_BYTES_IN    : in  std_logic_vector(31 downto 0);
     I2C_LOCK_OUT         : out std_logic;
     I2C_ONLINE_OUT       : out std_logic;
     I2C_REG_RESET_IN     : in  std_logic;
@@ -526,7 +528,7 @@ end component;
 
 component nx_trigger_validate
   generic (
-    BOARD_ID : std_logic_vector(15 downto 0)
+    BOARD_ID : std_logic_vector(1 downto 0)
     );
   port (
     CLK_IN                 : in  std_logic;
@@ -568,7 +570,7 @@ end component;
 
 component nx_event_buffer
   generic (
-    BOARD_ID : std_logic_vector(15 downto 0)
+    BOARD_ID : std_logic_vector(1 downto 0)
     );
   port (
     CLK_IN                  : in  std_logic;

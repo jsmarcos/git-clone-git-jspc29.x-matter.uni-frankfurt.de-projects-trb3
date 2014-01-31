@@ -7,7 +7,7 @@ use work.nxyter_components.all;
 
 entity nx_trigger_validate is
   generic (
-    BOARD_ID : std_logic_vector(15 downto 0) := x"ffff"
+    BOARD_ID : std_logic_vector(1 downto 0) := "11"
     );
   port (
     CLK_IN                 : in  std_logic;  
@@ -59,7 +59,12 @@ entity nx_trigger_validate is
 end entity;
 
 architecture Behavioral of nx_trigger_validate is
+  constant VERSION_NUMBER      : std_logic_vector(3 downto 0) := x"1";
 
+  constant S_PARITY            : integer := 2;
+  constant S_PILEUP            : integer := 1;
+  constant S_OVFL              : integer := 0;
+  
   -- Process Channel_Status
   signal channel_index         : std_logic_vector(6 downto 0);
   signal channel_wait          : std_logic_vector(127 downto 0);
@@ -297,7 +302,7 @@ begin
           fifo_delay_time        <= (others => '0');   
         end if;
 
-        -- Final ower Threshold value relative to TS Reference TS
+        -- Final lower Threshold value relative to TS Reference TS
         window_lower_thr         := timestamp_fpga - window_lower_thr;  
         
         window_upper_thr         :=
@@ -354,54 +359,41 @@ begin
             if (store_data = '1') then
 
               case readout_mode(1 downto 0) is              
-                when "00" =>
-                  -- RefValue + TS window filter + parity valid
-                  if (TIMESTAMP_STATUS_IN(2) = '0') then
+                               
+                when "00" | "11" =>
+                  -- Default Mode
+                  -- RefValue + Parity Valid + Error Bits
+                  if (TIMESTAMP_STATUS_IN(S_PARITY) = '0') then
                     d_data_o(10 downto  0)     <= deltaTStore(10 downto  0);
-                    d_data_o(22 downto 11)     <= ADC_DATA_IN;
-                    d_data_o(29 downto 23)     <= CHANNEL_IN;
-                    d_data_o(31 downto 30)     <=
-                      TIMESTAMP_STATUS_IN(1 downto 0);
+                    d_data_o(11)               <= TIMESTAMP_STATUS_IN(S_PILEUP);
+                    d_data_o(12)               <= TIMESTAMP_STATUS_IN(S_OVFL);
+                    d_data_o(24 downto 13)     <= ADC_DATA_IN;
+                    d_data_o(31 downto 25)     <= CHANNEL_IN;
                     d_data_clk_o               <= '1';
                   end if;
 
                 when "01" =>
-                  -- RefValue + TS window filter + pileup and Overflow valid
-                  -- parity valid
-                  if (TIMESTAMP_STATUS_IN(2) = '0' and
-                      TIMESTAMP_STATUS_IN(0) = '0') then 
-                    d_data_o(10 downto  0)     <= deltaTStore(10 downto  0);
-                    d_data_o(22 downto 11)     <= ADC_DATA_IN;
-                    d_data_o(29 downto 23)     <= CHANNEL_IN;
-                    d_data_o(31 downto 30)     <=
-                      TIMESTAMP_STATUS_IN(1 downto 0);
+                  -- Extended Timestamp Mode
+                  -- RefValue + Parity Valid, Error Bits = extended Timestamp 
+                  if (TIMESTAMP_STATUS_IN(S_PARITY) = '0') then
+                    d_data_o(12 downto  0)     <= deltaTStore(12 downto  0);
+                    d_data_o(24 downto 13)     <= ADC_DATA_IN;
+                    d_data_o(31 downto 25)     <= CHANNEL_IN;
                     d_data_clk_o               <= '1';
                   end if;
 
                 when "10" =>
-                  -- RefValue + TS window filter + pileup, Overflow and pileup
-                  -- valid
-                  -- parity valid
-                  if (TIMESTAMP_STATUS_IN(2) = '0' and
-                      TIMESTAMP_STATUS_IN(1) = '0' and 
-                      TIMESTAMP_STATUS_IN(0) = '0') then 
-                    d_data_o(10 downto  0)     <= deltaTStore(10 downto  0);
-                    d_data_o(22 downto 11)     <= ADC_DATA_IN;
-                    d_data_o(29 downto 23)     <= CHANNEL_IN;
-                    d_data_o(31 downto 30)     <=
-                      TIMESTAMP_STATUS_IN(1 downto 0);
+                  -- Super Extended Timestamp Mode
+                  -- .....
+                  if (TIMESTAMP_STATUS_IN(S_PARITY) = '0') then
+                    d_data_o(13 downto  0)     <= deltaTStore;
+                    d_data_o(14)               <= TIMESTAMP_STATUS_IN(S_PILEUP);
+                    d_data_o(15)               <= TIMESTAMP_STATUS_IN(S_OVFL);
+                    d_data_o(24 downto 16)     <= (others => '0');
+                    d_data_o(31 downto 25)     <= CHANNEL_IN;
                     d_data_clk_o               <= '1';
                   end if;
-                  
-                when others =>
-                  d_data_o(10 downto  0)     <= deltaTStore(10 downto  0);
-                  d_data_o(22 downto 11)     <= ADC_DATA_IN;
-                  d_data_o(29 downto 23)     <= CHANNEL_IN;
-                  d_data_o(31 downto 30)     <=
-                    TIMESTAMP_STATUS_IN(1 downto 0);
-                  d_data_clk_o               <= '1';
-                  -- RefValue + ignore status
-                  
+
               end case;
             end if;
 
@@ -414,8 +406,8 @@ begin
           histogram_fill_o                   <= '1';
           histogram_bin_o                    <= CHANNEL_IN;
           histogram_adc_o                    <= ADC_DATA_IN;
-          histogram_pileup_o                 <= TIMESTAMP_STATUS_IN(1);
-          histogram_ovfl_o                   <= TIMESTAMP_STATUS_IN(0);
+          histogram_pileup_o                 <= TIMESTAMP_STATUS_IN(S_PILEUP);
+          histogram_ovfl_o                   <= TIMESTAMP_STATUS_IN(S_OVFL);
 
         end if;
       end if;
@@ -654,19 +646,20 @@ begin
 
             t_data_o(11 downto 0)         <= timestamp_ref;
             t_data_o(21 downto 12)        <= event_counter;
-            -- Readout Mode Mapping (so far)
-            -- 00: Standard
-            -- 01: Special
-            -- 10: DEBUG
-            -- 11: UNDEF
-            case readout_mode(2 downto 0) is
-              when "000"    => t_data_o(23 downto 22) <= "00";
-              when "001"    => t_data_o(23 downto 22) <= "01";
-              when "100"    => t_data_o(23 downto 22) <= "10";
-              when "101"    => t_data_o(23 downto 22) <= "11";
-              when others   => t_data_o(23 downto 22) <= "11";
-            end case;
-            t_data_o(31 downto 24)        <= BOARD_ID(7 downto 0);
+            -- Readout Mode Mapping
+            -- Bit #3: self Triger mode
+            -- Bit #2: 0: activate TS Selection Window
+            --         1: disable TS Selection Window, i.e.
+            --            data will be written to disk as long as
+            --            Readout Time Max (Reg.: 0x8184) is valid
+            --
+            -- Bit #1..0: 00: Standard
+            --            01: UNDEF
+            --            10: UNDEF
+            --            11: UNDEF
+            t_data_o(25 downto 22)        <= readout_mode;
+            t_data_o(29 downto 26)        <= VERSION_NUMBER;
+            t_data_o(31 downto 30)        <= BOARD_ID;
             t_data_clk_o                  <= '1';
             
             event_counter                 <= event_counter + 1;
@@ -694,9 +687,9 @@ begin
             if (wait_timer_done     = '1') then
               wait_timer_reset_all        <= '1';
               STATE                       <= S_WRITE_TRAILER;
-            elsif (readout_mode(2)      = '0'  and
-                   min_val_time_expired = '1'  and
-                   (channel_all_done     = '1'  or
+            elsif (readout_mode(2)      = '0' and
+                   min_val_time_expired = '1' and
+                   (channel_all_done     = '1' or
                     NX_NOMORE_DATA_IN    = '1')
                    ) then
               wait_timer_reset_all        <= '1';
@@ -864,7 +857,7 @@ begin
           case SLV_ADDR_IN is
             when x"0000" =>
               slv_data_out_o( 3 downto  0)    <= readout_mode_r;
-              slv_data_out_o(31 downto  4)    <= (others => '0');
+              slv_data_out_o(31 downto  5)    <= (others => '0');
               slv_ack_o                       <= '1';
 
             when x"0001" =>

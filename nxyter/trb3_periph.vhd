@@ -699,7 +699,7 @@ begin
 
   nXyter_FEE_board_0: nXyter_FEE_board
     generic map (
-      BOARD_ID => x"0001"
+      BOARD_ID => "01"
       )
     port map (
       CLK_IN                     => clk_100_i,
@@ -781,7 +781,7 @@ begin
 
   nXyter_FEE_board_1: nXyter_FEE_board
     generic map (
-      BOARD_ID => x"0002"
+      BOARD_ID => "10"
       )
     port map (
       CLK_IN                     => clk_100_i,

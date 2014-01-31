@@ -15,7 +15,7 @@ use work.nxyter_components.all;
 
 entity nXyter_FEE_board is
   generic (
-    BOARD_ID : std_logic_vector(15 downto 0) := x"ffff"
+    BOARD_ID : std_logic_vector(1 downto 0) := "11"
     );
   port (
     CLK_IN                     : in  std_logic;  
@@ -125,6 +125,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal i2c_command            : std_logic_vector(31 downto 0);
   signal i2c_command_busy       : std_logic;
   signal i2c_data               : std_logic_vector(31 downto 0);
+  signal i2c_data_bytes         : std_logic_vector(31 downto 0);
   signal spi_lock               : std_logic;
   signal spi_command            : std_logic_vector(31 downto 0);
   signal spi_command_busy       : std_logic;
@@ -337,6 +338,7 @@ begin
       I2C_COMMAND_OUT      => i2c_command,
       I2C_COMMAND_BUSY_IN  => i2c_command_busy,
       I2C_DATA_IN          => i2c_data,
+      I2C_DATA_BYTES_IN    => i2c_data_bytes,
       I2C_LOCK_OUT         => i2c_lock,
       I2C_ONLINE_OUT       => nxyter_online_i2c,
       I2C_REG_RESET_IN     => i2c_reg_reset_o,
@@ -372,6 +374,7 @@ begin
       INTERNAL_COMMAND_IN   => i2c_command,
       COMMAND_BUSY_OUT      => i2c_command_busy,
       I2C_DATA_OUT          => i2c_data,
+      I2C_DATA_BYTES_OUT    => i2c_data_bytes,
       I2C_LOCK_IN           => i2c_lock,
       SLV_READ_IN           => slv_read(1),
       SLV_WRITE_IN          => slv_write(1),

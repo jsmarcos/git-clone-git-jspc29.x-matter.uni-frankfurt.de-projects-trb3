@@ -15,6 +15,7 @@ entity nx_setup is
     I2C_COMMAND_OUT      : out std_logic_vector(31 downto 0);
     I2C_COMMAND_BUSY_IN  : in  std_logic;
     I2C_DATA_IN          : in  std_logic_vector(31 downto 0);
+    I2C_DATA_BYTES_IN    : in  std_logic_vector(31 downto 0);
     I2C_LOCK_OUT         : out std_logic;
     I2C_ONLINE_OUT       : out std_logic;
     I2C_REG_RESET_IN     : in  std_logic;
@@ -62,6 +63,7 @@ architecture Behavioral of nx_setup is
   signal i2c_command_done        : std_logic;
   signal i2c_error               : std_logic;
   signal i2c_data                : std_logic_vector(31 downto 0);
+  signal i2c_data_bytes          : std_logic_vector(31 downto 0);
   
   -- I2C Register Ram
   type i2c_ram_t is array(0 to 45) of std_logic_vector(7 downto 0);
@@ -394,6 +396,7 @@ begin
         i2c_command_done    <= '0';
         i2c_error           <= '0';
         i2c_data            <= (others => '0');
+        i2c_data_bytes      <= (others => '0');
         I2C_STATE           <= I2C_IDLE;
       else
         i2c_command_o       <= (others => '0');
@@ -430,6 +433,7 @@ begin
                 i2c_error         <= '1';
               end if;
               i2c_data            <= I2C_DATA_IN;
+              i2c_data_bytes      <= I2C_DATA_BYTES_IN;
               i2c_command_done    <= '1';
               I2C_STATE           <= I2C_IDLE;
             end if;
@@ -837,7 +841,7 @@ begin
             end if;
 
           when ADC_READ_I2C_STORE_MEM =>
-            adc_ram(index)                       <= i2c_data(15 downto 0);
+            adc_ram(index)                       <= i2c_data_bytes(15 downto 0);
             i2c_lock_4_clear                     <= '1';
             ADC_STATE                            <= ADC_NEXT_TOKEN;
             

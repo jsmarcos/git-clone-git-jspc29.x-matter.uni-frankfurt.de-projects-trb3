@@ -21,6 +21,7 @@ entity nx_i2c_master is
     INTERNAL_COMMAND_IN  : in    std_logic_vector(31 downto 0);
     COMMAND_BUSY_OUT     : out   std_logic;
     I2C_DATA_OUT         : out   std_logic_vector(31 downto 0);
+    I2C_DATA_BYTES_OUT   : out   std_logic_vector(31 downto 0);
     I2C_LOCK_IN          : in    std_logic;
     
     -- Slave bus         
@@ -111,23 +112,24 @@ architecture Behavioral of nx_i2c_master is
   signal STATE, NEXT_STATE : STATES;
 
   -- TRBNet Slave Bus            
-  signal slv_data_out_o          : std_logic_vector(31 downto 0);
-  signal slv_no_more_data_o      : std_logic;
-  signal slv_unknown_addr_o      : std_logic;
-  signal slv_ack_o               : std_logic;
-
-  signal i2c_chipid              : std_logic_vector(6 downto 0);
-  signal i2c_rw_bit              : std_logic;
-  signal i2c_num_bytes           : unsigned(2 downto 0);
-  signal i2c_registerid          : std_logic_vector(7 downto 0);
-  signal i2c_register_data       : std_logic_vector(7 downto 0);
-  signal i2c_register_value_read : std_logic_vector(7 downto 0);
-
-  signal disable_slave_bus       : std_logic; 
-  signal internal_command        : std_logic;
-  signal internal_command_d      : std_logic;
-  signal i2c_data_internal_o     : std_logic_vector(31 downto 0);
-  signal i2c_data_slave          : std_logic_vector(31 downto 0);
+  signal slv_data_out_o            : std_logic_vector(31 downto 0);
+  signal slv_no_more_data_o        : std_logic;
+  signal slv_unknown_addr_o        : std_logic;
+  signal slv_ack_o                 : std_logic;
+                                   
+  signal i2c_chipid                : std_logic_vector(6 downto 0);
+  signal i2c_rw_bit                : std_logic;
+  signal i2c_num_bytes             : unsigned(2 downto 0);
+  signal i2c_registerid            : std_logic_vector(7 downto 0);
+  signal i2c_register_data         : std_logic_vector(7 downto 0);
+  signal i2c_register_value_read   : std_logic_vector(7 downto 0);
+                                   
+  signal disable_slave_bus         : std_logic; 
+  signal internal_command          : std_logic;
+  signal internal_command_d        : std_logic;
+  signal i2c_data_internal_o       : std_logic_vector(31 downto 0);
+  signal i2c_data_internal_bytes_o : std_logic_vector(31 downto 0);
+  signal i2c_data_slave            : std_logic_vector(31 downto 0);
 
 begin
 
@@ -422,17 +424,19 @@ begin
   begin 
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        i2c_data_internal_o     <= (others => '0');
-        i2c_data_slave          <= (others => '0');
-        command_busy_o          <= '0';
+        i2c_data_internal_o       <= (others => '0');
+        i2c_data_internal_bytes_o <= (others => '0');
+        i2c_data_slave            <= (others => '0');
+        command_busy_o            <= '0';
       else
         if (internal_command = '0' and internal_command_d = '0') then  
-          i2c_data_slave        <= i2c_data;
+          i2c_data_slave            <= i2c_data;
         else
-          i2c_data_internal_o   <= i2c_data;
+          i2c_data_internal_o       <= i2c_data;
+          i2c_data_internal_bytes_o <= i2c_bytes;
         end if;
       end if;
-      command_busy_o            <= i2c_busy;
+      command_busy_o                <= i2c_busy;
     end if;
   end process PROC_I2C_DATA_MULTIPLEXER;
   
@@ -592,6 +596,7 @@ begin
                        
   COMMAND_BUSY_OUT     <= command_busy_o;
   I2C_DATA_OUT         <= i2c_data_internal_o;
+  I2C_DATA_BYTES_OUT   <= i2c_data_internal_bytes_o;
 
   -- Slave Bus
   SLV_DATA_OUT         <= slv_data_out_o;    
