@@ -364,7 +364,7 @@ begin
       REGIO_NUM_STAT_REGS       => REGIO_NUM_STAT_REGS,
       REGIO_NUM_CTRL_REGS       => REGIO_NUM_CTRL_REGS,
       ADDRESS_MASK              => x"FFFF",
-      BROADCAST_BITMASK         => x"FF",
+      BROADCAST_BITMASK         => x"48",
       BROADCAST_SPECIAL_ADDR    => BROADCAST_SPECIAL_ADDR,
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
       REGIO_HARDWARE_VERSION    => HARDWARE_INFO,
@@ -483,7 +483,7 @@ begin
     generic map(
       PORT_NUMBER    => 10,
       PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"c400", 8 => x"c800", 9 => x"a000", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 7, 8 => 3, 9 => 4, others => 0)
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 7, 8 => 3, 9 => 6, others => 0)
       )
     port map(
       CLK   => clk_100_i,
