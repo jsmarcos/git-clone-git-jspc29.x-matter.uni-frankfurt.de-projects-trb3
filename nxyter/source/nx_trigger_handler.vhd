@@ -27,6 +27,7 @@ entity nx_trigger_handler is
     LVL1_TRG_INFORMATION_IN    : in std_logic_vector(23 downto 0);
     LVL1_INT_TRG_NUMBER_IN     : in std_logic_vector(15 downto 0);
 
+    FEE_DATA_FINISHED_OUT      : out std_logic;
     FEE_TRG_RELEASE_OUT        : out std_logic;
     FEE_TRG_STATUSBITS_OUT     : out std_logic_vector(31 downto 0);
 
@@ -98,6 +99,7 @@ architecture Behavioral of nx_trigger_handler is
   signal lvl2_trigger_o             : std_logic;
   signal fast_clear_o               : std_logic;
   signal trigger_busy_o             : std_logic;
+  signal fee_data_finished_o        : std_logic;
   signal fee_trg_release_o          : std_logic;
   signal fee_trg_statusbits_o       : std_logic_vector(31 downto 0);
   signal send_testpulse_l           : std_logic;
@@ -156,7 +158,7 @@ begin
   DEBUG_OUT(7)            <= LVL2_TRIGGER_BUSY_IN;
   DEBUG_OUT(8)            <= valid_trigger_o;
   DEBUG_OUT(9)            <= lvl2_trigger_o;
-  DEBUG_OUT(10)           <= '0';
+  DEBUG_OUT(10)           <= fee_data_finished_o;
   DEBUG_OUT(11)           <= fee_trg_release_o;
   DEBUG_OUT(12)           <= trigger_busy_o;
   DEBUG_OUT(13)           <= timestamp_trigger;
@@ -334,6 +336,7 @@ begin
       if (RESET_IN = '1') then
         valid_trigger_o      <= '0';
         lvl2_trigger_o       <= '0';
+        fee_data_finished_o  <= '0';
         fee_trg_release_o    <= '0';
         fee_trg_statusbits_o <= (others => '0');
         fast_clear_o         <= '0';
@@ -343,6 +346,7 @@ begin
       else
         valid_trigger_o      <= '0';
         lvl2_trigger_o       <= '0';
+        fee_data_finished_o  <= '0';
         fee_trg_release_o    <= '0';
         fee_trg_statusbits_o <= (others => '0');
         fast_clear_o         <= '0';
@@ -351,9 +355,9 @@ begin
 
         if (LVL1_INVALID_TRG_IN = '1') then
           -- There was no valid Timing Trigger at CTS, do a fast clear
-          fast_clear_o              <= '1';
-          fee_trg_release_o         <= '1';
-          STATE                     <= S_IDLE;
+          fast_clear_o               <= '1';
+          fee_trg_release_o          <= '1';
+          STATE                      <= S_IDLE;
         else
           case STATE is
             when  S_IDLE =>
@@ -376,7 +380,7 @@ begin
                 trigger_busy_o       <= '0';
                 STATE                <= S_IDLE;
               end if;     
-              
+
             when S_CTS_TRIGGER =>
               valid_trigger_o        <= '1';
               lvl2_trigger_o         <= '1';
@@ -396,6 +400,7 @@ begin
               if (LVL2_TRIGGER_BUSY_IN = '1') then
                 STATE                <= S_WAIT_LVL2_TRIGGER_DONE;
               else
+                fee_data_finished_o  <= '1';
                 STATE                <= S_FEE_TRIGGER_RELEASE;
               end if;
 
@@ -612,6 +617,7 @@ begin
   LVL2_TRIGGER_OUT          <= lvl2_trigger_o;
   FAST_CLEAR_OUT            <= fast_clear_o;
   TRIGGER_BUSY_OUT          <= trigger_busy_o;
+  FEE_DATA_FINISHED_OUT     <= fee_data_finished_o;
   FEE_TRG_RELEASE_OUT       <= fee_trg_release_o;
   FEE_TRG_STATUSBITS_OUT    <= fee_trg_statusbits_o;
 

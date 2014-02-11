@@ -178,6 +178,21 @@ begin
       q_1            => q_1
       );
 
+--  ddr_generic_single_1: ddr_generic_single
+--    port map (
+--      clk_0        => ADC0_DCLK_IN,
+--      clkdiv_reset => clkdiv_reset,
+--      eclk         => CLK_ADCDAT_IN,
+--      reset_0      => reset_0,
+--      sclk         => DDR_DATA_CLK,
+--
+--      datain_0(0)  => ADC0_DATA_A_IN,
+--      datain_0(1)  => ADC0_DATA_B_IN,
+--      datain_0(2)  => ADC0_DATA_C_IN,
+--      datain_0(3)  => ADC0_DATA_D_IN,
+--      datain_0(4)  => ADC0_FCLK_IN
+--      );
+  
   reset_0                 <= RESET_IN or RESTART_IN;
   reset_1                 <= RESET_IN or RESTART_IN;
   clkdiv_reset            <= RESET_IN;
@@ -567,4 +582,4 @@ begin
   ERROR_ADC0_OUT       <= error_adc0_o;
   ERROR_ADC1_OUT       <= error_adc1_o;
   
-end architecture;
+end Behavioral;

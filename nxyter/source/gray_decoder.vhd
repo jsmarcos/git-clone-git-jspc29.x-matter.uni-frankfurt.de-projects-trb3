@@ -27,7 +27,7 @@ entity Gray_Decoder is
 end entity;
 
 
-architecture Gray_Decoder of Gray_Decoder is
+architecture Behavioral of Gray_Decoder is
 
   signal binary_o : std_logic_vector(WIDTH - 1 downto 0);
 
@@ -53,4 +53,4 @@ begin  -- Gray_Decoder
 -- Output
   BINARY_OUT <= binary_o;
     
-end Gray_Decoder;
+end Behavioral;

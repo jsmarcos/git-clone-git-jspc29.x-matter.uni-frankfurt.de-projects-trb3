@@ -599,7 +599,7 @@ DISCHARGE(i) <= 'Z'                               when  discharge_highz(i) = '1'
                 (DELAY_C_IN(i) and slow_input(i)) when  discharge_disable(i) = '0' else
                 discharge_override(i)             when  discharge_disable(i) = '1';
                 
-DELAY_C_OUT(i) <= slow_input(i) xor delay_invert(i);
+DELAY_C_OUT(i) <= (fast_input(i) or slow_input(i)) xor delay_invert(i);
 end generate;
                 
 fast_input <= inp_gated(14) & inp_gated(12) & inp_gated(10) & inp_gated(8) & inp_gated(6) & inp_gated(4) & inp_gated(2) & inp_gated(0);

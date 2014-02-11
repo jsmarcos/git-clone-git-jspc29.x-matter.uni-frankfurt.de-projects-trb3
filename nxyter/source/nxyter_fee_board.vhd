@@ -15,7 +15,7 @@ use work.nxyter_components.all;
 
 entity nXyter_FEE_board is
   generic (
-    BOARD_ID : std_logic_vector(15 downto 0) := x"ffff"
+    BOARD_ID : std_logic_vector(1 downto 0) := "11"
     );
   port (
     CLK_IN                     : in  std_logic;  
@@ -125,6 +125,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal i2c_command            : std_logic_vector(31 downto 0);
   signal i2c_command_busy       : std_logic;
   signal i2c_data               : std_logic_vector(31 downto 0);
+  signal i2c_data_bytes         : std_logic_vector(31 downto 0);
   signal spi_lock               : std_logic;
   signal spi_command            : std_logic_vector(31 downto 0);
   signal spi_command_busy       : std_logic;
@@ -167,9 +168,11 @@ architecture Behavioral of nXyter_FEE_board is
   signal trigger_validate_busy  : std_logic;
   signal validate_nomore_data   : std_logic;
                                 
-  signal trigger_validate_fill  : std_logic;
-  signal trigger_validate_bin   : std_logic_vector(6 downto 0);
-  signal trigger_validate_adc   : std_logic_vector(11 downto 0);
+  signal trigger_validate_fill   : std_logic;
+  signal trigger_validate_bin    : std_logic_vector(6 downto 0);
+  signal trigger_validate_adc    : std_logic_vector(11 downto 0);
+  signal trigger_validate_pileup : std_logic;
+  signal trigger_validate_ovfl   : std_logic;
                                 
   -- Event Buffer                
   signal trigger_evt_busy       : std_logic;
@@ -247,7 +250,7 @@ begin
                                 ),
 
       PORT_ADDR_MASK      => (  0 => 4,          -- NX Control Handler
-                                1 => 0,          -- I2C master
+                                1 => 1,          -- I2C master
                                 2 => 5,          -- Data Receiver
                                 3 => 3,          -- Data Buffer
                                 4 => 0,          -- SPI Master
@@ -256,9 +259,9 @@ begin
                                 7 => 4,          -- Trigger Handler
                                 8 => 5,          -- Trigger Validate
                                 9 => 9,          -- NX Setup
-                               10 => 9,          -- NX Histograms
+                               10 => 10,         -- NX Histograms
                                11 => 0,          -- Debug Handler
-                               12 => 1,          -- Data Delay
+                               12 => 2,          -- Data Delay
                                 others => 0
                                 ),
 
@@ -335,6 +338,7 @@ begin
       I2C_COMMAND_OUT      => i2c_command,
       I2C_COMMAND_BUSY_IN  => i2c_command_busy,
       I2C_DATA_IN          => i2c_data,
+      I2C_DATA_BYTES_IN    => i2c_data_bytes,
       I2C_LOCK_OUT         => i2c_lock,
       I2C_ONLINE_OUT       => nxyter_online_i2c,
       I2C_REG_RESET_IN     => i2c_reg_reset_o,
@@ -370,11 +374,13 @@ begin
       INTERNAL_COMMAND_IN   => i2c_command,
       COMMAND_BUSY_OUT      => i2c_command_busy,
       I2C_DATA_OUT          => i2c_data,
+      I2C_DATA_BYTES_OUT    => i2c_data_bytes,
       I2C_LOCK_IN           => i2c_lock,
       SLV_READ_IN           => slv_read(1),
       SLV_WRITE_IN          => slv_write(1),
       SLV_DATA_OUT          => slv_data_rd(1*32+31 downto 1*32),
       SLV_DATA_IN           => slv_data_wr(1*32+31 downto 1*32),
+      SLV_ADDR_IN           => slv_addr(1*16+15 downto 1*16),
       SLV_ACK_OUT           => slv_ack(1), 
       SLV_NO_MORE_DATA_OUT  => slv_no_more_data(1),
       SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(1),
@@ -388,7 +394,7 @@ begin
   
   adc_spi_master_1: adc_spi_master
     generic map (
-      SPI_SPEED => x"32"
+      SPI_SPEED => x"c8"
       )
     port map (
       CLK_IN               => CLK_IN,
@@ -460,6 +466,7 @@ begin
       LVL1_TRG_INFORMATION_IN    => LVL1_TRG_INFORMATION_IN,
       LVL1_INT_TRG_NUMBER_IN     => LVL1_INT_TRG_NUMBER_IN,
 
+      FEE_DATA_FINISHED_OUT      => FEE_DATA_FINISHED_OUT,
       FEE_TRG_RELEASE_OUT        => FEE_TRG_RELEASE_OUT,
       FEE_TRG_STATUSBITS_OUT     => FEE_TRG_STATUSBITS_OUT,
 
@@ -627,44 +634,46 @@ begin
       BOARD_ID => BOARD_ID
       )
     port map (
-      CLK_IN                 => CLK_IN,
-      RESET_IN               => RESET_IN,
-      
-      DATA_CLK_IN            => data_valid,
-      TIMESTAMP_IN           => timestamp,
-      CHANNEL_IN             => timestamp_channel_id,
-      TIMESTAMP_STATUS_IN    => timestamp_status,
-      ADC_DATA_IN            => adc_data,
-      NX_TOKEN_RETURN_IN     => nx_token_return,
-      NX_NOMORE_DATA_IN      => nx_nomore_data,
-
-      TRIGGER_IN             => trigger,
-      TRIGGER_BUSY_IN        => trigger_busy,
-      FAST_CLEAR_IN          => fast_clear,
-      TRIGGER_BUSY_OUT       => trigger_validate_busy,
-      TIMESTAMP_FPGA_IN      => timestamp_hold,
-      DATA_FIFO_DELAY_OUT    => new_data_fifo_delay,
-      
-      DATA_OUT               => trigger_data,
-      DATA_CLK_OUT           => trigger_data_clk,
-      NOMORE_DATA_OUT        => validate_nomore_data,
-      EVT_BUFFER_CLEAR_OUT   => event_buffer_clear,
-      EVT_BUFFER_FULL_IN     => evt_buffer_full,
-
-      HISTOGRAM_FILL_OUT     => trigger_validate_fill,
-      HISTOGRAM_BIN_OUT      => trigger_validate_bin,
-      HISTOGRAM_ADC_OUT      => trigger_validate_adc,
-      
-      SLV_READ_IN            => slv_read(8),
-      SLV_WRITE_IN           => slv_write(8),
-      SLV_DATA_OUT           => slv_data_rd(8*32+31 downto 8*32),
-      SLV_DATA_IN            => slv_data_wr(8*32+31 downto 8*32),
-      SLV_ADDR_IN            => slv_addr(8*16+15 downto 8*16),
-      SLV_ACK_OUT            => slv_ack(8),
-      SLV_NO_MORE_DATA_OUT   => slv_no_more_data(8),
-      SLV_UNKNOWN_ADDR_OUT   => slv_unknown_addr(8),
-
-      DEBUG_OUT              => debug_line(10)
+      CLK_IN                   => CLK_IN,
+      RESET_IN                 => RESET_IN,
+                               
+      DATA_CLK_IN              => data_valid,
+      TIMESTAMP_IN             => timestamp,
+      CHANNEL_IN               => timestamp_channel_id,
+      TIMESTAMP_STATUS_IN      => timestamp_status,
+      ADC_DATA_IN              => adc_data,
+      NX_TOKEN_RETURN_IN       => nx_token_return,
+      NX_NOMORE_DATA_IN        => nx_nomore_data,
+                               
+      TRIGGER_IN               => trigger,
+      TRIGGER_BUSY_IN          => trigger_busy,
+      FAST_CLEAR_IN            => fast_clear,
+      TRIGGER_BUSY_OUT         => trigger_validate_busy,
+      TIMESTAMP_FPGA_IN        => timestamp_hold,
+      DATA_FIFO_DELAY_OUT      => new_data_fifo_delay,
+                               
+      DATA_OUT                 => trigger_data,
+      DATA_CLK_OUT             => trigger_data_clk,
+      NOMORE_DATA_OUT          => validate_nomore_data,
+      EVT_BUFFER_CLEAR_OUT     => event_buffer_clear,
+      EVT_BUFFER_FULL_IN       => evt_buffer_full,
+                               
+      HISTOGRAM_FILL_OUT       => trigger_validate_fill,
+      HISTOGRAM_BIN_OUT        => trigger_validate_bin,
+      HISTOGRAM_ADC_OUT        => trigger_validate_adc,
+      HISTOGRAM_PILEUP_OUT     => trigger_validate_pileup,
+      HISTOGRAM_OVERFLOW_OUT   => trigger_validate_ovfl,
+                               
+      SLV_READ_IN              => slv_read(8),
+      SLV_WRITE_IN             => slv_write(8),
+      SLV_DATA_OUT             => slv_data_rd(8*32+31 downto 8*32),
+      SLV_DATA_IN              => slv_data_wr(8*32+31 downto 8*32),
+      SLV_ADDR_IN              => slv_addr(8*16+15 downto 8*16),
+      SLV_ACK_OUT              => slv_ack(8),
+      SLV_NO_MORE_DATA_OUT     => slv_no_more_data(8),
+      SLV_UNKNOWN_ADDR_OUT     => slv_unknown_addr(8),
+                               
+      DEBUG_OUT                => debug_line(10)
       );
 
 -------------------------------------------------------------------------------
@@ -692,7 +701,7 @@ begin
 
       FEE_DATA_OUT               => FEE_DATA_OUT,
       FEE_DATA_WRITE_OUT         => FEE_DATA_WRITE_OUT,
-      FEE_DATA_FINISHED_OUT      => FEE_DATA_FINISHED_OUT,
+      FEE_DATA_FINISHED_OUT      => open, --FEE_DATA_FINISHED_OUT,
       FEE_DATA_ALMOST_FULL_IN    => FEE_DATA_ALMOST_FULL_IN,
 
       SLV_READ_IN                => slv_read(3),
@@ -708,19 +717,17 @@ begin
       );
 
   nx_histograms_1: nx_histograms
-    generic map (
-      BUS_WIDTH  => 7,
-      ENABLE     => false
-      )
     port map (
       CLK_IN                      => CLK_IN,
       RESET_IN                    => RESET_IN,
-                                  
+                                 
       RESET_HISTS_IN              => '0',
-      CHANNEL_STAT_FILL_IN        => trigger_validate_fill,
+      CHANNEL_FILL_IN             => trigger_validate_fill,
       CHANNEL_ID_IN               => trigger_validate_bin,
       CHANNEL_ADC_IN              => trigger_validate_adc,
-      
+      CHANNEL_PILEUP_IN           => trigger_validate_pileup,
+      CHANNEL_OVERFLOW_IN         => trigger_validate_ovfl,
+     
       SLV_READ_IN                 => slv_read(10),
       SLV_WRITE_IN                => slv_write(10),
       SLV_DATA_OUT                => slv_data_rd(10*32+31 downto 10*32),

@@ -848,21 +848,6 @@ begin
     end if;
   end process PROC_NX_FIFO_READ;
 
-  PROC_NX_FIFO_DELAY: process(CLK_IN)
-  begin
-    if (rising_edge(CLK_IN) ) then
-      if (RESET_IN = '1' or fifo_reset_r = '1') then
-        
-      else
-        if (nx_fifo_data_valid = '1') then
-
-        else
-
-        end if;
-      end if;
-    end if;
-  end process PROC_NX_FIFO_DELAY;
-
   -----------------------------------------------------------------------------
   -- Status Counters
   -----------------------------------------------------------------------------
@@ -1091,7 +1076,7 @@ begin
         pll_adc_sample_clk_dphase_r   <= x"0";
         pll_adc_sample_clk_finedelb   <= (others => '0');
         pll_adc_not_lock_ctr_clear    <= '0';
-        nx_fifo_delay                 <= x"7";
+        nx_fifo_delay                 <= x"8";
         reset_adc_handler_r           <= '0';
         reset_handler_counter_clear   <= '0';
         adc_bit_shift                 <= x"0";
@@ -1309,8 +1294,9 @@ begin
 
   -- Output Signals
 
-  NX_TIMESTAMP_OUT       <= nx_timestamp_o;
-  ADC_DATA_OUT           <= adc_data_o;
+  NX_TIMESTAMP_OUT       <= nx_timestamp_o
+                            when new_data_o = '1' else x"0000_0000";
+  ADC_DATA_OUT           <= adc_data_o when new_data_o = '1' else x"000";
   NEW_DATA_OUT           <= new_data_o;
   ADC_SCLK_LOCK_OUT      <= pll_adc_sampling_clk_lock;
   ERROR_OUT              <= error_o;

@@ -8,7 +8,7 @@ use work.trb3_components.all;
 
 entity nx_event_buffer is
   generic (
-    BOARD_ID : std_logic_vector(15 downto 0) := x"ffff"
+    BOARD_ID : std_logic_vector(1 downto 0) := "11"
     );
   port (
     CLK_IN                     : in  std_logic;  

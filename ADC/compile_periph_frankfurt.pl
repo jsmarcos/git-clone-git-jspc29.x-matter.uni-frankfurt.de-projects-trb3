@@ -8,7 +8,7 @@ use strict;
 
 ###################################################################################
 #Settings for this project
-my $TOPNAME                      = "padiwa_amps";  #Name of top-level entity
+my $TOPNAME                      = "trb3_periph_adc";  #Name of top-level entity
 my $lattice_path                 = '/d/jspc29/lattice/diamond/2.2_x64';
 my $synplify_path                = '/d/jspc29/lattice/synplify/G-2012.09-SP1/';
 my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
@@ -17,14 +17,6 @@ my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
 
 
 $ENV{'PAR_DESIGN_NAME'}=$TOPNAME;
-
-# 
-# set_option -technology MACHXO2
-# set_option -part LCMXO2_4000HC
-# set_option -package FTG256C
-# set_option -speed_grade -6
-# set_option -part_companion ""
-
 
 
 use FileHandle;
@@ -35,24 +27,15 @@ $ENV{'LM_LICENSE_FILE'}=$lm_license_file_for_synplify;
 
 
 
-
-my $FAMILYNAME="MACHXO2";
-my $DEVICENAME="LCMXO2-4000HC";
-my $PACKAGE="FTBGA256";
-my $SPEEDGRADE="6";
-
-# create workdir with
-# symlink for Lattice internal VHDL files
-my $WORKDIR = "workdir";
-unless(-d $WORKDIR) {
-  mkdir $WORKDIR or die "can't create workdir '$WORKDIR': $!";
-}
-system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");
+my $FAMILYNAME="LatticeECP3";
+my $DEVICENAME="LFE3-150EA";
+my $PACKAGE="FPBGA672";
+my $SPEEDGRADE="8";
 
 
 #create full lpf file
-system("cp ../base/".$TOPNAME.".lpf $WORKDIR/$TOPNAME.lpf");
-system("cat ".$TOPNAME."_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+system("cp ../base/$TOPNAME.lpf workdir/$TOPNAME.lpf");
+system("cat ".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
 
 
 #set -e
@@ -86,7 +69,7 @@ my $c="$synplify_path/bin/synplify_premier_dp -batch $TOPNAME.prj";
 $r=execute($c, "do_not_exit" );
 
 
-chdir $WORKDIR;
+chdir "workdir";
 $fh = new FileHandle("<$TOPNAME".".srr");
 my @a = <$fh>;
 $fh -> close;
@@ -130,8 +113,8 @@ system("rm $TOPNAME.ncd");
 $c=qq|$lattice_path/ispfpga/bin/lin/par -w -l 5 -i 6 -t 1 -c 0 -e 0 -exp parUseNBR=1:parCDP=0:parCDR=0:parPathBased=OFF $tpmap.ncd $TOPNAME.ncd $TOPNAME.prf|;
 execute($c);
 # IOR IO Timing Report
-$c=qq|$lattice_path/ispfpga/bin/lin/iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;
-execute($c);
+# $c=qq|$lattice_path/ispfpga/bin/lin/iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;
+# execute($c);
 
 # TWR Timing Report
 $c=qq|$lattice_path/ispfpga/bin/lin/trce -c -v 15 -o "$TOPNAME.twr.setup" "$TOPNAME.ncd" "$TOPNAME.prf"|;
@@ -140,10 +123,10 @@ execute($c);
 $c=qq|$lattice_path/ispfpga/bin/lin/trce -hld -c -v 5 -o "$TOPNAME.twr.hold"  "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
 
-# $c=qq|$lattice_path/ispfpga/bin/lin/ltxt2ptxt $TOPNAME.ncd|;
-# execute($c);
+$c=qq|$lattice_path/ispfpga/bin/lin/ltxt2ptxt $TOPNAME.ncd|;
+execute($c);
 
-$c=qq|$lattice_path/ispfpga/bin/lin/bitgen -w -g CfgMode:Disable -g RamCfg:Reset -jedec  $TOPNAME.ncd $TOPNAME.jed $TOPNAME.prf|;
+$c=qq|$lattice_path/ispfpga/bin/lin/bitgen -w -g CfgMode:Disable -g RamCfg:Reset -g ES:No  $TOPNAME.ncd $TOPNAME.bit $TOPNAME.prf|;
 # $c=qq|$lattice_path/ispfpga/bin/lin/bitgen  -w "$TOPNAME.ncd"  "$TOPNAME.prf"|;
 execute($c);
 

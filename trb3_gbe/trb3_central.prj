@@ -144,6 +144,7 @@ add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_response_construc
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_4kx18x9.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_4kx8_ecp3.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_512x32x8.vhd"
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_32kx9_flags.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_ipu_interface.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_event_constr.vhd"
 
