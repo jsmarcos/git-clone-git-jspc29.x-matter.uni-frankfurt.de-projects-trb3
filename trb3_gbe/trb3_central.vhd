@@ -253,6 +253,13 @@ signal gbe_stp_reg_read             : std_logic;
 signal gbe_stp_reg_write            : std_logic;
 signal gbe_stp_reg_data_rd          : std_logic_vector(31 downto 0);
 
+signal select_tc                   : std_logic_vector(31 downto 0);
+signal select_tc_data_in           : std_logic_vector(31 downto 0);
+signal select_tc_write             : std_logic;
+signal select_tc_read              : std_logic;
+signal select_tc_ack               : std_logic;
+
+
 signal debug : std_logic_vector(63 downto 0);
 
 signal next_reset, make_reset_via_network_q : std_logic;
@@ -735,9 +742,9 @@ end generate;
 ---------------------------------------------------------------------------
 THE_BUS_HANDLER : trb_net16_regio_bus_handler
   generic map(
-    PORT_NUMBER    => 5,
-    PORT_ADDRESSES => (0 => x"d000", 1 => x"8100", 2 => x"8300", 3 => x"b000", 4 => x"b200", others => x"0000"),
-    PORT_ADDR_MASK => (0 => 9,       1 => 8,       2 => 8,       3 => 9,       4 => 9,       others => 0)
+    PORT_NUMBER    => 6,
+    PORT_ADDRESSES => (0 => x"d000", 1 => x"8100", 2 => x"8300", 3 => x"b000", 4 => x"b200", 5 => x"d300", others => x"0000"),
+    PORT_ADDR_MASK => (0 => 9,       1 => 8,       2 => 8,       3 => 9,       4 => 9,       5 => '0',     others => 0)
     )
   port map(
     CLK                   => clk_sys_i,
@@ -817,6 +824,18 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
     BUS_WRITE_ACK_IN(4)                 => sci2_ack,
     BUS_NO_MORE_DATA_IN(4)              => '0',
     BUS_UNKNOWN_ADDR_IN(4)              => '0',
+
+    -- Trigger and Clock Manager Settings
+    BUS_ADDR_OUT(6*16-1 downto 5*16) => open,
+    BUS_DATA_OUT(6*32-1 downto 5*32) => select_tc_data_in,
+    BUS_READ_ENABLE_OUT(5)           => select_tc_read,
+    BUS_WRITE_ENABLE_OUT(5)          => select_tc_write,
+    BUS_TIMEOUT_OUT(5)               => open,
+    BUS_DATA_IN(6*32-1 downto 5*32)  => select_tc,
+    BUS_DATAREADY_IN(5)              => select_tc_ack,
+    BUS_WRITE_ACK_IN(5)              => select_tc_ack,
+    BUS_NO_MORE_DATA_IN(5)           => '0',
+    BUS_UNKNOWN_ADDR_IN(5)           => '0',   
     
     STAT_DEBUG  => open
     );
@@ -854,10 +873,23 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
 ---------------------------------------------------------------------------
 -- Clock and Trigger Configuration
 ---------------------------------------------------------------------------
-  TRIGGER_SELECT <= '0'; --always external trigger source
-  CLOCK_SELECT   <= '0'; --use on-board oscillator
-  CLK_MNGR1_USER <= (others => '0');
-  CLK_MNGR2_USER <= (others => '0'); 
+
+process begin
+  wait until rising_edge(clk_100_i);
+  if reset_i = '1' then
+    select_tc <= x"00000000"; --always internal trigger source
+  elsif select_tc_write = '1' then
+    select_tc <= select_tc_data_in;
+  end if;
+  select_tc_ack <= select_tc_read or select_tc_write;
+end process;
+
+  TRIGGER_SELECT <= select_tc(0);
+  CLOCK_SELECT   <= select_tc(8); --use on-board oscillator
+  CLK_MNGR1_USER <= select_tc(19 downto 16);
+  CLK_MNGR2_USER <= select_tc(27 downto 24); 
+
+   
 
   TRIGGER_OUT    <= '0';
 
