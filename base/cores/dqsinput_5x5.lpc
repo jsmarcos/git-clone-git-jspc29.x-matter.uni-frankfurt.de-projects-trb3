@@ -1,8 +1,8 @@
 [Device]
 Family=latticeecp3
 PartType=LFE3-150EA
-PartName=LFE3-150EA-6FN672C
-SpeedGrade=6
+PartName=LFE3-150EA-8FN672C
+SpeedGrade=8
 Package=FPBGA672
 OperatingCondition=COM
 Status=P
@@ -17,7 +17,7 @@ ModuleName=dqsinput_5x5
 SourceFormat=VHDL
 ParameterFileVersion=1.0
 Date=02/03/2014
-Time=17:39:54
+Time=22:55:31
 
 [Parameters]
 Verilog=0
