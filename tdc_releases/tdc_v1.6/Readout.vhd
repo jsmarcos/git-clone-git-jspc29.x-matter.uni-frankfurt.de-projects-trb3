@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2014-01-23
+-- Last update: 2014-01-29
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -178,8 +178,8 @@ architecture behavioral of Readout is
   signal wr_number               : unsigned(7 downto 0);
   signal fifo_nr_rd_fsm          : integer range 0 to CHANNEL_NUMBER := 0;
   signal fifo_nr_wr_fsm          : integer range 0 to CHANNEL_NUMBER := 0;
-  signal buf_delay_fsm           : integer range 0 to 15             := 0;
-  signal buf_delay_i             : integer range 0 to 15             := 0;
+  signal buf_delay_fsm           : integer range 0 to 31             := 0;
+  signal buf_delay_i             : integer range 0 to 31             := 0;
   signal start_ch_fsm            : integer range 0 to CHANNEL_NUMBER := 0;
 --  signal wr_trailer_fsm          : std_logic;
   signal idle_fsm                : std_logic;
@@ -435,7 +435,7 @@ begin  -- behavioral
         rd_fsm_debug_fsm <= x"2";
 
       when WAIT_FOR_BUFFER_TRANSFER =>  -- the data from channel fifo is written to the buffer
-        if buf_delay_i = 15 then
+        if buf_delay_i = 31 then
           RD_NEXT       <= RD_CH;
           buf_delay_fsm <= 0;
         else
@@ -471,8 +471,8 @@ begin  -- behavioral
       when WAIT_FOR_LVL1_TRIG_A =>      -- wait for trigger data valid
         if TRG_DATA_VALID_IN = '1' then
           RD_NEXT <= WAIT_FOR_LVL1_TRIG_B;
-        elsif TMGTRG_TIMEOUT_IN = '1' then
-          RD_NEXT <= IDLE;
+        --elsif TMGTRG_TIMEOUT_IN = '1' then
+        --  RD_NEXT <= IDLE;
         end if;
         wait_fsm         <= '1';
         rd_fsm_debug_fsm <= x"6";
@@ -700,8 +700,9 @@ begin  -- behavioral
 
   DATA_OUT                    <= data_out_reg;
   DATA_WRITE_OUT              <= data_wr_reg;
-  finished_i                  <= (data_finished or wr_finished_2reg) when rising_edge(CLK_100);
-  DATA_FINISHED_OUT           <= data_finished; --finished_i;
+--  finished_i                  <= (data_finished or wr_finished_2reg) when rising_edge(CLK_100);
+  finished_i                  <= data_finished when rising_edge(CLK_100);
+  DATA_FINISHED_OUT           <= finished_i;
   TRG_RELEASE_OUT             <= trig_release_reg;
   TRG_STATUSBIT_OUT           <= (others => '0');
   READOUT_DEBUG(3 downto 0)   <= rd_fsm_debug;

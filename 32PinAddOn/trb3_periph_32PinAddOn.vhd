@@ -686,7 +686,7 @@ begin
   DAC_SPI : spi_ltc2600
     generic map (
       BITS       => 14,
-      WAITCYCLES => 15)
+      WAITCYCLES => 100)
     port map (
       CLK_IN         => clk_100_i,
       RESET_IN       => reset_i,
@@ -815,14 +815,14 @@ begin
       CONTROL_REG_IN        => tdc_ctrl_reg);
 
   -- For single edge measurements
-  --hit_in_i <= INP;    
+  hit_in_i <= INP;    
   --hit_in_i <= (others => timing_trg_received_i);
 
-  -- For ToT Measurements
-  Gen_Hit_In_Signals : for i in 1 to 32 generate
-    hit_in_i(i*2-1) <= INP(i-1);
-    hit_in_i(i*2)   <= not INP(i-1);
-  end generate Gen_Hit_In_Signals;
+  ---- For ToT Measurements
+  --Gen_Hit_In_Signals : for i in 1 to 32 generate
+  --  hit_in_i(i*2-1) <= INP(i-1);
+  --  hit_in_i(i*2)   <= not INP(i-1);
+  --end generate Gen_Hit_In_Signals;
 
   -- Trigger on a TDC Channel
   FPGA5_COMM(10) <= hit_in_i(to_integer(unsigned(tdc_ctrl_reg(5*32+7 downto 5*32))));

@@ -87,21 +87,24 @@ architecture Channel of Channel is
   signal rd_en_reg : std_logic;
 
   -- debug
-  signal sync_q                : std_logic_vector(2 downto 0);
-  signal hit_pulse             : std_logic;
-  signal hit_pulse_100         : std_logic;
-  signal encoder_finished_i    : std_logic;
-  signal encoder_finished_100  : std_logic;
-  signal encoder_start_i       : std_logic;
-  signal encoder_start_100     : std_logic;
-  signal fifo_write_i          : std_logic;
-  signal fifo_write_100        : std_logic;
-  signal lost_hit_cntr         : unsigned(23 downto 0);
-  signal hit_detect_cntr       : unsigned(23 downto 0);
-  signal encoder_start_cntr    : unsigned(23 downto 0);
-  signal encoder_finished_cntr : unsigned(23 downto 0);
-  signal fifo_write_cntr       : unsigned(23 downto 0);
-  signal channel_200_debug_i   : std_logic_vector(31 downto 0);
+  signal sync_q                  : std_logic_vector(2 downto 0);
+  signal hit_pulse               : std_logic;
+  signal hit_pulse_100           : std_logic;
+  signal encoder_finished_i      : std_logic;
+  signal encoder_finished_100    : std_logic;
+  signal encoder_start_i         : std_logic;
+  signal encoder_start_100       : std_logic;
+  signal fifo_write_i            : std_logic;
+  signal fifo_write_100          : std_logic;
+  signal lost_hit_cntr           : unsigned(23 downto 0);
+  signal hit_detect_cntr         : unsigned(23 downto 0);
+  signal encoder_start_cntr      : unsigned(23 downto 0);
+  signal encoder_finished_cntr   : unsigned(23 downto 0);
+  signal fifo_write_cntr         : unsigned(23 downto 0);
+  signal channel_200_debug_i     : std_logic_vector(31 downto 0);
+  signal ch_buffer_counter       : unsigned(15 downto 0) := (others => '0');
+  signal ch_buffer_out_counter   : unsigned(15 downto 0) := (others => '0');
+  signal ch_buffer_valid_counter : unsigned(15 downto 0) := (others => '0');
 
   -- other
 
@@ -133,6 +136,7 @@ begin
   Channel200 : Channel_200
     generic map (
       CHANNEL_ID => CHANNEL_ID,
+      DEBUG      => DEBUG,
       SIMULATION => SIMULATION,
       REFERENCE  => REFERENCE)
     port map (
@@ -140,6 +144,7 @@ begin
       RESET_200            => RESET_200,
       CLK_100              => CLK_100,
       RESET_100            => RESET_100,
+      RESET_COUNTERS       => RESET_COUNTERS,
       HIT_IN               => hit_buf,
       TRIGGER_WIN_END_TDC  => trig_win_end_tdc_i,
       TRIGGER_WIN_END_RDO  => trig_win_end_rdo_i,
@@ -280,42 +285,52 @@ begin
     begin
       if rising_edge(CLK_100) then
         if RESET_COUNTERS = '1' then
-          encoder_start_cntr <= (others => '0');
-        elsif encoder_start_100 = '1' then
-          encoder_start_cntr <= encoder_start_cntr + to_unsigned(1, 1);
+          ch_buffer_counter <= (others => '0');
+        elsif ch_data_valid_i = '1' then
+          if ch_data_i(35 downto 31) = "00011" then  -- it is a data word
+            ch_buffer_counter <= ch_buffer_counter + to_unsigned(1, 16);
+          end if;
         end if;
+        --elsif encoder_start_100 = '1' then
+        --  encoder_start_cntr <= encoder_start_cntr + to_unsigned(1, 1);
+        --end if;
       end if;
     end process Encoder_Start_Counter;
 
-    ENCODER_START_NUMBER <= std_logic_vector(encoder_start_cntr) when rising_edge(CLK_100);
+    --ENCODER_START_NUMBER <= std_logic_vector(encoder_start_cntr) when rising_edge(CLK_100);
+    ENCODER_START_NUMBER(15 downto 0) <= std_logic_vector(ch_buffer_counter) when rising_edge(CLK_100);
 
     --purpose: Counts the encoder finished signals
     ENCODER_FINISHED_Counter : process (CLK_100)
     begin
       if rising_edge(CLK_100) then
         if RESET_COUNTERS = '1' then
-          encoder_finished_cntr <= (others => '0');
-        elsif encoder_finished_100 = '1' then
-          encoder_finished_cntr <= encoder_finished_cntr + to_unsigned(1, 1);
+          ch_buffer_out_counter <= (others => '0');
+        elsif buf_data_i(35 downto 31) = "00011" then
+          ch_buffer_out_counter <= ch_buffer_out_counter + to_unsigned(1, 16);
         end if;
       end if;
     end process ENCODER_FINISHED_Counter;
 
-    ENCODER_FINISHED_NUMBER <= std_logic_vector(encoder_finished_cntr) when rising_edge(CLK_100);
+    --ENCODER_FINISHED_NUMBER <= std_logic_vector(encoder_finished_cntr) when rising_edge(CLK_100);
+    ENCODER_FINISHED_NUMBER(15 downto 0) <= std_logic_vector(ch_buffer_out_counter) when rising_edge(CLK_100);
 
     --purpose: Counts the written hits
     FIFO_WRITE_Counter : process (CLK_100)
     begin
       if rising_edge(CLK_100) then
         if RESET_COUNTERS = '1' then
-          fifo_write_cntr <= (others => '0');
-        elsif fifo_write_100 = '1' then
-          fifo_write_cntr <= fifo_write_cntr + to_unsigned(1, 1);
+          ch_buffer_valid_counter <= (others => '0');
+        elsif buf_data_valid_i = '1' then
+          if buf_data_i(35 downto 31) = "00011" then
+            ch_buffer_valid_counter <= ch_buffer_valid_counter + to_unsigned(1, 16);
+          end if;          
         end if;
       end if;
     end process FIFO_WRITE_Counter;
 
-    FIFO_WRITE_NUMBER <= std_logic_vector(fifo_write_cntr) when rising_edge(CLK_100);
+    --FIFO_WRITE_NUMBER <= std_logic_vector(fifo_write_cntr) when rising_edge(CLK_100);
+    FIFO_WRITE_NUMBER(15 downto 0) <= std_logic_vector(ch_buffer_valid_counter) when rising_edge(CLK_100);
   end generate gen_DEBUG;
 
 -------------------------------------------------------------------------------

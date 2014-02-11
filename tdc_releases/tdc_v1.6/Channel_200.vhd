@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2014-01-22
+-- Last update: 2014-01-28
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -23,6 +23,7 @@ entity Channel_200 is
 
   generic (
     CHANNEL_ID : integer range 0 to 64;
+    DEBUG      : integer range 0 to 1;
     SIMULATION : integer range 0 to 1;
     REFERENCE  : integer range 0 to 1);
   port (
@@ -30,6 +31,7 @@ entity Channel_200 is
     RESET_200            : in  std_logic;  -- reset sync with 200Mhz clk
     CLK_100              : in  std_logic;  -- 100 MHz clk
     RESET_100            : in  std_logic;  -- reset sync with 100Mhz clk
+    RESET_COUNTERS       : in  std_logic;  -- reset for counters
 --
     HIT_IN               : in  std_logic;  -- hit in
     TRIGGER_WIN_END_TDC  : in  std_logic;  -- trigger window end strobe
@@ -130,10 +132,12 @@ architecture Channel_200 of Channel_200 is
 
   -----------------------------------------------------------------------------
   -- debug
-  signal data_cnt_total  : integer range 0 to 2147483647 := 0;
-  signal data_cnt_event  : integer range 0 to 255        := 0;
-  signal epoch_cnt_total : integer range 0 to 65535      := 0;
-  signal epoch_cnt_event : integer range 0 to 127        := 0;
+  signal data_cnt_total      : integer range 0 to 2147483647 := 0;
+  signal data_cnt_event      : integer range 0 to 255        := 0;
+  signal epoch_cnt_total     : integer range 0 to 65535      := 0;
+  signal epoch_cnt_event     : integer range 0 to 127        := 0;
+  signal ch_fifo_counter     : unsigned(15 downto 0)         := (others => '0');
+  signal ch_fifo_counter_100 : unsigned(15 downto 0)         := (others => '0');
   -----------------------------------------------------------------------------
 
   attribute syn_keep                  : boolean;
@@ -205,7 +209,7 @@ begin  -- Channel_200
     end process EpochCounterCapture;
   end generate isChannelEpoch;
 
-  isReferenceEpoch: if REFERENCE = c_YES generate
+  isReferenceEpoch : if REFERENCE = c_YES generate
     EpochCounterCapture : process (CLK_200)
     begin
       if rising_edge(CLK_200) then
@@ -221,7 +225,7 @@ begin  -- Channel_200
       end if;
     end process EpochCounterCapture;
   end generate isReferenceEpoch;
-  
+
   --purpose: Encoder
   Encoder : Encoder_304_Bit
     port map (
@@ -345,8 +349,8 @@ begin  -- Channel_200
           elsif epoch_cntr_updated = '0' and encoder_finished_i = '1' then
             FSM_WR_NEXT <= WRITE_DATA;
           elsif epoch_cntr_updated = '1' and encoder_finished_i = '1' then
-            write_epoch_fsm <= '1';
-            FSM_WR_NEXT     <= WRITE_DATA;
+            --write_epoch_fsm <= '1';
+            FSM_WR_NEXT <= WRITE_DATA;
           elsif trig_win_end_tdc_flag_i = '1' or TRIGGER_WIN_END_TDC = '1' then
             FSM_WR_NEXT <= WRITE_STOP_A;
           else
@@ -472,8 +476,8 @@ begin  -- Channel_200
           elsif epoch_cntr_updated = '0' and encoder_finished_i = '1' then
             FSM_WR_NEXT <= WRITE_DATA;
           elsif epoch_cntr_updated = '1' and encoder_finished_i = '1' then
-            write_epoch_fsm <= '1';
-            FSM_WR_NEXT     <= WRITE_DATA;
+            --write_epoch_fsm <= '1';
+            FSM_WR_NEXT <= WRITE_DATA;
           elsif trig_win_end_tdc_flag_i = '1' or TRIGGER_WIN_END_TDC = '1' then
             FSM_WR_NEXT <= WRITE_STOP_A;
           else
@@ -725,14 +729,32 @@ begin  -- Channel_200
 -------------------------------------------------------------------------------
 -- DEBUG
 -------------------------------------------------------------------------------
-  CHANNEL_200_DEBUG(7 downto 0)   <= fifo_data_in_i(35 downto 28);
-  CHANNEL_200_DEBUG(15 downto 8)  <= fifo_data_i(35 downto 28);
-  CHANNEL_200_DEBUG(16)           <= fifo_wr_en_i;
-  CHANNEL_200_DEBUG(17)           <= fifo_data_valid_i;
-  CHANNEL_200_DEBUG(18)           <= fifo_rd_en_i;
-  CHANNEL_200_DEBUG(23 downto 19) <= (others => '0');
-  CHANNEL_200_DEBUG(27 downto 24) <= fsm_rd_debug_i;
-  CHANNEL_200_DEBUG(31 downto 28) <= fsm_wr_debug_i;
+  --CHANNEL_200_DEBUG(7 downto 0)   <= fifo_data_in_i(35 downto 28);
+  --CHANNEL_200_DEBUG(15 downto 8)  <= fifo_data_i(35 downto 28);
+  --CHANNEL_200_DEBUG(16)           <= fifo_wr_en_i;
+  --CHANNEL_200_DEBUG(17)           <= fifo_data_valid_i;
+  --CHANNEL_200_DEBUG(18)           <= fifo_rd_en_i;
+  --CHANNEL_200_DEBUG(23 downto 19) <= (others => '0');
+  --CHANNEL_200_DEBUG(27 downto 24) <= fsm_rd_debug_i;
+  --CHANNEL_200_DEBUG(31 downto 28) <= fsm_wr_debug_i;
+
+  ch_fifo_counter_100            <= ch_fifo_counter when rising_edge(CLK_100);
+  CHANNEL_200_DEBUG(15 downto 0) <= std_logic_vector(ch_fifo_counter_100);
+
+  gen_DEBUG : if DEBUG = c_YES generate
+    debugChannelDataCount : process (CLK_200)
+    begin
+      if rising_edge(CLK_200) then
+        if RESET_COUNTERS = '1' then
+          ch_fifo_counter <= (others => '0');
+        elsif fifo_wr_en_i = '1' then
+          if fifo_data_in_i(35 downto 31) = "00011" then  -- it is a data word
+            ch_fifo_counter <= ch_fifo_counter + to_unsigned(1, 16);
+          end if;
+        end if;
+      end if;
+    end process debugChannelDataCount;
+  end generate gen_DEBUG;
 
   gen_SIMULATION : if SIMULATION = c_YES generate
     -- count data written

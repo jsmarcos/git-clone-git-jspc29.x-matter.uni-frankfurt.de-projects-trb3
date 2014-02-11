@@ -211,6 +211,7 @@ package trb3_components is
   component Channel_200
     generic (
       CHANNEL_ID : integer range 0 to 64;
+      DEBUG      : integer range 0 to 1;
       SIMULATION : integer range 0 to 1;
       REFERENCE  : integer range 0 to 1);
     port (
@@ -218,6 +219,7 @@ package trb3_components is
       RESET_200            : in  std_logic;
       CLK_100              : in  std_logic;
       RESET_100            : in  std_logic;
+      RESET_COUNTERS       : in  std_logic;
       HIT_IN               : in  std_logic;
       TRIGGER_WIN_END_TDC  : in  std_logic;
       TRIGGER_WIN_END_RDO  : in  std_logic;
