@@ -482,7 +482,7 @@ begin
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
       PORT_NUMBER    => 10,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"c400", 8 => x"c800", 9 => x"a000", others => x"0000"),
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"c400", 8 => x"c800", 9 => x"cf00", others => x"0000"),
       PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 7, 8 => 3, 9 => 6, others => 0)
       )
     port map(
@@ -729,13 +729,13 @@ end generate;
 gen_TRIGGER_LOGIC : if INCLUDE_TRIGGER_LOGIC = 1 generate
   THE_TRIG_LOGIC : input_to_trigger_logic
     generic map(
-      INPUTS    => 16,
+      INPUTS    => PHYSICAL_INPUTS,
       OUTPUTS   => 4
       )
     port map(
       CLK       => clk_100_i,
       
-      INPUT     => inputs_i(15 downto 0),
+      INPUT     => inputs_i(PHYSICAL_INPUTS-1 downto 0),
       OUTPUT    => trig_out,
 
       DATA_IN   => trig_din,  
@@ -782,7 +782,7 @@ end generate;
       CHANNEL_NUMBER => NUM_TDC_CHANNELS,  -- Number of TDC channels
       STATUS_REG_NR  => 20,                -- Number of status regs
       CONTROL_REG_NR => 6,                 -- Number of control regs - higher than 8 check tdc_ctrl_addr
-      TDC_VERSION    => x"160",            -- TDC version number
+      TDC_VERSION    => x"151",            -- TDC version number
       DEBUG          => c_YES,
       SIMULATION     => c_NO)
     port map (
@@ -884,5 +884,7 @@ end generate;
 
   -- Trigger on a TDC Channel
   FPGA5_COMM(10 downto 7) <= trig_out;
-
+  FPGA5_COMM(6 downto 3)  <= (others => 'Z');
+  FPGA5_COMM(1)           <= 'Z';
+  
 end architecture;
