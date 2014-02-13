@@ -176,6 +176,7 @@ add_file -vhdl -lib "work" "source/nx_data_delay.vhd"
 add_file -vhdl -lib "work" "source/nx_data_validate.vhd"
 add_file -vhdl -lib "work" "source/nx_trigger_validate.vhd"
 add_file -vhdl -lib "work" "source/nx_event_buffer.vhd"
+add_file -vhdl -lib "work" "source/nx_calib_event.vhd"
 
 add_file -vhdl -lib "work" "source/nx_control.vhd"
 add_file -vhdl -lib "work" "source/nx_setup.vhd"

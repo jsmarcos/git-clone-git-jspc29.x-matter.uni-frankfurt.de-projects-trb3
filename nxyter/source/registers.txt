@@ -200,7 +200,8 @@
                 10: nx_trigger_validate
                 11: nx_event_buffer
                 12: nx_histograms
-                13: Checkerboard
+                13: nx_calib_event
+                14: Checkerboard
 
 --- Trigger Selction Window Setup
 

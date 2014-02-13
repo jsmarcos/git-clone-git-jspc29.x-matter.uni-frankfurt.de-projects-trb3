@@ -322,6 +322,10 @@ component nx_setup
     SPI_COMMAND_BUSY_IN  : in  std_logic;
     SPI_DATA_IN          : in  std_logic_vector(31 downto 0);
     SPI_LOCK_OUT         : out std_logic;
+    INT_READ_IN          : in  std_logic;
+    INT_ADDR_IN          : in  std_logic_vector(15 downto 0);
+    INT_ACK_OUT          : out std_logic;
+    INT_DATA_OUT         : out std_logic_vector(31 downto 0);
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
     SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
@@ -580,13 +584,12 @@ component nx_event_buffer
     DATA_IN                 : in  std_logic_vector(31 downto 0);
     DATA_CLK_IN             : in  std_logic;
     EVT_NOMORE_DATA_IN      : in  std_logic;
-    LVL2_TRIGGER_IN         : in  std_logic;
+    TRIGGER_IN              : in  std_logic;
     FAST_CLEAR_IN           : in  std_logic;
     TRIGGER_BUSY_OUT        : out std_logic;
     EVT_BUFFER_FULL_OUT     : out std_logic;
     FEE_DATA_OUT            : out std_logic_vector(31 downto 0);
     FEE_DATA_WRITE_OUT      : out std_logic;
-    FEE_DATA_FINISHED_OUT   : out std_logic;
     FEE_DATA_ALMOST_FULL_IN : in  std_logic;
     SLV_READ_IN             : in  std_logic;
     SLV_WRITE_IN            : in  std_logic;
@@ -596,6 +599,28 @@ component nx_event_buffer
     SLV_ACK_OUT             : out std_logic;
     SLV_NO_MORE_DATA_OUT    : out std_logic;
     SLV_UNKNOWN_ADDR_OUT    : out std_logic;
+    DEBUG_OUT               : out std_logic_vector(15 downto 0)
+    );
+end component;
+
+component nx_calib_event
+  generic (
+    BOARD_ID : std_logic_vector(1 downto 0));
+  port (
+    CLK_IN                  : in  std_logic;
+    RESET_IN                : in  std_logic;
+    NXYTER_OFFLINE_IN       : in  std_logic;
+    TRIGGER_IN              : in  std_logic;
+    FAST_CLEAR_IN           : in  std_logic;
+    TRIGGER_BUSY_OUT        : out std_logic;
+    FEE_DATA_OUT            : out std_logic_vector(31 downto 0);
+    FEE_DATA_WRITE_OUT      : out std_logic;
+    FEE_DATA_FINISHED_OUT   : out std_logic;
+    FEE_DATA_ALMOST_FULL_IN : in  std_logic;
+    INT_READ_OUT            : out std_logic;
+    INT_ADDR_OUT            : out std_logic_vector(15 downto 0);
+    INT_ACK_IN              : in  std_logic;
+    INT_DATA_IN             : in  std_logic_vector(31 downto 0);
     DEBUG_OUT               : out std_logic_vector(15 downto 0)
     );
 end component;
@@ -850,15 +875,23 @@ component nx_trigger_handler
     LVL1_TRG_CODE_IN           : in  std_logic_vector(7 downto 0);
     LVL1_TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0);
     LVL1_INT_TRG_NUMBER_IN     : in  std_logic_vector(15 downto 0);
+    FEE_DATA_OUT               : out std_logic_vector(31 downto 0);
+    FEE_DATA_WRITE_OUT         : out std_logic;
     FEE_DATA_FINISHED_OUT      : out std_logic;
     FEE_TRG_RELEASE_OUT        : out std_logic;
     FEE_TRG_STATUSBITS_OUT     : out std_logic_vector(31 downto 0);
+    FEE_DATA_0_IN              : in  std_logic_vector(31 downto 0);
+    FEE_DATA_WRITE_0_IN        : in  std_logic;
+    FEE_DATA_1_IN              : in  std_logic_vector(31 downto 0);
+    FEE_DATA_WRITE_1_IN        : in  std_logic;
     INTERNAL_TRIGGER_IN        : in  std_logic;
     TRIGGER_VALIDATE_BUSY_IN   : in  std_logic;
-    LVL2_TRIGGER_BUSY_IN       : in  std_logic;
+    TRIGGER_BUSY_0_IN          : in  std_logic;
+    TRIGGER_BUSY_1_IN          : in  std_logic;
     VALID_TRIGGER_OUT          : out std_logic;
     TIMESTAMP_TRIGGER_OUT      : out std_logic;
-    LVL2_TRIGGER_OUT           : out std_logic;
+    TRIGGER_TIMING_OUT         : out std_logic;
+    TRIGGER_SETUP_OUT          : out std_logic;
     FAST_CLEAR_OUT             : out std_logic;
     TRIGGER_BUSY_OUT           : out std_logic;
     TRIGGER_TESTPULSE_OUT      : out std_logic;

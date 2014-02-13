@@ -24,6 +24,12 @@ entity nx_setup is
     SPI_COMMAND_BUSY_IN  : in  std_logic;
     SPI_DATA_IN          : in  std_logic_vector(31 downto 0);
     SPI_LOCK_OUT         : out std_logic;
+
+    -- Internal Register Read
+    INT_READ_IN          : in  std_logic;
+    INT_ADDR_IN          : in  std_logic_vector(15 downto 0);
+    INT_ACK_OUT          : out std_logic;
+    INT_DATA_OUT         : out std_logic_vector(31 downto 0);
     
     -- Slave bus         
     SLV_READ_IN          : in  std_logic;
@@ -100,7 +106,7 @@ architecture Behavioral of nx_setup is
   signal do_dac_write            : std_logic;
 
   -- ADC RAM Handler
-  type adc_ram_t is array(0 to 3) of std_logic_vector(15 downto 0);
+  type adc_ram_t is array(0 to 3) of std_logic_vector(12 downto 0);
   signal adc_ram                 : adc_ram_t;
   
   -- Token Handler
@@ -203,7 +209,11 @@ architecture Behavioral of nx_setup is
   signal i2c_disable_memory      : std_logic;
   signal i2c_reg_reset_in_s      : std_logic;
   signal i2c_reg_reset_clear     : std_logic;
-    
+
+  -- Internal Register Read
+  signal int_data_o              : std_logic_vector(31 downto 0);
+  signal int_ack_o               : std_logic;
+  
   -- TRBNet Slave Bus
   signal slv_data_out_o          : std_logic_vector(31 downto 0);
   signal slv_no_more_data_o      : std_logic;
@@ -224,6 +234,7 @@ architecture Behavioral of nx_setup is
   signal nxyter_clock            : std_logic_vector(1 downto 0);
   signal nxyter_testchannels     : std_logic_vector(2 downto 0); 
   signal i2c_update_memory_r     : std_logic;
+
 begin
 
   -----------------------------------------------------------------------------
@@ -247,7 +258,7 @@ begin
   DEBUG_OUT(13)           <= i2c_lock_1;
   DEBUG_OUT(14)           <= i2c_lock_2;
   DEBUG_OUT(15)           <= i2c_lock_4;
-
+    
   -----------------------------------------------------------------------------
 
   PROC_I2C_RAM: process(CLK_IN)
@@ -819,10 +830,10 @@ begin
             adc_i2c_command(31 downto 16)        <= x"c229";
             adc_i2c_command(15 downto 14)        <= (others => '0');
             case adc_token_ctr is
-              when "00" => adc_i2c_command(15 downto  12) <= "0000";
-              when "01" => adc_i2c_command(15 downto  12) <= "0001";
-              when "10" => adc_i2c_command(15 downto  12) <= "0010";
-              when "11" => adc_i2c_command(15 downto  12) <= "0100";
+              when "00" => adc_i2c_command(15 downto  12) <= "0001";
+              when "01" => adc_i2c_command(15 downto  12) <= "0010";
+              when "10" => adc_i2c_command(15 downto  12) <= "0100";
+              when "11" => adc_i2c_command(15 downto  12) <= "1000";
             end case;
             adc_i2c_command(11 downto  8)        <= "0000";
             adc_i2c_command( 7 downto  0)        <= (others => '0');
@@ -841,7 +852,13 @@ begin
             end if;
 
           when ADC_READ_I2C_STORE_MEM =>
-            adc_ram(index)                       <= i2c_data_bytes(15 downto 0);
+            if (i2c_data_bytes(13 downto 12) =
+                std_logic_vector(adc_token_ctr)) then
+              adc_ram(index)(11 downto 0)        <= i2c_data_bytes(11 downto 0);
+              adc_ram(index)(12)                 <= '0';
+            else
+              adc_ram(index)                     <= (others => '1');
+            end if;
             i2c_lock_4_clear                     <= '1';
             ADC_STATE                            <= ADC_NEXT_TOKEN;
             
@@ -1003,9 +1020,136 @@ begin
   end process PROC_REG_RESET;
 
   -----------------------------------------------------------------------------
+
+  PROC_INTERNAL_REG_READ: process(CLK_IN)
+    variable index       : integer  := 0;
+  begin
+    if( rising_edge(CLK_IN) ) then
+      if( RESET_IN = '1' ) then
+        int_data_o          <= (others => '0');
+        int_ack_o           <= '0';
+      else
+        int_data_o          <= (others => '0');
+        int_ack_o           <= '0';
+
+        if (INT_READ_IN = '1') then
+          if (INT_ADDR_IN >= x"0000" and INT_ADDR_IN <= x"002d") then
+            index := to_integer(unsigned(INT_ADDR_IN(5 downto 0)));
+            if (i2c_disable_memory = '0') then
+              int_data_o(7 downto 0)      <= i2c_ram(index);
+              int_data_o(28 downto 8)     <= (others => '0');
+              int_data_o(29)              <=
+                not register_access_type(index);
+              int_data_o(30)              <= i2c_read_token(index);
+              int_data_o(31)              <= i2c_write_token(index);
+            else
+              int_data_o(31 downto 0)     <= (others => '1');
+            end if;
+            int_ack_o                     <= '1';
+
+          elsif (INT_ADDR_IN >= x"0100" and INT_ADDR_IN <= x"0180") then
+            index := to_integer(unsigned(INT_ADDR_IN(7 downto 0)));
+            if (i2c_disable_memory = '0') then
+              int_data_o(5 downto 0)      <= dac_ram(index);
+              int_data_o(29 downto 6)     <= (others => '0');
+              int_data_o(30)              <= dac_read_token(index);
+              int_data_o(31)              <= dac_write_token(index);
+            else
+              int_data_o(31 downto 0)     <= (others => '1');
+            end if;  
+            int_ack_o                     <= '1';
+
+          elsif (INT_ADDR_IN >= x"0080" and INT_ADDR_IN <= x"0083") then
+            index := to_integer(unsigned(INT_ADDR_IN(1 downto 0)));
+            if (i2c_disable_memory = '0') then
+              int_data_o(12 downto 0)     <= adc_ram(index);
+              int_data_o(31 downto 13)    <= (others => '0');
+            else
+              int_data_o(31 downto 0)     <= (others => '1');
+            end if;  
+            int_ack_o                     <= '1';
+          else
+            case INT_ADDR_IN is
+              when x"0050" =>
+                -- Nxyter Clock
+                if (i2c_disable_memory = '0') then
+                  int_data_o(0)           <= i2c_ram(33)(3);
+                  int_data_o(31 downto 1) <= (others => '0');
+                else
+                  int_data_o(31 downto 0) <= (others => '1');
+                end if;
+                int_ack_o                  <= '1';
+                  
+              when x"0051" =>
+                -- Nxyter Polarity
+                if (i2c_disable_memory = '0') then
+                  int_data_o(0)           <= i2c_ram(33)(2);
+                  int_data_o(31 downto 1) <= (others => '0');
+                else
+                  int_data_o(31 downto 0) <= (others => '1');
+                end if;
+                int_ack_o                 <= '1';  
+        
+              when x"0052" =>
+                -- Nxyter Testpulse Polarity
+                if (i2c_disable_memory = '0') then
+                  int_data_o(0)           <= i2c_ram(32)(2);
+                  int_data_o(31 downto 1) <= (others => '0');
+                else
+                  int_data_o(31 downto 0) <= (others => '1');
+                end if;
+                int_ack_o                 <= '1';
+        
+              when x"0053" =>
+                -- Nxyter Testpulse
+                if (i2c_disable_memory = '0') then
+                  int_data_o(0)           <= i2c_ram(32)(0);
+                  int_data_o(31 downto 1) <= (others => '0');
+                else
+                  int_data_o(31 downto 0) <= (others => '1');
+                end if;
+                int_ack_o                 <= '1';
+        
+              when x"0054" =>
+                -- Nxyter Testtrigger
+                if (i2c_disable_memory = '0') then
+                  int_data_o(0)           <= i2c_ram(32)(3);
+                  int_data_o(31 downto 1) <= (others => '0');
+                else
+                  int_data_o(31 downto 0) <= (others => '1');
+                end if;
+                int_ack_o                 <= '1';  
+        
+              when x"0055" =>
+                -- Nxyter Testpulse Channels
+                if (i2c_disable_memory = '0') then
+                  int_data_o(1 downto 0)  <= i2c_ram(33)(1 downto 0);
+                  int_data_o(31 downto 2) <= (others => '0');
+                else
+                  int_data_o(31 downto 0) <= (others => '1');
+                end if;
+                int_ack_o                 <= '1';
+        
+              when x"0056" =>
+                -- I2C Online
+                int_data_o(0)             <= i2c_online_o;
+                int_data_o(31 downto 2)   <= (others => '0');
+                int_ack_o                 <= '1';
+        
+              when others =>
+                int_data_o(31 downto 0)   <= (others => '1');
+                int_ack_o                 <= '1';
+            end case;  
+          end if;
+        end if;
+      end if;
+    end if;           
+  end process PROC_INTERNAL_REG_READ;
+
+  -----------------------------------------------------------------------------
   
   PROC_SLAVE_BUS: process(CLK_IN)
-    variable index       : integer                      := 0;
+    variable index       : integer   := 0;
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
@@ -1171,9 +1315,8 @@ begin
           elsif (SLV_ADDR_IN >= x"0080" and SLV_ADDR_IN <= x"0083") then
             index := to_integer(unsigned(SLV_ADDR_IN(1 downto 0)));
             if (i2c_disable_memory = '0') then
-              slv_data_out_o(15 downto 0)     <= adc_ram(index);
-              slv_data_out_o(30 downto 16)    <= (others => '0');
-              slv_data_out_o(31)              <= adc_read_token(index);
+              slv_data_out_o(12 downto 0)     <= adc_ram(index);
+              slv_data_out_o(31 downto 13)    <= (others => '0');
               adc_read_token_r(index)         <= '1'; 
             else
               slv_data_out_o(31 downto 0)     <= (others => '1');
@@ -1266,18 +1409,21 @@ begin
   -- Output Signals
   -----------------------------------------------------------------------------
   
-  I2C_COMMAND_OUT      <= i2c_command_o;
-  I2C_LOCK_OUT         <= i2c_command_busy_o;
-  I2C_ONLINE_OUT       <= i2c_online_o;
-
-  
-  SPI_COMMAND_OUT      <= (others => '0');
-  SPI_LOCK_OUT         <= '0';
-
-  -- Slave Bus
-  SLV_DATA_OUT         <= slv_data_out_o;    
-  SLV_NO_MORE_DATA_OUT <= slv_no_more_data_o; 
-  SLV_UNKNOWN_ADDR_OUT <= slv_unknown_addr_o;
-  SLV_ACK_OUT          <= slv_ack_o; 
+  I2C_COMMAND_OUT         <= i2c_command_o;
+  I2C_LOCK_OUT            <= i2c_command_busy_o;
+  I2C_ONLINE_OUT          <= i2c_online_o;
+                          
+  SPI_COMMAND_OUT         <= (others => '0');
+  SPI_LOCK_OUT            <= '0';
+                          
+  -- Internal Read        
+  INT_ACK_OUT             <= int_ack_o;
+  INT_DATA_OUT            <= int_data_o;
+                          
+  -- Slave Bus            
+  SLV_DATA_OUT            <= slv_data_out_o;    
+  SLV_NO_MORE_DATA_OUT    <= slv_no_more_data_o; 
+  SLV_UNKNOWN_ADDR_OUT    <= slv_unknown_addr_o;
+  SLV_ACK_OUT             <= slv_ack_o; 
 
 end Behavioral;

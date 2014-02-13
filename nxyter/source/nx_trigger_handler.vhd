@@ -27,21 +27,31 @@ entity nx_trigger_handler is
     LVL1_TRG_INFORMATION_IN    : in std_logic_vector(23 downto 0);
     LVL1_INT_TRG_NUMBER_IN     : in std_logic_vector(15 downto 0);
 
+    --Response from FEE        
+    FEE_DATA_OUT               : out std_logic_vector(31 downto 0);
+    FEE_DATA_WRITE_OUT         : out std_logic;
     FEE_DATA_FINISHED_OUT      : out std_logic;
     FEE_TRG_RELEASE_OUT        : out std_logic;
     FEE_TRG_STATUSBITS_OUT     : out std_logic_vector(31 downto 0);
 
+    FEE_DATA_0_IN              : in  std_logic_vector(31 downto 0);
+    FEE_DATA_WRITE_0_IN        : in  std_logic;
+    FEE_DATA_1_IN              : in  std_logic_vector(31 downto 0);
+    FEE_DATA_WRITE_1_IN        : in  std_logic;
+    
     -- Internal FPGA Trigger
     INTERNAL_TRIGGER_IN        : in  std_logic;
 
     -- Trigger FeedBack
     TRIGGER_VALIDATE_BUSY_IN   : in  std_logic;
-    LVL2_TRIGGER_BUSY_IN       : in  std_logic;
+    TRIGGER_BUSY_0_IN          : in  std_logic;
+    TRIGGER_BUSY_1_IN          : in  std_logic;
     
     -- OUT
     VALID_TRIGGER_OUT          : out std_logic;
     TIMESTAMP_TRIGGER_OUT      : out std_logic;
-    LVL2_TRIGGER_OUT           : out std_logic;
+    TRIGGER_TIMING_OUT         : out std_logic;
+    TRIGGER_SETUP_OUT          : out std_logic;
     FAST_CLEAR_OUT             : out std_logic;
     TRIGGER_BUSY_OUT           : out std_logic;
 
@@ -96,9 +106,12 @@ architecture Behavioral of nx_trigger_handler is
   
   -- Trigger Handler                
   signal valid_trigger_o            : std_logic;
-  signal lvl2_trigger_o             : std_logic;
+  signal timing_trigger_o           : std_logic;
+  signal setup_trigger_o            : std_logic;
   signal fast_clear_o               : std_logic;
   signal trigger_busy_o             : std_logic;
+  signal fee_data_o                 : std_logic_vector(31 downto 0);
+  signal fee_data_write_o           : std_logic;
   signal fee_data_finished_o        : std_logic;
   signal fee_trg_release_o          : std_logic;
   signal fee_trg_statusbits_o       : std_logic_vector(31 downto 0);
@@ -108,7 +121,7 @@ architecture Behavioral of nx_trigger_handler is
   type STATES is (S_IDLE,
                   S_CTS_TRIGGER,
                   S_WAIT_TRG_DATA_VALID,
-                  S_WAIT_LVL2_TRIGGER_DONE,
+                  S_WAIT_TIMING_TRIGGER_DONE,
                   S_FEE_TRIGGER_RELEASE,
                   S_WAIT_FEE_TRIGGER_RELEASE_ACK,
                   S_INTERNAL_TRIGGER,
@@ -117,6 +130,15 @@ architecture Behavioral of nx_trigger_handler is
                   );
   signal STATE : STATES;
 
+  type TRIGGER_TYPES is (T_UNDEF,
+                         T_IGNORE,
+                         T_INTERNAL,
+                         T_TIMING,
+                         T_SETUP
+                         );
+  signal TRIGGER_TYPE : TRIGGER_TYPES;
+  
+  
   -- Testpulse Handler
   type T_STATES is (T_IDLE,
                     T_WAIT_TIMER,
@@ -153,11 +175,11 @@ begin
   DEBUG_OUT(2)            <= invalid_timing_trigger; --timing_trigger_l;
   DEBUG_OUT(3)            <= LVL1_VALID_TIMING_TRG_IN;
   DEBUG_OUT(4)            <= LVL1_TRG_DATA_VALID_IN;
-  DEBUG_OUT(5)            <= INTERNAL_TRIGGER_IN;
+  DEBUG_OUT(5)            <= fee_data_write_o;
   DEBUG_OUT(6)            <= TRIGGER_VALIDATE_BUSY_IN;
-  DEBUG_OUT(7)            <= LVL2_TRIGGER_BUSY_IN;
+  DEBUG_OUT(7)            <= TRIGGER_BUSY_0_IN;
   DEBUG_OUT(8)            <= valid_trigger_o;
-  DEBUG_OUT(9)            <= lvl2_trigger_o;
+  DEBUG_OUT(9)            <= timing_trigger_o;
   DEBUG_OUT(10)           <= fee_data_finished_o;
   DEBUG_OUT(11)           <= fee_trg_release_o;
   DEBUG_OUT(12)           <= trigger_busy_o;
@@ -335,24 +357,27 @@ begin
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
         valid_trigger_o      <= '0';
-        lvl2_trigger_o       <= '0';
+        timing_trigger_o     <= '0';
+        setup_trigger_o      <= '0';
         fee_data_finished_o  <= '0';
         fee_trg_release_o    <= '0';
         fee_trg_statusbits_o <= (others => '0');
         fast_clear_o         <= '0';
         trigger_busy_o       <= '0';
         send_testpulse_l     <= '0';
+        TRIGGER_TYPE         <= T_UNDEF;
         STATE                <= S_IDLE;
       else
         valid_trigger_o      <= '0';
-        lvl2_trigger_o       <= '0';
+        timing_trigger_o     <= '0';
+        setup_trigger_o      <= '0';
         fee_data_finished_o  <= '0';
         fee_trg_release_o    <= '0';
         fee_trg_statusbits_o <= (others => '0');
         fast_clear_o         <= '0';
         trigger_busy_o       <= '1';
         send_testpulse_l     <= '0';
-
+        
         if (LVL1_INVALID_TRG_IN = '1') then
           -- There was no valid Timing Trigger at CTS, do a fast clear
           fast_clear_o               <= '1';
@@ -363,27 +388,32 @@ begin
             when  S_IDLE =>
               if (LVL1_VALID_NOTIMING_TRG_IN = '1') then
                 -- Calibration Trigger .. ignore
+                TRIGGER_TYPE         <= T_IGNORE; --T_SETUP;
                 STATE                <= S_WAIT_TRG_DATA_VALID;
                 
               elsif (LVL1_VALID_TIMING_TRG_IN = '1') then
                 if (NXYTER_OFFLINE_IN = '0') then
                   -- Normal Trigger
+                  TRIGGER_TYPE       <= T_TIMING;
                   STATE              <= S_CTS_TRIGGER;
                 else
                   -- Ignore Trigger for nxyter is offline
-                  STATE              <= S_WAIT_TRG_DATA_VALID;
+                 TRIGGER_TYPE        <= T_IGNORE;
+                 STATE               <= S_WAIT_TRG_DATA_VALID;
                 end if;
               elsif (INTERNAL_TRIGGER_IN = '1') then
                 -- Internal Trigger, not defined yet
+                TRIGGER_TYPE         <= T_INTERNAL;
                 STATE                <= S_INTERNAL_TRIGGER;
               else
                 trigger_busy_o       <= '0';
+                TRIGGER_TYPE         <= T_UNDEF;
                 STATE                <= S_IDLE;
               end if;     
 
             when S_CTS_TRIGGER =>
               valid_trigger_o        <= '1';
-              lvl2_trigger_o         <= '1';
+              timing_trigger_o       <= '1';
               if (reg_testpulse_enable = '1') then
                 send_testpulse_l     <= '1';
               end if;
@@ -393,12 +423,12 @@ begin
               if (LVL1_TRG_DATA_VALID_IN = '0') then
                 STATE                <= S_WAIT_TRG_DATA_VALID;
               else
-                STATE                <= S_WAIT_LVL2_TRIGGER_DONE;
+                STATE                <= S_WAIT_TIMING_TRIGGER_DONE;
               end if;
 
-            when S_WAIT_LVL2_TRIGGER_DONE =>
-              if (LVL2_TRIGGER_BUSY_IN = '1') then
-                STATE                <= S_WAIT_LVL2_TRIGGER_DONE;
+            when S_WAIT_TIMING_TRIGGER_DONE =>
+              if (TRIGGER_BUSY_0_IN = '1') then
+                STATE                <= S_WAIT_TIMING_TRIGGER_DONE;
               else
                 fee_data_finished_o  <= '1';
                 STATE                <= S_FEE_TRIGGER_RELEASE;
@@ -439,6 +469,25 @@ begin
       end if;
     end if;
   end process PROC_TRIGGER_HANDLER;
+
+  PROC_EVENT_DATA_MULTIPLEXER: process(TRIGGER_TYPE)
+  begin
+    case TRIGGER_TYPE is
+      when  T_UNDEF | T_IGNORE | T_INTERNAL =>
+        fee_data_o                   <= (others => '0');
+        fee_data_write_o             <= '0';
+        
+      when T_TIMING =>
+        fee_data_o                   <= FEE_DATA_0_IN;
+        fee_data_write_o             <= FEE_DATA_WRITE_0_IN;
+        
+      when T_SETUP =>
+        fee_data_o                   <= FEE_DATA_1_IN;
+        fee_data_write_o             <= FEE_DATA_WRITE_1_IN;
+
+    end case;
+  end process PROC_EVENT_DATA_MULTIPLEXER;
+  
 
 --    pulse_dtrans_4: pulse_dtrans
 --     generic map (
@@ -515,7 +564,7 @@ begin
         rate_timer                  <= (others => '0');
       else
         if (rate_timer < x"5f5e100") then
-          if (lvl2_trigger_o = '1') then
+          if (timing_trigger_o = '1') then
             accepted_trigger_rate_t <= accepted_trigger_rate_t + 1;
           end if;
           rate_timer                <= rate_timer + 1;
@@ -614,9 +663,13 @@ begin
   -- Trigger Output
   VALID_TRIGGER_OUT         <= valid_trigger_o;
   TIMESTAMP_TRIGGER_OUT     <= timestamp_trigger_o;
-  LVL2_TRIGGER_OUT          <= lvl2_trigger_o;
+  TRIGGER_TIMING_OUT        <= timing_trigger_o;
+  TRIGGER_SETUP_OUT         <= setup_trigger_o;
   FAST_CLEAR_OUT            <= fast_clear_o;
   TRIGGER_BUSY_OUT          <= trigger_busy_o;
+
+  FEE_DATA_OUT              <= fee_data_o;
+  FEE_DATA_WRITE_OUT        <= fee_data_write_o; 
   FEE_DATA_FINISHED_OUT     <= fee_data_finished_o;
   FEE_TRG_RELEASE_OUT       <= fee_trg_release_o;
   FEE_TRG_STATUSBITS_OUT    <= fee_trg_statusbits_o;

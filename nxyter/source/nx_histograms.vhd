@@ -110,7 +110,20 @@ begin
   ---------------------------------------------------------------------------
 
 
- -- DEBUG_OUT(0)              <= SLV_READ_IN;
+  DEBUG_OUT(0)               <= CLK_IN;
+  DEBUG_OUT(1)               <= CHANNEL_FILL_IN;
+  DEBUG_OUT(2)               <= hit_write_busy;
+  DEBUG_OUT(3)               <= pileup_write_busy;
+  DEBUG_OUT(4)               <= ovfl_write_busy;
+  DEBUG_OUT(5)               <= adc_write_busy;
+
+  DEBUG_OUT(6)               <= hit_read_busy;
+  DEBUG_OUT(7)               <= pileup_read_busy;
+  DEBUG_OUT(8)               <= ovfl_read_busy;
+  DEBUG_OUT(9)               <= adc_read_busy;
+  DEBUG_OUT(15 downto 10)    <= (others => '0');
+
+  
  -- DEBUG_OUT(15 downto 1)    <= SLV_ADDR_IN(14 downto 0);
 
   -----------------------------------------------------------------------------
@@ -178,7 +191,7 @@ begin
       CHANNEL_DATA_VALID_OUT => pileup_read_data_valid,
       CHANNEL_READ_BUSY_OUT  => pileup_read_busy,
 
-      DEBUG_OUT              => DEBUG_OUT --open
+      DEBUG_OUT              => open
       );
 
   nx_histogram_ovfl: nx_histogram
@@ -207,79 +220,74 @@ begin
   -- Fill Histograms
   -----------------------------------------------------------------------------
 
-  PROC_FILL_HISTOGRAMS: process(CLK_IN)
+  
+  PROC_FILL_HISTOGRAMS: process(CHANNEL_FILL_IN,
+                                CHANNEL_PILEUP_IN,
+                                CHANNEL_OVERFLOW_IN
+                                )
   begin
-    if (rising_edge(CLK_IN)) then
-      if (RESET_IN = '1') then
-        hit_write_id                   <= (others => '0');
-        hit_write_data                 <= (others => '0');
+    if (CHANNEL_FILL_IN = '1') then
+      if (hit_write_busy = '0') then
+        hit_write_id                   <= "0000000"; --CHANNEL_ID_IN;
+        hit_write_data                 <= x"0000_0001";
         hit_write                      <= '0';
-        hit_add                        <= '0';
-
-        adc_write_id                   <= (others => '0');
-        adc_write_data                 <= (others => '0');
+        hit_add                        <= '1';
+      
+        adc_write_id                   <= CHANNEL_ID_IN;
+        adc_write_data(11 downto 0)    <= CHANNEL_ADC_IN; 
+        adc_write_data(31 downto 12)   <= (others => '0');
         adc_write                      <= '0';
-        adc_add                        <= '0';
+        adc_add                        <= '1';
         
-        pileup_write_id                <= (others => '0');
-        pileup_write_data              <= (others => '0');
-        pileup_write                   <= '0';
-        pileup_add                     <= '0';
-
-        ovfl_write_id                  <= (others => '0');
-        ovfl_write_data                <= (others => '0');
-        ovfl_write                     <= '0';
-        ovfl_add                       <= '0';
-      else
-        hit_write_id                   <= (others => '0');
-        hit_write_data                 <= (others => '0');
-        hit_write                      <= '0';
-        hit_add                        <= '0';
-
-        adc_write_id                   <= (others => '0');
-        adc_write_data                 <= (others => '0');
-        adc_write                      <= '0';
-        adc_add                        <= '0';
-        
-        pileup_write_id                <= (others => '0');
-        pileup_write_data              <= (others => '0');
-        pileup_write                   <= '0';
-        pileup_add                     <= '0';
-
-        ovfl_write_id                  <= (others => '0');
-        ovfl_write_data                <= (others => '0');
-        ovfl_write                     <= '0';
-        ovfl_add                       <= '0';
-        
-        if (CHANNEL_FILL_IN = '1' and  hit_write_busy = '0') then
-          hit_write_id                   <= CHANNEL_ID_IN;
-          hit_write_data                 <= x"0000_0001";
-          hit_add                        <= '1';
-
-          adc_write_id                   <= CHANNEL_ID_IN;
-          adc_write_data(11 downto 0)    <= CHANNEL_ADC_IN; 
-          adc_write_data(31 downto 12)   <= (others => '0');
-          adc_add                        <= '1';
-
-          if (CHANNEL_PILEUP_IN = '1') then
-            pileup_write_id              <= CHANNEL_ID_IN;
-            pileup_write_data            <= x"0000_0001";
-            pileup_add                   <= '1';
-          end if;
-          
-          if (CHANNEL_OVERFLOW_IN = '1') then
-            ovfl_write_id                <= CHANNEL_ID_IN;
-            ovfl_write_data              <= x"0000_0001";
-            ovfl_add                     <= '1';
-          end if;
-
+        if (CHANNEL_PILEUP_IN = '1') then
+          pileup_write_id              <= CHANNEL_ID_IN;
+          pileup_write_data            <= x"0000_0001";
+          pileup_write                 <= '0';
+          pileup_add                   <= '1';
+        else
+          pileup_write_id                <= (others => '0');
+          pileup_write_data              <= (others => '0');
+          pileup_write                   <= '0';
+          pileup_add                     <= '0';
+        end if;
+      
+        if (CHANNEL_OVERFLOW_IN = '1') then
+          ovfl_write_id                <= CHANNEL_ID_IN;
+          ovfl_write_data              <= x"0000_0001";
+          ovfl_write                   <= '0';
+          ovfl_add                     <= '1';
+        else
+          ovfl_write_id                  <= (others => '0');
+          ovfl_write_data                <= (others => '0');
+          ovfl_write                     <= '0';
+          ovfl_add                       <= '0';
         end if;
       end if;
+    else 
+      hit_write_id                   <= (others => '0');
+      hit_write_data                 <= (others => '0');
+      hit_write                      <= '0';
+      hit_add                        <= '0';
+      
+      adc_write_id                   <= (others => '0');
+      adc_write_data                 <= (others => '0');
+      adc_write                      <= '0';
+      adc_add                        <= '0';
+      
+      pileup_write_id                <= (others => '0');
+      pileup_write_data              <= (others => '0');
+      pileup_write                   <= '0';
+      pileup_add                     <= '0';
+
+      ovfl_write_id                  <= (others => '0');
+      ovfl_write_data                <= (others => '0');
+      ovfl_write                     <= '0';
+      ovfl_add                       <= '0';
     end if;
   end process PROC_FILL_HISTOGRAMS;
 
   ---------------------------------------------------------------------------
-  -- TRBNet Slave Bus
+  -- Trbnet Slave Bus
   ---------------------------------------------------------------------------
 
   -- Give status info to the TRB Slow Control Channel

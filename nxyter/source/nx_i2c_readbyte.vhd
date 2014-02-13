@@ -34,14 +34,14 @@ architecture Behavioral of nx_i2c_readbyte is
   signal i2c_start         : std_logic;
 
   signal sequence_done_o   : std_logic;
-  signal i2c_byte          : unsigned(31 downto 0);
+  signal i2c_data          : unsigned(31 downto 0);
   signal bit_ctr           : unsigned(3 downto 0);
   signal i2c_ack_o         : std_logic;
   signal byte_ctr          : unsigned(2 downto 0);
   signal wait_timer_init   : unsigned(11 downto 0);
 
   signal sequence_done_o_x : std_logic;
-  signal i2c_byte_x        : unsigned(31 downto 0);
+  signal i2c_data_x        : unsigned(31 downto 0);
   signal bit_ctr_x         : unsigned(3 downto 0);
   signal i2c_ack_o_x       : std_logic;
   signal byte_ctr_x        : unsigned(2 downto 0);
@@ -92,7 +92,7 @@ begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
         sequence_done_o  <= '0';
-        i2c_byte         <= (others => '0');
+        i2c_data         <= (others => '0');
         bit_ctr          <= (others => '0');
         i2c_ack_o        <= '0';
         byte_ctr         <= (others => '0');
@@ -100,7 +100,7 @@ begin
         STATE            <= S_IDLE;
       else
         sequence_done_o  <= sequence_done_o_x;
-        i2c_byte         <= i2c_byte_x;
+        i2c_data         <= i2c_data_x;
         bit_ctr          <= bit_ctr_x;
         i2c_ack_o        <= i2c_ack_o_x;
         byte_ctr         <= byte_ctr_x;
@@ -119,7 +119,7 @@ begin
     sda_o              <= '1';
     scl_o              <= '1';
     sequence_done_o_x  <= '0';
-    i2c_byte_x         <= i2c_byte;
+    i2c_data_x         <= i2c_data;
     bit_ctr_x          <= bit_ctr;       
     i2c_ack_o_x        <= i2c_ack_o;
     byte_ctr_x         <= byte_ctr; 
@@ -130,7 +130,7 @@ begin
         if (START_IN = '1') then
           sda_o              <= '0';
           scl_o              <= '0';
-          i2c_byte_x         <= (others => '0');
+          i2c_data_x         <= (others => '0');
           byte_ctr_x         <= (others => '0');
           NEXT_STATE         <= S_INIT;
         else
@@ -179,8 +179,9 @@ begin
         end if;
 
       when S_GET_BIT =>
-        i2c_byte_x(0)        <= SDA_IN;
-        NEXT_STATE           <= S_SET_SCL2;
+        i2c_data_x(0)           <= SDA_IN;
+        i2c_data_x(31 downto 1) <= i2c_data(30 downto 0);
+        NEXT_STATE              <= S_SET_SCL2;
                 
       when S_SET_SCL2 =>
         if (wait_timer_done = '0') then
@@ -202,7 +203,6 @@ begin
         scl_o                <= '0';
         if (bit_ctr > 0) then
           bit_ctr_x          <= bit_ctr - 1;
-          i2c_byte_x         <= i2c_byte sll 1;
           wait_timer_init_x  <= I2C_SPEED srl 2;
           NEXT_STATE         <= S_UNSET_SCL1;
         else
@@ -279,7 +279,7 @@ begin
   -----------------------------------------------------------------------------
 
   SEQUENCE_DONE_OUT <= sequence_done_o;
-  BYTE_OUT          <= i2c_byte;
+  BYTE_OUT          <= i2c_data;
   
   -- I2c Outputs
   SDA_OUT <= sda_o;

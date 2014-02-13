@@ -360,36 +360,43 @@ begin
 
               case readout_mode(1 downto 0) is              
                                
-                when "00" | "11" =>
+                when "00" =>
                   -- Default Mode
-                  -- RefValue + Parity Valid + Error Bits
                   if (TIMESTAMP_STATUS_IN(S_PARITY) = '0') then
                     d_data_o(10 downto  0)     <= deltaTStore(10 downto  0);
-                    d_data_o(11)               <= TIMESTAMP_STATUS_IN(S_PILEUP);
-                    d_data_o(12)               <= TIMESTAMP_STATUS_IN(S_OVFL);
-                    d_data_o(24 downto 13)     <= ADC_DATA_IN;
+                    d_data_o(22 downto 11)     <= ADC_DATA_IN;
+                    d_data_o(23)               <= TIMESTAMP_STATUS_IN(S_OVFL);
+                    d_data_o(24)               <= TIMESTAMP_STATUS_IN(S_PILEUP);
                     d_data_o(31 downto 25)     <= CHANNEL_IN;
                     d_data_clk_o               <= '1';
                   end if;
 
                 when "01" =>
-                  -- Extended Timestamp Mode
-                  -- RefValue + Parity Valid, Error Bits = extended Timestamp 
+                  -- Extended Timestamp Mode 12Bit
                   if (TIMESTAMP_STATUS_IN(S_PARITY) = '0') then
-                    d_data_o(12 downto  0)     <= deltaTStore(12 downto  0);
-                    d_data_o(24 downto 13)     <= ADC_DATA_IN;
+                    d_data_o(11 downto  0)     <= deltaTStore(11 downto  0);
+                    d_data_o(22 downto 12)     <= ADC_DATA_IN(11 downto 1);
+                    d_data_o(23)               <= TIMESTAMP_STATUS_IN(S_OVFL);
+                    d_data_o(24)               <= TIMESTAMP_STATUS_IN(S_PILEUP);
                     d_data_o(31 downto 25)     <= CHANNEL_IN;
                     d_data_clk_o               <= '1';
                   end if;
 
                 when "10" =>
-                  -- Super Extended Timestamp Mode
-                  -- .....
+                  -- Extended Timestamp Mode 14Bit
                   if (TIMESTAMP_STATUS_IN(S_PARITY) = '0') then
                     d_data_o(13 downto  0)     <= deltaTStore;
-                    d_data_o(14)               <= TIMESTAMP_STATUS_IN(S_PILEUP);
-                    d_data_o(15)               <= TIMESTAMP_STATUS_IN(S_OVFL);
-                    d_data_o(24 downto 16)     <= (others => '0');
+                    d_data_o(22 downto 14)     <= ADC_DATA_IN(11 downto 3);
+                    d_data_o(23)               <= TIMESTAMP_STATUS_IN(S_OVFL);
+                    d_data_o(24)               <= TIMESTAMP_STATUS_IN(S_PILEUP);
+                    d_data_o(31 downto 25)     <= CHANNEL_IN;
+                    d_data_clk_o               <= '1';
+                  end if;
+
+                when "11" =>
+                  if (TIMESTAMP_STATUS_IN(S_PARITY) = '0') then
+                    d_data_o(13 downto  0)     <= deltaTStore;
+                    d_data_o(24 downto 14)     <= ADC_DATA_IN(11 downto 1);
                     d_data_o(31 downto 25)     <= CHANNEL_IN;
                     d_data_clk_o               <= '1';
                   end if;
@@ -642,7 +649,7 @@ begin
             end if;
 
           when S_WRITE_HEADER =>
-            state_d <= "10";
+            state_d                       <= "10";
 
             t_data_o(11 downto 0)         <= timestamp_ref;
             t_data_o(21 downto 12)        <= event_counter;

@@ -173,20 +173,33 @@ architecture Behavioral of nXyter_FEE_board is
   signal trigger_validate_adc    : std_logic_vector(11 downto 0);
   signal trigger_validate_pileup : std_logic;
   signal trigger_validate_ovfl   : std_logic;
-                                
+  
   -- Event Buffer                
-  signal trigger_evt_busy       : std_logic;
+  signal fee_data_o_0           : std_logic_vector(31 downto 0);
+  signal fee_data_write_o_0     : std_logic;
+  
+  signal trigger_evt_busy_0     : std_logic;
   signal evt_buffer_full        : std_logic;
   signal fee_trg_statusbits_o   : std_logic_vector(31 downto 0);
   signal fee_data_o             : std_logic_vector(31 downto 0);
   signal fee_data_write_o       : std_logic;
   signal fee_data_finished_o    : std_logic;
   signal fee_almost_full_i      : std_logic;
-                                
+
+  -- Calib Event
+  signal fee_data_o_1           : std_logic_vector(31 downto 0);
+  signal fee_data_write_o_1     : std_logic;
+  signal trigger_evt_busy_1     : std_logic;
+  
+  signal int_read               : std_logic;
+  signal int_addr               : std_logic_vector(15 downto 0);
+  signal int_ack                : std_logic;
+  signal int_data               : std_logic_vector(31 downto 0);
+  
   -- Trigger Handler            
   signal trigger                : std_logic;
   signal timestamp_trigger      : std_logic;
-  signal lvl2_trigger           : std_logic;
+  signal trigger_timing         : std_logic;
   signal trigger_busy           : std_logic;
   signal fast_clear             : std_logic;
   signal fee_trg_release_o      : std_logic;
@@ -207,7 +220,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal error_data_receiver    : std_logic;
   
   -- Debug Handler
-  constant DEBUG_NUM_PORTS      : integer := 13;
+  constant DEBUG_NUM_PORTS      : integer := 14;
   signal debug_line             : debug_array_t(0 to DEBUG_NUM_PORTS-1);
 
 begin
@@ -346,6 +359,10 @@ begin
       SPI_COMMAND_BUSY_IN  => spi_command_busy,
       SPI_DATA_IN          => spi_data,
       SPI_LOCK_OUT         => spi_lock,
+      INT_READ_IN          => int_read,
+      INT_ADDR_IN          => int_addr,
+      INT_ACK_OUT          => int_ack,
+      INT_DATA_OUT         => int_data,
       SLV_READ_IN          => slv_read(9),
       SLV_WRITE_IN         => slv_write(9),
       SLV_DATA_OUT         => slv_data_rd(9*32+31 downto 9*32),
@@ -466,18 +483,24 @@ begin
       LVL1_TRG_INFORMATION_IN    => LVL1_TRG_INFORMATION_IN,
       LVL1_INT_TRG_NUMBER_IN     => LVL1_INT_TRG_NUMBER_IN,
 
+      FEE_DATA_OUT               => FEE_DATA_OUT,
+      FEE_DATA_WRITE_OUT         => FEE_DATA_WRITE_OUT,
       FEE_DATA_FINISHED_OUT      => FEE_DATA_FINISHED_OUT,
       FEE_TRG_RELEASE_OUT        => FEE_TRG_RELEASE_OUT,
       FEE_TRG_STATUSBITS_OUT     => FEE_TRG_STATUSBITS_OUT,
-
+      FEE_DATA_0_IN              => fee_data_o_0,
+      FEE_DATA_WRITE_0_IN        => fee_data_write_o_0,
+      FEE_DATA_1_IN              => fee_data_o_1,
+      FEE_DATA_WRITE_1_IN        => fee_data_write_o_1,
       INTERNAL_TRIGGER_IN        => trigger_intern,
 
       TRIGGER_VALIDATE_BUSY_IN   => trigger_validate_busy,
-      LVL2_TRIGGER_BUSY_IN       => trigger_evt_busy,
+      TRIGGER_BUSY_0_IN          => trigger_evt_busy_0,
+      TRIGGER_BUSY_1_IN          => trigger_evt_busy_1,
       
       VALID_TRIGGER_OUT          => trigger,
       TIMESTAMP_TRIGGER_OUT      => timestamp_trigger,
-      LVL2_TRIGGER_OUT           => lvl2_trigger,
+      TRIGGER_TIMING_OUT         => trigger_timing,
       FAST_CLEAR_OUT             => fast_clear,
       TRIGGER_BUSY_OUT           => trigger_busy,
 
@@ -530,7 +553,7 @@ begin
       CLK_IN               => CLK_IN,
       RESET_IN             => RESET_IN,
       NX_DATA_CLK_TEST_IN  => NX_DATA_CLK_TEST_IN,
-      TRIGGER_IN           => lvl2_trigger,
+      TRIGGER_IN           => trigger_timing,
 
       NX_TIMESTAMP_CLK_IN  => NX_DATA_CLK_IN,
       NX_TIMESTAMP_IN      => NX_TIMESTAMP_IN,
@@ -679,7 +702,7 @@ begin
 -------------------------------------------------------------------------------
 -- Data Buffer FIFO
 -------------------------------------------------------------------------------
-
+                                    
   nx_event_buffer_1: nx_event_buffer
     generic map (
       BOARD_ID => BOARD_ID
@@ -694,14 +717,13 @@ begin
       DATA_CLK_IN                => trigger_data_clk,
       EVT_NOMORE_DATA_IN         => validate_nomore_data,
 
-      LVL2_TRIGGER_IN            => lvl2_trigger,
+      TRIGGER_IN                 => trigger_timing,
       FAST_CLEAR_IN              => fast_clear,
-      TRIGGER_BUSY_OUT           => trigger_evt_busy,
+      TRIGGER_BUSY_OUT           => trigger_evt_busy_0,
       EVT_BUFFER_FULL_OUT        => evt_buffer_full,
 
-      FEE_DATA_OUT               => FEE_DATA_OUT,
-      FEE_DATA_WRITE_OUT         => FEE_DATA_WRITE_OUT,
-      FEE_DATA_FINISHED_OUT      => open, --FEE_DATA_FINISHED_OUT,
+      FEE_DATA_OUT               => fee_data_o_0,
+      FEE_DATA_WRITE_OUT         => fee_data_write_o_0,
       FEE_DATA_ALMOST_FULL_IN    => FEE_DATA_ALMOST_FULL_IN,
 
       SLV_READ_IN                => slv_read(3),
@@ -716,6 +738,27 @@ begin
       DEBUG_OUT                  =>  debug_line(11)
       );
 
+  nx_calib_event_1: nx_calib_event
+    generic map (
+      BOARD_ID => BOARD_ID
+      )
+    port map (
+      CLK_IN                  => CLK_IN,
+      RESET_IN                => RESET_IN,
+      NXYTER_OFFLINE_IN       => nxyter_offline,
+      TRIGGER_IN              => trigger_timing,
+      FAST_CLEAR_IN           => fast_clear,
+      TRIGGER_BUSY_OUT        => trigger_evt_busy_1,
+      FEE_DATA_OUT            => fee_data_o_1,
+      FEE_DATA_WRITE_OUT      => fee_data_write_o_1,
+      FEE_DATA_ALMOST_FULL_IN => FEE_DATA_ALMOST_FULL_IN,
+      INT_READ_OUT            => int_read,        
+      INT_ADDR_OUT            => int_addr,
+      INT_ACK_IN              => int_ack,
+      INT_DATA_IN             => int_data,
+      DEBUG_OUT               => debug_line(13)
+      );
+  
   nx_histograms_1: nx_histograms
     port map (
       CLK_IN                      => CLK_IN,
