@@ -30,7 +30,7 @@ package config is
    
 --Address settings   
     constant INIT_ADDRESS           : std_logic_vector := x"F305";
-    constant BROADCAST_SPECIAL_ADDR : std_logic_vector := x"40";
+    constant BROADCAST_SPECIAL_ADDR : std_logic_vector := x"48";
    
 ------------------------------------------------------------------------------
 --End of design configuration
