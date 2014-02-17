@@ -244,39 +244,7 @@ begin
     end if;
   end process CalibrationSwitch;
 
-  -- Reference channel
-  --The_Reference_Channel : Reference_Channel
-  --  generic map (
-  --    CHANNEL_ID => 0)
-  --  port map (
-  --    RESET_200              => reset_tdc,
-  --    RESET_100              => reset_rdo,
-  --    CLK_200                => CLK_TDC,
-  --    CLK_100                => CLK_READOUT,
-  --    HIT_IN                 => REFERENCE_TIME,
-  --    READ_EN_IN             => rd_en_i(0),
-  --    VALID_TMG_TRG_IN       => VALID_TIMING_TRG_IN,
-  --    SPIKE_DETECTED_IN      => SPIKE_DETECTED_IN,
-  --    MULTI_TMG_TRG_IN       => MULTI_TMG_TRG_IN,
-  --    FIFO_DATA_OUT          => open,   --ch_data_i(0),
-  --    FIFO_WCNT_OUT          => open,   --ch_wcnt_i(0),
-  --    FIFO_EMPTY_OUT         => open,   --ch_empty_i(0),
-  --    FIFO_FULL_OUT          => open,   --ch_full_i(0),
-  --    FIFO_ALMOST_FULL_OUT   => ch_almost_full_i(0),
-  --    COARSE_COUNTER_IN      => coarse_cntr(1),
-  --    EPOCH_COUNTER_IN       => epoch_cntr,
-  --    TRIGGER_WINDOW_END_IN  => trg_win_end_i,
-  --    DATA_FINISHED_IN       => data_finished_i,
-  --    RUN_MODE               => run_mode_i,
-  --    TRIGGER_TIME_STAMP_OUT => open,  -- not used after tdc_v1.5.2 --trg_time_i,
-  --    REF_DEBUG_OUT          => ref_debug_i);
-  --ch_data_i(0)         <= x"F00000000";
-  --ch_data_valid_i(0)   <= '0';
-  --ch_empty_i(0)        <= '1';
-  --ch_full_i(0)         <= '0';
-  --ch_almost_empty_i(0) <= '0';
-  --ch_almost_full_i(0)  <= '0';
-
+  -- Reference Channel to measure the reference time
   ReferenceChannel : Channel
       generic map (
         CHANNEL_ID => 0,
@@ -289,7 +257,7 @@ begin
         RESET_COUNTERS          => reset_counters_i,
         CLK_200                 => CLK_TDC,
         CLK_100                 => CLK_READOUT,
-        HIT_IN                  => hit_in_i(0), --REFERENCE_TIME,
+        HIT_IN                  => hit_in_i(0),
         TRIGGER_WIN_END_TDC     => trig_win_end_tdc,
         TRIGGER_WIN_END_RDO     => trig_win_end_rdo,
         EPOCH_COUNTER_IN        => epoch_cntr,
@@ -313,6 +281,7 @@ begin
         Channel_200_DEBUG       => ch_200_debug_i(0),
         Channel_DEBUG           => ch_debug_i(0));
 
+  -- TDC Channels
   GEN_Channels : for i in 1 to CHANNEL_NUMBER-1 generate
     Channels : Channel
       generic map (
@@ -533,23 +502,27 @@ begin
 
 --  status_registers_bus_i(21) <= ch_200_debug_i(0);
   
-  TheLostHitBus : BusHandler
-    generic map (
-      BUS_LENGTH => CHANNEL_NUMBER-1)
-    port map (
-      RESET            => reset_rdo,
-      CLK              => CLK_READOUT,
-      DATA_IN          => ch_lost_hit_bus_i,
-      READ_EN_IN       => LHB_READ_EN_IN,
-      WRITE_EN_IN      => LHB_WRITE_EN_IN,
-      ADDR_IN          => LHB_ADDR_IN,
-      DATA_OUT         => LHB_DATA_OUT,
-      DATAREADY_OUT    => LHB_DATAREADY_OUT,
-      UNKNOWN_ADDR_OUT => LHB_UNKNOWN_ADDR_OUT);
+  --TheLostHitBus : BusHandler
+  --  generic map (
+  --    BUS_LENGTH => CHANNEL_NUMBER-1)
+  --  port map (
+  --    RESET            => reset_rdo,
+  --    CLK              => CLK_READOUT,
+  --    DATA_IN          => ch_lost_hit_bus_i,
+  --    READ_EN_IN       => LHB_READ_EN_IN,
+  --    WRITE_EN_IN      => LHB_WRITE_EN_IN,
+  --    ADDR_IN          => LHB_ADDR_IN,
+  --    DATA_OUT         => LHB_DATA_OUT,
+  --    DATAREADY_OUT    => LHB_DATAREADY_OUT,
+  --    UNKNOWN_ADDR_OUT => LHB_UNKNOWN_ADDR_OUT);
 
-  GenLostHitNumber : for i in 1 to CHANNEL_NUMBER-1 generate
-    ch_lost_hit_bus_i(i) <= ch_encoder_start_number_i(i)(15 downto 0) & ch_200_debug_i(i)(15 downto 0) when rising_edge(CLK_READOUT);
-  end generate GenLostHitNumber;
+  --GenLostHitNumber : for i in 1 to CHANNEL_NUMBER-1 generate
+  --  ch_lost_hit_bus_i(i) <= ch_encoder_start_number_i(i)(15 downto 0) & ch_200_debug_i(i)(15 downto 0) when rising_edge(CLK_READOUT);
+  --end generate GenLostHitNumber;
+
+  LHB_DATA_OUT         <= (others => '0');
+  LHB_DATAREADY_OUT    <= '0';
+  LHB_UNKNOWN_ADDR_OUT <= '0';
 
   --TheEncoderStartBus : BusHandler
   --  generic map (
@@ -573,28 +546,28 @@ begin
   ESB_DATAREADY_OUT    <= '0';
   ESB_UNKNOWN_ADDR_OUT <= '0';
 
-  TheEncoderFinishedBus : BusHandler
-    generic map (
-      BUS_LENGTH => CHANNEL_NUMBER-1)
-    port map (
-      RESET            => reset_rdo,
-      CLK              => CLK_READOUT,
-      DATA_IN          => ch_encoder_finished_bus_i,
-      READ_EN_IN       => EFB_READ_EN_IN,
-      WRITE_EN_IN      => EFB_WRITE_EN_IN,
-      ADDR_IN          => EFB_ADDR_IN,
-      DATA_OUT         => EFB_DATA_OUT,
-      DATAREADY_OUT    => EFB_DATAREADY_OUT,
-      UNKNOWN_ADDR_OUT => EFB_UNKNOWN_ADDR_OUT);
+  --TheEncoderFinishedBus : BusHandler
+  --  generic map (
+  --    BUS_LENGTH => CHANNEL_NUMBER-1)
+  --  port map (
+  --    RESET            => reset_rdo,
+  --    CLK              => CLK_READOUT,
+  --    DATA_IN          => ch_encoder_finished_bus_i,
+  --    READ_EN_IN       => EFB_READ_EN_IN,
+  --    WRITE_EN_IN      => EFB_WRITE_EN_IN,
+  --    ADDR_IN          => EFB_ADDR_IN,
+  --    DATA_OUT         => EFB_DATA_OUT,
+  --    DATAREADY_OUT    => EFB_DATAREADY_OUT,
+  --    UNKNOWN_ADDR_OUT => EFB_UNKNOWN_ADDR_OUT);
 
-  GenFifoWriteNumber : for i in 1 to CHANNEL_NUMBER-1 generate
-    --ch_encoder_finished_bus_i(i) <= x"00" & ch_encoder_finished_number_i(i) when rising_edge(CLK_READOUT);
-    ch_encoder_finished_bus_i(i) <= ch_fifo_write_number_i(i)(15 downto 0)& ch_encoder_finished_number_i(i)(15 downto 0) when rising_edge(CLK_READOUT);
-  end generate GenFifoWriteNumber;
+  --GenFifoWriteNumber : for i in 1 to CHANNEL_NUMBER-1 generate
+  --  --ch_encoder_finished_bus_i(i) <= x"00" & ch_encoder_finished_number_i(i) when rising_edge(CLK_READOUT);
+  --  ch_encoder_finished_bus_i(i) <= ch_fifo_write_number_i(i)(15 downto 0)& ch_encoder_finished_number_i(i)(15 downto 0) when rising_edge(CLK_READOUT);
+  --end generate GenFifoWriteNumber;
 
-  --EFB_DATA_OUT         <= (others => '0');
-  --EFB_DATAREADY_OUT    <= '0';
-  --EFB_UNKNOWN_ADDR_OUT <= '0';
+  EFB_DATA_OUT         <= (others => '0');
+  EFB_DATAREADY_OUT    <= '0';
+  EFB_UNKNOWN_ADDR_OUT <= '0';
 
 -- Logic Analyser
   TheLogicAnalyser : LogicAnalyser

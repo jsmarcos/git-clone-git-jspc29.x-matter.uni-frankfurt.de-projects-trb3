@@ -11,8 +11,8 @@ package config is
 ------------------------------------------------------------------------------
 
 --Include GbE logic     
-    constant NUM_TDC_CHANNELS       : integer range 1 to 65 := 7;  
-    constant NUM_TDC_CHANNELS_POWER2: integer range 0 to 6  := 3;  --the nearest power of two, for convenience reasons 
+    constant NUM_TDC_CHANNELS       : integer range 1 to 65 := 65;
+    constant NUM_TDC_CHANNELS_POWER2: integer range 0 to 6  := 3;  --the nearest power of two, for convenience reasons
     constant USE_DOUBLE_EDGE        : integer := c_YES;
 
 --Include SPI on AddOn connector    
