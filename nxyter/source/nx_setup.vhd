@@ -75,16 +75,16 @@ architecture Behavioral of nx_setup is
   type i2c_ram_t is array(0 to 45) of std_logic_vector(7 downto 0);
   signal i2c_ram                 : i2c_ram_t;
   
-  type register_access_type_t is array(0 to 45) of std_logic;
+  type register_access_type_t is array(0 to 45) of std_logic_vector(1 downto 0);
   constant register_access_type : register_access_type_t :=
-    ('1', '1', '1', '1', '1', '1', '1', '1',   --  0 ->  7
-     '1', '1', '1', '1', '1', '1', '1', '1',   --  8 -> 15
-     '1', '1', '1', '1', '1', '1', '1', '1',   -- 16 -> 23
-     '1', '1', '1', '1', '1', '1', '0', '0',   -- 24 -> 31 
-     '1', '1', '0', '0', '0', '0', '1', '1',   -- 32 -> 39
-     '0', '0', '0', '1', '1', '1'              -- 40 -> 45
+    ("11", "11", "11", "11", "11", "11", "11", "11",   --  0 ->  7
+     "11", "11", "11", "11", "11", "11", "11", "11",   --  8 -> 15
+     "11", "11", "11", "11", "11", "11", "11", "11",   -- 16 -> 23
+     "11", "11", "11", "11", "11", "11", "00", "00",   -- 24 -> 31 
+     "11", "11", "10", "10", "10", "10", "11", "11",   -- 32 -> 39
+     "00", "00", "00", "11", "11", "11"                -- 40 -> 45
      );
-  
+
   -- I2C RAM Handler
   signal ram_index_0             : integer;
   signal ram_index_1             : integer;
@@ -271,12 +271,13 @@ begin
         i2c_write_token_r   <= (others => '0');
         do_write            <= '0';
         
-        if (ram_write_0 = '1' and register_access_type(ram_index_0) = '1') then
+        if (ram_write_0 = '1' and
+            register_access_type(ram_index_0)(0) = '1') then
           i2c_ram(ram_index_0)           <= ram_data_0;
           i2c_write_token_r(ram_index_0) <= '1';
           do_write                       <= '1';
         elsif (ram_write_1 = '1'                       and
-               register_access_type(ram_index_1) = '1' and
+               register_access_type(ram_index_1)(0) = '1' and
                i2c_write_token(ram_index_1) = '0') then
           i2c_ram(ram_index_1)           <= ram_data_1;
           do_write                       <= '1';
@@ -563,8 +564,8 @@ begin
         case T_STATE is
           
           when T_IDLE_TOKEN =>
-            if (register_access_type(index) = '1') then
-              if (i2c_write_token(index) = '1') then
+            if (register_access_type(index)(0) = '1') then
+              if (i2c_write_token(index) = '1') then 
                 T_STATE                          <= T_WRITE_I2C_REGISTER;
               elsif (i2c_read_token(index) = '1') then
                 T_STATE                          <= T_READ_I2C_REGISTER;
@@ -1039,7 +1040,7 @@ begin
               int_data_o(7 downto 0)      <= i2c_ram(index);
               int_data_o(28 downto 8)     <= (others => '0');
               int_data_o(29)              <=
-                not register_access_type(index);
+                not register_access_type(index)(0);
               int_data_o(30)              <= i2c_read_token(index);
               int_data_o(31)              <= i2c_write_token(index);
             else
@@ -1210,7 +1211,13 @@ begin
                       
           elsif (SLV_ADDR_IN >= x"0100" and SLV_ADDR_IN <= x"0180") then
             -- Write value to ram
-            index := to_integer(unsigned(SLV_ADDR_IN(7 downto 0)));
+            index   := to_integer(unsigned(SLV_ADDR_IN(7 downto 0)));
+            if (index = 0) then
+              index := 128;
+            else
+              index := index - 1;
+            end if;
+            
             if (i2c_disable_memory = '0') then
               dac_ram_index_0            <= index;
               dac_ram_data_0             <= SLV_DATA_IN(5 downto 0);
@@ -1292,7 +1299,7 @@ begin
               slv_data_out_o(7 downto 0)      <= i2c_ram(index);
               slv_data_out_o(28 downto 8)     <= (others => '0');
               slv_data_out_o(29)              <=
-                not register_access_type(index);
+                not register_access_type(index)(0);
               slv_data_out_o(30)              <= i2c_read_token(index);
               slv_data_out_o(31)              <= i2c_write_token(index);
             else
@@ -1301,7 +1308,13 @@ begin
             slv_ack_o                         <= '1';
 
           elsif (SLV_ADDR_IN >= x"0100" and SLV_ADDR_IN <= x"0180") then
-            index := to_integer(unsigned(SLV_ADDR_IN(7 downto 0)));
+            index   := to_integer(unsigned(SLV_ADDR_IN(7 downto 0)));
+            if (index = 0) then
+              index := 128;
+            else
+              index := index - 1;
+            end if;
+            
             if (i2c_disable_memory = '0') then
               slv_data_out_o(5 downto 0)      <= dac_ram(index);
               slv_data_out_o(29 downto 6)     <= (others => '0');
@@ -1391,6 +1404,98 @@ begin
                 slv_data_out_o(31 downto 2)   <= (others => '0');
                 slv_ack_o                     <= '1';
 
+              when x"0060" =>
+                -- Update Register I2C Status
+                if (unsigned(i2c_read_token) = 0) then
+                  slv_data_out_o              <= (others => '0');
+                else
+                  slv_data_out_o              <= x"0000_0001";
+                end if;
+                slv_ack_o                     <= '1';
+
+              when x"0061" =>
+                -- Update Register DAC Status
+                if (unsigned(dac_read_token) = 0) then
+                  slv_data_out_o              <= (others => '0');
+                else
+                  slv_data_out_o              <= x"0000_0001";
+                end if;
+                slv_ack_o                     <= '1';
+                
+              when x"0062" =>
+                -- Update Register I2C and DAC Status
+                if (unsigned(i2c_read_token) = 0 and
+                    unsigned(dac_read_token) = 0) then
+                  slv_data_out_o              <= (others => '0');
+                else
+                  slv_data_out_o              <= x"0000_0001";
+                end if;
+                slv_ack_o                     <= '1';
+                
+              when x"0070" =>
+                -- WriteToken
+                slv_data_out_o                <= i2c_write_token(31 downto 0);
+                slv_ack_o                     <= '1';
+              when x"0071" =>
+                -- WriteToken
+                slv_data_out_o(13 downto 0)   <= i2c_write_token(45 downto 32);
+                slv_data_out_o(31 downto 14)  <= (others => '0');
+                slv_ack_o                     <= '1';
+
+              when x"0072" =>
+                -- ReadToken
+                slv_data_out_o                <= i2c_read_token(31 downto 0);
+                slv_ack_o                     <= '1';
+              when x"0073" =>
+                -- ReadToken
+                slv_data_out_o(13 downto 0)   <= i2c_read_token(45 downto 32);
+                slv_data_out_o(31 downto 14)  <= (others => '0');
+                slv_ack_o                     <= '1';
+
+              when x"0074" =>
+                -- WriteTokenDAC
+                slv_data_out_o                <= dac_write_token(31 downto 0);
+                slv_ack_o                     <= '1';
+              when x"0075" =>
+                -- WriteTokenDAC
+                slv_data_out_o                <= dac_write_token(63 downto 32);
+                slv_ack_o                     <= '1';
+              when x"0076" =>
+                -- WriteTokenDAC
+                slv_data_out_o                <= dac_write_token(95 downto 64);
+                slv_ack_o                     <= '1';
+              when x"0077" =>
+                -- WriteTokenDAC
+                slv_data_out_o                <= dac_write_token(127 downto 96);
+                slv_ack_o                     <= '1';
+              when x"0078" =>
+                -- WriteTokenDAC
+                slv_data_out_o(0)             <= dac_write_token(128);
+                slv_data_out_o(31 downto 1)   <= (others => '0');
+                slv_ack_o                     <= '1';
+
+              when x"0079" =>
+                -- ReadTokenDAC
+                slv_data_out_o                <= dac_read_token(31 downto 0);
+                slv_ack_o                     <= '1';
+              when x"007a" =>
+                -- ReadTokenDAC
+                slv_data_out_o                <= dac_read_token(63 downto 32);
+                slv_ack_o                     <= '1';
+              when x"007b" =>
+                -- ReadTokenDAC
+                slv_data_out_o                <= dac_read_token(95 downto 64);
+                slv_ack_o                     <= '1';
+              when x"007c" =>
+                -- ReadTokenDAC
+                slv_data_out_o                <= dac_read_token(127 downto 96);
+                slv_ack_o                     <= '1';
+              when x"007d" =>
+                -- ReadTokenDAC
+                slv_data_out_o(0)             <= dac_read_token(128);
+                slv_data_out_o(31 downto 1)   <= (others => '0');
+                slv_ack_o                     <= '1';
+                
               when others =>   
                 slv_unknown_addr_o            <= '1';
                 slv_ack_o                     <= '0';
@@ -1398,7 +1503,7 @@ begin
 
           end if;
         else                        
-          slv_ack_o                         <= '0';
+          slv_ack_o                           <= '0';
         end if;
         
       end if;

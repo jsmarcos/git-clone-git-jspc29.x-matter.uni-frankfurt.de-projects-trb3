@@ -110,18 +110,18 @@ begin
   ---------------------------------------------------------------------------
 
 
-  DEBUG_OUT(0)               <= CLK_IN;
-  DEBUG_OUT(1)               <= CHANNEL_FILL_IN;
-  DEBUG_OUT(2)               <= hit_write_busy;
-  DEBUG_OUT(3)               <= pileup_write_busy;
-  DEBUG_OUT(4)               <= ovfl_write_busy;
-  DEBUG_OUT(5)               <= adc_write_busy;
-
-  DEBUG_OUT(6)               <= hit_read_busy;
-  DEBUG_OUT(7)               <= pileup_read_busy;
-  DEBUG_OUT(8)               <= ovfl_read_busy;
-  DEBUG_OUT(9)               <= adc_read_busy;
-  DEBUG_OUT(15 downto 10)    <= (others => '0');
+ -- DEBUG_OUT(0)               <= CLK_IN;
+ -- DEBUG_OUT(1)               <= CHANNEL_FILL_IN;
+ -- DEBUG_OUT(2)               <= hit_write_busy;
+ -- DEBUG_OUT(3)               <= pileup_write_busy;
+ -- DEBUG_OUT(4)               <= ovfl_write_busy;
+ -- DEBUG_OUT(5)               <= adc_write_busy;
+ --
+ -- DEBUG_OUT(6)               <= hit_read_busy;
+ -- DEBUG_OUT(7)               <= pileup_read_busy;
+ -- DEBUG_OUT(8)               <= ovfl_read_busy;
+ -- DEBUG_OUT(9)               <= adc_read_busy;
+ -- DEBUG_OUT(15 downto 10)    <= (others => '0');
 
   
  -- DEBUG_OUT(15 downto 1)    <= SLV_ADDR_IN(14 downto 0);
@@ -147,7 +147,7 @@ begin
       CHANNEL_DATA_VALID_OUT => hit_read_data_valid,
       CHANNEL_READ_BUSY_OUT  => hit_read_busy,
 
-      DEBUG_OUT              => open
+      DEBUG_OUT              => DEBUG_OUT --open
       );
 
   nx_histogram_adc: nx_histogram
@@ -220,69 +220,74 @@ begin
   -- Fill Histograms
   -----------------------------------------------------------------------------
 
-  
-  PROC_FILL_HISTOGRAMS: process(CHANNEL_FILL_IN,
-                                CHANNEL_PILEUP_IN,
-                                CHANNEL_OVERFLOW_IN
-                                )
+  PROC_FILL_HISTOGRAMS: process(CLK_IN)
   begin
-    if (CHANNEL_FILL_IN = '1') then
-      if (hit_write_busy = '0') then
-        hit_write_id                   <= "0000000"; --CHANNEL_ID_IN;
-        hit_write_data                 <= x"0000_0001";
+    if (rising_edge(CLK_IN)) then
+      if (RESET_IN = '1') then
+        hit_write_id                   <= (others => '0');
+        hit_write_data                 <= (others => '0');
         hit_write                      <= '0';
-        hit_add                        <= '1';
-      
-        adc_write_id                   <= CHANNEL_ID_IN;
-        adc_write_data(11 downto 0)    <= CHANNEL_ADC_IN; 
-        adc_write_data(31 downto 12)   <= (others => '0');
+        hit_add                        <= '0';
+
+        adc_write_id                   <= (others => '0');
+        adc_write_data                 <= (others => '0');
         adc_write                      <= '0';
-        adc_add                        <= '1';
+        adc_add                        <= '0';
         
-        if (CHANNEL_PILEUP_IN = '1') then
-          pileup_write_id              <= CHANNEL_ID_IN;
-          pileup_write_data            <= x"0000_0001";
-          pileup_write                 <= '0';
-          pileup_add                   <= '1';
-        else
-          pileup_write_id                <= (others => '0');
-          pileup_write_data              <= (others => '0');
-          pileup_write                   <= '0';
-          pileup_add                     <= '0';
-        end if;
-      
-        if (CHANNEL_OVERFLOW_IN = '1') then
-          ovfl_write_id                <= CHANNEL_ID_IN;
-          ovfl_write_data              <= x"0000_0001";
-          ovfl_write                   <= '0';
-          ovfl_add                     <= '1';
-        else
-          ovfl_write_id                  <= (others => '0');
-          ovfl_write_data                <= (others => '0');
-          ovfl_write                     <= '0';
-          ovfl_add                       <= '0';
+        pileup_write_id                <= (others => '0');
+        pileup_write_data              <= (others => '0');
+        pileup_write                   <= '0';
+        pileup_add                     <= '0';
+
+        ovfl_write_id                  <= (others => '0');
+        ovfl_write_data                <= (others => '0');
+        ovfl_write                     <= '0';
+        ovfl_add                       <= '0';
+      else
+        hit_write_id                   <= (others => '0');
+        hit_write_data                 <= (others => '0');
+        hit_write                      <= '0';
+        hit_add                        <= '0';
+
+        adc_write_id                   <= (others => '0');
+        adc_write_data                 <= (others => '0');
+        adc_write                      <= '0';
+        adc_add                        <= '0';
+        
+        pileup_write_id                <= (others => '0');
+        pileup_write_data              <= (others => '0');
+        pileup_write                   <= '0';
+        pileup_add                     <= '0';
+
+        ovfl_write_id                  <= (others => '0');
+        ovfl_write_data                <= (others => '0');
+        ovfl_write                     <= '0';
+        ovfl_add                       <= '0';
+        
+        if (CHANNEL_FILL_IN = '1' and  hit_write_busy = '0') then
+          hit_write_id                   <= CHANNEL_ID_IN;
+          hit_write_data                 <= x"0000_0001";
+          hit_add                        <= '1';
+          
+          adc_write_id                   <= CHANNEL_ID_IN;
+          adc_write_data(11 downto 0)    <= CHANNEL_ADC_IN; 
+          adc_write_data(31 downto 12)   <= (others => '0');
+          adc_add                        <= '1';
+
+          if (CHANNEL_PILEUP_IN = '1') then
+            pileup_write_id              <= CHANNEL_ID_IN;
+            pileup_write_data            <= x"0000_0001";
+            pileup_add                   <= '1';
+          end if;
+          
+          if (CHANNEL_OVERFLOW_IN = '1') then
+            ovfl_write_id                <= CHANNEL_ID_IN;
+            ovfl_write_data              <= x"0000_0001";
+            ovfl_add                     <= '1';
+          end if;
+
         end if;
       end if;
-    else 
-      hit_write_id                   <= (others => '0');
-      hit_write_data                 <= (others => '0');
-      hit_write                      <= '0';
-      hit_add                        <= '0';
-      
-      adc_write_id                   <= (others => '0');
-      adc_write_data                 <= (others => '0');
-      adc_write                      <= '0';
-      adc_add                        <= '0';
-      
-      pileup_write_id                <= (others => '0');
-      pileup_write_data              <= (others => '0');
-      pileup_write                   <= '0';
-      pileup_add                     <= '0';
-
-      ovfl_write_id                  <= (others => '0');
-      ovfl_write_data                <= (others => '0');
-      ovfl_write                     <= '0';
-      ovfl_add                       <= '0';
     end if;
   end process PROC_FILL_HISTOGRAMS;
 
@@ -361,8 +366,8 @@ begin
             slv_ack_o                        <= '0';
           elsif (unsigned(SLV_ADDR_IN) >= x"0100" and
                  unsigned(SLV_ADDR_IN) <= x"017f") then
-            adc_read_id                      <= SLV_ADDR_IN(6 downto 0);
-            adc_read                         <= '1';
+            ovfl_read_id                     <= SLV_ADDR_IN(6 downto 0);
+            ovfl_read                        <= '1';
             slv_ack_o                        <= '0';
           elsif (unsigned(SLV_ADDR_IN) >= x"0200" and
                  unsigned(SLV_ADDR_IN) <= x"027f") then
@@ -371,8 +376,8 @@ begin
             slv_ack_o                        <= '0';
           elsif (unsigned(SLV_ADDR_IN) >= x"0300" and
                  unsigned(SLV_ADDR_IN) <= x"037f") then
-            ovfl_read_id                     <= SLV_ADDR_IN(6 downto 0);
-            ovfl_read                        <= '1';
+            adc_read_id                      <= SLV_ADDR_IN(6 downto 0);
+            adc_read                         <= '1';
             slv_ack_o                        <= '0';
           else
             case SLV_ADDR_IN is
@@ -386,40 +391,40 @@ begin
                 slv_data_out_o(0)            <= hit_average_enable;
                 slv_data_out_o(31 downto 1)  <= (others => '0');
                 slv_ack_o                    <= '1';
-
+              
               when x"0180" =>
-                slv_data_out_o(2 downto 0)   <=
-                  std_logic_vector(adc_num_averages);
-                slv_data_out_o(31 downto 3)  <= (others => '0');
-                slv_ack_o                    <= '1';
-
-              when x"0181" =>
-                slv_data_out_o(0)            <= adc_average_enable;
-                slv_data_out_o(31 downto 1)  <= (others => '0');
-                slv_ack_o                    <= '1';
-
-              when x"0280" =>
                 slv_data_out_o(2 downto 0)   <=
                   std_logic_vector(pileup_num_averages);
                 slv_data_out_o(31 downto 3)  <= (others => '0');
                 slv_ack_o                    <= '1';
 
-              when x"0281" =>
+              when x"0181" =>
                 slv_data_out_o(0)            <= pileup_average_enable;
                 slv_data_out_o(31 downto 1)  <= (others => '0');
                 slv_ack_o                    <= '1';
 
-              when x"0380" =>
+              when x"0280" =>
                 slv_data_out_o(2 downto 0)   <=
                   std_logic_vector(ovfl_num_averages);
                 slv_data_out_o(31 downto 3)  <= (others => '0');
                 slv_ack_o                    <= '1';
 
-              when x"0381" =>
+              when x"0281" =>
                 slv_data_out_o(0)            <= ovfl_average_enable;
                 slv_data_out_o(31 downto 1)  <= (others => '0');
                 slv_ack_o                    <= '1';
-                
+
+              when x"0380" =>
+                slv_data_out_o(2 downto 0)   <=
+                  std_logic_vector(adc_num_averages);
+                slv_data_out_o(31 downto 3)  <= (others => '0');
+                slv_ack_o                    <= '1';
+
+              when x"0381" =>
+                slv_data_out_o(0)            <= adc_average_enable;
+                slv_data_out_o(31 downto 1)  <= (others => '0');
+                slv_ack_o                    <= '1';
+   
               when others =>
                 slv_unknown_addr_o           <= '1';
                 slv_ack_o                    <= '0';
@@ -437,31 +442,31 @@ begin
             when x"0081" =>
               hit_average_enable             <= SLV_DATA_IN(0);
               slv_ack_o                      <= '1';
-
+           
             when x"0180" =>
-              adc_num_averages               <= SLV_DATA_IN(2 downto 0);
-              slv_ack_o                      <= '1';
-
-            when x"0181" =>
-              adc_average_enable             <= SLV_DATA_IN(0);
-              slv_ack_o                      <= '1';
-              
-            when x"0280" =>
               pileup_num_averages            <= SLV_DATA_IN(2 downto 0);
               slv_ack_o                      <= '1';
 
-            when x"0281" =>
+            when x"0181" =>
               pileup_average_enable          <= SLV_DATA_IN(0);
               slv_ack_o                      <= '1';
               
-            when x"0380" =>
+            when x"0280" =>
               ovfl_num_averages              <= SLV_DATA_IN(2 downto 0);
               slv_ack_o                      <= '1';
 
-            when x"0381" =>
+            when x"0281" =>
               ovfl_average_enable             <= SLV_DATA_IN(0);
               slv_ack_o                      <= '1';
               
+            when x"0380" =>
+              adc_num_averages               <= SLV_DATA_IN(2 downto 0);
+              slv_ack_o                      <= '1';
+
+            when x"0381" =>
+              adc_average_enable             <= SLV_DATA_IN(0);
+              slv_ack_o                      <= '1';
+
             when others =>
               slv_unknown_addr_o             <= '1';
               slv_ack_o                      <= '0';

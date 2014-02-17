@@ -31,8 +31,9 @@
                                           2: 2,6,..   3: 3,7,..)
 0x8256 : r     Nxyter I2C Online
 0x8260 : w     Read all I2C Registers into Memory     
-0x8261 : w     Read Trim DAC Register(129 deep FIFO) into Memory
-0x8262 : w     Read ALL: Read Trim DAC Register(129 deep FIFO) into Memory
+0x8261 : w     Read Trim DAC Registers (129 deep FIFO) into Memory
+0x8262 : w     Read ALL: Read all I2C and all Trim DAC Registers into Memory
+0x8270 : r     Token register, 14 in a row
 
 -- Trigger Generator
 0x8140 :  r/w  Length of Trigger TestPulse (12 Bit, in 4ns)
@@ -171,10 +172,10 @@
 0x8060 :       Access to SPI Interface
 
 -- Histogram Handler
-0x8800 :  r/w  r: Read Channel HIt Statistic (128 channel in a row)
-0x8900 :  r    Read Channel Trigger Rate (128 channel in a row, 1/s)
-0x8a00 :  r    Read Channel averaged ADC Value (128 channel in a row)
-0x8b00 :  r    Read Channel PileUp Rate (128 channel in a row, 1/s)
+0x8800 :  r    Read Channel Hit Statistic (128 channel in a row)
+0x8900 :  r    Read Channel Pileup Rate (128 channel in a row, 1/s)
+0x8a00 :  r    Read Channel Overflow Rate (128 channel in a row, 1/s)
+0x8b00 :  r    Read Channel averaged ADC Value (128 channel in a row)
 
 0x8880 :  r/w  Hit Rate num averages (3 Bit)
 0x8881 :  r/w  Hit Rate average enable 

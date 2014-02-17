@@ -67,10 +67,11 @@ architecture Behavioral of nx_histogram is
   -- Hist Read Handler
   signal read_address            : std_logic_vector(BUS_WIDTH - 1 downto 0);
   signal read_data               : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal read_enable_p           : std_logic;
   signal read_enable             : std_logic;
   signal channel_data_o          : std_logic_vector(DATA_WIDTH - 1 downto 0);
   signal channel_data_valid_o    : std_logic;
-  signal channel_data_valid_o_f  : std_logic;
+  signal channel_data_valid_o_f  : std_logic_vector(2 downto 0);
   signal channel_read_busy_o     : std_logic;
 
 begin
@@ -83,12 +84,10 @@ begin
   DEBUG_OUT(3)              <= write_enable_hist;
   DEBUG_OUT(4)              <= channel_read_busy_o;
   DEBUG_OUT(5)              <= CHANNEL_READ_IN;
-  DEBUG_OUT(6)              <= read_enable_hist;
+  DEBUG_OUT(6)              <= read_enable;
   DEBUG_OUT(7)              <= channel_data_valid_o;
---  DEBUG_OUT(15 downto 8)    <= channel_data_o(7 downto 0);
-  DEBUG_OUT(14 downto 8)    <= CHANNEL_ID_IN;
-  DEBUG_OUT(15)             <= '0';
-
+  DEBUG_OUT(15 downto 8)    <= channel_data_o(7 downto 0);
+  
   -----------------------------------------------------------------------------
 
   ram_dp_128x40_hist: ram_dp_128x40
@@ -127,20 +126,54 @@ begin
 
   pulse_to_level_1: pulse_to_level
     generic map (
-      NUM_CYCLES => 3
+      NUM_CYCLES => 2
       )
     port map (
       CLK_IN    => CLK_IN,
       RESET_IN  => RESET_IN,
-      PULSE_IN  => read_enable,
-      LEVEL_OUT => channel_read_busy_o
+      PULSE_IN  => read_enable_p,
+      LEVEL_OUT => read_enable
       );
 
-  read_enable                <= CHANNEL_READ_IN;
-  read_address               <= CHANNEL_ID_READ_IN; 
-  channel_data_valid_o_f     <= CHANNEL_READ_IN when rising_edge(CLK_IN);
-  channel_data_valid_o       <= channel_data_valid_o_f when rising_edge(CLK_IN);
-  channel_data_o             <= read_data;
+  PROC_HIST_READ: process(CLK_IN)
+  begin
+    if( rising_edge(CLK_IN) ) then
+      if( RESET_IN = '1' ) then
+        read_enable_p               <= '0';
+        read_address                <= (others => '0');
+        channel_data_valid_o_f      <= (others => '0');
+        channel_data_valid_o        <= '0';
+        channel_data_o              <= (others => '0');
+        channel_read_busy_o         <= '0';
+      else
+        channel_data_valid_o_f(2)   <= '0';
+        channel_data_valid_o_f(1)   <= channel_data_valid_o_f(2);
+        channel_data_valid_o_f(0)   <= channel_data_valid_o_f(1);
+
+        read_enable_p               <= '0';
+        read_address                <= (others => '0');
+        channel_data_o              <= (others => '0');  
+        channel_data_valid_o        <= '0';
+        channel_read_busy_o         <= '0';
+        
+        if (CHANNEL_READ_IN = '1') then
+          read_enable_p             <= '1';
+          read_address              <= CHANNEL_ID_READ_IN; 
+          channel_data_valid_o_f(2) <= '1';
+        end if;
+                
+        if (channel_data_valid_o_f(0) = '1') then
+          channel_data_o            <= read_data;
+          channel_data_valid_o      <= '1';
+        end if;
+        if (channel_data_valid_o_f = "000" and CHANNEL_READ_IN = '0') then
+          channel_read_busy_o       <= '0';
+        else
+          channel_read_busy_o       <= '1';
+        end if;
+      end if;
+    end if;
+  end process PROC_HIST_READ;
     
   PROC_HIST_HANDLER_TRANSFER: process(CLK_IN)
   begin
@@ -177,27 +210,25 @@ begin
         write_address           <= (others => '0');
         write_data              <= (others => '0');
         write_enable            <= '0';
+        channel_write_busy_o    <= '0';
 
         if (CHANNEL_ADD_IN = '1') then
           read_address_hist     <= CHANNEL_ID_IN;
           read_enable_hist      <= '1';
           address_hist_m_x      <= CHANNEL_ID_IN;
           data_hist_m_x         <= CHANNEL_DATA_IN;
-          channel_write_busy_o  <= '1';
           H_NEXT_STATE          <= H_WRITEADD_CHANNEL;
         elsif (CHANNEL_WRITE_IN = '1') then
           read_address_hist     <= (others => '0');
           read_enable_hist      <= '0';
           address_hist_m_x      <= CHANNEL_ID_IN;
           data_hist_m_x         <= CHANNEL_DATA_IN;
-          channel_write_busy_o  <= '1';
           H_NEXT_STATE          <= H_WRITE_CHANNEL;
         else
           read_address_hist     <= (others => '0');
           read_enable_hist      <= '0';
           address_hist_m_x      <= (others => '0');
           data_hist_m_x         <= (others => '0');
-          channel_write_busy_o  <= '0';
           H_NEXT_STATE          <= H_IDLE;
         end if;                 
 
@@ -265,3 +296,4 @@ begin
   CHANNEL_READ_BUSY_OUT     <= channel_read_busy_o;
 
 end Behavioral;
+

@@ -606,8 +606,9 @@ begin
               slv_ack_o                    <= '1';
 
             when x"0001" =>
-              reg_testpulse_delay      <= unsigned(SLV_DATA_IN(11 downto 0));
-              slv_ack_o                <= '1';
+              reg_testpulse_delay          <=
+                unsigned(SLV_DATA_IN(11 downto 0));
+              slv_ack_o                    <= '1';
 
             when x"0003" =>
               invalid_t_trigger_ctr_clear  <= '1';
