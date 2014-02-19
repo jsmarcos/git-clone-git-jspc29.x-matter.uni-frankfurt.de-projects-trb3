@@ -13,12 +13,14 @@
 0x8107 :  r    ADC Data Clock Lock    (187.5 MHz)
 0x8108 :  r    ADC Sample Clock Lock    (31.25 MHz)
 0x8109 :  r/w  r: PLL Nxyter Main Clock NotLock Counter (16 Bit)
-               w: Clear all pll_nx_clk_notlock_ctr
 0x810a :  r    PLL ADC Data Clock NotLock Counter (16 Bit)
+               w: Clear all NotLOck Counters
 0x810b :  r    PLL ADC Sample Clock NotLock Counter (16 Bit)
+0x810c :  r    All ERROR Flags (8 Bit)
 
 -- NX I2C Setup Handler
-0x8200 : r/w   I2C Memeory Register (Depth: 0 - 45 ... 0x822c) 
+0x8200 : r/w   I2C Memory Register (Depth: 0 - 45 ... 0x822c) 
+0x8280 : r     ADC Memory Register (Depth: 0 - 3  ... 0x8283) 
 0x8300 : r/w   DAC Register Memory (Depth: 0 - 128 ... 0x82e0) 
 0x8250 : r/w   Enable Nxyter Clock 
 0x8251 : r/w   Nxyter Polarity
@@ -29,8 +31,9 @@
                                           2: 2,6,..   3: 3,7,..)
 0x8256 : r     Nxyter I2C Online
 0x8260 : w     Read all I2C Registers into Memory     
-0x8261 : w     Read Trim DAC Register(129 deep FIFO) into Memory
-0x8262 : w     Read ALL: Read Trim DAC Register(129 deep FIFO) into Memory
+0x8261 : w     Read Trim DAC Registers (129 deep FIFO) into Memory
+0x8262 : w     Read ALL: Read all I2C and all Trim DAC Registers into Memory
+0x8270 : r     Token register, 14 in a row
 
 -- Trigger Generator
 0x8140 :  r/w  Length of Trigger TestPulse (12 Bit, in 4ns)
@@ -90,9 +93,10 @@
 0x8125 :  r    Frame Rate (in Hz)
 
 -- NX Data Delay
-0x8130 :  r   FIFO Delay, i.e. Trigger Delay (8 Bit, in 32ns).
-               Calculation is based on CTS Trigger Delay
-              (see NX Trigger Validate)
+0x8130 :  r    FIFO Delay, i.e. Trigger Delay (8 Bit, in 32ns).
+                Calculation is based on CTS Trigger Delay
+               (see NX Trigger Validate)
+0x8131 : r/w   Debug Multiplexer (0=Dta Delay, 1=FIFO)
 
 -- NX Trigger Validate
 0x8400 :  r/w  Readout Mode: 4 Bits
@@ -137,6 +141,13 @@
 0x8416 :  r    DONE flags ch 96..127
 0x8417 :  r    channel_all_done
 0x8418 :  r    EVT_BUFFER_FULL_IN    
+0x8419 :  r    Wait for Data time (ns)
+0x841a :  r    Nxyter CVT (ns) 
+0x841b :  r    Minimum validation Time    
+0x841c :  r    Out of Window Counter last Event Low 
+0x841d :  r    Window Hit Counter last Event
+0x841e :  r    Out of Window Counter last Event High
+0x841f :  r    Data Rate being written to Event Buffer (Hz)
 
 -- Event Data Buffer
 0x8600 :  r    read FIFO buffer
@@ -147,18 +158,33 @@
 --- DEBUG ------------------------------------------------------------
 
 -- I2C Master
-0x8040 :       Access to I2C Interface
+0x8040 :  r/w  Access to I2C Interface
                Chip Ids:  0x08   : nXyter
                           0x29   : AD7991-1
+                                   Reg: 0x10   ADC Channel 0 slow nx channel
+                                   Reg: 0x20   ADC Channel 1 fast nx channel
+                                   Reg: 0x40   ADC Channel 2 Temperature
+                                   Reg: 0x80   ADC Channel 3 Current
                           0x50   : EEPROM
+0x8041 :  r    Full I2C Word
+
 -- SPI Master
 0x8060 :       Access to SPI Interface
 
 -- Histogram Handler
-0x8800 :  r/w  r: Read Channel Statistic (128 channel in a row)
-               w: reset all Histograms
-0x8880 :  r    Read Channel Trigger Rate (128 channel in a row, 1/s)
-0x8900 :  r    Read Channel ADC Value    (128 channel in a row)
+0x8800 :  r    Read Channel Hit Statistic (128 channel in a row)
+0x8900 :  r    Read Channel Pileup Rate (128 channel in a row, 1/s)
+0x8a00 :  r    Read Channel Overflow Rate (128 channel in a row, 1/s)
+0x8b00 :  r    Read Channel averaged ADC Value (128 channel in a row)
+
+0x8880 :  r/w  Hit Rate num averages (3 Bit)
+0x8881 :  r/w  Hit Rate average enable 
+0x8980 :  r/w  ADC num averages (3 Bit)
+0x8981 :  r/w  ADC average enable 
+0x8a80 :  r/w  PileUp Rate num averages (3 Bit)
+0x8a81 :  r/w  PileUp Rate average enable 
+0x8b80 :  r/w  Overflow Rate num averages (3 Bit)
+0x8b81 :  r/w  Overflow Rate average enable 
 
 -- Debug Multiplexer
 0x8020 :  r/w   Select Debug Entity
@@ -175,7 +201,8 @@
                 10: nx_trigger_validate
                 11: nx_event_buffer
                 12: nx_histograms
-
+                13: nx_calib_event
+                14: Checkerboard
 
 --- Trigger Selction Window Setup
 

@@ -6,7 +6,7 @@
 
 
 #project files
-add_file -vhdl -lib work "/d/jspc29/lattice/diamond/2.2_x64/cae_library/synthesis/vhdl/machxo2.vhd"
+add_file -vhdl -lib work "workdir/lattice-diamond/cae_library/synthesis/vhdl/machxo2.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_std.vhd"
 add_file -vhdl -lib work "../base/trb3_components.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_components.vhd"

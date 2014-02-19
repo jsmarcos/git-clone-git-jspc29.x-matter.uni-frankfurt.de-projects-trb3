@@ -41,10 +41,18 @@ my $DEVICENAME="LCMXO2-4000HC";
 my $PACKAGE="FTBGA256";
 my $SPEEDGRADE="6";
 
+# create workdir with
+# symlink for Lattice internal VHDL files
+my $WORKDIR = "workdir";
+unless(-d $WORKDIR) {
+  mkdir $WORKDIR or die "can't create workdir '$WORKDIR': $!";
+}
+system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");
+
 
 #create full lpf file
-system("cp ../base/".$TOPNAME.".lpf workdir/$TOPNAME.lpf");
-system("cat ".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
+system("cp ../base/".$TOPNAME.".lpf $WORKDIR/$TOPNAME.lpf");
+system("cat ".$TOPNAME."_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
 
 
 #set -e
@@ -78,7 +86,7 @@ my $c="$synplify_path/bin/synplify_premier_dp -batch $TOPNAME.prj";
 $r=execute($c, "do_not_exit" );
 
 
-chdir "workdir";
+chdir $WORKDIR;
 $fh = new FileHandle("<$TOPNAME".".srr");
 my @a = <$fh>;
 $fh -> close;

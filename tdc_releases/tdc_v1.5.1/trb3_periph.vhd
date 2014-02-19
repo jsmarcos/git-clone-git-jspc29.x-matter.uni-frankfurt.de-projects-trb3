@@ -346,6 +346,7 @@ begin
   --                                      -- x"4" - Wasa AddOn
   --edge_type_i      <= x"0";             -- x"0" - single edge
   --                                      -- x"1" - double edge
+  --                                      -- x"4" - has spi interface
   --                                      -- x"8" - double edge on consecutive channels
   --tdc_channel_no_i <= x"6";             -- 2^n channels
   
@@ -357,7 +358,7 @@ begin
       BROADCAST_BITMASK         => x"FF",
       BROADCAST_SPECIAL_ADDR    => x"48",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
-      REGIO_HARDWARE_VERSION    => x"91000060",  -- regio_hardware_version_i,
+      REGIO_HARDWARE_VERSION    => x"91000460",  -- regio_hardware_version_i,
       REGIO_INIT_ADDRESS        => x"f305",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
       CLOCK_FREQUENCY           => 125,

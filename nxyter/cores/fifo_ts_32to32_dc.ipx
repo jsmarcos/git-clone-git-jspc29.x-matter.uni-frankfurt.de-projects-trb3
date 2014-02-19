@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DiamondModule name="fifo_ts_32to32_dc" module="FIFO_DC" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2013 08 16 20:07:51.705" version="5.4" type="Module" synthesis="" source_format="VHDL">
+<DiamondModule name="fifo_ts_32to32_dc" module="FIFO_DC" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2013 12 01 06:07:44.664" version="5.4" type="Module" synthesis="" source_format="VHDL">
   <Package>
-		<File name="fifo_ts_32to32_dc.lpc" type="lpc" modified="2013 08 16 20:07:49.000"/>
-		<File name="fifo_ts_32to32_dc.vhd" type="top_level_vhdl" modified="2013 08 16 20:07:50.000"/>
-		<File name="fifo_ts_32to32_dc_tmpl.vhd" type="template_vhdl" modified="2013 08 16 20:07:50.000"/>
-		<File name="tb_fifo_ts_32to32_dc_tmpl.vhd" type="testbench_vhdl" modified="2013 08 16 20:07:50.000"/>
+		<File name="fifo_ts_32to32_dc.lpc" type="lpc" modified="2013 12 01 06:07:38.000"/>
+		<File name="fifo_ts_32to32_dc.vhd" type="top_level_vhdl" modified="2013 12 01 06:07:38.000"/>
+		<File name="fifo_ts_32to32_dc_tmpl.vhd" type="template_vhdl" modified="2013 12 01 06:07:38.000"/>
+		<File name="tb_fifo_ts_32to32_dc_tmpl.vhd" type="testbench_vhdl" modified="2013 12 01 06:07:38.000"/>
   </Package>
 </DiamondModule>

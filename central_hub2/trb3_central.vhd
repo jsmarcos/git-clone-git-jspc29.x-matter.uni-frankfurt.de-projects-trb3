@@ -17,7 +17,8 @@ use work.version.all;
 
 entity trb3_central is
   generic(
-    FULL_UPLINK : integer := c_YES
+    FULL_UPLINK : integer := c_YES;
+    IS_HADES_HUB : integer := c_YES
     );
   port(
     --Clocks
@@ -142,6 +143,7 @@ architecture trb3_central_arch of trb3_central is
   attribute syn_preserve : boolean;
   
   constant NUM_PORTS : integer := 5 + FULL_UPLINK*3;
+  constant RESET_SFP_IN : integer := 4 + IS_HADES_HUB;
   
   signal clk_100_i   : std_logic; --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i   : std_logic; --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
@@ -219,7 +221,7 @@ THE_RESET_HANDLER : trb_net_reset_handler
     SYSCLK_IN       => clk_100_i,       -- PLL/DLL remastered clock
     PLL_LOCKED_IN   => pll_lock,        -- master PLL lock signal (async)
     RESET_IN        => '0',             -- general reset signal (SYSCLK)
-    TRB_RESET_IN    => med_stat_op(4*16+13), -- TRBnet reset signal (SYSCLK)
+    TRB_RESET_IN    => med_stat_op(RESET_SFP_IN*16+13), -- TRBnet reset signal (SYSCLK)
     CLEAR_OUT       => clear_i,         -- async reset out, USE WITH CARE!
     RESET_OUT       => reset_i,         -- synchronous reset out (SYSCLK)
     DEBUG_OUT       => open

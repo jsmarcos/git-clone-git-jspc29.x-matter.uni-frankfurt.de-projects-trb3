@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DiamondModule name="adc_ddr_generic" module="DDR_GENERIC" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2013 11 23 14:55:43.324" version="5.3" type="Module" synthesis="" source_format="VHDL">
+<DiamondModule name="adc_ddr_generic" module="DDR_GENERIC" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2014 02 04 14:33:12.396" version="5.4" type="Module" synthesis="" source_format="VHDL">
   <Package>
-		<File name="adc_ddr_generic.lpc" type="lpc" modified="2013 11 23 14:55:41.000"/>
-		<File name="adc_ddr_generic.vhd" type="top_level_vhdl" modified="2013 11 23 14:55:41.000"/>
-		<File name="adc_ddr_generic_tmpl.vhd" type="template_vhdl" modified="2013 11 23 14:55:41.000"/>
+		<File name="adc_ddr_generic.lpc" type="lpc" modified="2014 02 04 14:33:08.000"/>
+		<File name="adc_ddr_generic.vhd" type="top_level_vhdl" modified="2014 02 04 14:33:08.000"/>
+		<File name="adc_ddr_generic_tmpl.vhd" type="template_vhdl" modified="2014 02 04 14:33:08.000"/>
   </Package>
 </DiamondModule>

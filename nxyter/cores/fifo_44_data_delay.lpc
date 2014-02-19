@@ -16,8 +16,8 @@ CoreRevision=4.8
 ModuleName=fifo_44_data_delay
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=10/20/2013
-Time=20:31:33
+Date=12/01/2013
+Time=16:22:45
 
 [Parameters]
 Verilog=0
@@ -31,13 +31,13 @@ FIFOImp=EBR Based
 Depth=256
 Width=44
 regout=1
-CtrlByRdEn=1
+CtrlByRdEn=0
 EmpFlg=1
 PeMode=Dynamic - Single Threshold
-PeAssert=10
+PeAssert=2
 PeDeassert=12
 FullFlg=0
-PfMode=Static - Dual Threshold
+PfMode=Dynamic - Single Threshold
 PfAssert=508
 PfDeassert=506
 RDataCount=0

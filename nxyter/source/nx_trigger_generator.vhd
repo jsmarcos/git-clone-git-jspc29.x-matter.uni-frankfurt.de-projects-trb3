@@ -218,7 +218,7 @@ begin
       if( RESET_IN = '1' ) then
         reg_trigger_period     <= x"00ff";
         reg_trigger_num_cycles <= x"01";
-        reg_testpulse_length   <= x"001";
+        reg_testpulse_length   <= x"064";
         reg_ts_reset_on        <= '0';
         slv_data_out_o         <= (others => '0');
         slv_no_more_data_o     <= '0';

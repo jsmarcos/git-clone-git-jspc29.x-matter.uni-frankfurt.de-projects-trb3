@@ -8,7 +8,7 @@ use work.trb3_components.all;
 
 entity nx_event_buffer is
   generic (
-    BOARD_ID : std_logic_vector(15 downto 0) := x"ffff"
+    BOARD_ID : std_logic_vector(1 downto 0) := "11"
     );
   port (
     CLK_IN                     : in  std_logic;  
@@ -21,8 +21,8 @@ entity nx_event_buffer is
     DATA_CLK_IN                : in  std_logic;
     EVT_NOMORE_DATA_IN         : in  std_logic;
 
-    -- LVL2 Trigger
-    LVL2_TRIGGER_IN            : in  std_logic;
+    -- Trigger
+    TRIGGER_IN                 : in  std_logic;
     FAST_CLEAR_IN              : in  std_logic;
     TRIGGER_BUSY_OUT           : out std_logic;
     EVT_BUFFER_FULL_OUT        : out std_logic;
@@ -30,7 +30,6 @@ entity nx_event_buffer is
     --Response from FEE        
     FEE_DATA_OUT               : out std_logic_vector(31 downto 0);
     FEE_DATA_WRITE_OUT         : out std_logic;
-    FEE_DATA_FINISHED_OUT      : out std_logic;
     FEE_DATA_ALMOST_FULL_IN    : in  std_logic;
     
     -- Slave bus         
@@ -53,7 +52,6 @@ architecture Behavioral of nx_event_buffer is
   --Data channel
   signal fee_data_o           : std_logic_vector(31 downto 0);
   signal fee_data_write_o     : std_logic;
-  signal fee_data_finished_o  : std_logic;
   signal trigger_busy_o       : std_logic;
   signal evt_data_flush       : std_logic;
   
@@ -134,13 +132,13 @@ begin
   DEBUG_OUT(3)           <= fifo_almost_full;
   DEBUG_OUT(4)           <= RESET_DATA_BUFFER_IN;
   DEBUG_OUT(5)           <= trigger_busy_o;
-  DEBUG_OUT(6)           <= LVL2_TRIGGER_IN;
+  DEBUG_OUT(6)           <= TRIGGER_IN;
   DEBUG_OUT(7)           <= evt_data_flush;
   DEBUG_OUT(8)           <= flush_end_enable;  
   DEBUG_OUT(9)           <= evt_data_clk;
   DEBUG_OUT(10)          <= fee_data_write_o;
   DEBUG_OUT(11)          <= evt_data_flushed;
-  DEBUG_OUT(12)          <= fee_data_finished_o;
+  DEBUG_OUT(12)          <= '0';
   DEBUG_OUT(13)          <= EVT_NOMORE_DATA_IN; 
   DEBUG_OUT(14)          <= FAST_CLEAR_IN;
   DEBUG_OUT(15)          <= FEE_DATA_ALMOST_FULL_IN;
@@ -154,25 +152,21 @@ begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
         evt_data_flush       <= '0';
-        fee_data_finished_o  <= '0';
         trigger_busy_o       <= '0';
         STATE                <= S_IDLE;
       else
         evt_data_flush       <= '0';
-        fee_data_finished_o  <= '0';
         trigger_busy_o       <= '1';
         
         if (FAST_CLEAR_IN = '1') then
-          fee_data_finished_o        <= '1';
           STATE                      <= S_IDLE;
         else
           case STATE is
             when S_IDLE =>
               if (NXYTER_OFFLINE_IN = '1') then
-                fee_data_finished_o        <= '1';
                 trigger_busy_o             <= '0';
                 STATE                      <= S_IDLE;
-              elsif (LVL2_TRIGGER_IN = '1') then
+              elsif (TRIGGER_IN = '1') then
                 evt_data_flush             <= '1';
                 STATE                      <= S_FLUSH_BUFFER_WAIT;
               else
@@ -184,7 +178,6 @@ begin
               if (evt_data_flushed = '0') then
                 STATE                      <= S_FLUSH_BUFFER_WAIT;
               else                         
-                fee_data_finished_o        <= '1';
                 STATE                      <= S_IDLE;
               end if;                      
               
@@ -473,7 +466,6 @@ begin
   
   FEE_DATA_OUT           <= fee_data_o;
   FEE_DATA_WRITE_OUT     <= fee_data_write_o;
-  FEE_DATA_FINISHED_OUT  <= fee_data_finished_o;
   
   SLV_DATA_OUT           <= slv_data_out_o;    
   SLV_NO_MORE_DATA_OUT   <= slv_no_more_data_o; 

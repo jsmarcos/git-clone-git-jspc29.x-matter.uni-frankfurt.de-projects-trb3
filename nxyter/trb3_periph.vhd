@@ -423,7 +423,7 @@ begin
       REGIO_HARDWARE_VERSION    => x"9100_6000",
       REGIO_INIT_ADDRESS        => x"3800",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
-      CLOCK_FREQUENCY           => 125,
+      CLOCK_FREQUENCY           => 100,
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
       DATA_INTERFACE_NUMBER     => 2,
@@ -699,7 +699,7 @@ begin
 
   nXyter_FEE_board_0: nXyter_FEE_board
     generic map (
-      BOARD_ID => x"0001"
+      BOARD_ID => "01"
       )
     port map (
       CLK_IN                     => clk_100_i,
@@ -781,7 +781,7 @@ begin
 
   nXyter_FEE_board_1: nXyter_FEE_board
     generic map (
-      BOARD_ID => x"0002"
+      BOARD_ID => "10"
       )
     port map (
       CLK_IN                     => clk_100_i,
