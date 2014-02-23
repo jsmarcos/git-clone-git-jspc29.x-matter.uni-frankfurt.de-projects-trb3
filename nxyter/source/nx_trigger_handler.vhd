@@ -74,6 +74,8 @@ entity nx_trigger_handler is
 end entity;
 
 architecture Behavioral of nx_trigger_handler is
+  attribute HGROUP : string;
+  attribute HGROUP of Behavioral : architecture is "NX_TRIGGER_HANDLER";
 
   -- Timing Trigger Handler
   constant NUM_FF                   : integer := 10;
@@ -81,6 +83,7 @@ architecture Behavioral of nx_trigger_handler is
   signal timing_trigger_ff          : std_logic_vector(NUM_FF - 1 downto 0);
   signal timing_trigger_l           : std_logic;
   signal timing_trigger             : std_logic;
+  signal timing_trigger_i           : std_logic;      
   signal timing_trigger_set         : std_logic;
   signal timestamp_trigger          : std_logic;
   signal timestamp_trigger_o        : std_logic;
@@ -100,9 +103,10 @@ architecture Behavioral of nx_trigger_handler is
   signal TS_STATE : TS_STATES;
 
   signal ts_wait_timer_reset        : std_logic;
+  signal ts_wait_timer_reset_i      : std_logic;
   signal ts_wait_timer_init         : unsigned(7 downto 0);
   signal ts_wait_timer_done         : std_logic;
-  
+  signal ts_wait_timer_done_i       : std_logic;
   
   -- Trigger Handler                
   signal valid_trigger_o            : std_logic;
@@ -117,7 +121,7 @@ architecture Behavioral of nx_trigger_handler is
   signal fee_trg_statusbits_o       : std_logic_vector(31 downto 0);
   signal send_testpulse_l           : std_logic;
   signal send_testpulse             : std_logic;
-  
+
   type STATES is (S_IDLE,
                   S_CTS_TRIGGER,
                   S_WAIT_TRG_DATA_VALID,
@@ -152,6 +156,9 @@ architecture Behavioral of nx_trigger_handler is
   signal wait_timer_init             : unsigned(11 downto 0);
   signal wait_timer_done             : std_logic;
 
+  signal testpulse_delay             : unsigned(11 downto 0);
+  signal testpulse_enable            : std_logic;
+  
   -- Rate Calculation
   signal accepted_trigger_rate_t     : unsigned(27 downto 0);
   signal rate_timer                  : unsigned(27 downto 0);
@@ -241,25 +248,28 @@ begin
   PROC_TIMING_TRIGGER_HANDLER: process(NX_MAIN_CLK_IN)
   begin
     if( rising_edge(NX_MAIN_CLK_IN) ) then
+      timing_trigger_i             <= timing_trigger;
+      ts_wait_timer_done_i         <= ts_wait_timer_done;
+      ts_wait_timer_reset          <= ts_wait_timer_reset_i;
       if (RESET_IN = '1' or fast_clear = '1') then
         invalid_timing_trigger_n   <= '1';
         ts_wait_timer_init         <= (others => '0');
-        ts_wait_timer_reset        <= '1';
+        ts_wait_timer_reset_i      <= '1';
         send_testpulse             <= '0';
         timestamp_trigger          <= '0';
         TS_STATE                   <= TS_IDLE;     
       else
         invalid_timing_trigger_n   <= '0';
         ts_wait_timer_init         <= (others => '0');
-        ts_wait_timer_reset        <= '0';
+        ts_wait_timer_reset_i      <= '0';
         send_testpulse             <= '0';
         timestamp_trigger          <= '0';
-                
+        
         case TS_STATE is
           when  TS_IDLE =>
-            if (timing_trigger = '1') then
+            if (timing_trigger_i = '1') then
               if (trigger_busy = '0') then
-                if (reg_testpulse_enable = '1') then
+                if (testpulse_enable = '1') then
                   send_testpulse        <= '1';
                 end if;
                 timestamp_trigger       <= '1';
@@ -276,11 +286,11 @@ begin
             if (trigger_busy = '1') then
               TS_STATE                  <= TS_WAIT_TRIGGER_END;
             else
-              if (ts_wait_timer_done = '0') then
-                ts_wait_timer_reset     <= '1';
+              if (ts_wait_timer_done_i = '0') then
+                ts_wait_timer_reset_i   <= '1';
                 TS_STATE                <= TS_WAIT_VALID_TIMING_TRIGGER;
               else
-                ts_wait_timer_reset     <= '1';
+                ts_wait_timer_reset_i   <= '1';
                 TS_STATE                <= TS_INVALID_TRIGGER;
               end if;
             end if;
@@ -316,7 +326,7 @@ begin
     end if;
   end process PROC_TIMING_TRIGGER_COUNTER;
   
-  signal_async_trans_1: signal_async_trans
+  signal_async_trans_TRIGGER_BUSY: signal_async_trans
     port map (
       CLK_IN      => NX_MAIN_CLK_IN,
       RESET_IN    => RESET_IN,
@@ -324,20 +334,18 @@ begin
       SIGNAL_OUT  => trigger_busy
       );
 
-  pulse_dtrans_3: pulse_dtrans
+  signal_async_trans_FAST_CLEAR: signal_async_trans
     generic map (
-      CLK_RATIO => 2
+      NUM_FF => 3
       )
     port map (
-      CLK_A_IN    => NX_MAIN_CLK_IN,
-      RESET_A_IN  => RESET_IN,
-      PULSE_A_IN  => fast_clear_o,
-      CLK_B_IN    => CLK_IN,
-      RESET_B_IN  => RESET_IN,
-      PULSE_B_OUT => fast_clear
+      CLK_IN      => NX_MAIN_CLK_IN,
+      RESET_IN    => RESET_IN,
+      SIGNAL_A_IN => fast_clear_o,
+      SIGNAL_OUT  => fast_clear
       );
   
-  pulse_dtrans_2: pulse_dtrans
+  pulse_dtrans_INVALID_TIMING_TRIGGER: pulse_dtrans
     generic map (
       CLK_RATIO => 4
       )
@@ -414,7 +422,7 @@ begin
             when S_CTS_TRIGGER =>
               valid_trigger_o        <= '1';
               timing_trigger_o       <= '1';
-              if (reg_testpulse_enable = '1') then
+              if (testpulse_enable = '1') then
                 send_testpulse_l     <= '1';
               end if;
               STATE                  <= S_WAIT_TRG_DATA_VALID;
@@ -473,13 +481,13 @@ begin
   PROC_EVENT_DATA_MULTIPLEXER: process(TRIGGER_TYPE)
   begin
     case TRIGGER_TYPE is
-      when  T_UNDEF | T_IGNORE | T_INTERNAL =>
+      when  T_UNDEF | T_IGNORE | T_INTERNAL | T_TIMING =>
         fee_data_o                   <= (others => '0');
         fee_data_write_o             <= '0';
         
-      when T_TIMING =>
-        fee_data_o                   <= FEE_DATA_0_IN;
-        fee_data_write_o             <= FEE_DATA_WRITE_0_IN;
+      --when T_TIMING =>
+      --  fee_data_o                   <= FEE_DATA_0_IN;
+      --  fee_data_write_o             <= FEE_DATA_WRITE_0_IN;
         
       when T_SETUP =>
         fee_data_o                   <= FEE_DATA_1_IN;
@@ -512,7 +520,30 @@ begin
       TIMER_START_IN => wait_timer_init,
       TIMER_DONE_OUT => wait_timer_done
       );
+
+  signal_async_trans_TESTPULSE_ENABLE: signal_async_trans
+    generic map (
+      NUM_FF => 2
+      )
+    port map (
+      CLK_IN      => NX_MAIN_CLK_IN,
+      RESET_IN    => RESET_IN,
+      SIGNAL_A_IN => reg_testpulse_enable,
+      SIGNAL_OUT  => testpulse_enable
+      );
   
+  bus_async_trans_TESTPULSE_DELAY: bus_async_trans
+    generic map (
+      BUS_WIDTH => 12,
+      NUM_FF    => 2
+      )
+    port map (
+      CLK_IN      => CLK_IN,
+      RESET_IN    => RESET_IN,
+      SIGNAL_A_IN => reg_testpulse_delay,
+      SIGNAL_OUT  => testpulse_delay
+      );
+
   PROC_TESTPULSE_HANDLER: process (NX_MAIN_CLK_IN)
   begin 
     if( rising_edge(NX_MAIN_CLK_IN) ) then
@@ -530,8 +561,8 @@ begin
 
           when T_IDLE => 
             if (send_testpulse = '1') then
-              if (reg_testpulse_delay > 0) then
-                wait_timer_init <= reg_testpulse_delay;
+              if (testpulse_delay > 0) then
+                wait_timer_init <= testpulse_delay;
                 T_STATE         <= T_WAIT_TIMER;
               else
                 T_STATE         <= T_SET_TESTPULSE;
@@ -606,9 +637,13 @@ begin
               slv_ack_o                    <= '1';
 
             when x"0001" =>
-              reg_testpulse_delay          <=
-                unsigned(SLV_DATA_IN(11 downto 0));
-              slv_ack_o                    <= '1';
+              if (unsigned(SLV_DATA_IN(11 downto 0)) > 1) then
+                reg_testpulse_delay        <=
+                  unsigned(SLV_DATA_IN(11 downto 0));
+              else
+                reg_testpulse_delay        <= x"001";
+              end if;
+              slv_ack_o                    <= '1';                
 
             when x"0003" =>
               invalid_t_trigger_ctr_clear  <= '1';

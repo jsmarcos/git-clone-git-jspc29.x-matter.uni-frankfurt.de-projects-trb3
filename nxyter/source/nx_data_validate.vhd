@@ -72,10 +72,14 @@ architecture Behavioral of nx_data_validate is
 
   signal trigger_rate_inc     : std_logic;
   signal frame_rate_inc       : std_logic;
+  signal pileup_rate_inc      : std_logic;
+  signal overflow_rate_inc    : std_logic;
 
   -- Rate Calculation
   signal nx_trigger_ctr_t     : unsigned(27 downto 0);
   signal nx_frame_ctr_t       : unsigned(27 downto 0);
+  signal nx_pileup_ctr_t      : unsigned(27 downto 0);
+  signal nx_overflow_ctr_t    : unsigned(27 downto 0);
   signal nx_rate_timer        : unsigned(27 downto 0);
 
   -- ADC Averages
@@ -97,7 +101,8 @@ architecture Behavioral of nx_data_validate is
   signal clear_counters       : std_logic;
   signal nx_hit_rate          : unsigned(27 downto 0);
   signal nx_frame_rate        : unsigned(27 downto 0);
-  
+  signal nx_pileup_rate       : unsigned(27 downto 0);
+  signal nx_overflow_rate     : unsigned(27 downto 0);
   signal invalid_adc : std_logic;
   
 begin
@@ -200,6 +205,8 @@ begin
         nx_nomore_data_o     <= '0';
         trigger_rate_inc     <= '0';
         frame_rate_inc       <= '0';
+        pileup_rate_inc      <= '0';
+        overflow_rate_inc    <= '0';
 
         invalid_frame_ctr    <= (others => '0');
         overflow_ctr         <= (others => '0');
@@ -213,6 +220,8 @@ begin
         data_valid_o         <= '0';
         trigger_rate_inc     <= '0';
         frame_rate_inc       <= '0';
+        pileup_rate_inc      <= '0';
+        overflow_rate_inc    <= '0';
         invalid_adc          <= '0';
 
         if (new_timestamp = '1') then
@@ -223,6 +232,7 @@ begin
               ---- Check Overflow
               if ((status_bits(0) = '1') and (clear_counters = '0')) then
                 overflow_ctr                 <= overflow_ctr + 1;
+                overflow_rate_inc            <= '1';
               end if;
               
               ---- Check Parity
@@ -236,7 +246,8 @@ begin
               -- Check PileUp
               if ((status_bits(1) = '1') and (clear_counters = '0')) then
                 pileup_ctr                   <= pileup_ctr + 1;
-              end if;
+                pileup_rate_inc              <= '1';
+              end if;   
               
               -- Take Timestamp
               timestamp_o                    <= nx_timestamp;
@@ -303,20 +314,43 @@ begin
           if (frame_rate_inc = '1') then
             nx_frame_ctr_t     <= nx_frame_ctr_t + 1;
           end if;
+          if (pileup_rate_inc = '1') then
+            nx_pileup_ctr_t    <= nx_trigger_ctr_t + 1;
+          end if;
+          if (overflow_rate_inc = '1') then
+            nx_overflow_ctr_t  <= nx_frame_ctr_t + 1;
+          end if;
           nx_rate_timer        <= nx_rate_timer + 1;
         else
           nx_hit_rate          <= nx_trigger_ctr_t;
           nx_frame_rate        <= nx_frame_ctr_t;
+          nx_pileup_rate       <= nx_pileup_ctr_t;
+          nx_overflow_rate     <= nx_overflow_ctr_t;
+
           if (trigger_rate_inc = '0') then
             nx_trigger_ctr_t   <= (others => '0');
           else
             nx_trigger_ctr_t   <= x"000_0001";
           end if;
+
           if (frame_rate_inc = '0') then
             nx_frame_ctr_t     <= (others => '0');
           else
             nx_frame_ctr_t     <= x"000_0001";
           end if;
+
+          if (pileup_rate_inc = '0') then
+            nx_pileup_ctr_t    <= (others => '0');
+          else
+            nx_pileup_ctr_t    <= x"000_0001";
+          end if;
+
+          if (overflow_rate_inc = '0') then
+            nx_overflow_ctr_t  <= (others => '0');
+          else
+            nx_overflow_ctr_t  <= x"000_0001";
+          end if;
+          
           nx_rate_timer        <= (others => '0');
         end if;
       end if;
@@ -411,7 +445,7 @@ begin
                 std_logic_vector(nx_frame_rate);
               slv_data_out_o(31 downto 28) <= (others => '0');
               slv_ack_o                    <= '1';
-
+              
             when x"0006" =>
               slv_data_out_o(11 downto 0)   <= adc_data_last;
               slv_data_out_o(31 downto 12)  <= (others => '0');

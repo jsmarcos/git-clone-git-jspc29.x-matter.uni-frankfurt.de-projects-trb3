@@ -16,6 +16,9 @@ entity signal_async_trans is
 end entity;
 
 architecture Behavioral of signal_async_trans is
+  attribute HGROUP : string;
+  attribute HGROUP of Behavioral : architecture is "SIGNAL_ASYNC_TRANS";
+  
   signal signal_ff      : std_logic_vector(NUM_FF - 1 downto 0);
   signal signal_o       : std_logic;
 

@@ -19,6 +19,8 @@ entity pulse_to_level is
 end entity;
 
 architecture Behavioral of pulse_to_level is
+  attribute HGROUP : string;
+  attribute HGROUP of Behavioral : architecture is "PULSE_TO_LEVEL";
 
   signal start_timer_x  : unsigned(4 downto 0);
 

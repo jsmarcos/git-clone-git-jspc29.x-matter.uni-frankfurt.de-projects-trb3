@@ -546,7 +546,7 @@ begin
     end if;
   end process PROC_RESET_HANDLER;
 
-  pulse_to_level_3: pulse_to_level
+  pulse_to_level_SAMPLING_CLK_RESET: pulse_to_level
     generic map (
       NUM_CYCLES => 10
       )
@@ -557,7 +557,7 @@ begin
       LEVEL_OUT => sampling_clk_reset
       );
 
-  pulse_to_level_4: pulse_to_level
+  pulse_to_level_ADC_RESET: pulse_to_level
     generic map (
       NUM_CYCLES => 5
       )
@@ -568,7 +568,7 @@ begin
       LEVEL_OUT => adc_reset
       );
 
-  pulse_to_level_5: pulse_to_level
+  pulse_to_level_DATA_HANDLER_RESET: pulse_to_level
     generic map (
       NUM_CYCLES => 5
       )

@@ -78,7 +78,8 @@
 0x850f :  r    ADC Not Lock Frame Counter, should be constant
 0x8510 :  r    Raw Nxyter Frame Rate, must be 31.25 MHz
 0x8511 :  r    Raw ADC Frame Rate, must be 31.25 MHz
-0x8512 :  r/w  Debug Multiplexer:
+0x8512 :  r    Test ADC Value
+0x8513 :  r/w  Debug Multiplexer:
                0: no ADC Values, normal Debug
                1: ADC Value Nxyter
                2: ADC Value Testchannel

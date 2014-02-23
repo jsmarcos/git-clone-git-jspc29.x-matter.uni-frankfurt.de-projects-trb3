@@ -111,7 +111,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal slv_data_rd            : std_logic_vector(NUM_PORTS*32-1 downto 0);
   signal slv_data_wr            : std_logic_vector(NUM_PORTS*32-1 downto 0);
   signal slv_unknown_addr       : std_logic_vector(NUM_PORTS-1 downto 0);
-                                
+
   -- TRB Register               
   signal i2c_sm_reset_o         : std_logic;   
   signal nx_ts_reset_1          : std_logic;
@@ -220,9 +220,19 @@ architecture Behavioral of nXyter_FEE_board is
   signal error_data_receiver    : std_logic;
   
   -- Debug Handler
-  constant DEBUG_NUM_PORTS      : integer := 14;
+  constant DEBUG_NUM_PORTS      : integer := 15;
   signal debug_line             : debug_array_t(0 to DEBUG_NUM_PORTS-1);
 
+  -- buffer
+  signal nx_setup_data_f           : std_logic_vector(31 downto 0);
+  signal nx_setup_ack_f            : std_logic;
+  signal nx_setup_no_more_data_f   : std_logic;
+  signal nx_setup_unknown_addr_f   : std_logic;
+  signal nx_setup_data_ff          : std_logic_vector(31 downto 0);
+  signal nx_setup_ack_ff           : std_logic;
+  signal nx_setup_no_more_data_ff  : std_logic;
+  signal nx_setup_unknown_addr_ff  : std_logic;
+  
 begin
 
 -------------------------------------------------------------------------------
@@ -305,12 +315,11 @@ begin
       BUS_DATAREADY_IN           => slv_ack,
       BUS_WRITE_ACK_IN           => slv_ack,
       BUS_NO_MORE_DATA_IN        => slv_no_more_data,
-      BUS_UNKNOWN_ADDR_IN        => slv_unknown_addr,
+      BUS_UNKNOWN_ADDR_IN        => slv_unknown_addr,  
 
       -- DEBUG
       STAT_DEBUG                 => open
       );
-
 
 -------------------------------------------------------------------------------
 -- Registers
@@ -365,16 +374,31 @@ begin
       INT_DATA_OUT         => int_data,
       SLV_READ_IN          => slv_read(9),
       SLV_WRITE_IN         => slv_write(9),
-      SLV_DATA_OUT         => slv_data_rd(9*32+31 downto 9*32),
+      SLV_DATA_OUT         => nx_setup_data_f,
       SLV_DATA_IN          => slv_data_wr(9*32+31 downto 9*32),
       SLV_ADDR_IN          => slv_addr(9*16+15 downto 9*16),
-      SLV_ACK_OUT          => slv_ack(9),
-      SLV_NO_MORE_DATA_OUT => slv_no_more_data(9),
-      SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(9),
+      SLV_ACK_OUT          => nx_setup_ack_f,
+      SLV_NO_MORE_DATA_OUT => nx_setup_no_more_data_f,
+      SLV_UNKNOWN_ADDR_OUT => nx_setup_unknown_addr_f,
  
       DEBUG_OUT            => debug_line(1)
       );
 
+  PROC_NX_SETUP_BUFFER: process (CLK_IN, RESET_IN)
+  begin
+    if( rising_edge(CLK_IN) ) then
+      nx_setup_data_ff                 <= nx_setup_data_f;
+      nx_setup_ack_ff                  <= nx_setup_ack_f;
+      nx_setup_no_more_data_ff         <= nx_setup_no_more_data_f;
+      nx_setup_unknown_addr_ff         <= nx_setup_unknown_addr_f;
+        
+      slv_data_rd(9*32+31 downto 9*32) <= nx_setup_data_ff;
+      slv_ack(9)                       <= nx_setup_ack_ff;
+      slv_no_more_data(9)              <= nx_setup_no_more_data_ff;
+      slv_unknown_addr(9)              <= nx_setup_unknown_addr_ff;
+    end if;
+  end process PROC_NX_SETUP_BUFFER;
+ 
 -------------------------------------------------------------------------------
 -- I2C master block for accessing the nXyter
 -------------------------------------------------------------------------------
@@ -823,7 +847,10 @@ begin
       SLV_NO_MORE_DATA_OUT => slv_no_more_data(11),
       SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(11)
       );
-  
+  debug_line(14)(0)           <= CLK_IN;
+  debug_line(14)(13 downto 1) <= slv_read;
+  debug_line(14)(14)          <= '0';
+  debug_line(14)(15)          <= '0';
 -------------------------------------------------------------------------------
 -- END
 -------------------------------------------------------------------------------

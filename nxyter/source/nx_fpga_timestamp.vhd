@@ -33,6 +33,9 @@ entity nx_fpga_timestamp is
 end entity;
 
 architecture Behavioral of nx_fpga_timestamp is
+  attribute HGROUP : string;
+  attribute HGROUP of Behavioral : architecture is "NX_FPGA_TIMESTAMP is";
+
   signal timestamp_ctr       : unsigned(11 downto 0);
   signal timestamp_current_o : unsigned(11 downto 0);
   signal timestamp_hold_o    : std_logic_vector(11 downto 0);
@@ -68,7 +71,7 @@ begin
   
   trigger   <= TRIGGER_IN;
 
-  signal_async_to_pulse_2: signal_async_to_pulse
+  signal_async_to_pulse_TIMESTAMP_SYNC_IN: signal_async_to_pulse
     port map (
       CLK_IN     => NX_MAIN_CLK_IN,
       RESET_IN   => RESET_IN,

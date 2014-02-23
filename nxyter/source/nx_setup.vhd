@@ -48,6 +48,9 @@ end entity;
 
 architecture Behavioral of nx_setup is
 
+--attribute HGROUP : string;
+--attribute HGROUP of Behavioral : architecture is "SLAVE_BUS_NX_SETUP"; 
+  
   -- I2C Command Multiplexer
   signal i2c_lock_0      : std_logic;
   signal i2c_lock_1      : std_logic;
@@ -215,6 +218,11 @@ architecture Behavioral of nx_setup is
   signal int_ack_o               : std_logic;
   
   -- TRBNet Slave Bus
+  signal slv_read                : std_logic;
+  signal slv_write               : std_logic;        
+  signal slv_addr                : std_logic_vector(15 downto 0);
+  signal slv_data                : std_logic_vector(31 downto 0);
+
   signal slv_data_out_o          : std_logic_vector(31 downto 0);
   signal slv_no_more_data_o      : std_logic;
   signal slv_unknown_addr_o      : std_logic;
@@ -235,6 +243,12 @@ architecture Behavioral of nx_setup is
   signal nxyter_testchannels     : std_logic_vector(2 downto 0); 
   signal i2c_update_memory_r     : std_logic;
 
+  -- Buffer
+  signal slv_data_out_o_b        : std_logic_vector(31 downto 0);   
+  signal slv_no_more_data_o_b    : std_logic;
+  signal slv_unknown_addr_o_b    : std_logic;
+  signal slv_ack_o_b             : std_logic;
+  
 begin
 
   -----------------------------------------------------------------------------
@@ -242,23 +256,31 @@ begin
   -----------------------------------------------------------------------------
 
   DEBUG_OUT(0)            <= CLK_IN;
-  DEBUG_OUT(1)            <= I2C_COMMAND_BUSY_IN;
-  DEBUG_OUT(2)            <= i2c_command_busy_o;
-  DEBUG_OUT(3)            <= i2c_error;
-  DEBUG_OUT(4)            <= i2c_command_done;
-  DEBUG_OUT(5)            <= next_token_dac_r or
-                             next_token_dac_w;
-  DEBUG_OUT(6)            <= i2c_update_memory;
-  DEBUG_OUT(7)            <= i2c_lock_0_clear;
-  DEBUG_OUT(8)            <= i2c_lock_1_clear;
-  DEBUG_OUT(9)            <= i2c_lock_2_clear;
-  DEBUG_OUT(10)           <= i2c_lock_4_clear;
-  DEBUG_OUT(11)           <= i2c_online_o; 
-  DEBUG_OUT(12)           <= i2c_lock_0;
-  DEBUG_OUT(13)           <= i2c_lock_1;
-  DEBUG_OUT(14)           <= i2c_lock_2;
-  DEBUG_OUT(15)           <= i2c_lock_4;
-    
+--  DEBUG_OUT(1)            <= I2C_COMMAND_BUSY_IN;
+--  DEBUG_OUT(2)            <= i2c_command_busy_o;
+--  DEBUG_OUT(3)            <= i2c_error;
+--  DEBUG_OUT(4)            <= i2c_command_done;
+--  DEBUG_OUT(5)            <= next_token_dac_r or
+--                             next_token_dac_w;
+--  DEBUG_OUT(6)            <= i2c_update_memory;
+--  DEBUG_OUT(7)            <= i2c_lock_0_clear;
+--  DEBUG_OUT(8)            <= i2c_lock_1_clear;
+--  DEBUG_OUT(9)            <= i2c_lock_2_clear;
+--  DEBUG_OUT(10)           <= i2c_lock_4_clear;
+--  DEBUG_OUT(11)           <= i2c_online_o; 
+--  DEBUG_OUT(12)           <= i2c_lock_0;
+--  DEBUG_OUT(13)           <= i2c_lock_1;
+--  DEBUG_OUT(14)           <= i2c_lock_2;
+--  DEBUG_OUT(15)           <= i2c_lock_4;
+
+  DEBUG_OUT(2 downto 1)     <= (others => '0');
+  DEBUG_OUT(3)              <= SLV_WRITE_IN;
+  DEBUG_OUT(4)              <= SLV_READ_IN;
+  DEBUG_OUT(5)              <= slv_no_more_data_o;    
+  DEBUG_OUT(6)              <= slv_unknown_addr_o;
+  DEBUG_OUT(7)              <= slv_ack_o;
+  DEBUG_OUT(15 downto 8)    <= slv_data_out_o(7 downto 0);
+
   -----------------------------------------------------------------------------
 
   PROC_I2C_RAM: process(CLK_IN)
@@ -1153,6 +1175,12 @@ begin
     variable index       : integer   := 0;
   begin
     if( rising_edge(CLK_IN) ) then
+      -- Buffer input
+      slv_read                 <= SLV_READ_IN;
+      slv_write                <= SLV_WRITE_IN;
+      slv_addr                 <= SLV_ADDR_IN;
+      slv_data                 <= SLV_DATA_IN;
+
       if( RESET_IN = '1' ) then
         slv_data_out_o         <= (others => '0');
         slv_no_more_data_o     <= '0';
@@ -1176,7 +1204,6 @@ begin
         nxyter_testpulse       <= (others => '0');
         nxyter_testchannels    <= (others => '0');
       else                    
-        slv_data_out_o         <= (others => '0');
         slv_unknown_addr_o     <= '0';
         slv_no_more_data_o     <= '0';
         
@@ -1199,19 +1226,19 @@ begin
         nxyter_testpulse       <= (others => '0');
         nxyter_testchannels    <= (others => '0');
         
-        if (SLV_WRITE_IN  = '1') then
-          if (SLV_ADDR_IN >= x"0000" and SLV_ADDR_IN <= x"002d") then
-            index := to_integer(unsigned(SLV_ADDR_IN(5 downto 0)));
+        if (slv_write = '1') then
+          if (slv_addr >= x"0000" and slv_addr <= x"002d") then
+            index := to_integer(unsigned(slv_addr(5 downto 0)));
             if (i2c_disable_memory = '0') then
               ram_index_0                <= index;
-              ram_data_0                 <= SLV_DATA_IN(7 downto 0);
+              ram_data_0                 <= slv_data(7 downto 0);
               ram_write_0                <= '1';
             end if;
             slv_ack_o                    <= '1';
                       
-          elsif (SLV_ADDR_IN >= x"0100" and SLV_ADDR_IN <= x"0180") then
+          elsif (slv_addr >= x"0100" and slv_addr <= x"0180") then
             -- Write value to ram
-            index   := to_integer(unsigned(SLV_ADDR_IN(7 downto 0)));
+            index   := to_integer(unsigned(slv_addr(7 downto 0)));
             if (index = 0) then
               index := 128;
             else
@@ -1220,17 +1247,17 @@ begin
             
             if (i2c_disable_memory = '0') then
               dac_ram_index_0            <= index;
-              dac_ram_data_0             <= SLV_DATA_IN(5 downto 0);
+              dac_ram_data_0             <= slv_data(5 downto 0);
               dac_ram_write_0            <= '1';
             end if;
             slv_ack_o                    <= '1';
 
           else
-            case SLV_ADDR_IN is
+            case slv_addr is
               when x"0050" =>
                 -- Nxyter Clock
                 if (i2c_disable_memory = '0') then
-                  nxyter_clock(0)        <= SLV_DATA_IN(0);
+                  nxyter_clock(0)        <= slv_data(0);
                   nxyter_clock(1)        <= '1';
                 end if;
                 slv_ack_o                <= '1';
@@ -1238,7 +1265,7 @@ begin
               when x"0051" =>
                 -- Nxyter Polarity
                 if (i2c_disable_memory = '0') then
-                  nxyter_polarity(0)     <= SLV_DATA_IN(0);
+                  nxyter_polarity(0)     <= slv_data(0);
                   nxyter_polarity(1)     <= '1';
                 end if;
                 slv_ack_o                <= '1';  
@@ -1246,7 +1273,7 @@ begin
               when x"0053" =>
                 -- Nxyter Testpulse
                 if (i2c_disable_memory = '0') then
-                  nxyter_testpulse(0)    <= SLV_DATA_IN(0);
+                  nxyter_testpulse(0)    <= slv_data(0);
                   nxyter_testpulse(1)    <= '1';
                 end if;
                 slv_ack_o                <= '1';
@@ -1254,7 +1281,7 @@ begin
               when x"0054" =>
                 -- Nxyter Testtrigger
                 if (i2c_disable_memory = '0') then
-                  nxyter_testtrigger(0)  <= SLV_DATA_IN(0);
+                  nxyter_testtrigger(0)  <= slv_data(0);
                   nxyter_testtrigger(1)  <= '1';
                 end if;
                 slv_ack_o                <= '1';  
@@ -1262,7 +1289,7 @@ begin
               when x"0055" =>
                 -- Nxyter Testtrigger
                 if (i2c_disable_memory = '0') then
-                  nxyter_testchannels(1 downto 0) <= SLV_DATA_IN(1 downto 0);
+                  nxyter_testchannels(1 downto 0) <= slv_data(1 downto 0);
                   nxyter_testchannels(2) <= '1';
                 end if;
                 slv_ack_o                <= '1';
@@ -1292,9 +1319,9 @@ begin
             end case;                     
           end if;
 
-        elsif (SLV_READ_IN = '1') then
-          if (SLV_ADDR_IN >= x"0000" and SLV_ADDR_IN <= x"002d") then
-            index := to_integer(unsigned(SLV_ADDR_IN(5 downto 0)));
+        elsif (slv_read = '1') then
+          if (slv_addr >= x"0000" and slv_addr <= x"002d") then
+            index := to_integer(unsigned(slv_addr(5 downto 0)));
             if (i2c_disable_memory = '0') then
               slv_data_out_o(7 downto 0)      <= i2c_ram(index);
               slv_data_out_o(28 downto 8)     <= (others => '0');
@@ -1307,8 +1334,8 @@ begin
             end if;
             slv_ack_o                         <= '1';
 
-          elsif (SLV_ADDR_IN >= x"0100" and SLV_ADDR_IN <= x"0180") then
-            index   := to_integer(unsigned(SLV_ADDR_IN(7 downto 0)));
+          elsif (slv_addr >= x"0100" and slv_addr <= x"0180") then
+            index   := to_integer(unsigned(slv_addr(7 downto 0)));
             if (index = 0) then
               index := 128;
             else
@@ -1325,8 +1352,8 @@ begin
             end if;  
             slv_ack_o                         <= '1';
 
-          elsif (SLV_ADDR_IN >= x"0080" and SLV_ADDR_IN <= x"0083") then
-            index := to_integer(unsigned(SLV_ADDR_IN(1 downto 0)));
+          elsif (slv_addr >= x"0080" and slv_addr <= x"0083") then
+            index := to_integer(unsigned(slv_addr(1 downto 0)));
             if (i2c_disable_memory = '0') then
               slv_data_out_o(12 downto 0)     <= adc_ram(index);
               slv_data_out_o(31 downto 13)    <= (others => '0');
@@ -1337,7 +1364,7 @@ begin
             slv_ack_o                         <= '1';
             
           else
-            case SLV_ADDR_IN is
+            case slv_addr is
               when x"0050" =>
                 -- Nxyter Clock
                 if (i2c_disable_memory = '0') then
@@ -1524,7 +1551,7 @@ begin
   -- Internal Read        
   INT_ACK_OUT             <= int_ack_o;
   INT_DATA_OUT            <= int_data_o;
-                          
+
   -- Slave Bus            
   SLV_DATA_OUT            <= slv_data_out_o;    
   SLV_NO_MORE_DATA_OUT    <= slv_no_more_data_o; 

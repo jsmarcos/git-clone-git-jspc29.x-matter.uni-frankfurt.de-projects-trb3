@@ -278,8 +278,8 @@ IOBUF  PORT "CODE_LINE_1" IO_TYPE=LVCMOS25 PULLMODE=UP  ;
 IOBUF  PORT "CODE_LINE_0" IO_TYPE=LVCMOS25 PULLMODE=UP  ;
 
 #terminated differential pair to pads
-LOCATE COMP  "SUPPL"   SITE "C14";
-IOBUF  PORT "SUPPL" IO_TYPE=LVDS25   ;
+#LOCATE COMP  "SUPPL"   SITE "C14";
+#IOBUF  PORT "SUPPL" IO_TYPE=LVDS25   ;
 
 
 #################################################################

@@ -749,6 +749,18 @@ component signal_async_trans
     );
 end component;
 
+component bus_async_trans
+  generic (
+    BUS_WIDTH : integer range 2 to 32;
+    NUM_FF    : integer range 2 to 4);
+  port (
+    CLK_IN      : in  std_logic;
+    RESET_IN    : in  std_logic;
+    SIGNAL_A_IN : in  std_logic_vector(BUS_WIDTH - 1 downto 0);
+    SIGNAL_OUT  : out std_logic_vector(BUS_WIDTH - 1 downto 0)
+    );
+end component;
+
 component pulse_dtrans
   generic (
     CLK_RATIO : integer range 2 to 15
