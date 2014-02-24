@@ -171,19 +171,16 @@ architecture trb3_periph_hadesstart_arch of trb3_periph_hadesstart is
   signal timer_ticks         : std_logic_vector(1 downto 0);
 
   --Flash
-  signal spictrl_read_en  : std_logic;
-  signal spictrl_write_en : std_logic;
-  signal spictrl_data_in  : std_logic_vector(31 downto 0);
-  signal spictrl_addr     : std_logic;
-  signal spictrl_data_out : std_logic_vector(31 downto 0);
-  signal spictrl_ack      : std_logic;
-  signal spictrl_busy     : std_logic;
-  signal spimem_read_en   : std_logic;
-  signal spimem_write_en  : std_logic;
-  signal spimem_data_in   : std_logic_vector(31 downto 0);
-  signal spimem_addr      : std_logic_vector(5 downto 0);
-  signal spimem_data_out  : std_logic_vector(31 downto 0);
-  signal spimem_ack       : std_logic;
+  signal spimem_read_en          : std_logic;
+  signal spimem_write_en         : std_logic;
+  signal spimem_data_in          : std_logic_vector(31 downto 0);
+  signal spimem_addr             : std_logic_vector(8 downto 0);
+  signal spimem_data_out         : std_logic_vector(31 downto 0);
+  signal spimem_dataready_out    : std_logic;
+  signal spimem_no_more_data_out : std_logic;
+  signal spimem_unknown_addr_out : std_logic;
+  signal spimem_write_ack_out    : std_logic;
+  
   signal spidac_read_en   : std_logic;
   signal spidac_write_en  : std_logic;
   signal spidac_data_in   : std_logic_vector(31 downto 0);
@@ -192,13 +189,10 @@ architecture trb3_periph_hadesstart_arch of trb3_periph_hadesstart is
   signal spidac_ack       : std_logic;
   signal spidac_busy      : std_logic;
 
-
   signal spi_cs  : std_logic_vector(1 downto 0);
   signal spi_sdi : std_logic;
   signal spi_sdo : std_logic;
   signal spi_sck : std_logic;
-
-      
 
   signal hitreg_read_en    : std_logic;
   signal hitreg_write_en   : std_logic;
@@ -256,7 +250,15 @@ architecture trb3_periph_hadesstart_arch of trb3_periph_hadesstart is
   signal trig_ack   : std_logic := '0';
   signal trig_nack  : std_logic := '0';
   signal trig_addr  : std_logic_vector(15 downto 0) := (others => '0');
-  
+
+  signal stat_out   : std_logic_vector(3 downto 0);
+  signal stat_din   : std_logic_vector(31 downto 0);
+  signal stat_dout  : std_logic_vector(31 downto 0);
+  signal stat_write : std_logic := '0';
+  signal stat_read  : std_logic := '0';
+  signal stat_ack   : std_logic := '0';
+  signal stat_nack  : std_logic := '0';
+  signal stat_addr  : std_logic_vector(15 downto 0) := (others => '0');  
   --TDC
   signal hit_in_i         : std_logic_vector(64 downto 1);
   signal inputs_i         : std_logic_vector(63 downto 0);
@@ -472,9 +474,6 @@ begin
   common_stat_reg       <= (others => '0');
   stat_reg              <= (others => '0');
 
----------------------------------------------------------------------------
--- AddOn
----------------------------------------------------------------------------
 
 ---------------------------------------------------------------------------
 -- Bus Handler
@@ -482,8 +481,8 @@ begin
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
       PORT_NUMBER    => 10,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"c400", 8 => x"c800", 9 => x"cf00", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 7, 8 => 3, 9 => 6, others => 0)
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"cf80", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"c400", 8 => x"c800", 9 => x"cf00", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 9,       1 => 6,       2 => 5,       3 => 7,       4 => 5,       5 => 7,       6 => 7,       7 => 7,       8 => 3,       9 => 6,       others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -500,30 +499,29 @@ begin
       DAT_NO_MORE_DATA_OUT => regio_no_more_data_in,
       DAT_UNKNOWN_ADDR_OUT => regio_unknown_addr_in,
 
-      --Bus Handler (SPI CTRL)
-      BUS_READ_ENABLE_OUT(0)              => spictrl_read_en,
-      BUS_WRITE_ENABLE_OUT(0)             => spictrl_write_en,
-      BUS_DATA_OUT(0*32+31 downto 0*32)   => spictrl_data_in,
-      BUS_ADDR_OUT(0*16)                  => spictrl_addr,
-      BUS_ADDR_OUT(0*16+15 downto 0*16+1) => open,
+    --Bus Handler (SPI Flash control)
+      BUS_READ_ENABLE_OUT(0)              => spimem_read_en,
+      BUS_WRITE_ENABLE_OUT(0)             => spimem_write_en,
+      BUS_DATA_OUT(0*32+31 downto 0*32)   => spimem_data_in,
+      BUS_ADDR_OUT(0*16+8 downto 0*16)    => spimem_addr,
+      BUS_ADDR_OUT(0*16+15 downto 0*16+9) => open,
       BUS_TIMEOUT_OUT(0)                  => open,
-      BUS_DATA_IN(0*32+31 downto 0*32)    => spictrl_data_out,
-      BUS_DATAREADY_IN(0)                 => spictrl_ack,
-      BUS_WRITE_ACK_IN(0)                 => spictrl_ack,
-      BUS_NO_MORE_DATA_IN(0)              => spictrl_busy,
-      BUS_UNKNOWN_ADDR_IN(0)              => '0',
-      --Bus Handler (SPI Memory)
-      BUS_READ_ENABLE_OUT(1)              => spimem_read_en,
-      BUS_WRITE_ENABLE_OUT(1)             => spimem_write_en,
-      BUS_DATA_OUT(1*32+31 downto 1*32)   => spimem_data_in,
-      BUS_ADDR_OUT(1*16+5 downto 1*16)    => spimem_addr,
-      BUS_ADDR_OUT(1*16+15 downto 1*16+6) => open,
+      BUS_DATA_IN(0*32+31 downto 0*32)    => spimem_data_out,
+      BUS_DATAREADY_IN(0)                 => spimem_dataready_out,
+      BUS_WRITE_ACK_IN(0)                 => spimem_write_ack_out,
+      BUS_NO_MORE_DATA_IN(0)              => spimem_no_more_data_out,
+      BUS_UNKNOWN_ADDR_IN(0)              => spimem_unknown_addr_out,
+      --Input statistics
+      BUS_READ_ENABLE_OUT(1)              => stat_read,
+      BUS_WRITE_ENABLE_OUT(1)             => stat_write,
+      BUS_DATA_OUT(1*32+31 downto 1*32)   => stat_din,
+      BUS_ADDR_OUT(1*16+15 downto 1*16)   => stat_addr,
       BUS_TIMEOUT_OUT(1)                  => open,
-      BUS_DATA_IN(1*32+31 downto 1*32)    => spimem_data_out,
-      BUS_DATAREADY_IN(1)                 => spimem_ack,
-      BUS_WRITE_ACK_IN(1)                 => spimem_ack,
+      BUS_DATA_IN(1*32+31 downto 1*32)    => stat_dout,
+      BUS_DATAREADY_IN(1)                 => stat_ack,
+      BUS_WRITE_ACK_IN(1)                 => stat_ack,
       BUS_NO_MORE_DATA_IN(1)              => '0',
-      BUS_UNKNOWN_ADDR_IN(1)              => '0',
+      BUS_UNKNOWN_ADDR_IN(1)              => stat_nack,      
       --Bus Handler (SPI DAC)
       BUS_READ_ENABLE_OUT(2)              => spidac_read_en,
       BUS_WRITE_ENABLE_OUT(2)             => spidac_write_en,
@@ -619,6 +617,7 @@ begin
       BUS_WRITE_ACK_IN(9)                 => trig_ack,
       BUS_NO_MORE_DATA_IN(9)              => '0',
       BUS_UNKNOWN_ADDR_IN(9)              => trig_nack,
+
       STAT_DEBUG => open
       );
 
@@ -637,61 +636,37 @@ begin
 ---------------------------------------------------------------------------
 -- SPI / Flash
 ---------------------------------------------------------------------------
-
-  THE_SPI_MASTER : spi_master
-    port map(
-      CLK_IN         => clk_100_i,
-      RESET_IN       => reset_i,
-      -- Slave bus
-      BUS_READ_IN    => spictrl_read_en,
-      BUS_WRITE_IN   => spictrl_write_en,
-      BUS_BUSY_OUT   => spictrl_busy,
-      BUS_ACK_OUT    => spictrl_ack,
-      BUS_ADDR_IN(0) => spictrl_addr,
-      BUS_DATA_IN    => spictrl_data_in,
-      BUS_DATA_OUT   => spictrl_data_out,
-      -- SPI connections
-      SPI_CS_OUT     => FLASH_CS,
-      SPI_SDI_IN     => FLASH_DOUT,
-      SPI_SDO_OUT    => FLASH_DIN,
-      SPI_SCK_OUT    => FLASH_CLK,
-      -- BRAM for read/write data
-      BRAM_A_OUT     => spi_bram_addr,
-      BRAM_WR_D_IN   => spi_bram_wr_d,
-      BRAM_RD_D_OUT  => spi_bram_rd_d,
-      BRAM_WE_OUT    => spi_bram_we,
-      -- Status lines
-      STAT           => open
-      );
-
-  -- data memory for SPI accesses
-  THE_SPI_MEMORY : spi_databus_memory
-    port map(
-      CLK_IN        => clk_100_i,
-      RESET_IN      => reset_i,
-      -- Slave bus
-      BUS_ADDR_IN   => spimem_addr,
-      BUS_READ_IN   => spimem_read_en,
-      BUS_WRITE_IN  => spimem_write_en,
-      BUS_ACK_OUT   => spimem_ack,
-      BUS_DATA_IN   => spimem_data_in,
-      BUS_DATA_OUT  => spimem_data_out,
-      -- state machine connections
-      BRAM_ADDR_IN  => spi_bram_addr,
-      BRAM_WR_D_OUT => spi_bram_wr_d,
-      BRAM_RD_D_IN  => spi_bram_rd_d,
-      BRAM_WE_IN    => spi_bram_we,
-      -- Status lines
-      STAT          => open
-      );
-
+THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
+  port map(
+    CLK_IN               => clk_100_i,
+    RESET_IN             => reset_i,
+    
+    BUS_ADDR_IN          => spimem_addr,
+    BUS_READ_IN          => spimem_read_en,
+    BUS_WRITE_IN         => spimem_write_en,
+    BUS_DATAREADY_OUT    => spimem_dataready_out,
+    BUS_WRITE_ACK_OUT    => spimem_write_ack_out,
+    BUS_UNKNOWN_ADDR_OUT => spimem_unknown_addr_out,
+    BUS_NO_MORE_DATA_OUT => spimem_no_more_data_out,
+    BUS_DATA_IN          => spimem_data_in,
+    BUS_DATA_OUT         => spimem_data_out,
+    
+    DO_REBOOT_IN         => common_ctrl_reg(15),     
+    PROGRAMN             => PROGRAMN,
+    
+    SPI_CS_OUT           => FLASH_CS,
+    SPI_SCK_OUT          => FLASH_CLK,
+    SPI_SDO_OUT          => FLASH_DIN,
+    SPI_SDI_IN           => FLASH_DOUT
+    );
+    
 -------------------------------------------------------------------------------
 -- SPI
 -------------------------------------------------------------------------------
 gen_SPI : if INCLUDE_SPI = 1 generate  
   DAC_SPI : spi_ltc2600
     generic map (
-      BITS       => 14,
+      BITS       => 32,
       WAITCYCLES => 15)
     port map (
       CLK_IN         => clk_100_i,
@@ -727,7 +702,7 @@ end generate;
 -- Trigger logic
 ---------------------------------------------------------------------------
 gen_TRIGGER_LOGIC : if INCLUDE_TRIGGER_LOGIC = 1 generate
-  THE_TRIG_LOGIC : input_to_trigger_logic
+  THE_TRIG_LOGIC : entity work.input_to_trigger_logic
     generic map(
       INPUTS    => PHYSICAL_INPUTS,
       OUTPUTS   => 4
@@ -749,15 +724,29 @@ gen_TRIGGER_LOGIC : if INCLUDE_TRIGGER_LOGIC = 1 generate
 end generate;
 
 ---------------------------------------------------------------------------
--- Reboot FPGA
+-- Input Statistics
 ---------------------------------------------------------------------------
-  THE_FPGA_REBOOT : fpga_reboot
+gen_STATISTICS : if INCLUDE_STATISTICS = 1 generate
+
+  THE_STAT_LOGIC : entity work.input_statistics
+    generic map(
+      INPUTS    => PHYSICAL_INPUTS
+      )
     port map(
       CLK       => clk_100_i,
-      RESET     => reset_i,
-      DO_REBOOT => common_ctrl_reg(15),
-      PROGRAMN  => PROGRAMN
+      
+      INPUT     => inputs_i(PHYSICAL_INPUTS-1 downto 0),
+
+      DATA_IN   => stat_din,  
+      DATA_OUT  => stat_dout, 
+      WRITE_IN  => stat_write,
+      READ_IN   => stat_read,
+      ACK_OUT   => stat_ack,  
+      NACK_OUT  => stat_nack, 
+      ADDR_IN   => stat_addr
       );
+end generate;
+
 
 ---------------------------------------------------------------------------
 -- LED

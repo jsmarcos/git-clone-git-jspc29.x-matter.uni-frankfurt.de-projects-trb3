@@ -27,12 +27,15 @@ entity input_to_trigger_logic is
 end entity;
 
 
-
 architecture input_to_trigger_logic_arch of input_to_trigger_logic is
 
 type reg_t is array(0 to OUTPUTS-1) of std_logic_vector(31 downto 0);
 signal enable : reg_t;
 signal invert : reg_t;
+
+signal inp_reg : std_logic_vector(INPUTS-1 downto 0);
+signal output_i: std_logic_vector(OUTPUTS-1 downto 0);
+signal out_reg : std_logic_vector(OUTPUTS-1 downto 0);
 
 begin
 
@@ -56,15 +59,20 @@ begin
     case ADDR_IN(1 downto 0) is
       when "00"   => DATA_OUT <= enable(tmp);
       when "01"   => DATA_OUT <= invert(tmp);
+      when "10"   => DATA_OUT(INPUTS-1 downto 0)  <= inp_reg; DATA_OUT(31 downto INPUTS) <= (others => '0');
+      when "11"   => DATA_OUT(OUTPUTS-1 downto 0) <= out_reg; DATA_OUT(31 downto OUTPUTS) <= (others => '0');
       when others => DATA_OUT <= (others => '0');
     end case;
   end if;
 end process;
 
 gen_outs : for i in 0 to OUTPUTS-1 generate
-  OUTPUT(i) <= or_all((INPUT xor invert(i)(INPUTS-1 downto 0)) and enable(i)(INPUTS-1 downto 0));
+  output_i(i) <= or_all((INPUT xor invert(i)(INPUTS-1 downto 0)) and enable(i)(INPUTS-1 downto 0));
 end generate;
 
+inp_reg <= INPUT when rising_edge(CLK);
+out_reg <= output_i when rising_edge(CLK);
 
+OUTPUT  <= output_i;
 
 end architecture;
