@@ -10,19 +10,25 @@ package config is
 --Begin of design configuration
 ------------------------------------------------------------------------------
 
---Include GbE logic     
+--TDC settings
     constant NUM_TDC_CHANNELS       : integer range 1 to 65 := 5;  
     constant NUM_TDC_CHANNELS_POWER2: integer range 0 to 6  := 2;  --the nearest power of two, for convenience reasons 
     constant USE_DOUBLE_EDGE        : integer := c_YES;
     
 --use only every fourth input as in HPTDC high precision mode    
     constant USE_HPTDC_FASTMODE_PINOUT : integer := c_YES;
-
+    
 --Include SPI on AddOn connector    
     constant INCLUDE_SPI            : integer := c_YES;
 
 --Add logic to generate configurable trigger signal from input signals.
     constant INCLUDE_TRIGGER_LOGIC  : integer := c_YES;    
+--Do histos of all inputs
+    constant INCLUDE_STATISTICS     : integer := c_YES;    
+--number of real inputs to the FPGA    
+    constant PHYSICAL_INPUTS        : integer := 16;
+
+    
     
 --Run wih 125 MHz instead of 100 MHz     
     constant USE_125_MHZ            : integer := c_NO;  --not implemented yet!  

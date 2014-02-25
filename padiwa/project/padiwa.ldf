@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<BaliProject version="2.0" title="padiwalcd" device="LCMXO2-4000HC-6FTG256C" synthesis="synplify" default_implementation="padiwalcd">
+<BaliProject version="3.0" title="padiwalcd" device="LCMXO2-4000HC-6FTG256C" default_implementation="padiwalcd">
     <Options/>
-    <Implementation title="padiwalcd" dir="padiwalcd" description="padiwalcd" default_strategy="Strategy1">
+    <Implementation title="padiwalcd" dir="padiwalcd" description="padiwalcd" synthesis="synplify" default_strategy="Strategy1">
         <Options def_top="flashram" top="panda_dirc_wasa"/>
         <Source name="../padiwalcd.vhd" type="VHDL" type_short="VHDL">
             <Options top_module="panda_dirc_wasa"/>
