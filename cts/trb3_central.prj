@@ -275,6 +275,9 @@ add_file -vhdl -lib "work" "tdc_release/fallingEdgeDetect.vhd"
 add_file -vhdl -lib "work" "tdc_release/FIFO_36x128_OutReg_Counter.vhd"
 add_file -vhdl -lib "work" "tdc_release/risingEdgeDetect.vhd"
 add_file -vhdl -lib "work" "tdc_release/ROM4_Encoder.vhd"
+add_file -vhdl -lib "work" "../base/cores/FIFO_36x128_OutReg.vhd"
+add_file -vhdl -lib "work" "../base/cores/FIFO_DC_36x128_OutReg.vhd"
+add_file -vhdl -lib "work" "tdc_release/TriggerHandler.vhd"
 
 
 add_file -vhdl -lib work "./trb3_central.vhd"
