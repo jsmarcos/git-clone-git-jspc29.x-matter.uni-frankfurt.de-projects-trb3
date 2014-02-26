@@ -18,6 +18,7 @@ my $lm_license_file_for_par      = '1702@hadeb05.gsi.de';
 ###################################################################################
 
 
+
 # source the standard lattice environment
 $ENV{bindir}="$lattice_bin_path";
 open my $SOURCE, "bash -c '. $lattice_bin_path/diamond_env >& /dev/null; env'|" or
@@ -134,9 +135,10 @@ execute($c);
 system("rm $TOPNAME.ncd");
 
 #$c=qq|mpartrce -p "../$TOPNAME.p2t" -log "$TOPNAME.log" -o "$TOPNAME.rpt" -pr "$TOPNAME.prf" -tf "$TOPNAME.pt" "|.$TOPNAME.qq|_map.ncd" "$TOPNAME.ncd"|;
-#  $c=qq|$lattice_path/ispfpga/bin/lin/multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
+#  $c=qq|multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
 $c=qq|par -w -l 5 -i 6 -t 1 -c 0 -e 0 -exp parUseNBR=1:parCDP=0:parCDR=0:parPathBased=OFF $tpmap.ncd $TOPNAME.ncd $TOPNAME.prf|;
 execute($c);
+
 # IOR IO Timing Report
 $c=qq|iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
@@ -148,7 +150,7 @@ execute($c);
 $c=qq|trce -hld -c -v 5 -o "$TOPNAME.twr.hold"  "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
 
-# $c=qq|$lattice_path/ispfpga/bin/lin/ltxt2ptxt $TOPNAME.ncd|;
+# $c=qq|ltxt2ptxt $TOPNAME.ncd|;
 # execute($c);
 
 $c=qq|bitgen -w -g CfgMode:Disable -g RamCfg:Reset -jedec  $TOPNAME.ncd $TOPNAME.jed $TOPNAME.prf|;
