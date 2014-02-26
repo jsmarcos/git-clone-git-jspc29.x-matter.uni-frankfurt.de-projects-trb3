@@ -101,7 +101,7 @@ architecture trb3_periph_32PinAddOn_arch of trb3_periph_32PinAddOn is
   signal clk_200_i                : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
   signal clk_125_i                : std_logic;  -- 125 MHz, via Clock Manager and bypassed PLL
   signal clk_20_i                 : std_logic;  -- clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
-  signal osc_int                  : std_logic;  -- clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
+  signal osc_int                  : std_logic;  -- clock for calibrating the tdc, 2.5 MHz, via internal osscilator
   signal pll_lock                 : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
   signal clear_i                  : std_logic;
   signal reset_i                  : std_logic;
@@ -252,12 +252,12 @@ architecture trb3_periph_32PinAddOn_arch of trb3_periph_32PinAddOn is
   signal trig_out   : std_logic_vector(3 downto 0);
   signal trig_din   : std_logic_vector(31 downto 0);
   signal trig_dout  : std_logic_vector(31 downto 0);
-  signal trig_write : std_logic := '0';
-  signal trig_read  : std_logic := '0';
-  signal trig_ack   : std_logic := '0';
-  signal trig_nack  : std_logic := '0';
+  signal trig_write : std_logic                     := '0';
+  signal trig_read  : std_logic                     := '0';
+  signal trig_ack   : std_logic                     := '0';
+  signal trig_nack  : std_logic                     := '0';
   signal trig_addr  : std_logic_vector(15 downto 0) := (others => '0');
-  
+
   --TDC
   signal hit_in_i         : std_logic_vector(64 downto 1);
   signal logic_analyser_i : std_logic_vector(15 downto 0);
@@ -309,6 +309,8 @@ begin
   OSCInst0 : OSCF  -- internal oscillator with frequency of 2.5MHz
     port map (
       OSC => osc_int);
+
+  
 
 
 ---------------------------------------------------------------------------
@@ -374,9 +376,9 @@ begin
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
       DATA_INTERFACE_NUMBER     => 1,
-      DATA_BUFFER_DEPTH         => 13,           --13
+      DATA_BUFFER_DEPTH         => 13,         --13
       DATA_BUFFER_WIDTH         => 32,
-      DATA_BUFFER_FULL_THRESH   => 2**13-800,    --2**13-(maximal 2**12) 
+      DATA_BUFFER_FULL_THRESH   => 2**13-800,  --2**13-(maximal 2**12) 
       TRG_RELEASE_AFTER_DATA    => c_YES,
       HEADER_BUFFER_DEPTH       => 9,
       HEADER_BUFFER_FULL_THRESH => 2**9-16
@@ -619,7 +621,7 @@ begin
       BUS_WRITE_ACK_IN(9)                 => trig_ack,
       BUS_NO_MORE_DATA_IN(9)              => '0',
       BUS_UNKNOWN_ADDR_IN(9)              => trig_nack,
-      STAT_DEBUG => open
+      STAT_DEBUG                          => open
       );
 
   PROC_TDC_CTRL_REG : process
@@ -688,64 +690,65 @@ begin
 -------------------------------------------------------------------------------
 -- SPI
 -------------------------------------------------------------------------------
-gen_SPI : if INCLUDE_SPI = 1 generate  
-  DAC_SPI : spi_ltc2600
-    generic map (
-      BITS       => 14,
-      WAITCYCLES => 100)
-    port map (
-      CLK_IN         => clk_100_i,
-      RESET_IN       => reset_i,
-      -- Slave bus
-      BUS_READ_IN    => spidac_read_en,
-      BUS_WRITE_IN   => spidac_write_en,
-      BUS_BUSY_OUT   => spidac_busy,
-      BUS_ACK_OUT    => spidac_ack,
-      BUS_ADDR_IN    => spidac_addr,
-      BUS_DATA_IN    => spidac_data_in,
-      BUS_DATA_OUT   => spidac_data_out,
-      -- SPI connections
-      SPI_CS_OUT(0)  => DAC_OUT_CS,
-      SPI_SDI_IN     => DAC_IN_SDI,
-      SPI_SDO_OUT    => DAC_OUT_SDO,
-      SPI_SCK_OUT    => DAC_OUT_SCK,
-      SPI_CLR_OUT(0) => DAC_OUT_CLR
-      );
-end generate;
+  gen_SPI : if INCLUDE_SPI = 1 generate
+    DAC_SPI : spi_ltc2600
+      generic map (
+        BITS       => 14,
+        WAITCYCLES => 100)
+      port map (
+        CLK_IN         => clk_100_i,
+        RESET_IN       => reset_i,
+        -- Slave bus
+        BUS_READ_IN    => spidac_read_en,
+        BUS_WRITE_IN   => spidac_write_en,
+        BUS_BUSY_OUT   => spidac_busy,
+        BUS_ACK_OUT    => spidac_ack,
+        BUS_ADDR_IN    => spidac_addr,
+        BUS_DATA_IN    => spidac_data_in,
+        BUS_DATA_OUT   => spidac_data_out,
+        -- SPI connections
+        SPI_CS_OUT(0)  => DAC_OUT_CS,
+        SPI_SDI_IN     => DAC_IN_SDI,
+        SPI_SDO_OUT    => DAC_OUT_SDO,
+        SPI_SCK_OUT    => DAC_OUT_SCK,
+        SPI_CLR_OUT(0) => DAC_OUT_CLR
+        );
+  end generate;
 
 
-gen_NO_SPI : if INCLUDE_SPI = 0 generate  
-  DAC_OUT_SDO <= trig_out(0);
-  DAC_OUT_SCK <= trig_out(1);
-  DAC_OUT_CS  <= trig_out(2);
-  DAC_OUT_CLR <= trig_out(3);
-end generate;
+  gen_NO_SPI : if INCLUDE_SPI = 0 generate
+    DAC_OUT_SDO <= trig_out(0);
+    DAC_OUT_SCK <= trig_out(1);
+    DAC_OUT_CS  <= trig_out(2);
+    DAC_OUT_CLR <= trig_out(3);
+  end generate;
 
 
 ---------------------------------------------------------------------------
 -- Trigger logic
 ---------------------------------------------------------------------------
-gen_TRIGGER_LOGIC : if INCLUDE_TRIGGER_LOGIC = 1 generate
-  THE_TRIG_LOGIC : input_to_trigger_logic
-    generic map(
-      INPUTS    => 24,
-      OUTPUTS   => 4
-      )
-    port map(
-      CLK       => clk_100_i,
-      
-      INPUT     => INP(24 downto 1),
-      OUTPUT    => trig_out,
+  gen_TRIGGER_LOGIC : if INCLUDE_TRIGGER_LOGIC = 1 generate
+    THE_TRIG_LOGIC : input_to_trigger_logic
+      generic map(
+        INPUTS  => 32,
+        OUTPUTS => 4
+        )
+      port map(
+        CLK => clk_100_i,
 
-      DATA_IN   => trig_din,  
-      DATA_OUT  => trig_dout, 
-      WRITE_IN  => trig_write,
-      READ_IN   => trig_read,
-      ACK_OUT   => trig_ack,  
-      NACK_OUT  => trig_nack, 
-      ADDR_IN   => trig_addr
-      );
-end generate;
+        INPUT  => INP(32 downto 1),
+        OUTPUT => trig_out,
+
+        DATA_IN  => trig_din,
+        DATA_OUT => trig_dout,
+        WRITE_IN => trig_write,
+        READ_IN  => trig_read,
+        ACK_OUT  => trig_ack,
+        NACK_OUT => trig_nack,
+        ADDR_IN  => trig_addr
+        );
+    FPGA5_COMM(10 downto 7) <= trig_out;
+  end generate;
 
 ---------------------------------------------------------------------------
 -- Reboot FPGA
@@ -778,10 +781,10 @@ end generate;
 
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => NUM_TDC_CHANNELS,  -- Number of TDC channels
-      STATUS_REG_NR  => 20,                -- Number of status regs
-      CONTROL_REG_NR => 6,                 -- Number of control regs - higher than 8 check tdc_ctrl_addr
-      TDC_VERSION    => x"160",            -- TDC version number
+      CHANNEL_NUMBER => NUM_TDC_CHANNELS,   -- Number of TDC channels
+      STATUS_REG_NR  => 20,             -- Number of status regs
+      CONTROL_REG_NR => 6,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
+      TDC_VERSION    => x"160",         -- TDC version number
       DEBUG          => c_YES,
       SIMULATION     => c_NO)
     port map (
@@ -856,20 +859,18 @@ end generate;
       CONTROL_REG_IN        => tdc_ctrl_reg);
 
   -- For single edge measurements
-  gen_single : if USE_DOUBLE_EDGE = 0 generate    
-    hit_in_i <= INP;    
+  gen_single : if USE_DOUBLE_EDGE = 0 generate
+    hit_in_i <= INP;
 --     hit_in_i <= (others => timing_trg_received_i);
   end generate;
 
   -- For ToT Measurements
-  gen_double : if USE_DOUBLE_EDGE = 1 generate  
+  gen_double : if USE_DOUBLE_EDGE = 1 generate
     Gen_Hit_In_Signals : for i in 1 to 32 generate
       hit_in_i(i*2-1) <= INP(i-1);
       hit_in_i(i*2)   <= not INP(i-1);
     end generate Gen_Hit_In_Signals;
   end generate;
 
-  -- Trigger on a TDC Channel
-  FPGA5_COMM(10) <= hit_in_i(to_integer(unsigned(tdc_ctrl_reg(5*32+7 downto 5*32))));
 
 end architecture;

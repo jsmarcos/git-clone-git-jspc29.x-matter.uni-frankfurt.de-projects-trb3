@@ -11,12 +11,12 @@ package config is
 ------------------------------------------------------------------------------
 
 --Include GbE logic     
-    constant NUM_TDC_CHANNELS       : integer range 1 to 65 := 7;  
-    constant NUM_TDC_CHANNELS_POWER2: integer range 0 to 6  := 3;  --the nearest power of two, for convenience reasons 
+    constant NUM_TDC_CHANNELS       : integer range 1 to 65 := 65;
+    constant NUM_TDC_CHANNELS_POWER2: integer range 0 to 6  := 6;  --the nearest power of two, for convenience reasons
     constant USE_DOUBLE_EDGE        : integer := c_YES;
 
 --Include SPI on AddOn connector    
-    constant INCLUDE_SPI            : integer := c_NO;
+    constant INCLUDE_SPI            : integer := c_YES;
 
 --Add logic to generate configurable trigger signal from input signals.
     constant INCLUDE_TRIGGER_LOGIC  : integer := c_YES;    
@@ -30,7 +30,7 @@ package config is
    
 --Address settings   
     constant INIT_ADDRESS           : std_logic_vector := x"F305";
-    constant BROADCAST_SPECIAL_ADDR : std_logic_vector := x"40";
+    constant BROADCAST_SPECIAL_ADDR : std_logic_vector := x"48";
    
 ------------------------------------------------------------------------------
 --End of design configuration
