@@ -101,7 +101,7 @@ architecture trb3_periph_32PinAddOn_arch of trb3_periph_32PinAddOn is
   signal clk_200_i                : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
   signal clk_125_i                : std_logic;  -- 125 MHz, via Clock Manager and bypassed PLL
   signal clk_20_i                 : std_logic;  -- clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
-  signal osc_int                  : std_logic;  -- clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
+  signal osc_int                  : std_logic;  -- clock for calibrating the tdc, 2.5 MHz, via internal osscilator
   signal pll_lock                 : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
   signal clear_i                  : std_logic;
   signal reset_i                  : std_logic;
@@ -309,6 +309,8 @@ begin
   OSCInst0 : OSCF  -- internal oscillator with frequency of 2.5MHz
     port map (
       OSC => osc_int);
+
+  
 
 
 ---------------------------------------------------------------------------
@@ -728,13 +730,13 @@ begin
   gen_TRIGGER_LOGIC : if INCLUDE_TRIGGER_LOGIC = 1 generate
     THE_TRIG_LOGIC : input_to_trigger_logic
       generic map(
-        INPUTS  => 24,
+        INPUTS  => 32,
         OUTPUTS => 4
         )
       port map(
         CLK => clk_100_i,
 
-        INPUT  => INP(24 downto 1),
+        INPUT  => INP(32 downto 1),
         OUTPUT => trig_out,
 
         DATA_IN  => trig_din,
@@ -745,6 +747,7 @@ begin
         NACK_OUT => trig_nack,
         ADDR_IN  => trig_addr
         );
+    FPGA5_COMM(10 downto 7) <= trig_out;
   end generate;
 
 ---------------------------------------------------------------------------
@@ -869,7 +872,5 @@ begin
     end generate Gen_Hit_In_Signals;
   end generate;
 
-  -- Trigger on a TDC Channel
-  FPGA5_COMM(10) <= hit_in_i(to_integer(unsigned(tdc_ctrl_reg(5*32+7 downto 5*32))));
 
 end architecture;

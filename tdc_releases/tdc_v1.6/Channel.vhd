@@ -116,14 +116,20 @@ architecture Channel of Channel is
   attribute syn_keep of hit_buf                : signal is true;
   attribute syn_keep of trig_win_end_tdc_i     : signal is true;
   attribute syn_keep of trig_win_end_rdo_i     : signal is true;
+  attribute syn_keep of epoch_cntr_reg         : signal is true;
+--  attribute syn_keep of epoch_cntr_2reg        : signal is true;
   attribute syn_preserve                       : boolean;
   attribute syn_preserve of coarse_cntr_reg    : signal is true;
   attribute syn_preserve of hit_buf            : signal is true;
   attribute syn_preserve of trig_win_end_tdc_i : signal is true;
+  attribute syn_preserve of epoch_cntr_reg     : signal is true;
+--  attribute syn_preserve of epoch_cntr_2reg    : signal is true;
   attribute nomerge                            : string;
   attribute nomerge of hit_buf                 : signal is "true";
   attribute nomerge of trig_win_end_tdc_i      : signal is "true";
   attribute nomerge of trig_win_end_rdo_i      : signal is "true";
+  attribute nomerge of epoch_cntr_reg          : signal is "true";
+--  attribute nomerge of epoch_cntr_2reg         : signal is "true";
 
 
 -------------------------------------------------------------------------------
@@ -148,7 +154,7 @@ begin
       HIT_IN               => hit_buf,
       TRIGGER_WIN_END_TDC  => trig_win_end_tdc_i,
       TRIGGER_WIN_END_RDO  => trig_win_end_rdo_i,
-      EPOCH_COUNTER_IN     => epoch_cntr_2reg,  --EPOCH_COUNTER_IN,
+      EPOCH_COUNTER_IN     => epoch_cntr_reg, --epoch_cntr_2reg,
       COARSE_COUNTER_IN    => coarse_cntr_reg,
       READ_EN_IN           => READ_EN_IN,
       FIFO_DATA_OUT        => ch_data_i,
@@ -224,7 +230,7 @@ begin
       D_OUT => coarse_cntr_reg);
 
   epoch_cntr_reg  <= EPOCH_COUNTER_IN when rising_edge(CLK_200);
-  epoch_cntr_2reg <= epoch_cntr_reg   when rising_edge(CLK_200);
+--  epoch_cntr_2reg <= epoch_cntr_reg   when rising_edge(CLK_200);
   
 -------------------------------------------------------------------------------
 -- DEBUG Counters
