@@ -1283,7 +1283,7 @@ gen_TDC : if INCLUDE_TDC = c_YES generate
     generic map (
       CHANNEL_NUMBER => 5,             -- Number of TDC channels
       CONTROL_REG_NR => 5,
-      TDC_VERSION    => "001" & x"51")  -- TDC version number
+      TDC_VERSION    => "0001" & x"51")  -- TDC version number
     port map (
       RESET                 => reset_i,
       CLK_TDC               => CLK_PCLK_RIGHT,  -- Clock used for the time measurement
