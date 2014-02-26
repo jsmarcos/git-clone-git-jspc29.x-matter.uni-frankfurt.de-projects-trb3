@@ -186,7 +186,7 @@ architecture trb3_central_arch of trb3_central is
   signal clk_100_i   : std_logic; --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i   : std_logic; --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
   signal clk_125_i   : std_logic; --125 MHz, via Clock Manager and bypassed PLL
-  signal clk_20_i    : std_logic; --clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
+  signal osc_int     : std_logic;  -- clock for calibrating the tdc, 2.5 MHz, via internal osscilator
   signal pll_lock    : std_logic; --Internal PLL locked. E.g. used to reset all internal logic.
   signal clear_i     : std_logic;
   signal reset_i     : std_logic;
@@ -423,7 +423,7 @@ architecture trb3_central_arch of trb3_central is
   signal tdc_ctrl_addr      : std_logic_vector(2 downto 0);
   signal tdc_ctrl_data_in   : std_logic_vector(31 downto 0);
   signal tdc_ctrl_data_out  : std_logic_vector(31 downto 0);
-  signal tdc_ctrl_reg   : std_logic_vector(5*32-1 downto 0);
+  signal tdc_ctrl_reg   : std_logic_vector(6*32-1 downto 0);
   signal tdc_debug      : std_logic_vector(15 downto 0);  
 
   signal led_time_ref_i : std_logic;
@@ -631,13 +631,9 @@ THE_MAIN_PLL : pll_in200_out100
     );
 
 -- generates hits for calibration uncorrelated with tdc clk
-THE_CALIBRATION_PLL : pll_in125_out20
-	port map (
-		CLK   => CLK_GPLL_RIGHT,
-		CLKOP => clk_20_i,
-		CLKOK => clk_125_i,
-		LOCK  => open);
-
+OSCInst0 : OSCF  -- internal oscillator with frequency of 2.5MHz
+    port map (
+      OSC => osc_int);
   
 
 ---------------------------------------------------------------------------
@@ -1281,16 +1277,18 @@ THE_FPGA_REBOOT : fpga_reboot
 gen_TDC : if INCLUDE_TDC = c_YES generate
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 5,             -- Number of TDC channels
-      CONTROL_REG_NR => 5,
-      TDC_VERSION    => "0001" & x"51")  -- TDC version number
+      CHANNEL_NUMBER => 5,   -- Number of TDC channels
+      STATUS_REG_NR  => 20,             -- Number of status regs
+      CONTROL_REG_NR => 6,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
+      TDC_VERSION    => x"160"         -- TDC version number
+    )
     port map (
       RESET                 => reset_i,
       CLK_TDC               => CLK_PCLK_RIGHT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => cts_trigger_out,  -- Reference time input
       HIT_IN                => trigger_in_buf_i,  -- Channel start signals
-      HIT_CALIBRATION       => clk_20_i,    -- Hits for calibrating the TDC
+      HIT_CALIBRATION       => osc_int,  --clk_20_i,    -- Hits for calibrating the TDC
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --
