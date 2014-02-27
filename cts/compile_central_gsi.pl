@@ -10,7 +10,7 @@ use FileHandle;
 ###################################################################################
 #Settings for this project
 my $TOPNAME                      = "trb3_central";  #Name of top-level entity
-my $lattice_path                 = '/opt/lattice/diamond/2.2_x64';
+my $lattice_path                 = '/opt/lattice/diamond/2.1_x64';
 my $lattice_bin_path             = "$lattice_path/bin/lin64"; # note the lin/lin64 at the end, no isfgpa needed
 my $synplify_path                = '/opt/synplicity/F-2012.03-SP1';
 my $lm_license_file_for_synplify = '27000@lxcad01.gsi.de';
@@ -45,6 +45,7 @@ my $SPEEDGRADE="8";
 my $WORKDIR = "workdir";
 unless(-d $WORKDIR) {
   mkdir $WORKDIR or die "can't create workdir '$WORKDIR': $!";
+  system ("cd workdir; ../../base/linkdesignfiles.sh; cd ..;");
 }
 
 system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");
