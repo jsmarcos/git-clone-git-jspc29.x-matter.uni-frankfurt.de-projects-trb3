@@ -43,7 +43,8 @@ unless(-e 'workdir') {
   print "Creating workdir\n";
   system ("mkdir workdir");
   system ("cd workdir; ../../base/linkdesignfiles.sh; cd ..;");
-  }
+  system ("ln -sfT ../tdc_release/Adder_304.ngo workdir/Adder_304.ngo");
+}
   
 #create full lpf file
 system("cp ../base/trb3_central_cts.lpf workdir/$TOPNAME.lpf");

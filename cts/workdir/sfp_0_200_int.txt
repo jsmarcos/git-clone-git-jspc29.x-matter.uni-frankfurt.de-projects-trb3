@@ -1,1 +1,0 @@
-../../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_int.txt
