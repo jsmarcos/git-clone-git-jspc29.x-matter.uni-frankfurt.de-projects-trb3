@@ -634,7 +634,8 @@ THE_MAIN_PLL : pll_in200_out100
 OSCInst0 : OSCF  -- internal oscillator with frequency of 2.5MHz
     port map (
       OSC => osc_int);
-  
+
+clk_125_i <= CLK_GPLL_RIGHT;      
 
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (SFP)
