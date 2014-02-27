@@ -47,6 +47,7 @@ unless(-d $WORKDIR) {
   mkdir $WORKDIR or die "can't create workdir '$WORKDIR': $!";
   system ("cd workdir; ../../base/linkdesignfiles.sh; cd ..;");
   system ("ln -sfT ../tdc_release/Adder_304.ngo $WORKDIR/Adder_304.ngo");
+  system ("cp ../base/mulipar_nodelist_example.txt $WORKDIR/nodelist.txt");
 }
 
 system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");

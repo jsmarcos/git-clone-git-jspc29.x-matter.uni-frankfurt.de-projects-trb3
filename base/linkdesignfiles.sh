@@ -7,7 +7,7 @@
 ln -s ../../../trbnet/gbe2_ecp3/ipcores_ecp3/sgmii_gbe_pcs35/sgmii_gbe_pcs35.ngo
 ln -s ../../../trbnet/gbe2_ecp3/ipcores_ecp3/tsmac35/tsmac35.ngo
 ln -s ../../../trbnet/gbe2_ecp3/ipcores_ecp3/tsmac35/pmi_ram_dpEbnonessdn208256208256.ngo
-#ln -s ../../../trbnet/gbe2_ecp3/ipcores_ecp3/tsmac35/pmi_ram_dpEbnonessdn96649664.ngo
+ln -s ../../../trbnet/gbe2_ecp3/ipcores_ecp3/tsmac35/pmi_ram_dpEbnonessdn96649664.ngo
 ln -s ../../../trbnet/gbe2_ecp3/ipcores_ecp3/serdes_gbe_0ch/serdes_gbe_0ch.txt
 ln -s ../../../trbnet/gbe2_ecp3/ipcores_ecp3/serdes_ch4.txt
 ln -s ../../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_int.txt
