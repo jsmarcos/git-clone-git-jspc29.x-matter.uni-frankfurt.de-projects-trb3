@@ -36,6 +36,9 @@ signal enable : std_logic_vector(31 downto 0);
 signal invert : std_logic_vector(31 downto 0);
 signal rate   : unsigned(31 downto 0);
 
+signal fifo_read : std_logic_vector(31 downto 0);
+signal fifo_select : integer range 0 to 31;
+
 begin
 
 
@@ -46,6 +49,8 @@ begin
   ACK_OUT  <= '0';
   NACK_OUT <= '0';
   trigger_fifo  <= '0';
+  fifo_read     <= (others => '0');
+  fifo_select   <= 0;
   if WRITE_IN = '1' then
     if ADDR_IN(6 downto 4) = "000" then
       ACK_OUT <= '1';
@@ -57,6 +62,8 @@ begin
                        reset_cnt    <= DATA_IN(1);
         when others => NACK_OUT <= '1'; ACK_OUT <= '0';
       end case;
+    else 
+      NACK_OUT <= '1';
     end if;
   elsif READ_IN = '1' then
     if ADDR_IN(6 downto 4) = "000" then
@@ -68,6 +75,9 @@ begin
         when x"e"   => DATA_OUT(INPUTS-1 downto 0)  <= inp_reg; DATA_OUT(31 downto INPUTS) <= (others => '0');
         when others => DATA_OUT <= (others => '0');
       end case;
+    elsif ADDR_IN(6 downto 4) = "001" or ADDR_IN(6 downto 5) = "010" then
+      fifo_read(to_integer(unsigned(ADDR_IN(4 downto 0)))) <= '1';
+      fifo_select <= to_integer(unsigned(ADDR_IN(4 downto 0)));
     end if;
   end if;
 end process;
