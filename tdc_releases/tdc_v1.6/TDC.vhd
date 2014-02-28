@@ -160,6 +160,7 @@ architecture TDC of TDC is
   signal trig_win_en_i                : std_logic;
   signal trig_win_end_rdo             : std_logic;
   signal trig_win_end_tdc             : std_logic;
+  signal trig_win_end_tdc_i           : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
 
 -- Debug signals
   signal ref_debug_i            : std_logic_vector(31 downto 0);
@@ -272,7 +273,7 @@ begin
         CLK_200                 => CLK_TDC,
         CLK_100                 => CLK_READOUT,
         HIT_IN                  => hit_in_i(0),
-        TRIGGER_WIN_END_TDC     => trig_win_end_tdc,
+        TRIGGER_WIN_END_TDC     => trig_win_end_tdc_i(0),
         TRIGGER_WIN_END_RDO     => trig_win_end_rdo,
         EPOCH_COUNTER_IN        => epoch_cntr,
         COARSE_COUNTER_IN       => coarse_cntr(1),
@@ -310,7 +311,7 @@ begin
         CLK_200                 => CLK_TDC,
         CLK_100                 => CLK_READOUT,
         HIT_IN                  => hit_in_i(i),
-        TRIGGER_WIN_END_TDC     => trig_win_end_tdc,
+        TRIGGER_WIN_END_TDC     => trig_win_end_tdc_i(i),
         TRIGGER_WIN_END_RDO     => trig_win_end_rdo,
         EPOCH_COUNTER_IN        => epoch_cntr,
         COARSE_COUNTER_IN       => coarse_cntr(integer(ceil(real(i)/real(16)))),
@@ -356,6 +357,9 @@ begin
       TRIGGER_WIN_END_TDC_OUT => trig_win_end_tdc);
 --  trig_in_i <= REFERENCE_TIME or VALID_NOTIMING_TRG_IN;
   trig_in_i <= VALID_TIMING_TRG_IN or VALID_NOTIMING_TRG_IN;
+  GenTriggerWindowEnd: for i in 0 to CHANNEL_NUMBER-1 generate
+    trig_win_end_tdc_i(i) <= trig_win_end_tdc when rising_edge(CLK_TDC);
+  end generate GenTriggerWindowEnd;
   
   -- Readout
   TheReadout : Readout
@@ -399,7 +403,7 @@ begin
       TRG_WIN_PRE              => TRG_WIN_PRE,
       TRG_WIN_POST             => TRG_WIN_POST,
       TRIGGER_WIN_EN_IN        => trig_win_en_i,
-      TRIG_WIN_END_TDC_IN      => trig_win_end_tdc,
+      TRIG_WIN_END_TDC_IN      => trig_win_end_tdc_i(0),
       TRIG_WIN_END_RDO_IN      => trig_win_end_rdo,
       COARSE_COUNTER_IN        => coarse_cntr(1),
       EPOCH_COUNTER_IN         => epoch_cntr,
@@ -432,7 +436,7 @@ begin
       if reset_tdc = '1' then
         coarse_cntr_reset <= '1';
       elsif run_mode_200 = '0' then
-        coarse_cntr_reset <= trig_win_end_tdc;
+        coarse_cntr_reset <= trig_win_end_tdc_i(32);
       elsif run_mode_edge_200 = '1' then
         coarse_cntr_reset <= '1';
       elsif reset_coarse_cntr_flag = '1' and (VALID_TIMING_TRG_IN = '1' or VALID_NOTIMING_TRG_IN = '1') then

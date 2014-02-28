@@ -782,7 +782,7 @@ begin
   THE_TDC : TDC
     generic map (
       CHANNEL_NUMBER => NUM_TDC_CHANNELS,   -- Number of TDC channels
-      STATUS_REG_NR  => 20,             -- Number of status regs
+      STATUS_REG_NR  => 19,             -- Number of status regs
       CONTROL_REG_NR => 6,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
       TDC_VERSION    => x"160",         -- TDC version number
       DEBUG          => c_YES,

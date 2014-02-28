@@ -125,7 +125,7 @@ system("env| grep LM_");
 my $r     = "";
 my $c     = "";
 my @a     = ();
-my $tpmap = "";
+my $tpmap = $TOPNAME . "_map" ;
 
 if($syn==1 || $all==1){
     $c="$synplify_path/bin/synplify_premier_dp -batch $TOPNAME.prj";
@@ -163,8 +163,6 @@ if($map==1 || $all==1){
     
     $c=qq|ngdbuild -a $FAMILYNAME -d $DEVICENAME -p "$lattice_path/ispfpga/ep5c00/data" -dt "$TOPNAME.ngo" "$TOPNAME.ngd"|;
     execute($c);
-    
-    $tpmap = $TOPNAME . "_map" ;
     
     $c=qq|map -retime -split_node -a $FAMILYNAME -p $DEVICENAME -t $PACKAGE -s $SPEEDGRADE "$TOPNAME.ngd" -pr "$TOPNAME.prf" -o "$tpmap.ncd" -mp "$TOPNAME.mrp" "$TOPNAME.lpf"|;
     execute($c);

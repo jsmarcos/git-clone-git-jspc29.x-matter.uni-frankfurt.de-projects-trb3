@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2014-01-29
+-- Last update: 2014-02-28
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -180,7 +180,7 @@ architecture behavioral of Readout is
   signal fifo_nr_wr_fsm          : integer range 0 to CHANNEL_NUMBER := 0;
   signal buf_delay_fsm           : integer range 0 to 31             := 0;
   signal buf_delay_i             : integer range 0 to 31             := 0;
-  signal start_ch_fsm            : integer range 0 to CHANNEL_NUMBER := 0;
+--  signal start_ch_fsm            : integer range 0 to CHANNEL_NUMBER := 0;
 --  signal wr_trailer_fsm          : std_logic;
   signal idle_fsm                : std_logic;
   signal readout_fsm             : std_logic;
@@ -206,11 +206,11 @@ architecture behavioral of Readout is
   signal wr_status               : std_logic;
 --  signal wr_trailer              : std_logic;
   signal stop_status_i           : std_logic;
-  signal start_ch_i              : integer range 0 to CHANNEL_NUMBER := 0;
-  signal start_ch_reg            : integer range 0 to CHANNEL_NUMBER := 0;
-  signal start_ch_2reg           : integer range 0 to CHANNEL_NUMBER := 0;
-  signal start_ch_3reg           : integer range 0 to CHANNEL_NUMBER := 0;
-  signal start_ch_4reg           : integer range 0 to CHANNEL_NUMBER := 0;
+  --signal start_ch_i              : integer range 0 to CHANNEL_NUMBER := 0;
+  --signal start_ch_reg            : integer range 0 to CHANNEL_NUMBER := 0;
+  --signal start_ch_2reg           : integer range 0 to CHANNEL_NUMBER := 0;
+  --signal start_ch_3reg           : integer range 0 to CHANNEL_NUMBER := 0;
+  --signal start_ch_4reg           : integer range 0 to CHANNEL_NUMBER := 0;
   -- to endpoint
   signal data_out_reg            : std_logic_vector(31 downto 0);
   signal data_wr_reg             : std_logic;
@@ -359,7 +359,7 @@ begin  -- behavioral
     if rising_edge(CLK_100) then
       if RESET_100 = '1' then
         RD_CURRENT <= IDLE;
-        start_ch_i <= 0;
+--        start_ch_i <= 0;
         fifo_nr_rd <= 0;
       else
         RD_CURRENT       <= RD_NEXT;
@@ -368,7 +368,7 @@ begin  -- behavioral
         wr_status        <= wr_status_fsm;
         data_finished    <= data_finished_fsm;
         trig_release_reg <= trig_release_fsm;
-        start_ch_i       <= start_ch_fsm;
+--        start_ch_i       <= start_ch_fsm;
         buf_delay_i      <= buf_delay_fsm;
         wrong_readout_up <= wrong_readout_fsm;
         idle_time_up     <= idle_fsm;
@@ -384,14 +384,14 @@ begin  -- behavioral
   RD_FSM_PROC : process (RD_CURRENT, VALID_TIMING_TRG_IN, VALID_NOTIMING_TRG_IN, TRG_DATA_VALID_IN,
                          INVALID_TRG_IN, TMGTRG_TIMEOUT_IN, TRG_TYPE_IN, finished_i,
                          SPURIOUS_TRG_IN, stop_status_i, DEBUG_MODE_EN_IN, fifo_nr_rd,
-                         TRIG_WIN_END_RDO_IN, buf_delay_i, CH_EMPTY_IN, start_ch_i)
+                         TRIG_WIN_END_RDO_IN, buf_delay_i, CH_EMPTY_IN)--, start_ch_i)
   begin
 
     rd_en_fsm         <= (others => '0');
     wr_header_fsm     <= '0';
     data_finished_fsm <= '0';
     trig_release_fsm  <= '0';
-    start_ch_fsm      <= start_ch_i;
+--    start_ch_fsm      <= start_ch_i;
     wrong_readout_fsm <= '0';
     idle_fsm          <= '0';
     readout_fsm       <= '0';
@@ -423,7 +423,7 @@ begin  -- behavioral
           RD_NEXT           <= SEND_TRIG_RELEASE_A;
           data_finished_fsm <= '1';
         end if;
-        start_ch_fsm     <= 0;
+--        start_ch_fsm     <= 0;
         idle_fsm         <= '1';
         rd_fsm_debug_fsm <= x"1";
         
@@ -456,7 +456,7 @@ begin  -- behavioral
           end if;
         else                            -- go to the next channel
           fifo_nr_rd_fsm <= fifo_nr_rd + 1;
-          start_ch_fsm   <= start_ch_i + 1;
+--          start_ch_fsm   <= start_ch_i + 1;
         end if;
         readout_fsm      <= '1';
         rd_fsm_debug_fsm <= x"4";
@@ -523,10 +523,10 @@ begin  -- behavioral
     end case;
   end process RD_FSM_PROC;
 
-  start_ch_reg  <= start_ch_i    when rising_edge(CLK_100);
-  start_ch_2reg <= start_ch_reg  when rising_edge(CLK_100);
-  start_ch_3reg <= start_ch_2reg when rising_edge(CLK_100);
-  start_ch_4reg <= start_ch_3reg when rising_edge(CLK_100);
+  --start_ch_reg  <= start_ch_i    when rising_edge(CLK_100);
+  --start_ch_2reg <= start_ch_reg  when rising_edge(CLK_100);
+  --start_ch_3reg <= start_ch_2reg when rising_edge(CLK_100);
+  --start_ch_4reg <= start_ch_3reg when rising_edge(CLK_100);
 
   --purpose: FSM for writing data to endpoint buffer
   WR_FSM_CLK : process (CLK_100)
@@ -547,7 +547,7 @@ begin  -- behavioral
   end process WR_FSM_CLK;
 
   WR_FSM : process (WR_CURRENT, wr_number, fifo_nr_wr, DATA_LIMIT_IN, start_write, CH_DATA_VALID_IN,
-                    start_ch_4reg, ch_data_2reg)
+                    ch_data_2reg)--, start_ch_4reg)
 
   begin
 
@@ -560,7 +560,7 @@ begin  -- behavioral
     case (WR_CURRENT) is
       when IDLE =>
         if start_write = '1' then
-          fifo_nr_wr_fsm <= start_ch_4reg;
+          fifo_nr_wr_fsm <= 0;--start_ch_4reg;
           WR_NEXT        <= WR_CH;
         end if;
         wr_fsm_debug_fsm <= x"1";
@@ -929,28 +929,6 @@ begin  -- behavioral
     end if;
   end process Statistics_Readout_Wait_Time;
 
--- Empty channel number
-  Statistics_Empty_Channel_Number : process (CLK_100)
-    variable i : integer := CHANNEL_NUMBER;
-  begin
-    if rising_edge(CLK_100) then
-      if RESET_COUNTERS = '1' then
-        total_empty_channel <= (others => '0');
-        i                   := CHANNEL_NUMBER;
-      elsif trig_win_end_100_p = '1' then
-        empty_channels(CHANNEL_NUMBER-1 downto 0) <= CH_EMPTY_IN(CHANNEL_NUMBER-1 downto 0);
-        i                                         := 0;
-      elsif i = CHANNEL_NUMBER then
-        i := i;
-      elsif empty_channels(i) = '1' then
-        total_empty_channel <= total_empty_channel + to_unsigned(1, 1);
-        i                   := i + 1;
-      else
-        i := i + 1;
-      end if;
-    end if;
-  end process Statistics_Empty_Channel_Number;
-
   -- Number of sent data finished
   Statistics_Finished_Number : process (CLK_100)
   begin
@@ -974,8 +952,8 @@ begin  -- behavioral
   STATUS_REGISTERS_BUS_OUT(0)(27 downto 17) <= TDC_VERSION(10 downto 0);
   STATUS_REGISTERS_BUS_OUT(0)(31 downto 28) <= TRG_TYPE_IN    when rising_edge(CLK_100);
 
-  STATUS_REGISTERS_BUS_OUT(1)               <= slow_control_ch_empty_i(31 downto 0);
-  STATUS_REGISTERS_BUS_OUT(2)               <= slow_control_ch_empty_i(63 downto 32);
+  STATUS_REGISTERS_BUS_OUT(1)               <= (others => '0');
+  STATUS_REGISTERS_BUS_OUT(2)               <= (others => '0');
   STATUS_REGISTERS_BUS_OUT(3)(10 downto 0)  <= TRG_WIN_PRE;
   STATUS_REGISTERS_BUS_OUT(3)(15 downto 11) <= (others => '0');
   STATUS_REGISTERS_BUS_OUT(3)(26 downto 16) <= TRG_WIN_POST;
@@ -996,40 +974,10 @@ begin  -- behavioral
   STATUS_REGISTERS_BUS_OUT(16)(23 downto 0) <= std_logic_vector(readout_time);
   STATUS_REGISTERS_BUS_OUT(17)(23 downto 0) <= std_logic_vector(timeout_number);
   STATUS_REGISTERS_BUS_OUT(18)(23 downto 0) <= std_logic_vector(finished_number);
-
-  debug0 : process (CLK_100)
-  begin
-    if rising_edge(CLK_100) then
-      if (wr_fsm_debug /= wr_fsm_debug_fsm) then
-        status_registers_bus_i(3 downto 0) <= wr_fsm_debug;
-      end if;
-    end if;
-  end process debug0;
-
-  GEN_Debug: for i in 0 to 6 generate
-    debug : process (CLK_100)
-    begin
-      if rising_edge(CLK_100) then
-        if wr_fsm_debug /= wr_fsm_debug_fsm then
-          status_registers_bus_i((i+1)*4+3 downto (i+1)*4) <= status_registers_bus_i(i*4+3 downto i*4);
-        end if;
-      end if;
-    end process debug;
-  end generate GEN_Debug;
-  STATUS_REGISTERS_BUS_OUT(19) <= status_registers_bus_i;
-
-  --STATUS_REGISTERS_BUS_OUT(19)(4 downto 0)   <= CH_EMPTY_IN;
-  --STATUS_REGISTERS_BUS_OUT(19)(11 downto 8)  <= std_logic_vector(to_unsigned(fifo_nr_rd, 4));
-  --STATUS_REGISTERS_BUS_OUT(20)(0)            <= wr_ch_data_reg;
-  --STATUS_REGISTERS_BUS_OUT(20)(11 downto 8)  <= std_logic_vector(to_unsigned(fifo_nr_wr, 4));
-  --STATUS_REGISTERS_BUS_OUT(20)(31 downto 16) <= ch_data_2reg(fifo_nr_wr)(35 downto 20);
-
+  
   FILL_BUS1 : for i in 4 to 18 generate
     STATUS_REGISTERS_BUS_OUT(i)(31 downto 24) <= (others => '0');
   end generate FILL_BUS1;
-
-  slow_control_ch_empty_i(63 downto CHANNEL_NUMBER-1) <= (others => '1');
-  slow_control_ch_empty_i(CHANNEL_NUMBER-2 downto 0)  <= ch_empty_2reg(CHANNEL_NUMBER-1 downto 1);
 
 -------------------------------------------------------------------------------
 -- Registering
