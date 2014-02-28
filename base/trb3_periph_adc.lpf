@@ -80,7 +80,6 @@ IOBUF GROUP "TEST_LINE_group" IO_TYPE=LVCMOS25 PULLMODE=DOWN DRIVE=12;
 # ADC INPUTS
 #################################################################
 
-
 LOCATE COMP  "ADC1_CH_0"              SITE "P1";
 LOCATE COMP  "ADC1_CH_1"              SITE "T2";
 LOCATE COMP  "ADC1_CH_2"              SITE "R1";
@@ -123,19 +122,19 @@ LOCATE COMP  "ADC6_CH_3"              SITE "E3";
 LOCATE COMP  "ADC_DCO_6"              SITE "G5";
 LOCATE COMP  "ADC6_CH_4"              SITE "H6";
 
-LOCATE COMP  "ADC7_CH_0"              SITE "G2";
-LOCATE COMP  "ADC7_CH_1"              SITE "F2";
-LOCATE COMP  "ADC7_CH_2"              SITE "C2";
-LOCATE COMP  "ADC7_CH_3"              SITE "H5";
-LOCATE COMP  "ADC_DCO_7"              SITE "K7";
-LOCATE COMP  "ADC7_CH_4"              SITE "K8";
+LOCATE COMP  "ADC7_CH_0"              SITE "J23";
+LOCATE COMP  "ADC7_CH_1"              SITE "G26";
+LOCATE COMP  "ADC7_CH_2"              SITE "H26";
+LOCATE COMP  "ADC7_CH_3"              SITE "K23";
+LOCATE COMP  "ADC_DCO_7"              SITE "F24";
+LOCATE COMP  "ADC7_CH_4"              SITE "F25";
 
-LOCATE COMP  "ADC8_CH_0"              SITE "W23";
-LOCATE COMP  "ADC8_CH_1"              SITE "AA25";
-LOCATE COMP  "ADC8_CH_2"              SITE "AA26";
-LOCATE COMP  "ADC8_CH_3"              SITE "AA24";
-LOCATE COMP  "ADC_DCO_8"              SITE "W21";
-LOCATE COMP  "ADC8_CH_4"              SITE "AD26";
+LOCATE COMP  "ADC8_CH_0"              SITE "G2";
+LOCATE COMP  "ADC8_CH_1"              SITE "F2";
+LOCATE COMP  "ADC8_CH_2"              SITE "C2";
+LOCATE COMP  "ADC8_CH_3"              SITE "H5";
+LOCATE COMP  "ADC_DCO_8"              SITE "K7";
+LOCATE COMP  "ADC8_CH_4"              SITE "K8";
 
 LOCATE COMP  "ADC9_CH_0"              SITE "AC26";
 LOCATE COMP  "ADC9_CH_1"              SITE "Y19";
@@ -158,12 +157,12 @@ LOCATE COMP  "ADC11_CH_3"             SITE "L25";
 LOCATE COMP  "ADC_DCO_11"             SITE "P23";
 LOCATE COMP  "ADC11_CH_4"             SITE "P21";
 
-LOCATE COMP  "ADC12_CH_0"             SITE "J23";   
-LOCATE COMP  "ADC12_CH_1"             SITE "G26";   
-LOCATE COMP  "ADC12_CH_2"             SITE "H26";   
-LOCATE COMP  "ADC12_CH_3"             SITE "K23";   
-LOCATE COMP  "ADC_DCO_12"             SITE "F24";   
-LOCATE COMP  "ADC12_CH_4"             SITE "F25";   
+LOCATE COMP  "ADC12_CH_0"             SITE "W23";   
+LOCATE COMP  "ADC12_CH_1"             SITE "AA25";   
+LOCATE COMP  "ADC12_CH_2"             SITE "AA26";   
+LOCATE COMP  "ADC12_CH_3"             SITE "AA24";   
+LOCATE COMP  "ADC_DCO_12"             SITE "W21";   
+LOCATE COMP  "ADC12_CH_4"             SITE "AD26";   
 
 DEFINE PORT GROUP "ADC_group" "ADC*" ;
 IOBUF GROUP "ADC_group" IO_TYPE=LVDS25 DIFFRESISTOR=100;
@@ -198,3 +197,4 @@ LOCATE COMP  "FPGA_SDO_0"            SITE "T25";
 LOCATE COMP  "FPGA_SDO_1"            SITE "T24";
 DEFINE PORT GROUP "FPGA_group" "FPGA_*" ;
 IOBUF GROUP "FPGA_group" IO_TYPE=LVCMOS25 PULLMODE=DOWN;
+

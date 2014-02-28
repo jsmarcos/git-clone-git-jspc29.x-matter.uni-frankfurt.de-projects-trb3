@@ -205,9 +205,9 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   signal clk_adcref_i      : std_logic;
   signal debug_adc         : std_logic_vector(31 downto 0);
   signal adc_restart_i     : std_logic;
-type q_t is array(0 to 4) of std_logic_vector(19 downto 0);
-signal q : q_t;
-signal clk_data_left   : std_logic;  
+
+  signal adc_data : std_logic_vector(479 downto 0);
+
 begin
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -238,21 +238,13 @@ begin
 ---------------------------------------------------------------------------
   THE_MAIN_PLL : pll_in200_out100
     port map(
-      CLK   => CLK_GPLL_RIGHT,
+      CLK   => CLK_PCLK_LEFT,
       CLKOP => clk_100_i,
       CLKOK => clk_200_i,
       LOCK  => pll_lock
       );
 
-  THE_ADC_PLL : entity work.pll_adc10bit
-    port map(
-      CLK   => CLK_PCLK_RIGHT,
-      CLKOS => open,
-      CLKOP => clk_adcref_i,
-      LOCK  => open
-      );
-      
-  clk_adcfast_i <= clk_200_i;
+
   
   
 ---------------------------------------------------------------------------
@@ -419,74 +411,41 @@ begin
 ---------------------------------------------------------------------------
 -- AddOn
 ---------------------------------------------------------------------------
--- THE_ADC : entity work.adc_ad9219
---   generic map(
---     CHANNELS      => 4,
---     DEVICES_LEFT  => 7,
---     DEVICES_RIGHT => 5,
---     RESOLUTION    => 10
---     )
---   port map(
---     CLK        => clk_100_i,
---     CLK_ADCREF => clk_adcref_i,
---     CLK_ADCDAT => clk_adcfast_i,
---     RESTART_IN => adc_restart_i,
---     ADCCLK_OUT => P_CLOCK,
---     
---     ADC_DATA( 4 downto  0)   => ADC1_CH,
---     ADC_DATA( 9 downto  5)   => ADC2_CH,
---     ADC_DATA(14 downto 10)   => ADC3_CH,
---     ADC_DATA(19 downto 15)   => ADC4_CH,
---     ADC_DATA(24 downto 20)   => ADC5_CH,
---     ADC_DATA(29 downto 25)   => ADC6_CH,
---     ADC_DATA(34 downto 30)   => ADC7_CH,
---     ADC_DATA(39 downto 35)   => ADC8_CH,
---     ADC_DATA(44 downto 40)   => ADC9_CH,
---     ADC_DATA(49 downto 45)   => ADC10_CH,
---     ADC_DATA(54 downto 50)   => ADC11_CH,
---     ADC_DATA(59 downto 55)   => ADC12_CH,
---     
---     ADC_DCO    => ADC_DCO,
---     
---     DATA_OUT       => open,
---     FCO_OUT        => open,
---     DATA_VALID_OUT => open,
---     DEBUG          => debug_adc
---     );
-
-
-THE_LEFT : entity work.dqsinput_5x5
-    port map(
-        clk_0  => ADC_DCO(8),
-        clk_1  => ADC_DCO(9), 
-        clk_2  => ADC_DCO(10), 
-        clk_3  => ADC_DCO(11),
-        clk_4  => ADC_DCO(12),
-        clkdiv_reset => '0',
-        eclk   => clk_adcref_i, 
-        reset_0 => '0',
-        reset_1 => '0', 
-        reset_2 => '0',
-        reset_3 => '0',
-        reset_4 => '0',
-        sclk    => clk_data_left,
-        datain_0 => ADC8_CH,
-        datain_1 => ADC9_CH,
-        datain_2 => ADC10_CH,
-        datain_3 => ADC11_CH,
-        datain_4 => ADC12_CH,
-        q_0      => q(0),
-        q_1      => q(1),
-        q_2      => q(2),
-        q_3      => q(3),
-        q_4      => q(4)
-        );
-
-        
---Just to hinder optimization to remove the DDR buffers        
-LED_RED <= q(0)(0) or q(1)(0) or q(2)(0) or q(3)(0) or q(4)(0); 
-        
-
+THE_ADC : entity work.adc_ad9219
+  generic map(
+    CHANNELS      => 4,
+    DEVICES_LEFT  => 7,
+    DEVICES_RIGHT => 5,
+    RESOLUTION    => 10
+    )
+  port map(
+    CLK        => clk_100_i,
+    CLK_ADCRAW => CLK_PCLK_RIGHT,
+    CLK_ADCREF => clk_adcref_i,
+    CLK_ADCDAT => clk_adcfast_i,
+    RESTART_IN => adc_restart_i,
+    ADCCLK_OUT => P_CLOCK,
+    
+    ADC_DATA( 4 downto  0)   => ADC1_CH,
+    ADC_DATA( 9 downto  5)   => ADC2_CH,
+    ADC_DATA(14 downto 10)   => ADC3_CH,
+    ADC_DATA(19 downto 15)   => ADC4_CH,
+    ADC_DATA(24 downto 20)   => ADC5_CH,
+    ADC_DATA(29 downto 25)   => ADC6_CH,
+    ADC_DATA(34 downto 30)   => ADC7_CH,
+    ADC_DATA(39 downto 35)   => ADC8_CH,
+    ADC_DATA(44 downto 40)   => ADC9_CH,
+    ADC_DATA(49 downto 45)   => ADC10_CH,
+    ADC_DATA(54 downto 50)   => ADC11_CH,
+    ADC_DATA(59 downto 55)   => ADC12_CH,
+    
+    ADC_DCO    => ADC_DCO,
+    
+    DATA_OUT       => adc_data,
+    FCO_OUT        => open,
+    DATA_VALID_OUT => open,
+    DEBUG          => debug_adc
+    );
 
 adc_restart_i <= '0';
 
@@ -577,7 +536,7 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
 
 FPGA_SPI : spi_ltc2600
   generic map (
-    BITS       => 16,
+    BITS       => 32,
     WAITCYCLES => 15)
   port map (
     CLK_IN         => clk_100_i,
@@ -600,12 +559,21 @@ FPGA_SPI : spi_ltc2600
 
 
 
+    SPI_ADC_SCK         <= clk_100_i;
+    SPI_ADC_SDIO        <= '0';
+    
+    LMK_CLK             <= clk_100_i;
+    LMK_DATA            <= '0';
+    LMK_LE_1            <= reset_i;
+    LMK_LE_2            <= reset_i;
+    
+
 ---------------------------------------------------------------------------
 -- LED
 ---------------------------------------------------------------------------
 LED_GREEN  <= not med_stat_op(9);
 LED_ORANGE <= not med_stat_op(10);
--- LED_RED    <= not or_all(debug_adc) when rising_edge(clk_100_i);
+LED_RED    <= not or_all(debug_adc) when rising_edge(clk_100_i);
 LED_YELLOW <= not med_stat_op(11);
 
 ---------------------------------------------------------------------------
