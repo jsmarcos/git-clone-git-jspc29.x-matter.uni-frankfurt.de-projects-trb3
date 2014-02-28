@@ -47,11 +47,11 @@ MULTICYCLE TO CELL "gen_single_sfp_THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
 MULTICYCLE TO CELL "gen_four_sfp_THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
 
 #SPI Interface
-REGION "REGION_SPI" "R13C150D" 20 20 DEVSIZE;
+REGION "REGION_SPI" "R9C108D" 20 20 DEVSIZE;
 LOCATE UGROUP "THE_SPI_MASTER/SPI_group" REGION "REGION_SPI" ; 
 LOCATE UGROUP "THE_SPI_MEMORY/SPI_group" REGION "REGION_SPI" ;
 
-REGION "REGION_CTS" "R42C38D" 37 57 DEVSIZE;
+#REGION "REGION_CTS" "R42C2D" 37 57 DEVSIZE;
 # UGROUP "cts_group" 
 #   BLKNAME THE_CTS;
 # LOCATE UGROUP "cts_group" REGION "REGION_CTS";  
@@ -59,7 +59,7 @@ MULTICYCLE TO CELL "THE_MBS/trg_sync" 20 ns;
 MULTICYCLE TO CELL "THE_MBS/error_reg" 20 ns;
 
 #TrbNet Hub 
-REGION "REGION_IOBUF" "R30C90D" 55 75 DEVSIZE;
+REGION "REGION_IOBUF" "R40C40D" 55 75 DEVSIZE;
 LOCATE UGROUP "THE_HUB/THE_HUB/gen_muxes_0_MPLEX/MUX_group" REGION "REGION_IOBUF" ;
 LOCATE UGROUP "THE_HUB/THE_HUB/gen_muxes_1_MPLEX/MUX_group" REGION "REGION_IOBUF" ;
 LOCATE UGROUP "THE_HUB/THE_HUB/gen_muxes_2_MPLEX/MUX_group" REGION "REGION_IOBUF" ;
@@ -117,6 +117,8 @@ LOCATE UGROUP "THE_HUB/THE_HUB/gen_bufs_4_gen_iobufs_3_gen_iobuf_IOBUF/genINITOB
 
 #GbE Part
 
+#GbE Part
+
 FREQUENCY NET "GBE/serdes_clk_125"                              125.000000 MHz ;
 FREQUENCY NET "GBE/CLK_125_OUT_inferred_clock"                  125.00 MHz ;
 FREQUENCY NET "GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/clk_int_SERDES_GBE/ff_txfullclk"  125.000000 MHz ;
@@ -152,13 +154,21 @@ UGROUP "gbe_rx_tx"
   BLKNAME GBE/setup_imp_gen_SETUP;
 
   
-REGION "GBE_REGION" "R44C45D" 36 42 DEVSIZE;
-REGION "MED0" "R81C10D" 34 40 DEVSIZE;
+#REGION "GBE_REGION" "R20C65D" 36 42 DEVSIZE;
+#REGION "MED0" "R81C30D" 34 40 DEVSIZE;
 #LOCATE UGROUP "gbe_rx_tx" REGION "GBE_REGION" ;
 FREQUENCY NET "GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/un1_PCS_SERDES_1" 125.000000 MHz ;
 FREQUENCY NET "GBE/serdes_clk_125_c" 125.000000 MHz ;
-REGION "GBE_MAIN_REGION" "R50C30C" 65 64 DEVSIZE;
+#REGION "GBE_MAIN_REGION" "R50C64C" 65 64 DEVSIZE;
+
 #LOCATE UGROUP "controllers" REGION "GBE_MAIN_REGION" ;
+#LOCATE UGROUP "gbe_rx_tx" REGION "GBE_MAIN_REGION" ;
+
+
+
+REGION "MED0" "R69C4D" 35 40 DEVSIZE;
+FREQUENCY NET "GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/un1_PCS_SERDES_1" 125.000000 MHz ;
+FREQUENCY NET "GBE/serdes_clk_125_c" 125.000000 MHz ;
 #LOCATE UGROUP "tsmac" REGION "MED0" ;
 BLOCK JTAGPATHS ;
 UGROUP "sd_tx_to_pcs" 
@@ -245,9 +255,9 @@ MAXDELAY NET "GBE/pcs_rxd_q_6" 1.5 ns;
 MAXDELAY NET "GBE/pcs_rxd_q_7" 1.5 ns;
 
 DEFINE PORT GROUP "RX_GRP" "GBE/pcs_rx_en_q"
-              "GBE/pcs_rx_er_q"
-              "GBE/pcs_rxd_q_*";
-INPUT_SETUP GROUP "GBE/RX_GRP" 3.500000 ns HOLD 0.000000 ns CLKPORT "GBE/serdes_rx_clk_c" ;
+                     "GBE/pcs_rx_er_q"
+                     "GBE/pcs_rxd_q_*";
+INPUT_SETUP GROUP "RX_GRP" 3.500000 ns HOLD 0.000000 ns CLKPORT "GBE/serdes_rx_clk_c" ;                   
 
 PRIORITIZE NET "GBE/pcs_rx_en_q" 100;
 PRIORITIZE NET "GBE/pcs_rx_er_q" 100;
@@ -261,3 +271,6 @@ PRIORITIZE NET "GBE/pcs_rxd_q_6" 100;
 PRIORITIZE NET "GBE/pcs_rxd_q_7" 100;
 PRIORITIZE NET "GBE/pcs_rxd_q_0" 100;
 PRIORITIZE NET "GBE/serdes_rx_clk_c" 80;
+
+BLOCK PATH FROM CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_cpu_if*" TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac*" ;
+BLOCK PATH FROM CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_cpu_if*" TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_rx_mac*" ;

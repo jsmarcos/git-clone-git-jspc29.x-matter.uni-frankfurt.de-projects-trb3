@@ -139,7 +139,7 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_lsm_sfp.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.vhd"
 
 add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
-
+add_file -vhdl -lib "work" "../base/cores/pll_in200_out40.vhd"
 add_file -vhdl -lib "work" "../base/cores/pll_adc10bit.vhd"
 add_file -vhdl -lib "work" "../base/cores/dqsinput_7x5.vhd"
 add_file -vhdl -lib "work" "../base/cores/dqsinput_5x5.vhd"

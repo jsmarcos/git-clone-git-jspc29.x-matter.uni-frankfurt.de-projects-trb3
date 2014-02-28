@@ -98,8 +98,12 @@ add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_frame_constr.vhd"
 #add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_packet_constr_nologic.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_packet_constr.vhd"
 #add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_packet_constr_simple_sender.vhd"
+
+
+#add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_ipu2gbe_simple_sender.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_ipu2gbe.vhd"
-#add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_ipu2gbe_nologic.vhd"
+
+
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ip_configurator.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_buf.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_setup.vhd"
@@ -108,10 +112,7 @@ add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/mb_mac_sim.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/slv_mac_memory.vhd"
 #add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/slv_register.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/ip_mem.vhd"
-#add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/serdes/serdes_gbe_0_extclock_8b.vhd"
-#add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/serdes_intclk/serdes_gbe_0_intclock_8b.vhd"
 
-#add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/serdes_intclk/serdes_gbe_0_intclock_8b_ecp3.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/serdes_gbe_0ch/serdes_gbe_0ch.vhd"
 
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/mac_init_mem.vhd"
@@ -126,7 +127,6 @@ add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_512x32.vhd"
 
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_2048x8x16.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_65536x18x9.vhd"
-#add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_1024x16x8.vhd"
 
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_32kx16x8_mb.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/debug_fifo_2kx16.vhd"
@@ -145,9 +145,9 @@ add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_response_construc
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_4kx18x9.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_4kx8_ecp3.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_512x32x8.vhd"
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_32kx9_flags.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_ipu_interface.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_event_constr.vhd"
-add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_32kx9_flags.vhd"
 
 #trbnet and base files
 
@@ -258,14 +258,14 @@ add_file -vhdl -lib work "source/cts.vhd"
 #add_file -vhdl -lib "work" "tdc_release/Adder_304.vhd"
 add_file -vhdl -lib "work" "tdc_release/bit_sync.vhd"
 add_file -vhdl -lib "work" "tdc_release/BusHandler.vhd"
-add_file -vhdl -lib "work" "tdc_release/Channel.vhd"
 add_file -vhdl -lib "work" "tdc_release/Channel_200.vhd"
+add_file -vhdl -lib "work" "tdc_release/Channel.vhd"
 add_file -vhdl -lib "work" "tdc_release/Encoder_304_Bit.vhd"
 #add_file -vhdl -lib "work" "tdc_release/FIFO_32x32_OutReg.vhd"
 add_file -vhdl -lib "work" "tdc_release/LogicAnalyser.vhd"
 add_file -vhdl -lib "work" "tdc_release/Readout.vhd"
-add_file -vhdl -lib "work" "tdc_release/Reference_Channel_200.vhd"
-add_file -vhdl -lib "work" "tdc_release/Reference_Channel.vhd"
+#add_file -vhdl -lib "work" "tdc_release/Reference_Channel_200.vhd"
+#add_file -vhdl -lib "work" "tdc_release/Reference_Channel.vhd"
 add_file -vhdl -lib "work" "tdc_release/ROM_encoder_3.vhd"
 #add_file -vhdl -lib "work" "tdc_release/ROM_FIFO.vhd"
 add_file -vhdl -lib "work" "tdc_release/ShiftRegisterSISO.vhd"
@@ -275,6 +275,9 @@ add_file -vhdl -lib "work" "tdc_release/fallingEdgeDetect.vhd"
 add_file -vhdl -lib "work" "tdc_release/FIFO_36x128_OutReg_Counter.vhd"
 add_file -vhdl -lib "work" "tdc_release/risingEdgeDetect.vhd"
 add_file -vhdl -lib "work" "tdc_release/ROM4_Encoder.vhd"
+add_file -vhdl -lib "work" "../base/cores/FIFO_36x128_OutReg.vhd"
+add_file -vhdl -lib "work" "../base/cores/FIFO_DC_36x128_OutReg.vhd"
+add_file -vhdl -lib "work" "tdc_release/TriggerHandler.vhd"
 
 
 add_file -vhdl -lib work "./trb3_central.vhd"

@@ -1,1 +1,0 @@
-../../../trbnet/gbe2_ecp3/ipcores_ecp3/serdes_ch4.txt
