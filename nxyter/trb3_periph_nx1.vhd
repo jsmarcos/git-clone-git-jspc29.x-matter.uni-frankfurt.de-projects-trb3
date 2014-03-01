@@ -16,7 +16,7 @@ use ecp3.components.all;
 entity trb3_periph is
   port(
     --Clocks
-    CLK_GPLL_RIGHT       : in    std_logic;  --Clock Manager 2/(2468), 200 MHz  <-- MAIN CLOCK for FPGA
+    CLK_GPLL_RIGHT            : in    std_logic;  --Clock Manager 2/(2468), 200 MHz  <-- MAIN CLOCK for FPGA
     CLK_GPLL_LEFT        : in    std_logic;  --Clock Manager 1/(2468), 125 MHz
     CLK_PCLK_LEFT        : in    std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL left!
     CLK_PCLK_RIGHT       : in    std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
@@ -128,6 +128,8 @@ end entity;
 
 architecture trb3_periph_arch of trb3_periph is
 
+  constant NUM_NXYTER : integer := 1;
+    
   -- For 250MHz PLL nxyter clock, THE_32M_ODDR_1
   attribute ODDRAPPS : string;
   attribute ODDRAPPS of THE_NX_MAIN_ODDR_1       : label is "SCLK_ALIGNED";
@@ -182,12 +184,12 @@ architecture trb3_periph_arch of trb3_periph is
   signal trg_spike_detected_i   : std_logic;
 
   --Data channel
-  signal fee_trg_release_i      : std_logic_vector(2-1 downto 0);
-  signal fee_trg_statusbits_i   : std_logic_vector(2*32-1 downto 0);
-  signal fee_data_i             : std_logic_vector(2*32-1 downto 0);
-  signal fee_data_write_i       : std_logic_vector(2-1 downto 0);
-  signal fee_data_finished_i    : std_logic_vector(2-1 downto 0);
-  signal fee_almost_full_i      : std_logic_vector(2-1 downto 0);
+  signal fee_trg_release_i      : std_logic_vector(NUM_NXYTER-1 downto 0);
+  signal fee_trg_statusbits_i   : std_logic_vector(NUM_NXYTER*32-1 downto 0);
+  signal fee_data_i             : std_logic_vector(NUM_NXYTER*32-1 downto 0);
+  signal fee_data_write_i       : std_logic_vector(NUM_NXYTER-1 downto 0);
+  signal fee_data_finished_i    : std_logic_vector(NUM_NXYTER-1 downto 0);
+  signal fee_almost_full_i      : std_logic_vector(NUM_NXYTER-1 downto 0);
 
   --Slow Control channel
   signal common_stat_reg        : std_logic_vector(std_COMSTATREG*32-1 downto 0);
@@ -373,8 +375,9 @@ begin
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
       CLOCK_FREQUENCY           => 100,
       TIMING_TRIGGER_RAW        => c_YES,
+
       --Configure data handler
-      DATA_INTERFACE_NUMBER     => 2,
+      DATA_INTERFACE_NUMBER     => NUM_NXYTER,
       DATA_BUFFER_DEPTH         => 13,         --13
       DATA_BUFFER_WIDTH         => 32,
       DATA_BUFFER_FULL_THRESH   => 2**13-800,  --2**13-1024
@@ -425,14 +428,6 @@ begin
       FEE_DATA_WRITE_IN(0)                        => fee_data_write_i(0),
       FEE_DATA_FINISHED_IN(0)                     => fee_data_finished_i(0),
       FEE_DATA_ALMOST_FULL_OUT(0)                 => fee_almost_full_i(0),
-
-      --Response from FEE, i.e. nXyter #1
-      FEE_TRG_RELEASE_IN(1)                       => fee_trg_release_i(1),
-      FEE_TRG_STATUSBITS_IN(1*32+31  downto 1*32) => fee_trg_statusbits_i(1*32+31 downto 1*32),
-      FEE_DATA_IN(1*32+31  downto 1*32)           => fee_data_i(1*32+31 downto 1*32),
-      FEE_DATA_WRITE_IN(1)                        => fee_data_write_i(1),
-      FEE_DATA_FINISHED_IN(1)                     => fee_data_finished_i(1),
-      FEE_DATA_ALMOST_FULL_OUT(1)                 => fee_almost_full_i(1),
 
       -- Slow Control Data Port
       REGIO_COMMON_STAT_REG_IN           => common_stat_reg,  --0x00

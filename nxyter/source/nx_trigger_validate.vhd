@@ -122,7 +122,8 @@ architecture Behavioral of nx_trigger_validate is
   signal store_to_fifo         : std_logic;
   signal trigger_busy_o        : std_logic;
   signal nomore_data_o         : std_logic;
-  signal wait_timer_init       : unsigned(11 downto 0);
+  signal wait_timer_start      : std_logic;
+  signal wait_timer_start_ns   : std_logic;
   signal wait_timer_init_ns    : unsigned(19 downto 0);
   signal token_return_last     : std_logic;
   signal token_return_first    : std_logic;
@@ -216,18 +217,19 @@ begin
   DEBUG_OUT(15)           <= nomore_data_o;
   
   -- Timer
-  nx_timer_1: nx_timer
+  timer_1: timer
     generic map(
       CTR_WIDTH => 12
       )
     port map (
       CLK_IN         => CLK_IN,
       RESET_IN       => timer_reset,
-      TIMER_START_IN => wait_timer_init,
+      TIMER_START_IN => wait_timer_start,
+      TIMER_END_IN   => readout_time_max,
       TIMER_DONE_OUT => wait_timer_done
       );
 
-  nx_timer_2: nx_timer
+  timer_2: timer
     generic map(
       CTR_WIDTH => 20,
       STEP_SIZE => 10
@@ -235,7 +237,8 @@ begin
     port map (
       CLK_IN         => CLK_IN,
       RESET_IN       => timer_reset,
-      TIMER_START_IN => wait_timer_init_ns,
+      TIMER_START_IN => wait_timer_start_ns,
+      TIMER_END_IN   => wait_timer_init_ns,
       TIMER_DONE_OUT => wait_timer_done_ns
       );
   
@@ -529,8 +532,8 @@ begin
         store_to_fifo               <= '0';
         trigger_busy_o              <= '0';
         nomore_data_o               <= '0';
-        wait_timer_init             <= (others => '0');
-        wait_timer_init_ns          <= (others => '0');
+        wait_timer_start            <= '0';
+        wait_timer_start_ns         <= '0';
         wait_timer_reset_all        <= '0';
         min_val_time_expired        <= '0';
         t_data_o                    <= (others => '0');
@@ -550,8 +553,8 @@ begin
         STATE                       <= S_TEST_SELF_TRIGGER;
       else
         store_to_fifo               <= '0';
-        wait_timer_init             <= (others => '0');
-        wait_timer_init_ns          <= (others => '0');
+        wait_timer_start            <= '0';
+        wait_timer_start_ns         <= '0';
         wait_timer_reset_all        <= '0';
         trigger_busy_o              <= '1';
         nomore_data_o               <= '0';
@@ -631,6 +634,7 @@ begin
               readout_mode                <= readout_mode_r;
               
               -- wait for data arrival and clear evt buffer
+              wait_timer_start_ns         <= '1';
               wait_timer_init_ns          <= wait_for_data_time;
               evt_buffer_clear_o          <= '1';
               STATE                       <= S_WAIT_DATA;
@@ -677,7 +681,8 @@ begin
             end if;
             
           when S_PROCESS_START =>
-            wait_timer_init               <= readout_time_max;
+            wait_timer_start              <= '1';
+            wait_timer_start_ns           <= '1';
             wait_timer_init_ns            <= min_validation_time;
             token_return_first            <= '0'; 
             ch_status_cmd_tr              <= CS_RESET;

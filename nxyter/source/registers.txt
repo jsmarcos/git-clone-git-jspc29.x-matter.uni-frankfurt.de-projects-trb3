@@ -63,11 +63,9 @@
 0x8505 :  r/w  johnson_counter_sync (2 Bit), do not touch, experts only register
 0x8506 :  r/w  PLL ADC Sampling Clock DPHASE (4 Bit)
 0x8507 :  r/w  PLL ADC Sampling Clock FINEDELB (4 Bit)
-
 0x8508 :  r    current ADC FIFO value
-0x8509 :  r/w  Enable Test ADC Input Data Error Test
-0x850a :  r    ADC Input Data Error Counter (16 Bit)
-                (only valid in case of 0x8509 is 1, see line above)
+0x8509 :  r    ADC Reset Counter
+0x850a :  r    Reserved 
 0x850b :  r/w  r: Nxyter Data Clock Status (1 = O.K.)
                w: reset ADC Handler
 0x850c :  r/w  r: Reset Handler Counter (16 Bit)
@@ -81,8 +79,8 @@
 0x8512 :  r    Test ADC Value
 0x8513 :  r/w  Debug Multiplexer:
                0: no ADC Values, normal Debug
-               1: ADC Value Nxyter
-               2: ADC Value Testchannel
+               1: ADC Handler adc_ad922** direct
+               2: Testchannel handler, forget about it
                3: ADC Reset Handler
 
 -- NX Data Validate
@@ -189,7 +187,7 @@
 
 -- Debug Multiplexer
 0x8020 :  r/w   Select Debug Entity
-                 0: nxyter_registers
+                 0: nx_control
                  1: nx_setup
                  2: nx_i2c_master
                  3: adc_spi_master

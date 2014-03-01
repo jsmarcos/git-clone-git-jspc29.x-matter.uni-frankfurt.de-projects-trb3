@@ -1,1 +1,1 @@
-trb3_periph_nx2.vhd
+trb3_periph_nx1.vhd

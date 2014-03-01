@@ -14,6 +14,9 @@ use ecp3.components.all;
 
 
 entity trb3_periph is
+  generic (
+    NUM_NXYTER : integer := 1;
+    );
   port(
     --Clocks
     CLK_GPLL_RIGHT       : in    std_logic;  --Clock Manager 2/(2468), 200 MHz  <-- MAIN CLOCK for FPGA

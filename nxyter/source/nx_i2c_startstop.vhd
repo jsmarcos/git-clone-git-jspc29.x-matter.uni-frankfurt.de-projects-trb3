@@ -27,13 +27,13 @@ end entity;
 architecture Behavioral of nx_i2c_startstop is
 
   -- I2C Bus  
-  signal sda_o             : std_logic;
-  signal scl_o             : std_logic;
-  signal sequence_done_o   : std_logic;
-  signal wait_timer_init   : unsigned(11 downto 0);
+  signal sda_o              : std_logic;
+  signal scl_o              : std_logic;
+  signal sequence_done_o    : std_logic;
+  signal wait_timer_start   : std_logic;
 
-  signal sequence_done_o_x : std_logic;
-  signal wait_timer_init_x : unsigned(11 downto 0);
+  signal wait_timer_start_x : std_logic;
+  signal sequence_done_o_x  : std_logic;
   
   type STATES is (S_IDLE,
                   S_START,
@@ -54,14 +54,15 @@ architecture Behavioral of nx_i2c_startstop is
 begin
 
   -- Timer
-  nx_timer_1: nx_timer
+  timer_static_1: timer_static
     generic map (
-      CTR_WIDTH => 12
+      CTR_WIDTH => 12,
+      CTR_END   => to_integer(I2C_SPEED srl 1)
       )
     port map (
       CLK_IN         => CLK_IN,
       RESET_IN       => RESET_IN,
-      TIMER_START_IN => wait_timer_init,
+      TIMER_START_IN => wait_timer_start,
       TIMER_DONE_OUT => wait_timer_done
       );
 
@@ -69,12 +70,12 @@ begin
   begin 
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
+        wait_timer_start <= '0';
         sequence_done_o  <= '0';
-        wait_timer_init  <= (others => '0');
         STATE <= S_IDLE;
       else
+        wait_timer_start <= wait_timer_start_x;
         sequence_done_o  <= sequence_done_o_x;
-        wait_timer_init  <= wait_timer_init_x;
         STATE            <= NEXT_STATE;
       end if;
     end if;
@@ -86,10 +87,10 @@ begin
                            wait_timer_done
                            )
   begin
-    sda_o             <= '1';
-    scl_o             <= '1';
-    wait_timer_init_x <= (others => '0');
-    sequence_done_o_x <= '0';
+    sda_o              <= '1';
+    scl_o              <= '1';
+    sequence_done_o_x  <= '0';
+    wait_timer_start_x <= '0';
     
     case STATE is
       when S_IDLE =>
@@ -107,60 +108,60 @@ begin
         
         -- I2C START Sequence 
       when S_START =>
-        wait_timer_init_x <= I2C_SPEED srl 1;
-        NEXT_STATE <= S_WAIT_START_1;
+        wait_timer_start_x   <= '1';
+        NEXT_STATE           <= S_WAIT_START_1;
 
       when S_WAIT_START_1 =>
         if (wait_timer_done = '0') then
-          NEXT_STATE <= S_WAIT_START_1;
+          NEXT_STATE         <= S_WAIT_START_1;
         else
-          wait_timer_init_x <= I2C_SPEED srl 1;
-          NEXT_STATE <= S_WAIT_START_2;
+          wait_timer_start_x <= '1';
+          NEXT_STATE         <= S_WAIT_START_2;
         end if;
 
       when S_WAIT_START_2 =>
-        sda_o         <= '0';
+        sda_o                <= '0';
         if (wait_timer_done = '0') then
           NEXT_STATE <= S_WAIT_START_2;
         else
-          wait_timer_init_x <= I2C_SPEED srl 1;
-          NEXT_STATE <= S_WAIT_START_3;
+          wait_timer_start_x <= '1';
+          NEXT_STATE         <= S_WAIT_START_3;
         end if;
 
       when S_WAIT_START_3 =>
-        sda_o         <= '0';
-        scl_o         <= '0';
+        sda_o                <= '0';
+        scl_o                <= '0';
         if (wait_timer_done = '0') then
-          NEXT_STATE <= S_WAIT_START_3;
+          NEXT_STATE         <= S_WAIT_START_3;
         else
-          sequence_done_o_x <= '1';
-          NEXT_STATE <= S_IDLE;
+          sequence_done_o_x  <= '1';
+          NEXT_STATE         <= S_IDLE;
         end if;
 
         -- I2C STOP Sequence 
       when S_STOP =>
-        sda_o           <= '0';
-        scl_o           <= '0';
-        wait_timer_init_x <= I2C_SPEED srl 1;
-        NEXT_STATE <= S_WAIT_STOP_1;
+        sda_o                <= '0';
+        scl_o                <= '0';
+        wait_timer_start_x   <= '1';
+        NEXT_STATE           <= S_WAIT_STOP_1;
 
       when S_WAIT_STOP_1 =>
-        sda_o           <= '0';
-        scl_o           <= '0';
+        sda_o                <= '0';
+        scl_o                <= '0';
         if (wait_timer_done = '0') then
-          NEXT_STATE <= S_WAIT_STOP_1;
+          NEXT_STATE         <= S_WAIT_STOP_1;
         else
-          wait_timer_init_x <= I2C_SPEED srl 1;
-          NEXT_STATE <= S_WAIT_STOP_2;
+          wait_timer_start_x <= '1';
+          NEXT_STATE         <= S_WAIT_STOP_2;
         end if;
 
       when S_WAIT_STOP_2 =>
-        sda_o <= '0';
+        sda_o                <= '0';
         if (wait_timer_done = '0') then
-          NEXT_STATE <= S_WAIT_STOP_2;
+          NEXT_STATE         <= S_WAIT_STOP_2;
         else
-          wait_timer_init_x <= I2C_SPEED srl 1;
-          NEXT_STATE <= S_WAIT_STOP_3;
+          wait_timer_start_x <= '1';
+          NEXT_STATE         <= S_WAIT_STOP_3;
         end if;
 
       when S_WAIT_STOP_3 =>

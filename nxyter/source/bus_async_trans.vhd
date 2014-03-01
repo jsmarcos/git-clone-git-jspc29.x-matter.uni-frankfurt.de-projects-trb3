@@ -17,9 +17,6 @@ entity bus_async_trans is
 end entity;
 
 architecture Behavioral of bus_async_trans is
-  attribute HGROUP : string;
-  attribute HGROUP of Behavioral : architecture is "BUS_ASYNC_TRANS";
-
   type buffer_t is array(0 to NUM_FF - 1) of
     std_logic_vector(BUS_WIDTH - 1 downto 0);
   signal signal_ff      : buffer_t;

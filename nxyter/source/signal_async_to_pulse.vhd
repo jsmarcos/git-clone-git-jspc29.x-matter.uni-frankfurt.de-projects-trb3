@@ -34,13 +34,9 @@ begin
   begin
     if( rising_edge(CLK_IN) ) then
       pulse_ff(NUM_FF - 1)             <= PULSE_A_IN;
-      if( RESET_IN = '1' ) then
-        pulse_ff(NUM_FF - 2 downto 0)  <= (others => '0');
-      else
-        for i in NUM_FF - 2 downto 0 loop
-          pulse_ff(i)                  <= pulse_ff(i + 1); 
-        end loop;
-      end if;
+      for i in NUM_FF - 2 downto 0 loop
+        pulse_ff(i)                  <= pulse_ff(i + 1); 
+      end loop;
     end if;
   end process PROC_SYNC_PULSE;
 

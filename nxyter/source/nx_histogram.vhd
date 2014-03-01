@@ -35,7 +35,7 @@ entity nx_histogram is
 end entity;
 
 architecture Behavioral of nx_histogram is
-  
+
   -- Hist Fill/Ctr Handler
   type H_STATES is (H_IDLE,
                     H_WRITEADD_CHANNEL,

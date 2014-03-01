@@ -315,10 +315,10 @@ begin
             nx_frame_ctr_t     <= nx_frame_ctr_t + 1;
           end if;
           if (pileup_rate_inc = '1') then
-            nx_pileup_ctr_t    <= nx_trigger_ctr_t + 1;
+            nx_pileup_ctr_t    <= nx_pileup_ctr_t + 1;
           end if;
           if (overflow_rate_inc = '1') then
-            nx_overflow_ctr_t  <= nx_frame_ctr_t + 1;
+            nx_overflow_ctr_t  <= nx_overflow_ctr_t + 1;
           end if;
           nx_rate_timer        <= nx_rate_timer + 1;
         else
@@ -461,6 +461,18 @@ begin
                 std_logic_vector(adc_average_divisor);
               slv_data_out_o(31 downto 4)   <= (others => '0');
               slv_ack_o                     <= '1';
+
+            when x"0009" =>
+              slv_data_out_o(27 downto 0)    <=
+                std_logic_vector(nx_pileup_rate);
+              slv_data_out_o(31 downto 28)   <= (others => '0');
+              slv_ack_o                     <= '1'; 
+
+            when x"000a" =>
+              slv_data_out_o(27 downto 0)    <=
+                std_logic_vector(nx_overflow_rate);
+              slv_data_out_o(31 downto 28)   <= (others => '0');
+              slv_ack_o                     <= '1'; 
               
             when others  =>
               slv_unknown_addr_o           <= '1';

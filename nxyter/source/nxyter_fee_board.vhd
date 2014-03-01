@@ -102,7 +102,7 @@ architecture Behavioral of nXyter_FEE_board is
                                 
   -- Bus Handler                
   constant NUM_PORTS            : integer := 13;
-                                
+  
   signal slv_read               : std_logic_vector(NUM_PORTS-1 downto 0);
   signal slv_write              : std_logic_vector(NUM_PORTS-1 downto 0);
   signal slv_no_more_data       : std_logic_vector(NUM_PORTS-1 downto 0);
@@ -200,6 +200,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal trigger                : std_logic;
   signal timestamp_trigger      : std_logic;
   signal trigger_timing         : std_logic;
+  signal trigger_status         : std_logic;
   signal trigger_busy           : std_logic;
   signal fast_clear             : std_logic;
   signal fee_trg_release_o      : std_logic;
@@ -220,19 +221,9 @@ architecture Behavioral of nXyter_FEE_board is
   signal error_data_receiver    : std_logic;
   
   -- Debug Handler
-  constant DEBUG_NUM_PORTS      : integer := 15;
+  constant DEBUG_NUM_PORTS      : integer := 14;
   signal debug_line             : debug_array_t(0 to DEBUG_NUM_PORTS-1);
 
-  -- buffer
-  signal nx_setup_data_f           : std_logic_vector(31 downto 0);
-  signal nx_setup_ack_f            : std_logic;
-  signal nx_setup_no_more_data_f   : std_logic;
-  signal nx_setup_unknown_addr_f   : std_logic;
-  signal nx_setup_data_ff          : std_logic_vector(31 downto 0);
-  signal nx_setup_ack_ff           : std_logic;
-  signal nx_setup_no_more_data_ff  : std_logic;
-  signal nx_setup_unknown_addr_ff  : std_logic;
-  
 begin
 
 -------------------------------------------------------------------------------
@@ -374,30 +365,15 @@ begin
       INT_DATA_OUT         => int_data,
       SLV_READ_IN          => slv_read(9),
       SLV_WRITE_IN         => slv_write(9),
-      SLV_DATA_OUT         => nx_setup_data_f,
+      SLV_DATA_OUT         => slv_data_rd(9*32+31 downto 9*32),
       SLV_DATA_IN          => slv_data_wr(9*32+31 downto 9*32),
       SLV_ADDR_IN          => slv_addr(9*16+15 downto 9*16),
-      SLV_ACK_OUT          => nx_setup_ack_f,
-      SLV_NO_MORE_DATA_OUT => nx_setup_no_more_data_f,
-      SLV_UNKNOWN_ADDR_OUT => nx_setup_unknown_addr_f,
+      SLV_ACK_OUT          => slv_ack(9),
+      SLV_NO_MORE_DATA_OUT => slv_no_more_data(9),
+      SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(9),
  
       DEBUG_OUT            => debug_line(1)
       );
-
-  PROC_NX_SETUP_BUFFER: process (CLK_IN, RESET_IN)
-  begin
-    if( rising_edge(CLK_IN) ) then
-      nx_setup_data_ff                 <= nx_setup_data_f;
-      nx_setup_ack_ff                  <= nx_setup_ack_f;
-      nx_setup_no_more_data_ff         <= nx_setup_no_more_data_f;
-      nx_setup_unknown_addr_ff         <= nx_setup_unknown_addr_f;
-        
-      slv_data_rd(9*32+31 downto 9*32) <= nx_setup_data_ff;
-      slv_ack(9)                       <= nx_setup_ack_ff;
-      slv_no_more_data(9)              <= nx_setup_no_more_data_ff;
-      slv_unknown_addr(9)              <= nx_setup_unknown_addr_ff;
-    end if;
-  end process PROC_NX_SETUP_BUFFER;
  
 -------------------------------------------------------------------------------
 -- I2C master block for accessing the nXyter
@@ -512,6 +488,7 @@ begin
       FEE_DATA_FINISHED_OUT      => FEE_DATA_FINISHED_OUT,
       FEE_TRG_RELEASE_OUT        => FEE_TRG_RELEASE_OUT,
       FEE_TRG_STATUSBITS_OUT     => FEE_TRG_STATUSBITS_OUT,
+
       FEE_DATA_0_IN              => fee_data_o_0,
       FEE_DATA_WRITE_0_IN        => fee_data_write_o_0,
       FEE_DATA_1_IN              => fee_data_o_1,
@@ -525,6 +502,7 @@ begin
       VALID_TRIGGER_OUT          => trigger,
       TIMESTAMP_TRIGGER_OUT      => timestamp_trigger,
       TRIGGER_TIMING_OUT         => trigger_timing,
+      TRIGGER_STATUS_OUT         => trigger_status,
       FAST_CLEAR_OUT             => fast_clear,
       TRIGGER_BUSY_OUT           => trigger_busy,
 
@@ -762,7 +740,7 @@ begin
       DEBUG_OUT                  =>  debug_line(11)
       );
 
-  nx_calib_event_1: nx_calib_event
+  nx_status_event_1: nx_status_event
     generic map (
       BOARD_ID => BOARD_ID
       )
@@ -770,7 +748,7 @@ begin
       CLK_IN                  => CLK_IN,
       RESET_IN                => RESET_IN,
       NXYTER_OFFLINE_IN       => nxyter_offline,
-      TRIGGER_IN              => trigger_timing,
+      TRIGGER_IN              => trigger_status,
       FAST_CLEAR_IN           => fast_clear,
       TRIGGER_BUSY_OUT        => trigger_evt_busy_1,
       FEE_DATA_OUT            => fee_data_o_1,
@@ -847,10 +825,7 @@ begin
       SLV_NO_MORE_DATA_OUT => slv_no_more_data(11),
       SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(11)
       );
-  debug_line(14)(0)           <= CLK_IN;
-  debug_line(14)(13 downto 1) <= slv_read;
-  debug_line(14)(14)          <= '0';
-  debug_line(14)(15)          <= '0';
+
 -------------------------------------------------------------------------------
 -- END
 -------------------------------------------------------------------------------

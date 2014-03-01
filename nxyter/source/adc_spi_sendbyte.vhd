@@ -27,19 +27,19 @@ end entity;
 architecture Behavioral of adc_spi_sendbyte is
 
   -- Send Byte  
-  signal sclk_o            : std_logic;
-  signal sdio_o            : std_logic;
-  signal spi_start         : std_logic;
+  signal sclk_o             : std_logic;
+  signal sdio_o             : std_logic;
+  signal spi_start          : std_logic;
 
-  signal sequence_done_o   : std_logic;
-  signal spi_byte          : unsigned(7 downto 0);
-  signal bit_ctr           : unsigned(3 downto 0);
-  signal wait_timer_init   : unsigned(7 downto 0);
+  signal sequence_done_o    : std_logic;
+  signal spi_byte           : unsigned(7 downto 0);
+  signal bit_ctr            : unsigned(3 downto 0);
+  signal wait_timer_start   : std_logic;
 
-  signal sequence_done_o_x : std_logic;
-  signal spi_byte_x        : unsigned(7 downto 0);
-  signal bit_ctr_x         : unsigned(3 downto 0);
-  signal wait_timer_init_x : unsigned(7 downto 0);
+  signal sequence_done_o_x  : std_logic;
+  signal spi_byte_x         : unsigned(7 downto 0);
+  signal bit_ctr_x          : unsigned(3 downto 0);
+  signal wait_timer_start_x : std_logic;
   
   type STATES is (S_IDLE,
                   S_SET_SDIO,
@@ -55,17 +55,17 @@ architecture Behavioral of adc_spi_sendbyte is
 begin
 
   -- Timer
-  nx_timer_1: nx_timer
+  timer_static_1: timer_static
     generic map (
-      CTR_WIDTH => 8
+      CTR_WIDTH => 8,
+      CTR_END   => to_integer(SPI_SPEED srl 1)
       )
     port map (
       CLK_IN         => CLK_IN,
       RESET_IN       => RESET_IN,
-      TIMER_START_IN => wait_timer_init,
+      TIMER_START_IN => wait_timer_start,
       TIMER_DONE_OUT => wait_timer_done
       );
-
 
   PROC_SEND_BYTE_TRANSFER: process(CLK_IN)
   begin 
@@ -73,13 +73,13 @@ begin
       if( RESET_IN = '1' ) then
         sequence_done_o  <= '0';
         bit_ctr          <= (others => '0');
-        wait_timer_init  <= (others => '0');
+        wait_timer_start <= '0';
         STATE            <= S_IDLE;
       else
         sequence_done_o  <= sequence_done_o_x;
         spi_byte         <= spi_byte_x;
         bit_ctr          <= bit_ctr_x;
-        wait_timer_init  <= wait_timer_init_x;
+        wait_timer_start <= wait_timer_start_x;
         STATE            <= NEXT_STATE;
       end if;
     end if;
@@ -96,15 +96,15 @@ begin
     sequence_done_o_x  <= '0';
     spi_byte_x         <= spi_byte;
     bit_ctr_x          <= bit_ctr;       
-    wait_timer_init_x  <= (others => '0');
+    wait_timer_start_x <= '0';
     
     case STATE is
       when S_IDLE =>
         if (START_IN = '1') then
-          spi_byte_x        <= BYTE_IN;
-          bit_ctr_x         <= x"7";
-          wait_timer_init_x <= SPI_SPEED srl 1;
-          NEXT_STATE        <= S_SET_SDIO;
+          spi_byte_x         <= BYTE_IN;
+          bit_ctr_x          <= x"7";
+          wait_timer_start_x <= '1';
+          NEXT_STATE         <= S_SET_SDIO;
         else
           NEXT_STATE <= S_IDLE;
         end if;
@@ -112,19 +112,19 @@ begin
       when S_SET_SDIO =>
         sdio_o <= spi_byte(7);
         if (wait_timer_done = '0') then
-          NEXT_STATE <= S_SET_SDIO;
+          NEXT_STATE         <= S_SET_SDIO;
         else
-          wait_timer_init_x <= SPI_SPEED srl 1;
-          NEXT_STATE <= S_SET_SCLK;
+          wait_timer_start_x <= '1';
+          NEXT_STATE         <= S_SET_SCLK;
         end if;
       
       when S_SET_SCLK =>
         sdio_o <= spi_byte(7);
         sclk_o <= '1';
         if (wait_timer_done = '0') then
-          NEXT_STATE <= S_SET_SCLK;
+          NEXT_STATE         <= S_SET_SCLK;
         else
-          NEXT_STATE        <= S_NEXT_BIT;
+          NEXT_STATE         <= S_NEXT_BIT;
         end if;
         
       when S_NEXT_BIT =>
@@ -133,7 +133,7 @@ begin
         if (bit_ctr > 0) then
           bit_ctr_x          <= bit_ctr - 1;
           spi_byte_x         <= spi_byte sll 1;
-          wait_timer_init_x  <= SPI_SPEED srl 1;
+          wait_timer_start_x <= '1';
           NEXT_STATE         <= S_SET_SDIO;
         else
           NEXT_STATE         <= S_DONE;
@@ -142,8 +142,8 @@ begin
       when S_DONE =>
         sdio_o <= spi_byte(7);
         sclk_o <= '1';
-        sequence_done_o_x <= '1';
-        NEXT_STATE        <= S_IDLE;
+        sequence_done_o_x    <= '1';
+        NEXT_STATE           <= S_IDLE;
         
     end case;
   end process PROC_SEND_BYTE;

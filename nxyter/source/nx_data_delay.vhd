@@ -46,21 +46,6 @@ architecture Behavioral of nx_data_delay is
   signal fifo_write_enable     : std_logic;
   signal fifo_reset            : std_logic;
 
-  -- My FIFO
-  signal fifo_full_0           : std_logic;
-  signal fifo_empty_0          : std_logic;
-  signal fifo_almost_empty_0   : std_logic;
-  signal fifo_data_out_0       : std_logic_vector(43 downto 0);
-  signal fifo_read_enable_0    : std_logic;
-
-  -- Lattice FIFO
-  signal fifo_full_1           : std_logic;
-  signal fifo_empty_1          : std_logic;
-  signal fifo_almost_empty_1   : std_logic;
-  signal fifo_data_out_1       : std_logic_vector(43 downto 0);
-  signal fifo_read_enable_1    : std_logic;
-  signal fifo_read_enable_r_1  : std_logic;
-
   -- FIFO READ
   signal fifo_data_out         : std_logic_vector(43 downto 0);
   signal fifo_read_enable      : std_logic;
@@ -116,59 +101,23 @@ begin
   -----------------------------------------------------------------------------
   -- FIFO Delay Handler
   -----------------------------------------------------------------------------
-
-  fifo_44_data_delay_1: fifo_44_data_delay
-    port map (
-      Data          => fifo_data_in,
-      Clock         => CLK_IN,
-      WrEn          => fifo_write_enable,
-      RdEn          => fifo_read_enable_1,
-      Reset         => fifo_reset,
-      AmEmptyThresh => fifo_delay,
-      Q             => fifo_data_out_1, 
-      Empty         => fifo_empty_1,
-      Full          => fifo_full_1,
-      AlmostEmpty   => fifo_almost_empty_1
-      );
-
-  fifo_read_enable_r_1  <= fifo_read_enable_1 when rising_edge(CLK_IN);
   
   fifo_44_data_delay_my_1: fifo_44_data_delay_my
     port map (
       Data          => fifo_data_in,
       Clock         => CLK_IN,
       WrEn          => fifo_write_enable,
-      RdEn          => fifo_read_enable_0,
+      RdEn          => fifo_read_enable,  --LOOP?? 
       Reset         => fifo_reset,
       AmEmptyThresh => fifo_delay,
-      Q             => fifo_data_out_0, 
-      Empty         => fifo_empty_0,
-      Full          => fifo_full_0,
-      AlmostEmpty   => fifo_almost_empty_0,
+      Q             => fifo_data_out,      --fifo_data_out_0, 
+      Empty         => fifo_empty,         -- fifo_empty_0,
+      Full          => fifo_full,          --fifo_full_0,
+      AlmostEmpty   => fifo_almost_empty,  -- fifo_almost_empty_0,
       DEBUG_OUT     => debug_fifo
       );        
 
-  PROC_FIFO_SELECT: process(fifo_select)
-  begin
-    if (fifo_select = '0') then
-      fifo_read_enable_0       <= not fifo_almost_empty_0;
-      fifo_read_enable         <= fifo_read_enable_0;
-      fifo_full                <= fifo_full_0;
-      fifo_empty               <= fifo_empty_0;
-      fifo_almost_empty        <= fifo_almost_empty_0;
-      fifo_data_out            <= fifo_data_out_0;
-    else
-      fifo_read_enable_1       <= not fifo_almost_empty_1
-                                  and not fifo_read_enable_r_1;
-      fifo_read_enable         <= fifo_read_enable_1;
-      fifo_full                <= fifo_full_1;
-      fifo_empty               <= fifo_empty_1;
-      fifo_almost_empty        <= fifo_almost_empty_1;
-      fifo_data_out            <= fifo_data_out_1;
-      
-    end if;
-  end process PROC_FIFO_SELECT;
-
+  fifo_read_enable             <= not fifo_almost_empty;
   fifo_reset                   <= RESET_IN or fifo_reset_r or fifo_delay_reset;
   fifo_data_in(31 downto 0)    <= NX_FRAME_IN;
   fifo_data_in(43 downto 32)   <= ADC_DATA_IN;

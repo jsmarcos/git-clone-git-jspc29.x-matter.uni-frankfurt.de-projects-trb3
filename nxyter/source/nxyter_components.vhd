@@ -219,7 +219,6 @@ component adc_ad9228
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
     CLK_ADCDAT_IN        : in  std_logic;
-    RESTART_IN           : in  std_logic;
 
     ADC0_SCLK_IN         : in  std_logic;
     ADC0_SCLK_OUT        : out std_logic;
@@ -256,6 +255,7 @@ component adc_ad9228
 
     ERROR_ADC0_OUT       : out std_logic;
     ERROR_ADC1_OUT       : out std_logic;
+    DEBUG_IN             : in std_logic_vector(3 downto 0);
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
 end component;
@@ -414,21 +414,6 @@ component fifo_44_data_delay_my
     Full          : out std_logic;
     AlmostEmpty   : out std_logic;
     DEBUG_OUT     : out std_logic_vector(15 downto 0)
-    );
-end component;
-
-component fifo_44_data_delay
-  port (
-    Data          : in  std_logic_vector(43 downto 0);
-    Clock         : in  std_logic;
-    WrEn          : in  std_logic;
-    RdEn          : in  std_logic;
-    Reset         : in  std_logic;
-    AmEmptyThresh : in  std_logic_vector(7 downto 0);
-    Q             : out std_logic_vector(43 downto 0);
-    Empty         : out std_logic;
-    Full          : out std_logic;
-    AlmostEmpty   : out std_logic
     );
 end component;
 
@@ -603,7 +588,7 @@ component nx_event_buffer
     );
 end component;
 
-component nx_calib_event
+component nx_status_event
   generic (
     BOARD_ID : std_logic_vector(1 downto 0));
   port (
@@ -743,7 +728,6 @@ component signal_async_trans
     );
   port (
     CLK_IN      : in  std_logic;
-    RESET_IN    : in  std_logic;
     SIGNAL_A_IN : in  std_logic;
     SIGNAL_OUT  : out std_logic
     );
@@ -903,7 +887,7 @@ component nx_trigger_handler
     VALID_TRIGGER_OUT          : out std_logic;
     TIMESTAMP_TRIGGER_OUT      : out std_logic;
     TRIGGER_TIMING_OUT         : out std_logic;
-    TRIGGER_SETUP_OUT          : out std_logic;
+    TRIGGER_STATUS_OUT         : out std_logic;
     FAST_CLEAR_OUT             : out std_logic;
     TRIGGER_BUSY_OUT           : out std_logic;
     TRIGGER_TESTPULSE_OUT      : out std_logic;
@@ -945,15 +929,30 @@ end component;
 -- Misc Tools
 -------------------------------------------------------------------------------
 
-component nx_timer
+component timer
   generic (
     CTR_WIDTH : integer range 2 to 32;
-    STEP_SIZE : integer
+    STEP_SIZE : integer range 1 to 100
     );
   port (
     CLK_IN         : in  std_logic;
     RESET_IN       : in  std_logic;
-    TIMER_START_IN : in  unsigned(CTR_WIDTH - 1 downto 0);
+    TIMER_START_IN : in  std_logic;
+    TIMER_END_IN   : in  unsigned(CTR_WIDTH - 1 downto 0);
+    TIMER_DONE_OUT : out std_logic
+    );
+end component;
+
+component timer_static
+  generic (
+    CTR_WIDTH : integer range 2 to 32;
+    CTR_END   : integer;
+    STEP_SIZE : integer range 1 to 100
+    );
+  port (
+    CLK_IN         : in  std_logic;
+    RESET_IN       : in  std_logic;
+    TIMER_START_IN : in  std_logic;
     TIMER_DONE_OUT : out std_logic
     );
 end component;

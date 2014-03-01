@@ -71,6 +71,7 @@ architecture Behavioral of nx_control is
   signal STATE : STATES;
   
   -- Wait Timer
+  signal wait_timer_start         : std_logic;
   signal wait_timer_init          : unsigned(7 downto 0);
   signal wait_timer_done          : std_logic;
 
@@ -120,15 +121,16 @@ begin
   DEBUG_OUT(14)           <= online_on;
   DEBUG_OUT(15)           <= '0';
   
-  nx_timer_1: nx_timer
+  timer_1: timer
     generic map (
       CTR_WIDTH => 8
       )
     port map (
-      CLK_IN         => CLK_IN,
-      RESET_IN       => RESET_IN,
-      TIMER_START_IN => wait_timer_init,
-      TIMER_DONE_OUT => wait_timer_done
+      CLK_IN          => CLK_IN,
+      RESET_IN        => RESET_IN,
+      TIMER_START_IN  => wait_timer_start,
+      TIMER_END_IN    => wait_timer_init,
+      TIMER_DONE_OUT  => wait_timer_done
       );
 
   -----------------------------------------------------------------------------
@@ -180,7 +182,7 @@ begin
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        wait_timer_init    <= (others => '0');
+        wait_timer_start   <= '0';
         i2c_sm_reset_o     <= '0';
         i2c_reg_reset_o    <= '0';
         nx_ts_reset_o      <= '0';
@@ -189,8 +191,8 @@ begin
         i2c_sm_reset_o     <= '0';
         i2c_reg_reset_o    <= '0';
         nx_ts_reset_o      <= '0';
-        wait_timer_init    <= (others => '0');
-        
+        wait_timer_start   <= '0';
+
         case STATE is
           when S_IDLE =>
             if (i2c_sm_reset_start = '1') then
@@ -206,6 +208,7 @@ begin
           when S_I2C_SM_RESET =>
             i2c_sm_reset_o   <= '1';
             wait_timer_init  <= x"8f";
+            wait_timer_start <= '1';
             STATE            <= S_I2C_SM_RESET_WAIT;
 
           when S_I2C_SM_RESET_WAIT =>
@@ -219,6 +222,7 @@ begin
           when S_I2C_REG_RESET =>
             i2c_reg_reset_o  <= '1';
             wait_timer_init  <= x"8f";
+            wait_timer_start <= '1';
             STATE            <= S_I2C_REG_RESET_WAIT;
 
           when S_I2C_REG_RESET_WAIT =>
@@ -232,6 +236,7 @@ begin
           when S_NX_TS_RESET =>
             nx_ts_reset_o    <= '1';
             wait_timer_init  <= x"01";
+            wait_timer_start <= '1';
             STATE            <= S_NX_TS_RESET_WAIT;
 
           when S_NX_TS_RESET_WAIT =>
@@ -255,7 +260,6 @@ begin
   signal_async_trans_1: signal_async_trans
     port map (
       CLK_IN      => CLK_IN,
-      RESET_IN    => RESET_IN,
       SIGNAL_A_IN => PLL_NX_CLK_LOCK_IN,
       SIGNAL_OUT  => pll_nx_clk_lock
       );
@@ -263,7 +267,6 @@ begin
   signal_async_trans_2: signal_async_trans
     port map (
       CLK_IN      => CLK_IN,
-      RESET_IN    => RESET_IN,
       SIGNAL_A_IN => PLL_ADC_DCLK_LOCK_IN,
       SIGNAL_OUT  => pll_adc_dclk_lock
       );
@@ -271,7 +274,6 @@ begin
   signal_async_trans_3: signal_async_trans
     port map (
       CLK_IN      => CLK_IN,
-      RESET_IN    => RESET_IN,
       SIGNAL_A_IN => PLL_ADC_SCLK_LOCK_IN,
       SIGNAL_OUT  => pll_adc_sclk_lock
       );
@@ -303,23 +305,28 @@ begin
   PROC_PLL_UNLOCK_COUNTERS: process (CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then
-      if( RESET_IN = '1' or clear_notlock_counters = '1') then
-        pll_nx_clk_notlock_ctr    <= (others => '0');
+      if( RESET_IN = '1') then
+        pll_nx_clk_notlock_ctr     <= (others => '0');
         pll_adc_dclk_notlock_ctr   <= (others => '0');
         pll_adc_sclk_notlock_ctr   <= (others => '0');
       else
-        if (pll_nx_clk_notlock = '1') then
-          pll_nx_clk_notlock_ctr  <= pll_nx_clk_notlock_ctr + 1;
-        end if;
+        if (clear_notlock_counters = '1') then
+          pll_nx_clk_notlock_ctr      <= (others => '0');
+          pll_adc_dclk_notlock_ctr    <= (others => '0');
+          pll_adc_sclk_notlock_ctr    <= (others => '0');
+        else
+          if (pll_nx_clk_notlock = '1') then
+            pll_nx_clk_notlock_ctr    <= pll_nx_clk_notlock_ctr + 1;
+          end if;
 
-        if (pll_adc_dclk_notlock = '1') then
-         pll_adc_dclk_notlock_ctr  <= pll_adc_dclk_notlock_ctr + 1;
-        end if;
+          if (pll_adc_dclk_notlock = '1') then
+            pll_adc_dclk_notlock_ctr  <= pll_adc_dclk_notlock_ctr + 1;
+          end if;
 
-        if (pll_adc_sclk_notlock = '1') then
-         pll_adc_sclk_notlock_ctr  <= pll_adc_sclk_notlock_ctr + 1;
+          if (pll_adc_sclk_notlock = '1') then
+            pll_adc_sclk_notlock_ctr  <= pll_adc_sclk_notlock_ctr + 1;
+          end if;
         end if;
-
       end if;
     end if;
   end process PROC_PLL_UNLOCK_COUNTERS;
