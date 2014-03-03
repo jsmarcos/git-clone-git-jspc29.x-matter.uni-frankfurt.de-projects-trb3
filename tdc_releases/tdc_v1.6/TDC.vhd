@@ -97,9 +97,9 @@ architecture TDC of TDC is
   signal reset_tdc                    : std_logic;
   signal reset_tdc_i                  : std_logic;
 -- Coarse counters
-  signal coarse_cntr                  : std_logic_vector_array_11(1 to 4);
+  signal coarse_cntr                  : std_logic_vector_array_11(0 to 4);
   signal coarse_cntr_reset            : std_logic;
-  signal coarse_cntr_reset_r          : std_logic_vector(4 downto 1);
+  signal coarse_cntr_reset_r          : std_logic_vector(4 downto 0);
 -- Slow control
   signal logic_anal_control           : std_logic_vector(3 downto 0);
   signal debug_mode_en_i              : std_logic;
@@ -170,11 +170,15 @@ architecture TDC of TDC is
 -- Bus signals
   signal status_registers_bus_i : std_logic_vector_array_32(0 to STATUS_REG_NR-1);
 
-  attribute syn_keep                    : boolean;
-  attribute syn_keep of reset_tdc       : signal is true;
-  attribute syn_keep of coarse_cntr     : signal is true;
-  attribute syn_preserve                : boolean;
-  attribute syn_preserve of coarse_cntr : signal is true;
+  attribute syn_keep                            : boolean;
+  attribute syn_keep of reset_tdc               : signal is true;
+  attribute syn_keep of coarse_cntr             : signal is true;
+  attribute syn_keep of coarse_cntr_reset_r     : signal is true;
+  attribute syn_keep of trig_win_end_tdc_i      : signal is true;
+  attribute syn_preserve                        : boolean;
+  attribute syn_preserve of coarse_cntr         : signal is true;
+  attribute syn_preserve of coarse_cntr_reset_r : signal is true;
+  attribute syn_preserve of trig_win_end_tdc_i  : signal is true;
 
 begin
 
@@ -405,7 +409,7 @@ begin
       TRIGGER_WIN_EN_IN        => trig_win_en_i,
       TRIG_WIN_END_TDC_IN      => trig_win_end_tdc_i(0),
       TRIG_WIN_END_RDO_IN      => trig_win_end_rdo,
-      COARSE_COUNTER_IN        => coarse_cntr(1),
+      COARSE_COUNTER_IN        => coarse_cntr(0),
       EPOCH_COUNTER_IN         => epoch_cntr,
       DEBUG_MODE_EN_IN         => debug_mode_en_i,
       STATUS_REGISTERS_BUS_OUT => status_registers_bus_i,
@@ -419,7 +423,7 @@ begin
   DATA_FINISHED_OUT <= data_finished_i;
 
 -- Coarse counter
-  GenCoarseCounter : for i in 1 to 4 generate
+  GenCoarseCounter : for i in 0 to 4 generate
     TheCoarseCounter : up_counter
       generic map (
         NUMBER_OF_BITS => 11)
@@ -464,7 +468,7 @@ begin
       SIGNAL_IN => reset_coarse_cntr_200,
       PULSE_OUT => reset_coarse_cntr_edge_200);
 
-  GenCoarseCounterReset : for i in 1 to 4 generate
+  GenCoarseCounterReset : for i in 0 to 4 generate
     coarse_cntr_reset_r(i) <= coarse_cntr_reset when rising_edge(CLK_TDC);
   end generate GenCoarseCounterReset;
 
@@ -477,8 +481,8 @@ begin
       RESET     => epoch_cntr_reset_i,
       COUNT_OUT => epoch_cntr,
       UP_IN     => epoch_cntr_up_i);
-  epoch_cntr_up_i    <= and_all(coarse_cntr(1));
-  epoch_cntr_reset_i <= coarse_cntr_reset_r(1);
+  epoch_cntr_up_i    <= and_all(coarse_cntr(0));
+  epoch_cntr_reset_i <= coarse_cntr_reset_r(0);
 
 -- Bus handler entities
   TheHitCounterBus : BusHandler

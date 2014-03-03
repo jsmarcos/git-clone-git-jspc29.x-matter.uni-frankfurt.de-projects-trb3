@@ -8,7 +8,7 @@
 #REGION "REGION_LR_CC" "R85C106D" 3 3 DEVSIZE;
 #REGION "REGION_UL_CC" "R48C53D" 3 3 DEVSIZE;
 #REGION "REGION_LL_CC" "R89C53D" 3 3 DEVSIZE;
-
+REGION "REGION_READOUT" "R51C53D" 37 57 DEVSIZE;
 
 ##############################################################################
 ##		        REFERENCE CHANNEL PLACEMENT                         ##
@@ -875,9 +875,9 @@ LOCATE UGROUP "UL_Coarse_Counter" SITE R36C50D; #REGION "REGION_UL_CC" ;
 UGROUP "LL_Coarse_Counter"
         BLKNAME THE_TDC/GenCoarseCounter_4_TheCoarseCounter;
 LOCATE UGROUP "LL_Coarse_Counter" SITE R85C50D; #REGION "REGION_LL_CC" ;
-UGROUP "Epoch_Counter"
-	BLKNAME THE_TDC/TheEpochCounter;
-LOCATE UGROUP "Epoch_Counter" SITE R36C138D;
+#UGROUP "Epoch_Counter"
+#	BLKNAME THE_TDC/TheEpochCounter;
+#LOCATE UGROUP "Epoch_Counter" SITE R36C138D;
 
 #############################################################################
 ## Bus Handler Placements
@@ -895,6 +895,14 @@ UGROUP "ResetHandler"
 #LOCATE UGROUP "ResetHandler" REGION BUS;
 
 
+UGROUP "TheTdcReadout"
+       BLKNAME THE_TDC/TheReadout;
+LOCATE UGROUP "TheTdcReadout" REGION REGION_READOUT;
+
+UGROUP "TheCounters"
+       BLKNAME THE_TDC/GenCoarseCounter_0_TheCoarseCounter
+       BLKNAME THE_TDC/TheEpochCounter;
+LOCATE UGROUP "TheCounters" REGION REGION_READOUT;
 
 #############################################################################
 ##                         Unimportant Data Lines                          ##
@@ -920,11 +928,13 @@ MAXDELAY NET "THE_TDC/GEN_Channels_*_Channels/hit_buf" 0.600000 nS DATAPATH_ONLY
 
 
 MULTICYCLE FROM CELL "THE_TDC/GEN_Channels_*_Channels/gen_DEBUG_risingEdgeDetect_1/PULSE_OUT" 5 x;
-MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset_1" 50 ns;
+MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/gen_DEBUG_risingEdgeDetect_1/PULSE_OUT" 5 x;
 MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter_*" TO CELL "THE_TDC/GEN_Channels_*_Channels/epoch_cntr_reg*" 5.000000 X;
 MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter_*" TO CELL "THE_TDC/ReferenceChannel/epoch_cntr_reg*" 5.000000 X;
+MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset_1" 50 ns;
 
+
+#MULTICYCLE FROM CELL "THE_TDC/GEN_Channels_*_Channels/Channel200/FIFO_FULL_OUT" TO CELL "THE_TDC/TheReadout/data_out_reg*" 2.000000 X;
+#MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/Channel200/FIFO_FULL_OUT" TO CELL "THE_TDC/TheReadout/data_out_reg_*" 2.000000 X;
 #MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/Channel200/FIFO_ALMOST_FULL_OUT" TO CELL "THE_TDC/TheReadout/data_out_reg_*" 2.000000 X;
-MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/Channel200/FIFO_FULL_OUT" TO CELL "THE_TDC/TheReadout/data_out_reg_*" 2.000000 X;
-MULTICYCLE FROM CELL "THE_TDC/GEN_Channels_*_Channels/Channel200/FIFO_FULL_OUT" TO CELL "THE_TDC/TheReadout/data_out_reg*" 2.000000 X;
 #MULTICYCLE FROM CELL "THE_TDC/GEN_Channels_*_Channels/Channel200/FIFO_ALMOST_FULL_OUT" TO CELL "THE_TDC/TheReadout/data_out_reg*" 2.000000 X;
