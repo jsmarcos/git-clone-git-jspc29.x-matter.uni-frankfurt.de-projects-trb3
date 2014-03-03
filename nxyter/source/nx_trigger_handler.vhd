@@ -567,13 +567,15 @@ begin
       else
         if (rate_timer < x"5f5e100") then
           if (timing_trigger_o = '1') then
-            accepted_trigger_rate_t <= accepted_trigger_rate_t + 1;
+            accepted_trigger_rate_t            <= accepted_trigger_rate_t + 1;
           end if;
-          rate_timer                <= rate_timer + 1;
+          rate_timer                           <= rate_timer + 1;
         else
-          accepted_trigger_rate     <= accepted_trigger_rate_t;
-          accepted_trigger_rate_t   <= (others => '0');
-          rate_timer                <= (others => '0');
+          rate_timer                           <= (others => '0');
+          accepted_trigger_rate                <= accepted_trigger_rate_t;
+
+          accepted_trigger_rate_t(27 downto 0) <= (others => '0');
+          accepted_trigger_rate_t(0)           <= timing_trigger_o;
         end if;
       end if;
     end if;

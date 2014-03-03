@@ -829,15 +829,13 @@ begin
             -- Read I2C Register
           when ADC_READ_I2C_REGISTER =>
             adc_i2c_command(31 downto 16)        <= x"c229";
-            adc_i2c_command(15 downto 14)        <= (others => '0');
             case adc_token_ctr is
-              when "00" => adc_i2c_command(15 downto  12) <= "0001";
-              when "01" => adc_i2c_command(15 downto  12) <= "0010";
-              when "10" => adc_i2c_command(15 downto  12) <= "0100";
-              when "11" => adc_i2c_command(15 downto  12) <= "1000";
+              when "00" => adc_i2c_command(15 downto  8) <= x"10";
+              when "01" => adc_i2c_command(15 downto  8) <= x"20";
+              when "10" => adc_i2c_command(15 downto  8) <= x"40";
+              when "11" => adc_i2c_command(15 downto  8) <= x"80";
             end case;
-            adc_i2c_command(11 downto  8)        <= "0000";
-            adc_i2c_command( 7 downto  0)        <= (others => '0');
+            adc_i2c_command(7 downto  0)         <= (others => '0');
             if (i2c_lock_4 = '0') then
               ADC_STATE                          <= ADC_READ_I2C_REGISTER;
             else

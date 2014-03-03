@@ -206,13 +206,16 @@ begin
       else
         if (rate_timer < x"5f5e100") then
           if (testpulse = '1') then
-            testpulse_rate_t      <= testpulse_rate_t + 1;
+            testpulse_rate_t            <= testpulse_rate_t + 1;
           end if;
-          rate_timer              <= rate_timer + 1;
+          rate_timer                    <= rate_timer + 1;
         else
-          testpulse_rate          <= testpulse_rate_t;
-          testpulse_rate_t        <= (others => '0');
-          rate_timer              <= (others => '0');
+          testpulse_rate                <= testpulse_rate_t;
+
+          testpulse_rate_t(27 downto 1) <= (others => '0');
+          testpulse_rate_t(0)           <= testpulse;
+
+          rate_timer                    <= (others => '0');
         end if;
       end if;
     end if;

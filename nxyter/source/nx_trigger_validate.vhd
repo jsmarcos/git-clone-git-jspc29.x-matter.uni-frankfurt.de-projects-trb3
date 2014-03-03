@@ -482,20 +482,17 @@ begin
         rate_timer_ctr         <= (others => '0');
       else
         if (rate_timer_ctr < x"5f5e100") then
-          rate_timer_ctr       <= rate_timer_ctr + 1;
+          rate_timer_ctr             <= rate_timer_ctr + 1;
 
           if (d_data_clk_o = '1') then
-            data_rate_ctr      <= data_rate_ctr + 1;
+            data_rate_ctr            <= data_rate_ctr + 1;
           end if;
         else
-          rate_timer_ctr       <= (others => '0');
-          data_rate            <= data_rate_ctr;
+          rate_timer_ctr             <= (others => '0');
+          data_rate                  <= data_rate_ctr;
 
-          if (d_data_clk_o = '0') then
-            data_rate_ctr      <= (others => '0');
-          else
-            data_rate_ctr      <= x"000_0001";
-          end if;
+          data_rate_ctr(27 downto 0) <= (others => '0');
+          data_rate_ctr(0)           <= d_data_clk_o;
         end if;
       end if;
     end if;

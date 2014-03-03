@@ -309,49 +309,37 @@ begin
       else
         if (nx_rate_timer < x"5f5e100") then
           if (trigger_rate_inc = '1') then
-            nx_trigger_ctr_t   <= nx_trigger_ctr_t + 1;
+            nx_trigger_ctr_t             <= nx_trigger_ctr_t + 1;
           end if;
           if (frame_rate_inc = '1') then
-            nx_frame_ctr_t     <= nx_frame_ctr_t + 1;
+            nx_frame_ctr_t               <= nx_frame_ctr_t + 1;
           end if;
           if (pileup_rate_inc = '1') then
-            nx_pileup_ctr_t    <= nx_pileup_ctr_t + 1;
+            nx_pileup_ctr_t              <= nx_pileup_ctr_t + 1;
           end if;
           if (overflow_rate_inc = '1') then
-            nx_overflow_ctr_t  <= nx_overflow_ctr_t + 1;
+            nx_overflow_ctr_t            <= nx_overflow_ctr_t + 1;
           end if;
-          nx_rate_timer        <= nx_rate_timer + 1;
+          nx_rate_timer                  <= nx_rate_timer + 1;
         else
-          nx_hit_rate          <= nx_trigger_ctr_t;
-          nx_frame_rate        <= nx_frame_ctr_t;
-          nx_pileup_rate       <= nx_pileup_ctr_t;
-          nx_overflow_rate     <= nx_overflow_ctr_t;
+          nx_hit_rate                    <= nx_trigger_ctr_t;
+          nx_frame_rate                  <= nx_frame_ctr_t;
+          nx_pileup_rate                 <= nx_pileup_ctr_t;
+          nx_overflow_rate               <= nx_overflow_ctr_t;
 
-          if (trigger_rate_inc = '0') then
-            nx_trigger_ctr_t   <= (others => '0');
-          else
-            nx_trigger_ctr_t   <= x"000_0001";
-          end if;
+          nx_trigger_ctr_t(27 downto 1)  <= (others => '0');
+          nx_trigger_ctr_t(0)            <= trigger_rate_inc;
 
-          if (frame_rate_inc = '0') then
-            nx_frame_ctr_t     <= (others => '0');
-          else
-            nx_frame_ctr_t     <= x"000_0001";
-          end if;
+          nx_frame_ctr_t(27 downto 1)    <= (others => '0');
+          nx_frame_ctr_t(0)              <= frame_rate_inc;
 
-          if (pileup_rate_inc = '0') then
-            nx_pileup_ctr_t    <= (others => '0');
-          else
-            nx_pileup_ctr_t    <= x"000_0001";
-          end if;
+          nx_pileup_ctr_t(27 downto 1)   <= (others => '0');
+          nx_pileup_ctr_t(0)             <= pileup_rate_inc;
 
-          if (overflow_rate_inc = '0') then
-            nx_overflow_ctr_t  <= (others => '0');
-          else
-            nx_overflow_ctr_t  <= x"000_0001";
-          end if;
+          nx_overflow_ctr_t(27 downto 1) <= (others => '0');
+          nx_overflow_ctr_t(0)           <= overflow_rate_inc;
           
-          nx_rate_timer        <= (others => '0');
+          nx_rate_timer                  <= (others => '0');
         end if;
       end if;
     end if;

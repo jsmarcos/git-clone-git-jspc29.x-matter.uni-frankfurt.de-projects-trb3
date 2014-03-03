@@ -77,11 +77,14 @@
 0x8510 :  r    Raw Nxyter Frame Rate, must be 31.25 MHz
 0x8511 :  r    Raw ADC Frame Rate, must be 31.25 MHz
 0x8512 :  r    Test ADC Value
-0x8513 :  r/w  Debug Multiplexer:
-               0: no ADC Values, normal Debug
-               1: ADC Handler adc_ad922** direct
-               2: Testchannel handler, forget about it
-               3: ADC Reset Handler
+0x8513 :  r    Error Status Bits   
+0x8514 :  r    Data Frame Rate, i.e. Combination Nxyter and ADC Frames 
+0x851e :  r/w  Debug Multiplexer:
+               0: Default Debug
+               1: Reset Handler
+               2: ADC Handler adc_ad922** direct
+               3: Testchannel handler, forget about it
+0x851f :  r/w  ADC Debug Multiplexer:
 
 -- NX Data Validate
 0x8120 :  r/w  Invalid Frame Counter (16 bit) / w: clear all counters
