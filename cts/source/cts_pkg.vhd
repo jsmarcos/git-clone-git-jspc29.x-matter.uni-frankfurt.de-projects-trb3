@@ -11,22 +11,20 @@ package cts_pkg is
    component CTS is
       generic (
          -- The total number of trigger units below has to be below 16
-         TRIGGER_INPUT_COUNT : integer range 0 to 8 := 4;
-         TRIGGER_COIN_COUNT  : integer range 0 to 15 := 3;
+         TRIGGER_INPUT_COUNT : integer range 0 to  8 := 4;
+         TRIGGER_COIN_COUNT  : integer range 0 to 15 := 2;
          TRIGGER_PULSER_COUNT: integer range 0 to 15 := 4;
          TRIGGER_RAND_PULSER : integer range 0 to 15 := 1;
-      
-         ADDON_LINE_COUNT    : integer range 0 to 255 := 22;                 -- number of lines available from add-on board
          TRIGGER_ADDON_COUNT : integer range 0 to 15 := 2;  -- number of module instances used to patch through those lines
-         ADDON_GROUPS        : integer range 1 to 8 := 5;
+         PERIPH_TRIGGER_COUNT: integer range 0 to 15 := 2;
+      
+         ADDON_GROUPS        : integer range 1 to  8 := 5;
+         ADDON_LINE_COUNT    : integer range 0 to 255 := 22;                 -- number of lines available from add-on board
          ADDON_GROUP_UPPER   : CTS_GROUP_CONFIG_T  := (3,7,11,12,13, others=>'0');
 
-         PERIPH_TRIGGER_COUNT: integer range 0 to 1 := 1;
          
          OUTPUT_MULTIPLEXERS : integer range 0 to 255 := 0;
-         OUTPUT_EXTRA_INPUTS : integer range 0 to 255 := 0;
 
-         
          EXTERNAL_TRIGGER_ID : std_logic_vector(7 downto 0) := X"00";
          
          TIME_REFERENCE_COUNT: positive := 10;          -- Number of clock cycles the time reference needs to stay asserted (100ns)
@@ -46,10 +44,9 @@ package cts_pkg is
          ADDON_GROUP_ACTIVITY_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
          ADDON_GROUP_SELECTED_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
          
-         PERIPH_TRIGGER_IN : in std_logic_vector(3 downto 0) := (others => '0');
+         PERIPH_TRIGGER_IN : in std_logic_vector(19 downto 0) := (others => '0');
          
          OUTPUT_MULTIPLEXERS_OUT : out std_logic_vector(OUTPUT_MULTIPLEXERS-1 downto 0);
-         OUTPUT_EXTRA_INPUTS_IN  : in std_logic_vector(max(0, OUTPUT_EXTRA_INPUTS-1) downto 0) := (others => '0');
          
    -- External trigger logic
          EXT_TRIGGER_IN  : in std_logic;
@@ -187,10 +184,9 @@ package cts_pkg is
          ADDON_GROUPS         : integer range 1 to 8 := 5;
          ADDON_GROUP_UPPER    : CTS_GROUP_CONFIG_T  := (3,7,11,12,13, others=>'0');
       
-         PERIPH_TRIGGER_COUNT: integer range 0 to 1 := 1;
+         PERIPH_TRIGGER_COUNT: integer range 0 to 15 := 2;
          
          OUTPUT_MULTIPLEXERS : integer range 0 to 255 := 0;
-         OUTPUT_EXTRA_INPUTS : integer range 0 to 255 := 0;
          
          EXTERNAL_TRIGGER_ID  : std_logic_vector(7 downto 0) := X"00"
       );
@@ -206,10 +202,9 @@ package cts_pkg is
          ADDON_GROUP_ACTIVITY_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
          ADDON_GROUP_SELECTED_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
 
-         PERIPH_TRIGGER_IN : in std_logic_vector(3 downto 0) := (others => '0');
+         PERIPH_TRIGGER_IN : in std_logic_vector(19 downto 0) := (others => '0');
          
          OUTPUT_MULTIPLEXERS_OUT : out std_logic_vector(OUTPUT_MULTIPLEXERS-1 downto 0);
-         OUTPUT_EXTRA_INPUTS_IN  : in std_logic_vector(max(0, OUTPUT_EXTRA_INPUTS-1) downto 0) := (others => '0');
          
       -- External 
          EXT_TRIGGER_IN  : in std_logic;

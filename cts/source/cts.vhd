@@ -112,7 +112,6 @@ entity CTS is
       PERIPH_TRIGGER_COUNT: integer range 0 to 1 := 1;
       
       OUTPUT_MULTIPLEXERS : integer range 0 to 255 := 0;
-      OUTPUT_EXTRA_INPUTS : integer range 0 to 255 := 0;
       
       EXTERNAL_TRIGGER_ID  : std_logic_vector(7 downto 0) := X"00";
 
@@ -133,10 +132,9 @@ entity CTS is
       ADDON_GROUP_ACTIVITY_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
       ADDON_GROUP_SELECTED_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
 
-      PERIPH_TRIGGER_IN : in std_logic_vector(3 downto 0) := (others => '0');
+      PERIPH_TRIGGER_IN : in std_logic_vector(19 downto 0) := (others => '0');
       
       OUTPUT_MULTIPLEXERS_OUT : out std_logic_vector(OUTPUT_MULTIPLEXERS-1 downto 0);
-      OUTPUT_EXTRA_INPUTS_IN  : in std_logic_vector(max(0, OUTPUT_EXTRA_INPUTS-1) downto 0) := (others => '0');
       
    -- External trigger logic
       EXT_TRIGGER_IN  : in std_logic;
@@ -742,7 +740,6 @@ begin
       PERIPH_TRIGGER_COUNT => PERIPH_TRIGGER_COUNT,
       
       OUTPUT_MULTIPLEXERS  => OUTPUT_MULTIPLEXERS,
-      OUTPUT_EXTRA_INPUTS  => OUTPUT_EXTRA_INPUTS,
       
       TRIGGER_ADDON_COUNT  => TRIGGER_ADDON_COUNT,
       EXTERNAL_TRIGGER_ID  => EXTERNAL_TRIGGER_ID
@@ -760,7 +757,6 @@ begin
       PERIPH_TRIGGER_IN => PERIPH_TRIGGER_IN,
       
       OUTPUT_MULTIPLEXERS_OUT => OUTPUT_MULTIPLEXERS_OUT,
-      OUTPUT_EXTRA_INPUTS_IN  => OUTPUT_EXTRA_INPUTS_IN,
       
       EXT_TRIGGER_IN  => EXT_TRIGGER_IN,
       EXT_STATUS_IN   => EXT_STATUS_IN,

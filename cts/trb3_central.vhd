@@ -334,10 +334,10 @@ architecture trb3_central_arch of trb3_central is
   signal cts_addon_activity_i,
          cts_addon_selected_i        : std_logic_vector(6 downto 0);
          
-  signal cts_periph_trigger_i        : std_logic_vector(3 downto 0);
+  signal cts_periph_trigger_i        : std_logic_vector(19 downto 0);
   signal cts_output_multiplexers_i   : std_logic_vector(CTS_OUTPUT_MULTIPLEXERS - 1 downto 0);
   
-  signal cts_output_extra_inputs_i   : std_logic_vector(CTS_OUTPUT_INPUTS - 1 downto 0);
+  signal cts_periph_lines_i   : std_logic_vector(CTS_OUTPUT_INPUTS - 1 downto 0);
   
   signal cts_trg_send                : std_logic;
   signal cts_trg_type                : std_logic_vector(3 downto 0);
@@ -493,10 +493,9 @@ begin
       TRIGGER_INPUT_COUNT  => 0, -- now all inputs are routed via an input multiplexer!
       TRIGGER_ADDON_COUNT  => 6,
       
-      PERIPH_TRIGGER_COUNT => 1,
+      PERIPH_TRIGGER_COUNT => 2,
       
       OUTPUT_MULTIPLEXERS  => CTS_OUTPUT_MULTIPLEXERS,
-      OUTPUT_EXTRA_INPUTS  => CTS_OUTPUT_INPUTS,
       
       ADDON_LINE_COUNT     => CTS_ADDON_LINE_COUNT,
       ADDON_GROUPS         => 7,
@@ -522,7 +521,6 @@ begin
       PERIPH_TRIGGER_IN => cts_periph_trigger_i,
       
       OUTPUT_MULTIPLEXERS_OUT => cts_output_multiplexers_i,
-      OUTPUT_EXTRA_INPUTS_IN  => cts_output_extra_inputs_i,
       
       CTS_TRG_SEND_OUT => cts_trg_send,
       CTS_TRG_TYPE_OUT => cts_trg_type,
@@ -593,9 +591,10 @@ begin
       others => '0'
    );
    
-   cts_periph_trigger_i <= FPGA4_COMM(10) & FPGA3_COMM(10) & FPGA2_COMM(10) & FPGA1_COMM(10);
-
-   cts_output_extra_inputs_i <= FPGA4_COMM(7 downto 4) & FPGA3_COMM(7 downto 4) & FPGA2_COMM(7 downto 4) & FPGA1_COMM(7 downto 4);
+   cts_periph_trigger_i <= FPGA4_COMM(10) & FPGA4_COMM(7 downto 4)
+                         & FPGA3_COMM(10) & FPGA3_COMM(7 downto 4)
+                         & FPGA2_COMM(10) & FPGA2_COMM(7 downto 4)
+                         & FPGA1_COMM(10) & FPGA1_COMM(7 downto 4);
    
    JOUT1    <= cts_output_multiplexers_i(3 downto 0);
    JOUT2    <= cts_output_multiplexers_i(7 downto 4);

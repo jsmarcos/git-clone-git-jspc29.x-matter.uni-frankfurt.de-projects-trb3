@@ -18,10 +18,9 @@ entity CTS_TRIGGER is
       ADDON_GROUPS        : integer range 1 to 8 := 5;
       ADDON_GROUP_UPPER   : CTS_GROUP_CONFIG_T  := (3,7,11,12,13, others=>'0');
 
-      PERIPH_TRIGGER_COUNT: integer range 0 to 1 := 1;
+      PERIPH_TRIGGER_COUNT: integer range 0 to 15 := 1;
       
       OUTPUT_MULTIPLEXERS : integer range 0 to 255 := 0;
-      OUTPUT_EXTRA_INPUTS : integer range 0 to 255 := 0;
       
       EXTERNAL_TRIGGER_ID  : std_logic_vector(7 downto 0) := X"00"
    );
@@ -38,10 +37,9 @@ entity CTS_TRIGGER is
       ADDON_GROUP_ACTIVITY_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
       ADDON_GROUP_SELECTED_OUT : out std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
       
-      PERIPH_TRIGGER_IN : in std_logic_vector(3 downto 0) := (others => '0');
+      PERIPH_TRIGGER_IN : in std_logic_vector(19 downto 0) := (others => '0');
 
       OUTPUT_MULTIPLEXERS_OUT : out std_logic_vector(OUTPUT_MULTIPLEXERS-1 downto 0);
-      OUTPUT_EXTRA_INPUTS_IN  : in std_logic_vector(max(0, OUTPUT_EXTRA_INPUTS-1) downto 0) := (others => '0');
       
     -- External 
       EXT_TRIGGER_IN  : in std_logic;
@@ -123,22 +121,23 @@ architecture RTL of CTS_TRIGGER is
    signal trigger_input_edge_counters_i : trigger_input_counters_t;
    
 -- Coincidence Detection
-   type coin_config_t is array(TRIGGER_COIN_COUNT - 1 downto 0) of std_logic_vector(31 downto 0);
+   type coin_config_t is array(MAX(0, TRIGGER_COIN_COUNT - 1) downto 0) of std_logic_vector(31 downto 0);
    signal coin_config_i : coin_config_t;
    
 -- TRIGGER_PULSER_COUNT
-   type   pulser_interval_t is array(TRIGGER_PULSER_COUNT - 1 downto 0) of std_logic_vector(31 downto 0);
+   type   pulser_interval_t is array(MAX(0, TRIGGER_PULSER_COUNT - 1) downto 0) of std_logic_vector(31 downto 0);
    signal pulser_interval_i : pulser_interval_t;
    signal pulser_counter_i  : pulser_interval_t := (others => (others => '0'));
    signal pulser_1us_i  : std_logic;
    
 -- Random Pulser
-   type   rand_pulser_threshold_t is array(TRIGGER_RAND_PULSER - 1 downto 0) of std_logic_vector(31 downto 0);
+   type   rand_pulser_threshold_t is array(MAX(0, TRIGGER_RAND_PULSER - 1) downto 0) of std_logic_vector(31 downto 0);
    signal rand_pulser_threshold_i : rand_pulser_threshold_t := (others => (others => '0'));
 
    
 -- Peripheral Trigger Inputs
-   signal periph_trigger_mask_i   : std_logic_vector(3 downto 0) := (others => '0');
+   type periph_trigger_mask_t is array(MAX(0, PERIPH_TRIGGER_COUNT - 1) downto 0) of std_logic_vector(19 downto 0);
+   signal periph_trigger_mask_i   : periph_trigger_mask_t;
    
 -- Add On 
    type trigger_addon_configs_t is array(TRIGGER_ADDON_COUNT - 1 downto 0) of std_logic_vector(7 downto 0);
@@ -146,9 +145,9 @@ architecture RTL of CTS_TRIGGER is
    signal addon_group_activity_i : std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
    signal addon_group_selected_i : std_logic_vector(ADDON_GROUPS-1 downto 0) := (others => '0');
    
-   type output_multiplexer_configs_t is array(OUTPUT_MULTIPLEXERS - 1 downto 0) of std_logic_vector(7 downto 0);
+   type output_multiplexer_configs_t is array(MAX(0,OUTPUT_MULTIPLEXERS - 1) downto 0) of std_logic_vector(7 downto 0);
    signal output_multiplexer_configs_i : output_multiplexer_configs_t;
-   signal output_multiplexer_ins_i : std_logic_vector(16 + 2*TRIGGER_INPUT_COUNT + ADDON_LINE_COUNT + TRIGGER_ADDON_COUNT + OUTPUT_EXTRA_INPUTS - 1 downto 0);
+   signal output_multiplexer_ins_i : std_logic_vector(16 + 2*TRIGGER_INPUT_COUNT + ADDON_LINE_COUNT + TRIGGER_ADDON_COUNT - 1 downto 0);
    
 -- Trigger Type Assoc 
    type trigger_type_assoc_t is array(0 to 15) of std_logic_vector(3 downto 0);
@@ -172,7 +171,7 @@ begin
       end if;
    end process;
    
-   proc_addon_multi: process(CLK_IN) is
+   proc_addon_mux: process(CLK_IN) is
    begin
       if rising_edge(CLK_IN) then
          for i in 0 to TRIGGER_ADDON_COUNT - 1 loop
@@ -186,8 +185,8 @@ begin
       channels_i(ITC_BASE_EXT) <= EXT_TRIGGER_IN;
    end generate;
    
-   proc_output_multi_ins: process(channels_i, TRIGGERS_IN, ADDON_TRIGGERS_IN, trigger_inputs_i, 
-     OUTPUT_EXTRA_INPUTS_IN, output_multiplexer_configs_i) is
+   proc_output_mux_ins: process(channels_i, TRIGGERS_IN, ADDON_TRIGGERS_IN, trigger_inputs_i, 
+     output_multiplexer_configs_i) is
       variable i : integer := 0;
    begin
       i := 0;
@@ -207,14 +206,9 @@ begin
       
       output_multiplexer_ins_i(trigger_inputs_i'high + i downto i) <= trigger_inputs_i;
       i := i + EFFECTIVE_INPUT_COUNT;
-      
-      if OUTPUT_EXTRA_INPUTS > 0 then
-         output_multiplexer_ins_i(OUTPUT_EXTRA_INPUTS + i - 1 downto i) <= OUTPUT_EXTRA_INPUTS_IN;
-         i := i + OUTPUT_EXTRA_INPUTS;
-      end if;
    end process;
    
-   proc_out_multi: process(output_multiplexer_ins_i, output_multiplexer_configs_i) is
+   proc_out_mux: process(output_multiplexer_ins_i, output_multiplexer_configs_i) is
       variable tmp : integer range 0 to 255 := 0;
       variable idx : integer range 0 to output_multiplexer_ins_i'high := 0;
       variable test : std_logic_vector(31 downto 0);
@@ -262,7 +256,9 @@ begin
    proc_periph: process(CLK_IN) is
    begin
       if rising_edge(clk_in) and PERIPH_TRIGGER_COUNT > 0 then
-         channels_i(ITC_BASE_PERIPH) <= OR_ALL( periph_trigger_mask_i and PERIPH_TRIGGER_IN );
+         for i in 0 to PERIPH_TRIGGER_COUNT - 1 loop
+            channels_i(ITC_BASE_PERIPH + i) <= OR_ALL( periph_trigger_mask_i(i) and PERIPH_TRIGGER_IN );
+         end loop;
       end if;
    end process;
    
@@ -578,7 +574,7 @@ begin
                   REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN;
                   REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
                   REGIO_DATA_OUT <= CTS_BLOCK_HEADER(
-                     id => 16#12#,
+                     id => 16#15#,
                      len => TRIGGER_ADDON_COUNT,
                      itc_base => ITC_BASE_INPUTS + TRIGGER_INPUT_COUNT,
                      itc_num  => TRIGGER_ADDON_COUNT
@@ -604,7 +600,7 @@ begin
                end loop;
             end if;            
 
--- OUTPUT MULTIPLEXER MODULE
+-- OUTPUT MULTIPLEXER MODULE (important: has to appear AFTER type 0x10 and 0x12/0x15 in order to compute the length of the bitmasks correctly)
             if OUTPUT_MULTIPLEXERS > 0 then
                if addr = ref_addr then
                   REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN;
@@ -636,33 +632,35 @@ begin
                end loop;
             end if;            
             
--- PERIPH TRIGGER
+-- PERIPH TRIGGER 
             if PERIPH_TRIGGER_COUNT > 0 then
                if addr = ref_addr then
                   REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN;
                   REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
                   REGIO_DATA_OUT <= CTS_BLOCK_HEADER(
-                     id => 16#13#,
-                     len => 1,
+                     id => 16#14#,
+                     len => PERIPH_TRIGGER_COUNT,
                      itc_base => ITC_BASE_PERIPH,
-                     itc_num  => 1
+                     itc_num  => PERIPH_TRIGGER_COUNT
                   );
                end if;
                ref_addr := ref_addr + 1;  
                
-               if addr=ref_addr then
-                  REGIO_UNKNOWN_ADDR_OUT <= '0';
-                  REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
-                  REGIO_WRITE_ACK_OUT <= REGIO_WRITE_ENABLE_IN;
-                  
-                  REGIO_DATA_OUT <= (others => '0');
-                  REGIO_DATA_OUT(periph_trigger_mask_i'range) <= periph_trigger_mask_i;
-                  
-                  if REGIO_WRITE_ENABLE_IN = '1' then
-                     periph_trigger_mask_i <= REGIO_DATA_IN(periph_trigger_mask_i'range);
+               for i in 0 to PERIPH_TRIGGER_COUNT-1 loop
+                  if addr=ref_addr then
+                     REGIO_UNKNOWN_ADDR_OUT <= '0';
+                     REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN;
+                     REGIO_WRITE_ACK_OUT <= REGIO_WRITE_ENABLE_IN;
+                     
+                     REGIO_DATA_OUT <= (others => '0');
+                     REGIO_DATA_OUT(periph_trigger_mask_i(i)'range) <= periph_trigger_mask_i(i);
+                     
+                     if REGIO_WRITE_ENABLE_IN = '1' then
+                        periph_trigger_mask_i(i) <= REGIO_DATA_IN(periph_trigger_mask_i(i)'range);
+                     end if;
                   end if;
-               end if;
-               ref_addr := ref_addr + 1;                 
+                  ref_addr := ref_addr + 1;                 
+               end loop;
             end if;     
             
 -- TRIGGER_PULSER_COUNT CONFIGURATION
