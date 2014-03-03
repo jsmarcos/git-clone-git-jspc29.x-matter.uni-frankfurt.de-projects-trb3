@@ -1,0 +1,8 @@
+// nodes file for parallel place&route
+
+[jspc56]
+SYSTEM = linux
+CORENUM = 4
+ENV = /d/jspc29/lattice/30_settings.sh
+WORKDIR = /d/jspc22/trb/git/trb3/32PinAddOn/project/tdc
+
