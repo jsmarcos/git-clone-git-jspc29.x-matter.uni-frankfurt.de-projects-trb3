@@ -16,7 +16,6 @@ library work;
 --Configuration is done in this file:   
    use work.config.all;
 -- The description of hub ports is also there!
-   
 
 --Slow Control
 --    0 -    7  Readout endpoint common status
@@ -28,9 +27,6 @@ library work;
 -- A000 - A1FF  CTS configuration & status
 -- C000 - CFFF  TDC configuration & status
 -- D000 - D13F  Flash Programming
-
-
-
 
 entity trb3_central is
   port(
@@ -330,12 +326,18 @@ architecture trb3_central_arch of trb3_central is
   signal cts_rdo_trg_information            : std_logic_vector(23 downto 0);
   signal cts_rdo_trg_number                 : std_logic_vector(15 downto 0);
       
-  constant CTS_ADDON_LINE_COUNT      : integer := 14;
+  constant CTS_ADDON_LINE_COUNT      : integer := 22;
+  constant CTS_OUTPUT_MULTIPLEXERS   : integer :=  8;
+  constant CTS_OUTPUT_INPUTS         : integer := 16;
+  
   signal cts_addon_triggers_in       : std_logic_vector(CTS_ADDON_LINE_COUNT-1 downto 0);
   signal cts_addon_activity_i,
-         cts_addon_selected_i        : std_logic_vector(4 downto 0);
+         cts_addon_selected_i        : std_logic_vector(6 downto 0);
          
-  signal cts_periph_trigger_i        : std_logic_vector(3 downto 0);
+  signal cts_periph_trigger_i        : std_logic_vector(19 downto 0);
+  signal cts_output_multiplexers_i   : std_logic_vector(CTS_OUTPUT_MULTIPLEXERS - 1 downto 0);
+  
+  signal cts_periph_lines_i   : std_logic_vector(CTS_OUTPUT_INPUTS - 1 downto 0);
   
   signal cts_trg_send                : std_logic;
   signal cts_trg_type                : std_logic_vector(3 downto 0);
@@ -479,31 +481,31 @@ begin
 				);
 	end generate;
 
-	
-	
-   trigger_in_buf_i(1 downto 0) <= CLK_EXT;
-   trigger_in_buf_i(3 downto 2) <= TRIGGER_EXT(3 downto 2);
 
  THE_CTS: CTS 
    generic map (
       EXTERNAL_TRIGGER_ID  => X"60"+ETM_CHOICE_type'pos(ETM_CHOICE), -- fill in trigger logic enumeration id of external trigger logic
-      TRIGGER_INPUT_COUNT  => 4,
+      
       TRIGGER_COIN_COUNT   => 4,
       TRIGGER_PULSER_COUNT => 2,
       TRIGGER_RAND_PULSER  => 1,
-      TRIGGER_ADDON_COUNT  => 2,
+
+      TRIGGER_INPUT_COUNT  => 0, -- now all inputs are routed via an input multiplexer!
+      TRIGGER_ADDON_COUNT  => 6,
       
-      PERIPH_TRIGGER_COUNT => 1,
+      PERIPH_TRIGGER_COUNT => 2,
+      
+      OUTPUT_MULTIPLEXERS  => CTS_OUTPUT_MULTIPLEXERS,
       
       ADDON_LINE_COUNT     => CTS_ADDON_LINE_COUNT,
-      ADDON_GROUPS         => 5,
-      ADDON_GROUP_UPPER    => (3,7,11,12,13, others=>0)
+      ADDON_GROUPS         => 7,
+      ADDON_GROUP_UPPER    => (3,7,11,15,16,17, others=>0)
    )
    port map ( 
       CLK => clk_100_i,
       RESET => reset_i,
       
-      TRIGGERS_IN => trigger_in_buf_i,
+      --TRIGGERS_IN => trigger_in_buf_i,
       TRIGGER_BUSY_OUT => trigger_busy_i,
       TIME_REFERENCE_OUT => cts_trigger_out,
       
@@ -517,6 +519,8 @@ begin
       EXT_HEADER_BITS_IN => cts_ext_header,
       
       PERIPH_TRIGGER_IN => cts_periph_trigger_i,
+      
+      OUTPUT_MULTIPLEXERS_OUT => cts_output_multiplexers_i,
       
       CTS_TRG_SEND_OUT => cts_trg_send,
       CTS_TRG_TYPE_OUT => cts_trg_type,
@@ -554,33 +558,47 @@ begin
       FEE_DATA_FINISHED_OUT   => cts_rdo_finished
    );   
    
-   process is
-   begin
-      wait until rising_edge(clk_100_i);
-      cts_addon_triggers_in( 3 downto  0) <= ECL_IN;
-      cts_addon_triggers_in( 7 downto  4) <= JIN1;
-      cts_addon_triggers_in(11 downto  8) <= JIN2;
-      cts_addon_triggers_in(13 downto 12) <= NIM_IN;
-   end process;
+   --process is
+   --begin
+      --wait until rising_edge(clk_100_i);
+      
+   cts_addon_triggers_in( 1 downto  0) <= CLK_EXT;                 -- former trigger inputs
+   cts_addon_triggers_in( 3 downto  2) <= TRIGGER_EXT(3 downto 2); -- former trigger inputs
+   
+   cts_addon_triggers_in( 7 downto  4) <= ECL_IN;
+   cts_addon_triggers_in(11 downto  8) <= JIN1;
+   cts_addon_triggers_in(15 downto 12) <= JIN2;
+   cts_addon_triggers_in(17 downto 16) <= NIM_IN;
+   
+   cts_addon_triggers_in(18) <= or_all(ECL_IN);
+   cts_addon_triggers_in(19) <= or_all(JIN1);
+   cts_addon_triggers_in(20) <= or_all(JIN2);
+   cts_addon_triggers_in(21) <= or_all(NIM_IN);
+   --end process;
    
    LED_BANK(7 downto 6) <= cts_addon_activity_i(4 downto 3);
    LED_RJ_GREEN <= (
-      0 => cts_addon_activity_i(1),
-      1 => cts_addon_activity_i(2),
-      5 => cts_addon_activity_i(0),
+      0 => cts_addon_activity_i(2),
+      1 => cts_addon_activity_i(3),
+      5 => cts_addon_activity_i(1),
       others => '0'
    );
       
    LED_RJ_RED <= (
-      0 => cts_addon_selected_i(1),
-      1 => cts_addon_selected_i(2),
-      5 => cts_addon_selected_i(0),
+      0 => cts_addon_selected_i(2),
+      1 => cts_addon_selected_i(3),
+      5 => cts_addon_selected_i(1),
       others => '0'
    );
    
-   cts_periph_trigger_i <= FPGA4_COMM(10) & FPGA3_COMM(10) & FPGA2_COMM(10) & FPGA1_COMM(10);
+   cts_periph_trigger_i <= FPGA4_COMM(10) & FPGA4_COMM(7 downto 4)
+                         & FPGA3_COMM(10) & FPGA3_COMM(7 downto 4)
+                         & FPGA2_COMM(10) & FPGA2_COMM(7 downto 4)
+                         & FPGA1_COMM(10) & FPGA1_COMM(7 downto 4);
    
---    cts_rdo_trg_status_bits <= cts_rdo_trg_status_bits_cts OR cts_rdo_trg_status_bits_additional;
+   JOUT1    <= cts_output_multiplexers_i(3 downto 0);
+   JOUT2    <= cts_output_multiplexers_i(7 downto 4);
+   JOUTLVDS <= cts_output_multiplexers_i(7 downto 0);
    
 ---------------------------------------------------------------------------
 -- Reset Generation

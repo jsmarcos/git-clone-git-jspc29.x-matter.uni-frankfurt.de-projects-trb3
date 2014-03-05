@@ -2,7 +2,7 @@
 use Data::Dumper;
 use warnings;
 use strict;
-
+use Term::ANSIColor;
 
 
 
@@ -60,7 +60,7 @@ if(defined $ENV{'LPF_ONLY'} and $ENV{'LPF_ONLY'} == 1) {exit;}
 #set -o errexit
 
 #generate timestamp
-my $t=time;
+my $t=sprintf "%08x", time;
 my $fh = new FileHandle(">version.vhd");
 die "could not open file" if (! defined $fh);
 print $fh <<EOF;
@@ -74,7 +74,7 @@ use ieee.numeric_std.all;
 
 package version is
 
-    constant VERSION_NUMBER_TIME  : integer   := $t;
+    constant VERSION_NUMBER_TIME  : integer   := 16#$t#;
 
 end package version;
 EOF
@@ -159,13 +159,15 @@ sub execute {
     my ($c, $op) = @_;
     #print "option: $op \n";
     $op = "" if(!$op);
+    print color 'blue bold';
     print "\n\ncommand to execute: $c \n";
+    print color 'reset';
     $r=system($c);
     if($r) {
-	print "$!";
-	if($op ne "do_not_exit") {
-	    exit;
-	}
+   print "$!";
+   if($op ne "do_not_exit") {
+       exit;
+   }
     }
 
     return $r;
