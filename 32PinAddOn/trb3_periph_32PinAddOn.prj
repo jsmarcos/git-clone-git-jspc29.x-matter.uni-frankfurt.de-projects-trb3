@@ -142,7 +142,6 @@ add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
 
 
 
-
 ###############
 #Change path to tdc release also in compile script!
 ###############
@@ -152,7 +151,6 @@ add_file -vhdl -lib "work" "currentRelease/BusHandler.vhd"
 add_file -vhdl -lib "work" "currentRelease/Channel.vhd"
 add_file -vhdl -lib "work" "currentRelease/Channel_200.vhd"
 add_file -vhdl -lib "work" "currentRelease/Encoder_304_Bit.vhd"
-#add_file -vhdl -lib "work" "currentRelease/FIFO_36x128_OutReg_Counter.vhd"
 add_file -vhdl -lib "work" "currentRelease/LogicAnalyser.vhd"
 add_file -vhdl -lib "work" "currentRelease/Readout.vhd"
 add_file -vhdl -lib "work" "currentRelease/ROM4_Encoder.vhd"
@@ -165,9 +163,6 @@ add_file -vhdl -lib "work" "currentRelease/fallingEdgeDetect.vhd"
 add_file -vhdl -lib "work" "currentRelease/risingEdgeDetect.vhd"
 add_file -vhdl -lib "work" "../base/cores/FIFO_36x128_OutReg.vhd"
 add_file -vhdl -lib "work" "../base/cores/FIFO_DC_36x128_OutReg.vhd"
-#add_file -vhdl -lib "work" "currentRelease/Reference_Channel_200.vhd"
-#add_file -vhdl -lib "work" "currentRelease/Reference_Channel.vhd"
-
 add_file -vhdl -lib "work" "../base/code/input_to_trigger_logic.vhd"
 
 add_file -vhdl -lib "work" "trb3_periph_32PinAddOn.vhd"
