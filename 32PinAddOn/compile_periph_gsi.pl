@@ -98,7 +98,7 @@ system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");
 #create full lpf file
 system("cp ../base/trb3_periph_32PinAddOn.lpf workdir/$TOPNAME.lpf");
 system("cat currentRelease/trbnet_constraints.lpf >> workdir/$TOPNAME.lpf");
-system("cat currentRelease/tdc_constraints.lpf >> workdir/$TOPNAME.lpf");
+system("cat currentRelease/tdc_constraints_2.lpf >> workdir/$TOPNAME.lpf");
 
 #generate timestamp
 my $t=time;
@@ -236,7 +236,7 @@ if($par==1 || $all==1){
     #$c=qq|$lattice_path/ispfpga/bin/lin/multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t" "$tpmap.ncd" "$TOPNAME.ncd"|;
     if ($isMultiPar)
     {
-	$c=qq|par -m ../nodes_lxhadeb07.txt -n $nrNodes -stopzero -w -l 5 -i 6 -t 1 -c 0 -e 0 -exp parUseNBR=1:parCDP=0:parCDR=0:parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
+	$c=qq|par -m ../nodes_lxhadeb07.txt -n $nrNodes -w -l 5 -exp parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
 	execute($c);
         # find and copy the .ncd file which has met the timing constraints
 	$fh = new FileHandle("<$TOPNAME".".par");
