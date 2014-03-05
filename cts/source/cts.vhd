@@ -691,7 +691,7 @@ begin
             eb_aggr_counter_i   <= x"00";
             eb_selection_i <= x"0";
          
-         elsif eb_mask_buf_i = x"00" or eb_regio_updated_i = '1'then
+         elsif eb_mask_buf_i = x"0000" or eb_regio_updated_i = '1'then
             -- we already unmasked all active ebs, so let's start over and again select all active ebs
             eb_mask_buf_i <= eb_mask_i;
             
@@ -703,7 +703,7 @@ begin
                -- we can switch to a sequential process instead of a parallel priority encoder
                eb_sel_loop: for i in 0 to 15 loop
                   if eb_mask_buf_i(i) = '1' then
-                     if OR_ALL(eb_mask_buf_i(15 downto i+1)) = '0' then
+                     if i=15 or OR_ALL(eb_mask_buf_i(15 downto i+1)) = '0' then
                         eb_mask_buf_i <= eb_mask_i;
                      else
                         eb_mask_buf_i(i downto 0) <= (others => '0');
@@ -1059,4 +1059,6 @@ begin
 
      STAT_DEBUG            => open
  );
+ 
+ cts_regio_no_more_data_out_i <= '0';
 end architecture;
