@@ -7,7 +7,7 @@ use Getopt::Long;
 
 ###################################################################################
 #Settings for this project
-my $TOPNAME                      = "trb3_periph_32PinAddOn";  #Name of top-level entity
+my $TOPNAME                      = "trb3_periph_padiwa";  #Name of top-level entity
 #my $lattice_path                 = '/opt/lattice/diamond/3.0_x64/';
 #my $lattice_bin_path             = "$lattice_path/bin/lin64"; # note the lin/lin64 at the end, no isfgpa needed
 my $lattice_path                 = '/opt/lattice/diamond/2.01/';

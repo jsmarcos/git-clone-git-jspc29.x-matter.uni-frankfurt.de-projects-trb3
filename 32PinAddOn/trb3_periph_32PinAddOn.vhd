@@ -99,7 +99,6 @@ architecture trb3_periph_32PinAddOn_arch of trb3_periph_32PinAddOn is
   --Clock / Reset
   signal clk_100_i                : std_logic;  --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i                : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
-  signal clk_125_i                : std_logic;  -- 125 MHz, via Clock Manager and bypassed PLL
   signal clk_20_i                 : std_logic;  -- clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
   signal osc_int                  : std_logic;  -- clock for calibrating the tdc, 2.5 MHz, via internal osscilator
   signal pll_lock                 : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
@@ -297,20 +296,13 @@ begin
       CLKOK => clk_200_i,
       LOCK  => pll_lock
       );
-
-  -- generates hits for calibration uncorrelated with tdc clk
-  THE_CALIBRATION_PLL : pll_in125_out20
-    port map (
-      CLK   => CLK_GPLL_LEFT,
-      CLKOP => clk_20_i,
-      CLKOK => clk_125_i,
-      LOCK  => open);
-
-  OSCInst0 : OSCF  -- internal oscillator with frequency of 2.5MHz
+  
+  -- internal oscillator with frequency of 2.5MHz for tdc calibration
+  OSCInst0 : OSCF
     port map (
       OSC => osc_int);
 
-  
+
 
 
 ---------------------------------------------------------------------------
@@ -782,7 +774,7 @@ begin
   THE_TDC : TDC
     generic map (
       CHANNEL_NUMBER => NUM_TDC_CHANNELS,   -- Number of TDC channels
-      STATUS_REG_NR  => 19,             -- Number of status regs
+      STATUS_REG_NR  => 20,             -- Number of status regs
       CONTROL_REG_NR => 6,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
       TDC_VERSION    => x"160",         -- TDC version number
       DEBUG          => c_YES,
@@ -793,7 +785,7 @@ begin
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
       HIT_IN                => hit_in_i(NUM_TDC_CHANNELS-1 downto 1),  -- Channel start signals
-      HIT_CALIBRATION       => osc_int,  --clk_20_i,    -- Hits for calibrating the TDC
+      HIT_CALIBRATION       => osc_int,  -- Hits for calibrating the TDC
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --
@@ -861,7 +853,6 @@ begin
   -- For single edge measurements
   gen_single : if USE_DOUBLE_EDGE = 0 generate
     hit_in_i <= INP;
---     hit_in_i <= (others => timing_trg_received_i);
   end generate;
 
   -- For ToT Measurements

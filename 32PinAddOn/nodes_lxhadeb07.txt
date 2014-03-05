@@ -2,7 +2,7 @@
 
 [lxhadeb07]
 SYSTEM = linux
-CORENUM = 28
+CORENUM = 32
 //ENV = /u/cugur/depc363/bin/diamond_setup_x64.sh
 ENV = /u/cugur/depc363/bin/diamond_setup.sh
 //WORKDIR = /u/cugur/depc363/Projects/TDC_on_TRB3/trb3/32PinAddOn/diamond/trb3_periph_32PinAddOn

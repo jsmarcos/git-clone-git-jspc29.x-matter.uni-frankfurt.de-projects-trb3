@@ -11,18 +11,18 @@ package config is
 ------------------------------------------------------------------------------
 
 --Include GbE logic     
-    constant NUM_TDC_CHANNELS       : integer range 1 to 65 := 65;
-    constant NUM_TDC_CHANNELS_POWER2: integer range 0 to 6  := 6;  --the nearest power of two, for convenience reasons
-    constant USE_DOUBLE_EDGE        : integer := c_YES;
+    constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 65;
+    constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6  := 6;  --the nearest power of two, for convenience reasons
+    constant USE_DOUBLE_EDGE         : integer               := c_YES;
     --constant ADDON_TYPE              : integer               := 0; -- ADA v1
     --constant ADDON_TYPE              : integer               := 1; -- ADA v2
     --constant ADDON_TYPE              : integer               := 2; -- Multitest
     --constant ADDON_TYPE              : integer               := 3; -- SFP
-    --constant ADDON_TYPE              : integer               := 4; -- Padiwa
+    constant ADDON_TYPE              : integer               := 4; -- Padiwa
     --constant ADDON_TYPE              : integer               := 5; -- GPIN
     --constant ADDON_TYPE              : integer               := 6; -- Nxyter
-    constant ADDON_TYPE              : integer               := 7; -- 32PinAddon
-
+    --constant ADDON_TYPE              : integer               := 7; -- 32PinAddon
+    
 --Include SPI on AddOn connector    
     constant INCLUDE_SPI            : integer := c_YES;
 
@@ -37,7 +37,7 @@ package config is
     
    
 --Address settings   
-    constant INIT_ADDRESS           : std_logic_vector := x"F305";
+    constant INIT_ADDRESS           : std_logic_vector := x"F306";
     constant BROADCAST_SPECIAL_ADDR : std_logic_vector := x"48";
    
 ------------------------------------------------------------------------------
