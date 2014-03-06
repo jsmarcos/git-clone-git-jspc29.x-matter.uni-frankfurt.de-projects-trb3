@@ -482,7 +482,7 @@ begin
     generic map(
       PORT_NUMBER    => 10,
       PORT_ADDRESSES => (0 => x"d000", 1 => x"cf80", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"c400", 8 => x"c800", 9 => x"cf00", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 9,       1 => 6,       2 => 5,       3 => 7,       4 => 5,       5 => 7,       6 => 7,       7 => 7,       8 => 3,       9 => 6,       others => 0)
+      PORT_ADDR_MASK => (0 => 9,       1 => 7,       2 => 5,       3 => 7,       4 => 5,       5 => 7,       6 => 7,       7 => 7,       8 => 3,       9 => 6,       others => 0)
       )
     port map(
       CLK   => clk_100_i,

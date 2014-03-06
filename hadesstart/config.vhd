@@ -11,8 +11,8 @@ package config is
 ------------------------------------------------------------------------------
 
 --TDC settings
-    constant NUM_TDC_CHANNELS       : integer range 1 to 65 := 5;  
-    constant NUM_TDC_CHANNELS_POWER2: integer range 0 to 6  := 2;  --the nearest power of two, for convenience reasons 
+    constant NUM_TDC_CHANNELS       : integer range 1 to 65 := 17;  
+    constant NUM_TDC_CHANNELS_POWER2: integer range 0 to 6  := 4;  --the nearest power of two, for convenience reasons 
     constant USE_DOUBLE_EDGE        : integer := c_YES;
     
 --use only every fourth input as in HPTDC high precision mode    
