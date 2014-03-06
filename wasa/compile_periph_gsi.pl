@@ -98,7 +98,7 @@ system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");
 #create full lpf file
 system("cp ../base/trb3_periph_32PinAddOn.lpf workdir/$TOPNAME.lpf");
 system("cat currentRelease/trbnet_constraints.lpf >> workdir/$TOPNAME.lpf");
-system("cat currentRelease/tdc_constraints_2.lpf >> workdir/$TOPNAME.lpf");
+system("cat currentRelease/tdc_constraints.lpf >> workdir/$TOPNAME.lpf");
 
 #generate timestamp
 my $t=time;
