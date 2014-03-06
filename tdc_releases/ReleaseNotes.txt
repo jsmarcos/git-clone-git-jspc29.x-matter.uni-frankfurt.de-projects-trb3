@@ -14,10 +14,18 @@ tdc_v1.6	20.01.2014	Epoch counter bug fix (data word - epoch word
 				Readout algorith change (the channel fifos are
 				readout to intermediate buffer, so the later
 				channels in the readout order are kept as the
-				trigger arrival time)
+				trigger arrival time).
 				Trigger on TDC channel (the feature for
 				triggering on TDC channel is implemented)
-				Reference channel hit rate counter implemented.
+				Reference channel hit rate counter
+				implemented.
+				The channels (incl. ch0) can be calibrated
+				with the internal oscillator with different
+				frequencies (see manual slow control
+				registers).
+				The coarse counter can be set to reset via
+				slow control. The action will take place when
+				the first valid trigger arrives.
 
 tdc_v1.5.1	20.06.2013	Efficiency bug fix (epoch counter update - hit
 				at the same time). Hit level bit bug fix for
