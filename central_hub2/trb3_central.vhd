@@ -294,10 +294,11 @@ gen_single : if FULL_UPLINK = c_NO generate
 end generate;
 
 gen_full : if FULL_UPLINK = c_YES generate
-  THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp_4
+  THE_MEDIA_UPLINK : entity work.trb_net16_med_ecp3_sfp_4
     generic map(
       REVERSE_ORDER => c_NO,              --order of ports
-      FREQUENCY     => 200                --run on 200 MHz clock
+      FREQUENCY     => 200,               --run on 200 MHz clock
+      USE_CTC       => c_YES
       )
     port map(
       CLK                => clk_200_i,
@@ -321,8 +322,8 @@ gen_full : if FULL_UPLINK = c_YES generate
       SD_RXD_N_IN        => SFP_RX_N(8 downto 5),
       SD_TXD_P_OUT       => SFP_TX_P(8 downto 5),
       SD_TXD_N_OUT       => SFP_TX_N(8 downto 5),
-      SD_REFCLK_P_IN     => open,
-      SD_REFCLK_N_IN     => open,
+      SD_REFCLK_P_IN     => '0',
+      SD_REFCLK_N_IN     => '0',
       SD_PRSNT_N_IN      => SFP_MOD0(4 downto 1),
       SD_LOS_IN          => SFP_LOS(4 downto 1),
       SD_TXDIS_OUT       => SFP_TXDIS(4 downto 1),

@@ -10,8 +10,8 @@ use strict;
 #Settings for this project
 my $TOPNAME                      = "trb3_central";  #Name of top-level entity
 my $BasePath                     = "../base/";     #path to "base" directory
-my $lattice_path                 = '/d/jspc29/lattice/diamond/2.2_x64';
-my $synplify_path                = '/d/jspc29/lattice/synplify/F-2012.03-SP1/';
+my $lattice_path                 = '/d/jspc29/lattice/diamond/3.0_x64';
+my $synplify_path                = '/d/jspc29/lattice/synplify/I-2013.09-SP1/';
 my $lm_license_file_for_synplify = "27000\@localhost";
 my $lm_license_file_for_par      = "1710\@cronos.e12.physik.tu-muenchen.de";
 ###################################################################################
