@@ -36,7 +36,7 @@ my $SPEEDGRADE="8";
 #create full lpf file
 system("cp ../base/trb3_periph_ada.lpf workdir/$TOPNAME.lpf");
 system("cat currentRelease/trbnet_constraints.lpf >> workdir/$TOPNAME.lpf");
-system("cat currentRelease/tdc_constraints_2.lpf >> workdir/$TOPNAME.lpf");
+system("cat currentRelease/tdc_constraints.lpf >> workdir/$TOPNAME.lpf");
 
 
 #set -e
