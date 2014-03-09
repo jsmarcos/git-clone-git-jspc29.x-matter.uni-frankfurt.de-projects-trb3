@@ -4,9 +4,9 @@ use ieee.numeric_std.all;
 
 entity timer_static is
   generic (
-    CTR_WIDTH  : integer range 2 to 32  := 12;
-    CTR_END    : integer                := 10;
-    STEP_SIZE  : integer range 1 to 100 := 1
+    CTR_WIDTH  : integer range 2 to 32   := 12;
+    CTR_END    : integer range 2 to 4000 := 10;
+    STEP_SIZE  : integer range 1 to 100  := 1
     );
   port(
     CLK_IN               : in  std_logic;

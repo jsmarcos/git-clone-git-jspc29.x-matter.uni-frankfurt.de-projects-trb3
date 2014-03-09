@@ -55,9 +55,6 @@ architecture Behavioral of nx_trigger_generator is
   signal testpulse_rate_t        : unsigned(27 downto 0);
   signal rate_timer              : unsigned(27 downto 0);
 
-  -- Reg Sync
-  signal testpulse_length        : unsigned(11 downto 0);
-  
   -- TRBNet Slave Bus            
   signal slv_data_out_o          : std_logic_vector(31 downto 0);
   signal slv_no_more_data_o      : std_logic;
@@ -127,7 +124,7 @@ begin
       TIMER_END_IN   => wait_timer_init,
       TIMER_DONE_OUT => wait_timer_done
       );
-  wait_timer_init   <= testpulse_length - 1;
+  wait_timer_init   <= reg_testpulse_length - 1;
 
   -----------------------------------------------------------------------------
   -- Generate Trigger
@@ -158,7 +155,7 @@ begin
               extern_trigger                  <= '1';
               testpulse_o                     <= '1';
               testpulse_p                     <= '1';
-              if (testpulse_length > 0) then
+              if (reg_testpulse_length > 0) then
                 wait_timer_start              <= '1';
                 STATE                         <= S_WAIT_TESTPULSE_END;
               else
@@ -220,22 +217,6 @@ begin
       end if;
     end if;
   end process PROC_CAL_RATES;
-
-  -----------------------------------------------------------------------------
-  -- Register Transfer
-  -----------------------------------------------------------------------------
-
-  bus_async_trans_TESTPULSE_LENGTH : bus_async_trans
-    generic map (
-      BUS_WIDTH => 12,
-      NUM_FF    => 2
-      )
-    port map (
-      CLK_IN                => NX_MAIN_CLK_IN,
-      RESET_IN              => RESET_NX_MAIN_CLK_IN,
-      SIGNAL_A_IN           => std_logic_vector(reg_testpulse_length),
-      unsigned(SIGNAL_OUT)  => testpulse_length
-      );
 
   -----------------------------------------------------------------------------
   -- TRBNet Slave Bus

@@ -153,8 +153,8 @@
 
 -- Event Data Buffer
 0x8600 :  r    read FIFO buffer
-0x8601 :  r    FIFO write counter
-0x8602 :  r    FIFO flush counter
+0x8601 :  rw   Fifo Depth in words (10...4000, default 350)
+0x8602 :  r    FIFO flush counter last
 0x8603 :  r    read FIFO status
 
 --- DEBUG ------------------------------------------------------------

@@ -139,7 +139,7 @@ architecture Behavioral of nXyter_FEE_board is
   -- Data Receiver
   signal adc_data_valid         : std_logic;
   signal adc_new_data           : std_logic;
-                                
+  signal self_trigger           : std_logic;
   signal new_timestamp          : std_logic_vector(31 downto 0);
   signal new_adc_data           : std_logic_vector(11 downto 0);
   signal new_data               : std_logic;
@@ -219,6 +219,7 @@ architecture Behavioral of nXyter_FEE_board is
   -- Error
   signal error_all              : std_logic_vector(7 downto 0);
   signal error_data_receiver    : std_logic;
+  signal error_event_buffer     : std_logic;
   
   -- Debug Handler
   constant DEBUG_NUM_PORTS      : integer := 14;
@@ -237,7 +238,8 @@ begin
 -- Errors
 -------------------------------------------------------------------------------
   error_all(0)          <= error_data_receiver;
-  error_all(7 downto 1) <= (others => '0');
+  error_all(1)          <= error_event_buffer;
+  error_all(7 downto 2) <= (others => '0');
   
 -------------------------------------------------------------------------------
 -- Port Maps
@@ -634,6 +636,7 @@ begin
       TIMESTAMP_STATUS_OUT  => timestamp_status,
       ADC_DATA_OUT          => adc_data,
       DATA_VALID_OUT        => data_valid,
+      SELF_TRIGGER_OUT      => self_trigger,
       
       NX_TOKEN_RETURN_OUT   => nx_token_return,
       NX_NOMORE_DATA_OUT    => nx_nomore_data,
@@ -697,7 +700,7 @@ begin
       SLV_ACK_OUT              => slv_ack(8),
       SLV_NO_MORE_DATA_OUT     => slv_no_more_data(8),
       SLV_UNKNOWN_ADDR_OUT     => slv_unknown_addr(8),
-                               
+
       DEBUG_OUT                => debug_line(10)
       );
 
@@ -737,7 +740,8 @@ begin
       SLV_NO_MORE_DATA_OUT       => slv_no_more_data(3),
       SLV_UNKNOWN_ADDR_OUT       => slv_unknown_addr(3),
 
-      DEBUG_OUT                  =>  debug_line(11)
+      ERROR_OUT                  => error_event_buffer,                    
+      DEBUG_OUT                  => debug_line(11)
       );
 
   nx_status_event_1: nx_status_event
@@ -803,7 +807,8 @@ begin
 -- Others
 -------------------------------------------------------------------------------
   NX_TIMESTAMP_TRIGGER_OUT <= nx_timestamp_trigger_o;
-
+  TRIGGER_OUT              <= self_trigger;
+                              
 -------------------------------------------------------------------------------
 -- DEBUG Line Select
 -------------------------------------------------------------------------------

@@ -57,7 +57,7 @@ begin
     case STATE is
       when S_IDLE =>
         timer_done_o      <= '0';
-        if (TIMER_START_IN = '1') then
+        if (TIMER_START_IN = '1' and TIMER_END_IN > 0) then
           timer_ctr_x     <= TIMER_END_IN - 1;
           NEXT_STATE      <= S_COUNT;
         else

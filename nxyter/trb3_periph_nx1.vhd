@@ -68,8 +68,6 @@ entity trb3_periph is
     NX1B_ADC_NX_IN             : in    std_logic;
     NX1B_ADC_D_IN              : in    std_logic;
     
-    ADDON_TRIGGER_OUT          : out   std_logic;
-    
     ---------------------------------------------------------------------------
     -- END AddonBoard nXyter
     ---------------------------------------------------------------------------
@@ -702,7 +700,7 @@ begin
       --DEBUG_LINE_OUT                => open
       );
   
-  ADDON_TRIGGER_OUT              <= fee1_trigger;
+      FPGA5_COMM(10)            <= fee1_trigger;
 
   -----------------------------------------------------------------------------
   -- nXyter Main and ADC Clocks

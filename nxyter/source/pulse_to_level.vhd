@@ -38,7 +38,7 @@ begin
   timer_static_1: timer_static
     generic map (
       CTR_WIDTH => 5,
-      CTR_END   => (NUM_CYCLES - 1)
+      CTR_END   => NUM_CYCLES
       )
     port map (
       CLK_IN          => CLK_IN,
@@ -47,7 +47,7 @@ begin
       TIMER_DONE_OUT  => timer_done
       );
 
-  PROC_CONVERT_TRANSFER: process(CLK_IN)
+  PROC_LEVEL_OUT_TRANSFER: process(CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
@@ -58,15 +58,12 @@ begin
         STATE          <= NEXT_STATE;
       end if;
     end if;
-  end process PROC_CONVERT_TRANSFER; 
+  end process PROC_LEVEL_OUT_TRANSFER;
   
-  PROC_CONVERT: process(STATE,
-                        PULSE_IN,
-                        timer_done
-                        )
-    constant TIMER_VALUE :
-    unsigned(4 downto 0) := to_unsigned(NUM_CYCLES - 1, 5);
-
+  PROC_LEVEL_OUT: process(STATE,
+                          PULSE_IN,
+                          timer_done
+                          )
   begin
 
     case STATE is
@@ -92,7 +89,7 @@ begin
         end if;
 
     end case;
-  end process PROC_CONVERT;
+  end process PROC_LEVEL_OUT;
 
   -- Output Signals
   LEVEL_OUT   <= level_o;

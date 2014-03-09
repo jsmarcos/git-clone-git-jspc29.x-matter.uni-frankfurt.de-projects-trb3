@@ -42,7 +42,7 @@ entity nx_trigger_validate is
     HISTOGRAM_ADC_OUT      : out std_logic_vector(11 downto 0);
     HISTOGRAM_PILEUP_OUT   : out std_logic;
     HISTOGRAM_OVERFLOW_OUT : out std_logic;
-    
+
     -- Slave bus         
     SLV_READ_IN            : in  std_logic;
     SLV_WRITE_IN           : in  std_logic;
@@ -355,7 +355,8 @@ begin
             end if;
 
             --TS Window Disabled, always store data 
-            if (readout_mode(2) = '1') then
+            if (readout_mode(2)   = '1' or
+                self_trigger_mode = '1') then
               store_data                     := '1';
             end if;
             

@@ -419,16 +419,16 @@ end component;
 
 component fifo_32_data
   port (
-    Data        : in  std_logic_vector(31 downto 0);
-    Clock       : in  std_logic;
-    WrEn        : in  std_logic;
-    RdEn        : in  std_logic;
-    Reset       : in  std_logic;
-    Q           : out std_logic_vector(31 downto 0);
-    WCNT        : out std_logic_vector(10 downto 0);
-    Empty       : out std_logic;
-    Full        : out std_logic;
-    AlmostFull  : out  std_logic
+    Data         : in  std_logic_vector(31 downto 0);
+    Clock        : in  std_logic;
+    WrEn         : in  std_logic;
+    RdEn         : in  std_logic;
+    Reset        : in  std_logic;
+    AmFullThresh : in  std_logic_vector(10 downto 0);
+    Q            : out std_logic_vector(31 downto 0);
+    Empty        : out std_logic;
+    Full         : out std_logic;
+    AlmostFull   : out std_logic
     );
 end component;
 
@@ -501,6 +501,7 @@ component nx_data_validate
     TIMESTAMP_STATUS_OUT : out std_logic_vector(2 downto 0);
     ADC_DATA_OUT         : out std_logic_vector(11 downto 0);
     DATA_VALID_OUT       : out std_logic;
+    SELF_TRIGGER_OUT     : out std_logic;
     NX_TOKEN_RETURN_OUT  : out std_logic;
     NX_NOMORE_DATA_OUT   : out std_logic;
     SLV_READ_IN          : in  std_logic;
@@ -584,6 +585,7 @@ component nx_event_buffer
     SLV_ACK_OUT             : out std_logic;
     SLV_NO_MORE_DATA_OUT    : out std_logic;
     SLV_UNKNOWN_ADDR_OUT    : out std_logic;
+    ERROR_OUT               : out std_logic;
     DEBUG_OUT               : out std_logic_vector(15 downto 0)
     );
 end component;

@@ -22,7 +22,8 @@ entity nx_data_validate is
     TIMESTAMP_STATUS_OUT : out std_logic_vector(2 downto 0);
     ADC_DATA_OUT         : out std_logic_vector(11 downto 0);
     DATA_VALID_OUT       : out std_logic;
-
+    SELF_TRIGGER_OUT     : out std_logic;
+    
     NX_TOKEN_RETURN_OUT  : out std_logic;
     NX_NOMORE_DATA_OUT   : out std_logic;
 
@@ -75,6 +76,9 @@ architecture Behavioral of nx_data_validate is
   signal pileup_rate_inc      : std_logic;
   signal overflow_rate_inc    : std_logic;
 
+  -- Self Trigger
+  signal self_trigger_o       : std_logic;
+  
   -- Rate Calculation
   signal nx_trigger_ctr_t     : unsigned(27 downto 0);
   signal nx_frame_ctr_t       : unsigned(27 downto 0);
@@ -113,7 +117,8 @@ begin
   DEBUG_OUT(2)                    <= nx_nomore_data_o;
   DEBUG_OUT(3)                    <= data_valid_o;
   DEBUG_OUT(4)                    <= new_timestamp;
-  DEBUG_OUT(8 downto 5)           <= (others => '0');
+  DEBUG_OUT(5)                    <= self_trigger_o;
+  DEBUG_OUT(8 downto 6)           <= (others => '0');
   DEBUG_OUT(15 downto 9)          <= channel_o;
   --DEBUG_OUT(6 downto 4)           <= timestamp_status_o;
   --DEBUG_OUT(7)                    <= nx_token_return_o;
@@ -373,6 +378,20 @@ begin
       end if;
     end if;
   end process PROC_ADC_AVERAGE;
+
+  -----------------------------------------------------------------------------
+  -- Self Trigger Out
+  -----------------------------------------------------------------------------
+  pulse_to_level_SELF_TRIGGER: pulse_to_level
+    generic map (
+      NUM_CYCLES => 2
+      )
+    port map (
+      CLK_IN    => CLK_IN,
+      RESET_IN  => RESET_IN,
+      PULSE_IN  => data_valid_o,
+      LEVEL_OUT => self_trigger_o
+      );
   
   -----------------------------------------------------------------------------
   -- TRBNet Slave Bus
@@ -499,10 +518,12 @@ begin
   DATA_VALID_OUT        <= data_valid_o;
   NX_TOKEN_RETURN_OUT   <= nx_token_return_o;
   NX_NOMORE_DATA_OUT    <= nx_nomore_data_o;
-  
+  SELF_TRIGGER_OUT      <= self_trigger_o;
+
   -- Slave 
   SLV_DATA_OUT          <= slv_data_out_o;    
   SLV_NO_MORE_DATA_OUT  <= slv_no_more_data_o; 
   SLV_UNKNOWN_ADDR_OUT  <= slv_unknown_addr_o;
   SLV_ACK_OUT           <= slv_ack_o;
+
 end Behavioral;
