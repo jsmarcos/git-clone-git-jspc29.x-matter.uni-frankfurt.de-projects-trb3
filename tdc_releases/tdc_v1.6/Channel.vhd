@@ -35,6 +35,7 @@ entity Channel is
     EPOCH_COUNTER_IN        : in  std_logic_vector(27 downto 0);
 --
     VALID_TIMING_TRG_IN     : in  std_logic;
+    VALID_NOTIMING_TRG_IN   : in  std_logic;
     SPIKE_DETECTED_IN       : in  std_logic;
     MULTI_TMG_TRG_IN        : in  std_logic;
 --
@@ -57,8 +58,8 @@ architecture Channel of Channel is
 -------------------------------------------------------------------------------
 
   -- hit signals
-  signal hit_in_i : std_logic;
-  signal hit_buf  : std_logic;
+  --signal hit_in_i : std_logic;
+  signal hit_inv  : std_logic;
 
   -- time stamp
   signal coarse_cntr_reg    : std_logic_vector(10 downto 0);
@@ -113,19 +114,19 @@ architecture Channel of Channel is
 -------------------------------------------------------------------------------
 
   attribute syn_keep                           : boolean;
-  attribute syn_keep of hit_buf                : signal is true;
+--  attribute syn_keep of hit_buf                : signal is true;
   attribute syn_keep of trig_win_end_tdc_i     : signal is true;
   attribute syn_keep of trig_win_end_rdo_i     : signal is true;
   attribute syn_keep of epoch_cntr_reg         : signal is true;
 --  attribute syn_keep of epoch_cntr_2reg        : signal is true;
   attribute syn_preserve                       : boolean;
   attribute syn_preserve of coarse_cntr_reg    : signal is true;
-  attribute syn_preserve of hit_buf            : signal is true;
+--  attribute syn_preserve of hit_buf            : signal is true;
   attribute syn_preserve of trig_win_end_tdc_i : signal is true;
   attribute syn_preserve of epoch_cntr_reg     : signal is true;
 --  attribute syn_preserve of epoch_cntr_2reg    : signal is true;
   attribute nomerge                            : string;
-  attribute nomerge of hit_buf                 : signal is "true";
+--  attribute nomerge of hit_buf                 : signal is "true";
   attribute nomerge of trig_win_end_tdc_i      : signal is "true";
   attribute nomerge of trig_win_end_rdo_i      : signal is "true";
   attribute nomerge of epoch_cntr_reg          : signal is "true";
@@ -136,9 +137,14 @@ architecture Channel of Channel is
 
 begin
 
-  hit_in_i <= HIT_IN;
-  hit_buf  <= not hit_in_i;
-
+  --hit_in_i <= HIT_IN;
+  --hit_buf  <= not hit_in_i;
+  
+  HitInvert: entity work.hit_inv
+    port map (
+      PORT_IN  => HIT_IN,
+      PORT_OUT => hit_inv);
+  
   Channel200 : Channel_200
     generic map (
       CHANNEL_ID => CHANNEL_ID,
@@ -146,30 +152,31 @@ begin
       SIMULATION => SIMULATION,
       REFERENCE  => REFERENCE)
     port map (
-      CLK_200              => CLK_200,
-      RESET_200            => RESET_200,
-      CLK_100              => CLK_100,
-      RESET_100            => RESET_100,
-      RESET_COUNTERS       => RESET_COUNTERS,
-      HIT_IN               => hit_buf,
-      TRIGGER_WIN_END_TDC  => trig_win_end_tdc_i,
-      TRIGGER_WIN_END_RDO  => trig_win_end_rdo_i,
-      EPOCH_COUNTER_IN     => epoch_cntr_reg, --epoch_cntr_2reg,
-      COARSE_COUNTER_IN    => coarse_cntr_reg,
-      READ_EN_IN           => READ_EN_IN,
-      FIFO_DATA_OUT        => ch_data_i,
-      FIFO_DATA_VALID_OUT  => ch_data_valid_i,
-      FIFO_EMPTY_OUT       => ch_empty_i,
-      FIFO_FULL_OUT        => ch_full_i,
-      FIFO_ALMOST_FULL_OUT => ch_almost_full_i,
-      VALID_TIMING_TRG_IN  => VALID_TIMING_TRG_IN,
-      SPIKE_DETECTED_IN    => SPIKE_DETECTED_IN,
-      MULTI_TMG_TRG_IN     => MULTI_TMG_TRG_IN,
-      EPOCH_WRITE_EN_IN    => EPOCH_WRITE_EN_IN,
-      ENCODER_START_OUT    => encoder_start_i,
-      ENCODER_FINISHED_OUT => encoder_finished_i,
-      FIFO_WRITE_OUT       => fifo_write_i,
-      CHANNEL_200_DEBUG    => channel_200_debug_i);
+      CLK_200               => CLK_200,
+      RESET_200             => RESET_200,
+      CLK_100               => CLK_100,
+      RESET_100             => RESET_100,
+      RESET_COUNTERS        => RESET_COUNTERS,
+      HIT_IN                => hit_inv,
+      TRIGGER_WIN_END_TDC   => trig_win_end_tdc_i,
+      TRIGGER_WIN_END_RDO   => trig_win_end_rdo_i,
+      EPOCH_COUNTER_IN      => epoch_cntr_reg,  --epoch_cntr_2reg,
+      COARSE_COUNTER_IN     => coarse_cntr_reg,
+      READ_EN_IN            => READ_EN_IN,
+      FIFO_DATA_OUT         => ch_data_i,
+      FIFO_DATA_VALID_OUT   => ch_data_valid_i,
+      FIFO_EMPTY_OUT        => ch_empty_i,
+      FIFO_FULL_OUT         => ch_full_i,
+      FIFO_ALMOST_FULL_OUT  => ch_almost_full_i,
+      VALID_TIMING_TRG_IN   => VALID_TIMING_TRG_IN,
+      VALID_NOTIMING_TRG_IN => VALID_NOTIMING_TRG_IN,
+      SPIKE_DETECTED_IN     => SPIKE_DETECTED_IN,
+      MULTI_TMG_TRG_IN      => MULTI_TMG_TRG_IN,
+      EPOCH_WRITE_EN_IN     => EPOCH_WRITE_EN_IN,
+      ENCODER_START_OUT     => encoder_start_i,
+      ENCODER_FINISHED_OUT  => encoder_finished_i,
+      FIFO_WRITE_OUT        => fifo_write_i,
+      CHANNEL_200_DEBUG     => channel_200_debug_i);
 
   The_Buffer : FIFO_36x128_OutReg
     port map (
@@ -187,7 +194,7 @@ begin
   FIFO_DATA_VALID_OUT   <= buf_data_valid_i;
   FIFO_EMPTY_OUT        <= buf_empty_i;
   FIFO_ALMOST_EMPTY_OUT <= buf_almost_empty_i;
-  trig_win_end_tdc_i    <= TRIGGER_WIN_END_TDC             when rising_edge(CLK_200);
+  trig_win_end_tdc_i    <= TRIGGER_WIN_END_TDC;--             when rising_edge(CLK_200);
   trig_win_end_rdo_i    <= TRIGGER_WIN_END_RDO             when rising_edge(CLK_100);
   rd_en_reg             <= READ_EN_IN                      when rising_edge(CLK_100);
   buf_empty_reg         <= buf_empty_i                     when rising_edge(CLK_100);

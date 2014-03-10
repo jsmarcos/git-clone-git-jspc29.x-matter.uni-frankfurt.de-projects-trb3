@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2014-02-25
+-- Last update: 2014-03-07
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -27,33 +27,34 @@ entity Channel_200 is
     SIMULATION : integer range 0 to 1;
     REFERENCE  : integer range 0 to 1);
   port (
-    CLK_200              : in  std_logic;  -- 200 MHz clk
-    RESET_200            : in  std_logic;  -- reset sync with 200Mhz clk
-    CLK_100              : in  std_logic;  -- 100 MHz clk
-    RESET_100            : in  std_logic;  -- reset sync with 100Mhz clk
-    RESET_COUNTERS       : in  std_logic;  -- reset for counters
+    CLK_200               : in  std_logic;  -- 200 MHz clk
+    RESET_200             : in  std_logic;  -- reset sync with 200Mhz clk
+    CLK_100               : in  std_logic;  -- 100 MHz clk
+    RESET_100             : in  std_logic;  -- reset sync with 100Mhz clk
+    RESET_COUNTERS        : in  std_logic;  -- reset for counters
 --
-    HIT_IN               : in  std_logic;  -- hit in
-    TRIGGER_WIN_END_TDC  : in  std_logic;  -- trigger window end strobe
-    TRIGGER_WIN_END_RDO  : in  std_logic;  -- trigger window end strobe
-    EPOCH_COUNTER_IN     : in  std_logic_vector(27 downto 0);  -- system coarse counter
-    COARSE_COUNTER_IN    : in  std_logic_vector(10 downto 0);
-    READ_EN_IN           : in  std_logic;  -- read en signal
-    FIFO_DATA_OUT        : out std_logic_vector(35 downto 0);  -- fifo data out
-    FIFO_DATA_VALID_OUT  : out std_logic;  -- fifo data valid signal
-    FIFO_EMPTY_OUT       : out std_logic;  -- fifo empty signal
-    FIFO_FULL_OUT        : out std_logic;  -- fifo full signal
-    FIFO_ALMOST_FULL_OUT : out std_logic;
+    HIT_IN                : in  std_logic;  -- hit in
+    TRIGGER_WIN_END_TDC   : in  std_logic;  -- trigger window end strobe
+    TRIGGER_WIN_END_RDO   : in  std_logic;  -- trigger window end strobe
+    EPOCH_COUNTER_IN      : in  std_logic_vector(27 downto 0);  -- system coarse counter
+    COARSE_COUNTER_IN     : in  std_logic_vector(10 downto 0);
+    READ_EN_IN            : in  std_logic;  -- read en signal
+    FIFO_DATA_OUT         : out std_logic_vector(35 downto 0);  -- fifo data out
+    FIFO_DATA_VALID_OUT   : out std_logic;  -- fifo data valid signal
+    FIFO_EMPTY_OUT        : out std_logic;  -- fifo empty signal
+    FIFO_FULL_OUT         : out std_logic;  -- fifo full signal
+    FIFO_ALMOST_FULL_OUT  : out std_logic;
 --
-    VALID_TIMING_TRG_IN  : in  std_logic;
-    SPIKE_DETECTED_IN    : in  std_logic;
-    MULTI_TMG_TRG_IN     : in  std_logic;
+    VALID_TIMING_TRG_IN   : in  std_logic;
+    VALID_NOTIMING_TRG_IN : in  std_logic;
+    SPIKE_DETECTED_IN     : in  std_logic;
+    MULTI_TMG_TRG_IN      : in  std_logic;
 --
-    EPOCH_WRITE_EN_IN    : in  std_logic;
-    ENCODER_START_OUT    : out std_logic;
-    ENCODER_FINISHED_OUT : out std_logic;
-    FIFO_WRITE_OUT       : out std_logic;
-    CHANNEL_200_DEBUG    : out std_logic_vector(31 downto 0)
+    EPOCH_WRITE_EN_IN     : in  std_logic;
+    ENCODER_START_OUT     : out std_logic;
+    ENCODER_FINISHED_OUT  : out std_logic;
+    FIFO_WRITE_OUT        : out std_logic;
+    CHANNEL_200_DEBUG     : out std_logic_vector(31 downto 0)
     );
 
 end Channel_200;
@@ -407,7 +408,8 @@ begin  -- Channel_200
 
   isReference : if REFERENCE = c_YES generate  -- if it is the reference channel
     FSM_PROC : process (FSM_WR_CURRENT, encoder_finished_i, epoch_cntr_updated, TRIGGER_WIN_END_TDC,
-                        trig_win_end_tdc_flag_i, VALID_TIMING_TRG_IN, MULTI_TMG_TRG_IN, SPIKE_DETECTED_IN)
+                        trig_win_end_tdc_flag_i, VALID_TIMING_TRG_IN, VALID_NOTIMING_TRG_IN,
+                        MULTI_TMG_TRG_IN, SPIKE_DETECTED_IN)
     begin
 
       FSM_WR_NEXT      <= WRITE_EPOCH;
@@ -434,7 +436,7 @@ begin  -- Channel_200
           fsm_wr_debug_fsm <= x"1";
 --
         when WAIT_FOR_VALIDITY =>
-          if VALID_TIMING_TRG_IN = '1' then
+          if VALID_TIMING_TRG_IN = '1' or VALID_NOTIMING_TRG_IN = '1'then
             write_epoch_fsm <= '1';
             FSM_WR_NEXT     <= EXCEPTION;
           elsif MULTI_TMG_TRG_IN = '1' or SPIKE_DETECTED_IN = '1' then
