@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2014-02-28
+-- Last update: 2014-03-07
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -487,7 +487,6 @@ begin  -- behavioral
           wrong_readout_fsm <= '1';
         end if;
         RD_NEXT           <= SEND_TRIG_RELEASE_A;
-        data_finished_fsm <= '1';
         wait_fsm          <= '1';
         rd_fsm_debug_fsm  <= x"8";
 
@@ -507,15 +506,16 @@ begin  -- behavioral
 
       when SEND_TRIG_RELEASE_A =>
         RD_NEXT          <= SEND_TRIG_RELEASE_B;
-        trig_release_fsm <= '1';
         fifo_nr_rd_fsm   <= 0;
         readout_fsm      <= '1';
         rd_fsm_debug_fsm <= x"A";
 
       when SEND_TRIG_RELEASE_B =>
-        RD_NEXT          <= IDLE;
-        wait_fsm         <= '1';
-        rd_fsm_debug_fsm <= x"B";
+        RD_NEXT           <= IDLE;
+        data_finished_fsm <= '1';
+        trig_release_fsm  <= '1';
+        readout_fsm       <= '1';
+        rd_fsm_debug_fsm  <= x"B";
 
       when others =>
         RD_NEXT          <= IDLE;
@@ -701,8 +701,8 @@ begin  -- behavioral
   DATA_OUT                    <= data_out_reg;
   DATA_WRITE_OUT              <= data_wr_reg;
 --  finished_i                  <= (data_finished or wr_finished_2reg) when rising_edge(CLK_100);
-  finished_i                  <= data_finished when rising_edge(CLK_100);
-  DATA_FINISHED_OUT           <= finished_i;
+--  finished_i                  <= data_finished when rising_edge(CLK_100);
+  DATA_FINISHED_OUT           <= data_finished;
   TRG_RELEASE_OUT             <= trig_release_reg;
   TRG_STATUSBIT_OUT           <= (others => '0');
   READOUT_DEBUG(3 downto 0)   <= rd_fsm_debug;
