@@ -99,7 +99,7 @@ system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");
 #create full lpf file
 system("cp ../base/$TOPNAME.lpf $WORKDIR/$TOPNAME.lpf");
 system("cat currentRelease/trbnet_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
-system("cat currentRelease/tdc_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+system("cat currentRelease/tdc_constraints_64.lpf >> $WORKDIR/$TOPNAME.lpf");
 
 #generate timestamp
 my $t=time;
@@ -247,14 +247,17 @@ if($par==1 || $all==1){
 	foreach (@a)
 	{
 	    my @line = split(' ', $_);
-	    if($line[3]==0)
-	    {
-		print "Copying $line[0].ncd file to workdir\n";
-		my $c="cp trb3_periph_32PinAddOn.dir/$line[0].ncd trb3_periph_32PinAddOn.ncd";
-		system($c);
-		print "\n\n";
-		$isSuccess = 1;
-		last;
+	    if(@line && ($line[2] =~ m/^[0-9]+$/) && ($line[3] =~ m/^[0-9]+$/))
+	    {	
+		if(($line[2] == 0) && ($line[3] == 0))
+		{
+		    print "Copying $line[0].ncd file to workdir\n";
+		    my $c="cp $TOPNAME.dir/$line[0].ncd $TOPNAME.ncd";
+		    system($c);
+		    print "\n\n";
+		    $isSuccess = 1;
+		    last;
+		}
 	    }
 	}
 	
@@ -270,10 +273,10 @@ if($par==1 || $all==1){
     {
 	$c=qq|par -w -l 5 -i 6 -t 1 -c 0 -e 0 -exp parUseNBR=1:parCDP=0:parCDR=0:parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
 	execute($c);
-	my $c="cp trb3_periph_32PinAddOn.dir/5_1.ncd trb3_periph_32PinAddOn.ncd";
+	my $c="cp $TOPNAME.dir/5_1.ncd $TOPNAME.ncd";
 	system($c);
     }
-    my $c="cat trb3_periph_32PinAddOn.par";
+    my $c="cat $TOPNAME.par";
     system($c);
 }
 
@@ -293,7 +296,7 @@ if($timing==1 || $all==1){
     $c=qq|ltxt2ptxt $TOPNAME.ncd|;
     execute($c);
     
-    my $c="cat trb3_periph_32PinAddOn.par";
+    my $c="cat $TOPNAME.par";
     system($c);
 }
 

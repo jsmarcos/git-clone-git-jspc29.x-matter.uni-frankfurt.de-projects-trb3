@@ -273,10 +273,10 @@ if($par==1 || $all==1){
     {
 	$c=qq|par -w -l 5 -i 6 -t 1 -c 0 -e 0 -exp parUseNBR=1:parCDP=0:parCDR=0:parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
 	execute($c);
-	my $c="cp trb3_periph_32PinAddOn.dir/5_1.ncd trb3_periph_32PinAddOn.ncd";
+	my $c="cp $TOPNAME.dir/5_1.ncd $TOPNAME.ncd";
 	system($c);
     }
-    my $c="cat trb3_periph_32PinAddOn.par";
+    my $c="cat $TOPNAME.par";
     system($c);
 }
 
@@ -296,7 +296,7 @@ if($timing==1 || $all==1){
     $c=qq|ltxt2ptxt $TOPNAME.ncd|;
     execute($c);
     
-    my $c="cat trb3_periph_32PinAddOn.par";
+    my $c="cat $TOPNAME.par";
     system($c);
 }
 
