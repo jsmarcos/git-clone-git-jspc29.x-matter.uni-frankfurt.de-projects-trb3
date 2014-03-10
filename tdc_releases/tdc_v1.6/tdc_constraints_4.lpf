@@ -8,7 +8,7 @@ UGROUP "Ref_Ch" BBOX 1 51
 	BLKNAME THE_TDC/ReferenceChannel/Channel200/SimAdderNo_FC;
 LOCATE UGROUP "Ref_Ch" SITE "R8C131D" ;
 UGROUP "ref_hit" BBOX 1 1
-	BLKNAME THE_TDC/ReferenceChannel/HitInvert;
+	BLKNAME THE_TDC/ReferenceChannel/hit_buf_RNO;
 LOCATE UGROUP "ref_hit" SITE "R9C133D" ;
 UGROUP "Ref_ff_en"  BBOX 1 1
 	BLKNAME THE_TDC/ReferenceChannel/Channel200/ff_array_en_i_1_i;
@@ -21,7 +21,7 @@ UGROUP "FC_1" BBOX 1 51
 	BLKNAME THE_TDC/GEN_Channels_1_Channels/Channel200/SimAdderNo_FC;
 LOCATE UGROUP "FC_1" SITE "R10C131D" ;
 UGROUP "hit_1" BBOX 1 1
-	BLKNAME THE_TDC/GEN_Channels_1_Channels/HitInvert;
+	BLKNAME THE_TDC/GEN_Channels_1_Channels/hit_buf_RNO;
 LOCATE UGROUP "hit_1" SITE "R11C133D" ;
 UGROUP "ff_en_1"  BBOX 1 1
        BLKNAME THE_TDC/GEN_Channels_1_Channels/Channel200/ff_array_en_i_1_i;
@@ -31,7 +31,7 @@ UGROUP "FC_2" BBOX 1 51
 	BLKNAME THE_TDC/GEN_Channels_2_Channels/Channel200/SimAdderNo_FC;
 LOCATE UGROUP "FC_2" SITE "R21C131D" ;
 UGROUP "hit_2"  BBOX 1 1
-	BLKNAME THE_TDC/GEN_Channels_2_Channels/HitInvert;
+	BLKNAME THE_TDC/GEN_Channels_2_Channels/hit_buf_RNO;
 LOCATE UGROUP "hit_2" SITE "R22C133D" ;
 UGROUP "ff_en_2" BBOX 1 1
        BLKNAME THE_TDC/GEN_Channels_2_Channels/Channel200/ff_array_en_i_1_i;
@@ -41,7 +41,7 @@ UGROUP "FC_3" BBOX 1 51
 	BLKNAME THE_TDC/GEN_Channels_3_Channels/Channel200/SimAdderNo_FC;
 LOCATE UGROUP "FC_3" SITE "R23C131D" ;
 UGROUP "hit_3"  BBOX 1 1
-	BLKNAME THE_TDC/GEN_Channels_3_Channels/HitInvert;
+	BLKNAME THE_TDC/GEN_Channels_3_Channels/hit_buf_RNO;
 LOCATE UGROUP "hit_3" SITE "R24C133D" ;
 UGROUP "ff_en_3" BBOX 1 1
        BLKNAME THE_TDC/GEN_Channels_3_Channels/Channel200/ff_array_en_i_1_i;

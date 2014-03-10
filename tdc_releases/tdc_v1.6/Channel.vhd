@@ -58,8 +58,9 @@ architecture Channel of Channel is
 -------------------------------------------------------------------------------
 
   -- hit signals
-  --signal hit_in_i : std_logic;
-  signal hit_inv  : std_logic;
+  signal hit_in_i : std_logic;
+  signal hit_buf  : std_logic;
+--  signal hit_inv  : std_logic;
 
   -- time stamp
   signal coarse_cntr_reg    : std_logic_vector(10 downto 0);
@@ -114,19 +115,19 @@ architecture Channel of Channel is
 -------------------------------------------------------------------------------
 
   attribute syn_keep                           : boolean;
---  attribute syn_keep of hit_buf                : signal is true;
+  attribute syn_keep of hit_buf                : signal is true;
   attribute syn_keep of trig_win_end_tdc_i     : signal is true;
   attribute syn_keep of trig_win_end_rdo_i     : signal is true;
   attribute syn_keep of epoch_cntr_reg         : signal is true;
 --  attribute syn_keep of epoch_cntr_2reg        : signal is true;
   attribute syn_preserve                       : boolean;
   attribute syn_preserve of coarse_cntr_reg    : signal is true;
---  attribute syn_preserve of hit_buf            : signal is true;
+  attribute syn_preserve of hit_buf            : signal is true;
   attribute syn_preserve of trig_win_end_tdc_i : signal is true;
   attribute syn_preserve of epoch_cntr_reg     : signal is true;
 --  attribute syn_preserve of epoch_cntr_2reg    : signal is true;
   attribute nomerge                            : string;
---  attribute nomerge of hit_buf                 : signal is "true";
+  attribute nomerge of hit_buf                 : signal is "true";
   attribute nomerge of trig_win_end_tdc_i      : signal is "true";
   attribute nomerge of trig_win_end_rdo_i      : signal is "true";
   attribute nomerge of epoch_cntr_reg          : signal is "true";
@@ -137,13 +138,13 @@ architecture Channel of Channel is
 
 begin
 
-  --hit_in_i <= HIT_IN;
-  --hit_buf  <= not hit_in_i;
+  hit_in_i <= HIT_IN;
+  hit_buf  <= not hit_in_i;
   
-  HitInvert: entity work.hit_inv
-    port map (
-      PORT_IN  => HIT_IN,
-      PORT_OUT => hit_inv);
+  --HitInvert: entity work.hit_inv
+  --  port map (
+  --    PORT_IN  => HIT_IN,
+  --    PORT_OUT => hit_inv);
   
   Channel200 : Channel_200
     generic map (
@@ -157,7 +158,7 @@ begin
       CLK_100               => CLK_100,
       RESET_100             => RESET_100,
       RESET_COUNTERS        => RESET_COUNTERS,
-      HIT_IN                => hit_inv,
+      HIT_IN                => hit_buf,
       TRIGGER_WIN_END_TDC   => trig_win_end_tdc_i,
       TRIGGER_WIN_END_RDO   => trig_win_end_rdo_i,
       EPOCH_COUNTER_IN      => epoch_cntr_reg,  --epoch_cntr_2reg,
