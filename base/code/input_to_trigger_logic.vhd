@@ -41,30 +41,45 @@ begin
 
 
 THE_CONTROL : process 
-  variable tmp : integer range 0 to 15;
+  variable tmp : integer range 0 to 16;
 begin
   wait until rising_edge(CLK);
   ACK_OUT  <= '0';
   NACK_OUT <= '0';
-  tmp := to_integer(unsigned(ADDR_IN(5 downto 2)));
+  tmp := to_integer(unsigned(ADDR_IN(4 downto 1)));
   if WRITE_IN = '1' then
     ACK_OUT <= '1';
-    case ADDR_IN(1 downto 0) is
-      when "00"   => enable(tmp) <= DATA_IN;
-      when "01"   => invert(tmp) <= DATA_IN;
-      when others => NACK_OUT <= '1'; ACK_OUT <= '0';
-    end case;
+    if ADDR_IN(5) = '0' and tmp < OUTPUTS then
+      case ADDR_IN(0) is
+        when '0'   => enable(tmp) <= DATA_IN;
+        when '1'   => invert(tmp) <= DATA_IN;
+      end case;
+    else
+      NACK_OUT <= '1'; 
+      ACK_OUT <= '0';
+    end if;
   elsif READ_IN = '1' then
     ACK_OUT <= '1';
-    case ADDR_IN(1 downto 0) is
-      when "00"   => DATA_OUT <= enable(tmp);
-      when "01"   => DATA_OUT <= invert(tmp);
-      when "10"   => DATA_OUT(INPUTS-1 downto 0)  <= inp_reg; DATA_OUT(31 downto INPUTS) <= (others => '0');
-      when "11"   => DATA_OUT(OUTPUTS-1 downto 0) <= out_reg; DATA_OUT(31 downto OUTPUTS) <= (others => '0');
-      when others => DATA_OUT <= (others => '0');
-    end case;
+    if ADDR_IN(5) = '0' and tmp < OUTPUTS then
+      case ADDR_IN(0) is
+        when '0'   => DATA_OUT <= enable(tmp);
+        when '1'   => DATA_OUT <= invert(tmp);
+      end case;
+    elsif ADDR_IN(5) = '0' and tmp >= OUTPUTS then
+      NACK_OUT <= '1'; 
+      ACK_OUT  <= '0';
+    else
+      case ADDR_IN(1 downto 0) is
+        when "00"   => DATA_OUT(INPUTS-1 downto 0)  <= inp_reg; DATA_OUT(31 downto INPUTS) <= (others => '0');
+        when "01"   => DATA_OUT(OUTPUTS-1 downto 0) <= out_reg; DATA_OUT(31 downto OUTPUTS) <= (others => '0');
+        when others => NACK_OUT <= '1'; ACK_OUT <= '0';
+      end case;
+    end if;
+
   end if;
-end process;
+
+  
+  end process;
 
 gen_outs : for i in 0 to OUTPUTS-1 generate
   output_i(i) <= or_all((INPUT xor invert(i)(INPUTS-1 downto 0)) and enable(i)(INPUTS-1 downto 0));

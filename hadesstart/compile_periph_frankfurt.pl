@@ -9,8 +9,8 @@ use strict;
 ###################################################################################
 #Settings for this project
 my $TOPNAME                      = "trb3_periph_hadesstart";  #Name of top-level entity
-my $lattice_path                 = '/d/jspc29/lattice/diamond/2.1_x64';
-my $synplify_path                = '/d/jspc29/lattice/synplify/F-2012.03-SP1/';
+my $lattice_path                 = '/d/jspc29/lattice/diamond/3.0_x64';
+my $synplify_path                = '/d/jspc29/lattice/synplify/I-2013.09-SP1/';
 my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
 my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
 ###################################################################################
@@ -111,7 +111,7 @@ system("rm $TOPNAME.ncd");
 
 #$c=qq|mpartrce -p "../$TOPNAME.p2t" -log "$TOPNAME.log" -o "$TOPNAME.rpt" -pr "$TOPNAME.prf" -tf "$TOPNAME.pt" "|.$TOPNAME.qq|_map.ncd" "$TOPNAME.ncd"|;
 #  $c=qq|$lattice_path/ispfpga/bin/lin/multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
-$c=qq|$lattice_path/ispfpga/bin/lin/par -w -l 5 -i 6 -t 2 -c 0 -e 0 -exp parUseNBR=1:parCDP=0:parCDR=0:parPathBased=OFF $tpmap.ncd $TOPNAME.ncd $TOPNAME.prf|;
+$c=qq|$lattice_path/ispfpga/bin/lin/par -w -l 5 -i 6 -t 3 -c 0 -e 0 -exp parUseNBR=1:parCDP=0:parCDR=0:parPathBased=OFF $tpmap.ncd $TOPNAME.ncd $TOPNAME.prf|;
 execute($c);
 # IOR IO Timing Report
 # $c=qq|$lattice_path/ispfpga/bin/lin/iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;

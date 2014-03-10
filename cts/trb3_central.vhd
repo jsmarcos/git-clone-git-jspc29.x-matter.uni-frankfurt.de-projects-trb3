@@ -599,6 +599,7 @@ begin
    JOUT1    <= cts_output_multiplexers_i(3 downto 0);
    JOUT2    <= cts_output_multiplexers_i(7 downto 4);
    JOUTLVDS <= cts_output_multiplexers_i(7 downto 0);
+   --LED_BANK <= cts_output_multiplexers_i(7 downto 0);
    
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -1450,9 +1451,9 @@ end process;
 ---------------------------------------------------------------------------
     PWM_OUT                        <= "00";
     
-    JOUT1                          <= x"0";
-    JOUT2                          <= x"0";
-    JOUTLVDS                       <= x"00";
+--  JOUT1                          <= x"0";
+--  JOUT2                          <= x"0";
+--  JOUTLVDS                       <= x"00";
     JTTL                           <= x"0000";
     
     LED_BANK(5 downto 0)           <= (others => '0');

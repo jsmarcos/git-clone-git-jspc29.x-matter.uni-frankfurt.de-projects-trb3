@@ -128,7 +128,6 @@ architecture RTL of CTS_TRIGGER is
    type   pulser_interval_t is array(MAX(0, TRIGGER_PULSER_COUNT - 1) downto 0) of std_logic_vector(31 downto 0);
    signal pulser_interval_i : pulser_interval_t;
    signal pulser_counter_i  : pulser_interval_t := (others => (others => '0'));
-   signal pulser_1us_i  : std_logic;
    
 -- Random Pulser
    type   rand_pulser_threshold_t is array(MAX(0, TRIGGER_RAND_PULSER - 1) downto 0) of std_logic_vector(31 downto 0);
@@ -147,7 +146,7 @@ architecture RTL of CTS_TRIGGER is
    
    type output_multiplexer_configs_t is array(MAX(0,OUTPUT_MULTIPLEXERS - 1) downto 0) of std_logic_vector(7 downto 0);
    signal output_multiplexer_configs_i : output_multiplexer_configs_t;
-   signal output_multiplexer_ins_i : std_logic_vector(16 + 2*TRIGGER_INPUT_COUNT + ADDON_LINE_COUNT + TRIGGER_ADDON_COUNT - 1 downto 0);
+   signal output_multiplexer_ins_i : std_logic_vector(16 + 2*TRIGGER_INPUT_COUNT + ADDON_LINE_COUNT + TRIGGER_ADDON_COUNT downto 0);
    
 -- Trigger Type Assoc 
    type trigger_type_assoc_t is array(0 to 15) of std_logic_vector(3 downto 0);
@@ -185,8 +184,7 @@ begin
       channels_i(ITC_BASE_EXT) <= EXT_TRIGGER_IN;
    end generate;
    
-   proc_output_mux_ins: process(channels_i, TRIGGERS_IN, ADDON_TRIGGERS_IN, trigger_inputs_i, 
-     output_multiplexer_configs_i) is
+   proc_output_mux_ins: process (channels_i, TRIGGERS_IN, ADDON_TRIGGERS_IN, trigger_inputs_i, output_multiplexer_configs_i, CLK_IN) is
       variable i : integer := 0;
    begin
       i := 0;
@@ -206,18 +204,21 @@ begin
       
       output_multiplexer_ins_i(trigger_inputs_i'high + i downto i) <= trigger_inputs_i;
       i := i + EFFECTIVE_INPUT_COUNT;
+      
+      output_multiplexer_ins_i(i) <= CLK_IN;
+      i := i + 1;
    end process;
    
-   proc_out_mux: process(output_multiplexer_ins_i, output_multiplexer_configs_i) is
+   proc_out_mux: process (output_multiplexer_ins_i, output_multiplexer_configs_i) is
       variable tmp : integer range 0 to 255 := 0;
       variable idx : integer range 0 to output_multiplexer_ins_i'high := 0;
       variable test : std_logic_vector(31 downto 0);
    begin
       for j in 0 to output_multiplexers - 1 loop
-          output_multiplexers_out(j) <= test(to_integer( unsigned( output_multiplexer_configs_i(j)))); --output_multiplexer_ins_i(idx);
+          output_multiplexers_out(j) <= output_multiplexer_ins_i(to_integer( unsigned( output_multiplexer_configs_i(j))));
       end loop;   
    end process;
-         
+   
    gen_trigger_inputs: for i in 0 to EFFECTIVE_INPUT_COUNT-1 generate
       my_trigger_input: CTS_TRG_INPUT port map (
          CLK_IN => CLK_IN,
