@@ -183,18 +183,19 @@ architecture TDC of TDC is
 begin
 
 -- Slow control signals
-  logic_anal_control    <= CONTROL_REG_IN(3 downto 0)     when rising_edge(CLK_READOUT);
-  debug_mode_en_i       <= CONTROL_REG_IN(4);
-  reset_counters_i      <= CONTROL_REG_IN(8) or reset_tdc when rising_edge(CLK_TDC);
-  run_mode_i            <= CONTROL_REG_IN(12);
-  run_mode_200          <= run_mode_i                     when rising_edge(CLK_TDC);  -- Run mode control register synchronised to the coarse counter clk
-  reset_coarse_cntr_i   <= CONTROL_REG_IN(13);
-  reset_coarse_cntr_200 <= reset_coarse_cntr_i            when rising_edge(CLK_TDC);  -- Reset coarse counter control register synchronised to the coarse counter clk
-
+  logic_anal_control      <= CONTROL_REG_IN(3 downto 0)     when rising_edge(CLK_READOUT);
+  debug_mode_en_i         <= CONTROL_REG_IN(4);
+  reset_counters_i        <= CONTROL_REG_IN(8) or reset_tdc when rising_edge(CLK_TDC);
+  run_mode_i              <= CONTROL_REG_IN(12);
+  run_mode_200            <= run_mode_i                     when rising_edge(CLK_TDC);
+  reset_coarse_cntr_i     <= CONTROL_REG_IN(13);
+  reset_coarse_cntr_200   <= reset_coarse_cntr_i            when rising_edge(CLK_TDC);
+  calibration_freq_select <= unsigned(CONTROL_REG_IN(31 downto 28));
+  
   trig_win_en_i           <= CONTROL_REG_IN(1*32+31);
   ch_en_i                 <= CONTROL_REG_IN(3*32+31 downto 2*32+0);
   data_limit_i            <= unsigned(CONTROL_REG_IN(4*32+7 downto 4*32+0));
-  calibration_freq_select <= unsigned(CONTROL_REG_IN(31 downto 28));
+
 
 -- Reset signals
   reset_tdc_i <= RESET       when rising_edge(CLK_TDC);
@@ -289,6 +290,7 @@ begin
         FIFO_ALMOST_EMPTY_OUT   => ch_almost_empty_i(0),
         FIFO_ALMOST_FULL_OUT    => ch_almost_full_i(0),
         VALID_TIMING_TRG_IN     => VALID_TIMING_TRG_IN,
+        VALID_NOTIMING_TRG_IN   => VALID_NOTIMING_TRG_IN,
         SPIKE_DETECTED_IN       => SPIKE_DETECTED_IN,
         MULTI_TMG_TRG_IN        => MULTI_TMG_TRG_IN,
         EPOCH_WRITE_EN_IN       => '1',
@@ -326,9 +328,10 @@ begin
         FIFO_FULL_OUT           => ch_full_i(i),
         FIFO_ALMOST_EMPTY_OUT   => ch_almost_empty_i(i),
         FIFO_ALMOST_FULL_OUT    => ch_almost_full_i(i),
-        VALID_TIMING_TRG_IN     => VALID_TIMING_TRG_IN,
-        SPIKE_DETECTED_IN       => SPIKE_DETECTED_IN,
-        MULTI_TMG_TRG_IN        => MULTI_TMG_TRG_IN,
+        VALID_TIMING_TRG_IN     => '0',
+        VALID_NOTIMING_TRG_IN   => '0',
+        SPIKE_DETECTED_IN       => '0',
+        MULTI_TMG_TRG_IN        => '0',
         EPOCH_WRITE_EN_IN       => '1',
         LOST_HIT_NUMBER         => ch_lost_hit_number_i(i),
         HIT_DETECT_NUMBER       => ch_hit_detect_number_i(i),
@@ -407,7 +410,7 @@ begin
       TRG_WIN_PRE              => TRG_WIN_PRE,
       TRG_WIN_POST             => TRG_WIN_POST,
       TRIGGER_WIN_EN_IN        => trig_win_en_i,
-      TRIG_WIN_END_TDC_IN      => trig_win_end_tdc_i(0),
+      TRIG_WIN_END_TDC_IN      => trig_win_end_tdc_i(32),
       TRIG_WIN_END_RDO_IN      => trig_win_end_rdo,
       COARSE_COUNTER_IN        => coarse_cntr(0),
       EPOCH_COUNTER_IN         => epoch_cntr,
