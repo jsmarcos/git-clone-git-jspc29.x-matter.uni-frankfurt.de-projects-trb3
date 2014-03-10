@@ -10,6 +10,7 @@ use Getopt::Long;
 my $TOPNAME                      = "trb3_periph_padiwa";  #Name of top-level entity
 #my $lattice_path                 = '/opt/lattice/diamond/3.0_x64/';
 #my $lattice_bin_path             = "$lattice_path/bin/lin64"; # note the lin/lin64 at the end, no isfgpa needed
+#my $synplify_path                = '/opt/synplicity/I-2013.09-SP1'; 
 my $lattice_path                 = '/opt/lattice/diamond/2.01/';
 my $lattice_bin_path             = "$lattice_path/bin/lin"; # note the lin/lin64 at the end, no isfgpa needed
 my $synplify_path                = '/opt/synplicity/F-2012.03-SP1';
@@ -96,9 +97,9 @@ unless(-d $WORKDIR) {
 system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");
 
 #create full lpf file
-system("cp ../base/trb3_periph_32PinAddOn.lpf workdir/$TOPNAME.lpf");
-system("cat currentRelease/trbnet_constraints.lpf >> workdir/$TOPNAME.lpf");
-system("cat currentRelease/tdc_constraints.lpf >> workdir/$TOPNAME.lpf");
+system("cp ../base/$TOPNAME.lpf $WORKDIR/$TOPNAME.lpf");
+system("cat currentRelease/trbnet_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+system("cat currentRelease/tdc_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
 
 #generate timestamp
 my $t=time;
@@ -173,11 +174,11 @@ if($map==1 || $all==1){
     my $fileSize = @a;
     my $isParError = 0;
     
-    open (DEBUG, '>debug.txt');
+    open (DEBUG, '>par.log');
     for (my $i=0; $i<$fileSize; )
     {
 	my @line = split(' ', $a[$i]);
-	if (@line && ($line[0] eq "WARNING"))
+	if (@line && ($line[0] =~ /WARNING/))
 	{
 	    my $warning = $a[$i];
 	    chomp $warning;
@@ -188,7 +189,7 @@ if($map==1 || $all==1){
 	    	$k+=10;
 	    	@nextLine = split(' ', $a[$i+$k]);
 	    }
-	    while ($nextLine[0] ne "WARNING")
+	    while (!($nextLine[0] =~ /WARNING/))
 	    {
 		my $b = $a[$i+$k];
 		chomp $b;
@@ -207,7 +208,7 @@ if($map==1 || $all==1){
 		}
 	    }
 	    #open my $keywords, '<', '../keywords.txt' or die "Can't open keywords: $!";
-	    if ($warning =~ /FC_|hit_|ff_en_/)
+	    if ($warning =~ /FC_|HitInvert|ff_en_/)
 	    {
 		print DEBUG $warning."\n\n";
 		$isParError = 1;
@@ -224,7 +225,7 @@ if($map==1 || $all==1){
 	print "#        !!!Possible Placement Errors!!!        #\n";
 	print "#################################################\n\n";
 	
-	my $c="egrep \"FC_|hit_|ff_en_\" debug.txt";
+	my $c="egrep \"FC_|HitInvert|ff_en_\" par.log";
 	system($c);
     }
 }
