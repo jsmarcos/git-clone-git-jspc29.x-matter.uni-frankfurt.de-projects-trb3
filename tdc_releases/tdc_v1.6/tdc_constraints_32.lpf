@@ -326,6 +326,16 @@ LOCATE UGROUP "hit_31" SITE "R114C60D" ;
 UGROUP "ff_en_31" BBOX 1 1
        BLKNAME THE_TDC/GEN_Channels_31_Channels/Channel200/ff_array_en_i_1_i;
 LOCATE UGROUP "ff_en_31" SITE "R113C83D" ;
+#
+UGROUP "FC_32" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_32_Channels/Channel200/SimAdderNo_FC;
+LOCATE UGROUP "FC_32" SITE "R84C58D" ;
+UGROUP "hit_32" BBOX 1 1
+	BLKNAME THE_TDC/GEN_Channels_32_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_32" SITE "R85C60D" ;
+UGROUP "ff_en_32" BBOX 1 1
+       BLKNAME THE_TDC/GEN_Channels_32_Channels/Channel200/ff_array_en_i_1_i;
+LOCATE UGROUP "ff_en_32" SITE "R84C83D" ;
 
 ##############################################################################
 ##			     CHANNEL PLACEMENTS                             ##
@@ -429,6 +439,11 @@ UGROUP "EF_31" BBOX 10 54
 	BLKNAME THE_TDC/GEN_Channels_31_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_31_Channels/The_Buffer;
 LOCATE UGROUP "EF_31" SITE "R105C56D" ;
+
+UGROUP "EF_32" BBOX 10 24
+	BLKNAME THE_TDC/GEN_Channels_32_Channels/Channel200
+	BLKNAME THE_TDC/GEN_Channels_32_Channels/The_Buffer;
+LOCATE UGROUP "EF_32" SITE "R78C71D" ;
 
 #############################################################################
 ## Coarse counter register placement

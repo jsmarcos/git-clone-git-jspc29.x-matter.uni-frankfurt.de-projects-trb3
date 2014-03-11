@@ -166,6 +166,16 @@ LOCATE UGROUP "hit_15" SITE "R38C60D" ;
 UGROUP "ff_en_15" BBOX 1 1
        BLKNAME THE_TDC/GEN_Channels_15_Channels/Channel200/ff_array_en_i_1_i;
 LOCATE UGROUP "ff_en_15" SITE "R37C83D" ;
+#
+UGROUP "FC_16" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_16_Channels/Channel200/SimAdderNo_FC;
+LOCATE UGROUP "FC_16" SITE "R50C58D" ;
+UGROUP "hit_16" BBOX 1 1
+	BLKNAME THE_TDC/GEN_Channels_16_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_16" SITE "R51C60D" ;
+UGROUP "ff_en_16" BBOX 1 1
+       BLKNAME THE_TDC/GEN_Channels_16_Channels/Channel200/ff_array_en_i_1_i;
+LOCATE UGROUP "ff_en_16" SITE "R50C83D" ;
 
 ##############################################################################
 ##			     CHANNEL PLACEMENTS                             ##
