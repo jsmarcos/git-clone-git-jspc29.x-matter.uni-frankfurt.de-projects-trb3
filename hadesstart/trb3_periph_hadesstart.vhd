@@ -76,9 +76,7 @@ entity trb3_periph_hadesstart is
   attribute syn_useioff of FLASH_DIN     : signal is true;
   attribute syn_useioff of FLASH_DOUT    : signal is true;
   attribute syn_useioff of TEST_LINE     : signal is true;
-  attribute syn_useioff of INP           : signal is false;
-
-  
+  attribute syn_useioff of INP           : signal is false;  
 
 end entity;
 
@@ -259,11 +257,22 @@ architecture trb3_periph_hadesstart_arch of trb3_periph_hadesstart is
   signal stat_ack   : std_logic := '0';
   signal stat_nack  : std_logic := '0';
   signal stat_addr  : std_logic_vector(15 downto 0) := (others => '0');  
+
+  signal sed_error  : std_logic;
+  signal sed_din    : std_logic_vector(31 downto 0);
+  signal sed_dout   : std_logic_vector(31 downto 0);
+  signal sed_write  : std_logic := '0';
+  signal sed_read   : std_logic := '0';
+  signal sed_ack    : std_logic := '0';
+  signal sed_nack   : std_logic := '0';
+  signal sed_addr   : std_logic_vector(15 downto 0) := (others => '0');  
+  
   --TDC
   signal hit_in_i         : std_logic_vector(64 downto 1);
   signal inputs_i         : std_logic_vector(63 downto 0);
   signal logic_analyser_i : std_logic_vector(15 downto 0);
 
+  
 begin
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -480,9 +489,9 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 10,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"cf80", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"c400", 8 => x"c800", 9 => x"cf00", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 9,       1 => 7,       2 => 5,       3 => 7,       4 => 5,       5 => 7,       6 => 7,       7 => 7,       8 => 3,       9 => 6,       others => 0)
+      PORT_NUMBER    => 11,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"cf80", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"c400", 8 => x"c800", 9 => x"cf00", 10 => x"d500", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 9,       1 => 7,       2 => 5,       3 => 7,       4 => 5,       5 => 7,       6 => 7,       7 => 7,       8 => 3,       9 => 6,       10 => 4,       others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -617,7 +626,17 @@ begin
       BUS_WRITE_ACK_IN(9)                 => trig_ack,
       BUS_NO_MORE_DATA_IN(9)              => '0',
       BUS_UNKNOWN_ADDR_IN(9)              => trig_nack,
-
+      --SEU Detection
+      BUS_READ_ENABLE_OUT(10)              => sed_read,
+      BUS_WRITE_ENABLE_OUT(10)             => sed_write,
+      BUS_DATA_OUT(10*32+31 downto 10*32)  => sed_din,
+      BUS_ADDR_OUT(10*16+15 downto 10*16)  => sed_addr,
+      BUS_TIMEOUT_OUT(10)                  => open,
+      BUS_DATA_IN(10*32+31 downto 10*32)   => sed_dout,
+      BUS_DATAREADY_IN(10)                 => sed_ack,
+      BUS_WRITE_ACK_IN(10)                 => sed_ack,
+      BUS_NO_MORE_DATA_IN(10)              => '0',
+      BUS_UNKNOWN_ADDR_IN(10)              => sed_nack,      
       STAT_DEBUG => open
       );
 
@@ -749,6 +768,23 @@ end generate;
 
 
 ---------------------------------------------------------------------------
+-- SED Detection
+---------------------------------------------------------------------------
+THE_SED : entity work.sedcheck
+  port map(
+    CLK        => clk_100_i,
+    ERROR_OUT  => sed_error,
+    
+    DATA_IN    => sed_din,
+    DATA_OUT   => sed_dout, 
+    WRITE_IN   => sed_write,
+    READ_IN    => sed_read,
+    ACK_OUT    => sed_ack,  
+    NACK_OUT   => sed_nack, 
+    ADDR_IN    => sed_addr
+    );
+
+---------------------------------------------------------------------------
 -- LED
 ---------------------------------------------------------------------------
   LED_GREEN  <= not med_stat_op(9);
@@ -761,7 +797,8 @@ end generate;
 ---------------------------------------------------------------------------
 
   TEST_LINE <= logic_analyser_i;
-
+  
+  
 -------------------------------------------------------------------------------
 -- TDC
 -------------------------------------------------------------------------------
@@ -771,7 +808,7 @@ end generate;
       CHANNEL_NUMBER => NUM_TDC_CHANNELS,  -- Number of TDC channels
       STATUS_REG_NR  => 20,                -- Number of status regs
       CONTROL_REG_NR => 6,                 -- Number of control regs - higher than 8 check tdc_ctrl_addr
-      TDC_VERSION    => x"151",            -- TDC version number
+      TDC_VERSION    => x"160",            -- TDC version number
       DEBUG          => c_YES,
       SIMULATION     => c_NO)
     port map (
