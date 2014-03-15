@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2014-03-07
+-- Last update: 2014-03-13
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -146,7 +146,6 @@ architecture behavioral of Readout is
   signal ch_data_2reg    : std_logic_vector_array_36(0 to CHANNEL_NUMBER);
   signal ch_data_3reg    : std_logic_vector_array_36(0 to CHANNEL_NUMBER);
   signal ch_data_4reg    : std_logic_vector_array_36(0 to CHANNEL_NUMBER);
-  --signal ch_data_3reg            : std_logic_vector_array_36(0 to CHANNEL_NUMBER);
   signal ch_empty_reg    : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
   signal ch_empty_2reg   : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
   signal ch_empty_3reg   : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
@@ -159,7 +158,7 @@ architecture behavioral of Readout is
                     SEND_TRIG_RELEASE_B, WAIT_FOR_BUFFER_TRANSFER);
   signal RD_CURRENT : FSM_READ  := IDLE;
   signal RD_NEXT    : FSM_READ;
-  type   FSM_WRITE is (IDLE, WR_CH, WAIT_A, WAIT_B, WAIT_C, WAIT_D);
+  type FSM_WRITE is (IDLE, WR_CH, WAIT_A, WAIT_B, WAIT_C, WAIT_D);
   signal WR_CURRENT : FSM_WRITE := IDLE;
   signal WR_NEXT    : FSM_WRITE;
 
@@ -180,13 +179,12 @@ architecture behavioral of Readout is
   signal fifo_nr_wr_fsm          : integer range 0 to CHANNEL_NUMBER := 0;
   signal buf_delay_fsm           : integer range 0 to 31             := 0;
   signal buf_delay_i             : integer range 0 to 31             := 0;
---  signal start_ch_fsm            : integer range 0 to CHANNEL_NUMBER := 0;
 --  signal wr_trailer_fsm          : std_logic;
   signal idle_fsm                : std_logic;
   signal readout_fsm             : std_logic;
   signal wait_fsm                : std_logic;
   -- fifo number
-  type   Std_Logic_8_array is array (0 to 8) of std_logic_vector(3 downto 0);
+  type Std_Logic_8_array is array (0 to 8) of std_logic_vector(3 downto 0);
   signal empty_channels          : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
   signal fifo_nr_rd              : integer range 0 to CHANNEL_NUMBER := 0;
   signal fifo_nr_wr              : integer range 0 to CHANNEL_NUMBER := 0;
@@ -206,11 +204,6 @@ architecture behavioral of Readout is
   signal wr_status               : std_logic;
 --  signal wr_trailer              : std_logic;
   signal stop_status_i           : std_logic;
-  --signal start_ch_i              : integer range 0 to CHANNEL_NUMBER := 0;
-  --signal start_ch_reg            : integer range 0 to CHANNEL_NUMBER := 0;
-  --signal start_ch_2reg           : integer range 0 to CHANNEL_NUMBER := 0;
-  --signal start_ch_3reg           : integer range 0 to CHANNEL_NUMBER := 0;
-  --signal start_ch_4reg           : integer range 0 to CHANNEL_NUMBER := 0;
   -- to endpoint
   signal data_out_reg            : std_logic_vector(31 downto 0);
   signal data_wr_reg             : std_logic;
@@ -359,7 +352,6 @@ begin  -- behavioral
     if rising_edge(CLK_100) then
       if RESET_100 = '1' then
         RD_CURRENT <= IDLE;
---        start_ch_i <= 0;
         fifo_nr_rd <= 0;
       else
         RD_CURRENT       <= RD_NEXT;
@@ -368,7 +360,6 @@ begin  -- behavioral
         wr_status        <= wr_status_fsm;
         data_finished    <= data_finished_fsm;
         trig_release_reg <= trig_release_fsm;
---        start_ch_i       <= start_ch_fsm;
         buf_delay_i      <= buf_delay_fsm;
         wrong_readout_up <= wrong_readout_fsm;
         idle_time_up     <= idle_fsm;
@@ -384,14 +375,13 @@ begin  -- behavioral
   RD_FSM_PROC : process (RD_CURRENT, VALID_TIMING_TRG_IN, VALID_NOTIMING_TRG_IN, TRG_DATA_VALID_IN,
                          INVALID_TRG_IN, TMGTRG_TIMEOUT_IN, TRG_TYPE_IN, finished_i,
                          SPURIOUS_TRG_IN, stop_status_i, DEBUG_MODE_EN_IN, fifo_nr_rd,
-                         TRIG_WIN_END_RDO_IN, buf_delay_i, CH_EMPTY_IN)--, start_ch_i)
+                         TRIG_WIN_END_RDO_IN, buf_delay_i, CH_EMPTY_IN, CLK_100)
   begin
 
     rd_en_fsm         <= (others => '0');
     wr_header_fsm     <= '0';
     data_finished_fsm <= '0';
     trig_release_fsm  <= '0';
---    start_ch_fsm      <= start_ch_i;
     wrong_readout_fsm <= '0';
     idle_fsm          <= '0';
     readout_fsm       <= '0';
@@ -423,7 +413,6 @@ begin  -- behavioral
           RD_NEXT           <= SEND_TRIG_RELEASE_A;
           data_finished_fsm <= '1';
         end if;
---        start_ch_fsm     <= 0;
         idle_fsm         <= '1';
         rd_fsm_debug_fsm <= x"1";
         
@@ -455,18 +444,17 @@ begin  -- behavioral
             RD_NEXT <= WAIT_FOR_LVL1_TRIG_A;
           end if;
         else                            -- go to the next channel
-          fifo_nr_rd_fsm <= fifo_nr_rd + 1;
---          start_ch_fsm   <= start_ch_i + 1;
+          fifo_nr_rd_fsm <= fifo_nr_rd + 1 after 10 ps;
         end if;
         readout_fsm      <= '1';
         rd_fsm_debug_fsm <= x"4";
 
-      --when WAIT_FOR_DATA_FINISHED =>    -- wait until the end of the data transfer 
-      --  if finished_i = '1' then
-      --    RD_NEXT <= WAIT_FOR_LVL1_TRIG_A;
-      --  end if;
-      --  wait_fsm         <= '1';
-      --  rd_fsm_debug_fsm <= x"5";
+        --when WAIT_FOR_DATA_FINISHED =>    -- wait until the end of the data transfer 
+        --  if finished_i = '1' then
+        --    RD_NEXT <= WAIT_FOR_LVL1_TRIG_A;
+        --  end if;
+        --  wait_fsm         <= '1';
+        --  rd_fsm_debug_fsm <= x"5";
         
       when WAIT_FOR_LVL1_TRIG_A =>      -- wait for trigger data valid
         if TRG_DATA_VALID_IN = '1' then
@@ -486,9 +474,9 @@ begin  -- behavioral
         if SPURIOUS_TRG_IN = '1' then
           wrong_readout_fsm <= '1';
         end if;
-        RD_NEXT           <= SEND_TRIG_RELEASE_A;
-        wait_fsm          <= '1';
-        rd_fsm_debug_fsm  <= x"8";
+        RD_NEXT          <= SEND_TRIG_RELEASE_A;
+        wait_fsm         <= '1';
+        rd_fsm_debug_fsm <= x"8";
 
       when SEND_STATUS =>
         if stop_status_i = '1' then
@@ -497,7 +485,7 @@ begin  -- behavioral
           else
             RD_NEXT           <= SEND_TRIG_RELEASE_A;
             data_finished_fsm <= '1';
-          end if;          
+          end if;
         else
           wr_status_fsm <= '1';
         end if;
@@ -523,10 +511,6 @@ begin  -- behavioral
     end case;
   end process RD_FSM_PROC;
 
-  --start_ch_reg  <= start_ch_i    when rising_edge(CLK_100);
-  --start_ch_2reg <= start_ch_reg  when rising_edge(CLK_100);
-  --start_ch_3reg <= start_ch_2reg when rising_edge(CLK_100);
-  --start_ch_4reg <= start_ch_3reg when rising_edge(CLK_100);
 
   --purpose: FSM for writing data to endpoint buffer
   WR_FSM_CLK : process (CLK_100)
@@ -547,7 +531,7 @@ begin  -- behavioral
   end process WR_FSM_CLK;
 
   WR_FSM : process (WR_CURRENT, wr_number, fifo_nr_wr, DATA_LIMIT_IN, start_write, CH_DATA_VALID_IN,
-                    ch_data_2reg)--, start_ch_4reg)
+                    ch_data_2reg)
 
   begin
 
@@ -560,7 +544,7 @@ begin  -- behavioral
     case (WR_CURRENT) is
       when IDLE =>
         if start_write = '1' then
-          fifo_nr_wr_fsm <= 0;--start_ch_4reg;
+          fifo_nr_wr_fsm <= 0;
           WR_NEXT        <= WR_CH;
         end if;
         wr_fsm_debug_fsm <= x"1";
@@ -572,25 +556,25 @@ begin  -- behavioral
           else
             wr_ch_data_fsm <= '1';
           end if;
-          wr_number_fsm    <= wr_number + to_unsigned(1, 8);
-          fifo_nr_wr_fsm   <= fifo_nr_wr;
-          wr_fsm_debug_fsm <= x"4";
-        elsif fifo_nr_wr = CHANNEL_NUMBER-1 then
-          wr_number_fsm    <= (others => '0');
-          wr_finished_fsm  <= '1';
-          WR_NEXT          <= IDLE;
-          wr_fsm_debug_fsm <= x"5";
+          wr_number_fsm  <= wr_number + to_unsigned(1, 8);
+          fifo_nr_wr_fsm <= fifo_nr_wr;
+        --wr_fsm_debug_fsm <= x"4";
         elsif CH_DATA_VALID_IN(fifo_nr_wr) = '1' then
-          wr_number_fsm    <= wr_number;
-          fifo_nr_wr_fsm   <= fifo_nr_wr;
-          wr_fsm_debug_fsm <= x"6";
+          wr_number_fsm  <= wr_number;
+          fifo_nr_wr_fsm <= fifo_nr_wr;
+        --wr_fsm_debug_fsm <= x"6";
+        elsif fifo_nr_wr = CHANNEL_NUMBER-1 then
+          wr_number_fsm   <= (others => '0');
+          wr_finished_fsm <= '1';
+          WR_NEXT         <= IDLE;
+        --wr_fsm_debug_fsm <= x"5";
         else
-          wr_number_fsm    <= (others => '0');
-          fifo_nr_wr_fsm   <= fifo_nr_wr + 1;
-          WR_NEXT          <= WAIT_A;
-          wr_fsm_debug_fsm <= x"7";
+          wr_number_fsm  <= (others => '0');
+          fifo_nr_wr_fsm <= fifo_nr_wr + 1;
+          WR_NEXT        <= WAIT_A;
+        --wr_fsm_debug_fsm <= x"7";
         end if;
---      wr_fsm_debug_fsm <= x"2";
+        wr_fsm_debug_fsm <= x"2";
 --
       when WAIT_A =>
         WR_NEXT          <= WAIT_B;
@@ -643,14 +627,14 @@ begin  -- behavioral
           if ch_data_4reg(fifo_nr_wr_2reg)(35 downto 32) = x"1" and ch_data_4reg(fifo_nr_wr_2reg)(31 downto 29) = "011" then  -- epoch counter
             data_out_reg <= ch_data_4reg(fifo_nr_wr_2reg)(31 downto 0);
             data_wr_reg  <= '1';
-            --elsif (TW_pre(10) = '1' and ref_time_coarse(10) = '0') or (TW_post(10) = '0' and ref_time_coarse(10) = '1') then  -- if one of the trigger window edges has an overflow
-            --  if (trig_win_l = '0' and trig_win_r = '1') or (trig_win_l = '1' and trig_win_r = '0') then
-            --    data_out_reg <= ch_data_4reg(fifo_nr);
-            --    data_wr_reg  <= '1';
-            --  else
-            --    data_out_reg <= (others => '1');
-            --    data_wr_reg  <= '0';
-            --  end if;
+          --elsif (TW_pre(10) = '1' and ref_time_coarse(10) = '0') or (TW_post(10) = '0' and ref_time_coarse(10) = '1') then  -- if one of the trigger window edges has an overflow
+          --  if (trig_win_l = '0' and trig_win_r = '1') or (trig_win_l = '1' and trig_win_r = '0') then
+          --    data_out_reg <= ch_data_4reg(fifo_nr);
+          --    data_wr_reg  <= '1';
+          --  else
+          --    data_out_reg <= (others => '1');
+          --    data_wr_reg  <= '0';
+          --  end if;
           elsif ch_data_4reg(fifo_nr_wr_2reg)(35 downto 32) = x"1" and ch_data_4reg(fifo_nr_wr_2reg)(31) = '1' and trig_win_l = '1' and trig_win_r = '1' then  -- if both of the trigger window edges are in the coarse counter boundries
             data_out_reg <= ch_data_4reg(fifo_nr_wr_2reg)(31 downto 0);
             data_wr_reg  <= '1';
@@ -686,10 +670,10 @@ begin  -- behavioral
         end case;
         data_wr_reg <= '1';
         i           := i+1;
-        --elsif wr_trailer = '1' then
-        --  data_out_reg  <= "011" & "0000000000000" & trailer_error_bits;
-        --  data_wr_reg   <= '1';
-        --  stop_status_i <= '0';
+      --elsif wr_trailer = '1' then
+      --  data_out_reg  <= "011" & "0000000000000" & trailer_error_bits;
+      --  data_wr_reg   <= '1';
+      --  stop_status_i <= '0';
       else
         data_out_reg  <= (others => '1');
         data_wr_reg   <= '0';
@@ -974,7 +958,7 @@ begin  -- behavioral
   STATUS_REGISTERS_BUS_OUT(16)(23 downto 0) <= std_logic_vector(readout_time);
   STATUS_REGISTERS_BUS_OUT(17)(23 downto 0) <= std_logic_vector(timeout_number);
   STATUS_REGISTERS_BUS_OUT(18)(23 downto 0) <= std_logic_vector(finished_number);
-  
+
   FILL_BUS1 : for i in 4 to 18 generate
     STATUS_REGISTERS_BUS_OUT(i)(31 downto 24) <= (others => '0');
   end generate FILL_BUS1;

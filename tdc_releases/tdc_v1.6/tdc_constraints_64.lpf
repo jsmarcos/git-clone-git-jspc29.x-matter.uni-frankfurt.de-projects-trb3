@@ -923,3 +923,6 @@ MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/gen_DEBUG_risingEdgeDetect_1/PULS
 MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter_*" TO CELL "THE_TDC/GEN_Channels_*_Channels/epoch_cntr_reg*" 5 X;
 MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter_*" TO CELL "THE_TDC/ReferenceChannel/epoch_cntr_reg*" 5 X;
 MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset_1" 50 ns;
+MULTICYCLE FROM CELL "THE_TDC/GEN_Channels_*_Channels/The_Buffer/*" TO CELL "THE_TDC/TheReadout/rd_en_*" 2 X;
+
+#MULTICYCLE FROM CLKNET "clk_100_internal_c" TO CLKNET "CLK_PCLK_LEFT" 2 X ;

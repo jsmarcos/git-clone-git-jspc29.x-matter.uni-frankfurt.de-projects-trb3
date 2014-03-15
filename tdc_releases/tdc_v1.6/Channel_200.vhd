@@ -289,7 +289,7 @@ begin  -- Channel_200
 
   isChannel : if REFERENCE = c_NO generate  -- if it is a normal channel
     FSM_PROC : process (FSM_WR_CURRENT, encoder_finished_i, epoch_cntr_updated, TRIGGER_WIN_END_TDC,
-                        trig_win_end_tdc_flag_i)
+                        trig_win_end_tdc_flag_i, write_data_flag_i)
     begin
 
       FSM_WR_NEXT         <= WRITE_EPOCH;
