@@ -168,68 +168,27 @@ if($map==1 || $all==1){
     $c=qq|map -retime -split_node -a $FAMILYNAME -p $DEVICENAME -t $PACKAGE -s $SPEEDGRADE "$TOPNAME.ngd" -pr "$TOPNAME.prf" -o "$tpmap.ncd" -mp "$TOPNAME.mrp" "$TOPNAME.lpf"|;
     execute($c);
 
-    $fh = new FileHandle("$TOPNAME.mrp");
+    $c=qq|htmlrpt -mrp $TOPNAME.mrp $TOPNAME|;
+    execute($c);
+
+    $fh = new FileHandle("<$TOPNAME"."_mrp.html");
     @a = <$fh>;
     $fh -> close;
-    my $fileSize = @a;
-    my $isParError = 0;
-    
-    open (DEBUG, '>par.log');
-    for (my $i=0; $i<$fileSize; )
+    foreach (@a)
     {
-	my @line = split(' ', $a[$i]);
-	if (@line && ($line[0] =~ /WARNING/))
+	if(/FC_|HitInvert|ff_en_/)
 	{
-	    my $warning = $a[$i];
-	    chomp $warning;
-	    my $k = 1;
-	    my @nextLine = split(' ', $a[$i+$k]);
-	    if(!@nextLine)
-	    {
-	    	$k+=10;
-	    	@nextLine = split(' ', $a[$i+$k]);
-	    }
-	    while (!($nextLine[0] =~ /WARNING/))
-	    {
-		my $b = $a[$i+$k];
-		chomp $b;
-		$b =~ s/^\s+//;
-		$warning = join (' ', $warning, $b);
-		$k++;
-		@nextLine = split(' ', $a[$i+$k]);
-		if(!@nextLine)
-		{
-		    $k+=10;
-		    @nextLine = split(' ', $a[$i+$k]);
-		}
-		if ($k>20)
-		{
-		    last;
-		}
-	    }
-	    #open my $keywords, '<', '../keywords.txt' or die "Can't open keywords: $!";
-	    if ($warning =~ /FC_|HitInvert|ff_en_/)
-	    {
-		print DEBUG $warning."\n\n";
-		$isParError = 1;
-	    }
+	    print "\n\n";
+	    print "#################################################\n";
+	    print "#        !!!Possible Placement Errors!!!        #\n";
+	    print "#################################################\n\n";
+	    
+	    my $c="egrep \"WARNING|FC_|HitInvert|ff_en_\" par.log";
+	    system($c);
+	    last;
 	}
-	$i++;
-    }
-    close (DEBUG);
-    
-    if ($isParError)
-    {
-	print "\n\n";
-	print "#################################################\n";
-	print "#        !!!Possible Placement Errors!!!        #\n";
-	print "#################################################\n\n";
-	
-	my $c="egrep \"FC_|HitInvert|ff_en_\" par.log";
-	system($c);
     }
 }
-
 
 if($par==1 || $all==1){
     system("rm $TOPNAME.ncd");
@@ -281,7 +240,7 @@ if($par==1 || $all==1){
 }
 
 
-if($timing==1 || $all==1){
+if($timing==1){
     # IOR IO Timing Report
     $c=qq|iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;
     execute($c);
