@@ -127,10 +127,10 @@ entity trb3_central is
     attribute syn_useioff of FLASH_CS           : signal is true;
     attribute syn_useioff of FLASH_DIN          : signal is true;
     attribute syn_useioff of FLASH_DOUT         : signal is true;
-    attribute syn_useioff of FPGA1_COMM         : signal is true;
-    attribute syn_useioff of FPGA2_COMM         : signal is true;
-    attribute syn_useioff of FPGA3_COMM         : signal is true;
-    attribute syn_useioff of FPGA4_COMM         : signal is true;
+    attribute syn_useioff of FPGA1_COMM         : signal is false;
+    attribute syn_useioff of FPGA2_COMM         : signal is false;
+    attribute syn_useioff of FPGA3_COMM         : signal is false;
+    attribute syn_useioff of FPGA4_COMM         : signal is false;
 
 
 end entity;
@@ -342,6 +342,7 @@ gen_125 : if USE_125_MHZ = c_YES generate
   clk_sys_internal <= CLK_GPLL_RIGHT;
   clk_raw_internal <= CLK_GPLL_RIGHT;
   clk_gbe_internal <= CLK_GPLL_RIGHT;
+  pll_lock         <= '1';
 end generate;
 
 
