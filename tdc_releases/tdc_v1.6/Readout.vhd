@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2014-03-13
+-- Last update: 2014-03-16
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -387,6 +387,7 @@ begin  -- behavioral
     readout_fsm       <= '0';
     wait_fsm          <= '0';
     wr_status_fsm     <= '0';
+    buf_delay_fsm     <= 0;
     fifo_nr_rd_fsm    <= fifo_nr_rd;
     rd_fsm_debug_fsm  <= x"0";
     RD_NEXT           <= RD_CURRENT;
@@ -426,7 +427,6 @@ begin  -- behavioral
       when WAIT_FOR_BUFFER_TRANSFER =>  -- the data from channel fifo is written to the buffer
         if buf_delay_i = 31 then
           RD_NEXT       <= RD_CH;
-          buf_delay_fsm <= 0;
         else
           buf_delay_fsm <= buf_delay_i + 1;
         end if;

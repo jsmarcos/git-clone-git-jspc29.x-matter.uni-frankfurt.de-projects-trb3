@@ -175,10 +175,15 @@ architecture TDC of TDC is
   attribute syn_keep of coarse_cntr             : signal is true;
   attribute syn_keep of coarse_cntr_reset_r     : signal is true;
   attribute syn_keep of trig_win_end_tdc_i      : signal is true;
+  attribute syn_keep of hit_in_i                : signal is true;
   attribute syn_preserve                        : boolean;
   attribute syn_preserve of coarse_cntr         : signal is true;
   attribute syn_preserve of coarse_cntr_reset_r : signal is true;
   attribute syn_preserve of trig_win_end_tdc_i  : signal is true;
+  attribute syn_preserve of hit_in_i            : signal is true;
+  attribute nomerge                             : string;
+  attribute nomerge of hit_in_i                 : signal is "true";
+  
 
 begin
 
@@ -227,31 +232,49 @@ begin
   hit_reg  <= hit_latch when rising_edge(CLK_TDC);
   hit_2reg <= hit_reg   when rising_edge(CLK_TDC);
 
--- Channel and calibration enable signals
-  GEN_Channel_Enable : for i in 1 to CHANNEL_NUMBER-1 generate
-    process (ch_en_i, calibration_on, hit_calibration_i, hit_latch)
-    begin
-      if ch_en_i(i) = '1' then
-        if calibration_on = '1' then
-          hit_in_i(i) <= hit_calibration_i;
-        else
-          hit_in_i(i) <= hit_latch(i);
-        end if;
-      else
-        hit_in_i(i) <= '0';
-      end if;
-    end process;
-  end generate GEN_Channel_Enable;
+  GEN_hit_mux: for i in 1 to CHANNEL_NUMBER-1 generate
+    hit_mux_ch: hit_mux
+      port map (
+        CH_EN_IN           => ch_en_i(i),
+        CALIBRATION_EN_IN  => calibration_on,
+        HIT_CALIBRATION_IN => hit_calibration_i,
+        HIT_PHYSICAL_IN    => hit_latch(i),
+        HIT_OUT            => hit_in_i(i));
+  end generate GEN_hit_mux;
 
-  -- purpose: Calibration trigger for the reference channel
-  process (calibration_on, hit_calibration_i, REFERENCE_TIME) is
-  begin  -- process
-    if calibration_on = '1' then
-          hit_in_i(0) <= hit_calibration_i;
-        else
-          hit_in_i(0) <= REFERENCE_TIME;
-        end if;
-  end process;
+  hit_mux_ref: hit_mux
+    port map (
+      CH_EN_IN           => '1',
+      CALIBRATION_EN_IN  => calibration_on,
+      HIT_CALIBRATION_IN => hit_calibration_i,
+      HIT_PHYSICAL_IN    => REFERENCE_TIME,
+      HIT_OUT            => hit_in_i(0));
+  
+---- Channel and calibration enable signals
+--  GEN_Channel_Enable : for i in 1 to CHANNEL_NUMBER-1 generate
+--    process (ch_en_i, calibration_on, hit_calibration_i, hit_latch)
+--    begin
+--      if ch_en_i(i) = '1' then
+--        if calibration_on = '1' then
+--          hit_in_i(i) <= hit_calibration_i;
+--        else
+--          hit_in_i(i) <= hit_latch(i);
+--        end if;
+--      else
+--        hit_in_i(i) <= '0';
+--      end if;
+--    end process;
+--  end generate GEN_Channel_Enable;
+
+  ---- purpose: Calibration trigger for the reference channel
+  --process (calibration_on, hit_calibration_i, REFERENCE_TIME) is
+  --begin  -- process
+  --  if calibration_on = '1' then
+  --        hit_in_i(0) <= hit_calibration_i;
+  --      else
+  --        hit_in_i(0) <= REFERENCE_TIME;
+  --      end if;
+  --end process;
 
   CalibrationSwitch : process (CLK_READOUT)
   begin
@@ -410,7 +433,7 @@ begin
       TRG_WIN_PRE              => TRG_WIN_PRE,
       TRG_WIN_POST             => TRG_WIN_POST,
       TRIGGER_WIN_EN_IN        => trig_win_en_i,
-      TRIG_WIN_END_TDC_IN      => trig_win_end_tdc_i(32),
+      TRIG_WIN_END_TDC_IN      => trig_win_end_tdc_i(1),
       TRIG_WIN_END_RDO_IN      => trig_win_end_rdo,
       COARSE_COUNTER_IN        => coarse_cntr(0),
       EPOCH_COUNTER_IN         => epoch_cntr,
@@ -443,7 +466,7 @@ begin
       if reset_tdc = '1' then
         coarse_cntr_reset <= '1';
       elsif run_mode_200 = '0' then
-        coarse_cntr_reset <= trig_win_end_tdc_i(32);
+        coarse_cntr_reset <= trig_win_end_tdc_i(1);
       elsif run_mode_edge_200 = '1' then
         coarse_cntr_reset <= '1';
       elsif reset_coarse_cntr_flag = '1' and (VALID_TIMING_TRG_IN = '1' or VALID_NOTIMING_TRG_IN = '1') then
