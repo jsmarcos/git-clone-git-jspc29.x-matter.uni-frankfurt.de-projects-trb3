@@ -20,13 +20,19 @@ package config is
 
 --Add logic to generate configurable trigger signal from input signals.
     constant INCLUDE_TRIGGER_LOGIC  : integer := c_YES;    
+
+--Do histos of all inputs
+    constant INCLUDE_STATISTICS     : integer := c_YES;
+
+--number of real inputs to the FPGA    
+    constant PHYSICAL_INPUTS        : integer := 16;
     
 --Run wih 125 MHz instead of 100 MHz     
     constant USE_125_MHZ            : integer := c_NO;  --not implemented yet!  
     
 --Use sync mode, RX clock for all parts of the FPGA
     constant USE_RXCLOCK            : integer := c_NO;  --not implemented yet!
-    
+
    
 --Address settings   
     constant INIT_ADDRESS           : std_logic_vector := x"F306";

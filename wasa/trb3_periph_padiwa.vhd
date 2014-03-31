@@ -279,7 +279,16 @@ architecture trb3_periph_padiwa_arch of trb3_periph_padiwa is
   signal trig_ack   : std_logic                     := '0';
   signal trig_nack  : std_logic                     := '0';
   signal trig_addr  : std_logic_vector(15 downto 0) := (others => '0');
-  
+
+  signal stat_out   : std_logic_vector(3 downto 0);
+  signal stat_din   : std_logic_vector(31 downto 0);
+  signal stat_dout  : std_logic_vector(31 downto 0);
+  signal stat_write : std_logic := '0';
+  signal stat_read  : std_logic := '0';
+  signal stat_ack   : std_logic := '0';
+  signal stat_nack  : std_logic := '0';
+  signal stat_addr  : std_logic_vector(15 downto 0) := (others => '0');  
+
   --TDC
   signal hit_in_i : std_logic_vector(64 downto 1);
 
@@ -515,9 +524,13 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 10,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"b000", 8 => x"c800", 9 => x"cf00", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 9, 8 => 3, 9 => 6, others => 0)
+      PORT_NUMBER    => 11,
+      PORT_ADDRESSES => (0  => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100",
+                         5  => x"c200", 6 => x"c300", 7 => x"b000", 8 => x"c800", 9 => x"cf00",
+                         10 => x"cf80", others => x"0000"),
+      PORT_ADDR_MASK => (0  => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5,
+                         5  => 7, 6 => 7, 7 => 9, 8 => 3, 9 => 6,
+                         10 => 7, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -570,7 +583,6 @@ begin
       BUS_WRITE_ACK_IN(2)                 => dac_ack,
       BUS_NO_MORE_DATA_IN(2)              => dac_busy,
       BUS_UNKNOWN_ADDR_IN(2)              => '0',
-
       --HitRegisters
       BUS_READ_ENABLE_OUT(3)              => hitreg_read_en,
       BUS_WRITE_ENABLE_OUT(3)             => hitreg_write_en,
@@ -632,7 +644,6 @@ begin
       BUS_WRITE_ACK_IN(7)                 => sci1_ack,
       BUS_NO_MORE_DATA_IN(7)              => '0',
       BUS_UNKNOWN_ADDR_IN(7)              => '0',
-
       --TDC config registers
       BUS_READ_ENABLE_OUT(8)              => tdc_ctrl_read,
       BUS_WRITE_ENABLE_OUT(8)             => tdc_ctrl_write,
@@ -645,7 +656,6 @@ begin
       BUS_WRITE_ACK_IN(8)                 => tdc_ctrl_write,
       BUS_NO_MORE_DATA_IN(8)              => '0',
       BUS_UNKNOWN_ADDR_IN(8)              => '0',
-
       --Trigger logic registers
       BUS_READ_ENABLE_OUT(9)              => trig_read,
       BUS_WRITE_ENABLE_OUT(9)             => trig_write,
@@ -657,7 +667,18 @@ begin
       BUS_WRITE_ACK_IN(9)                 => trig_ack,
       BUS_NO_MORE_DATA_IN(9)              => '0',
       BUS_UNKNOWN_ADDR_IN(9)              => trig_nack,
-      
+      --Input statistics
+      BUS_READ_ENABLE_OUT(10)             => stat_read,
+      BUS_WRITE_ENABLE_OUT(10)            => stat_write,
+      BUS_DATA_OUT(10*32+31 downto 10*32) => stat_din,
+      BUS_ADDR_OUT(10*16+15 downto 10*16) => stat_addr,
+      BUS_TIMEOUT_OUT(10)                 => open,
+      BUS_DATA_IN(10*32+31 downto 10*32)  => stat_dout,
+      BUS_DATAREADY_IN(10)                => stat_ack,
+      BUS_WRITE_ACK_IN(10)                => stat_ack,
+      BUS_NO_MORE_DATA_IN(10)             => '0',
+      BUS_UNKNOWN_ADDR_IN(10)             => stat_nack,
+
       STAT_DEBUG => open
       );
 
@@ -777,6 +798,30 @@ begin
         );
     FPGA5_COMM(10 downto 7) <= trig_out;
   end generate;
+
+---------------------------------------------------------------------------
+-- Input Statistics
+---------------------------------------------------------------------------
+gen_STATISTICS : if INCLUDE_STATISTICS = 1 generate
+
+  THE_STAT_LOGIC : entity work.input_statistics
+    generic map(
+      INPUTS    => PHYSICAL_INPUTS
+      )
+    port map(
+      CLK       => clk_100_i,
+      
+      INPUT     => INP(PHYSICAL_INPUTS-1 downto 0),
+
+      DATA_IN   => stat_din,  
+      DATA_OUT  => stat_dout, 
+      WRITE_IN  => stat_write,
+      READ_IN   => stat_read,
+      ACK_OUT   => stat_ack,  
+      NACK_OUT  => stat_nack, 
+      ADDR_IN   => stat_addr
+      );
+end generate;
 
 ---------------------------------------------------------------------------
 -- Reboot FPGA
