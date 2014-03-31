@@ -398,6 +398,15 @@ package trb3_components is
   --    ENCODER_DEBUG   : out std_logic_vector(31 downto 0));
   --end component;
 
+  component hit_mux is
+    port (
+      CH_EN_IN           : in  std_logic;
+      CALIBRATION_EN_IN  : in  std_logic;
+      HIT_CALIBRATION_IN : in  std_logic;
+      HIT_PHYSICAL_IN    : in  std_logic;
+      HIT_OUT            : out std_logic);
+  end component hit_mux;
+
   component FIFO_32x32_OutReg
     port (
       Data       : in  std_logic_vector(31 downto 0);
