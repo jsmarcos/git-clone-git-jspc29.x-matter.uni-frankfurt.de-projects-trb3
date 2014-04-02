@@ -99,6 +99,7 @@ architecture trb3_periph_hadesstart_arch of trb3_periph_hadesstart is
   signal clear_i                  : std_logic;
   signal reset_i                  : std_logic;
   signal GSR_N                    : std_logic;
+  signal i_rst_p                  : std_logic;
   attribute syn_keep of GSR_N     : signal is true;
   attribute syn_preserve of GSR_N : signal is true;
 
@@ -279,6 +280,7 @@ begin
 ---------------------------------------------------------------------------
 
   GSR_N <= pll_lock;
+  i_rst_p <= not pll_lock;
 
   THE_RESET_HANDLER : trb_net_reset_handler
     generic map(
@@ -784,6 +786,14 @@ THE_SED : entity work.sedcheck
     ADDR_IN    => sed_addr
     );
 
+-- THE_SED : entity work.sedcheck 
+--   port map(
+--     CLK        => clk_100_i,
+--     ERROR_OUT  => sed_error,
+--     i_rst_p    => i_rst_p,
+--     STATUS_OUT => TEST_LINE(11 downto 0)
+--     ); 
+    
 ---------------------------------------------------------------------------
 -- LED
 ---------------------------------------------------------------------------
@@ -796,8 +806,8 @@ THE_SED : entity work.sedcheck
 -- Test Connector - Logic Analyser
 ---------------------------------------------------------------------------
 
-  TEST_LINE <= logic_analyser_i;
-  
+--   TEST_LINE <= logic_analyser_i;
+  TEST_LINE(15 downto 12) <= (others => '0');
   
 -------------------------------------------------------------------------------
 -- TDC

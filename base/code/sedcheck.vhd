@@ -40,7 +40,7 @@ architecture sed_arch of sedcheck is
       );
   end component;  
  
-  type state_t is (IDLE, INIT_1, INIT_2, INIT_3, START_1, START_2, WAITACTIVE, WAITDONE, RESULT);
+  type state_t is (IDLE, INIT_1, INIT_2, INIT_3, START_1, START_2, WAITACTIVE, WAITDONE);
   signal state          : state_t;
   signal state_bits     : std_logic_vector(3 downto 0);
 
@@ -58,9 +58,6 @@ architecture sed_arch of sedcheck is
   signal sed_done_q       : std_logic;
   signal sed_error_q      : std_logic;
   signal sed_inprogress_q : std_logic;
-  signal sed_done_reg       : std_logic;
-  signal sed_error_reg      : std_logic;
-  signal sed_inprogress_reg : std_logic;
 
   signal control_i      : std_logic_vector(31 downto 0) := (others => '0');
   signal status_i       : std_logic_vector(31 downto 0);
@@ -72,17 +69,13 @@ architecture sed_arch of sedcheck is
 begin
 
 sed_clock_last <= sed_clock_q when rising_edge(CLK);
-sed_edge       <= not sed_clock_q and sed_clock_last;
+sed_edge       <= sed_clock_q and not sed_clock_last when rising_edge(CLK);
 
 sed_clock_q      <= sed_clock when rising_edge(CLK);
+sed_done_q       <= sed_done when rising_edge(CLK);
+sed_inprogress_q <= sed_inprogress when rising_edge(CLK);
+sed_error_q      <= sed_error when rising_edge(CLK);
 
-sed_done_q       <= sed_done_reg when rising_edge(CLK);
-sed_inprogress_q <= sed_inprogress_reg when rising_edge(CLK);
-sed_error_q      <= sed_error_reg when rising_edge(CLK);
-
-sed_error_reg      <= sed_error when falling_edge(sed_clock);
-sed_done_reg       <= sed_done when falling_edge(sed_clock);
-sed_inprogress_reg <= sed_inprogress when falling_edge(sed_clock);
 
 ---------------------------------------------------------------------------
 -- Status / Control Register for internal data bus
@@ -118,8 +111,8 @@ proc_ctrl : process begin
       sed_enable   <= '0';
       sed_start    <= '0';
       if control_i(0) = '1' then
-          state   <= INIT_1;
-          timer   <= "000001";
+        state      <= INIT_1;
+        timer      <= "000001";
       end if;
     when INIT_1 =>
       sed_enable   <= '1';
@@ -148,7 +141,7 @@ proc_ctrl : process begin
     when START_2 =>      
       sed_enable   <= '1';
       sed_start    <= '1';
-      if sed_edge = '1' then
+      if sed_edge = '1' and sed_inprogress_q = '1' then
         state      <= WAITACTIVE;
       end if;
     when WAITACTIVE =>
@@ -158,18 +151,15 @@ proc_ctrl : process begin
         state      <= WAITDONE;
       end if;
     when WAITDONE =>
+      sed_enable   <= '1';
+      sed_start    <= '0';
       if sed_edge = '1' and sed_inprogress_q = '0' and sed_done_q = '1' then
-        state       <= RESULT;
-        timer   <= "000001";
-      end if;
-    when RESULT =>
---       if timer = 0 then
-        state       <= IDLE;
+        state       <= INIT_1;
         run_counter <= run_counter + 1;
         if sed_error_q = '1' then
           error_counter <= error_counter + 1;
         end if;
---       end if;
+      end if;
   end case;
   
   if control_i(0) = '0' then
@@ -190,7 +180,7 @@ state_bits <= x"8" when state = IDLE else
               x"5" when state = START_2 else
               x"6" when state = WAITACTIVE else
               x"7" when state = WAITDONE else
-              x"9" when state = RESULT else
+--               x"9" when state = RESULT else
               x"F";
 
 status_i(3 downto 0) <= state_bits;
