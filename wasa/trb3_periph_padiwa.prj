@@ -167,6 +167,7 @@ add_file -vhdl -lib "work" "currentRelease/hit_mux.vhd"
 add_file -vhdl -lib "work" "../base/cores/FIFO_36x128_OutReg.vhd"
 add_file -vhdl -lib "work" "../base/cores/FIFO_DC_36x128_OutReg.vhd"
 add_file -vhdl -lib "work" "../base/code/input_to_trigger_logic.vhd"
+add_file -vhdl -lib "work" "../base/code/input_statistics.vhd"
 
 
 
