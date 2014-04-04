@@ -371,7 +371,7 @@ architecture trb3_central_arch of trb3_central is
   signal timer_ticks                 : std_logic_vector(1 downto 0);
   
   signal trigger_busy_i              : std_logic;
-  signal trigger_in_buf_i            : std_logic_vector(3 downto 0);
+  signal tdc_inputs                  : std_logic_vector(TDC_CHANNEL_NUMBER-2 downto 0);
 
   signal select_tc                   : std_logic_vector(31 downto 0);
   signal select_tc_data_in           : std_logic_vector(31 downto 0);
@@ -431,8 +431,8 @@ architecture trb3_central_arch of trb3_central is
   signal led_time_ref_i : std_logic;
 begin
 -- MBS Module
-	gen_mbs_vulom_as_etm : if ETM_CHOICE = ETM_CHOICE_MBS_VULOM generate
-	THE_MBS: entity work.mbs_vulom_recv
+  gen_mbs_vulom_as_etm : if ETM_CHOICE = ETM_CHOICE_MBS_VULOM generate
+   THE_MBS: entity work.mbs_vulom_recv
    port map (
       CLK => clk_100_i,
       RESET_IN => reset_i,
@@ -440,7 +440,7 @@ begin
       MBS_IN => CLK_EXT(3),
       CLK_200 => clk_200_i,
       
-      -- TRG_ASYNC_OUT => ,
+      TRG_ASYNC_OUT => tdc_inputs(0),
       TRG_SYNC_OUT => cts_ext_trigger,
       
       TRIGGER_IN     => cts_rdo_trg_data_valid,
@@ -455,6 +455,7 @@ begin
       
       DEBUG => cts_ext_debug
    );
+   
 	end generate;
 
 -- Mainz A2 Module
@@ -1297,7 +1298,7 @@ THE_FPGA_REBOOT : fpga_reboot
 gen_TDC : if INCLUDE_TDC = c_YES generate
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 5,   -- Number of TDC channels
+      CHANNEL_NUMBER => TDC_CHANNEL_NUMBER,   -- Number of TDC channels
       STATUS_REG_NR  => 20,             -- Number of status regs
       CONTROL_REG_NR => 6,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
       TDC_VERSION    => x"160"         -- TDC version number
@@ -1307,7 +1308,7 @@ gen_TDC : if INCLUDE_TDC = c_YES generate
       CLK_TDC               => CLK_PCLK_RIGHT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => cts_trigger_out,  -- Reference time input
-      HIT_IN                => trigger_in_buf_i,  -- Channel start signals
+      HIT_IN                => tdc_inputs,  -- Channel start signals
       HIT_CALIBRATION       => osc_int,  --clk_20_i,    -- Hits for calibrating the TDC
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
@@ -1491,7 +1492,10 @@ LED_YELLOW <= link_ok; --debug(3);
 --   TEST_LINE(9)            <= med_dataready_out(0);
 
   TEST_LINE(15 downto 0)  <= tdc_debug;
-  TEST_LINE(31 downto 16) <= (others => '0');
+ 
+  TEST_LINE(16) <= CLK_EXT(3);  --this prevents adding an input register in the CBM MBS input module
+
+  TEST_LINE(31 downto 17) <= (others => '0');
 --   TEST_LINE(31 downto 0) <= cts_ext_debug;
 
 
