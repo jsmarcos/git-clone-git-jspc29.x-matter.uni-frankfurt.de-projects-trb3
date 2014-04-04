@@ -6,6 +6,7 @@ library work;
 use work.trb_net_std.all;
 use work.trb_net_components.all;
 use work.trb3_components.all;
+use work.config.all;
 use work.version.all;
 
 
@@ -13,9 +14,9 @@ use work.version.all;
 entity cbmtof is
   port(
     --Clocks
-    CLK_OSC : in std_logic;                     --for tdc measurements --200MHz
+    CLK_OSC : in std_logic;  --for tdc measurements --200MHz
     CLK_CM  : in std_logic_vector(8 downto 0);  --from clock manager   --125MHz
-    CLK_EXT : in std_logic;                     --from CK_IN1 connection
+    CLK_EXT : in std_logic;             --from CK_IN1 connection
 
     --Serdes
     --CLK_SERDES_INT_RIGHT : in    std_logic;
@@ -251,12 +252,30 @@ architecture cbmtof_arch of cbmtof is
   signal tdc_ctrl_addr      : std_logic_vector(2 downto 0);
   signal tdc_ctrl_data_in   : std_logic_vector(31 downto 0);
   signal tdc_ctrl_data_out  : std_logic_vector(31 downto 0);
-  signal tdc_ctrl_reg       : std_logic_vector(5*32-1 downto 0);
+  signal tdc_ctrl_reg       : std_logic_vector(6*32-1 downto 0);
 
   signal spi_bram_addr : std_logic_vector(7 downto 0);
   signal spi_bram_wr_d : std_logic_vector(7 downto 0);
   signal spi_bram_rd_d : std_logic_vector(7 downto 0);
   signal spi_bram_we   : std_logic;
+
+  signal trig_out   : std_logic_vector(3 downto 0);
+  signal trig_din   : std_logic_vector(31 downto 0);
+  signal trig_dout  : std_logic_vector(31 downto 0);
+  signal trig_write : std_logic                     := '0';
+  signal trig_read  : std_logic                     := '0';
+  signal trig_ack   : std_logic                     := '0';
+  signal trig_nack  : std_logic                     := '0';
+  signal trig_addr  : std_logic_vector(15 downto 0) := (others => '0');
+
+  signal stat_out   : std_logic_vector(3 downto 0);
+  signal stat_din   : std_logic_vector(31 downto 0);
+  signal stat_dout  : std_logic_vector(31 downto 0);
+  signal stat_write : std_logic                     := '0';
+  signal stat_read  : std_logic                     := '0';
+  signal stat_ack   : std_logic                     := '0';
+  signal stat_nack  : std_logic                     := '0';
+  signal stat_addr  : std_logic_vector(15 downto 0) := (others => '0');
 
 
   --FPGA Test
@@ -297,7 +316,7 @@ begin
 
   THE_MAIN_PLL : pll_in200_out100
     port map(
-      CLK   => CLK_OSC, --CLK_CM(4),
+      CLK   => CLK_OSC,                 --CLK_CM(4),
       CLKOP => clk_100_i,
       CLKOK => clk_200_i,
       CLKOS => open,
@@ -309,7 +328,7 @@ begin
     port map (
       CLK   => CLK_CM(4),
       CLKOP => clk_20_i,
-      CLKOK => open, --clk_125_i,
+      CLKOK => open,                    --clk_125_i,
       LOCK  => open);
 
 
@@ -361,30 +380,19 @@ begin
 ---------------------------------------------------------------------------
 -- Endpoint
 ---------------------------------------------------------------------------
-  --regio_hardware_version_i <= x"9100" & addOn_type_i & edge_type_i & tdc_channel_no_i & x"0";
-
-  --addOn_type_i     <= x"0";             -- x"0" - ADA AddOn version 1
-  --                                      -- x"1" - ADA AddOn version 2
-  --                                      -- x"2" - multi purpose test AddOn
-  --                                      -- x"3" - SFP hub AddOn
-  --                                      -- x"4" - Wasa AddOn
-  --edge_type_i      <= x"0";             -- x"0" - single edge
-  --                                      -- x"1" - double edge
-  --                                      -- x"8" - double edge on consecutive channels
-  --tdc_channel_no_i <= x"6";             -- 2^n channels
 
   THE_ENDPOINT : trb_net16_endpoint_hades_full_handler
     generic map(
-      REGIO_NUM_STAT_REGS       => REGIO_NUM_STAT_REGS,  --4,    --16 stat reg
-      REGIO_NUM_CTRL_REGS       => REGIO_NUM_CTRL_REGS,  --3,    --8 cotrol reg
+      REGIO_NUM_STAT_REGS       => REGIO_NUM_STAT_REGS,
+      REGIO_NUM_CTRL_REGS       => REGIO_NUM_CTRL_REGS,
       ADDRESS_MASK              => x"FFFF",
       BROADCAST_BITMASK         => x"FF",
-      BROADCAST_SPECIAL_ADDR    => x"50",
+      BROADCAST_SPECIAL_ADDR    => BROADCAST_SPECIAL_ADDR,
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
-      REGIO_HARDWARE_VERSION    => x"93000860",
-      REGIO_INIT_ADDRESS        => x"f300",
+      REGIO_HARDWARE_VERSION    => HARDWARE_INFO,
+      REGIO_INIT_ADDRESS        => INIT_ADDRESS,
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
-      CLOCK_FREQUENCY           => 100,
+      CLOCK_FREQUENCY           => CLOCK_FREQUENCY,
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
       DATA_INTERFACE_NUMBER     => 1,
@@ -491,9 +499,13 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 9,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"c400", 8 => x"c800", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 7, 8 => 3, others => 0)
+      PORT_NUMBER           => 11,
+      PORT_ADDRESSES        => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100",
+                         5  => x"c200", 6 => x"c300", 7 => x"c400", 8 => x"c800", 9 => x"cf00",
+                         10 => x"cf80", others => x"0000"),
+      PORT_ADDR_MASK        => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5,
+                         5  => 7, 6 => 7, 7 => 7, 8 => 3, 9 => 6,
+                         10 => 7, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -618,6 +630,28 @@ begin
       BUS_WRITE_ACK_IN(8)                 => tdc_ctrl_write,
       BUS_NO_MORE_DATA_IN(8)              => '0',
       BUS_UNKNOWN_ADDR_IN(8)              => '0',
+      --Trigger logic registers
+      BUS_READ_ENABLE_OUT(9)              => trig_read,
+      BUS_WRITE_ENABLE_OUT(9)             => trig_write,
+      BUS_DATA_OUT(9*32+31 downto 9*32)   => trig_din,
+      BUS_ADDR_OUT(9*16+15 downto 9*16)   => trig_addr,
+      BUS_TIMEOUT_OUT(9)                  => open,
+      BUS_DATA_IN(9*32+31 downto 9*32)    => trig_dout,
+      BUS_DATAREADY_IN(9)                 => trig_ack,
+      BUS_WRITE_ACK_IN(9)                 => trig_ack,
+      BUS_NO_MORE_DATA_IN(9)              => '0',
+      BUS_UNKNOWN_ADDR_IN(9)              => trig_nack,
+      --Input statistics
+      BUS_READ_ENABLE_OUT(10)             => stat_read,
+      BUS_WRITE_ENABLE_OUT(10)            => stat_write,
+      BUS_DATA_OUT(10*32+31 downto 10*32) => stat_din,
+      BUS_ADDR_OUT(10*16+15 downto 10*16) => stat_addr,
+      BUS_TIMEOUT_OUT(10)                 => open,
+      BUS_DATA_IN(10*32+31 downto 10*32)  => stat_dout,
+      BUS_DATAREADY_IN(10)                => stat_ack,
+      BUS_WRITE_ACK_IN(10)                => stat_ack,
+      BUS_NO_MORE_DATA_IN(10)             => '0',
+      BUS_UNKNOWN_ADDR_IN(10)             => stat_nack,
 
       STAT_DEBUG => open
       );
@@ -688,29 +722,81 @@ begin
 ---------------------------------------------------------------------------
 -- DAC
 ---------------------------------------------------------------------------      
-  THE_DAC_SPI : spi_ltc2600
-    generic map (
-      BITS       => 14,
-      WAITCYCLES => 15)
-    port map(
-      CLK_IN         => clk_100_i,
-      RESET_IN       => reset_i,
-      -- Slave bus
-      BUS_ADDR_IN    => dac_addr,
-      BUS_READ_IN    => dac_read_en,
-      BUS_WRITE_IN   => dac_write_en,
-      BUS_ACK_OUT    => dac_ack,
-      BUS_BUSY_OUT   => dac_busy,
-      BUS_DATA_IN    => dac_data_in,
-      BUS_DATA_OUT   => dac_data_out,
-      -- SPI connections
-      SPI_CS_OUT(0)  => DAC_CS,
-      SPI_SDI_IN     => DAC_SDO,
-      SPI_SDO_OUT    => DAC_SDI,
-      SPI_SCK_OUT    => DAC_SCK,
-      SPI_CLR_OUT(0) => DAC_CLR
-      );
-  
+  gen_SPI : if INCLUDE_SPI = 1 generate
+    THE_DAC_SPI : spi_ltc2600
+      generic map (
+        BITS       => 14,
+        WAITCYCLES => 15)
+      port map(
+        CLK_IN         => clk_100_i,
+        RESET_IN       => reset_i,
+        -- Slave bus
+        BUS_ADDR_IN    => dac_addr,
+        BUS_READ_IN    => dac_read_en,
+        BUS_WRITE_IN   => dac_write_en,
+        BUS_ACK_OUT    => dac_ack,
+        BUS_BUSY_OUT   => dac_busy,
+        BUS_DATA_IN    => dac_data_in,
+        BUS_DATA_OUT   => dac_data_out,
+        -- SPI connections
+        SPI_CS_OUT(0)  => DAC_CS,
+        SPI_SDI_IN     => DAC_SDO,
+        SPI_SDO_OUT    => DAC_SDI,
+        SPI_SCK_OUT    => DAC_SCK,
+        SPI_CLR_OUT(0) => DAC_CLR
+        );
+  end generate;
+
+---------------------------------------------------------------------------
+-- Trigger logic
+---------------------------------------------------------------------------
+  gen_TRIGGER_LOGIC : if INCLUDE_TRIGGER_LOGIC = 1 generate
+    THE_TRIG_LOGIC : input_to_trigger_logic
+      generic map(
+        INPUTS  => 32,
+        OUTPUTS => 4
+        )
+      port map(
+        CLK => clk_100_i,
+
+        INPUT  => INPUT(32 downto 1),
+        OUTPUT => trig_out,
+
+        DATA_IN  => trig_din,
+        DATA_OUT => trig_dout,
+        WRITE_IN => trig_write,
+        READ_IN  => trig_read,
+        ACK_OUT  => trig_ack,
+        NACK_OUT => trig_nack,
+        ADDR_IN  => trig_addr
+        );
+--    FPGA5_COMM(10 downto 7) <= trig_out;
+  end generate;
+
+---------------------------------------------------------------------------
+-- Input Statistics
+---------------------------------------------------------------------------
+  gen_STATISTICS : if INCLUDE_STATISTICS = 1 generate
+
+    THE_STAT_LOGIC : entity work.input_statistics
+      generic map(
+        INPUTS => PHYSICAL_INPUTS
+        )
+      port map(
+        CLK => clk_100_i,
+
+        INPUT => INPUT(PHYSICAL_INPUTS-1 downto 0),
+
+        DATA_IN  => stat_din,
+        DATA_OUT => stat_dout,
+        WRITE_IN => stat_write,
+        READ_IN  => stat_read,
+        ACK_OUT  => stat_ack,
+        NACK_OUT => stat_nack,
+        ADDR_IN  => stat_addr
+        );
+  end generate;
+
 ---------------------------------------------------------------------------
 -- Reboot FPGA
 ---------------------------------------------------------------------------
@@ -741,7 +827,7 @@ begin
   TEST_LINE(11 downto 10) <= SFP_MOD(2 downto 1);
   TEST_LINE(13 downto 12) <= SPARE_LINE(2 downto 1);
   TEST_LINE(31 downto 14) <= time_counter(31 downto 14);
-  
+
   LVDS(1) <= or_all(INPUT);
   LVDS(2) <= SPARE_LINE(0);
 --  CLK_MNGR_USER(3 downto 0) <= (others => '0');
@@ -751,7 +837,7 @@ begin
 ---------------------------------------------------------------------------
   process
   begin
-    wait until rising_edge(CLK_EXT);--(clk_100_i);
+    wait until rising_edge(CLK_EXT);    --(clk_100_i);
     time_counter <= time_counter + 1;
   end process;
 
@@ -760,16 +846,19 @@ begin
 -------------------------------------------------------------------------------
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 65,             -- Number of TDC channels
-      CONTROL_REG_NR => 5,              -- Number of control regs
-      TDC_VERSION    => "001" & x"51")  -- TDC version numberTDC_VERSION    => "001" & x"51")  -- TDC version number
+      CHANNEL_NUMBER => NUM_TDC_CHANNELS,   -- Number of TDC channels
+      STATUS_REG_NR  => 20,             -- Number of status regs
+      CONTROL_REG_NR => 6,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
+      TDC_VERSION    => TDC_VERSION,    -- TDC version number
+      DEBUG          => c_YES,
+      SIMULATION     => c_NO)
     port map (
       RESET                 => reset_i,
       CLK_TDC               => CLK_OSC,  -- Oscillator used for the time measurement
 --      CLK_TDC               => CLK_EXT,  -- External Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
-      REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
-      HIT_IN                => hit_in_i(64 downto 1),  -- Channel start signals
+      REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
+      HIT_IN                => hit_in_i(NUM_TDC_CHANNELS-1 downto 1),  -- Channel start signals
       HIT_CALIBRATION       => clk_20_i,    -- Hits for calibrating the TDC
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
@@ -835,19 +924,17 @@ begin
       LOGIC_ANALYSER_OUT    => logic_analyser_i,
       CONTROL_REG_IN        => tdc_ctrl_reg);
 
+  -- For single edge measurements
+  gen_single : if USE_DOUBLE_EDGE = 0 generate
+    hit_in_i <= INPUT;
+  end generate;
 
-
---  hit_in_i <= INPUT;
-
-  -- to detect rising & falling edges
-  Gen_Hit_In_Signals : for i in 1 to 32 generate
-    hit_in_i(i*2-1) <= INPUT(i);
-    hit_in_i(i*2)   <= not INPUT(i);
-  end generate Gen_Hit_In_Signals;
-
-  --Gen_Hit_In_Signals : for i in 1 to 2 generate
-  --  hit_in_i(i*2-1) <= SPARE_LINE(i);
-  --  hit_in_i(i*2)   <= not SPARE_LINE(i);
-  --end generate Gen_Hit_In_Signals;
+  -- For ToT Measurements
+  gen_double : if USE_DOUBLE_EDGE = 1 generate
+    Gen_Hit_In_Signals : for i in 1 to 32 generate
+      hit_in_i(i*2-1) <= INPUT(i);
+      hit_in_i(i*2)   <= not INPUT(i);
+    end generate Gen_Hit_In_Signals;
+  end generate;
 
 end architecture;
