@@ -381,7 +381,7 @@ begin
       BROADCAST_BITMASK         => x"FF",
       BROADCAST_SPECIAL_ADDR    => x"50",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
-      REGIO_HARDWARE_VERSION    => x"92000860",
+      REGIO_HARDWARE_VERSION    => x"93000860",
       REGIO_INIT_ADDRESS        => x"f300",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
       CLOCK_FREQUENCY           => 100,
