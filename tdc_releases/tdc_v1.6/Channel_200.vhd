@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2014-03-07
+-- Last update: 2014-03-26
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -74,9 +74,25 @@ architecture Channel_200 of Channel_200 is
   signal hit_detect_2reg : std_logic;
 
   -- time stamp
-  signal time_stamp_i    : std_logic_vector(10 downto 0);
-  signal coarse_cntr_reg : std_logic_vector(10 downto 0);
-
+  signal time_stamp_i              : std_logic_vector(10 downto 0);
+  signal time_stamp_reg            : std_logic_vector(10 downto 0);
+  signal time_stamp_2reg           : std_logic_vector(10 downto 0);
+  signal time_stamp_3reg           : std_logic_vector(10 downto 0);
+  signal time_stamp_4reg           : std_logic_vector(10 downto 0);
+  signal time_stamp_5reg           : std_logic_vector(10 downto 0);
+  signal time_stamp_6reg           : std_logic_vector(10 downto 0);
+  signal coarse_cntr_reg           : std_logic_vector(10 downto 0);
+  signal coarse_cntr_overflow      : std_logic;
+  signal coarse_cntr_overflow_reg  : std_logic;
+  signal coarse_cntr_overflow_2reg : std_logic;
+  signal coarse_cntr_overflow_3reg : std_logic;
+  signal coarse_cntr_overflow_4reg : std_logic;
+  signal coarse_cntr_overflow_5reg : std_logic;
+  signal coarse_cntr_overflow_6reg : std_logic;
+  signal coarse_cntr_overflow_7reg : std_logic;
+  signal coarse_cntr_overflow_8reg : std_logic;
+  signal coarse_cntr_overflow_9reg : std_logic;
+  
   -- encoder
   signal encoder_start_i    : std_logic;
   signal encoder_finished_i : std_logic;
@@ -126,7 +142,7 @@ architecture Channel_200 of Channel_200 is
   signal fsm_wr_debug_fsm          : std_logic_vector(3 downto 0);
   signal fsm_wr_debug_i            : std_logic_vector(3 downto 0);
 
-  type   FSM_RD is (IDLE, FLUSH_A, FLUSH_B, FLUSH_C, FLUSH_D, READOUT_EPOCH, READOUT_DATA_A, READOUT_DATA_B, READOUT_DATA_C);
+  type FSM_RD is (IDLE, FLUSH_A, FLUSH_B, FLUSH_C, FLUSH_D, READOUT_EPOCH, READOUT_DATA_A, READOUT_DATA_B, READOUT_DATA_C);
   signal FSM_RD_STATE               : FSM_RD;
   signal trigger_win_end_rdo_flag_i : std_logic := '0';
   signal fsm_rd_debug_i             : std_logic_vector(3 downto 0);
@@ -157,7 +173,7 @@ begin  -- Channel_200
         ClkEn  => ff_array_en_i,
         Result => result_i);
     data_a_i <= x"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0000000FFFFFFF"&x"7FFFFFF";
-    data_b_i <= x"000000000000000000000000000000000000000000000000000000000000000000000"& not(HIT_IN) & x"000000"&"00" & HIT_IN;
+    data_b_i <= x"000000000000000000000000000000000000000000000000000000000000000000000"& HIT_IN & x"000000"&"00" & not(HIT_IN);
   end generate SimAdderYes;
   SimAdderNo : if SIMULATION = c_NO generate
     --purpose: Tapped Delay Line 304 (Carry Chain) with wave launcher (21) double transition
@@ -170,7 +186,7 @@ begin  -- Channel_200
         ClkEn  => ff_array_en_i,
         Result => result_i);
     data_a_i <= x"FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"&x"7FFFFFF";
-    data_b_i <= x"000000000000000000000000000000000000000000000000000000000000000000000"& not(HIT_IN) & x"000000"&"00" & HIT_IN;
+    data_b_i <= x"000000000000000000000000000000000000000000000000000000000000000000000"& HIT_IN & x"000000"&"00" & not(HIT_IN);
   end generate SimAdderNo;
   ff_array_en_i <= not(hit_detect_i or hit_detect_reg or hit_detect_2reg);
 
@@ -191,16 +207,44 @@ begin  -- Channel_200
       if hit_detect_reg = '1' then
         time_stamp_i <= coarse_cntr_reg;
       end if;
+      time_stamp_reg  <= time_stamp_i;
+      time_stamp_2reg <= time_stamp_reg;
+      time_stamp_3reg <= time_stamp_2reg;
+      time_stamp_4reg <= time_stamp_3reg;
+      time_stamp_5reg <= time_stamp_4reg;
+      time_stamp_6reg <= time_stamp_5reg;
+      --time_stamp_7reg <= time_stamp_6reg;
+      --time_stamp_8reg <= time_stamp_7reg;
     end if;
   end process TimeStampCapture;
 
   epoch_capture_time <= "00000001000";
 
+  CoarseCounterOverflow: entity work.fallingEdgeDetect
+    port map (
+      CLK       => CLK_200,
+      SIGNAL_IN => coarse_cntr_reg(10),
+      PULSE_OUT => coarse_cntr_overflow);
+
+  coarse_cntr_overflow_reg  <= coarse_cntr_overflow      when rising_edge(CLK_200);
+  coarse_cntr_overflow_2reg <= coarse_cntr_overflow_reg  when rising_edge(CLK_200);
+  coarse_cntr_overflow_3reg <= coarse_cntr_overflow_2reg when rising_edge(CLK_200);
+  coarse_cntr_overflow_4reg <= coarse_cntr_overflow_3reg when rising_edge(CLK_200);
+  coarse_cntr_overflow_5reg <= coarse_cntr_overflow_4reg when rising_edge(CLK_200);
+  coarse_cntr_overflow_6reg <= coarse_cntr_overflow_5reg when rising_edge(CLK_200);
+  coarse_cntr_overflow_7reg <= coarse_cntr_overflow_6reg when rising_edge(CLK_200);
+  coarse_cntr_overflow_8reg <= coarse_cntr_overflow_7reg when rising_edge(CLK_200);
+  coarse_cntr_overflow_9reg <= coarse_cntr_overflow_8reg when rising_edge(CLK_200);
+  
   isChannelEpoch : if REFERENCE = c_NO generate
     EpochCounterCapture : process (CLK_200)
     begin
       if rising_edge(CLK_200) then
-        if coarse_cntr_reg = epoch_capture_time then
+--        if coarse_cntr_reg = epoch_capture_time then
+        --if hit_detect_i = '1' then
+        --  epoch_cntr <= EPOCH_COUNTER_IN after 25 ns;
+        --end if;
+        if coarse_cntr_overflow_7reg = '1' then
           epoch_cntr         <= EPOCH_COUNTER_IN;
           epoch_cntr_updated <= '1';
         elsif write_epoch_i = '1' then
@@ -550,7 +594,7 @@ begin  -- Channel_200
         fifo_data_in_i(28 downto 22) <= std_logic_vector(to_unsigned(CHANNEL_ID, 7));  -- channel number
         fifo_data_in_i(21 downto 12) <= encoder_data_out_i;  -- fine time from the encoder
         fifo_data_in_i(11)           <= '1';  --edge_type_i;  -- rising '1' or falling '0' edge
-        fifo_data_in_i(10 downto 0)  <= time_stamp_i;        -- hit time stamp
+        fifo_data_in_i(10 downto 0)  <= time_stamp_6reg;        -- hit time stamp
         fifo_wr_en_i                 <= '1';
       elsif write_stop_a_i = '1' then
         fifo_data_in_i(35 downto 32) <= x"f";
@@ -588,22 +632,22 @@ begin  -- Channel_200
             -- if the data readout is triggered by the end of the trigger window
             if TRIGGER_WIN_END_RDO = '1' then
               FSM_RD_STATE <= READOUT_DATA_A;
-              -- if the data readout is triggered by full fifo
+            -- if the data readout is triggered by full fifo
             elsif fifo_almost_full_flag = '1' then
               FSM_RD_STATE <= FLUSH_A;
             else
               FSM_RD_STATE <= IDLE;
             end if;
---
+          --
           when FLUSH_A =>
             FSM_RD_STATE <= FLUSH_B;
---
+          --
           when FLUSH_B =>
             FSM_RD_STATE <= FLUSH_C;
---
+          --
           when FLUSH_C =>
             FSM_RD_STATE <= FLUSH_D;
---
+          --
           when FLUSH_D =>
             -- wait until a readout request and register the last epoch word
             if TRIGGER_WIN_END_RDO = '1' or trigger_win_end_rdo_flag_i = '1' then
@@ -611,17 +655,17 @@ begin  -- Channel_200
             else
               FSM_RD_STATE <= FLUSH_D;
             end if;
---
+          --
           when READOUT_EPOCH =>
             -- first epoch word should be readout
             FSM_RD_STATE <= READOUT_DATA_C;
---
+          --
           when READOUT_DATA_A =>
             FSM_RD_STATE <= READOUT_DATA_B;
---
+          --
           when READOUT_DATA_B =>
             FSM_RD_STATE <= READOUT_DATA_C;
-            
+          --  
           when READOUT_DATA_C =>
             -- normal data readout until the end of the readout request
             if fifo_data_out_i(35 downto 32) = x"f" then
@@ -629,7 +673,7 @@ begin  -- Channel_200
             else
               FSM_RD_STATE <= READOUT_DATA_C;
             end if;
---
+          --
           when others =>
             FSM_RD_STATE <= IDLE;
         end case;
