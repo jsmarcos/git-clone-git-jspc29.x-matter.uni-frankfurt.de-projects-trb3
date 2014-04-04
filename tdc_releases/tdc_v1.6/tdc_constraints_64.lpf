@@ -680,8 +680,9 @@ BLOCK NET "THE_TDC/reset_rdo*" ;
 #BLOCK NET "THE_TDC/hit_in_i_*" ;
 BLOCK NET "THE_TDC/hit_latch*" ;
 BLOCK NET "THE_TDC/reset_counters_i*" ;
-BLOCK PATH TO CELL "THE_TDC/GEN_Channels*Channels/sync_q_2*";
 
+BLOCK PATH TO CELL "THE_TDC/GEN_Channels*Channels/sync_q_2*";
+BLOCK PATH TO CELL "THE_TDC/ReferenceChannel/sync_q_2*";
 
 
 
@@ -694,7 +695,7 @@ PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels*Channels/Channel200/ff_array_en_i";
 
 #MAXDELAY NET "THE_TDC/ReferenceChannel/hit_buf" 0.600000 nS DATAPATH_ONLY ;
 #MAXDELAY NET "THE_TDC/GEN_Channels*Channels/hit_buf" 0.600000 nS DATAPATH_ONLY ;
-#MAXDELAY NET "THE_TDC/hit_in_i[*]" 0.600000 nS; #DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/hit_in_i[*]" 0.600000 nS; #DATAPATH_ONLY ;
 
 MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/gen_DEBUG_risingEdgeDetect_1/PULSE_OUT" 5 x;
 MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/gen_DEBUG_risingEdgeDetect_1/PULSE_OUT" 5 x;
