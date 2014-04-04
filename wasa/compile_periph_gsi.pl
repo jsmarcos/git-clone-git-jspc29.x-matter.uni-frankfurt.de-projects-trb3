@@ -8,12 +8,12 @@ use Getopt::Long;
 ###################################################################################
 #Settings for this project
 my $TOPNAME                      = "trb3_periph_padiwa";  #Name of top-level entity
-#my $lattice_path                 = '/opt/lattice/diamond/3.0_x64/';
-#my $lattice_bin_path             = "$lattice_path/bin/lin64"; # note the lin/lin64 at the end, no isfgpa needed
-#my $synplify_path                = '/opt/synplicity/I-2013.09-SP1'; 
-my $lattice_path                 = '/opt/lattice/diamond/2.01/';
-my $lattice_bin_path             = "$lattice_path/bin/lin"; # note the lin/lin64 at the end, no isfgpa needed
-my $synplify_path                = '/opt/synplicity/F-2012.03-SP1';
+my $lattice_path                 = '/opt/lattice/diamond/3.0_x64/';
+my $lattice_bin_path             = "$lattice_path/bin/lin64"; # note the lin/lin64 at the end, no isfgpa needed
+my $synplify_path                = '/opt/synplicity/I-2013.09-SP1'; 
+#my $lattice_path                 = '/opt/lattice/diamond/2.01/';
+#my $lattice_bin_path             = "$lattice_path/bin/lin"; # note the lin/lin64 at the end, no isfgpa needed
+#my $synplify_path                = '/opt/synplicity/F-2012.03-SP1';
 my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
 my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
 ###################################################################################
@@ -183,7 +183,7 @@ if($map==1 || $all==1){
 	    print "#        !!!Possible Placement Errors!!!        #\n";
 	    print "#################################################\n\n";
 	    
-	    my $c="egrep \"WARNING|FC_|HitInvert|ff_en_\" par.log";
+	    my $c="egrep 'WARNING.*hitBuf_|Channels/hit_buf_RNO|WARNING.*FC_|Channels/Channel200/SimAdderNo_FC|WARNING.*ff_en_|Channels/Channel200/ff_array_en_i_1_i' trb3_periph_padiwa_mrp.html";
 	    system($c);
 	    last;
 	}
@@ -196,7 +196,9 @@ if($par==1 || $all==1){
     #$c=qq|$lattice_path/ispfpga/bin/lin/multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t" "$tpmap.ncd" "$TOPNAME.ncd"|;
     if ($isMultiPar)
     {
-	$c=qq|par -m ../nodes_lxhadeb07.txt -n $nrNodes -stopzero -w -l 5 -i 6 -t 1 -c 0 -e 0 -exp parDisablePgroup=0:parUseNBR=1:parCDP=0:parCDR=0:parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
+	#$c=qq|par -m ../nodes_lxhadeb07.txt -n $nrNodes -stopzero -w -l 5 -t 1 -e 100 -exp parDisablePgroup=0:parUseNBR=1:parCDP=1:parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
+	#$c=qq|par -m ../nodes_lxhadeb07.txt -n $nrNodes -stopzero -w -l 5 -i 6 -t 1 -c 0 -e 0 -exp parDisablePgroup=0:parUseNBR=1:parCDP=0:parCDR=0:parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
+	$c=qq|par -m ../nodes_lxhadeb07.txt -n $nrNodes -w -l 5 -t 1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
 	execute($c);
         # find and copy the .ncd file which has met the timing constraints
 	$fh = new FileHandle("<$TOPNAME".".par");
@@ -237,6 +239,7 @@ if($par==1 || $all==1){
     }
     my $c="cat $TOPNAME.par";
     system($c);
+
 }
 
 
@@ -257,6 +260,13 @@ if($timing==1){
     
     my $c="cat $TOPNAME.par";
     system($c);
+
+    $c=qq|htmlrpt -ptwr $TOPNAME.twr.setup $TOPNAME|;
+    execute($c);
+
+    $c=qq|firefox $TOPNAME.html|;
+    execute($c);
+
 }
 
 if($bitgen==1 || $all==1){
