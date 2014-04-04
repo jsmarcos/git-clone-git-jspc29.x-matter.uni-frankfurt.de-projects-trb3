@@ -48,7 +48,7 @@ unless(-e 'workdir') {
   
 #create full lpf file
 system("cp ../base/trb3_central_cts.lpf workdir/$TOPNAME.lpf");
-system("cat tdc_release/tdc_constraints.lpf >> workdir/$TOPNAME.lpf");
+system("cat tdc_release/tdc_constraints_4.lpf >> workdir/$TOPNAME.lpf");
 system("cat ".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
 system("sed -i 's#THE_TDC/#gen_TDC_THE_TDC/#g' workdir/$TOPNAME.lpf");
 

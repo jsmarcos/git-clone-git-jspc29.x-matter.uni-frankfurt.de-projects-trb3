@@ -55,8 +55,8 @@ LOCATE UGROUP "THE_SPI_MEMORY/SPI_group" REGION "REGION_SPI" ;
 # UGROUP "cts_group" 
 #   BLKNAME THE_CTS;
 # LOCATE UGROUP "cts_group" REGION "REGION_CTS";  
-MULTICYCLE TO CELL "THE_MBS/trg_sync" 20 ns;
-MULTICYCLE TO CELL "THE_MBS/error_reg" 20 ns;
+MULTICYCLE TO CELL "gen_mbs_vulom_as_etm_THE_MBS/trg_sync" 20 ns;
+MULTICYCLE TO CELL "gen_mbs_vulom_as_etm_THE_MBS/error_reg" 20 ns;
 
 #TrbNet Hub 
 REGION "REGION_IOBUF" "R40C40D" 55 75 DEVSIZE;
