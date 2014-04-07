@@ -133,8 +133,9 @@ add_file -vhdl -lib work "../../trbnet/special/spi_databus_memory.vhd"
 add_file -vhdl -lib work "../../trbnet/special/spi_ltc2600.vhd"
 add_file -vhdl -lib work "../../trbnet/optical_link/f_divider.vhd"
 
-add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_1_125_int.vhd"
-add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_1_200_int.vhd"
+#add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_1_125_int.vhd"
+add_file -vhdl -lib work  "../../trbnet/media_interfaces/ecp3_sfp/sfp_1_200_int.vhd"
+add_file -vhdl -lib work  "../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_ctc.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_lsm_sfp.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.vhd"
 
