@@ -684,10 +684,11 @@ BLOCK NET "THE_TDC/reset_counters_i*" ;
 BLOCK PATH TO CELL "THE_TDC/GEN_Channels*Channels/sync_q_2*";
 BLOCK PATH TO CELL "THE_TDC/ReferenceChannel/sync_q_2*";
 
+BLOCK PATH TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/SimAdderNo*FC/FF*" ;
+BLOCK PATH TO CELL "THE_TDC/ReferenceChannel/Channel200/SimAdderNo*FC/FF*";
 
-
-#BLOCK PATH TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/SimAdderNo_FC/FF_*" ;
-
+BLOCK PATH FROM CELL "PROC_TDC_CTRL_REG*tdc_ctrl_reg*" TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/SimAdderNo*FC/FF*";
+BLOCK PATH FROM CELL "PROC_TDC_CTRL_REG*tdc_ctrl_reg*" TO CELL "THE_TDC/ReferenceChannel/Channel200/SimAdderNo*FC/FF*";
 
 
 PROHIBIT SECONDARY NET "THE_TDC/ReferenceChannel/Channel200/ff_array_en_i";
