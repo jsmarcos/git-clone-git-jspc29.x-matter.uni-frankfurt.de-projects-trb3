@@ -108,7 +108,7 @@ architecture cbmtof_arch of cbmtof is
   --Clock / Reset
   signal clk_100_i                : std_logic;  --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i                : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
-  signal clk_20_i                 : std_logic;  --clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
+  signal osc_int                  : std_logic;  -- clock for calibrating the tdc, 2.5 MHz, via internal osscilator
   signal pll_lock                 : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
   signal clear_i                  : std_logic;
   signal reset_i                  : std_logic;
@@ -323,13 +323,11 @@ begin
       LOCK  => pll_lock
       );
 
-  -- generates hits for calibration uncorrelated with tdc clk
-  THE_CALIBRATION_PLL : pll_in125_out20
+  -- internal oscillator with frequency of 2.5MHz for tdc calibration
+  OSCInst0 : OSCF
     port map (
-      CLK   => CLK_CM(4),
-      CLKOP => clk_20_i,
-      CLKOK => open,                    --clk_125_i,
-      LOCK  => open);
+      OSC => osc_int);
+
 
 
 ---------------------------------------------------------------------------
@@ -859,7 +857,7 @@ begin
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
       HIT_IN                => hit_in_i(NUM_TDC_CHANNELS-1 downto 1),  -- Channel start signals
-      HIT_CALIBRATION       => clk_20_i,    -- Hits for calibrating the TDC
+      HIT_CALIBRATION       => osc_int,    -- Hits for calibrating the TDC
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --
