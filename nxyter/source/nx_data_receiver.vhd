@@ -9,45 +9,44 @@ use work.nxyter_components.all;
 
 entity nx_data_receiver is
   port(
-    CLK_IN               : in  std_logic;
-    RESET_IN             : in  std_logic;
-    NX_DATA_CLK_TEST_IN  : in std_logic;
-    TRIGGER_IN           : in  std_logic;
+    CLK_IN                 : in  std_logic;
+    RESET_IN               : in  std_logic;
+    NX_DATA_CLK_TEST_IN    : in std_logic;
+    TRIGGER_IN             : in  std_logic;
+                           
+    -- nXyter Ports        
+    NX_TIMESTAMP_CLK_IN    : in  std_logic;
+    NX_TIMESTAMP_IN        : in  std_logic_vector (7 downto 0);
+    NX_TIMESTAMP_RESET_OUT : out std_logic;
     
-    -- nXyter Ports
-    NX_TIMESTAMP_CLK_IN  : in  std_logic;
-    NX_TIMESTAMP_IN      : in  std_logic_vector (7 downto 0);
-
     -- ADC Ports
-    ADC_CLK_DAT_IN       : in  std_logic;
-    ADC_FCLK_IN          : in  std_logic_vector(1 downto 0);
-    ADC_DCLK_IN          : in  std_logic_vector(1 downto 0);
-    ADC_SAMPLE_CLK_OUT   : out std_logic;
-    ADC_A_IN             : in  std_logic_vector(1 downto 0);
-    ADC_B_IN             : in  std_logic_vector(1 downto 0);
-    ADC_NX_IN            : in  std_logic_vector(1 downto 0);
-    ADC_D_IN             : in  std_logic_vector(1 downto 0);
-    ADC_SCLK_LOCK_OUT    : out std_logic;
-    
-    -- Outputs
-    NX_TIMESTAMP_OUT     : out std_logic_vector(31 downto 0);
-    ADC_DATA_OUT         : out std_logic_vector(11 downto 0);
-    NEW_DATA_OUT         : out std_logic;
-
-    TIMESTAMP_CURRENT_IN : in  unsigned(11 downto 0);
-    
-    -- Slave bus         
-    SLV_READ_IN          : in  std_logic;
-    SLV_WRITE_IN         : in  std_logic;
-    SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
-    SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
-    SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
-    SLV_ACK_OUT          : out std_logic;
-    SLV_NO_MORE_DATA_OUT : out std_logic;
-    SLV_UNKNOWN_ADDR_OUT : out std_logic;
-
-    ERROR_OUT            : out std_logic;
-    DEBUG_OUT            : out std_logic_vector(15 downto 0)
+    ADC_CLK_DAT_IN         : in  std_logic;
+    ADC_FCLK_IN            : in  std_logic_vector(1 downto 0);
+    ADC_DCLK_IN            : in  std_logic_vector(1 downto 0);
+    ADC_SAMPLE_CLK_OUT     : out std_logic;
+    ADC_A_IN               : in  std_logic_vector(1 downto 0);
+    ADC_B_IN               : in  std_logic_vector(1 downto 0);
+    ADC_NX_IN              : in  std_logic_vector(1 downto 0);
+    ADC_D_IN               : in  std_logic_vector(1 downto 0);
+    ADC_SCLK_LOCK_OUT      : out std_logic;
+                           
+    -- Outputs             
+    NX_TIMESTAMP_OUT       : out std_logic_vector(31 downto 0);
+    ADC_DATA_OUT           : out std_logic_vector(11 downto 0);
+    NEW_DATA_OUT           : out std_logic;
+                           
+    -- Slave bus           
+    SLV_READ_IN            : in  std_logic;
+    SLV_WRITE_IN           : in  std_logic;
+    SLV_DATA_OUT           : out std_logic_vector(31 downto 0);
+    SLV_DATA_IN            : in  std_logic_vector(31 downto 0);
+    SLV_ADDR_IN            : in  std_logic_vector(15 downto 0);
+    SLV_ACK_OUT            : out std_logic;
+    SLV_NO_MORE_DATA_OUT   : out std_logic;
+    SLV_UNKNOWN_ADDR_OUT   : out std_logic;
+                           
+    ERROR_OUT              : out std_logic;
+    DEBUG_OUT              : out std_logic_vector(15 downto 0)
     );
 end entity;
 
@@ -82,9 +81,6 @@ architecture Behavioral of nx_data_receiver is
   signal nx_frame_synced             : std_logic;
   signal rs_sync_set                 : std_logic;
   signal rs_sync_reset               : std_logic;
-                                     
-  -- Parity Check                    
-  signal parity_error                : std_logic;
                                      
   -- NX Clock Active                 
   signal nx_clk_active_ff_0          : std_logic;
@@ -123,6 +119,7 @@ architecture Behavioral of nx_data_receiver is
   signal rs_timeout_timer_start      : std_logic;
   signal rs_timeout_timer_done       : std_logic;
   signal rs_timeout_timer_reset      : std_logic;
+  signal nx_timestamp_reset_o        : std_logic;
   
   type R_STATES is (R_IDLE,
                     R_SET_ALL_RESETS,
@@ -152,16 +149,19 @@ architecture Behavioral of nx_data_receiver is
   signal nx_fifo_read_enable         : std_logic;
   signal nx_fifo_empty               : std_logic;
   signal nx_read_enable              : std_logic;
+  signal nx_fifo_data_valid_tt       : std_logic;
   signal nx_fifo_data_valid_t        : std_logic;
   signal nx_fifo_data_valid          : std_logic;
-                                     
+
+  signal nx_fifo_data                : std_logic_vector(31 downto 0);
+
   -- NX FIFO READ
   type delay_array_t is array(0 to 15) of std_logic_vector(31 downto 0);
   signal nx_timestamp_d              : delay_array_t;
   signal nx_timestamp_t              : std_logic_vector(31 downto 0);
   signal nx_new_timestamp            : std_logic;
   signal nx_new_timestamp_ctr        : unsigned(3 downto 0);
-  signal nx_fifo_data                : std_logic_vector(31 downto 0);
+  signal nx_fifo_data_f              : std_logic_vector(31 downto 0);
                                      
   -- Resync Counter Process                    
   signal resync_counter              : unsigned(11 downto 0);
@@ -169,8 +169,8 @@ architecture Behavioral of nx_data_receiver is
   signal nx_clk_active               : std_logic;
                                      
   -- Parity Error Counter Process                    
+  signal parity_error                : std_logic;
   signal parity_error_counter        : unsigned(11 downto 0);
-  signal parity_error_ctr_inc        : std_logic;
                                      
   signal reg_nx_frame_synced         : std_logic;
 
@@ -192,17 +192,19 @@ architecture Behavioral of nx_data_receiver is
   signal adc_debug_type              : std_logic_vector(3 downto 0);
 
   -- Data Output Handler
-  type STATES is (IDLE,
-                  WAIT_ADC,
+  type STATES is (WAIT_ADC,
                   WAIT_TIMESTAMP
                   );
   signal STATE : STATES;
-  signal STATE_d                     : std_logic_vector(1 downto 0);
-                                   
+  signal STATE_d                     : std_logic;
+
   signal nx_timestamp_o              : std_logic_vector(31 downto 0);
   signal adc_data_o                  : std_logic_vector(11 downto 0);
   signal new_data_o                  : std_logic;
-
+  signal merge_timeout_ctr           : unsigned(3 downto 0);
+  signal merge_timeout_error         : std_logic;
+  signal merge_error_ctr             : unsigned(11 downto 0);
+  
   -- Check Nxyter Data Clock via Johnson Counter
   signal nx_data_clock_test_0        : std_logic;
   signal nx_data_clock_test_1        : std_logic;
@@ -220,10 +222,10 @@ architecture Behavioral of nx_data_receiver is
   signal adc_frame_rate              : unsigned(27 downto 0);
   signal frame_rate_ctr              : unsigned(27 downto 0);
   signal frame_rate                  : unsigned(27 downto 0);
-  signal parity_rate_ctr             : unsigned(27 downto 0);
-  signal parity_rate                 : unsigned(27 downto 0);
+  signal parity_err_rate_ctr         : unsigned(27 downto 0);
+  signal parity_err_rate             : unsigned(27 downto 0);
   signal rate_timer_ctr              : unsigned(27 downto 0);
-
+  
   -- Error
   signal error_adc0                  : std_logic;
   signal error_adc1                  : std_logic;
@@ -238,7 +240,13 @@ architecture Behavioral of nx_data_receiver is
   signal frame_rate_error            : std_logic;
   signal parity_rate_error           : std_logic;
   signal reset_for_offline           : std_logic;
-  
+
+  -- Data Stream DeltaT Error Counters
+  signal new_adc_delta_t_ctr         : unsigned(3 downto 0);
+  signal new_timestamp_delta_t_ctr   : unsigned(3 downto 0);
+  signal new_adc_dt_error_ctr        : unsigned(11 downto 0);
+  signal new_timestamp_dt_error_ctr  : unsigned(11 downto 0);
+
   -- Slave Bus                     
   signal slv_data_out_o              : std_logic_vector(31 downto 0);
   signal slv_no_more_data_o          : std_logic;
@@ -296,14 +304,14 @@ begin
         DEBUG_OUT(2)            <= nx_fifo_full;
         DEBUG_OUT(3)            <= nx_fifo_write_enable;
         DEBUG_OUT(4)            <= nx_fifo_empty;
-        DEBUG_OUT(5)            <= nx_fifo_empty;
+        DEBUG_OUT(5)            <= merge_timeout_error; --STATE_d;
         DEBUG_OUT(6)            <= nx_fifo_read_enable;
         DEBUG_OUT(7)            <= nx_fifo_data_valid;
         DEBUG_OUT(8)            <= adc_data_valid;
         DEBUG_OUT(9)            <= nx_new_timestamp;
         DEBUG_OUT(10)           <= adc_new_data;
         DEBUG_OUT(11)           <= nx_fifo_reset;
-        DEBUG_OUT(12)           <= '0';
+        DEBUG_OUT(12)           <= parity_error;
         DEBUG_OUT(13)           <= nx_new_frame;
         DEBUG_OUT(14)           <= new_data_o;
         DEBUG_OUT(15)           <= nx_frame_synced;
@@ -327,7 +335,7 @@ begin
       when "10" =>
         -- AD9228 Handler Debug output
         DEBUG_OUT               <= ADC_DEBUG;
-                
+        
       when "11" =>
         -- Test Channel
         DEBUG_OUT(0)            <= CLK_IN;
@@ -504,8 +512,8 @@ begin
 
   timer_static_RESET_TIMEOUT: timer_static
     generic map (
-      CTR_WIDTH => 26,
-      CTR_END   => 10000000 -- 1s
+      CTR_WIDTH => 30,
+      CTR_END   => 1000000000 -- 10s
       )
     port map (
       CLK_IN         => CLK_IN,
@@ -545,6 +553,7 @@ begin
         reset_handler_busy          <= '0';
         reset_timeout_flag          <= '0';
         startup_reset               <= '1';
+        nx_timestamp_reset_o        <= '0';
         R_STATE                     <= R_IDLE;
       else
         frame_rates_reset           <= '0';
@@ -558,112 +567,119 @@ begin
         rs_timeout_timer_start      <= '0';
         rs_timeout_timer_reset      <= '0';
         reset_handler_busy          <= '1';
-        
+        nx_timestamp_reset_o        <= '0';
+
         debug_state   <= x"0";
         
         if (reset_handler_counter_clear = '1') then
-          reset_handler_counter       <= (others => '0');
+          reset_handler_counter     <= (others => '0');
         end if;
 
         if (rs_timeout_timer_done = '1') then
           -- Reset Timeout
-          reset_timeout_flag          <= '1';
+          reset_timeout_flag        <= '1';
+          R_STATE                   <= R_IDLE;
+        else
+          
+          case R_STATE is
+            when R_IDLE => 
+              if (reset_for_offline     = '1' or
+                  pll_adc_not_lock      = '1' or
+                  adc_reset_sync        = '1' or
+                  reset_handler_start_r = '1' or
+                  startup_reset         = '1'
+                  ) then
+                if (reset_handler_counter_clear = '0') then
+                  reset_handler_counter <= reset_handler_counter + 1;
+                end if; 
+                R_STATE                 <= R_SET_ALL_RESETS;
+              else 
+                reset_handler_busy      <= '0';
+                R_STATE                 <= R_IDLE;
+              end if;
+
+            when R_SET_ALL_RESETS =>
+              frame_rates_reset         <= '1';
+              nx_fifo_reset             <= '1';
+              sampling_clk_reset        <= '1';
+              adc_reset_p               <= '1';
+              adc_reset                 <= '1';
+              output_handler_reset      <= '1';
+
+              nx_timestamp_reset_o      <= '1';
+
+              rs_wait_timer_start       <= '1';  -- wait 1mue to settle
+              R_STATE                   <= R_WAIT_1;
+              debug_state               <= x"1";
+
+            when R_WAIT_1 =>
+              if (rs_wait_timer_done = '0') then
+                nx_fifo_reset           <= '1';
+                sampling_clk_reset      <= '1';
+                adc_reset               <= '1';
+                output_handler_reset    <= '1';
+                R_STATE                 <= R_WAIT_1;
+              else
+                -- Release NX Fifo Reset + Start Timeout Handler
+                sampling_clk_reset      <= '1';
+                adc_reset               <= '1';
+                output_handler_reset    <= '1';
+                rs_timeout_timer_start  <= '1';
+                R_STATE                 <= R_WAIT_NX_FRAME_RATE_OK;
+              end if;
+              debug_state               <= x"2";
+
+            when R_WAIT_NX_FRAME_RATE_OK =>
+              if (nx_frame_rate_offline = '0' and
+                  nx_frame_rate_error   = '0') then
+                -- Release PLL Reset
+                adc_reset               <= '1';
+                output_handler_reset    <= '1';
+                R_STATE                 <= R_PLL_WAIT_LOCK;
+              else
+                sampling_clk_reset      <= '1';
+                adc_reset               <= '1';
+                output_handler_reset    <= '1';
+                R_STATE                 <= R_WAIT_NX_FRAME_RATE_OK;
+              end if;
+              debug_state               <= x"3";
+              
+            when R_PLL_WAIT_LOCK =>
+              if (pll_adc_not_lock = '1') then
+                adc_reset               <= '1';
+                output_handler_reset    <= '1';
+                R_STATE                 <= R_PLL_WAIT_LOCK;
+              else
+                -- Release ADC Reset
+                output_handler_reset    <= '1';
+                R_STATE                 <= R_WAIT_ADC_OK;
+              end if;
+              debug_state               <= x"4";
+              
+            when R_WAIT_ADC_OK =>
+              if (error_adc0 = '0' and
+                  adc_frame_rate_error = '0') then
+                -- Release Output Handler Reset
+                R_STATE                 <= R_WAIT_DATA_HANDLER_OK;
+              else
+                output_handler_reset    <= '1';
+                R_STATE                 <= R_WAIT_ADC_OK;
+              end if;
+              debug_state               <= x"5";
+
+            when R_WAIT_DATA_HANDLER_OK =>
+              if (frame_rate_error = '0') then
+                startup_reset           <= '0';
+                reset_timeout_flag      <= '0';
+                rs_timeout_timer_reset  <= '1';
+                R_STATE                 <= R_IDLE;
+              else
+                R_STATE                 <= R_WAIT_DATA_HANDLER_OK;
+              end if;  
+              debug_state               <= x"6";
+              
+          end case;
         end if;
-                
-        case R_STATE is
-          when R_IDLE => 
-            if (reset_for_offline     = '1' or
-                --pll_adc_not_lock      = '1' or
-                --adc_reset_sync        = '1' or
-                reset_handler_start_r = '1' or
-                startup_reset         = '1'
-                ) then
-              if (reset_handler_counter_clear = '0') then
-                reset_handler_counter <= reset_handler_counter + 1;
-              end if; 
-              R_STATE                 <= R_SET_ALL_RESETS;
-            else 
-              reset_handler_busy      <= '0';
-              R_STATE                 <= R_IDLE;
-            end if;
-
-          when R_SET_ALL_RESETS =>
-            frame_rates_reset         <= '1';
-            nx_fifo_reset             <= '1';
-            sampling_clk_reset        <= '1';
-            adc_reset_p               <= '1';
-            adc_reset                 <= '1';
-            output_handler_reset      <= '1';
-
-            rs_wait_timer_start       <= '1';  -- wait 1mue to settle
-            R_STATE                   <= R_WAIT_1;
-            debug_state               <= x"1";
-
-          when R_WAIT_1 =>
-            if (rs_wait_timer_done = '0') then
-              nx_fifo_reset           <= '1';
-              sampling_clk_reset      <= '1';
-              adc_reset               <= '1';
-              output_handler_reset    <= '1';
-              R_STATE                 <= R_WAIT_1;
-            else
-              -- Release NX Fifo Reset + Start Timeout HAndler
-              sampling_clk_reset      <= '1';
-              adc_reset               <= '1';
-              output_handler_reset    <= '1';
-              reset_timeout_flag      <= '0';
-              rs_timeout_timer_start  <= '1';
-              R_STATE                 <= R_WAIT_NX_FRAME_RATE_OK;
-            end if;
-            debug_state               <= x"2";
-
-          when R_WAIT_NX_FRAME_RATE_OK =>
-            if (nx_frame_rate_offline = '0' and
-                nx_frame_rate_error   = '0') then
-              -- Release PLL Reset
-              adc_reset               <= '1';
-              output_handler_reset    <= '1';
-              R_STATE                 <= R_PLL_WAIT_LOCK;
-            else
-              sampling_clk_reset      <= '1';
-              adc_reset               <= '1';
-              output_handler_reset    <= '1';
-              R_STATE                 <= R_WAIT_NX_FRAME_RATE_OK;
-            end if;
-            debug_state               <= x"3";
-            
-          when R_PLL_WAIT_LOCK =>
-            if (pll_adc_not_lock = '1') then
-              adc_reset               <= '1';
-              output_handler_reset    <= '1';
-              R_STATE                 <= R_PLL_WAIT_LOCK;
-            else
-              -- Release ADC Reset
-              output_handler_reset    <= '1';
-              R_STATE                 <= R_WAIT_ADC_OK;
-            end if;
-            debug_state               <= x"4";
-            
-          when R_WAIT_ADC_OK =>
-            if (error_adc0 = '0' and
-                adc_frame_rate_error = '0') then
-              -- Release Output Handler Reset
-              R_STATE                 <= R_WAIT_DATA_HANDLER_OK;
-            else
-              R_STATE                 <= R_WAIT_ADC_OK;
-            end if;
-            debug_state               <= x"5";
-
-          when R_WAIT_DATA_HANDLER_OK =>
-            if (frame_rate_error = '0') then
-              startup_reset           <= '0';
-              R_STATE                 <= R_IDLE;
-            else
-              R_STATE                 <= R_WAIT_DATA_HANDLER_OK;
-            end if;  
-            debug_state               <= x"6";
-            
-        end case;
       end if;
     end if;
   end process PROC_RESET_HANDLER;
@@ -757,45 +773,18 @@ begin
     end if;
   end process PROC_RS_FRAME_SYNCED;
 
-  -- Check Parity
-  PROC_PARITY_CHECK: process(NX_TIMESTAMP_CLK_IN)
-    variable parity_bits : std_logic_vector(22 downto 0);
-    variable parity      : std_logic;
-  begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
-      if (RESET_NX_TIMESTAMP_CLK_IN = '1') then
-        parity_error       <= '0';
-      else
-        parity_error       <= '0';
-        if (nx_new_frame = '1' and nx_frame_synced = '1') then
-          -- Timestamp Bit #6 is excluded (funny nxyter-bug)
-          parity_bits         := nx_frame_word(31)           &
-                                 nx_frame_word(30 downto 24) &
-                                 nx_frame_word(21 downto 16) &
-                                 nx_frame_word(14 downto  8) &
-                                 nx_frame_word( 2 downto  1);
-          parity              := xor_all(parity_bits);
-
-          if (parity /= nx_frame_word(0)) then
-            parity_error   <= '1';
-          end if;
-        end if;
-      end if;
-    end if;
-  end process PROC_PARITY_CHECK;
-
   fifo_ts_32to32_dc_1: fifo_ts_32to32_dc
     port map (
-      Data          => nx_frame_word,
-      WrClock       => NX_TIMESTAMP_CLK_IN,
-      RdClock       => CLK_IN,
-      WrEn          => nx_fifo_write_enable,
-      RdEn          => nx_fifo_read_enable,
-      Reset         => nx_fifo_reset,
-      RPReset       => nx_fifo_reset,
-      Q             => nx_fifo_data,
-      Empty         => nx_fifo_empty,
-      Full          => nx_fifo_full
+      Data              => nx_frame_word,
+      WrClock           => NX_TIMESTAMP_CLK_IN,
+      RdClock           => CLK_IN,
+      WrEn              => nx_fifo_write_enable,
+      RdEn              => nx_fifo_read_enable,
+      Reset             => nx_fifo_reset,
+      RPReset           => nx_fifo_reset,
+      Q                 => nx_fifo_data_f,
+      Empty             => nx_fifo_empty,
+      Full              => nx_fifo_full
       );
   
   nx_fifo_write_enable   <= nx_new_frame and not nx_fifo_full;
@@ -890,17 +879,86 @@ begin
   -- NX CLK_IN Domain
   -----------------------------------------------------------------------------
 
+  -----------------------------------------------------------------------------
+  -- Gray Decode Timestamp Frame (Timestamp and Channel Id)
+  -----------------------------------------------------------------------------
+
+  gray_decoder_TIMESTAMP: gray_decoder          -- Decode nx_timestamp
+    generic map (
+      WIDTH => 14
+      )
+    port map (
+      CLK_IN                  => CLK_IN,
+      RESET_IN                => RESET_IN,
+      GRAY_IN(13 downto 7)    => not nx_fifo_data_f(30 downto 24),
+      GRAY_IN( 6 downto 0)    => not nx_fifo_data_f(22 downto 16),
+      BINARY_OUT(13 downto 7) => nx_fifo_data(30 downto 24),
+      BINARY_OUT(6 downto 0)  => nx_fifo_data(22 downto 16)
+      );
+
+  gray_decoder_CHANNEL_ID: gray_decoder          -- Decode Channel_ID
+    generic map (
+      WIDTH => 7
+      )
+    port map (
+      CLK_IN     => CLK_IN,
+      RESET_IN   => RESET_IN,
+      GRAY_IN    => nx_fifo_data_f(14 downto 8),
+      BINARY_OUT => nx_fifo_data(14 downto 8)
+      );
+  
+  -- Leave other bits untouched
+  PROC_GRAY_DECODE: process(CLK_IN)
+  begin
+    if (rising_edge(CLK_IN) ) then
+      nx_fifo_data(31)          <= nx_fifo_data_f(31);
+      nx_fifo_data(23)          <= nx_fifo_data_f(23);
+      nx_fifo_data(15)          <= nx_fifo_data_f(15);
+      nx_fifo_data(7 downto 1)  <= nx_fifo_data_f(7 downto 1);
+    end if;
+  end process PROC_GRAY_DECODE;
+
+  -- Replace Parity Bit by Parity Error Bit
+  PROC_PARITY_CHECKER: process(CLK_IN)
+    variable parity_bits : std_logic_vector(22 downto 0);
+    variable parity      : std_logic;
+  begin
+    if (rising_edge(CLK_IN) ) then
+      if (RESET_IN = '1') then
+        nx_fifo_data(0)         <= '0';
+      else
+        -- Timestamp Bit #6 is excluded (funny nxyter-bug)
+        parity_bits             := nx_fifo_data_f(31)           &
+                                   nx_fifo_data_f(30 downto 24) &
+                                   nx_fifo_data_f(21 downto 16) &
+                                   nx_fifo_data_f(14 downto  8) &
+                                   nx_fifo_data_f( 2 downto  1);
+        parity                  := xor_all(parity_bits);
+        if (parity /= nx_fifo_data_f(0)) then
+          nx_fifo_data(0)       <= '1';
+        else                        
+          nx_fifo_data(0)       <= '0';
+        end if;
+      end if;
+    end if;
+  end process PROC_PARITY_CHECKER;
+  
+  -----------------------------------------------------------------------------
   -- FIFO Read Handler
+  -----------------------------------------------------------------------------
+
   nx_fifo_read_enable     <= not nx_fifo_empty;
 
   PROC_NX_FIFO_READ_ENABLE: process(CLK_IN)
   begin
     if (rising_edge(CLK_IN) ) then
-      nx_fifo_data_valid_t   <= nx_fifo_read_enable;
+      nx_fifo_data_valid_tt    <= nx_fifo_read_enable;
       if(RESET_IN = '1') then
+        nx_fifo_data_valid_t   <= '0';
         nx_fifo_data_valid     <= '0';
       else
-        -- Delay read signal by one CLK
+        -- Delay read signal by two Clock Cycles
+        nx_fifo_data_valid_t   <= nx_fifo_data_valid_tt;
         nx_fifo_data_valid     <= nx_fifo_data_valid_t;
       end if;
     end if;
@@ -916,6 +974,7 @@ begin
         for I in 1 to 15 loop
           nx_timestamp_d(I)    <= (others => '0');
         end loop;
+        parity_error           <= '0';
       else
         if (nx_fifo_data_valid = '1') then
           -- Delay Data relative to ADC by 8 steps
@@ -926,9 +985,11 @@ begin
           nx_timestamp_t       <= nx_timestamp_d(to_integer(nx_fifo_delay));
           nx_new_timestamp     <= '1';
           nx_new_timestamp_ctr <= nx_new_timestamp_ctr + 1;
+          parity_error         <= nx_timestamp_d(to_integer(nx_fifo_delay))(0);
         else
           nx_timestamp_t       <= x"deadbeef";
           nx_new_timestamp     <= '0';
+          parity_error         <= '0';
         end if;
       end if;
     end if;
@@ -950,19 +1011,6 @@ begin
       CLK_B_IN    => CLK_IN,
       RESET_B_IN  => RESET_IN,
       PULSE_B_OUT => resync_ctr_inc
-      );
-
-  pulse_dtrans_3: pulse_dtrans
-    generic map (
-      CLK_RATIO => 3
-      )
-    port map (
-      CLK_A_IN    => NX_TIMESTAMP_CLK_IN,
-      RESET_A_IN  => RESET_NX_TIMESTAMP_CLK_IN,
-      PULSE_A_IN  => parity_error,
-      CLK_B_IN    => CLK_IN,
-      RESET_B_IN  => RESET_IN,
-      PULSE_B_OUT => parity_error_ctr_inc
       );
 
   -- nx_frame_synced --> CLK_IN Domain
@@ -993,7 +1041,7 @@ begin
       if (RESET_IN = '1' or reset_parity_error_ctr = '1') then
         parity_error_counter   <= (others => '0');
       else
-        if (parity_error_ctr_inc = '1') then
+        if (parity_error = '1') then
           parity_error_counter <= parity_error_counter + 1;
         end if;
       end if;
@@ -1034,67 +1082,111 @@ begin
   -----------------------------------------------------------------------------
   -- Output handler
   -----------------------------------------------------------------------------
-  PROC_OUTPUT_HANDLER: process(CLK_IN)
+
+  PROC_DATA_STREAM_DELTA_T: process(CLK_IN)
+  begin
+    if (rising_edge(CLK_IN) ) then
+      if (RESET_IN = '1') then
+        new_adc_delta_t_ctr         <= (others => '0');
+        new_timestamp_delta_t_ctr   <= (others => '0');
+        new_adc_dt_error_ctr        <= (others => '0');
+        new_timestamp_dt_error_ctr  <= (others => '0');  
+      else
+        -- ADC
+        if (adc_new_data = '1') then
+          if (new_adc_delta_t_ctr < x"2" or
+              new_adc_delta_t_ctr > x"3") then
+            new_adc_dt_error_ctr       <= new_adc_dt_error_ctr + 1;
+          end if;
+          new_adc_delta_t_ctr          <= (others => '0');
+        else
+          new_adc_delta_t_ctr          <= new_adc_delta_t_ctr + 1;
+        end if;
+
+        -- TimeStamp
+        if (nx_new_timestamp = '1') then
+          if (new_timestamp_delta_t_ctr < x"2" or
+              new_timestamp_delta_t_ctr > x"3") then
+            new_timestamp_dt_error_ctr <= new_timestamp_dt_error_ctr + 1;
+          end if;
+          new_timestamp_delta_t_ctr    <= (others => '0');
+        else
+          new_timestamp_delta_t_ctr    <= new_timestamp_delta_t_ctr  + 1;
+        end if;
+        
+      end if;
+    end if;
+  end process PROC_DATA_STREAM_DELTA_T;
+
+  PROC_OUTPUT_MERGE_HANDLER: process(CLK_IN)
   begin
     if (rising_edge(CLK_IN) ) then
       if (RESET_IN = '1' or output_handler_reset = '1') then
-        nx_timestamp_o <= (others => '0');
-        adc_data_o     <= (others => '0');
-        new_data_o     <= '0';
-        STATE          <= IDLE;
+        nx_timestamp_o       <= (others => '0');
+        adc_data_o           <= (others => '0');
+        new_data_o           <= '0';
+        merge_timeout_ctr    <= (others => '0');
+        merge_timeout_error  <= '0';
+        merge_error_ctr      <= (others => '0');
+        STATE                <= WAIT_ADC;
       else
         case STATE is
           
-          when IDLE =>
-            STATE_d <= "00";
-            if (nx_new_timestamp = '1' and adc_new_data = '1') then
-              nx_timestamp_o  <= nx_timestamp_t;
-              adc_data_o      <= adc_data_t;
-              new_data_o      <= '1';
-              STATE           <= IDLE;
-            elsif (nx_new_timestamp = '1') then
-              nx_timestamp_o  <= nx_timestamp_t;
-              adc_data_o      <= (others => '0');
-              new_data_o      <= '0';
-              STATE           <= WAIT_ADC;
-            elsif (adc_new_data = '1') then
-              adc_data_o      <= adc_data_t;
-              nx_timestamp_o  <= (others => '0');
-              new_data_o      <= '0';  
-              STATE           <= WAIT_TIMESTAMP;
-            else
-              nx_timestamp_o  <= (others => '0');
-              adc_data_o      <= (others => '0');
-              new_data_o      <= '0';  
-              STATE           <= IDLE;
-            end if;
-
           when WAIT_ADC =>
-            STATE_d <= "01";
-            if (adc_new_data = '1') then
-              adc_data_o      <= adc_data_t;
-              new_data_o      <= '1';
-              STATE           <= IDLE;
-            else
-              new_data_o      <= '0';  
-              STATE           <= WAIT_ADC;
+            STATE_d <= '0';
+            if (adc_new_data = '1' and nx_new_timestamp = '1') then
+              nx_timestamp_o      <= nx_timestamp_t;
+              adc_data_o          <= adc_data_t;
+              new_data_o          <= '1';
+              merge_timeout_ctr   <= (others => '0');
+              STATE               <= WAIT_ADC;
+            elsif (adc_new_data = '1') then
+              nx_timestamp_o      <= (others => '0');
+              adc_data_o          <= adc_data_t;
+              new_data_o          <= '0';
+              STATE               <= WAIT_TIMESTAMP; 
+            else                  
+              nx_timestamp_o      <= (others => '0');
+              adc_data_o          <= (others => '0');
+              new_data_o          <= '0';
+              merge_timeout_ctr   <= merge_timeout_ctr + 1;
+              STATE               <= WAIT_ADC;
             end if;
 
            when WAIT_TIMESTAMP => 
-            STATE_d <= "10";
-            if (nx_new_timestamp = '1') then
-              nx_timestamp_o  <= nx_timestamp_t;
-              new_data_o      <= '1';
-              STATE           <= IDLE;
+            STATE_d <= '1';
+            if (merge_timeout_error = '1') then
+              nx_timestamp_o      <= (others => '0');
+              adc_data_o          <= (others => '0');
+              new_data_o          <= '0';
+              merge_timeout_ctr   <= (others => '0');
+              STATE               <= WAIT_ADC;
             else
-              new_data_o      <= '0';  
-              STATE           <= WAIT_TIMESTAMP;
-            end if; 
-
+              if (nx_new_timestamp = '1') then
+                nx_timestamp_o    <= nx_timestamp_t;
+                new_data_o        <= '1';
+                merge_timeout_ctr <= (others => '0');
+                STATE             <= WAIT_ADC;
+              else
+                nx_timestamp_o    <= (others => '0');
+                new_data_o        <= '0';  
+                merge_timeout_ctr <= merge_timeout_ctr + 1;
+                STATE             <= WAIT_TIMESTAMP;
+              end if;
+            end if;
+            
         end case;
+
+        -- Timeout?
+        if (merge_timeout_ctr > x"3") then
+          merge_timeout_error   <= '1';
+          merge_error_ctr       <= merge_error_ctr + 1;
+        else
+          merge_timeout_error   <= '0';
+        end if;
       end if;
     end if;
-  end process PROC_OUTPUT_HANDLER;
+  end process PROC_OUTPUT_MERGE_HANDLER;
 
   -----------------------------------------------------------------------------
   -- Rate Counters + Rate Error Check
@@ -1109,46 +1201,46 @@ begin
         adc_frame_rate         <= (others => '0');
         frame_rate_ctr         <= (others => '0');
         frame_rate             <= (others => '0');
-        parity_rate_ctr        <= (others => '0');
-        parity_rate            <= (others => '0');
+        parity_err_rate_ctr    <= (others => '0');
+        parity_err_rate        <= (others => '0');
         rate_timer_ctr         <= (others => '0');
       else
         if (rate_timer_ctr < x"5f5e100") then
-          rate_timer_ctr                  <= rate_timer_ctr + 1;
+          rate_timer_ctr                    <= rate_timer_ctr + 1;
 
           if (nx_fifo_data_valid = '1') then
-            nx_frame_rate_ctr             <= nx_frame_rate_ctr + 1;
-          end if;
-          
-          if (adc_data_valid = '1') then
-            adc_frame_rate_ctr            <= adc_frame_rate_ctr + 1;
-          end if;
+            nx_frame_rate_ctr               <= nx_frame_rate_ctr + 1;
+          end if;                           
+                                            
+          if (adc_data_valid = '1') then    
+            adc_frame_rate_ctr              <= adc_frame_rate_ctr + 1;
+          end if;                           
+                                            
+          if (new_data_o = '1') then        
+            frame_rate_ctr                  <= frame_rate_ctr + 1;
+          end if;                           
+                                            
+          if (parity_error = '1') then      
+            parity_err_rate_ctr             <= parity_err_rate_ctr + 1;
+          end if;                           
+        else                                
+          rate_timer_ctr                    <= (others => '0');
+          nx_frame_rate                     <= nx_frame_rate_ctr;
+          adc_frame_rate                    <= adc_frame_rate_ctr;
+          frame_rate                        <= frame_rate_ctr;
+          parity_err_rate                   <= parity_err_rate_ctr;
+                                            
+          nx_frame_rate_ctr(27 downto 1)    <= (others => '0');
+          nx_frame_rate_ctr(0)              <= nx_fifo_data_valid;
+                                            
+          adc_frame_rate_ctr(27 downto 1)   <= (others => '0');
+          adc_frame_rate_ctr(0)             <= adc_data_valid;
+                                            
+          frame_rate_ctr(27 downto 1)       <= (others => '0');
+          frame_rate_ctr(0)                 <= new_data_o;
 
-          if (new_data_o = '1') then
-            frame_rate_ctr                <= frame_rate_ctr + 1;
-          end if;
-
-          if (parity_error_ctr_inc = '1') then
-            parity_rate_ctr               <= parity_rate_ctr + 1;
-          end if;
-        else
-          rate_timer_ctr                  <= (others => '0');
-          nx_frame_rate                   <= nx_frame_rate_ctr;
-          adc_frame_rate                  <= adc_frame_rate_ctr;
-          frame_rate                      <= frame_rate_ctr;
-          parity_rate                     <= parity_rate_ctr;
-          
-          nx_frame_rate_ctr(27 downto 1)  <= (others => '0');
-          nx_frame_rate_ctr(0)            <= nx_fifo_data_valid;
-
-          adc_frame_rate_ctr(27 downto 1) <= (others => '0');
-          adc_frame_rate_ctr(0)           <= adc_data_valid;
-
-          frame_rate_ctr(27 downto 1)     <= (others => '0');
-          frame_rate_ctr(0)               <= new_data_o;
-
-          parity_rate_ctr(27 downto 1)    <= (others => '0');
-          parity_rate_ctr(0)              <= parity_error_ctr_inc;
+          parity_err_rate_ctr(27 downto 1)  <= (others => '0');
+          parity_err_rate_ctr(0)            <= parity_error;
         end if;
       end if;
     end if;
@@ -1195,10 +1287,10 @@ begin
           frame_rate_error         <= '0';
         end if;
 
-        if (parity_rate > 0) then
-          parity_rate_error         <= '1';
+        if (parity_err_rate > 0) then
+          parity_rate_error        <= '1';
         else
-          parity_rate_error         <= '0';
+          parity_rate_error        <= '0';
         end if;
         
         -- Reset Request to Reset Handler
@@ -1252,10 +1344,97 @@ begin
         if (SLV_READ_IN  = '1') then
           case SLV_ADDR_IN is
             when x"0000" =>
-              slv_data_out_o                <= nx_timestamp_t;
-              slv_ack_o                     <= '1';
+              slv_data_out_o(11 downto 0)   <= error_status_bits;
+              slv_data_out_o(31 downto 8)   <= (others => '0');
+              slv_ack_o                     <= '1';  
 
             when x"0001" =>
+              slv_data_out_o(0)             <= reset_handler_busy;
+              slv_data_out_o(1)             <= reset_timeout_flag;
+              slv_data_out_o(31 downto 2)   <= (others => '0');
+              slv_ack_o                     <= '1';  
+                       
+            when x"0002" =>
+              slv_data_out_o(27 downto 0)   <= std_logic_vector(frame_rate); 
+              slv_data_out_o(31 downto 28)  <= (others => '0');
+              slv_ack_o                     <= '1';  
+
+            when x"0003" =>
+              slv_data_out_o(27 downto 0)   <= std_logic_vector(nx_frame_rate);
+              slv_data_out_o(31 downto 28)  <= (others => '0');
+              slv_ack_o                     <= '1';  
+              
+            when x"0004" =>
+              slv_data_out_o(27 downto 0)   <= std_logic_vector(adc_frame_rate);
+              slv_data_out_o(31 downto 28)  <= (others => '0');
+              slv_ack_o                     <= '1';  
+
+            when x"0005" =>
+              slv_data_out_o(27 downto 0)   <= parity_err_rate;
+              slv_data_out_o(31 downto 28)  <= (others => '0');
+              slv_ack_o                     <= '1';
+    
+            when x"0006" =>
+              slv_data_out_o(15 downto 0)   <= reset_handler_counter;
+              slv_data_out_o(31 downto 6)   <= (others => '0');
+              slv_ack_o                     <= '1';
+
+            when x"0007" =>
+              slv_data_out_o(11 downto 0)   <= std_logic_vector(adc_reset_ctr);
+              slv_data_out_o(31 downto 12)  <= (others => '0');
+              slv_ack_o                     <= '1';
+              
+            when x"0008" =>
+              slv_data_out_o(7 downto 0)    <=
+                std_logic_vector(adc_notlock_ctr);
+              slv_data_out_o(31 downto 8)   <= (others => '0');
+              slv_ack_o                     <= '1';  
+
+            when x"0009" =>
+              slv_data_out_o(11 downto 0)   <= merge_error_ctr;
+              slv_data_out_o(31 downto 12)  <= (others => '0');
+              slv_ack_o                     <= '1';
+              
+            when x"000a" =>
+              slv_data_out_o(11 downto  0)  <=
+                std_logic_vector(resync_counter);
+              slv_data_out_o(31 downto 12)  <= (others => '0');
+              slv_ack_o                     <= '1'; 
+
+            when x"000b" =>
+              slv_data_out_o(11 downto  0)  <=
+                std_logic_vector(parity_error_counter);
+              slv_data_out_o(31 downto 12)  <= (others => '0');
+              slv_ack_o                     <= '1'; 
+
+            when x"000c" =>
+              slv_data_out_o(11 downto  0)  <=
+                std_logic_vector(pll_adc_not_lock_ctr);
+              slv_data_out_o(31 downto 12)  <= (others => '0');
+              slv_ack_o                     <= '1';     
+      
+            when x"000d" =>
+              slv_data_out_o(3 downto 0)    <=
+                std_logic_vector(pll_adc_sample_clk_dphase_r);
+              slv_data_out_o(31 downto 4)   <= (others => '0');
+              slv_ack_o                     <= '1';
+
+            when x"000e" =>
+              slv_data_out_o(3 downto 0)    <= pll_adc_sample_clk_finedelb;
+              slv_data_out_o(31 downto 4)   <= (others => '0');
+              slv_ack_o                     <= '1'; 
+                        
+            when x"000f" =>
+              slv_data_out_o(1 downto  0)   <= johnson_counter_sync_r;
+              slv_data_out_o(31 downto 2)   <= (others => '0');
+              slv_ack_o                     <= '1';
+
+            when x"0010" =>
+              slv_data_out_o(3 downto 0)    <= std_logic_vector(nx_fifo_delay);
+              slv_data_out_o(31 downto 4)   <= (others => '0');
+              slv_ack_o                     <= '1';
+
+            when x"0011" =>
               slv_data_out_o(0)             <= nx_fifo_full;
               slv_data_out_o(1)             <= nx_fifo_empty;
               slv_data_out_o(2)             <= '0';
@@ -1267,108 +1446,33 @@ begin
               slv_data_out_o(31)            <= reg_nx_frame_synced;
               slv_ack_o                     <= '1'; 
 
-            when x"0002" =>
-              slv_data_out_o(11 downto  0)  <=
-                std_logic_vector(resync_counter);
-              slv_data_out_o(31 downto 12)  <= (others => '0');
-              slv_ack_o                     <= '1'; 
-
-            when x"0003" =>
-              slv_data_out_o(11 downto  0)  <=
-                std_logic_vector(parity_error_counter);
-              slv_data_out_o(31 downto 12)  <= (others => '0');
-              slv_ack_o                     <= '1'; 
-
-            when x"0004" =>
-              slv_data_out_o(11 downto  0)  <=
-                std_logic_vector(pll_adc_not_lock_ctr);
-              slv_data_out_o(31 downto 12)  <= (others => '0');
-              slv_ack_o                     <= '1';     
-
-            when x"0005" =>
-              slv_data_out_o(1 downto  0)   <= johnson_counter_sync_r;
-              slv_data_out_o(31 downto 2)   <= (others => '0');
-              slv_ack_o                     <= '1';
-
-            when x"0006" =>
-              slv_data_out_o(3 downto 0)    <=
-                std_logic_vector(pll_adc_sample_clk_dphase_r);
-              slv_data_out_o(31 downto 4)   <= (others => '0');
-              slv_ack_o                     <= '1';
-
-            when x"0007" =>
-              slv_data_out_o(3 downto 0)    <= pll_adc_sample_clk_finedelb;
-              slv_data_out_o(31 downto 4)   <= (others => '0');
-              slv_ack_o                     <= '1'; 
-              
-            when x"0008" =>
-              slv_data_out_o(11 downto 0)   <= adc_data_t;
-              slv_data_out_o(31 downto 12)  <= (others => '0');
-              slv_ack_o                     <= '1';
-
-            when x"0009" =>
-              slv_data_out_o(11 downto 0)   <= std_logic_vector(adc_reset_ctr);
-              slv_data_out_o(31 downto 12)  <= (others => '0');
-              slv_ack_o                     <= '1';
- 
-            when x"000a" =>
-              slv_data_out_o(31 downto 0)   <= (others => '0');
-              slv_ack_o                     <= '1';
-              
-            when x"000b" =>
-              slv_data_out_o(0)             <= reset_handler_busy;
-              slv_data_out_o(31 downto 1)   <= (others => '0');
-              slv_ack_o                     <= '1';  
-
-            when x"000c" =>
-              slv_data_out_o(15 downto 0)   <= reset_handler_counter;
-              slv_data_out_o(31 downto 6)   <= (others => '0');
-              slv_ack_o                     <= '1';
-
-            when x"000d" =>
-              slv_data_out_o(3 downto 0)    <= std_logic_vector(nx_fifo_delay);
-              slv_data_out_o(31 downto 4)   <= (others => '0');
-              slv_ack_o                     <= '1';
-
-            when x"000e" =>
+            when x"0012" =>
               slv_data_out_o(3 downto 0)    <= std_logic_vector(adc_bit_shift);
               slv_data_out_o(31 downto 4)   <= (others => '0');
               slv_ack_o                     <= '1';
+           
+            when x"0013" =>
+              slv_data_out_o                <= nx_timestamp_t;
+              slv_ack_o                     <= '1';
 
-            when x"000f" =>
-              slv_data_out_o(7 downto 0)    <=
-                std_logic_vector(adc_notlock_ctr);
-              slv_data_out_o(31 downto 8)   <= (others => '0');
-              slv_ack_o                     <= '1';  
-
-            when x"0010" =>
-              slv_data_out_o(27 downto 0)   <= std_logic_vector(nx_frame_rate);
-              slv_data_out_o(31 downto 28)  <= (others => '0');
-              slv_ack_o                     <= '1';  
-
-            when x"0011" =>
-              slv_data_out_o(27 downto 0)   <= std_logic_vector(adc_frame_rate);
-              slv_data_out_o(31 downto 28)  <= (others => '0');
-              slv_ack_o                     <= '1';  
-
-            when x"0012" =>
-              slv_data_out_o(11 downto 0)   <= test_adc_data;
+            when x"0014" =>
+              slv_data_out_o(11 downto 0)   <= new_adc_dt_error_ctr;
               slv_data_out_o(31 downto 12)  <= (others => '0');
               slv_ack_o                     <= '1';
 
-            when x"0013" =>
-              slv_data_out_o(27 downto 0)   <= std_logic_vector(frame_rate); 
-              slv_data_out_o(31 downto 28)  <= (others => '0');
-              slv_ack_o                     <= '1';  
-
-            when x"0014" =>
-              slv_data_out_o(11 downto 0)    <= error_status_bits;
-              slv_data_out_o(31 downto 8)   <= (others => '0');
-              slv_ack_o                     <= '1';  
-
             when x"0015" =>
-              slv_data_out_o(27 downto 0)   <= parity_rate;
-              slv_data_out_o(31 downto 28)  <= (others => '0');
+              slv_data_out_o(11 downto 0)   <= new_timestamp_dt_error_ctr;
+              slv_data_out_o(31 downto 12)  <= (others => '0');
+              slv_ack_o                     <= '1';
+
+            when x"001c" =>
+              slv_data_out_o(11 downto 0)   <= adc_data_t;
+              slv_data_out_o(31 downto 12)  <= (others => '0');
+              slv_ack_o                     <= '1';
+      
+            when x"001d" =>
+              slv_data_out_o(11 downto 0)   <= test_adc_data;
+              slv_data_out_o(31 downto 12)  <= (others => '0');
               slv_ack_o                     <= '1';
               
             when x"001e" =>
@@ -1387,52 +1491,52 @@ begin
           
         elsif (SLV_WRITE_IN  = '1') then
           case SLV_ADDR_IN is
-            when x"0002" => 
+            when x"0001" =>
+              reset_handler_start_r         <= '1';
+              slv_ack_o                     <= '1';
+
+            when x"0002" =>
+              reset_handler_counter_clear   <= '1';
+              slv_ack_o                     <= '1';
+
+            when x"000a" => 
               reset_resync_ctr              <= '1';
               slv_ack_o                     <= '1'; 
 
-            when x"0003" => 
+            when x"000b" => 
               reset_parity_error_ctr        <= '1';
               slv_ack_o                     <= '1'; 
-    
-            when x"0004" =>
+
+            when x"000c" =>
               pll_adc_not_lock_ctr_clear    <= '1';
               slv_ack_o                     <= '1';
-              
-            when x"0005" =>
-              johnson_counter_sync_r        <= SLV_DATA_IN(1 downto 0);
-              reset_handler_start_r         <= '1';
-              slv_ack_o                     <= '1'; 
 
-            when x"0006" =>
+            when x"000d" =>
               pll_adc_sample_clk_dphase_r   <=
                 unsigned(SLV_DATA_IN(3 downto 0));
               reset_handler_start_r         <= '1';
               slv_ack_o                     <= '1';   
-
-            when x"0007" =>
+    
+            when x"000e" =>
               pll_adc_sample_clk_finedelb   <= SLV_DATA_IN(3 downto 0);
               reset_handler_start_r         <= '1';
               slv_ack_o                     <= '1';   
               
-            when x"000b" =>
+            when x"000f" =>
+              johnson_counter_sync_r        <= SLV_DATA_IN(1 downto 0);
               reset_handler_start_r         <= '1';
-              slv_ack_o                     <= '1';
-
-            when x"000c" =>
-              reset_handler_counter_clear   <= '1';
-              slv_ack_o                     <= '1';
-
-            when x"000d" =>
+              slv_ack_o                     <= '1'; 
+          
+            when x"0010" =>
               nx_fifo_delay                 <=
                 unsigned(SLV_DATA_IN(3 downto 0));
               slv_ack_o                     <= '1';
 
-            when x"000e" =>
+            when x"0012" =>
               adc_bit_shift                 <=
                 unsigned(SLV_DATA_IN(3 downto 0));
               slv_ack_o                     <= '1';
-
+            
             when x"001e" =>
               debug_adc                     <= SLV_DATA_IN(1 downto 0);
               slv_ack_o                     <= '1';
@@ -1464,7 +1568,7 @@ begin
             nx_frame_rate_offline = '1'  or
             nx_frame_rate_error   = '1'  or
             adc_clk_ok            = '0'  or
-            parity_error_ctr_inc  = '1'  or
+            parity_error          = '1'  or
             reg_nx_frame_synced   = '0'  or
             adc_frame_rate_error  = '1'  or
             parity_rate_error     = '1'
@@ -1491,17 +1595,16 @@ begin
   end process PROC_ERROR;
 
   -- Output Signals
-
-  NX_TIMESTAMP_OUT       <= nx_timestamp_o
-                            when new_data_o = '1' else x"0000_0000";
-  ADC_DATA_OUT           <= adc_data_o when new_data_o = '1' else x"000";
-  NEW_DATA_OUT           <= new_data_o;
-  ADC_SCLK_LOCK_OUT      <= pll_adc_sampling_clk_lock;
-  ERROR_OUT              <= error_o;
-  
-  SLV_DATA_OUT           <= slv_data_out_o;    
-  SLV_NO_MORE_DATA_OUT   <= slv_no_more_data_o; 
-  SLV_UNKNOWN_ADDR_OUT   <= slv_unknown_addr_o;
-  SLV_ACK_OUT            <= slv_ack_o;
+  NX_TIMESTAMP_RESET_OUT   <= nx_timestamp_reset_o;
+  NX_TIMESTAMP_OUT         <= nx_timestamp_o;
+  ADC_DATA_OUT             <= adc_data_o;
+  NEW_DATA_OUT             <= new_data_o;
+  ADC_SCLK_LOCK_OUT        <= pll_adc_sampling_clk_lock;
+  ERROR_OUT                <= error_o;
+                           
+  SLV_DATA_OUT             <= slv_data_out_o;    
+  SLV_NO_MORE_DATA_OUT     <= slv_no_more_data_o; 
+  SLV_UNKNOWN_ADDR_OUT     <= slv_unknown_addr_o;
+  SLV_ACK_OUT              <= slv_ack_o;
   
 end Behavioral;

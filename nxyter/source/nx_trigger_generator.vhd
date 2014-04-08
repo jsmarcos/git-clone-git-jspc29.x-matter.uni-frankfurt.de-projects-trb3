@@ -11,12 +11,18 @@ entity nx_trigger_generator is
     RESET_IN             : in  std_logic;
     NX_MAIN_CLK_IN       : in  std_logic;
 
+    TRIGGER_BUSY_IN      : in  std_logic;
+    
     TRIGGER_IN           : in  std_logic;  -- must be in NX_MAIN_CLK_DOMAIN
     TRIGGER_OUT          : out std_logic;
     TS_RESET_OUT         : out std_logic;
     TESTPULSE_OUT        : out std_logic;
-    TEST_IN              : in  std_logic_vector(31 downto 0);
-
+    
+    TIMESTAMP_IN         : in  std_logic_vector(31 downto 0);
+    ADC_DATA_IN          : in  std_logic_vector(11 downto 0);
+    NEW_DATA_IN          : in  std_logic;
+    SELF_TRIGGER_OUT     : out std_logic;
+    
     -- Slave bus         
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
@@ -55,6 +61,18 @@ architecture Behavioral of nx_trigger_generator is
   signal testpulse_rate_t        : unsigned(27 downto 0);
   signal rate_timer              : unsigned(27 downto 0);
 
+  -- Self Trigger
+  
+  type ST_STATES is (ST_IDLE,
+                     ST_BUSY
+                     );
+  signal ST_STATE : ST_STATES;
+
+  signal self_trigger_ctr        : unsigned(4 downto 0);
+  signal self_trigger_busy       : std_logic;
+  signal self_trigger            : std_logic;
+  signal self_trigger_o          : std_logic;
+  
   -- TRBNet Slave Bus            
   signal slv_data_out_o          : std_logic_vector(31 downto 0);
   signal slv_no_more_data_o      : std_logic;
@@ -67,24 +85,23 @@ architecture Behavioral of nx_trigger_generator is
   signal reg_ts_reset_on         : std_logic;
   signal testpulse_rate          : unsigned(27 downto 0);
 
-  signal test_debug              : std_logic;
-
   -- Reset
   signal RESET_NX_MAIN_CLK_IN : std_logic;
   
 begin
   -- Debug Line
-  DEBUG_OUT(0)           <= CLK_IN;
-  DEBUG_OUT(1)           <= '0';--TRIGGER_IN;
-  DEBUG_OUT(2)           <= '0';
-  DEBUG_OUT(3)           <= start_cycle;
-  DEBUG_OUT(4)           <= '0';--wait_timer_done;
-  DEBUG_OUT(5)           <= ts_reset_o;
-  DEBUG_OUT(6)           <= testpulse_o_b;
-  DEBUG_OUT(7)           <= testpulse;
-  DEBUG_OUT(8)           <= test_debug;
-  DEBUG_OUT(15 downto 9) <= (others => '0');
-
+  DEBUG_OUT(0)            <= CLK_IN;
+  DEBUG_OUT(1)            <= NEW_DATA_IN;
+  DEBUG_OUT(2)            <= start_cycle;
+  DEBUG_OUT(3)            <= ts_reset_o;
+  DEBUG_OUT(4)            <= testpulse_o_b;
+  DEBUG_OUT(5)            <= testpulse;
+  DEBUG_OUT(6)            <= self_trigger;
+  DEBUG_OUT(7)            <= self_trigger_o;
+  DEBUG_OUT(8)            <= self_trigger_busy;
+  DEBUG_OUT(9)            <= TRIGGER_BUSY_IN;
+  DEBUG_OUT(15 downto 10) <= (others => '0');
+  
   -----------------------------------------------------------------------------
   -- Reset Domain Transfer
   -----------------------------------------------------------------------------
@@ -97,21 +114,6 @@ begin
 
   -----------------------------------------------------------------------------
   
-  PROC_TEST_DEBUG: process(CLK_IN)
-  begin
-    if( rising_edge(CLK_IN) ) then
-      if (RESET_IN = '1') then
-        test_debug   <= '0';
-      else
-        if (TEST_IN = x"7f7f7f06" or TEST_IN = x"0000_0000") then
-          test_debug  <= '0';
-        else
-          test_debug  <= '1';
-        end if;
-      end if;
-    end if;
-  end process PROC_TEST_DEBUG;
-
   -- Timer
   timer_1: timer
     generic map (
@@ -219,6 +221,64 @@ begin
   end process PROC_CAL_RATES;
 
   -----------------------------------------------------------------------------
+  -- Self Trigger
+  -----------------------------------------------------------------------------
+
+  PROC_SELF_TRIGGER: process(CLK_IN)
+    variable frame_bits : std_logic_vector(3 downto 0);
+  begin
+    if( rising_edge(CLK_IN) ) then
+      if( RESET_IN = '1' ) then
+        self_trigger_ctr   <= (others => '0');
+        self_trigger_busy  <= '0';
+        self_trigger       <= '0';
+      else
+        frame_bits := TIMESTAMP_IN(31) &
+                      TIMESTAMP_IN(23) &
+                      TIMESTAMP_IN(15) &
+                      TIMESTAMP_IN(7);
+        self_trigger            <= '0';
+        self_trigger_busy       <= '0';
+
+        case ST_STATE is
+          when ST_IDLE =>
+            if (TRIGGER_BUSY_IN = '0' and
+                NEW_DATA_IN     = '1' and
+                frame_bits      = "1000") then
+              self_trigger_ctr  <= "10100";  -- 20
+              self_trigger      <= '1';
+              ST_STATE          <= ST_BUSY;
+            else
+              self_trigger_ctr  <= (others => '0');
+              ST_STATE          <= ST_IDLE;
+            end if;
+            
+          when ST_BUSY =>
+            if (self_trigger_ctr > 0) then
+              self_trigger_ctr  <= self_trigger_ctr  - 1;
+              self_trigger_busy <= '1';
+              ST_STATE          <= ST_BUSY;
+            else
+              ST_STATE          <= ST_IDLE;
+            end if;
+        end case;
+        
+      end if;
+    end if;
+  end process PROC_SELF_TRIGGER;
+
+  pulse_to_level_SELF_TRIGGER: pulse_to_level
+    generic map (
+      NUM_CYCLES => 8
+      )
+    port map (
+      CLK_IN    => CLK_IN,
+      RESET_IN  => RESET_IN,
+      PULSE_IN  => self_trigger,
+      LEVEL_OUT => self_trigger_o
+      );
+    
+  -----------------------------------------------------------------------------
   -- TRBNet Slave Bus
   -----------------------------------------------------------------------------
   
@@ -292,7 +352,8 @@ begin
   TRIGGER_OUT          <= trigger_o;
   TS_RESET_OUT         <= ts_reset_o;
   TESTPULSE_OUT        <= testpulse_o_b;
-
+  SELF_TRIGGER_OUT     <= self_trigger_o;
+  
   -- Slave Bus
   SLV_DATA_OUT         <= slv_data_out_o;    
   SLV_NO_MORE_DATA_OUT <= slv_no_more_data_o; 

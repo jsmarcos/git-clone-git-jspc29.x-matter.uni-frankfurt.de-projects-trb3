@@ -7,7 +7,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity Gray_Decoder is
+entity gray_decoder is
   
   generic (
     WIDTH : integer range 2 to 32 := 12    -- Register Width
@@ -27,7 +27,7 @@ entity Gray_Decoder is
 end entity;
 
 
-architecture Behavioral of Gray_Decoder is
+architecture Behavioral of gray_decoder is
 
   signal binary_o : std_logic_vector(WIDTH - 1 downto 0);
 

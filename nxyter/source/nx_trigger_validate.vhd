@@ -7,7 +7,8 @@ use work.nxyter_components.all;
 
 entity nx_trigger_validate is
   generic (
-    BOARD_ID : std_logic_vector(1 downto 0) := "11"
+    BOARD_ID               : std_logic_vector(1 downto 0) := "11";
+    VERSION_NUMBER         : std_logic_vector(3 downto 0) := x"1"
     );
   port (
     CLK_IN                 : in  std_logic;  
@@ -17,9 +18,9 @@ entity nx_trigger_validate is
     DATA_CLK_IN            : in  std_logic;
     TIMESTAMP_IN           : in  std_logic_vector(13 downto 0);
     CHANNEL_IN             : in  std_logic_vector(6 downto 0);
-    TIMESTAMP_STATUS_IN    : in  std_logic_vector(2 downto 0);   -- 2: parity
-    ADC_DATA_IN            : in  std_logic_vector(11 downto 0);  -- 1: pileup
-    NX_TOKEN_RETURN_IN     : in  std_logic;                      -- 0: ovfl
+    TIMESTAMP_STATUS_IN    : in  std_logic_vector(2 downto 0);  -- 2: Parity Err
+    ADC_DATA_IN            : in  std_logic_vector(11 downto 0); -- 1: Pileup
+    NX_TOKEN_RETURN_IN     : in  std_logic;                     -- 0: Ovfl
     NX_NOMORE_DATA_IN      : in  std_logic;
                            
     TRIGGER_IN             : in  std_logic;
@@ -59,7 +60,7 @@ entity nx_trigger_validate is
 end entity;
 
 architecture Behavioral of nx_trigger_validate is
-  constant VERSION_NUMBER      : std_logic_vector(3 downto 0) := x"1";
+
 
   constant S_PARITY            : integer := 2;
   constant S_PILEUP            : integer := 1;
@@ -153,6 +154,7 @@ architecture Behavioral of nx_trigger_validate is
   signal out_of_window_error_ctr : unsigned(15 downto 0);
   
   signal readout_mode          : std_logic_vector(3 downto 0);
+  signal timestamp_fpga_i      : unsigned(11 downto 0);
   signal timestamp_fpga        : unsigned(11 downto 0);
   signal timestamp_ref         : unsigned(11 downto 0);
   signal busy_time_ctr_last    : unsigned(11 downto 0);
@@ -199,22 +201,22 @@ architecture Behavioral of nx_trigger_validate is
 begin
   
   -- Debug Line
-  DEBUG_OUT(0)            <= CLK_IN;
-  DEBUG_OUT(1)            <= TRIGGER_IN;
-  DEBUG_OUT(2)            <= trigger_busy_o;
-  DEBUG_OUT(3)            <= DATA_CLK_IN;
-  DEBUG_OUT(4)            <= out_of_window_l;
-  DEBUG_OUT(5)            <= out_of_window_h;
-  DEBUG_OUT(6)            <= NX_TOKEN_RETURN_IN;
-  DEBUG_OUT(7)            <= NX_NOMORE_DATA_IN;
-  DEBUG_OUT(8)            <= channel_all_done;
-  DEBUG_OUT(9)            <= store_to_fifo;
-  DEBUG_OUT(10)           <= data_clk_o;
-  DEBUG_OUT(11)           <= out_of_window_error or EVT_BUFFER_FULL_IN;
-  DEBUG_OUT(12)           <= token_update; --TRIGGER_BUSY_IN; --wait_timer_done;
-  DEBUG_OUT(13)           <= min_val_time_expired;
-  DEBUG_OUT(14)           <= token_update;
-  DEBUG_OUT(15)           <= nomore_data_o;
+ DEBUG_OUT(0)            <= CLK_IN;
+ DEBUG_OUT(1)            <= TRIGGER_IN;
+ DEBUG_OUT(2)            <= trigger_busy_o;
+ DEBUG_OUT(3)            <= DATA_CLK_IN;
+ DEBUG_OUT(4)            <= out_of_window_l;
+ DEBUG_OUT(5)            <= out_of_window_h;
+ DEBUG_OUT(6)            <= NX_TOKEN_RETURN_IN;
+ DEBUG_OUT(7)            <= NX_NOMORE_DATA_IN;
+ DEBUG_OUT(8)            <= channel_all_done;
+ DEBUG_OUT(9)            <= store_to_fifo;
+ DEBUG_OUT(10)           <= data_clk_o;
+ DEBUG_OUT(11)           <= out_of_window_error or EVT_BUFFER_FULL_IN;
+ DEBUG_OUT(12)           <= TIMESTAMP_STATUS_IN(S_PARITY);-- token_update; --TRIGGER_BUSY_IN; --wait_timer_done;
+ DEBUG_OUT(13)           <= min_val_time_expired;
+ DEBUG_OUT(14)           <= token_update;
+ DEBUG_OUT(15)           <= nomore_data_o;
   
   -- Timer
   timer_1: timer
@@ -354,7 +356,7 @@ begin
               end if;
             end if;
 
-            --TS Window Disabled, always store data 
+            -- TS Window Disabled, always store data 
             if (readout_mode(2)   = '1' or
                 self_trigger_mode = '1') then
               store_data                     := '1';
@@ -526,6 +528,7 @@ begin
     variable min_validation_time   : unsigned(19 downto 0);
   begin
     if( rising_edge(CLK_IN) ) then
+      timestamp_fpga_i              <= TIMESTAMP_FPGA_IN;
       if (RESET_IN = '1' or FAST_CLEAR_IN = '1') then
         store_to_fifo               <= '0';
         trigger_busy_o              <= '0';
@@ -644,9 +647,14 @@ begin
             if (wait_timer_done_ns = '0') then
               STATE                       <= S_WAIT_DATA;
             else
-              timestamp_fpga              <=
-                TIMESTAMP_FPGA_IN + fpga_timestamp_offset;
-              timestamp_ref               <= timestamp_fpga;
+              -- If Self-Trigger-Mode active set TS Ref to zero 
+              if (self_trigger_mode = '1') then
+                timestamp_fpga            <= (others => '0');
+              else
+                timestamp_fpga            <=
+                  timestamp_fpga_i + fpga_timestamp_offset;
+                timestamp_ref             <= timestamp_fpga;
+              end if;
               STATE                       <= S_WRITE_HEADER;
             end if;
 
@@ -873,7 +881,11 @@ begin
             when x"0001" =>
               slv_data_out_o(11 downto  0)    <=
                 std_logic_vector(ts_window_offset(11 downto 0));
-              slv_data_out_o(31 downto 11)    <= (others => '0');
+              if (ts_window_offset(11) = '1') then
+                slv_data_out_o(31 downto 12)  <= (others => '1');
+              else
+                slv_data_out_o(31 downto 12)  <= (others => '0');
+              end if;
               slv_ack_o                       <= '1';
 
             when x"0002" =>
@@ -1057,8 +1069,8 @@ begin
               slv_ack_o                       <= '1';
                                               
             when x"0001" =>
-              if ((signed(SLV_DATA_IN(11 downto 0)) > -1024) and
-                  (signed(SLV_DATA_IN(11 downto 0)) <  1024)) then
+              if ((signed(SLV_DATA_IN(11 downto 0)) > -2048) and
+                  (signed(SLV_DATA_IN(11 downto 0)) <  2048)) then
                 ts_window_offset(11 downto 0) <=
                   signed(SLV_DATA_IN(11 downto 0));
               end if;

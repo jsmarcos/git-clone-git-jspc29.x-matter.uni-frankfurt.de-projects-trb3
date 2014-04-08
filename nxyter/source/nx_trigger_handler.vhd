@@ -400,8 +400,15 @@ begin
           case STATE is
             when  S_IDLE =>
               if (LVL1_VALID_NOTIMING_TRG_IN = '1') then
-                -- Calibration Trigger .. ignore
-                TRIGGER_TYPE         <= T_IGNORE; --T_SETUP;
+                -- Calibration Trigger
+                if (LVL1_TRG_TYPE_IN = x"e") then
+                  -- Status Trigger
+                  TRIGGER_TYPE       <= T_SETUP;
+                  status_trigger_o   <= '1';
+                else
+                  -- Something else, Ignore
+                  TRIGGER_TYPE       <= T_IGNORE;
+                end if;
                 STATE                <= S_WAIT_TRG_DATA_VALID;
                 
               elsif (LVL1_VALID_TIMING_TRG_IN = '1') then
@@ -437,7 +444,9 @@ begin
               end if;
 
             when S_WAIT_TIMING_TRIGGER_DONE =>
-              if (TRIGGER_BUSY_0_IN = '1') then
+              if ((TRIGGER_TYPE = T_TIMING and TRIGGER_BUSY_0_IN = '1') or
+                  (TRIGGER_TYPE = T_SETUP  and TRIGGER_BUSY_1_IN = '1')
+                  ) then
                 STATE                <= S_WAIT_TIMING_TRIGGER_DONE;
               else
                 fee_data_finished_o  <= '1';

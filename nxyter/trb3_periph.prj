@@ -179,8 +179,8 @@ add_file -vhdl -lib "work" "source/nx_trigger_validate.vhd"
 add_file -vhdl -lib "work" "source/nx_event_buffer.vhd"
 add_file -vhdl -lib "work" "source/nx_status_event.vhd"
 
-add_file -vhdl -lib "work" "source/nx_control.vhd"
-add_file -vhdl -lib "work" "source/nx_setup.vhd"
+add_file -vhdl -lib "work" "source/nx_status.vhd"
+add_file -vhdl -lib "work" "source/nx_register_setup.vhd"
 add_file -vhdl -lib "work" "source/nx_histogram.vhd"
 add_file -vhdl -lib "work" "source/nx_histograms.vhd"
 

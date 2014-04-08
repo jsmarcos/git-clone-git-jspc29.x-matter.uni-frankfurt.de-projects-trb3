@@ -89,10 +89,7 @@ begin
     DEBUG_OUT(6)            <= fifo_read_enable;
     DEBUG_OUT(7)            <= fifo_read_enable_t;
     DEBUG_OUT(8)            <= fifo_read_enable_tt;
-    DEBUG_OUT(9)            <= new_data_o;
-    DEBUG_OUT(12 downto 10) <= NX_FRAME_IN(11 downto 9);
-    DEBUG_OUT(15 downto 13) <= nx_frame_o(11 downto 9);
-    --DEBUG_OUT(15 downto 13) <= fifo_data_out(11 downto 9);
+    DEBUG_OUT(15 downto 9)  <= NX_FRAME_OUT(14 downto 8);
     else
       DEBUG_OUT             <= debug_fifo;
     end if;

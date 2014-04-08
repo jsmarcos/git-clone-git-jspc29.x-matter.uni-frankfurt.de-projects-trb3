@@ -95,10 +95,10 @@
 0x8125 :  r    Frame Rate (in Hz)
 
 -- NX Data Delay
-0x8130 :  r    FIFO Delay, i.e. Trigger Delay (8 Bit, in 32ns).
+0x8180 :  r    FIFO Delay, i.e. Trigger Delay (8 Bit, in 32ns).
                 Calculation is based on CTS Trigger Delay
                (see NX Trigger Validate)
-0x8131 : r/w   Debug Multiplexer (0=Dta Delay, 1=FIFO)
+0x8181 : r/w   Debug Multiplexer (0=Data Delay, 1=FIFO)
 
 -- NX Trigger Validate
 0x8400 :  r/w  Readout Mode: 4 Bits
@@ -190,8 +190,8 @@
 
 -- Debug Multiplexer
 0x8020 :  r/w   Select Debug Entity
-                 0: nx_control
-                 1: nx_setup
+                 0: nx_status
+                 1: nx_register_setup
                  2: nx_i2c_master
                  3: adc_spi_master
                  4: nx_fpga_timestamp

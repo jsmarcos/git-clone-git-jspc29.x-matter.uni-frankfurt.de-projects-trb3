@@ -11,11 +11,11 @@ entity nx_fpga_timestamp is
     RESET_IN                 : in  std_logic;
     NX_MAIN_CLK_IN           : in  std_logic;      
                              
-    TIMESTAMP_SYNC_IN        : in  std_logic;
+    TIMESTAMP_RESET_IN       : in  std_logic;
+    TIMESTAMP_RESET_OUT      : out std_logic;
     TRIGGER_IN               : in  std_logic; -- must be in NX_MAIN_CLK_DOMAIN
     TIMESTAMP_CURRENT_OUT    : out unsigned(11 downto 0);
     TIMESTAMP_HOLD_OUT       : out unsigned(11 downto 0);
-    TIMESTAMP_SYNCED_OUT     : out std_logic;
     TIMESTAMP_TRIGGER_OUT    : out std_logic;
 
     -- Slave bus         
@@ -33,18 +33,14 @@ entity nx_fpga_timestamp is
 end entity;
 
 architecture Behavioral of nx_fpga_timestamp is
- 
-  signal timestamp_ctr       : unsigned(11 downto 0);
-  signal timestamp_current_o : unsigned(11 downto 0);
-  signal timestamp_hold_o    : std_logic_vector(11 downto 0);
-  signal timestamp_trigger_o : std_logic;
-  signal timestamp_sync      : std_logic;
 
-  signal timestamp_synced    : std_logic;
-  signal timestamp_synced_o  : std_logic;
+  signal timestamp_reset      : std_logic;
+  signal timestamp_ctr        : unsigned(11 downto 0);
 
-  signal fifo_full           : std_logic;
-  signal fifo_write_enable   : std_logic;
+  signal timestamp_current_o  : unsigned(11 downto 0);
+  signal timestamp_hold_o     : std_logic_vector(11 downto 0);
+  signal timestamp_trigger_o  : std_logic;
+  signal timestamp_reset_o    : std_logic;
 
   -- Reset
   signal RESET_NX_MAIN_CLK_IN : std_logic;
@@ -52,8 +48,8 @@ architecture Behavioral of nx_fpga_timestamp is
 begin
 
   DEBUG_OUT(0)             <= CLK_IN;
-  DEBUG_OUT(1)             <= TIMESTAMP_SYNC_IN;
-  DEBUG_OUT(2)             <= timestamp_synced_o;
+  DEBUG_OUT(1)             <= TIMESTAMP_RESET_IN;
+  DEBUG_OUT(2)             <= TIMESTAMP_RESET_OUT;
   DEBUG_OUT(3)             <= TRIGGER_IN;
   
   DEBUG_OUT(15 downto 4)   <= timestamp_hold_o(11 downto 0);
@@ -79,25 +75,25 @@ begin
     port map (
       CLK_IN     => NX_MAIN_CLK_IN,
       RESET_IN   => RESET_NX_MAIN_CLK_IN,
-      PULSE_A_IN => TIMESTAMP_SYNC_IN,
-      PULSE_OUT  => timestamp_sync
+      PULSE_A_IN => TIMESTAMP_RESET_IN,
+      PULSE_OUT  => timestamp_reset
       );
   
   -- Timestamp Process + Trigger
   PROC_TIMESTAMP_CTR: process (NX_MAIN_CLK_IN)
   begin
-    if( rising_edge(NX_MAIN_CLK_IN) ) then
-      if( RESET_NX_MAIN_CLK_IN = '1' ) then
+    if (rising_edge(NX_MAIN_CLK_IN)) then
+      if (RESET_NX_MAIN_CLK_IN = '1') then
         timestamp_ctr           <= (others => '0');
         timestamp_hold_o        <= (others => '0');
-        timestamp_synced        <= '0';
+        timestamp_reset_o       <= '0';
       else
         timestamp_trigger_o     <= '1'; 
-        timestamp_synced        <= '0';
+        timestamp_reset_o       <= '0';
         
-        if (timestamp_sync = '1') then
+        if (timestamp_reset = '1') then
           timestamp_ctr         <= (others => '0');
-          timestamp_synced      <= '1';
+          timestamp_reset_o     <= '1';
         else
           if (TRIGGER_IN = '1') then
             timestamp_hold_o    <= std_logic_vector(timestamp_ctr);
@@ -115,22 +111,9 @@ begin
   -- Output Signals
   -----------------------------------------------------------------------------
 
-  pulse_dtrans_1: pulse_dtrans
-    generic map (
-      CLK_RATIO => 4
-      )
-    port map (
-      CLK_A_IN    => NX_MAIN_CLK_IN,
-      RESET_A_IN  => RESET_NX_MAIN_CLK_IN,
-      PULSE_A_IN  => timestamp_synced,
-      CLK_B_IN    => CLK_IN,
-      RESET_B_IN  => RESET_IN,
-      PULSE_B_OUT => timestamp_synced_o
-      );
-  
+  TIMESTAMP_RESET_OUT       <= timestamp_reset_o;
   TIMESTAMP_CURRENT_OUT     <= timestamp_current_o;
   TIMESTAMP_HOLD_OUT        <= timestamp_hold_o;
-  TIMESTAMP_SYNCED_OUT      <= timestamp_synced_o;
   TIMESTAMP_TRIGGER_OUT     <= timestamp_trigger_o;
 
 end Behavioral;

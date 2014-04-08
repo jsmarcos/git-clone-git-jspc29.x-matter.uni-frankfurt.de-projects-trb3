@@ -44,7 +44,7 @@ entity trb3_periph is
     NX1_RESET_OUT              : out   std_logic;     
     NX1_I2C_SDA_INOUT          : inout std_logic;
     NX1_I2C_SCL_INOUT          : inout std_logic;
-    NX1_I2C_SM_RESET_OUT       : out   std_logic;
+    NX1_I2C_SM_RESET_OUT       : inout std_logic;
     NX1_I2C_REG_RESET_OUT      : out   std_logic;
     NX1_SPI_SCLK_OUT           : out   std_logic;
     NX1_SPI_SDIO_INOUT         : inout std_logic;
@@ -253,14 +253,15 @@ architecture trb3_periph_arch of trb3_periph is
   signal time_counter : unsigned(31 downto 0);
 
   -- nXyter-FEB-Board Clocks
-  signal nx_main_clk                 : std_logic;
-  signal nx_data_clk_test            : std_logic;
-  signal pll_nx_clk_lock             : std_logic;
-  signal clk_adc_dat_1               : std_logic;
-  signal pll_adc_clk_lock_1          : std_logic;
-
-  signal nx1_adc_sample_clk          : std_logic;
+  signal nx_main_clk                : std_logic;
+  signal nx_pll_clk_lock            : std_logic;
+  signal nx_data_clk_test           : std_logic;
+  signal nx_pll_reset               : std_logic;
   
+  signal nx1_clk_adc_dat            : std_logic;
+  signal nx1_pll_adc_clk_lock       : std_logic;
+  signal nx1_adc_sample_clk         : std_logic;
+
   -- nXyter 1 Regio Bus
   signal nx1_regio_addr_in           : std_logic_vector (15 downto 0);
   signal nx1_regio_data_in           : std_logic_vector (31 downto 0);
@@ -630,11 +631,12 @@ begin
       CLK_IN                     => clk_100_i,
       RESET_IN                   => reset_i,
       CLK_NX_MAIN_IN             => nx_main_clk,
-      CLK_ADC_IN                 => clk_adc_dat_1,
-      PLL_NX_CLK_LOCK_IN         => pll_nx_clk_lock,
-      PLL_ADC_DCLK_LOCK_IN       => pll_adc_clk_lock_1,
+      CLK_ADC_IN                 => nx1_clk_adc_dat,
+      PLL_NX_CLK_LOCK_IN         => nx_pll_clk_lock,
+      PLL_ADC_DCLK_LOCK_IN       => nx1_pll_adc_clk_lock,
       NX_DATA_CLK_TEST_IN        => nx_data_clk_test,
-
+      PLL_RESET_OUT              => nx_pll_reset,
+      
       TRIGGER_OUT                => fee1_trigger,                       
       
       I2C_SDA_INOUT              => NX1_I2C_SDA_INOUT,
@@ -710,9 +712,10 @@ begin
   pll_nx_clk250_1: entity work.pll_nx_clk250
     port map (
       CLK   => CLK_PCLK_RIGHT,
+      RESET => nx_pll_reset,
       CLKOP => nx_main_clk,
       CLKOK => nx_data_clk_test,
-      LOCK  => pll_nx_clk_lock
+      LOCK  => nx_pll_clk_lock
       );
   
   -- Port FF for Nxyter Main Clocks
@@ -731,8 +734,9 @@ begin
   pll_adc_clk_1: pll_adc_clk
     port map (
       CLK   => CLK_PCLK_RIGHT,
-      CLKOP => clk_adc_dat_1,
-      LOCK  => pll_adc_clk_lock_1
+      RESET => nx_pll_reset,
+      CLKOP => nx1_clk_adc_dat,
+      LOCK  => nx1_pll_adc_clk_lock
       );
 
 end architecture;

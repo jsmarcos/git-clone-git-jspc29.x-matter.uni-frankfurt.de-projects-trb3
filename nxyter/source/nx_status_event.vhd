@@ -8,7 +8,8 @@ use work.trb3_components.all;
 
 entity nx_status_event is
   generic (
-    BOARD_ID : std_logic_vector(1 downto 0) := "11"
+    BOARD_ID                   : std_logic_vector(1 downto 0) := "11";
+    VERSION_NUMBER             : std_logic_vector(3 downto 0) := x"1"
     );
   port (
     CLK_IN                     : in  std_logic;  
@@ -50,9 +51,11 @@ architecture Behavioral of nx_status_event is
   
   -- Event Write
   type E_STATES is (E_IDLE,
+                    E_HEADER,
                     E_READ_NEXT,
                     E_READ,
                     E_NEXT_INDEX,
+                    E_TRAILER,
                     E_END
                     );
 
@@ -165,11 +168,18 @@ begin
           when E_IDLE =>
             index_ctr                  <= (others => '0');
             if (event_write_start = '1') then
-              E_STATE                  <= E_NEXT_INDEX;
+              E_STATE                  <= E_HEADER;
             else                       
               E_STATE                  <= E_IDLE;
             end if;                    
-                                       
+
+          when E_HEADER =>
+            fee_data_o(25 downto 0)    <= (others => '1');
+            fee_data_o(29 downto 26)   <= VERSION_NUMBER;
+            fee_data_o(31 downto 30)   <= BOARD_ID;
+            fee_data_write_o           <= '1';
+            E_STATE                    <= E_NEXT_INDEX;
+            
           when E_READ_NEXT =>          
             if (register_addr <= unsigned(reg_addr_end(index))) then
               int_addr_o               <= register_addr;
@@ -196,8 +206,13 @@ begin
               register_addr            <= reg_addr_start(index);
               E_STATE                  <= E_READ_NEXT;
             else
-              E_STATE                  <= E_END;
+              E_STATE                  <= E_TRAILER;
             end if;
+            
+          when E_TRAILER =>
+            fee_data_o                 <= (others => '1');
+            fee_data_write_o           <= '1';
+            E_STATE                    <= E_END;
             
           when E_END =>
             event_write_done           <= '1';

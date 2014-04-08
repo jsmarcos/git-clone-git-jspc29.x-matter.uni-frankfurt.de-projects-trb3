@@ -7,17 +7,17 @@ use work.trb_net_std.all;
 use work.trb_net_components.all;
 use work.nxyter_components.all;
 
-entity nx_setup is
+entity nx_register_setup is
   port(
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
 
+    I2C_ONLINE_IN        : in  std_logic;
     I2C_COMMAND_OUT      : out std_logic_vector(31 downto 0);
     I2C_COMMAND_BUSY_IN  : in  std_logic;
     I2C_DATA_IN          : in  std_logic_vector(31 downto 0);
     I2C_DATA_BYTES_IN    : in  std_logic_vector(31 downto 0);
     I2C_LOCK_OUT         : out std_logic;
-    I2C_ONLINE_OUT       : out std_logic;
     I2C_REG_RESET_IN     : in  std_logic;
     
     SPI_COMMAND_OUT      : out std_logic_vector(31 downto 0);
@@ -46,14 +46,13 @@ entity nx_setup is
     );
 end entity;
 
-architecture Behavioral of nx_setup is
+architecture Behavioral of nx_register_setup is
 
   -- I2C Command Multiplexer
   signal i2c_lock_0      : std_logic;
   signal i2c_lock_1      : std_logic;
   signal i2c_lock_2      : std_logic;
   signal i2c_lock_3      : std_logic;
-  signal i2c_lock_4      : std_logic;
   signal i2c_command     : std_logic_vector(31 downto 0);
   
   -- Send I2C Command
@@ -185,7 +184,7 @@ architecture Behavioral of nx_setup is
   signal adc_token_ctr           : unsigned(1 downto 0);
   signal adc_read_token_clear    : std_logic_vector(3 downto 0);
   signal next_token_adc          : std_logic;
-  signal i2c_lock_4_clear        : std_logic;
+  signal i2c_lock_3_clear        : std_logic;
   
   -- I2C Online Check
   type R_STATES is (R_TIMER_RESTART,
@@ -198,9 +197,6 @@ architecture Behavioral of nx_setup is
 
   signal wait_timer_start        : std_logic;
   signal wait_timer_done         : std_logic;
-  signal i2c_online_command      : std_logic_vector(31 downto 0);
-  signal i2c_lock_3_clear        : std_logic;
-  signal i2c_online_o            : std_logic;
 
   -- I2C Status
   signal i2c_online_t            : std_logic_vector(7 downto 0);
@@ -244,20 +240,20 @@ begin
   DEBUG_OUT(0)            <= CLK_IN;
   DEBUG_OUT(1)            <= I2C_COMMAND_BUSY_IN;
   DEBUG_OUT(2)            <= i2c_command_busy_o;
-  DEBUG_OUT(3)            <= i2c_error;
+  DEBUG_OUT(3)            <= i2c_disable_memory; --i2c_error;
   DEBUG_OUT(4)            <= i2c_command_done;
   DEBUG_OUT(5)            <= next_token_dac_r or
                              next_token_dac_w;
-  DEBUG_OUT(6)            <= i2c_update_memory;
+  DEBUG_OUT(6)            <= i2c_update_memory_r;
   DEBUG_OUT(7)            <= i2c_lock_0_clear;
   DEBUG_OUT(8)            <= i2c_lock_1_clear;
   DEBUG_OUT(9)            <= i2c_lock_2_clear;
-  DEBUG_OUT(10)           <= i2c_lock_4_clear;
-  DEBUG_OUT(11)           <= i2c_online_o; 
+  DEBUG_OUT(10)           <= i2c_lock_3_clear;
+  DEBUG_OUT(11)           <= i2c_command(31);
   DEBUG_OUT(12)           <= i2c_lock_0;
   DEBUG_OUT(13)           <= i2c_lock_1;
   DEBUG_OUT(14)           <= i2c_lock_2;
-  DEBUG_OUT(15)           <= i2c_lock_4;
+  DEBUG_OUT(15)           <= i2c_lock_3;
 
   -----------------------------------------------------------------------------
 
@@ -334,7 +330,7 @@ begin
   -----------------------------------------------------------------------------
 
   PROC_I2C_COMMAND_MULTIPLEXER: process(CLK_IN)
-    variable locks : std_logic_vector(4 downto 0) := (others => '0');
+    variable locks : std_logic_vector(3 downto 0) := (others => '0');
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
@@ -342,13 +338,11 @@ begin
         i2c_lock_1       <= '0';
         i2c_lock_2       <= '0';
         i2c_lock_3       <= '0';
-        i2c_lock_4       <= '0';
         i2c_command      <= (others => '0');
       else
         i2c_command      <= (others => '0');
-        locks            := i2c_lock_4 & i2c_lock_3 &
-                            i2c_lock_2 & i2c_lock_1 &
-                            i2c_lock_0;
+        locks            := i2c_lock_3 & i2c_lock_2 &
+                            i2c_lock_1 & i2c_lock_0;
         
         -- Clear Locks
         if (i2c_lock_0_clear = '1') then
@@ -363,36 +357,28 @@ begin
         if (i2c_lock_3_clear = '1') then
           i2c_lock_3          <= '0';
         end if;
-        if (i2c_lock_4_clear = '1') then
-          i2c_lock_4          <= '0';
-        end if;
 
         if (i2c_command_busy_o = '0') then
-          if (nx_i2c_command(31)   = '1'      and
-              ((locks and "11110") = "00000") and
+          if (nx_i2c_command(31)   = '1'     and
+              ((locks and "1110")  = "0000") and
               i2c_lock_0_clear     = '0') then
             i2c_command       <= nx_i2c_command;
             i2c_lock_0        <= '1';
-          elsif (dac_write_i2c_command(31) = '1'      and
-                 ((locks and "11011")      = "00000") and
+          elsif (dac_write_i2c_command(31) = '1'     and
+                 ((locks and "1011")       = "0000") and
                  i2c_lock_2_clear          = '0') then
             i2c_command       <= dac_write_i2c_command;
             i2c_lock_2        <= '1';
-          elsif (dac_read_i2c_command(31) = '1'      and
-                 ((locks and "11101")     = "00000") and
+          elsif (dac_read_i2c_command(31) = '1'     and
+                 ((locks and "1101")      = "0000") and
                  i2c_lock_1_clear         = '0') then
             i2c_command       <= dac_read_i2c_command;
             i2c_lock_1        <= '1';
-          elsif (i2c_online_command(31) = '1'      and
-                 ((locks and "10111")   = "00000") and
-                 i2c_lock_3_clear       = '0') then
-            i2c_command       <= i2c_online_command;
-            i2c_lock_3        <= '1';
-          elsif (adc_i2c_command(31)  = '1'      and
-                 ((locks and "01111") = "00000") and
-                 i2c_lock_4_clear     = '0') then
+          elsif (adc_i2c_command(31)  = '1'     and
+                 ((locks and "0111")  = "0000") and
+                 i2c_lock_3_clear     = '0') then
             i2c_command       <= adc_i2c_command;
-            i2c_lock_4        <= '1';
+            i2c_lock_3        <= '1';
           end if;
         end if;
       end if;
@@ -808,14 +794,14 @@ begin
         adc_token_ctr            <= (others => '0');
         next_token_adc           <= '0';
         adc_read_token_clear     <= (others => '0');
-        i2c_lock_4_clear         <= '0';
+        i2c_lock_3_clear         <= '0';
         ADC_STATE                <= ADC_IDLE_TOKEN;
       else
         index                    := to_integer(unsigned(adc_token_ctr));
         adc_i2c_command          <= (others => '0');
         next_token_adc           <= '0';
         adc_read_token_clear     <= (others => '0');
-        i2c_lock_4_clear         <= '0';
+        i2c_lock_3_clear         <= '0';
 
         case ADC_STATE is
           
@@ -836,7 +822,7 @@ begin
               when "11" => adc_i2c_command(15 downto  8) <= x"80";
             end case;
             adc_i2c_command(7 downto  0)         <= (others => '0');
-            if (i2c_lock_4 = '0') then
+            if (i2c_lock_3 = '0') then
               ADC_STATE                          <= ADC_READ_I2C_REGISTER;
             else
               adc_read_token_clear(index)        <= '1';
@@ -858,7 +844,7 @@ begin
             else
               adc_ram(index)                     <= (others => '1');
             end if;
-            i2c_lock_4_clear                     <= '1';
+            i2c_lock_3_clear                     <= '1';
             ADC_STATE                            <= ADC_NEXT_TOKEN;
             
             -- Next Token
@@ -890,58 +876,6 @@ begin
       TIMER_DONE_OUT => wait_timer_done
       );
     
-  PROC_I2C_ONLINE: process(CLK_IN)
-  begin
-    if( rising_edge(CLK_IN) ) then
-      if( RESET_IN = '1' ) then
-        i2c_online_command     <= (others => '0');
-        i2c_online_o           <= '0';
-        i2c_lock_3_clear       <= '0';
-        wait_timer_start       <= '0';
-        R_STATE                <= R_TIMER_RESTART;
-      else
-        i2c_online_command     <= (others => '0');
-        i2c_lock_3_clear       <= '0';
-        wait_timer_start       <= '0';
-
-        case R_STATE is
-
-          when R_TIMER_RESTART =>
-            wait_timer_start                   <= '1';
-            R_STATE                            <= R_IDLE;
-
-          when R_IDLE =>
-            if (wait_timer_done = '1') then
-              R_STATE                          <= R_READ_DUMMY;
-            else
-              R_STATE                          <= R_IDLE;
-            end if;
-
-          when R_READ_DUMMY =>
-            i2c_online_command(31 downto 16)   <= x"c108";
-            i2c_online_command(15 downto 8)    <= x"1f";  -- Dummy register
-            i2c_online_command(7 downto 0)     <= (others => '0');
-            if (i2c_lock_3 = '0') then
-              R_STATE                          <= R_READ_DUMMY;
-            else
-              R_STATE                          <= R_WAIT_DONE;
-            end if;
-              
-          when R_WAIT_DONE =>
-            if (i2c_command_done = '0') then
-              R_STATE                          <= R_WAIT_DONE;
-            else
-              i2c_online_o                     <= not i2c_error;
-              i2c_lock_3_clear                 <= '1';
-              R_STATE                          <= R_TIMER_RESTART;
-            end if;
-
-        end case;
-
-      end if;
-    end if;
-  end process PROC_I2C_ONLINE;
-
   PROC_I2C_STATUS: process(CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then
@@ -954,7 +888,7 @@ begin
         i2c_reg_reset_clear   <= '0';
 
         -- Shift Online
-        i2c_online_t(0)       <= i2c_online_o;
+        i2c_online_t(0)       <= I2C_ONLINE_IN;
         for I  in 1 to 7 loop
           i2c_online_t(I)     <= i2c_online_t(I - 1);
         end loop;  
@@ -1132,7 +1066,7 @@ begin
         
               when x"0056" =>
                 -- I2C Online
-                int_data_o(0)             <= i2c_online_o;
+                int_data_o(0)             <= I2C_ONLINE_IN;
                 int_data_o(31 downto 2)   <= (others => '0');
                 int_ack_o                 <= '1';
         
@@ -1168,7 +1102,7 @@ begin
         dac_ram_write_0        <= '0';
         dac_read_token_r       <= (others => '0');
         adc_read_token_r       <= (others => '0');
-        i2c_update_memory_r    <= '0';                
+        i2c_update_memory_r    <= '0';
         nxyter_clock           <= (others => '0');
         nxyter_polarity        <= (others => '0');
         nxyter_testtrigger     <= (others => '0');
@@ -1398,7 +1332,7 @@ begin
 
               when x"0056" =>
                 -- I2C Online
-                slv_data_out_o(0)             <= i2c_online_o;
+                slv_data_out_o(0)             <= I2C_ONLINE_IN;
                 slv_data_out_o(31 downto 2)   <= (others => '0');
                 slv_ack_o                     <= '1';
 
@@ -1514,7 +1448,6 @@ begin
   
   I2C_COMMAND_OUT         <= i2c_command_o;
   I2C_LOCK_OUT            <= i2c_command_busy_o;
-  I2C_ONLINE_OUT          <= i2c_online_o;
                           
   SPI_COMMAND_OUT         <= (others => '0');
   SPI_LOCK_OUT            <= '0';
