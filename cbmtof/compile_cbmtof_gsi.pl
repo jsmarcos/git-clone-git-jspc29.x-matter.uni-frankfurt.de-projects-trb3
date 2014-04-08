@@ -243,7 +243,7 @@ if($par==1 || $all==1){
 }
 
 
-if($timing==1){
+if($timing==1 || $all==1){
     # IOR IO Timing Report
     $c=qq|iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;
     execute($c);
@@ -261,12 +261,6 @@ if($timing==1){
     my $c="cat $TOPNAME.par";
     system($c);
 
-    $c=qq|htmlrpt -ptwr $TOPNAME.twr.setup $TOPNAME|;
-    execute($c);
-
-    $c=qq|firefox $TOPNAME.html|;
-    execute($c);
-
 }
 
 if($bitgen==1 || $all==1){
@@ -274,6 +268,12 @@ if($bitgen==1 || $all==1){
     # $c=qq|$lattice_path/ispfpga/bin/lin/bitgen -w "$TOPNAME.ncd" "$TOPNAME.prf"|;
     execute($c);
 }
+
+$c=qq|htmlrpt -mrp $TOPNAME.mrp -ptwr $TOPNAME.twr.setup $TOPNAME|;
+execute($c);
+
+$c=qq|firefox $TOPNAME.html|;
+execute($c);
 
 chdir "..";
 exit;
@@ -292,3 +292,4 @@ sub execute {
     }
     return $r;
 }
+
