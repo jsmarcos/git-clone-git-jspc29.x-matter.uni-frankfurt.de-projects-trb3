@@ -12,6 +12,9 @@ FREQUENCY PORT CLK_GPLL_LEFT  125 MHz;
 FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;
 FREQUENCY PORT CLK_GPLL_RIGHT 200 MHz;
 
+MULTICYCLE FROM CLKNET "clk_100_internal_c" TO CLKNET "CLK_PCLK_LEFT" 2 X ;
+MULTICYCLE FROM CLKNET "CLK_PCLK_LEFT" TO CLKNET "clk_100_internal_c" 2 X ;
+
 #################################################################
 # Clock I/O
 #################################################################
