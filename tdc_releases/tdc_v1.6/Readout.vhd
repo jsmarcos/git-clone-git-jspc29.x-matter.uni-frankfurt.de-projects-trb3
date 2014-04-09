@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2014-03-16
+-- Last update: 2014-04-09
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -246,7 +246,11 @@ architecture behavioral of Readout is
   signal ch_full_i               : std_logic;
   signal ch_almost_full_i        : std_logic;
   signal rd_fsm_debug            : std_logic_vector(3 downto 0);
+  signal rd_fsm_debug_reg        : std_logic_vector(3 downto 0);
+  signal history_rd_fsm          : std_logic_vector(31 downto 0)     := (others => '0');
   signal wr_fsm_debug            : std_logic_vector(3 downto 0);
+  signal wr_fsm_debug_reg        : std_logic_vector(3 downto 0);
+  signal history_wr_fsm          : std_logic_vector(31 downto 0)     := (others => '0');
   signal status_registers_bus_i  : std_logic_vector(31 downto 0);
 
 begin  -- behavioral
@@ -925,6 +929,25 @@ begin  -- behavioral
     end if;
   end process Statistics_Finished_Number;
 
+  HistoryReadDebug : process (CLK_100)
+  begin
+    if rising_edge(CLK_100) then
+      if rd_fsm_debug_reg /= rd_fsm_debug then
+        history_rd_fsm <= history_rd_fsm(27 downto 0) & rd_fsm_debug;
+      end if;
+      rd_fsm_debug_reg <= rd_fsm_debug;
+    end if;
+  end process HistoryReadDebug;
+
+  HistoryWriteDebug : process (CLK_100)
+  begin
+    if rising_edge(CLK_100) then
+      if wr_fsm_debug_reg /= wr_fsm_debug then
+        history_wr_fsm <= history_wr_fsm(27 downto 0) & wr_fsm_debug;
+      end if;
+      wr_fsm_debug_reg <= wr_fsm_debug;
+    end if;
+  end process HistoryWriteDebug;
 
 -------------------------------------------------------------------------------
 -- STATUS REGISTERS BUS
@@ -958,6 +981,9 @@ begin  -- behavioral
   STATUS_REGISTERS_BUS_OUT(16)(23 downto 0) <= std_logic_vector(readout_time);
   STATUS_REGISTERS_BUS_OUT(17)(23 downto 0) <= std_logic_vector(timeout_number);
   STATUS_REGISTERS_BUS_OUT(18)(23 downto 0) <= std_logic_vector(finished_number);
+
+  STATUS_REGISTERS_BUS_OUT(19) <= history_rd_fsm;
+  STATUS_REGISTERS_BUS_OUT(20) <= history_wr_fsm;
 
   FILL_BUS1 : for i in 4 to 18 generate
     STATUS_REGISTERS_BUS_OUT(i)(31 downto 24) <= (others => '0');

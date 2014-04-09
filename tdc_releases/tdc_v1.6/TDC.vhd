@@ -205,8 +205,10 @@ begin
 -- Reset signals
   reset_tdc_i <= RESET       when rising_edge(CLK_TDC);
   reset_tdc   <= reset_tdc_i when rising_edge(CLK_TDC);
-  reset_rdo_i <= RESET       when rising_edge(CLK_READOUT);
-  reset_rdo   <= reset_rdo_i when rising_edge(CLK_READOUT);
+
+  --reset_rdo_i <= RESET       when rising_edge(CLK_READOUT);
+  --reset_rdo   <= reset_rdo_i when rising_edge(CLK_READOUT);
+  reset_rdo   <= RESET;
 
   -- Hit for calibration generation
   Calibration_Pulses : process (HIT_CALIBRATION)
