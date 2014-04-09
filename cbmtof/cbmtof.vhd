@@ -79,7 +79,9 @@ entity cbmtof is
   attribute syn_useioff of TEMPSENS      : signal is false;
   attribute syn_useioff of PROGRAMN      : signal is false;
   attribute syn_useioff of INPUT         : signal is false;
-
+  attribute syn_useioff of CLK_CM        : signal is false;
+  attribute syn_useioff of SPARE_LINE    : signal is false;
+  
   --important signals _with_ IO-FF
   attribute syn_useioff of DAC_SCK    : signal is true;
   attribute syn_useioff of DAC_CS     : signal is true;
@@ -91,9 +93,9 @@ entity cbmtof is
   attribute syn_useioff of FLASH_DIN  : signal is true;
   attribute syn_useioff of FLASH_DOUT : signal is true;
   attribute syn_useioff of TEST_LINE  : signal is true;
-  attribute syn_useioff of SPARE_LINE : signal is true;
   attribute syn_useioff of LVDS       : signal is true;
   attribute syn_useioff of OR_IN      : signal is true;
+
 
 end entity;
 
@@ -277,7 +279,15 @@ architecture cbmtof_arch of cbmtof is
   signal stat_nack  : std_logic                     := '0';
   signal stat_addr  : std_logic_vector(15 downto 0) := (others => '0');
 
-
+  signal sed_error  : std_logic;
+  signal sed_din    : std_logic_vector(31 downto 0);
+  signal sed_dout   : std_logic_vector(31 downto 0);
+  signal sed_write  : std_logic := '0';
+  signal sed_read   : std_logic := '0';
+  signal sed_ack    : std_logic := '0';
+  signal sed_nack   : std_logic := '0';
+  signal sed_addr   : std_logic_vector(15 downto 0) := (others => '0');  
+  
   --FPGA Test
   signal time_counter : unsigned(31 downto 0);
 
@@ -490,20 +500,23 @@ begin
 ---------------------------------------------------------------------------
 -- I/O
 ---------------------------------------------------------------------------
-  timing_trg_received_i <= SPARE_LINE(0);
+--  timing_trg_received_i <= SPARE_LINE(0);
+  timing_trg_received_i <= CLK_CM(0);
 
 ---------------------------------------------------------------------------
 -- Bus Handler
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER           => 11,
-      PORT_ADDRESSES        => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100",
-                         5  => x"c200", 6 => x"c300", 7 => x"c400", 8 => x"c800", 9 => x"cf00",
-                         10 => x"cf80", others => x"0000"),
-      PORT_ADDR_MASK        => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5,
-                         5  => 7, 6 => 7, 7 => 7, 8 => 3, 9 => 6,
-                         10 => 7, others => 0)
+      PORT_NUMBER           => 9,
+      PORT_ADDRESSES        => (0  => x"d000", 1  => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100",
+                                --5  => x"c200", 6  => x"c300", 7 => x"c400", 8 => x"c800", 9 => x"cf00",
+                                --10 => x"cf80", 11 => x"d500", others => x"0000"),
+                                5  => x"c800", 6 => x"cf00", 7 => x"cf80", 8 => x"d500", others => x"0000"),
+      PORT_ADDR_MASK        => (0  => 1, 1  => 6, 2 => 5, 3 => 7, 4 => 5,
+                                --5  => 7, 6  => 7, 7 => 7, 8 => 3, 9 => 6,
+                                --10 => 7, 11 => 4, others => 0)
+                                5 => 3, 6 => 6, 7 => 7, 8 => 4, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -580,76 +593,87 @@ begin
       BUS_WRITE_ACK_IN(4)                 => '0',
       BUS_NO_MORE_DATA_IN(4)              => '0',
       BUS_UNKNOWN_ADDR_IN(4)              => srb_invalid,
-      --Encoder Start Registers
-      BUS_READ_ENABLE_OUT(5)              => esb_read_en,
-      BUS_WRITE_ENABLE_OUT(5)             => esb_write_en,
-      BUS_DATA_OUT(5*32+31 downto 5*32)   => open,
-      BUS_ADDR_OUT(5*16+6 downto 5*16)    => esb_addr,
-      BUS_ADDR_OUT(5*16+15 downto 5*16+7) => open,
-      BUS_TIMEOUT_OUT(5)                  => open,
-      BUS_DATA_IN(5*32+31 downto 5*32)    => esb_data_out,
-      BUS_DATAREADY_IN(5)                 => esb_data_ready,
-      BUS_WRITE_ACK_IN(5)                 => '0',
-      BUS_NO_MORE_DATA_IN(5)              => '0',
-      BUS_UNKNOWN_ADDR_IN(5)              => esb_invalid,
-      --Fifo Write Registers
-      BUS_READ_ENABLE_OUT(6)              => efb_read_en,
-      BUS_WRITE_ENABLE_OUT(6)             => efb_write_en,
-      BUS_DATA_OUT(6*32+31 downto 6*32)   => open,
-      BUS_ADDR_OUT(6*16+6 downto 6*16)    => efb_addr,
-      BUS_ADDR_OUT(6*16+15 downto 6*16+7) => open,
-      BUS_TIMEOUT_OUT(6)                  => open,
-      BUS_DATA_IN(6*32+31 downto 6*32)    => efb_data_out,
-      BUS_DATAREADY_IN(6)                 => efb_data_ready,
-      BUS_WRITE_ACK_IN(6)                 => '0',
-      BUS_NO_MORE_DATA_IN(6)              => '0',
-      BUS_UNKNOWN_ADDR_IN(6)              => efb_invalid,
-      --Lost Hit Registers
-      BUS_READ_ENABLE_OUT(7)              => lhb_read_en,
-      BUS_WRITE_ENABLE_OUT(7)             => lhb_write_en,
-      BUS_DATA_OUT(7*32+31 downto 7*32)   => open,
-      BUS_ADDR_OUT(7*16+6 downto 7*16)    => lhb_addr,
-      BUS_ADDR_OUT(7*16+15 downto 7*16+7) => open,
-      BUS_TIMEOUT_OUT(7)                  => open,
-      BUS_DATA_IN(7*32+31 downto 7*32)    => lhb_data_out,
-      BUS_DATAREADY_IN(7)                 => lhb_data_ready,
-      BUS_WRITE_ACK_IN(7)                 => '0',
-      BUS_NO_MORE_DATA_IN(7)              => '0',
-      BUS_UNKNOWN_ADDR_IN(7)              => lhb_invalid,
+      ----Encoder Start Registers
+      --BUS_READ_ENABLE_OUT(5)              => esb_read_en,
+      --BUS_WRITE_ENABLE_OUT(5)             => esb_write_en,
+      --BUS_DATA_OUT(5*32+31 downto 5*32)   => open,
+      --BUS_ADDR_OUT(5*16+6 downto 5*16)    => esb_addr,
+      --BUS_ADDR_OUT(5*16+15 downto 5*16+7) => open,
+      --BUS_TIMEOUT_OUT(5)                  => open,
+      --BUS_DATA_IN(5*32+31 downto 5*32)    => esb_data_out,
+      --BUS_DATAREADY_IN(5)                 => esb_data_ready,
+      --BUS_WRITE_ACK_IN(5)                 => '0',
+      --BUS_NO_MORE_DATA_IN(5)              => '0',
+      --BUS_UNKNOWN_ADDR_IN(5)              => esb_invalid,
+      ----Fifo Write Registers
+      --BUS_READ_ENABLE_OUT(6)              => efb_read_en,
+      --BUS_WRITE_ENABLE_OUT(6)             => efb_write_en,
+      --BUS_DATA_OUT(6*32+31 downto 6*32)   => open,
+      --BUS_ADDR_OUT(6*16+6 downto 6*16)    => efb_addr,
+      --BUS_ADDR_OUT(6*16+15 downto 6*16+7) => open,
+      --BUS_TIMEOUT_OUT(6)                  => open,
+      --BUS_DATA_IN(6*32+31 downto 6*32)    => efb_data_out,
+      --BUS_DATAREADY_IN(6)                 => efb_data_ready,
+      --BUS_WRITE_ACK_IN(6)                 => '0',
+      --BUS_NO_MORE_DATA_IN(6)              => '0',
+      --BUS_UNKNOWN_ADDR_IN(6)              => efb_invalid,
+      ----Lost Hit Registers
+      --BUS_READ_ENABLE_OUT(7)              => lhb_read_en,
+      --BUS_WRITE_ENABLE_OUT(7)             => lhb_write_en,
+      --BUS_DATA_OUT(7*32+31 downto 7*32)   => open,
+      --BUS_ADDR_OUT(7*16+6 downto 7*16)    => lhb_addr,
+      --BUS_ADDR_OUT(7*16+15 downto 7*16+7) => open,
+      --BUS_TIMEOUT_OUT(7)                  => open,
+      --BUS_DATA_IN(7*32+31 downto 7*32)    => lhb_data_out,
+      --BUS_DATAREADY_IN(7)                 => lhb_data_ready,
+      --BUS_WRITE_ACK_IN(7)                 => '0',
+      --BUS_NO_MORE_DATA_IN(7)              => '0',
+      --BUS_UNKNOWN_ADDR_IN(7)              => lhb_invalid,
       --TDC config registers
-      BUS_READ_ENABLE_OUT(8)              => tdc_ctrl_read,
-      BUS_WRITE_ENABLE_OUT(8)             => tdc_ctrl_write,
-      BUS_DATA_OUT(8*32+31 downto 8*32)   => tdc_ctrl_data_in,
-      BUS_ADDR_OUT(8*16+2 downto 8*16)    => tdc_ctrl_addr,
-      BUS_ADDR_OUT(8*16+15 downto 8*16+3) => open,
-      BUS_TIMEOUT_OUT(8)                  => open,
-      BUS_DATA_IN(8*32+31 downto 8*32)    => tdc_ctrl_data_out,
-      BUS_DATAREADY_IN(8)                 => last_tdc_ctrl_read,
-      BUS_WRITE_ACK_IN(8)                 => tdc_ctrl_write,
-      BUS_NO_MORE_DATA_IN(8)              => '0',
-      BUS_UNKNOWN_ADDR_IN(8)              => '0',
+      BUS_READ_ENABLE_OUT(5)              => tdc_ctrl_read,
+      BUS_WRITE_ENABLE_OUT(5)             => tdc_ctrl_write,
+      BUS_DATA_OUT(5*32+31 downto 5*32)   => tdc_ctrl_data_in,
+      BUS_ADDR_OUT(5*16+2 downto 5*16)    => tdc_ctrl_addr,
+      BUS_ADDR_OUT(5*16+15 downto 5*16+3) => open,
+      BUS_TIMEOUT_OUT(5)                  => open,
+      BUS_DATA_IN(5*32+31 downto 5*32)    => tdc_ctrl_data_out,
+      BUS_DATAREADY_IN(5)                 => last_tdc_ctrl_read,
+      BUS_WRITE_ACK_IN(5)                 => tdc_ctrl_write,
+      BUS_NO_MORE_DATA_IN(5)              => '0',
+      BUS_UNKNOWN_ADDR_IN(5)              => '0',
       --Trigger logic registers
-      BUS_READ_ENABLE_OUT(9)              => trig_read,
-      BUS_WRITE_ENABLE_OUT(9)             => trig_write,
-      BUS_DATA_OUT(9*32+31 downto 9*32)   => trig_din,
-      BUS_ADDR_OUT(9*16+15 downto 9*16)   => trig_addr,
-      BUS_TIMEOUT_OUT(9)                  => open,
-      BUS_DATA_IN(9*32+31 downto 9*32)    => trig_dout,
-      BUS_DATAREADY_IN(9)                 => trig_ack,
-      BUS_WRITE_ACK_IN(9)                 => trig_ack,
-      BUS_NO_MORE_DATA_IN(9)              => '0',
-      BUS_UNKNOWN_ADDR_IN(9)              => trig_nack,
+      BUS_READ_ENABLE_OUT(6)              => trig_read,
+      BUS_WRITE_ENABLE_OUT(6)             => trig_write,
+      BUS_DATA_OUT(6*32+31 downto 6*32)   => trig_din,
+      BUS_ADDR_OUT(6*16+15 downto 6*16)   => trig_addr,
+      BUS_TIMEOUT_OUT(6)                  => open,
+      BUS_DATA_IN(6*32+31 downto 6*32)    => trig_dout,
+      BUS_DATAREADY_IN(6)                 => trig_ack,
+      BUS_WRITE_ACK_IN(6)                 => trig_ack,
+      BUS_NO_MORE_DATA_IN(6)              => '0',
+      BUS_UNKNOWN_ADDR_IN(6)              => trig_nack,
       --Input statistics
-      BUS_READ_ENABLE_OUT(10)             => stat_read,
-      BUS_WRITE_ENABLE_OUT(10)            => stat_write,
-      BUS_DATA_OUT(10*32+31 downto 10*32) => stat_din,
-      BUS_ADDR_OUT(10*16+15 downto 10*16) => stat_addr,
-      BUS_TIMEOUT_OUT(10)                 => open,
-      BUS_DATA_IN(10*32+31 downto 10*32)  => stat_dout,
-      BUS_DATAREADY_IN(10)                => stat_ack,
-      BUS_WRITE_ACK_IN(10)                => stat_ack,
-      BUS_NO_MORE_DATA_IN(10)             => '0',
-      BUS_UNKNOWN_ADDR_IN(10)             => stat_nack,
+      BUS_READ_ENABLE_OUT(7)              => stat_read,
+      BUS_WRITE_ENABLE_OUT(7)             => stat_write,
+      BUS_DATA_OUT(7*32+31 downto 7*32)   => stat_din,
+      BUS_ADDR_OUT(7*16+15 downto 7*16)   => stat_addr,
+      BUS_TIMEOUT_OUT(7)                  => open,
+      BUS_DATA_IN(7*32+31 downto 7*32)    => stat_dout,
+      BUS_DATAREADY_IN(7)                 => stat_ack,
+      BUS_WRITE_ACK_IN(7)                 => stat_ack,
+      BUS_NO_MORE_DATA_IN(7)              => '0',
+      BUS_UNKNOWN_ADDR_IN(7)              => stat_nack,
+      --SEU Detection
+      BUS_READ_ENABLE_OUT(8)              => sed_read,
+      BUS_WRITE_ENABLE_OUT(8)             => sed_write,
+      BUS_DATA_OUT(8*32+31 downto 8*32)   => sed_din,
+      BUS_ADDR_OUT(8*16+15 downto 8*16)   => sed_addr,
+      BUS_TIMEOUT_OUT(8)                  => open,
+      BUS_DATA_IN(8*32+31 downto 8*32)    => sed_dout,
+      BUS_DATAREADY_IN(8)                 => sed_ack,
+      BUS_WRITE_ACK_IN(8)                 => sed_ack,
+      BUS_NO_MORE_DATA_IN(8)              => '0',
+      BUS_UNKNOWN_ADDR_IN(8)              => sed_nack,
 
       STAT_DEBUG => open
       );
@@ -783,7 +807,7 @@ begin
       port map(
         CLK => clk_100_i,
 
-        INPUT => INPUT(PHYSICAL_INPUTS-1 downto 0),
+        INPUT => INPUT(PHYSICAL_INPUTS downto 1),
 
         DATA_IN  => stat_din,
         DATA_OUT => stat_dout,
@@ -794,6 +818,31 @@ begin
         ADDR_IN  => stat_addr
         );
   end generate;
+
+---------------------------------------------------------------------------
+-- SED Detection
+---------------------------------------------------------------------------
+THE_SED : entity work.sedcheck
+  port map(
+    CLK        => clk_100_i,
+    ERROR_OUT  => sed_error,
+    
+    DATA_IN    => sed_din,
+    DATA_OUT   => sed_dout, 
+    WRITE_IN   => sed_write,
+    READ_IN    => sed_read,
+    ACK_OUT    => sed_ack,  
+    NACK_OUT   => sed_nack, 
+    ADDR_IN    => sed_addr
+    );
+
+-- THE_SED : entity work.sedcheck 
+--   port map(
+--     CLK        => clk_100_i,
+--     ERROR_OUT  => sed_error,
+--     i_rst_p    => i_rst_p,
+--     STATUS_OUT => TEST_LINE(11 downto 0)
+--     ); 
 
 ---------------------------------------------------------------------------
 -- Reboot FPGA
@@ -809,35 +858,35 @@ begin
 ---------------------------------------------------------------------------
 -- LED
 ---------------------------------------------------------------------------
-  LED_GREEN     <= not time_counter(26);
-  LED_ORANGE    <= not time_counter(27);
-  LED_RED       <= not time_counter(28);
-  LED_YELLOW    <= not time_counter(29);
+  --LED_GREEN     <= not time_counter(26);
+  --LED_ORANGE    <= not time_counter(27);
+  --LED_RED       <= not time_counter(28);
+  --LED_YELLOW    <= not time_counter(29);
   LED_SFP_GREEN <= not med_stat_op(9);
   LED_SFP_RED   <= not (med_stat_op(10) or med_stat_op(11));
 
 ---------------------------------------------------------------------------
 -- Test Connector
 ---------------------------------------------------------------------------    
-  TEST_LINE(0)            <= OR_IN;
-  TEST_LINE(8 downto 1)   <= CLK_CM(8 downto 1);
-  TEST_LINE(9)            <= CLK_EXT;
-  TEST_LINE(11 downto 10) <= SFP_MOD(2 downto 1);
-  TEST_LINE(13 downto 12) <= SPARE_LINE(2 downto 1);
-  TEST_LINE(31 downto 14) <= time_counter(31 downto 14);
+  --TEST_LINE(0)            <= OR_IN;
+  --TEST_LINE(8 downto 1)   <= CLK_CM(8 downto 1);
+  --TEST_LINE(9)            <= CLK_EXT;
+  --TEST_LINE(11 downto 10) <= SFP_MOD(2 downto 1);
+  --TEST_LINE(13 downto 12) <= SPARE_LINE(2 downto 1);
+  --TEST_LINE(31 downto 14) <= time_counter(31 downto 14);
 
-  LVDS(1) <= or_all(INPUT);
-  LVDS(2) <= SPARE_LINE(0);
+  --LVDS(1) <= or_all(INPUT);
+  --LVDS(2) <= timing_trg_received_i;
 --  CLK_MNGR_USER(3 downto 0) <= (others => '0');
 
 ---------------------------------------------------------------------------
 -- Test Circuits
 ---------------------------------------------------------------------------
-  process
-  begin
-    wait until rising_edge(CLK_EXT);    --(clk_100_i);
-    time_counter <= time_counter + 1;
-  end process;
+  --process
+  --begin
+  --  wait until rising_edge(CLK_EXT);    --(clk_100_i);
+  --  time_counter <= time_counter + 1;
+  --end process;
 
 -------------------------------------------------------------------------------
 -- TDC
@@ -852,7 +901,7 @@ begin
       SIMULATION     => c_NO)
     port map (
       RESET                 => reset_i,
-      CLK_TDC               => CLK_OSC,  -- Oscillator used for the time measurement
+      CLK_TDC               => clk_200_i,  -- Oscillator used for the time measurement
 --      CLK_TDC               => CLK_EXT,  -- External Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
@@ -898,26 +947,26 @@ begin
       SRB_DATAREADY_OUT     => srb_data_ready,    -- bus data ready strobe
       SRB_UNKNOWN_ADDR_OUT  => srb_invalid,   -- bus invalid addr
       --Encoder Start Registers Bus
-      ESB_READ_EN_IN        => esb_read_en,   -- bus read en strobe
-      ESB_WRITE_EN_IN       => esb_write_en,  -- bus write en strobe
-      ESB_ADDR_IN           => esb_addr,    -- bus address
-      ESB_DATA_OUT          => esb_data_out,  -- bus data
-      ESB_DATAREADY_OUT     => esb_data_ready,    -- bus data ready strobe
-      ESB_UNKNOWN_ADDR_OUT  => esb_invalid,   -- bus invalid addr
+      ESB_READ_EN_IN        => '0', --esb_read_en,   -- bus read en strobe
+      ESB_WRITE_EN_IN       => '0', --esb_write_en,  -- bus write en strobe
+      ESB_ADDR_IN           => (others => '0'), --esb_addr,    -- bus address
+      ESB_DATA_OUT          => open, --esb_data_out,  -- bus data
+      ESB_DATAREADY_OUT     => open, --esb_data_ready,    -- bus data ready strobe
+      ESB_UNKNOWN_ADDR_OUT  => open, --esb_invalid,   -- bus invalid addr
       --Fifo Write Registers Bus
-      EFB_READ_EN_IN        => efb_read_en,   -- bus read en strobe
-      EFB_WRITE_EN_IN       => efb_write_en,  -- bus write en strobe
-      EFB_ADDR_IN           => efb_addr,    -- bus address
-      EFB_DATA_OUT          => efb_data_out,  -- bus data
-      EFB_DATAREADY_OUT     => efb_data_ready,    -- bus data ready strobe
-      EFB_UNKNOWN_ADDR_OUT  => efb_invalid,   -- bus invalid addr
+      EFB_READ_EN_IN        => '0', --efb_read_en,   -- bus read en strobe
+      EFB_WRITE_EN_IN       => '0', --efb_write_en,  -- bus write en strobe
+      EFB_ADDR_IN           => (others => '0'), --efb_addr,    -- bus address
+      EFB_DATA_OUT          => open, --efb_data_out,  -- bus data
+      EFB_DATAREADY_OUT     => open, --efb_data_ready,    -- bus data ready strobe
+      EFB_UNKNOWN_ADDR_OUT  => open, --efb_invalid,   -- bus invalid addr
       --Lost Hit Registers Bus
-      LHB_READ_EN_IN        => lhb_read_en,   -- bus read en strobe
-      LHB_WRITE_EN_IN       => lhb_write_en,  -- bus write en strobe
-      LHB_ADDR_IN           => lhb_addr,    -- bus address
-      LHB_DATA_OUT          => lhb_data_out,  -- bus data
-      LHB_DATAREADY_OUT     => lhb_data_ready,    -- bus data ready strobe
-      LHB_UNKNOWN_ADDR_OUT  => lhb_invalid,   -- bus invalid addr
+      LHB_READ_EN_IN        => '0', --lhb_read_en,   -- bus read en strobe
+      LHB_WRITE_EN_IN       => '0', --lhb_write_en,  -- bus write en strobe
+      LHB_ADDR_IN           => (others => '0'), --lhb_addr,    -- bus address
+      LHB_DATA_OUT          => open, --lhb_data_out,  -- bus data
+      LHB_DATAREADY_OUT     => open, --lhb_data_ready,    -- bus data ready strobe
+      LHB_UNKNOWN_ADDR_OUT  => open, --lhb_invalid,   -- bus invalid addr
       --
       LOGIC_ANALYSER_OUT    => logic_analyser_i,
       CONTROL_REG_IN        => tdc_ctrl_reg);
