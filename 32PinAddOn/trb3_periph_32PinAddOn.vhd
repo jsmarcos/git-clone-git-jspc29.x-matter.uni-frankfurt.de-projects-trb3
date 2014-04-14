@@ -358,7 +358,7 @@ begin
       REGIO_NUM_STAT_REGS       => REGIO_NUM_STAT_REGS,
       REGIO_NUM_CTRL_REGS       => REGIO_NUM_CTRL_REGS,
       ADDRESS_MASK              => x"FFFF",
-      BROADCAST_BITMASK         => x"48",
+      BROADCAST_BITMASK         => x"FF",
       BROADCAST_SPECIAL_ADDR    => BROADCAST_SPECIAL_ADDR,
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
       REGIO_HARDWARE_VERSION    => HARDWARE_INFO,
