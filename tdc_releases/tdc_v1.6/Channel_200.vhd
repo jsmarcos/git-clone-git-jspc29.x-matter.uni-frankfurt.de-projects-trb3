@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2014-03-26
+-- Last update: 2014-04-09
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -112,8 +112,6 @@ architecture Channel_200 of Channel_200 is
   signal fifo_empty_i           : std_logic;
   signal fifo_full_i            : std_logic;
   signal fifo_almost_full_sync  : std_logic;
-  signal fifo_almost_full_sync1 : std_logic;
-  signal fifo_almost_full_sync2 : std_logic;
   signal fifo_almost_full_i     : std_logic := '0';
   signal fifo_almost_full_flag  : std_logic := '0';
   signal fifo_wr_en_i           : std_logic;
@@ -297,8 +295,6 @@ begin  -- Channel_200
       AlmostFull => fifo_almost_full_i);
 
   fifo_almost_full_sync  <= fifo_almost_full_i                      when rising_edge(CLK_100);
-  fifo_almost_full_sync1 <= fifo_almost_full_sync                   when rising_edge(CLK_100);
-  fifo_almost_full_sync2 <= fifo_almost_full_sync1                  when rising_edge(CLK_100);
   fifo_rd_en_i           <= fifo_rd_data_i or fifo_almost_full_sync when rising_edge(CLK_100);
 
   FifoAlmostmptyFlag : process (CLK_100)

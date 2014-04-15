@@ -4,7 +4,7 @@
 -- File       : Encoder_304_Bit.vhd
 -- Author     : Cahit Ugur
 -- Created    : 2011-11-28
--- Last update: 2013-03-17
+-- Last update: 2014-04-10
 -------------------------------------------------------------------------------
 -- Description: Encoder for 304 bits
 -------------------------------------------------------------------------------
@@ -73,32 +73,10 @@ architecture behavioral of Encoder_304_Bit is
   signal info             : std_logic_vector(1 downto 0);
   signal info_reg         : std_logic_vector(1 downto 0);
   signal info_2reg        : std_logic_vector(1 downto 0);
-  signal info_3reg        : std_logic_vector(1 downto 0);
-  signal info_4reg        : std_logic_vector(1 downto 0);
-
--- FSM signals
-  type   FSM is (IDLE, START_CNT_2, START_CNT_3, START_CNT_4);
-  signal FSM_CURRENT, FSM_NEXT : FSM;
-
-  signal start_cnt_1_fsm : std_logic;
-  signal start_cnt_2_fsm : std_logic;
-  signal start_cnt_3_fsm : std_logic;
-  signal start_cnt_4_fsm : std_logic;
-  signal start_cnt_1_i   : std_logic;
-  signal start_cnt_2_i   : std_logic;
-  signal start_cnt_3_i   : std_logic;
-  signal start_cnt_4_i   : std_logic;
 --
-  signal proc_cnt_1      : std_logic_vector(3 downto 0) := x"6";
-  signal proc_cnt_2      : std_logic_vector(3 downto 0) := x"6";
-  signal proc_cnt_3      : std_logic_vector(3 downto 0) := x"6";
-  signal proc_cnt_4      : std_logic_vector(3 downto 0);
-  signal proc_finished_1 : std_logic;
-  signal proc_finished_2 : std_logic;
-  signal proc_finished_3 : std_logic;
-  signal proc_finished_4 : std_logic;
-  signal conv_finished_i : std_logic;
-  signal thermocode_i    : std_logic_vector(304 downto 0);
+  signal conv_finished_i  : std_logic;
+  signal thermocode_i     : std_logic_vector(304 downto 0);
+  signal start_pipeline   : std_logic_vector(6 downto 0) := (others => '0');
 
   attribute syn_keep                     : boolean;
   attribute syn_keep of mux_control      : signal is true;
@@ -198,20 +176,11 @@ begin
       Reset      => RESET,
       Q          => q_reg);
 
-  --ROM4_Encoder_1 : ROM4_Encoder
-  --  port map (
-  --    Address    => address_i,
-  --    OutClock   => CLK,
-  --    OutClockEn => '1',
-  --    Reset      => RESET,
-  --    Q          => q_reg);
   address_i       <= start_2reg & interval_reg;
   interval_binary <= q_reg(2 downto 0) when rising_edge(CLK);
   info            <= q_reg(7 downto 6) when rising_edge(CLK);
   info_reg        <= info              when rising_edge(CLK);
   info_2reg       <= info_reg          when rising_edge(CLK);
-  info_3reg       <= info_2reg         when rising_edge(CLK);
-  info_4reg       <= info_3reg         when rising_edge(CLK);
 
   Binary_Code_Calculation_rf : process (CLK)
   begin
@@ -220,146 +189,6 @@ begin
       binary_code_f <= binary_code_r;
     end if;
   end process Binary_Code_Calculation_rf;
-
-  --purpose: FSMs the encoder
-  FSM_CLK : process (CLK)
-  begin
-    if rising_edge(CLK) then
-      FSM_CURRENT   <= FSM_NEXT;
-      start_cnt_1_i <= start_cnt_1_fsm;
-      start_cnt_2_i <= start_cnt_2_fsm;
-      start_cnt_3_i <= start_cnt_3_fsm;
-      start_cnt_4_i <= start_cnt_4_fsm;
-    end if;
-  end process FSM_CLK;
-
-  FSM_PROC : process (FSM_CURRENT, START_IN)
-  begin
-
-    FSM_NEXT        <= IDLE;
-    start_cnt_1_fsm <= '0';
-    start_cnt_2_fsm <= '0';
-    start_cnt_3_fsm <= '0';
-    start_cnt_4_fsm <= '0';
-
-    case (FSM_CURRENT) is
-      when IDLE =>
-        if START_IN = '1' then
-          FSM_NEXT        <= START_CNT_2;
-          start_cnt_1_fsm <= '1';
-        end if;
-
-      when START_CNT_2 =>
-        if START_IN = '1' then
-          FSM_NEXT        <= START_CNT_3;
-          start_cnt_2_fsm <= '1';
-        else
-          FSM_NEXT <= START_CNT_2;
-        end if;
-
-      when START_CNT_3 =>
-        if START_IN = '1' then
-          FSM_NEXT        <= START_CNT_4;
-          start_cnt_3_fsm <= '1';
-        else
-          FSM_NEXT <= START_CNT_3;
-        end if;
-
-      when START_CNT_4 =>
-        if START_IN = '1' then
-          FSM_NEXT        <= IDLE;
-          start_cnt_4_fsm <= '1';
-        else
-          FSM_NEXT <= START_CNT_4;
-        end if;
-
-      when others =>
-        FSM_NEXT <= IDLE;
-    end case;
-  end process FSM_PROC;
-
-  --purpose : Conversion number 1
-  Conv_1 : process (CLK)
-  begin
-    if rising_edge(CLK) then
-      if start_cnt_1_i = '1' then
-        proc_cnt_1      <= x"1";
-        proc_finished_1 <= '0';
-      elsif proc_cnt_1 = x"5" then
-        proc_cnt_1      <= proc_cnt_1 + 1;
-        proc_finished_1 <= '1';
-      elsif proc_cnt_1 = x"6" then
-        proc_cnt_1      <= x"6";
-        proc_finished_1 <= '0';
-      else
-        proc_cnt_1      <= proc_cnt_1 + 1;
-        proc_finished_1 <= '0';
-      end if;
-    end if;
-  end process Conv_1;
-
-  --purpose : Conversion number 2
-  Conv_2 : process (CLK)
-  begin
-    if rising_edge(CLK) then
-      if start_cnt_2_i = '1' then
-        proc_cnt_2      <= x"1";
-        proc_finished_2 <= '0';
-      elsif proc_cnt_2 = x"5" then
-        proc_cnt_2      <= proc_cnt_2 + 1;
-        proc_finished_2 <= '1';
-      elsif proc_cnt_2 = x"6" then
-        proc_cnt_2      <= x"6";
-        proc_finished_2 <= '0';
-      else
-        proc_cnt_2      <= proc_cnt_2 + 1;
-        proc_finished_2 <= '0';
-      end if;
-    end if;
-  end process Conv_2;
-
-  --purpose : Conversion number 3
-  Conv_3 : process (CLK)
-  begin
-    if rising_edge(CLK) then
-      if start_cnt_3_i = '1' then
-        proc_cnt_3      <= x"1";
-        proc_finished_3 <= '0';
-      elsif proc_cnt_3 = x"5" then
-        proc_cnt_3      <= proc_cnt_3 + 1;
-        proc_finished_3 <= '1';
-      elsif proc_cnt_3 = x"6" then
-        proc_cnt_3      <= x"6";
-        proc_finished_3 <= '0';
-      else
-        proc_cnt_3      <= proc_cnt_3 + 1;
-        proc_finished_3 <= '0';
-      end if;
-    end if;
-  end process Conv_3;
-
-  --purpose : Conversion number 4
-  Conv_4 : process (CLK)
-  begin
-    if rising_edge(CLK) then
-      if RESET = '1' then
-        proc_cnt_4      <= x"6";
-        proc_finished_4 <= '0';
-      elsif start_cnt_4_i = '1' then
-        proc_cnt_4      <= x"1";
-        proc_finished_4 <= '0';
-      elsif proc_cnt_4 = x"5" then
-        proc_cnt_4      <= proc_cnt_4 + 1;
-        proc_finished_4 <= '1';
-      elsif proc_cnt_4 = x"6" then
-        proc_cnt_4      <= x"6";
-        proc_finished_4 <= '0';
-      else
-        proc_cnt_4      <= proc_cnt_4 + 1;
-        proc_finished_4 <= '0';
-      end if;
-    end if;
-  end process Conv_4;
 
   Binary_Code_Calculation : process (CLK)
   begin
@@ -378,34 +207,17 @@ begin
     end if;
   end process Binary_Code_Calculation;
 
-  conv_finished_i <= proc_finished_1 or proc_finished_2 or proc_finished_3 or proc_finished_4;
-
+  StartSignalPipeLine : process (CLK)
+  begin
+    if rising_edge(CLK) then
+      start_pipeline <= start_pipeline(5 downto 0) & START_IN;
+    end if;
+  end process StartSignalPipeLine;
+  conv_finished_i <= start_pipeline(6);
 
 -------------------------------------------------------------------------------
 -- DEBUG
 -------------------------------------------------------------------------------
-  ----purpose : Conversion number 1
-  --Conv_1 : process (CLK, RESET)
-  --begin
-  -- if rising_edge(CLK) then
-  --   if RESET = '1' then
-  --     proc_cnt_1      <= x"3";
-  --     proc_finished_1 <= '0';
-  --   elsif START_IN = '1' then
-  --     proc_cnt_1      <= x"1";
-  --     proc_finished_1 <= '0';
-  --   elsif proc_cnt_1 = x"1" or proc_cnt_1 = x"2" then
-  --     proc_cnt_1      <= proc_cnt_1 + 1;
-  --     proc_finished_1 <= '1';
-  --   elsif proc_cnt_1 = x"3" then
-  --     proc_cnt_1      <= x"3";
-  --     proc_finished_1 <= '0';
-  --   else
-  --     proc_cnt_1      <= proc_cnt_1 + 1;
-  --     proc_finished_1 <= '0';
-  --   end if;
-  -- end if;
-  --end process Conv_1;
 
   --Binary_Code_Calculation : process (CLK, RESET)
   --begin
