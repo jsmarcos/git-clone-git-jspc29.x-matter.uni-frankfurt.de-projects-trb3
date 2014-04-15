@@ -6,7 +6,6 @@ GSR_NET NET "reset_i";
 #################################################################
 # Locate Serdes and media interfaces
 #################################################################
-LOCATE COMP   "THE_MEDIA_UPLINK/gen_serdes_1_200_THE_SERDES/PCSD_INST" SITE "PCSA" ;
 
 MULTICYCLE TO CELL "THE_MEDIA_DOWNLINK/SCI_DATA_OUT*" 50 ns;
 MULTICYCLE TO CELL "THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
@@ -18,3 +17,6 @@ MULTICYCLE TO CELL "THE_SPI_MASTER_THE_SPI_SLIM_tx_sreg_oregio*" 20 ns;
 BLOCK PATH TO CELL "gen_TRIGGER_LOGIC_THE_TRIG_LOGIC/out_*";
 
 #Jan: Placement of TrbNet components (at least, most of them)
+
+
+MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset*" 30 ns;
