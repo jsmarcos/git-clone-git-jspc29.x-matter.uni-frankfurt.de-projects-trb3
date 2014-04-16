@@ -291,6 +291,7 @@ architecture trb3_periph_padiwa_arch of trb3_periph_padiwa is
 
   --TDC
   signal hit_in_i : std_logic_vector(64 downto 1);
+  signal input_i  : std_logic_vector(64 downto 1);
 
 begin
 ---------------------------------------------------------------------------
@@ -779,13 +780,13 @@ begin
   gen_TRIGGER_LOGIC : if INCLUDE_TRIGGER_LOGIC = 1 generate
     THE_TRIG_LOGIC : input_to_trigger_logic
       generic map(
-        INPUTS  => 32,
+        INPUTS  => PHYSICAL_INPUTS,
         OUTPUTS => 4
         )
       port map(
         CLK => clk_100_i,
 
-        INPUT  => INP(32 downto 1),
+        INPUT  => input_i(PHYSICAL_INPUTS downto 1),
         OUTPUT => trig_out,
 
         DATA_IN  => trig_din,
@@ -811,7 +812,7 @@ gen_STATISTICS : if INCLUDE_STATISTICS = 1 generate
     port map(
       CLK       => clk_100_i,
       
-      INPUT     => INP(PHYSICAL_INPUTS-1 downto 0),
+      INPUT     => input_i(PHYSICAL_INPUTS downto 1),
 
       DATA_IN   => stat_din,  
       DATA_OUT  => stat_dout, 
@@ -944,14 +945,25 @@ end generate;
   -- For single edge measurements
   gen_single : if USE_DOUBLE_EDGE = 0 generate
     hit_in_i <= INP;
+    input_i  <= INP;
   end generate;
 
   -- For ToT Measurements
-  gen_double : if USE_DOUBLE_EDGE = 1 generate
+  gen_double : if USE_DOUBLE_EDGE = 1 and USE_PADIWA_FAST_ONLY = 0  generate
     Gen_Hit_In_Signals : for i in 1 to 32 generate
       hit_in_i(i*2-1) <= INP(i-1);
       hit_in_i(i*2)   <= not INP(i-1);
+      input_i(i)      <= INP(i-1);
     end generate Gen_Hit_In_Signals;
   end generate;
+
+  gen_double_padiwa_fast : if USE_PADIWA_FAST_ONLY = 1 generate
+    Gen_Hit_Fast_Signals : for i in 1 to 32 generate
+      hit_in_i(i*2-1) <= INP(i*2-2);
+      hit_in_i(i*2)   <= not INP(i*2-2);
+      input_i(i)      <= INP(i*2-2);
+    end generate;
+  end generate;
+
 
 end architecture;

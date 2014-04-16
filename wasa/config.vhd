@@ -11,9 +11,12 @@ package config is
 ------------------------------------------------------------------------------
 
 --Include GbE logic     
-  constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 65;
-  constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6  := 6;  --the nearest power of two, for convenience reasons
-  constant USE_DOUBLE_EDGE         : integer               := c_NO;
+  constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 33;
+  constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6  := 5;  --the nearest power of two, for convenience reasons
+  constant USE_DOUBLE_EDGE         : integer               := c_YES;
+
+--Use only every second input channel (mask slow channels from padiwa amps)
+  constant USE_PADIWA_FAST_ONLY    : integer               := c_YES;
 
 --Include SPI on AddOn connector    
   constant INCLUDE_SPI : integer := c_YES;
@@ -25,14 +28,14 @@ package config is
   constant INCLUDE_STATISTICS : integer := c_YES;
 
 --number of real inputs to the FPGA
-  constant PHYSICAL_INPUTS : integer := 64;
+  constant PHYSICAL_INPUTS : integer := 16;
+
 
 --Run wih 125 MHz instead of 100 MHz
   constant USE_125_MHZ : integer := c_NO;  --not implemented yet!
 
 --Use sync mode, RX clock for all parts of the FPGA
   constant USE_RXCLOCK : integer := c_NO;  --not implemented yet!
-
 
 --Address settings   
   constant INIT_ADDRESS           : std_logic_vector := x"F306";
