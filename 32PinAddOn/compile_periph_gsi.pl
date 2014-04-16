@@ -183,13 +183,12 @@ if($map==1 || $all==1){
 	    print "#        !!!Possible Placement Errors!!!        #\n";
 	    print "#################################################\n\n";
 	    
-	    my $c="egrep \"WARNING|FC_|HitInvert|ff_en_\" par.log";
+	    my $c="egrep 'WARNING.*hitBuf_|Channels/hit_buf_RNO|WARNING.*FC_|Channels/Channel200/SimAdderNo_FC|WARNING.*ff_en_|Channels/Channel200/ff_array_en_i_1_i'"." $TOPNAME"."_mrp.html";
 	    system($c);
 	    last;
 	}
     }
 }
-
 
 if($par==1 || $all==1){
     system("rm $TOPNAME.ncd");
@@ -197,7 +196,9 @@ if($par==1 || $all==1){
     #$c=qq|$lattice_path/ispfpga/bin/lin/multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t" "$tpmap.ncd" "$TOPNAME.ncd"|;
     if ($isMultiPar)
     {
-	$c=qq|par -m ../nodes_lxhadeb07.txt -n $nrNodes -stopzero -w -l 5 -i 6 -t 1 -c 0 -e 0 -exp parDisablePgroup=0:parUseNBR=1:parCDP=0:parCDR=0:parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
+	#$c=qq|par -m ../nodes_lxhadeb07.txt -n $nrNodes -stopzero -w -l 5 -t 1 -e 100 -exp parDisablePgroup=0:parUseNBR=1:parCDP=1:parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
+	#$c=qq|par -m ../nodes_lxhadeb07.txt -n $nrNodes -stopzero -w -l 5 -i 6 -t 1 -c 0 -e 0 -exp parDisablePgroup=0:parUseNBR=1:parCDP=0:parCDR=0:parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
+	$c=qq|par -m ../nodes_lxhadeb07.txt -n $nrNodes -w -l 5 -t 1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
 	execute($c);
         # find and copy the .ncd file which has met the timing constraints
 	$fh = new FileHandle("<$TOPNAME".".par");
@@ -231,17 +232,19 @@ if($par==1 || $all==1){
     }
     else
     {
-	$c=qq|par -w -l 5 -i 6 -t 1 -c 0 -e 0 -exp parUseNBR=1:parCDP=0:parCDR=0:parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
+	#$c=qq|par -w -l 5 -i 6 -t 1 -c 0 -e 0 -exp parUseNBR=1:parCDP=0:parCDR=0:parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
+	$c=qq|par -w -l 5 -t 1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
 	execute($c);
 	my $c="cp $TOPNAME.dir/5_1.ncd $TOPNAME.ncd";
 	system($c);
     }
     my $c="cat $TOPNAME.par";
     system($c);
+
 }
 
 
-if($timing==1){
+if($timing==1 || $all==1){
     # IOR IO Timing Report
     $c=qq|iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;
     execute($c);
@@ -258,6 +261,7 @@ if($timing==1){
     
     my $c="cat $TOPNAME.par";
     system($c);
+
 }
 
 if($bitgen==1 || $all==1){
@@ -265,6 +269,12 @@ if($bitgen==1 || $all==1){
     # $c=qq|$lattice_path/ispfpga/bin/lin/bitgen -w "$TOPNAME.ncd" "$TOPNAME.prf"|;
     execute($c);
 }
+
+$c=qq|htmlrpt -mrp $TOPNAME.mrp -mtwr $TOPNAME.twr.hold -ptwr $TOPNAME.twr.setup $TOPNAME|;
+execute($c);
+
+$c=qq|firefox $TOPNAME.html|;
+execute($c);
 
 chdir "..";
 exit;
