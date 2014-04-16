@@ -674,38 +674,47 @@ LOCATE UGROUP "ff_en_64" SITE "R113C27D" ;
 #############################################################################
 ##                         Unimportant Data Lines                          ##
 #############################################################################
+MULTICYCLE FROM CELL "THE_TDC/reset_tdc*" 4x;
+MULTICYCLE FROM CELL "THE_TDC/reset_counters*" 4x;
+MULTICYCLE FROM CELL "PROC_TDC_CTRL_REG*tdc_ctrl_reg*" 4x;
 
-BLOCK NET "THE_TDC/reset_tdc*" ;
-BLOCK NET "THE_TDC/reset_rdo*" ;
-#BLOCK NET "THE_TDC/hit_in_i_*" ;
-BLOCK NET "THE_TDC/hit_latch*" ;
-BLOCK NET "THE_TDC/reset_counters_i*" ;
+MULTICYCLE TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/SimAdderNo*FC/FF*" 4x;
+MULTICYCLE TO CELL "THE_TDC/ReferenceChannel/Channel200/SimAdderNo*FC/FF*" 4x;
 
-BLOCK PATH TO CELL "THE_TDC/GEN_Channels*Channels/sync_q_2*";
-BLOCK PATH TO CELL "THE_TDC/ReferenceChannel/sync_q_2*";
+MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/Channel200/FIFO/*" CLKNET CLK_EXT TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/FIFO/*" CLKNET clk_100_i_c 2x;
+MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/Channel200/FIFO/*" CLKNET CLK_EXT TO CELL "THE_TDC/ReferenceChannel/Channel200/FIFO/*" CLKNET clk_100_i_c 2x;
 
-BLOCK PATH TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/SimAdderNo*FC/FF*" ;
-BLOCK PATH TO CELL "THE_TDC/ReferenceChannel/Channel200/SimAdderNo*FC/FF*";
+MULTICYCLE TO CELL "THE_TDC/GEN_Channels*Channels/sync_q*" 4 x;
+MULTICYCLE TO CELL "THE_TDC/ReferenceChannel/sync_q*" 4 x;
 
-BLOCK PATH FROM CELL "PROC_TDC_CTRL_REG*tdc_ctrl_reg*" TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/SimAdderNo*FC/FF*";
-BLOCK PATH FROM CELL "PROC_TDC_CTRL_REG*tdc_ctrl_reg*" TO CELL "THE_TDC/ReferenceChannel/Channel200/SimAdderNo*FC/FF*";
-
-
-PROHIBIT SECONDARY NET "THE_TDC/ReferenceChannel/Channel200/ff_array_en_i";
-PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels*Channels/Channel200/ff_array_en_i";
-
-#MAXDELAY NET "THE_TDC/ReferenceChannel/hit_buf" 0.600000 nS DATAPATH_ONLY ;
-#MAXDELAY NET "THE_TDC/GEN_Channels*Channels/hit_buf" 0.600000 nS DATAPATH_ONLY ;
-MAXDELAY NET "THE_TDC/hit_in_i[*]" 0.600000 nS; #DATAPATH_ONLY ;
-
-MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/gen_DEBUG_risingEdgeDetect_1/PULSE_OUT" 5 x;
-MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/gen_DEBUG_risingEdgeDetect_1/PULSE_OUT" 5 x;
+MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/Channel200/FIFO/FF*" TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/fifo_almost_full_sync*" 2x;
+MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/Channel200/FIFO/FF*" TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/fifo_almost_full_sync*" 2x;
 
 MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter*" TO CELL "THE_TDC/GEN_Channels*Channels/epoch_cntr_reg*" 5 X;
 MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter*" TO CELL "THE_TDC/ReferenceChannel/epoch_cntr_reg*" 5 X;
 
-MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset_1" 50 ns;
-MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/The_Buffer/*" TO CELL "THE_TDC/TheReadout/rd_en*" 2 X;
+MAXDELAY NET "THE_TDC/hit_in_i[*]" 0.600000 nS; #DATAPATH_ONLY ;
 
-MULTICYCLE FROM CLKNET "clk_100_internal_c" TO CLKNET "CLK_PCLK_LEFT" 2 X ;
-MULTICYCLE FROM CLKNET "CLK_PCLK_LEFT" TO CLKNET "clk_100_internal_c" 2 X ;
+## Maybe effective
+
+MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/gen_DEBUG_risingEdgeDetect_1/PULSE_OUT" 5 x;
+MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/gen_DEBUG_risingEdgeDetect_1/PULSE_OUT" 5 x;
+
+
+
+
+
+
+# BLOCK NET "THE_TDC/reset_tdc*" ;
+# BLOCK NET "THE_TDC/reset_rdo*" ;
+# #BLOCK NET "THE_TDC/hit_in_i_*" ;
+# BLOCK NET "THE_TDC/hit_latch*" ;
+# BLOCK NET "THE_TDC/reset_counters_i*" ;
+
+
+
+# PROHIBIT SECONDARY NET "THE_TDC/ReferenceChannel/Channel200/ff_array_en_i";
+# PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels*Channels/Channel200/ff_array_en_i";
+
+# MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset_1" 50 ns;
+# MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/The_Buffer/*" TO CELL "THE_TDC/TheReadout/rd_en*" 2 X;
