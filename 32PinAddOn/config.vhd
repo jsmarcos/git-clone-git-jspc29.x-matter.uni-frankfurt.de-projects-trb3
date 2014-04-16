@@ -19,8 +19,14 @@ package config is
     constant INCLUDE_SPI            : integer := c_YES;
 
 --Add logic to generate configurable trigger signal from input signals.
-    constant INCLUDE_TRIGGER_LOGIC  : integer := c_YES;
-    
+    constant INCLUDE_TRIGGER_LOGIC  : integer := c_NO;
+
+--Do histos of all inputs
+  constant INCLUDE_STATISTICS : integer := c_YES;
+
+--number of real inputs to the FPGA
+  constant PHYSICAL_INPUTS : integer := 32;
+
 --Run wih 125 MHz instead of 100 MHz
     constant USE_125_MHZ            : integer := c_NO;  --not implemented yet!
     
