@@ -501,7 +501,7 @@ begin
 -- I/O
 ---------------------------------------------------------------------------
 --  timing_trg_received_i <= SPARE_LINE(0);
-  timing_trg_received_i <= CLK_CM(0);
+  timing_trg_received_i <= CLK_CM(3);
 
 ---------------------------------------------------------------------------
 -- Bus Handler
@@ -894,15 +894,15 @@ THE_SED : entity work.sedcheck
   THE_TDC : TDC
     generic map (
       CHANNEL_NUMBER => NUM_TDC_CHANNELS,   -- Number of TDC channels
-      STATUS_REG_NR  => 20,             -- Number of status regs
+      STATUS_REG_NR  => 21,             -- Number of status regs
       CONTROL_REG_NR => 6,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
       TDC_VERSION    => TDC_VERSION,    -- TDC version number
       DEBUG          => c_YES,
       SIMULATION     => c_NO)
     port map (
       RESET                 => reset_i,
-      CLK_TDC               => clk_200_i,  -- Oscillator used for the time measurement
---      CLK_TDC               => CLK_EXT,  -- External Clock used for the time measurement
+--    CLK_TDC               => clk_200_i,  -- Oscillator used for the time measurement
+      CLK_TDC               => CLK_EXT,  -- External Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
       HIT_IN                => hit_in_i(NUM_TDC_CHANNELS-1 downto 1),  -- Channel start signals
