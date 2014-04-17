@@ -242,11 +242,13 @@ begin
   PROC_FLUSH_END_RS_FF: process(CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then
-      if( RESET_IN = '1' or flush_end_enable_reset_x = '1') then
-        flush_end_enable <= '0';
+      if( RESET_IN = '1') then
+        flush_end_enable    <= '0';
       else
-        if (flush_end_enable_set = '1') then
-          flush_end_enable <= '1';
+        if (flush_end_enable_reset_x = '1') then
+          flush_end_enable  <= '0';
+        elsif (flush_end_enable_set = '1') then
+          flush_end_enable  <= '1';
         end if;
       end if;
     end if;

@@ -255,11 +255,10 @@ architecture trb3_periph_arch of trb3_periph is
   -- nXyter-FEB-Board Clocks
   signal nx_main_clk                : std_logic;
   signal nx_pll_clk_lock            : std_logic;
-  signal nx_data_clk_test           : std_logic;
   signal nx_pll_reset               : std_logic;
   
-  signal nx1_clk_adc_dat            : std_logic;
-  signal nx1_pll_adc_clk_lock       : std_logic;
+  signal nx_clk_adc_dat            : std_logic;
+  signal nx_pll_adc_clk_lock       : std_logic;
   signal nx1_adc_sample_clk         : std_logic;
 
   -- nXyter 1 Regio Bus
@@ -305,12 +304,13 @@ begin
 ---------------------------------------------------------------------------
 -- Clock Handling
 ---------------------------------------------------------------------------
-  THE_MAIN_PLL : pll_in200_out100
+  THE_MAIN_PLL : entity work.pll_in200_out100
     port map(
-      CLK   => CLK_PCLK_RIGHT,
-      CLKOP => clk_100_i,
-      CLKOK => clk_200_i,
-      LOCK  => pll_lock
+      CLK     => CLK_PCLK_RIGHT,
+      RESET   => '0',
+      CLKOP   => clk_100_i,
+      CLKOK   => clk_200_i,
+      LOCK    => pll_lock
       );
 
 
@@ -631,10 +631,9 @@ begin
       CLK_IN                     => clk_100_i,
       RESET_IN                   => reset_i,
       CLK_NX_MAIN_IN             => nx_main_clk,
-      CLK_ADC_IN                 => nx1_clk_adc_dat,
+      CLK_ADC_IN                 => nx_clk_adc_dat,
       PLL_NX_CLK_LOCK_IN         => nx_pll_clk_lock,
-      PLL_ADC_DCLK_LOCK_IN       => nx1_pll_adc_clk_lock,
-      NX_DATA_CLK_TEST_IN        => nx_data_clk_test,
+      PLL_ADC_DCLK_LOCK_IN       => nx_pll_adc_clk_lock,
       PLL_RESET_OUT              => nx_pll_reset,
       
       TRIGGER_OUT                => fee1_trigger,                       
@@ -714,7 +713,6 @@ begin
       CLK   => CLK_PCLK_RIGHT,
       RESET => nx_pll_reset,
       CLKOP => nx_main_clk,
-      CLKOK => nx_data_clk_test,
       LOCK  => nx_pll_clk_lock
       );
   
@@ -735,8 +733,8 @@ begin
     port map (
       CLK   => CLK_PCLK_RIGHT,
       RESET => nx_pll_reset,
-      CLKOP => nx1_clk_adc_dat,
-      LOCK  => nx1_pll_adc_clk_lock
+      CLKOP => nx_clk_adc_dat,
+      LOCK  => nx_pll_adc_clk_lock
       );
 
 end architecture;

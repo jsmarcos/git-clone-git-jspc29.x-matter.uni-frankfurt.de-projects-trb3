@@ -20,7 +20,7 @@ entity nx_trigger_generator is
     
     TIMESTAMP_IN         : in  std_logic_vector(31 downto 0);
     ADC_DATA_IN          : in  std_logic_vector(11 downto 0);
-    NEW_DATA_IN          : in  std_logic;
+    DATA_CLK_IN          : in  std_logic;
     SELF_TRIGGER_OUT     : out std_logic;
     
     -- Slave bus         
@@ -91,7 +91,7 @@ architecture Behavioral of nx_trigger_generator is
 begin
   -- Debug Line
   DEBUG_OUT(0)            <= CLK_IN;
-  DEBUG_OUT(1)            <= NEW_DATA_IN;
+  DEBUG_OUT(1)            <= DATA_CLK_IN;
   DEBUG_OUT(2)            <= start_cycle;
   DEBUG_OUT(3)            <= ts_reset_o;
   DEBUG_OUT(4)            <= testpulse_o_b;
@@ -243,7 +243,7 @@ begin
         case ST_STATE is
           when ST_IDLE =>
             if (TRIGGER_BUSY_IN = '0' and
-                NEW_DATA_IN     = '1' and
+                DATA_CLK_IN     = '1' and
                 frame_bits      = "1000") then
               self_trigger_ctr  <= "10100";  -- 20
               self_trigger      <= '1';

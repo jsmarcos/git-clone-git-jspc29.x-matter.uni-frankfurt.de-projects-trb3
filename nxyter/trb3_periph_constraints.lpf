@@ -39,8 +39,7 @@ BLOCK RD_DURING_WR_PATHS ;
   USE PRIMARY NET "clk_100_i_c";
   USE PRIMARY NET "CLK_PCLK_RIGHT_c";
 
-  USE PRIMARY2EDGE NET "nx1_clk_adc_dat";
-  #USE PRIMARY2EDGE NET "nx2_clk_adc_dat";
+  USE PRIMARY2EDGE NET "nx_clk_adc_dat";
   
 #################################################################
 # Reset Nets
@@ -60,29 +59,42 @@ LOCATE UGROUP        "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLI
 # Relax some of the timing constraints
 #################################################################
 
+BLOCK NET "nXyter_FEE_board_*/nx_data_receiver_*/adc_ad9228_*/fifo_adc_48to48_dc_*/r_gcount*";
 MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset*"                                                      30 ns;
-MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_reset*"                                    30 ns;
-MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/signal_async_trans_RESET_IN/*"                 30 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_fpga_timestamp_*/signal_async_trans_RESET_IN/*"                30 ns;
-MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_timestamp_reset_o"                          10 ns;
-
-MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_trigger_handler_*/signal_async_trans_TRIGGER_BUSY*"            20 ns;
-MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_status_*/nx_ts_reset_o"                                       10 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_fpga_timestamp_*/timestamp_hold_o_*"                           10 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_trigger_handler_*/signal_async_trans_TRIGGER_BUSY*"            20 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_status_*/nx_ts_reset_o"                                        10 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_event_buffer_*/fifo_almost_full_thr_*"                        100 ns;
 
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_handler_*/fast_clear_o"                                20 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_handler_*/reg_testpulse_delay_*"                      100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_handler_*/reg_testpulse_enable"                       100 ns;
-MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_generator_*/reg_testpulse_length_*"                   100 ns; 
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_generator_*/reg_testpulse_length_*"                   100 ns;
+ 
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/readout_mode_r_*"                          100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/cts_trigger_delay_*"                       100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/ts_window_offset_*"                        100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/ts_window_width_*"                         100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/readout_time_max_*"                        100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/fpga_timestamp_offset_*"                   100 ns;
-MULTICYCLE FROM CELL "nXyter_FEE_board_*.nx_event_buffer_*.fifo_almost_full_thr_*"                         100 ns;
 
-BLOCK NET "nXyter_FEE_board_*/nx_data_receiver_*/adc_ad9228_*/fifo_adc_48to48_dc_*/r_gcount*";
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_reset*"                                    30 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/signal_async_trans_RESET_IN/*"                 30 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/reset_handler_start_r*"                       100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_timestamp_delay_r*"                        100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_frame_word_delay_r*"                       100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/fifo_full_r*"                                 100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/fifo_empty_r*"                                100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/merge_error_ctr_*"                            100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/pll_adc_sample_clk_finedelb_r*"               100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/pll_adc_sample_clk_dphase_r*"                 100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/sampling_clk_reset*"                          100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_bit_shift*"                               100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/new_adc_dt_error_ctr*"                        100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/new_timestamp_dt_error_ctr*"                  100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_clk_ok"                                   100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_debug_type*"                              100 ns;
 
 #SPI Interface
 REGION "REGION_SPI" "R9C108D" 20 20 DEVSIZE;

@@ -59,7 +59,10 @@ begin
   DEBUG_OUT(5)              <= read_enable_last;
   DEBUG_OUT(6)              <= full_o;
   DEBUG_OUT(7)              <= empty_o;
-  DEBUG_OUT(15 downto 8)    <= std_logic_vector(write_ctr - read_ctr);
+  DEBUG_OUT(8)              <= almost_empty_o;
+  DEBUG_OUT(9)              <= Reset;
+  DEBUG_OUT(15 downto 10)    <=
+    std_logic_vector(write_ctr - read_ctr)(5 downto 0);
   
   -----------------------------------------------------------------------------
   

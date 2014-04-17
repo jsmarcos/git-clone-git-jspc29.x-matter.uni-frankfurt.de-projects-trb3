@@ -131,19 +131,19 @@ begin
 
   -- Debug Line
   DEBUG_OUT(0)             <= CLK_IN;
-  DEBUG_OUT(1)             <= data_clk_o; --DATA_CLK_IN;
+  DEBUG_OUT(1)             <= DATA_CLK_IN;
   DEBUG_OUT(2)             <= nx_token_return_o;
   DEBUG_OUT(3)             <= nx_nomore_data_o;
 
-  DEBUG_OUT(15 downto 4)   <= adc_data;
+  --DEBUG_OUT(15 downto 4)   <= adc_data;
 
-  --DEBUG_OUT(4)             <= data_clk_o;
-  --DEBUG_OUT(5)             <= new_timestamp;
-  --DEBUG_OUT(6)             <= self_trigger_o;
-  --DEBUG_OUT(7)             <= invalid_adc;
-  --DEBUG_OUT(8)             <= adc_tr_data_clk;
-  --DEBUG_OUT(9)             <= adc_tr_error;
-  --DEBUG_OUT(15 downto 10)  <= channel_o(5 downto 0);
+  DEBUG_OUT(4)             <= data_clk_o;
+  DEBUG_OUT(5)             <= new_timestamp;
+  DEBUG_OUT(6)             <= self_trigger_o;
+  DEBUG_OUT(7)             <= invalid_adc;
+  DEBUG_OUT(8)             <= adc_tr_data_clk;
+  DEBUG_OUT(9)             <= adc_tr_error;
+  DEBUG_OUT(15 downto 10)  <= channel_o(5 downto 0);
 
   -----------------------------------------------------------------------------
   -- Data Separation
@@ -599,7 +599,7 @@ begin
               clear_counters                <= '1';
               slv_ack_o                     <= '1';
            
-            when x"0005" =>
+            when x"0004" =>
               adc_average_divisor           <= SLV_DATA_IN(3 downto 0);
               slv_ack_o                     <= '1';
             

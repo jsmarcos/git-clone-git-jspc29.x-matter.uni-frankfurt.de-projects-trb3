@@ -16,11 +16,11 @@ entity nx_data_delay is
     -- Signals             
     NX_FRAME_IN            : in  std_logic_vector(31 downto 0);
     ADC_DATA_IN            : in  std_logic_vector(11 downto 0);
-    NEW_DATA_IN            : in  std_logic;
+    DATA_CLK_IN            : in  std_logic;
                            
     NX_FRAME_OUT           : out std_logic_vector(31 downto 0);
     ADC_DATA_OUT           : out std_logic_vector(11 downto 0);
-    NEW_DATA_OUT           : out std_logic;
+    DATA_CLK_OUT           : out std_logic;
 
     FIFO_DELAY_IN          : in  std_logic_vector(7 downto 0);
     
@@ -56,7 +56,7 @@ architecture Behavioral of nx_data_delay is
   signal fifo_read_enable_tt   : std_logic;
   signal nx_frame_o            : std_logic_vector(31 downto 0);
   signal adc_data_o            : std_logic_vector(11 downto 0);
-  signal new_data_o            : std_logic;
+  signal data_clk_o            : std_logic;
 
   -- Fifo Delay
   signal fifo_delay            : std_logic_vector(7 downto 0);
@@ -81,15 +81,17 @@ begin
   begin
     if (debug_r = '0') then
     DEBUG_OUT(0)            <= CLK_IN;
-    DEBUG_OUT(1)            <= fifo_reset;
-    DEBUG_OUT(2)            <= fifo_full;
-    DEBUG_OUT(3)            <= fifo_write_enable;
-    DEBUG_OUT(4)            <= fifo_empty;
-    DEBUG_OUT(5)            <= fifo_almost_empty;
-    DEBUG_OUT(6)            <= fifo_read_enable;
-    DEBUG_OUT(7)            <= fifo_read_enable_t;
-    DEBUG_OUT(8)            <= fifo_read_enable_tt;
-    DEBUG_OUT(15 downto 9)  <= NX_FRAME_OUT(14 downto 8);
+    DEBUG_OUT(1)            <= DATA_CLK_IN;
+    DEBUG_OUT(2)            <= fifo_reset;
+    DEBUG_OUT(3)            <= fifo_full;
+    DEBUG_OUT(4)            <= fifo_write_enable;
+    DEBUG_OUT(5)            <= fifo_empty;
+    DEBUG_OUT(6)            <= fifo_almost_empty;
+    DEBUG_OUT(7)            <= fifo_read_enable;
+    DEBUG_OUT(8)            <= fifo_read_enable_t;
+    DEBUG_OUT(9)            <= fifo_read_enable_tt;
+    DEBUG_OUT(10)           <= data_clk_o;
+    --DEBUG_OUT(15 downto 11) <= NX_FRAME_OUT(14 downto 10);
     else
       DEBUG_OUT             <= debug_fifo;
     end if;
@@ -118,7 +120,7 @@ begin
   fifo_reset                   <= RESET_IN or fifo_reset_r or fifo_delay_reset;
   fifo_data_in(31 downto 0)    <= NX_FRAME_IN;
   fifo_data_in(43 downto 32)   <= ADC_DATA_IN;
-  fifo_write_enable            <= NEW_DATA_IN and not fifo_full;
+  fifo_write_enable            <= DATA_CLK_IN and not fifo_full;
     
   -- FIFO Read Handler
   PROC_FIFO_READ: process(CLK_IN)
@@ -130,7 +132,7 @@ begin
 
         nx_frame_o           <= (others => '0');
         adc_data_o           <= (others => '0');
-        new_data_o           <= '0';
+        data_clk_o           <= '0';
       else
         -- Read enable
         fifo_read_enable_t   <= fifo_read_enable;
@@ -139,11 +141,11 @@ begin
         if (fifo_read_enable_tt = '1') then
           nx_frame_o         <= fifo_data_out(31 downto 0);
           adc_data_o         <= fifo_data_out(43 downto 32);
-          new_data_o         <= '1'; 
+          data_clk_o         <= '1'; 
         else
           nx_frame_o         <= x"ffff_ffff";
           adc_data_o         <= x"fff";
-          new_data_o         <= '0';
+          data_clk_o         <= '0';
         end if;
       end if;
     end if;
@@ -157,10 +159,7 @@ begin
         fifo_delay_reset       <= '0';
       else
         fifo_delay_reset       <= '0';
-        if ((FIFO_DELAY_IN /= fifo_delay) and
-            (unsigned(FIFO_DELAY_IN) >= 2)          and
-            (unsigned(FIFO_DELAY_IN) <= 250)
-            ) then
+        if ((FIFO_DELAY_IN /= fifo_delay)) then
             fifo_delay         <= FIFO_DELAY_IN;
             fifo_delay_reset   <= '1';
         else
@@ -243,7 +242,7 @@ begin
   -- Output Signals
   NX_FRAME_OUT          <= nx_frame_o;
   ADC_DATA_OUT          <= adc_data_o;
-  NEW_DATA_OUT          <= new_data_o;
+  DATA_CLK_OUT          <= data_clk_o;
                            
   SLV_DATA_OUT          <= slv_data_o;    
   SLV_NO_MORE_DATA_OUT  <= slv_no_more_data_o; 

@@ -21,7 +21,7 @@ entity adc_spi_master is
     -- Internal Interface  
     INTERNAL_COMMAND_IN    : in    std_logic_vector(31 downto 0);
     COMMAND_ACK_OUT        : out   std_logic;
-    SPI_DATA               : out   std_logic_vector(31 downto 0);
+    SPI_DATA_OUT           : out   std_logic_vector(31 downto 0);
     SPI_LOCK_IN            : in    std_logic;
                            
     -- Slave bus           

@@ -24,7 +24,6 @@ entity nXyter_FEE_board is
     CLK_ADC_IN                 : in  std_logic;
     PLL_NX_CLK_LOCK_IN         : in  std_logic;
     PLL_ADC_DCLK_LOCK_IN       : in  std_logic;
-    NX_DATA_CLK_TEST_IN        : in  std_logic;
     PLL_RESET_OUT              : out std_logic;
     TRIGGER_OUT                : out std_logic;
     
@@ -424,7 +423,7 @@ begin
       SDIO_INOUT           => SPI_SDIO_INOUT,
       CSB_OUT              => SPI_CSB_OUT,
       INTERNAL_COMMAND_IN  => spi_command,
-      COMMAND_BUSY_OUT     => spi_command_busy,
+      COMMAND_ACK_OUT      => spi_command_busy,
       SPI_DATA_OUT         => spi_data,
       SPI_LOCK_IN          => spi_lock,
       SLV_READ_IN          => slv_read(4),
@@ -542,7 +541,7 @@ begin
 
       TIMESTAMP_IN         => timestamp_recv,
       ADC_DATA_IN          => adc_data_recv,
-      NEW_DATA_IN          => data_clk_recv,
+      DATA_CLK_IN          => data_clk_recv,
       SELF_TRIGGER_OUT     => self_trigger,
       
       SLV_READ_IN          => slv_read(5),
@@ -565,7 +564,6 @@ begin
     port map (
       CLK_IN                 => CLK_IN,
       RESET_IN               => RESET_IN,
-      NX_DATA_CLK_TEST_IN    => NX_DATA_CLK_TEST_IN,
       TRIGGER_IN             => trigger_timing,
                              
       NX_TIMESTAMP_CLK_IN    => NX_DATA_CLK_IN,
@@ -584,7 +582,7 @@ begin
                              
       NX_TIMESTAMP_OUT       => timestamp_recv,
       ADC_DATA_OUT           => adc_data_recv,
-      NEW_DATA_OUT           => data_clk_recv,
+      DATA_CLK_OUT           => data_clk_recv,
                              
       SLV_READ_IN            => slv_read(2),                      
       SLV_WRITE_IN           => slv_write(2),                     
@@ -608,11 +606,11 @@ begin
 
       NX_FRAME_IN          => timestamp_recv,
       ADC_DATA_IN          => adc_data_recv,
-      NEW_DATA_IN          => data_clk_recv,
+      DATA_CLK_IN          => data_clk_recv,
 
       NX_FRAME_OUT         => timestamp_delayed,
       ADC_DATA_OUT         => adc_data_delayed,
-      NEW_DATA_OUT         => data_clk_delayed,
+      DATA_CLK_OUT         => data_clk_delayed,
 
       FIFO_DELAY_IN        => data_fifo_delay,  
       

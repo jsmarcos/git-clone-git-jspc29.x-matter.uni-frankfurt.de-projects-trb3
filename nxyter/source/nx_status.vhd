@@ -184,10 +184,10 @@ begin
         online_o          <= '1';
         online_last       <= '0';
       else
-        if (i2c_sm_online = '1' and offline_force = '0') then
-          online_o        <= '1';
-        else
+        if (i2c_sm_online = '0' or offline_force = '1') then
           online_o        <= '0';
+        else
+          online_o        <= '1';
         end if;
         
         -- Offline State changes
