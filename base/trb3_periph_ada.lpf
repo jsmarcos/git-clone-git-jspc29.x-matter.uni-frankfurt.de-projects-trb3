@@ -97,6 +97,8 @@ BLOCK RD_DURING_WR_PATHS ;
 MULTICYCLE FROM CLKNET "clk_100_internal_c" TO CLKNET "CLK_PCLK_LEFT" 2 X ;
 MULTICYCLE FROM CLKNET "CLK_PCLK_LEFT" TO CLKNET "clk_100_internal_c" 2 X ;
 
+LOCATE COMP   "THE_MEDIA_UPLINK/gen_serdes_1_200_THE_SERDES/PCSD_INST" SITE "PCSA" ;
+
 #################################################################
 # Clock I/O
 #################################################################
