@@ -289,6 +289,15 @@ architecture trb3_periph_padiwa_arch of trb3_periph_padiwa is
   signal stat_nack  : std_logic := '0';
   signal stat_addr  : std_logic_vector(15 downto 0) := (others => '0');  
 
+  signal sed_error  : std_logic;
+  signal sed_din    : std_logic_vector(31 downto 0);
+  signal sed_dout   : std_logic_vector(31 downto 0);
+  signal sed_write  : std_logic := '0';
+  signal sed_read   : std_logic := '0';
+  signal sed_ack    : std_logic := '0';
+  signal sed_nack   : std_logic := '0';
+  signal sed_addr   : std_logic_vector(15 downto 0) := (others => '0');  
+
   --TDC
   signal hit_in_i : std_logic_vector(64 downto 1);
   signal input_i  : std_logic_vector(64 downto 1);
@@ -525,13 +534,13 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 11,
-      PORT_ADDRESSES => (0  => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100",
-                         5  => x"c200", 6 => x"c300", 7 => x"b000", 8 => x"c800", 9 => x"cf00",
-                         10 => x"cf80", others => x"0000"),
-      PORT_ADDR_MASK => (0  => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5,
-                         5  => 7, 6 => 7, 7 => 9, 8 => 3, 9 => 6,
-                         10 => 7, others => 0)
+      PORT_NUMBER    => 10,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100",
+                         5 => x"b000", 6 => x"c800", 7 => x"cf00", 8 => x"cf80", 9 => x"d500",
+                         others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5,
+                         5 => 9, 6 => 3, 7 => 6, 8 => 7, 9 => 4,
+                         others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -608,77 +617,88 @@ begin
       BUS_WRITE_ACK_IN(4)                 => '0',
       BUS_NO_MORE_DATA_IN(4)              => '0',
       BUS_UNKNOWN_ADDR_IN(4)              => srb_invalid,
-      --Encoder Start Registers
-      BUS_READ_ENABLE_OUT(5)              => esb_read_en,
-      BUS_WRITE_ENABLE_OUT(5)             => esb_write_en,
-      BUS_DATA_OUT(5*32+31 downto 5*32)   => open,
-      BUS_ADDR_OUT(5*16+6 downto 5*16)    => esb_addr,
-      BUS_ADDR_OUT(5*16+15 downto 5*16+7) => open,
-      BUS_TIMEOUT_OUT(5)                  => open,
-      BUS_DATA_IN(5*32+31 downto 5*32)    => esb_data_out,
-      BUS_DATAREADY_IN(5)                 => esb_data_ready,
-      BUS_WRITE_ACK_IN(5)                 => '0',
-      BUS_NO_MORE_DATA_IN(5)              => '0',
-      BUS_UNKNOWN_ADDR_IN(5)              => esb_invalid,
-      --Fifo Write Registers
-      BUS_READ_ENABLE_OUT(6)              => efb_read_en,
-      BUS_WRITE_ENABLE_OUT(6)             => efb_write_en,
-      BUS_DATA_OUT(6*32+31 downto 6*32)   => open,
-      BUS_ADDR_OUT(6*16+6 downto 6*16)    => efb_addr,
-      BUS_ADDR_OUT(6*16+15 downto 6*16+7) => open,
-      BUS_TIMEOUT_OUT(6)                  => open,
-      BUS_DATA_IN(6*32+31 downto 6*32)    => efb_data_out,
-      BUS_DATAREADY_IN(6)                 => efb_data_ready,
-      BUS_WRITE_ACK_IN(6)                 => '0',
-      BUS_NO_MORE_DATA_IN(6)              => '0',
-      BUS_UNKNOWN_ADDR_IN(6)              => efb_invalid,
+      ----Encoder Start Registers
+      --BUS_READ_ENABLE_OUT(5)              => esb_read_en,
+      --BUS_WRITE_ENABLE_OUT(5)             => esb_write_en,
+      --BUS_DATA_OUT(5*32+31 downto 5*32)   => open,
+      --BUS_ADDR_OUT(5*16+6 downto 5*16)    => esb_addr,
+      --BUS_ADDR_OUT(5*16+15 downto 5*16+7) => open,
+      --BUS_TIMEOUT_OUT(5)                  => open,
+      --BUS_DATA_IN(5*32+31 downto 5*32)    => esb_data_out,
+      --BUS_DATAREADY_IN(5)                 => esb_data_ready,
+      --BUS_WRITE_ACK_IN(5)                 => '0',
+      --BUS_NO_MORE_DATA_IN(5)              => '0',
+      --BUS_UNKNOWN_ADDR_IN(5)              => esb_invalid,
+      ----Fifo Write Registers
+      --BUS_READ_ENABLE_OUT(6)              => efb_read_en,
+      --BUS_WRITE_ENABLE_OUT(6)             => efb_write_en,
+      --BUS_DATA_OUT(6*32+31 downto 6*32)   => open,
+      --BUS_ADDR_OUT(6*16+6 downto 6*16)    => efb_addr,
+      --BUS_ADDR_OUT(6*16+15 downto 6*16+7) => open,
+      --BUS_TIMEOUT_OUT(6)                  => open,
+      --BUS_DATA_IN(6*32+31 downto 6*32)    => efb_data_out,
+      --BUS_DATAREADY_IN(6)                 => efb_data_ready,
+      --BUS_WRITE_ACK_IN(6)                 => '0',
+      --BUS_NO_MORE_DATA_IN(6)              => '0',
+      --BUS_UNKNOWN_ADDR_IN(6)              => efb_invalid,
       --SCI first Media Interface
-      BUS_READ_ENABLE_OUT(7)              => sci1_read,
-      BUS_WRITE_ENABLE_OUT(7)             => sci1_write,
-      BUS_DATA_OUT(7*32+7 downto 7*32)    => sci1_data_in,
-      BUS_DATA_OUT(7*32+31 downto 7*32+8) => open,
-      BUS_ADDR_OUT(7*16+8 downto 7*16)    => sci1_addr,
-      BUS_ADDR_OUT(7*16+15 downto 7*16+9) => open,
-      BUS_TIMEOUT_OUT(7)                  => open,
-      BUS_DATA_IN(7*32+7 downto 7*32)     => sci1_data_out,
-      BUS_DATAREADY_IN(7)                 => sci1_ack,
-      BUS_WRITE_ACK_IN(7)                 => sci1_ack,
-      BUS_NO_MORE_DATA_IN(7)              => '0',
-      BUS_UNKNOWN_ADDR_IN(7)              => '0',
+      BUS_READ_ENABLE_OUT(5)              => sci1_read,
+      BUS_WRITE_ENABLE_OUT(5)             => sci1_write,
+      BUS_DATA_OUT(5*32+7 downto 5*32)    => sci1_data_in,
+      BUS_DATA_OUT(5*32+31 downto 5*32+8) => open,
+      BUS_ADDR_OUT(5*16+8 downto 5*16)    => sci1_addr,
+      BUS_ADDR_OUT(5*16+15 downto 5*16+9) => open,
+      BUS_TIMEOUT_OUT(5)                  => open,
+      BUS_DATA_IN(5*32+7 downto 5*32)     => sci1_data_out,
+      BUS_DATAREADY_IN(5)                 => sci1_ack,
+      BUS_WRITE_ACK_IN(5)                 => sci1_ack,
+      BUS_NO_MORE_DATA_IN(5)              => '0',
+      BUS_UNKNOWN_ADDR_IN(5)              => '0',
       --TDC config registers
-      BUS_READ_ENABLE_OUT(8)              => tdc_ctrl_read,
-      BUS_WRITE_ENABLE_OUT(8)             => tdc_ctrl_write,
-      BUS_DATA_OUT(8*32+31 downto 8*32)   => tdc_ctrl_data_in,
-      BUS_ADDR_OUT(8*16+2 downto 8*16)    => tdc_ctrl_addr,
-      BUS_ADDR_OUT(8*16+15 downto 8*16+3) => open,
-      BUS_TIMEOUT_OUT(8)                  => open,
-      BUS_DATA_IN(8*32+31 downto 8*32)    => tdc_ctrl_data_out,
-      BUS_DATAREADY_IN(8)                 => last_tdc_ctrl_read,
-      BUS_WRITE_ACK_IN(8)                 => tdc_ctrl_write,
-      BUS_NO_MORE_DATA_IN(8)              => '0',
-      BUS_UNKNOWN_ADDR_IN(8)              => '0',
+      BUS_READ_ENABLE_OUT(6)              => tdc_ctrl_read,
+      BUS_WRITE_ENABLE_OUT(6)             => tdc_ctrl_write,
+      BUS_DATA_OUT(6*32+31 downto 6*32)   => tdc_ctrl_data_in,
+      BUS_ADDR_OUT(6*16+2 downto 6*16)    => tdc_ctrl_addr,
+      BUS_ADDR_OUT(6*16+15 downto 6*16+3) => open,
+      BUS_TIMEOUT_OUT(6)                  => open,
+      BUS_DATA_IN(6*32+31 downto 6*32)    => tdc_ctrl_data_out,
+      BUS_DATAREADY_IN(6)                 => last_tdc_ctrl_read,
+      BUS_WRITE_ACK_IN(6)                 => tdc_ctrl_write,
+      BUS_NO_MORE_DATA_IN(6)              => '0',
+      BUS_UNKNOWN_ADDR_IN(6)              => '0',
       --Trigger logic registers
-      BUS_READ_ENABLE_OUT(9)              => trig_read,
-      BUS_WRITE_ENABLE_OUT(9)             => trig_write,
-      BUS_DATA_OUT(9*32+31 downto 9*32)   => trig_din,
-      BUS_ADDR_OUT(9*16+15 downto 9*16)   => trig_addr,
-      BUS_TIMEOUT_OUT(9)                  => open,
-      BUS_DATA_IN(9*32+31 downto 9*32)    => trig_dout,
-      BUS_DATAREADY_IN(9)                 => trig_ack,
-      BUS_WRITE_ACK_IN(9)                 => trig_ack,
-      BUS_NO_MORE_DATA_IN(9)              => '0',
-      BUS_UNKNOWN_ADDR_IN(9)              => trig_nack,
+      BUS_READ_ENABLE_OUT(7)              => trig_read,
+      BUS_WRITE_ENABLE_OUT(7)             => trig_write,
+      BUS_DATA_OUT(7*32+31 downto 7*32)   => trig_din,
+      BUS_ADDR_OUT(7*16+15 downto 7*16)   => trig_addr,
+      BUS_TIMEOUT_OUT(7)                  => open,
+      BUS_DATA_IN(7*32+31 downto 7*32)    => trig_dout,
+      BUS_DATAREADY_IN(7)                 => trig_ack,
+      BUS_WRITE_ACK_IN(7)                 => trig_ack,
+      BUS_NO_MORE_DATA_IN(7)              => '0',
+      BUS_UNKNOWN_ADDR_IN(7)              => trig_nack,
       --Input statistics
-      BUS_READ_ENABLE_OUT(10)             => stat_read,
-      BUS_WRITE_ENABLE_OUT(10)            => stat_write,
-      BUS_DATA_OUT(10*32+31 downto 10*32) => stat_din,
-      BUS_ADDR_OUT(10*16+15 downto 10*16) => stat_addr,
-      BUS_TIMEOUT_OUT(10)                 => open,
-      BUS_DATA_IN(10*32+31 downto 10*32)  => stat_dout,
-      BUS_DATAREADY_IN(10)                => stat_ack,
-      BUS_WRITE_ACK_IN(10)                => stat_ack,
-      BUS_NO_MORE_DATA_IN(10)             => '0',
-      BUS_UNKNOWN_ADDR_IN(10)             => stat_nack,
+      BUS_READ_ENABLE_OUT(8)             => stat_read,
+      BUS_WRITE_ENABLE_OUT(8)            => stat_write,
+      BUS_DATA_OUT(8*32+31 downto 8*32) => stat_din,
+      BUS_ADDR_OUT(8*16+15 downto 8*16) => stat_addr,
+      BUS_TIMEOUT_OUT(8)                 => open,
+      BUS_DATA_IN(8*32+31 downto 8*32)  => stat_dout,
+      BUS_DATAREADY_IN(8)                => stat_ack,
+      BUS_WRITE_ACK_IN(8)                => stat_ack,
+      BUS_NO_MORE_DATA_IN(8)             => '0',
+      BUS_UNKNOWN_ADDR_IN(8)             => stat_nack,
+      --SEU Detection
+      BUS_READ_ENABLE_OUT(9)              => sed_read,
+      BUS_WRITE_ENABLE_OUT(9)             => sed_write,
+      BUS_DATA_OUT(9*32+31 downto 9*32)   => sed_din,
+      BUS_ADDR_OUT(9*16+15 downto 9*16)   => sed_addr,
+      BUS_TIMEOUT_OUT(9)                  => open,
+      BUS_DATA_IN(9*32+31 downto 9*32)    => sed_dout,
+      BUS_DATAREADY_IN(9)                 => sed_ack,
+      BUS_WRITE_ACK_IN(9)                 => sed_ack,
+      BUS_NO_MORE_DATA_IN(9)              => '0',
+      BUS_UNKNOWN_ADDR_IN(9)              => sed_nack,
 
       STAT_DEBUG => open
       );
@@ -825,6 +845,31 @@ gen_STATISTICS : if INCLUDE_STATISTICS = 1 generate
 end generate;
 
 ---------------------------------------------------------------------------
+-- SED Detection
+---------------------------------------------------------------------------
+THE_SED : entity work.sedcheck
+  port map(
+    CLK        => clk_100_i,
+    ERROR_OUT  => sed_error,
+    
+    DATA_IN    => sed_din,
+    DATA_OUT   => sed_dout, 
+    WRITE_IN   => sed_write,
+    READ_IN    => sed_read,
+    ACK_OUT    => sed_ack,  
+    NACK_OUT   => sed_nack, 
+    ADDR_IN    => sed_addr
+    );
+
+-- THE_SED : entity work.sedcheck 
+--   port map(
+--     CLK        => clk_100_i,
+--     ERROR_OUT  => sed_error,
+--     i_rst_p    => i_rst_p,
+--     STATUS_OUT => TEST_LINE(11 downto 0)
+--     ); 
+
+---------------------------------------------------------------------------
 -- Reboot FPGA
 ---------------------------------------------------------------------------
   THE_FPGA_REBOOT : fpga_reboot
@@ -866,7 +911,7 @@ end generate;
   THE_TDC : TDC
     generic map (
       CHANNEL_NUMBER => NUM_TDC_CHANNELS,   -- Number of TDC channels
-      STATUS_REG_NR  => 20,             -- Number of status regs
+      STATUS_REG_NR  => 21,             -- Number of status regs
       CONTROL_REG_NR => 6,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
       TDC_VERSION    => x"160",         -- TDC version number
       DEBUG          => c_YES,
