@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2014-04-09
+-- Last update: 2014-04-18
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -280,8 +280,9 @@ begin  -- Channel_200
       BINARY_CODE_OUT => encoder_data_out_i,
       ENCODER_DEBUG   => encoder_debug_i);
 
-  FIFO : FIFO_DC_36x128_OutReg
-    port map (
+  RingBuffer: if USE_64_FIFO = c_NO generate
+    FIFO : FIFO_DC_36x128_OutReg
+      port map (
       Data       => fifo_data_in_i,
       WrClock    => CLK_200,
       RdClock    => CLK_100,
@@ -293,6 +294,23 @@ begin  -- Channel_200
       Empty      => fifo_empty_i,
       Full       => fifo_full_i,
       AlmostFull => fifo_almost_full_i);
+  end generate RingBuffer;
+
+  RingBuffer: if USE_64_FIFO = c_YES generate
+    FIFO : FIFO_DC_36x64_OutReg
+      port map (
+      Data       => fifo_data_in_i,
+      WrClock    => CLK_200,
+      RdClock    => CLK_100,
+      WrEn       => fifo_wr_en_i,
+      RdEn       => fifo_rd_en_i,
+      Reset      => RESET_100,
+      RPReset    => RESET_200,
+      Q          => fifo_data_out_i,
+      Empty      => fifo_empty_i,
+      Full       => fifo_full_i,
+      AlmostFull => fifo_almost_full_i);
+  end generate RingBuffer;  
 
   fifo_almost_full_sync  <= fifo_almost_full_i                      when rising_edge(CLK_100);
   fifo_rd_en_i           <= fifo_rd_data_i or fifo_almost_full_sync when rising_edge(CLK_100);
