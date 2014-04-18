@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<DiamondModule name="fifo_44_data_delay" module="FIFO" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2013 12 01 16:22:47.436" version="4.8" type="Module" synthesis="" source_format="VHDL">
-  <Package>
-		<File name="fifo_44_data_delay.lpc" type="lpc" modified="2013 12 01 16:22:45.000"/>
-		<File name="fifo_44_data_delay.vhd" type="top_level_vhdl" modified="2013 12 01 16:22:45.000"/>
-		<File name="fifo_44_data_delay_tmpl.vhd" type="template_vhdl" modified="2013 12 01 16:22:45.000"/>
-		<File name="tb_fifo_44_data_delay_tmpl.vhd" type="testbench_vhdl" modified="2013 12 01 16:22:45.000"/>
-  </Package>
-</DiamondModule>

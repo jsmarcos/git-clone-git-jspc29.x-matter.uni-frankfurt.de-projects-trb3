@@ -366,13 +366,13 @@ begin
             slv_ack_o                        <= '0';
           elsif (unsigned(SLV_ADDR_IN) >= x"0100" and
                  unsigned(SLV_ADDR_IN) <= x"017f") then
-            ovfl_read_id                     <= SLV_ADDR_IN(6 downto 0);
-            ovfl_read                        <= '1';
+            pileup_read_id                   <= SLV_ADDR_IN(6 downto 0);
+            pileup_read                      <= '1';            
             slv_ack_o                        <= '0';
           elsif (unsigned(SLV_ADDR_IN) >= x"0200" and
                  unsigned(SLV_ADDR_IN) <= x"027f") then
-            pileup_read_id                   <= SLV_ADDR_IN(6 downto 0);
-            pileup_read                      <= '1';
+            ovfl_read_id                     <= SLV_ADDR_IN(6 downto 0);
+            ovfl_read                        <= '1';
             slv_ack_o                        <= '0';
           elsif (unsigned(SLV_ADDR_IN) >= x"0300" and
                  unsigned(SLV_ADDR_IN) <= x"037f") then

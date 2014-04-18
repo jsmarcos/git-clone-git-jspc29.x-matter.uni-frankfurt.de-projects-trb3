@@ -5,7 +5,7 @@ use ieee.numeric_std.all;
 library work;
 use work.nxyter_components.all;
 
-entity nx_control is
+entity nx_status is
   port(
     CLK_IN                 : in  std_logic;
     RESET_IN               : in  std_logic;
@@ -14,13 +14,13 @@ entity nx_control is
     PLL_NX_CLK_LOCK_IN     : in std_logic;
     PLL_ADC_DCLK_LOCK_IN   : in std_logic;
     PLL_ADC_SCLK_LOCK_IN   : in std_logic;
-
+    PLL_RESET_OUT          : out std_logic;
+    
     -- Signals             
-    I2C_SM_RESET_OUT       : out std_logic;
+    I2C_SM_RESET_OUT       : inout std_logic;
     I2C_REG_RESET_OUT      : out std_logic;
     NX_TS_RESET_OUT        : out std_logic;
-    I2C_ONLINE_IN          : in  std_logic;
-    OFFLINE_OUT            : out std_logic;
+    NX_ONLINE_OUT          : out std_logic;
 
     -- Error
     ERROR_ALL_IN           : in  std_logic_vector(7 downto 0);
@@ -39,16 +39,20 @@ entity nx_control is
     );
 end entity;
 
-architecture Behavioral of nx_control is
+architecture Behavioral of nx_status is
 
   -- Offline Handler
-  signal offline_force_internal   : std_logic;
+
+  signal i2c_sm_reset_i_x         : std_logic;
+  signal i2c_sm_reset_i           : std_logic;
+  signal i2c_sm_online            : std_logic;
+  signal i2c_sm_online_ctr        : unsigned(8 downto 0);
+
   signal offline_force            : std_logic;
-  signal offline_o                : std_logic;
-  signal offline_on               : std_logic;
-  signal online_on                : std_logic;
-  signal offline_last             : std_logic;
-                                  
+  signal online_o                : std_logic;
+  signal online_trigger          : std_logic;
+  signal online_last             : std_logic;
+
   -- I2C Reset                    
   signal i2c_sm_reset_start       : std_logic;
   signal i2c_reg_reset_start      : std_logic;
@@ -57,7 +61,7 @@ architecture Behavioral of nx_control is
   signal i2c_sm_reset_o           : std_logic;
   signal i2c_reg_reset_o          : std_logic;
   signal nx_ts_reset_o            : std_logic;
-
+  
 
   type STATES is (S_IDLE,
                   S_I2C_SM_RESET,
@@ -71,6 +75,7 @@ architecture Behavioral of nx_control is
   signal STATE : STATES;
   
   -- Wait Timer
+  signal wait_timer_start         : std_logic;
   signal wait_timer_init          : unsigned(7 downto 0);
   signal wait_timer_done          : std_logic;
 
@@ -88,6 +93,7 @@ architecture Behavioral of nx_control is
   signal pll_adc_sclk_notlock_ctr : unsigned(15 downto 0);
 
   signal clear_notlock_counters   : std_logic;
+  signal pll_reset_o              : std_logic;
   
   -- Nxyter Data Clock
   signal nx_data_clk_dphase_o     : std_logic_vector(3 downto 0);
@@ -113,60 +119,87 @@ begin
   DEBUG_OUT(9)            <= pll_adc_sclk_lock;
 
 
-  DEBUG_OUT(10)           <= I2C_ONLINE_IN;
+  DEBUG_OUT(10)           <= i2c_sm_online;
   DEBUG_OUT(11)           <= offline_force;
-  DEBUG_OUT(12)           <= offline_force_internal;
-  DEBUG_OUT(13)           <= offline_o;
-  DEBUG_OUT(14)           <= online_on;
-  DEBUG_OUT(15)           <= '0';
+  DEBUG_OUT(12)           <= online_o;
+  DEBUG_OUT(13)           <= i2c_sm_reset_i;
+  DEBUG_OUT(14)           <= pll_reset_o;
+  DEBUG_OUT(15)           <= online_trigger;
   
-  nx_timer_1: nx_timer
+  timer_1: timer
     generic map (
       CTR_WIDTH => 8
       )
     port map (
-      CLK_IN         => CLK_IN,
-      RESET_IN       => RESET_IN,
-      TIMER_START_IN => wait_timer_init,
-      TIMER_DONE_OUT => wait_timer_done
+      CLK_IN          => CLK_IN,
+      RESET_IN        => RESET_IN,
+      TIMER_START_IN  => wait_timer_start,
+      TIMER_END_IN    => wait_timer_init,
+      TIMER_DONE_OUT  => wait_timer_done
       );
 
   -----------------------------------------------------------------------------
   -- Offline Handler
   -----------------------------------------------------------------------------
 
-  offline_force_internal <= '0';
+  signal_async_trans_i2c_sm_reset_i: signal_async_trans
+    port map (
+      CLK_IN      => CLK_IN,
+      SIGNAL_A_IN => i2c_sm_reset_i_x,
+      SIGNAL_OUT  => i2c_sm_reset_i
+      );
 
-  PROC_NXYTER_OFFLINE: process(CLK_IN)
-    variable offline_state : std_logic_vector(1 downto 0) := "00";
+  PROC_I2C_OFFLINE_SCHMITT_TRIGGER: process(CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        offline_on         <= '0';
-        online_on          <= '0';
-        offline_o          <= '1';
-        offline_last       <= '0';
+        i2c_sm_online       <= '0';
+        i2c_sm_online_ctr   <= (others => '0');
       else
-        if (offline_force = '1' or offline_force_internal = '1') then
-          offline_o        <= '1';
+        if (i2c_sm_reset_i = '1') then
+          if (i2c_sm_online_ctr < x"1ff") then
+            i2c_sm_online_ctr  <= i2c_sm_online_ctr + 1;
+          end if;
         else
-          offline_o        <= not I2C_ONLINE_IN;
+          if (i2c_sm_online_ctr > x"000") then
+            i2c_sm_online_ctr  <= i2c_sm_online_ctr - 1;
+          end if;
+        end if;
+
+        if (i2c_sm_online_ctr > x"1d6") then
+          i2c_sm_online        <= '1';
+        elsif (i2c_sm_online_ctr < x"01e") then
+          i2c_sm_online        <= '0';
+        end if;
+      end if;
+    end if;
+  end process PROC_I2C_OFFLINE_SCHMITT_TRIGGER;
+  
+  PROC_NXYTER_OFFLINE: process(CLK_IN)
+    variable online_state : std_logic_vector(1 downto 0) := "00";
+  begin
+    if( rising_edge(CLK_IN) ) then
+      if( RESET_IN = '1' ) then
+        online_trigger    <= '0';
+        online_o          <= '1';
+        online_last       <= '0';
+      else
+        if (i2c_sm_online = '0' or offline_force = '1') then
+          online_o        <= '0';
+        else
+          online_o        <= '1';
         end if;
         
         -- Offline State changes
-        offline_on         <= '0';
-        online_on          <= '0';
-        offline_last       <= offline_o;
-        offline_state      := offline_o & offline_last;
+        online_last       <= online_o;
+        online_state      := online_o & online_last;
         
-        case offline_state is
-          when  "01" =>
-            offline_on     <= '1';
-            
-          when  "10" =>
-            online_on      <= '0';
+        case online_state is
+          when  "01" | "10" =>
+            online_trigger <= '1';
 
-          when others => null;
+          when others =>
+            online_trigger <= '0';
         end case;
       end if;
     end if;
@@ -180,7 +213,7 @@ begin
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        wait_timer_init    <= (others => '0');
+        wait_timer_start   <= '0';
         i2c_sm_reset_o     <= '0';
         i2c_reg_reset_o    <= '0';
         nx_ts_reset_o      <= '0';
@@ -189,8 +222,8 @@ begin
         i2c_sm_reset_o     <= '0';
         i2c_reg_reset_o    <= '0';
         nx_ts_reset_o      <= '0';
-        wait_timer_init    <= (others => '0');
-        
+        wait_timer_start   <= '0';
+
         case STATE is
           when S_IDLE =>
             if (i2c_sm_reset_start = '1') then
@@ -206,6 +239,7 @@ begin
           when S_I2C_SM_RESET =>
             i2c_sm_reset_o   <= '1';
             wait_timer_init  <= x"8f";
+            wait_timer_start <= '1';
             STATE            <= S_I2C_SM_RESET_WAIT;
 
           when S_I2C_SM_RESET_WAIT =>
@@ -219,6 +253,7 @@ begin
           when S_I2C_REG_RESET =>
             i2c_reg_reset_o  <= '1';
             wait_timer_init  <= x"8f";
+            wait_timer_start <= '1';
             STATE            <= S_I2C_REG_RESET_WAIT;
 
           when S_I2C_REG_RESET_WAIT =>
@@ -232,6 +267,7 @@ begin
           when S_NX_TS_RESET =>
             nx_ts_reset_o    <= '1';
             wait_timer_init  <= x"01";
+            wait_timer_start <= '1';
             STATE            <= S_NX_TS_RESET_WAIT;
 
           when S_NX_TS_RESET_WAIT =>
@@ -255,7 +291,6 @@ begin
   signal_async_trans_1: signal_async_trans
     port map (
       CLK_IN      => CLK_IN,
-      RESET_IN    => RESET_IN,
       SIGNAL_A_IN => PLL_NX_CLK_LOCK_IN,
       SIGNAL_OUT  => pll_nx_clk_lock
       );
@@ -263,7 +298,6 @@ begin
   signal_async_trans_2: signal_async_trans
     port map (
       CLK_IN      => CLK_IN,
-      RESET_IN    => RESET_IN,
       SIGNAL_A_IN => PLL_ADC_DCLK_LOCK_IN,
       SIGNAL_OUT  => pll_adc_dclk_lock
       );
@@ -271,7 +305,6 @@ begin
   signal_async_trans_3: signal_async_trans
     port map (
       CLK_IN      => CLK_IN,
-      RESET_IN    => RESET_IN,
       SIGNAL_A_IN => PLL_ADC_SCLK_LOCK_IN,
       SIGNAL_OUT  => pll_adc_sclk_lock
       );
@@ -303,23 +336,28 @@ begin
   PROC_PLL_UNLOCK_COUNTERS: process (CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then
-      if( RESET_IN = '1' or clear_notlock_counters = '1') then
-        pll_nx_clk_notlock_ctr    <= (others => '0');
+      if( RESET_IN = '1') then
+        pll_nx_clk_notlock_ctr     <= (others => '0');
         pll_adc_dclk_notlock_ctr   <= (others => '0');
         pll_adc_sclk_notlock_ctr   <= (others => '0');
       else
-        if (pll_nx_clk_notlock = '1') then
-          pll_nx_clk_notlock_ctr  <= pll_nx_clk_notlock_ctr + 1;
-        end if;
+        if (clear_notlock_counters = '1') then
+          pll_nx_clk_notlock_ctr      <= (others => '0');
+          pll_adc_dclk_notlock_ctr    <= (others => '0');
+          pll_adc_sclk_notlock_ctr    <= (others => '0');
+        else
+          if (pll_nx_clk_notlock = '1') then
+            pll_nx_clk_notlock_ctr    <= pll_nx_clk_notlock_ctr + 1;
+          end if;
 
-        if (pll_adc_dclk_notlock = '1') then
-         pll_adc_dclk_notlock_ctr  <= pll_adc_dclk_notlock_ctr + 1;
-        end if;
+          if (pll_adc_dclk_notlock = '1') then
+            pll_adc_dclk_notlock_ctr  <= pll_adc_dclk_notlock_ctr + 1;
+          end if;
 
-        if (pll_adc_sclk_notlock = '1') then
-         pll_adc_sclk_notlock_ctr  <= pll_adc_sclk_notlock_ctr + 1;
+          if (pll_adc_sclk_notlock = '1') then
+            pll_adc_sclk_notlock_ctr  <= pll_adc_sclk_notlock_ctr + 1;
+          end if;
         end if;
-
       end if;
     end if;
   end process PROC_PLL_UNLOCK_COUNTERS;
@@ -343,6 +381,7 @@ begin
         nx_data_clk_dphase_o       <= x"7";
         nx_data_clk_finedelb_o     <= x"0";
         clear_notlock_counters     <= '0';
+        pll_reset_o                <= '0';
       else                         
         slv_unknown_addr_o         <= '0';
         slv_no_more_data_o         <= '0';
@@ -351,6 +390,7 @@ begin
         i2c_reg_reset_start        <= '0';
         nx_ts_reset_start          <= '0';
         clear_notlock_counters     <= '0';
+        pll_reset_o                <= '0';
         
         if (SLV_WRITE_IN  = '1') then
           case SLV_ADDR_IN is
@@ -370,6 +410,10 @@ begin
               offline_force               <= SLV_DATA_IN(0);
               slv_ack_o                   <= '1';
 
+            when x"0006" =>               
+              pll_reset_o                 <= '1';
+              slv_ack_o                   <= '1';
+              
             when x"000a" =>               
               clear_notlock_counters      <= '1';
               slv_ack_o                   <= '1';
@@ -381,18 +425,23 @@ begin
           
         elsif (SLV_READ_IN = '1') then
           case SLV_ADDR_IN is
+            when x"0000" =>
+              slv_data_out_o(0)           <= i2c_sm_reset_i;
+              slv_data_out_o(31 downto 1) <= (others => '0');
+              slv_ack_o                   <= '1';
+              
             when x"0003" =>
               slv_data_out_o(0)           <= offline_force;
               slv_data_out_o(31 downto 1) <= (others => '0');
               slv_ack_o                   <= '1';
 
             when x"0004" =>
-              slv_data_out_o(0)           <= I2C_ONLINE_IN;
+              slv_data_out_o(0)           <= i2c_sm_online;
               slv_data_out_o(31 downto 1) <= (others => '0');
               slv_ack_o                   <= '1';
 
             when x"0005" =>
-              slv_data_out_o(0)           <= offline_o;
+              slv_data_out_o(0)           <= online_o;
               slv_data_out_o(31 downto 1) <= (others => '0');
               slv_ack_o                   <= '1';
 
@@ -444,14 +493,17 @@ begin
   end process PROC_NX_REGISTERS;
 
   -- Output Signals
-  SLV_DATA_OUT         <= slv_data_out_o;    
-  SLV_NO_MORE_DATA_OUT <= slv_no_more_data_o; 
-  SLV_UNKNOWN_ADDR_OUT <= slv_unknown_addr_o;
-  SLV_ACK_OUT          <= slv_ack_o;          
-  
-  I2C_SM_RESET_OUT     <= i2c_sm_reset_o;
-  I2C_REG_RESET_OUT    <= i2c_reg_reset_o;
-  NX_TS_RESET_OUT      <= nx_ts_reset_o;
-  OFFLINE_OUT          <= offline_o;
+  i2c_sm_reset_i_x      <= I2C_SM_RESET_OUT;
 
+  SLV_DATA_OUT          <= slv_data_out_o;    
+  SLV_NO_MORE_DATA_OUT  <= slv_no_more_data_o; 
+  SLV_UNKNOWN_ADDR_OUT  <= slv_unknown_addr_o;
+  SLV_ACK_OUT           <= slv_ack_o;          
+
+  PLL_RESET_OUT         <= pll_reset_o;
+  I2C_SM_RESET_OUT      <= '0' when i2c_sm_reset_o = '1' else 'Z';
+  I2C_REG_RESET_OUT     <= not i2c_reg_reset_o;
+  NX_TS_RESET_OUT       <= nx_ts_reset_o;
+  NX_ONLINE_OUT         <= online_o;
+  
 end Behavioral;

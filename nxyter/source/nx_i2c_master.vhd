@@ -23,7 +23,7 @@ entity nx_i2c_master is
     I2C_DATA_OUT         : out   std_logic_vector(31 downto 0);
     I2C_DATA_BYTES_OUT   : out   std_logic_vector(31 downto 0);
     I2C_LOCK_IN          : in    std_logic;
-    
+
     -- Slave bus         
     SLV_READ_IN          : in    std_logic;
     SLV_WRITE_IN         : in    std_logic;
@@ -148,8 +148,8 @@ begin
   DEBUG_OUT(11)           <= i2c_busy;
   DEBUG_OUT(12)           <= sda_o;
   DEBUG_OUT(13)           <= scl_o;
-  DEBUG_OUT(14)           <= sda;
-  DEBUG_OUT(15)           <= scl;
+  DEBUG_OUT(14)           <= sda_i;
+  DEBUG_OUT(15)           <= scl_i;
   --DEBUG_OUT(12 downto 9)  <= i2c_data(31 downto 28);
   
   -- Start / Stop Sequence
@@ -223,7 +223,7 @@ begin
       end if;
     end if;
   end process PROC_I2C_LINES_SYNC;
-
+  
   PROC_I2C_MASTER_TRANSFER: process(CLK_IN)
   begin 
     if( rising_edge(CLK_IN) ) then
@@ -288,7 +288,7 @@ begin
       when S_IDLE =>
         if (i2c_start = '1') then
           i2c_data_x            <= x"8000_0000"; -- Set Running, clear all
-                                               -- other bits 
+                                                 -- other bits 
           NEXT_STATE            <= S_START;
         else
           i2c_busy_x            <= '0';
@@ -597,7 +597,7 @@ begin
   COMMAND_BUSY_OUT     <= command_busy_o;
   I2C_DATA_OUT         <= i2c_data_internal_o;
   I2C_DATA_BYTES_OUT   <= i2c_data_internal_bytes_o;
-
+  
   -- Slave Bus
   SLV_DATA_OUT         <= slv_data_out_o;    
   SLV_NO_MORE_DATA_OUT <= slv_no_more_data_o; 

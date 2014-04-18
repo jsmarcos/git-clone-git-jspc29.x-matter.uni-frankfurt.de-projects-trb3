@@ -63,11 +63,9 @@
 0x8505 :  r/w  johnson_counter_sync (2 Bit), do not touch, experts only register
 0x8506 :  r/w  PLL ADC Sampling Clock DPHASE (4 Bit)
 0x8507 :  r/w  PLL ADC Sampling Clock FINEDELB (4 Bit)
-
 0x8508 :  r    current ADC FIFO value
-0x8509 :  r/w  Enable Test ADC Input Data Error Test
-0x850a :  r    ADC Input Data Error Counter (16 Bit)
-                (only valid in case of 0x8509 is 1, see line above)
+0x8509 :  r    ADC Reset Counter
+0x850a :  r    Reserved 
 0x850b :  r/w  r: Nxyter Data Clock Status (1 = O.K.)
                w: reset ADC Handler
 0x850c :  r/w  r: Reset Handler Counter (16 Bit)
@@ -78,11 +76,15 @@
 0x850f :  r    ADC Not Lock Frame Counter, should be constant
 0x8510 :  r    Raw Nxyter Frame Rate, must be 31.25 MHz
 0x8511 :  r    Raw ADC Frame Rate, must be 31.25 MHz
-0x8512 :  r/w  Debug Multiplexer:
-               0: no ADC Values, normal Debug
-               1: ADC Value Nxyter
-               2: ADC Value Testchannel
-               3: ADC Reset Handler
+0x8512 :  r    Test ADC Value
+0x8513 :  r    Error Status Bits   
+0x8514 :  r    Data Frame Rate, i.e. Combination Nxyter and ADC Frames 
+0x851e :  r/w  Debug Multiplexer:
+               0: Default Debug
+               1: Reset Handler
+               2: ADC Handler adc_ad922** direct
+               3: Testchannel handler, forget about it
+0x851f :  r/w  ADC Debug Multiplexer:
 
 -- NX Data Validate
 0x8120 :  r/w  Invalid Frame Counter (16 bit) / w: clear all counters
@@ -93,10 +95,10 @@
 0x8125 :  r    Frame Rate (in Hz)
 
 -- NX Data Delay
-0x8130 :  r    FIFO Delay, i.e. Trigger Delay (8 Bit, in 32ns).
+0x8180 :  r    FIFO Delay, i.e. Trigger Delay (8 Bit, in 32ns).
                 Calculation is based on CTS Trigger Delay
                (see NX Trigger Validate)
-0x8131 : r/w   Debug Multiplexer (0=Dta Delay, 1=FIFO)
+0x8181 : r/w   Debug Multiplexer (0=Data Delay, 1=FIFO)
 
 -- NX Trigger Validate
 0x8400 :  r/w  Readout Mode: 4 Bits
@@ -151,8 +153,8 @@
 
 -- Event Data Buffer
 0x8600 :  r    read FIFO buffer
-0x8601 :  r    FIFO write counter
-0x8602 :  r    FIFO flush counter
+0x8601 :  rw   Fifo Depth in words (10...4000, default 350)
+0x8602 :  r    FIFO flush counter last
 0x8603 :  r    read FIFO status
 
 --- DEBUG ------------------------------------------------------------
@@ -188,8 +190,8 @@
 
 -- Debug Multiplexer
 0x8020 :  r/w   Select Debug Entity
-                 0: nxyter_registers
-                 1: nx_setup
+                 0: nx_status
+                 1: nx_register_setup
                  2: nx_i2c_master
                  3: adc_spi_master
                  4: nx_fpga_timestamp

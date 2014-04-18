@@ -19,10 +19,9 @@ entity pulse_delay is
 end entity;
 
 architecture Behavioral of pulse_delay is
+  signal start_timer_x  : std_logic;
 
-  signal start_timer_x  : unsigned(23 downto 0);
-
-  signal start_timer    : unsigned(23 downto 0);
+  signal start_timer    : std_logic;
   signal timer_done     : std_logic;
   signal pulse_o        : std_logic;
 
@@ -33,9 +32,10 @@ architecture Behavioral of pulse_delay is
   
 begin
   
-  nx_timer_1: nx_timer
+  timer_static_1: timer_static
     generic map (
-      CTR_WIDTH => 24
+      CTR_WIDTH => 24,
+      CTR_END   => (DELAY - 1)
       )
     port map (
       CLK_IN          => CLK_IN,
@@ -48,7 +48,7 @@ begin
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        start_timer    <= (others => '0');
+        start_timer    <= '0';
         STATE          <= IDLE;
       else
         start_timer    <= start_timer_x;
@@ -61,27 +61,25 @@ begin
                         PULSE_IN,
                         timer_done
                         )
-    constant TIMER_VALUE :
-    unsigned(23 downto 0) := to_unsigned(DELAY - 1, 24);
-
+ 
   begin
     pulse_o                <= '0';
     case STATE is
       when IDLE =>
         if (PULSE_IN = '1') then
-          start_timer_x    <= TIMER_VALUE;
+          start_timer_x    <= '1';
           pulse_o          <= '0';
           NEXT_STATE       <= WAIT_TIMER;
         else
-          start_timer_x    <= (others => '0');
+          start_timer_x    <= '0';
           pulse_o                <= '0';
           NEXT_STATE       <= IDLE;
         end if;
 
       when WAIT_TIMER =>
-        start_timer_x      <= (others => '0');
+        start_timer_x      <= '0';
         if (timer_done = '0') then
-          pulse_o                <= '0';
+          pulse_o          <= '0';
           NEXT_STATE       <= WAIT_TIMER; 
         else
           pulse_o          <= '1';

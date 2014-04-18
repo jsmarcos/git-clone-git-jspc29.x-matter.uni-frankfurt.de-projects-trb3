@@ -18,6 +18,9 @@ entity signal_async_to_pulse is
 end entity;
 
 architecture Behavioral of signal_async_to_pulse is
+  attribute HGROUP : string;
+  attribute HGROUP of Behavioral : architecture is "SIGNAL_ASYNC_TO_PULSE";
+
   signal pulse_ff      : std_logic_vector(NUM_FF - 1 downto 0);
   signal pulse_o       : std_logic;
 
@@ -31,13 +34,9 @@ begin
   begin
     if( rising_edge(CLK_IN) ) then
       pulse_ff(NUM_FF - 1)             <= PULSE_A_IN;
-      if( RESET_IN = '1' ) then
-        pulse_ff(NUM_FF - 2 downto 0)  <= (others => '0');
-      else
-        for i in NUM_FF - 2 downto 0 loop
-          pulse_ff(i)                  <= pulse_ff(i + 1); 
-        end loop;
-      end if;
+      for i in NUM_FF - 2 downto 0 loop
+        pulse_ff(i)                  <= pulse_ff(i + 1); 
+      end loop;
     end if;
   end process PROC_SYNC_PULSE;
 

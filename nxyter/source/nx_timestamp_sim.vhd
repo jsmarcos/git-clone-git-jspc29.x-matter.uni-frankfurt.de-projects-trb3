@@ -80,7 +80,7 @@ begin
     end if;           
   end process PROC_NX_TIMESTAMP;
 
---   Gray_Encoder_1: Gray_Encoder
+--   gray_Encoder_1: gray_Encoder
 --     generic map (
 --       WIDTH => 8
 --       )

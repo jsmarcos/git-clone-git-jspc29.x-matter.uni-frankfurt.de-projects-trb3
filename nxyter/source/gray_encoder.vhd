@@ -7,7 +7,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity Gray_Encoder is
+entity gray_encoder is
   generic (
     WIDTH : integer range 2 to 32 := 12   -- Register Width
     );             
@@ -25,7 +25,7 @@ entity Gray_Encoder is
 
 end entity;
 
-architecture Behavioral of  Gray_Encoder is
+architecture Behavioral of  gray_encoder is
 
   signal gray_o : std_logic_vector(WIDTH - 1 downto 0);
 

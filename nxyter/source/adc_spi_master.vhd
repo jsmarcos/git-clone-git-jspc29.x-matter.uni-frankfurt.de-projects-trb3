@@ -21,7 +21,7 @@ entity adc_spi_master is
     -- Internal Interface  
     INTERNAL_COMMAND_IN    : in    std_logic_vector(31 downto 0);
     COMMAND_ACK_OUT        : out   std_logic;
-    SPI_DATA               : out   std_logic_vector(31 downto 0);
+    SPI_DATA_OUT           : out   std_logic_vector(31 downto 0);
     SPI_LOCK_IN            : in    std_logic;
                            
     -- Slave bus           
@@ -53,7 +53,7 @@ architecture Behavioral of adc_spi_master is
 
   signal spi_busy              : std_logic;
   signal takeover_sdio         : std_logic;
-  signal wait_timer_init       : unsigned(7 downto 0);
+  signal wait_timer_start      : std_logic;
   signal sendbyte_seq_start    : std_logic;
   signal readbyte_seq_start    : std_logic;
   signal sendbyte_byte         : std_logic_vector(7 downto 0);
@@ -61,7 +61,7 @@ architecture Behavioral of adc_spi_master is
   signal reg_data              : std_logic_vector(31 downto 0);
 
   signal spi_busy_x            : std_logic;
-  signal wait_timer_init_x     : unsigned(7 downto 0);
+  signal wait_timer_start_x    : std_logic;
   signal sendbyte_seq_start_x  : std_logic;
   signal sendbyte_byte_x       : std_logic_vector(7 downto 0);
   signal readbyte_seq_start_x  : std_logic;
@@ -113,17 +113,18 @@ architecture Behavioral of adc_spi_master is
 begin
 
   -- Timer
-  nx_timer_1: nx_timer
+  timer_static_1: timer_static
     generic map (
-      CTR_WIDTH => 8
+      CTR_WIDTH => 8,
+      CTR_END   => to_integer(SPI_SPEED srl 2)
       )
     port map (
       CLK_IN         => CLK_IN,
       RESET_IN       => RESET_IN,
-      TIMER_START_IN => wait_timer_init,
+      TIMER_START_IN => wait_timer_start,
       TIMER_DONE_OUT => wait_timer_done
       );
-
+  
   adc_spi_sendbyte_1: adc_spi_sendbyte
     generic map (
       SPI_SPEED => SPI_SPEED
@@ -191,7 +192,7 @@ begin
         sendbyte_seq_start    <= '0';
         readbyte_seq_start    <= '0';
         sendbyte_byte         <= (others => '0');
-        wait_timer_init       <= (others => '0');
+        wait_timer_start      <= '0';
         reg_data              <= (others => '0');
         read_seq_ctr          <= '0';
         STATE                 <= S_RESET;
@@ -200,7 +201,7 @@ begin
         sendbyte_seq_start    <= sendbyte_seq_start_x;
         readbyte_seq_start    <= readbyte_seq_start_x;
         sendbyte_byte         <= sendbyte_byte_x;
-        wait_timer_init       <= wait_timer_init_x;
+        wait_timer_start      <= wait_timer_start_x;
         reg_data              <= reg_data_x;
         read_seq_ctr          <= read_seq_ctr_x;
         STATE                 <= NEXT_STATE;
@@ -225,7 +226,7 @@ begin
     sendbyte_seq_start_x    <= '0';
     sendbyte_byte_x         <= (others => '0');
     readbyte_seq_start_x    <= '0';
-    wait_timer_init_x       <= (others => '0');
+    wait_timer_start_x      <= '0';
     reg_data_x              <= reg_data;
     read_seq_ctr_x          <= read_seq_ctr;
     
@@ -249,8 +250,8 @@ begin
             
         -- SPI START Sequence 
       when S_START =>
-        wait_timer_init_x <= SPI_SPEED srl 2;
-        NEXT_STATE        <= S_START_WAIT;
+        wait_timer_start_x <= '1';
+        NEXT_STATE         <= S_START_WAIT;
         
       when S_START_WAIT =>
         if (wait_timer_done = '0') then
@@ -326,7 +327,7 @@ begin
         
         -- SPI STOP Sequence 
       when S_STOP =>
-        wait_timer_init_x     <= SPI_SPEED srl 2;
+        wait_timer_start_x    <= '1';
         NEXT_STATE            <= S_STOP_WAIT;
         
       when S_STOP_WAIT =>

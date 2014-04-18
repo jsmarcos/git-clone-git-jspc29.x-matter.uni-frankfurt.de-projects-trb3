@@ -2,23 +2,28 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-entity nx_timer is
+entity timer_static is
   generic (
-    CTR_WIDTH : integer range 2 to 32  := 12;
-    STEP_SIZE : integer range 1 to 100 := 1
+    CTR_WIDTH  : integer range 2 to 32   := 12;
+    CTR_END    : integer range 2 to 4000 := 10;
+    STEP_SIZE  : integer range 1 to 100  := 1
     );
   port(
-    CLK_IN               : in    std_logic;
-    RESET_IN             : in    std_logic;
+    CLK_IN               : in  std_logic;
+    RESET_IN             : in  std_logic;
 
-    TIMER_START_IN       : in unsigned(CTR_WIDTH - 1 downto 0);
+    TIMER_START_IN       : in  std_logic;
     TIMER_DONE_OUT       : out std_logic
     );
 end entity;
 
-architecture Behavioral of nx_timer is
-
+architecture Behavioral of timer_static is
+  attribute HGROUP : string;
+  attribute HGROUP of Behavioral : architecture is "NX_TIMER_STATIC";
+  
   -- Timer
+  constant ctr_limit     : unsigned(CTR_WIDTH - 1 downto 0)
+    := to_unsigned(CTR_END - 1, CTR_WIDTH);
   signal timer_ctr_x     : unsigned(CTR_WIDTH - 1 downto 0);
 
   signal timer_ctr       : unsigned(CTR_WIDTH - 1 downto 0);
@@ -53,8 +58,8 @@ begin
     case STATE is
       when S_IDLE =>
         timer_done_o      <= '0';
-        if (TIMER_START_IN > 0) then
-          timer_ctr_x     <= TIMER_START_IN - 1;
+        if (TIMER_START_IN = '1') then
+          timer_ctr_x     <= ctr_limit - 1;
           NEXT_STATE      <= S_COUNT;
         else
           timer_ctr_x     <= (others => '0');
