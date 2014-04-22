@@ -100,6 +100,7 @@ system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");
 system("cp ../base/$TOPNAME.lpf $WORKDIR/$TOPNAME.lpf");
 system("cat currentRelease/trbnet_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
 system("cat currentRelease/tdc_constraints_64.lpf >> $WORKDIR/$TOPNAME.lpf");
+system("cat unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
 
 #generate timestamp
 my $t=time;

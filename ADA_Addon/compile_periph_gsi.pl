@@ -8,12 +8,12 @@ use Getopt::Long;
 ###################################################################################
 #Settings for this project
 my $TOPNAME                      = "trb3_periph_ADA";  #Name of top-level entity
-#my $lattice_path                 = '/opt/lattice/diamond/3.0_x64/';
-#my $lattice_bin_path             = "$lattice_path/bin/lin64"; # note the lin/lin64 at the end, no isfgpa needed
-#my $synplify_path                = '/opt/synplicity/I-2013.09-SP1'; 
-my $lattice_path                 = '/opt/lattice/diamond/2.01/';
-my $lattice_bin_path             = "$lattice_path/bin/lin"; # note the lin/lin64 at the end, no isfgpa needed
-my $synplify_path                = '/opt/synplicity/F-2012.03-SP1';
+my $lattice_path                 = '/opt/lattice/diamond/3.0_x64/';
+my $lattice_bin_path             = "$lattice_path/bin/lin64"; # note the lin/lin64 at the end, no isfgpa needed
+my $synplify_path                = '/opt/synplicity/I-2013.09-SP1'; 
+#my $lattice_path                 = '/opt/lattice/diamond/2.01/';
+#my $lattice_bin_path             = "$lattice_path/bin/lin"; # note the lin/lin64 at the end, no isfgpa needed
+#my $synplify_path                = '/opt/synplicity/F-2012.03-SP1';
 my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
 my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
 ###################################################################################
@@ -100,6 +100,7 @@ system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");
 system("cp ../base/$TOPNAME.lpf $WORKDIR/$TOPNAME.lpf");
 system("cat currentRelease/trbnet_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
 system("cat currentRelease/tdc_constraints_64.lpf >> $WORKDIR/$TOPNAME.lpf");
+system("cat unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
 
 #generate timestamp
 my $t=time;

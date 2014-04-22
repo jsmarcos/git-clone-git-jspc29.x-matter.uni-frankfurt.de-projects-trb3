@@ -100,6 +100,7 @@ system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");
 system("cp ../base/$TOPNAME.lpf $WORKDIR/$TOPNAME.lpf");
 system("cat currentRelease/trbnet_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
 system("cat currentRelease/tdc_constraints_64.lpf >> $WORKDIR/$TOPNAME.lpf");
+system("cat unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
 
 #generate timestamp
 my $t=time;
@@ -183,7 +184,7 @@ if($map==1 || $all==1){
 	    print "#        !!!Possible Placement Errors!!!        #\n";
 	    print "#################################################\n\n";
 	    
-	    my $c="egrep 'WARNING.*hitBuf_|Channels/hit_buf_RNO|WARNING.*FC_|Channels/Channel200/SimAdderNo_FC|WARNING.*ff_en_|Channels/Channel200/ff_array_en_i_1_i' trb3_periph_padiwa_mrp.html";
+	    my $c="egrep 'WARNING.*hitBuf_|Channels/hit_buf_RNO|WARNING.*FC_|Channels/Channel200/SimAdderNo_FC|WARNING.*ff_en_|Channels/Channel200/ff_array_en_i_1_i'"." $TOPNAME"."_mrp.html";
 	    system($c);
 	    last;
 	}
@@ -232,7 +233,8 @@ if($par==1 || $all==1){
     }
     else
     {
-	$c=qq|par -w -l 5 -i 6 -t 1 -c 0 -e 0 -exp parUseNBR=1:parCDP=0:parCDR=0:parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
+	#$c=qq|par -w -l 5 -i 6 -t 1 -c 0 -e 0 -exp parUseNBR=1:parCDP=0:parCDR=0:parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
+	$c=qq|par -w -l 5 -t 1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
 	execute($c);
 	my $c="cp $TOPNAME.dir/5_1.ncd $TOPNAME.ncd";
 	system($c);
@@ -269,7 +271,7 @@ if($bitgen==1 || $all==1){
     execute($c);
 }
 
-$c=qq|htmlrpt -mrp $TOPNAME.mrp -ptwr $TOPNAME.twr.setup $TOPNAME|;
+$c=qq|htmlrpt -mrp $TOPNAME.mrp -mtwr $TOPNAME.twr.hold -ptwr $TOPNAME.twr.setup $TOPNAME|;
 execute($c);
 
 $c=qq|firefox $TOPNAME.html|;
