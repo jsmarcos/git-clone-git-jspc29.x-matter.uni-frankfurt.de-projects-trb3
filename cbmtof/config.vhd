@@ -23,10 +23,13 @@ package config is
   constant INCLUDE_TRIGGER_LOGIC : integer := c_NO;  --not compatible with cbmtof!
 
 --Do histos of all inputs
-  constant INCLUDE_STATISTICS : integer := c_NO;
+  constant INCLUDE_STATISTICS : integer := c_YES;
 
 --number of real inputs to the FPGA
   constant PHYSICAL_INPUTS : integer := 32;
+
+--Use 64 word ringbuffer instead of 128 word ringbuffer in TDC channels
+  constant USE_64_FIFO : integer := c_NO;
 
 --Run wih 125 MHz instead of 100 MHz
   constant USE_125_MHZ : integer := c_NO;  --not implemented yet!

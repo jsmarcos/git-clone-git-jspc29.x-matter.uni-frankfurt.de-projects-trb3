@@ -28,7 +28,7 @@ package config is
   constant PHYSICAL_INPUTS : integer := 32;
 
 --Use 64 word ringbuffer instead of 128 word ringbuffer in TDC channels
-    constant USE_64_FIFO : integer := c_YES;
+    constant USE_64_FIFO : integer := c_NO;
 
 --Run wih 125 MHz instead of 100 MHz
     constant USE_125_MHZ            : integer := c_NO;  --not implemented yet!
