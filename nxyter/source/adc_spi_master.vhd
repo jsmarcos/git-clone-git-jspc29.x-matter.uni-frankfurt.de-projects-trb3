@@ -111,7 +111,25 @@ architecture Behavioral of adc_spi_master is
   signal spi_register_value_read : std_logic_vector(7 downto 0);
 
 begin
+  -----------------------------------------------------------------------------
+  -- Debug Line
+  -----------------------------------------------------------------------------
+  DEBUG_OUT(0)            <= CLK_IN;
+  DEBUG_OUT(1)            <= sclk_o;
+  DEBUG_OUT(2)            <= SDIO_INOUT;
+  DEBUG_OUT(3)            <= csb_o;
+  DEBUG_OUT(4)            <= spi_busy;
+  DEBUG_OUT(5)            <= wait_timer_done;
+  DEBUG_OUT(6)            <= sendbyte_seq_start;
+  DEBUG_OUT(7)            <= sendbyte_done;
+  DEBUG_OUT(8)            <= sclk_sendbyte;
+  DEBUG_OUT(9)            <= sdio_sendbyte;
+  DEBUG_OUT(10)           <= sclk_readbyte;
+  DEBUG_OUT(11)           <= takeover_sdio;
+  DEBUG_OUT(15 downto 12) <= (others => '0');
 
+  -----------------------------------------------------------------------------
+  
   -- Timer
   timer_static_1: timer_static
     generic map (
@@ -153,21 +171,6 @@ begin
       SCLK_OUT          => sclk_readbyte
       );
   
-  -- Debug Line
-
-  DEBUG_OUT(0)           <= CLK_IN;
-  DEBUG_OUT(1)           <= sclk_o;
-  DEBUG_OUT(2)           <= SDIO_INOUT;
-  DEBUG_OUT(3)           <= csb_o;
-  DEBUG_OUT(4)           <= spi_busy;
-  DEBUG_OUT(5)           <= wait_timer_done;
-  DEBUG_OUT(6)           <= sendbyte_seq_start;
-  DEBUG_OUT(7)           <= sendbyte_done;
-  DEBUG_OUT(8)           <= sclk_sendbyte;
-  DEBUG_OUT(9)           <= sdio_sendbyte;
-  DEBUG_OUT(10)          <= sclk_readbyte;
-  DEBUG_OUT(11)          <= takeover_sdio;
-
   -- Sync SPI SDIO Line
   sdio_i <= SDIO_INOUT;
 

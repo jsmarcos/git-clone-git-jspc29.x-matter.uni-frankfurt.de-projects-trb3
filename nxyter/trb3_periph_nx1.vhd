@@ -272,8 +272,8 @@ architecture trb3_periph_arch of trb3_periph is
   signal nx1_regio_write_ack_out     : std_logic;
   signal nx1_regio_no_more_data_out  : std_logic;
   signal nx1_regio_unknown_addr_out  : std_logic;
-  
-  signal nx1_timestamp_sim_o         : std_logic_vector(7 downto 0);
+
+  -- Internal Trigger
   signal fee1_trigger                : std_logic;
   
 begin

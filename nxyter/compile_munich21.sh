@@ -6,5 +6,7 @@
 
 #grep -q 'Error:' ./workdir/trb3_periph.twr.setup && echo "Timing Errors found in trb3_periph.twr.setup"
 grep 'Error: The following path exceeds requirements by' ./workdir/trb3_periph.twr.setup 
+grep 'Error:' ./workdir/trb3_periph.twr.hold
+grep 'potential circuit loops' ./workdir/*
 
 echo "Script DONE!"

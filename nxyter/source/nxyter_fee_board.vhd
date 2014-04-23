@@ -1,4 +1,4 @@
----------------------------------------------------------------------------
+--------------------------------------------------------------------------
 --
 -- One  nXyter FEB 
 --
@@ -115,10 +115,8 @@ architecture Behavioral of nXyter_FEE_board is
   signal slv_unknown_addr       : std_logic_vector(NUM_PORTS-1 downto 0);
 
   -- TRB Register               
-  signal nx_timestamp_reset_1   : std_logic;
-  signal nx_timestamp_reset_2   : std_logic;
-  signal nx_timestamp_reset_3   : std_logic;
-  signal nx_timestamp_reset     : std_logic;
+  signal nx_timestamp_reset_status   : std_logic;
+  signal nx_timestamp_reset_receiver : std_logic;
   signal nx_timestamp_reset_o   : std_logic;
   signal i2c_reg_reset_o        : std_logic;
   signal nxyter_online          : std_logic;
@@ -139,15 +137,13 @@ architecture Behavioral of nXyter_FEE_board is
   signal spi_sdo                : std_logic;        
                                 
   -- Data Receiver
-  signal timestamp_recv         : std_logic_vector(31 downto 0);
-  signal adc_data_recv          : std_logic_vector(11 downto 0);
+  signal data_recv              : std_logic_vector(43 downto 0);
   signal data_clk_recv          : std_logic;
   signal self_trigger           : std_logic;
   signal pll_sadc_clk_lock      : std_logic;
   
   -- Data Delay                 
-  signal timestamp_delayed      : std_logic_vector(31 downto 0);
-  signal adc_data_delayed       : std_logic_vector(11 downto 0);
+  signal data_delayed           : std_logic_vector(43 downto 0);
   signal data_clk_delayed       : std_logic;
   signal data_fifo_delay        : std_logic_vector(7 downto 0);
 
@@ -204,16 +200,12 @@ architecture Behavioral of nXyter_FEE_board is
   signal trigger_busy           : std_logic;
   signal fast_clear             : std_logic;
   signal fee_trg_release_o      : std_logic;
-  signal trigger_testpulse      : std_logic;
 
   -- FPGA Timestamp
-  signal timestamp_current      : unsigned(11 downto 0);
   signal timestamp_hold         : unsigned(11 downto 0);
-  signal nx_timestamp_trigger_o : std_logic;
   
   -- Trigger Generator
   signal trigger_intern         : std_logic;
-  signal nx_testpulse_o         : std_logic;
 
   -- Error
   signal error_all              : std_logic_vector(7 downto 0);
@@ -327,10 +319,10 @@ begin
       PLL_ADC_DCLK_LOCK_IN     => PLL_ADC_DCLK_LOCK_IN,
       PLL_ADC_SCLK_LOCK_IN     => pll_sadc_clk_lock,
       PLL_RESET_OUT            => PLL_RESET_OUT, 
-      
+
       I2C_SM_RESET_OUT         => I2C_SM_RESET_OUT,
       I2C_REG_RESET_OUT        => i2c_reg_reset_o,
-      NX_TS_RESET_OUT          => nx_timestamp_reset_1,
+      NX_TS_RESET_OUT          => nx_timestamp_reset_status,
       NX_ONLINE_OUT            => nxyter_online,
 
       ERROR_ALL_IN             => error_all,
@@ -446,12 +438,12 @@ begin
       CLK_IN                   => CLK_IN,
       RESET_IN                 => RESET_IN,
       NX_MAIN_CLK_IN           => CLK_NX_MAIN_IN,
-      TIMESTAMP_RESET_IN       => nx_timestamp_reset,
+      TIMESTAMP_RESET_1_IN     => nx_timestamp_reset_status,
+      TIMESTAMP_RESET_2_IN     => nx_timestamp_reset_receiver,
       TIMESTAMP_RESET_OUT      => nx_timestamp_reset_o, 
       TRIGGER_IN               => timestamp_trigger,
-      TIMESTAMP_CURRENT_OUT    => timestamp_current,
       TIMESTAMP_HOLD_OUT       => timestamp_hold,
-      TIMESTAMP_TRIGGER_OUT    => nx_timestamp_trigger_o,
+      TIMESTAMP_TRIGGER_OUT    => NX_TIMESTAMP_TRIGGER_OUT,
       SLV_READ_IN              => open,
       SLV_WRITE_IN             => open,
       SLV_DATA_OUT             => open,
@@ -509,7 +501,7 @@ begin
       FAST_CLEAR_OUT             => fast_clear,
       TRIGGER_BUSY_OUT           => trigger_busy,
 
-      TRIGGER_TESTPULSE_OUT      => trigger_testpulse,
+      NX_TESTPULSE_OUT           => NX_TESTPULSE_OUT,
       
       SLV_READ_IN                => slv_read(7),
       SLV_WRITE_IN               => slv_write(7),
@@ -534,13 +526,9 @@ begin
       NX_MAIN_CLK_IN       => CLK_NX_MAIN_IN,
 
       TRIGGER_BUSY_IN      => trigger_busy,
-      TRIGGER_IN           => trigger_testpulse,
       TRIGGER_OUT          => trigger_intern,
-      TS_RESET_OUT         => nx_timestamp_reset_2,
-      TESTPULSE_OUT        => nx_testpulse_o,
 
-      TIMESTAMP_IN         => timestamp_recv,
-      ADC_DATA_IN          => adc_data_recv,
+      DATA_IN              => data_recv,
       DATA_CLK_IN          => data_clk_recv,
       SELF_TRIGGER_OUT     => self_trigger,
       
@@ -561,6 +549,9 @@ begin
 -------------------------------------------------------------------------------
 
   nx_data_receiver_1: nx_data_receiver
+    generic map (
+      DEBUG_ENABLE => true
+      )
     port map (
       CLK_IN                 => CLK_IN,
       RESET_IN               => RESET_IN,
@@ -568,7 +559,7 @@ begin
                              
       NX_TIMESTAMP_CLK_IN    => NX_DATA_CLK_IN,
       NX_TIMESTAMP_IN        => NX_TIMESTAMP_IN,
-      NX_TIMESTAMP_RESET_OUT => nx_timestamp_reset_3,
+      NX_TIMESTAMP_RESET_OUT => nx_timestamp_reset_receiver,
       
       ADC_CLK_DAT_IN         => CLK_ADC_IN,
       ADC_FCLK_IN            => ADC_FCLK_IN,
@@ -580,8 +571,7 @@ begin
       ADC_D_IN               => ADC_D_IN,
       ADC_SCLK_LOCK_OUT      => pll_sadc_clk_lock,
                              
-      NX_TIMESTAMP_OUT       => timestamp_recv,
-      ADC_DATA_OUT           => adc_data_recv,
+      DATA_OUT               => data_recv,
       DATA_CLK_OUT           => data_clk_recv,
                              
       SLV_READ_IN            => slv_read(2),                      
@@ -604,12 +594,10 @@ begin
       CLK_IN               => CLK_IN,
       RESET_IN             => RESET_IN,
 
-      NX_FRAME_IN          => timestamp_recv,
-      ADC_DATA_IN          => adc_data_recv,
+      DATA_IN              => data_recv,
       DATA_CLK_IN          => data_clk_recv,
 
-      NX_FRAME_OUT         => timestamp_delayed,
-      ADC_DATA_OUT         => adc_data_delayed,
+      DATA_OUT             => data_delayed,
       DATA_CLK_OUT         => data_clk_delayed,
 
       FIFO_DELAY_IN        => data_fifo_delay,  
@@ -635,8 +623,7 @@ begin
       CLK_IN                => CLK_IN,
       RESET_IN              => RESET_IN,
       
-      NX_TIMESTAMP_IN       => timestamp_delayed,
-      ADC_DATA_IN           => adc_data_delayed,
+      DATA_IN               => data_delayed,
       DATA_CLK_IN           => data_clk_delayed,
 
       TIMESTAMP_OUT         => timestamp,
@@ -802,11 +789,7 @@ begin
 -------------------------------------------------------------------------------
 -- nXyter Signals
 -------------------------------------------------------------------------------
-  nx_timestamp_reset  <= nx_timestamp_reset_1 or
-                         nx_timestamp_reset_2 or
-                         nx_timestamp_reset_3; 
-  NX_RESET_OUT        <= not nx_timestamp_reset_o;
-  NX_TESTPULSE_OUT    <= nx_testpulse_o;
+  NX_RESET_OUT          <= not nx_timestamp_reset_o;
 
 -------------------------------------------------------------------------------
 -- I2C Signals
@@ -817,7 +800,6 @@ begin
 -------------------------------------------------------------------------------
 -- Others
 -------------------------------------------------------------------------------
-  NX_TIMESTAMP_TRIGGER_OUT <= nx_timestamp_trigger_o;
   TRIGGER_OUT              <= self_trigger;
                               
 -------------------------------------------------------------------------------
@@ -841,6 +823,8 @@ begin
       SLV_NO_MORE_DATA_OUT => slv_no_more_data(11),
       SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(11)
       );
+
+  --DEBUG_LINE_OUT <= (others => '0');
 
 -------------------------------------------------------------------------------
 -- END

@@ -36,14 +36,13 @@
 0x8270 : r     Token register, 14 in a row
 
 -- Trigger Generator
-0x8140 :  r/w  Length of Trigger TestPulse (12 Bit, in 4ns)
-0x8141 :  r    Testpulse Rate (in Hz)
 
 -- Trigger Handler
 0x8160 :  r/w  Enable Testpulse Signal (default: off)
 0x8161 :  r/w  Delay Testpulse Signal after Trigger (12 Bit, in 10ns)
-0x8162 :  r    Accepted Trigger Rate (28 Bit, in Hz)
-0x8163 :  r/w  r: Invalid Timing Trigger Counter
+0x8162 :  r/w  Length of Trigger TestPulse (12 Bit, in 4ns)
+0x8163 :  r    Accepted Trigger Rate (28 Bit, in Hz)
+0x8164 :  r/w  r: Invalid Timing Trigger Counter
                w: Clear Counter
 
 -- NX Data Receiver
@@ -203,7 +202,7 @@
                 10: nx_trigger_validate
                 11: nx_event_buffer
                 12: nx_histograms
-                13: nx_calib_event
+                13: nx_status_event
                 14: Checkerboard
 
 --- Trigger Selction Window Setup
