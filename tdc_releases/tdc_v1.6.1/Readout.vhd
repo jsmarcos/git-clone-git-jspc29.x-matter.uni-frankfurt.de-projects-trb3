@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2014-04-21
+-- Last update: 2014-04-22
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -927,7 +927,7 @@ begin  -- behavioral
     if rising_edge(CLK_100) then
       if RESET_COUNTERS = '1' then
         finished_number <= (others => '0');
-      elsif finished_i = '1' then
+      elsif data_finished = '1' then --finished_i = '1' then
         finished_number <= finished_number + to_unsigned(1, 1);
       end if;
     end if;
