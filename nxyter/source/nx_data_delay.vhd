@@ -14,12 +14,10 @@ entity nx_data_delay is
     RESET_IN               : in  std_logic;
                            
     -- Signals             
-    NX_FRAME_IN            : in  std_logic_vector(31 downto 0);
-    ADC_DATA_IN            : in  std_logic_vector(11 downto 0);
+    DATA_IN                : in  std_logic_vector(43 downto 0);
     DATA_CLK_IN            : in  std_logic;
                            
-    NX_FRAME_OUT           : out std_logic_vector(31 downto 0);
-    ADC_DATA_OUT           : out std_logic_vector(11 downto 0);
+    DATA_OUT               : out std_logic_vector(43 downto 0);
     DATA_CLK_OUT           : out std_logic;
 
     FIFO_DELAY_IN          : in  std_logic_vector(7 downto 0);
@@ -39,23 +37,27 @@ entity nx_data_delay is
 end entity;
 
 architecture Behavioral of nx_data_delay is
+  -- Input FFs
+  signal data_in_f             : std_logic_vector(43 downto 0);
+  signal data_clk_in_f         : std_logic;
 
   -- FIFO Write Handler
-  signal fifo_data_in          : std_logic_vector(43 downto 0);
   signal fifo_full             : std_logic;
   signal fifo_write_enable     : std_logic;
   signal fifo_reset            : std_logic;
 
+  signal fifo_reset_p          : std_logic;
+  signal fifo_reset_l          : std_logic;
+
   -- FIFO READ
-  signal fifo_data_out         : std_logic_vector(43 downto 0);
+  signal fifo_data_o           : std_logic_vector(43 downto 0);
   signal fifo_read_enable      : std_logic;
   signal fifo_empty            : std_logic;
   signal fifo_almost_empty     : std_logic;
 
   signal fifo_read_enable_t    : std_logic;
   signal fifo_read_enable_tt   : std_logic;
-  signal nx_frame_o            : std_logic_vector(31 downto 0);
-  signal adc_data_o            : std_logic_vector(11 downto 0);
+  signal data_o                : std_logic_vector(43 downto 0);
   signal data_clk_o            : std_logic;
 
   -- Fifo Delay
@@ -80,48 +82,61 @@ begin
   PROC_DEBUG_MULTIPLEXER: process(debug_r)
   begin
     if (debug_r = '0') then
-    DEBUG_OUT(0)            <= CLK_IN;
-    DEBUG_OUT(1)            <= DATA_CLK_IN;
-    DEBUG_OUT(2)            <= fifo_reset;
-    DEBUG_OUT(3)            <= fifo_full;
-    DEBUG_OUT(4)            <= fifo_write_enable;
-    DEBUG_OUT(5)            <= fifo_empty;
-    DEBUG_OUT(6)            <= fifo_almost_empty;
-    DEBUG_OUT(7)            <= fifo_read_enable;
-    DEBUG_OUT(8)            <= fifo_read_enable_t;
-    DEBUG_OUT(9)            <= fifo_read_enable_tt;
-    DEBUG_OUT(10)           <= data_clk_o;
-    --DEBUG_OUT(15 downto 11) <= NX_FRAME_OUT(14 downto 10);
+      DEBUG_OUT(0)            <= CLK_IN;
+      DEBUG_OUT(1)            <= DATA_CLK_IN;
+      DEBUG_OUT(2)            <= fifo_reset;
+      DEBUG_OUT(3)            <= fifo_full;
+      DEBUG_OUT(4)            <= fifo_write_enable;
+      DEBUG_OUT(5)            <= fifo_empty;
+      DEBUG_OUT(6)            <= fifo_almost_empty;
+      DEBUG_OUT(7)            <= fifo_read_enable;
+      DEBUG_OUT(8)            <= fifo_read_enable_t;
+      DEBUG_OUT(9)            <= fifo_read_enable_tt;
+      DEBUG_OUT(10)           <= data_clk_o;
+      DEBUG_OUT(15 downto 11) <= (others => '0');
     else
-      DEBUG_OUT             <= debug_fifo;
+      DEBUG_OUT               <= debug_fifo;
     end if;
   end process PROC_DEBUG_MULTIPLEXER;
     
   -----------------------------------------------------------------------------
   -- FIFO Delay Handler
   -----------------------------------------------------------------------------
-  
+
+  data_in_f           <= DATA_IN when rising_edge(CLK_IN);
+  data_clk_in_f       <= DATA_CLK_IN when rising_edge(CLK_IN);
+
   fifo_44_data_delay_my_1: fifo_44_data_delay_my
     port map (
-      Data          => fifo_data_in,
+      Data          => data_in_f,
       Clock         => CLK_IN,
       WrEn          => fifo_write_enable,
-      RdEn          => fifo_read_enable,  --LOOP?? 
+      RdEn          => fifo_read_enable, 
       Reset         => fifo_reset,
       AmEmptyThresh => fifo_delay,
-      Q             => fifo_data_out,      --fifo_data_out_0, 
-      Empty         => fifo_empty,         -- fifo_empty_0,
-      Full          => fifo_full,          --fifo_full_0,
-      AlmostEmpty   => fifo_almost_empty,  -- fifo_almost_empty_0,
+      Q             => fifo_data_o,
+      Empty         => fifo_empty,   
+      Full          => fifo_full,    
+      AlmostEmpty   => fifo_almost_empty,
       DEBUG_OUT     => debug_fifo
       );        
 
   fifo_read_enable             <= not fifo_almost_empty;
-  fifo_reset                   <= RESET_IN or fifo_reset_r or fifo_delay_reset;
-  fifo_data_in(31 downto 0)    <= NX_FRAME_IN;
-  fifo_data_in(43 downto 32)   <= ADC_DATA_IN;
-  fifo_write_enable            <= DATA_CLK_IN and not fifo_full;
-    
+  fifo_reset                   <= RESET_IN or fifo_reset_l;
+  fifo_write_enable            <= data_clk_in_f and not fifo_full;
+
+  fifo_reset_p  <= fifo_reset_r or fifo_delay_reset;
+  pulse_to_level_FIFO_RESET: pulse_to_level
+    generic map (
+      NUM_CYCLES => 3
+      )
+    port map (
+      CLK_IN    => CLK_IN,
+      RESET_IN  => RESET_IN,
+      PULSE_IN  => fifo_reset_p,
+      LEVEL_OUT => fifo_reset_l
+      );
+  
   -- FIFO Read Handler
   PROC_FIFO_READ: process(CLK_IN)
   begin
@@ -130,8 +145,7 @@ begin
         fifo_read_enable_t   <= '0';
         fifo_read_enable_tt  <= '0';
 
-        nx_frame_o           <= (others => '0');
-        adc_data_o           <= (others => '0');
+        data_o               <= (others => '0');
         data_clk_o           <= '0';
       else
         -- Read enable
@@ -139,12 +153,10 @@ begin
         fifo_read_enable_tt  <= fifo_read_enable_t;
 
         if (fifo_read_enable_tt = '1') then
-          nx_frame_o         <= fifo_data_out(31 downto 0);
-          adc_data_o         <= fifo_data_out(43 downto 32);
+          data_o             <= fifo_data_o;
           data_clk_o         <= '1'; 
         else
-          nx_frame_o         <= x"ffff_ffff";
-          adc_data_o         <= x"fff";
+          data_o             <= x"fff_ffff_ffff";
           data_clk_o         <= '0';
         end if;
       end if;
@@ -240,13 +252,12 @@ begin
   end process PROC_FIFO_REGISTERS;
 
   -- Output Signals
-  NX_FRAME_OUT          <= nx_frame_o;
-  ADC_DATA_OUT          <= adc_data_o;
-  DATA_CLK_OUT          <= data_clk_o;
+  DATA_OUT               <= data_o;
+  DATA_CLK_OUT           <= data_clk_o;
                            
-  SLV_DATA_OUT          <= slv_data_o;    
-  SLV_NO_MORE_DATA_OUT  <= slv_no_more_data_o; 
-  SLV_UNKNOWN_ADDR_OUT  <= slv_unknown_addr_o;
-  SLV_ACK_OUT           <= slv_ack_o;
+  SLV_DATA_OUT           <= slv_data_o;    
+  SLV_NO_MORE_DATA_OUT   <= slv_no_more_data_o; 
+  SLV_UNKNOWN_ADDR_OUT   <= slv_unknown_addr_o;
+  SLV_ACK_OUT            <= slv_ack_o;
   
 end Behavioral;

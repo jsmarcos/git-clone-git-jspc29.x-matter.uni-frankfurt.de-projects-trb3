@@ -384,6 +384,17 @@ component fifo_data_stream_44to44_dc
     );
 end component;
 
+component dynamic_shift_register8x64
+  port (
+    Din     : in  std_logic_vector(7 downto 0);
+    Addr    : in  std_logic_vector(5 downto 0);
+    Clock   : in  std_logic;
+    ClockEn : in  std_logic;
+    Reset   : in  std_logic;
+    Q       : out std_logic_vector(7 downto 0)
+    );
+end component;
+
 component ram_fifo_delay_256x44
   port (
     WrAddress : in  std_logic_vector(7 downto 0);
@@ -431,6 +442,9 @@ component fifo_32_data
 end component;
 
 component nx_data_receiver
+  generic (
+    DEBUG_ENABLE : boolean
+    );
   port (
     CLK_IN                 : in  std_logic;
     RESET_IN               : in  std_logic;
@@ -447,8 +461,7 @@ component nx_data_receiver
     ADC_NX_IN              : in  std_logic_vector(1 downto 0);
     ADC_D_IN               : in  std_logic_vector(1 downto 0);
     ADC_SCLK_LOCK_OUT      : out std_logic;
-    NX_TIMESTAMP_OUT       : out std_logic_vector(31 downto 0);
-    ADC_DATA_OUT           : out std_logic_vector(11 downto 0);
+    DATA_OUT               : out std_logic_vector(43 downto 0);
     DATA_CLK_OUT           : out std_logic;
     SLV_READ_IN            : in  std_logic;
     SLV_WRITE_IN           : in  std_logic;
@@ -467,11 +480,9 @@ component nx_data_delay
   port (
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
-    NX_FRAME_IN          : in  std_logic_vector(31 downto 0);
-    ADC_DATA_IN          : in  std_logic_vector(11 downto 0);
+    DATA_IN              : in  std_logic_vector(43 downto 0);
     DATA_CLK_IN          : in  std_logic;
-    NX_FRAME_OUT         : out std_logic_vector(31 downto 0);
-    ADC_DATA_OUT         : out std_logic_vector(11 downto 0);
+    DATA_OUT             : out std_logic_vector(43 downto 0);
     DATA_CLK_OUT         : out std_logic;
     FIFO_DELAY_IN        : in  std_logic_vector(7 downto 0);
     SLV_READ_IN          : in  std_logic;
@@ -490,8 +501,7 @@ component nx_data_validate
   port (
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
-    NX_TIMESTAMP_IN      : in  std_logic_vector(31 downto 0);
-    ADC_DATA_IN          : in  std_logic_vector(11 downto 0);
+    DATA_IN              : in  std_logic_vector(43 downto 0);
     DATA_CLK_IN          : in  std_logic;
     TIMESTAMP_OUT        : out std_logic_vector(13 downto 0);
     CHANNEL_OUT          : out std_logic_vector(6 downto 0);
@@ -839,10 +849,10 @@ component nx_fpga_timestamp
     CLK_IN                   : in  std_logic;
     RESET_IN                 : in  std_logic;
     NX_MAIN_CLK_IN           : in  std_logic;
-    TIMESTAMP_RESET_IN       : in  std_logic;
+    TIMESTAMP_RESET_1_IN     : in  std_logic;
+    TIMESTAMP_RESET_2_IN     : in  std_logic;
     TIMESTAMP_RESET_OUT      : out std_logic;
     TRIGGER_IN               : in  std_logic;
-    TIMESTAMP_CURRENT_OUT    : out unsigned(11 downto 0);
     TIMESTAMP_HOLD_OUT       : out unsigned(11 downto 0);
     TIMESTAMP_TRIGGER_OUT    : out std_logic;
     SLV_READ_IN              : in  std_logic;
@@ -891,7 +901,7 @@ component nx_trigger_handler
     TRIGGER_STATUS_OUT         : out std_logic;
     FAST_CLEAR_OUT             : out std_logic;
     TRIGGER_BUSY_OUT           : out std_logic;
-    TRIGGER_TESTPULSE_OUT      : out std_logic;
+    NX_TESTPULSE_OUT           : out std_logic;
     SLV_READ_IN                : in  std_logic;
     SLV_WRITE_IN               : in  std_logic;
     SLV_DATA_OUT               : out std_logic_vector(31 downto 0);
@@ -910,12 +920,8 @@ component nx_trigger_generator
     RESET_IN             : in  std_logic;
     NX_MAIN_CLK_IN       : in  std_logic;
     TRIGGER_BUSY_IN      : in  std_logic;
-    TRIGGER_IN           : in  std_logic;
     TRIGGER_OUT          : out std_logic;
-    TS_RESET_OUT         : out std_logic;
-    TESTPULSE_OUT        : out std_logic;
-    TIMESTAMP_IN         : in  std_logic_vector(31 downto 0);
-    ADC_DATA_IN          : in  std_logic_vector(11 downto 0);
+    DATA_IN              : in  std_logic_vector(43 downto 0);
     DATA_CLK_IN          : in  std_logic;
     SELF_TRIGGER_OUT     : out std_logic;
     SLV_READ_IN          : in  std_logic;

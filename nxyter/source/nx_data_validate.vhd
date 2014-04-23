@@ -12,8 +12,7 @@ entity nx_data_validate is
     RESET_IN             : in  std_logic;
 
     -- Inputs
-    NX_TIMESTAMP_IN      : in  std_logic_vector(31 downto 0);
-    ADC_DATA_IN          : in  std_logic_vector(11 downto 0);
+    DATA_IN              : in  std_logic_vector(43 downto 0);
     DATA_CLK_IN          : in  std_logic;
 
     -- Outputs
@@ -64,7 +63,8 @@ architecture Behavioral of nx_data_validate is
 
   signal nx_token_return_o    : std_logic;
   signal nx_nomore_data_o     : std_logic;
-  
+
+  signal parity_error_ctr     : unsigned(15 downto 0);
   signal invalid_frame_ctr    : unsigned(15 downto 0);
   signal overflow_ctr         : unsigned(15 downto 0);
   signal pileup_ctr           : unsigned(15 downto 0);
@@ -94,14 +94,11 @@ architecture Behavioral of nx_data_validate is
   signal adc_data_last        : std_logic_vector(11 downto 0);
 
   -- Token Return Average
-  signal adc_tr_data_p          : std_logic_vector(11 downto 0);
-  signal adc_tr_data_c          : std_logic_vector(11 downto 0);
+  signal nx_token_return_pipe   : std_logic_vector(4 downto 0);
+  signal adc_tr_value           : std_logic_vector(11 downto 0);
+  signal adc_tr_data_p          : unsigned(11 downto 0);
+  signal adc_tr_data_c          : unsigned(11 downto 0);
   signal adc_tr_data_clk        : std_logic;
-  signal adc_tr_average_divisor : unsigned(7 downto 0);
-  signal adc_tr_average_ctr     : unsigned(15 downto 0);
-  signal adc_tr_average_sum     : unsigned(31 downto 0);
-  signal adc_tr_average         : unsigned(11 downto 0);
-  signal adc_tr_mean            : unsigned(11 downto 0);
   signal adc_tr_limit           : unsigned(11 downto 0);
   signal adc_tr_error_ctr       : unsigned(11 downto 0);
   signal adc_tr_error           : std_logic;
@@ -126,7 +123,13 @@ architecture Behavioral of nx_data_validate is
   signal nx_overflow_rate     : unsigned(27 downto 0);
   signal adc_tr_error_rate    : unsigned(27 downto 0);
   signal invalid_adc          : std_logic;
-  
+  signal adc_tr_value_r       : std_logic_vector(11 downto 0);
+
+  signal adc_tr_debug_p       : std_logic;
+  signal adc_tr_debug_c       : std_logic;
+
+  signal lower_limit_r        : std_logic_vector(11 downto 0);
+
 begin
 
   -- Debug Line
@@ -134,20 +137,45 @@ begin
   DEBUG_OUT(1)             <= DATA_CLK_IN;
   DEBUG_OUT(2)             <= nx_token_return_o;
   DEBUG_OUT(3)             <= nx_nomore_data_o;
-
-  --DEBUG_OUT(15 downto 4)   <= adc_data;
-
   DEBUG_OUT(4)             <= data_clk_o;
   DEBUG_OUT(5)             <= new_timestamp;
   DEBUG_OUT(6)             <= self_trigger_o;
   DEBUG_OUT(7)             <= invalid_adc;
   DEBUG_OUT(8)             <= adc_tr_data_clk;
   DEBUG_OUT(9)             <= adc_tr_error;
-  DEBUG_OUT(15 downto 10)  <= channel_o(5 downto 0);
+  DEBUG_OUT(11 downto 10)  <= adc_tr_error_status; 
+  DEBUG_OUT(12)            <= adc_tr_debug_p;
+  DEBUG_OUT(13)            <= adc_tr_debug_c;
+  DEBUG_OUT(14)            <= '0';
+  DEBUG_OUT(15)            <= parity_error;
+
 
   -----------------------------------------------------------------------------
   -- Data Separation
   -----------------------------------------------------------------------------
+
+  gray_decoder_TIMESTAMP: gray_decoder          -- Decode nx_timestamp
+    generic map (
+      WIDTH => 14
+      )
+    port map (
+      CLK_IN                  => CLK_IN,
+      RESET_IN                => RESET_IN,
+      GRAY_IN(13 downto 7)    => not DATA_IN(30 downto 24),
+      GRAY_IN( 6 downto 0)    => not DATA_IN(22 downto 16),
+      BINARY_OUT              => nx_timestamp
+      );
+  
+  gray_decoder_CHANNEL_ID: gray_decoder          -- Decode Channel_ID
+    generic map (
+      WIDTH => 7
+      )
+    port map (
+      CLK_IN     => CLK_IN,
+      RESET_IN   => RESET_IN,
+      GRAY_IN    => DATA_IN(14 downto 8),
+      BINARY_OUT => nx_channel_id
+      );
   
   -- Separate Timestamp-, Status-, Parity- and Frame-bits
   PROC_TIMESTAMP_BITS: process (CLK_IN)
@@ -155,37 +183,57 @@ begin
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
         valid_frame_bits    <= (others => '0');
-        nx_timestamp        <= (others => '0');
-        nx_channel_id       <= (others => '0');
         status_bits         <= (others => '0');
-        parity_error        <= '0';
         new_timestamp       <= '0';
         adc_data            <= (others => '0');
       else
         if (DATA_CLK_IN = '1') then
-          valid_frame_bits(3)       <= NX_TIMESTAMP_IN(31);
-          valid_frame_bits(2)       <= NX_TIMESTAMP_IN(23);
-          valid_frame_bits(1)       <= NX_TIMESTAMP_IN(15);
-          valid_frame_bits(0)       <= NX_TIMESTAMP_IN(7);
-          nx_timestamp(13 downto 7) <= NX_TIMESTAMP_IN(30 downto 24);
-          nx_timestamp(6 downto 0)  <= NX_TIMESTAMP_IN(22 downto 16);
-          nx_channel_id             <= NX_TIMESTAMP_IN(14 downto 8);
-          status_bits               <= NX_TIMESTAMP_IN(2 downto 1);
-          parity_error              <= NX_TIMESTAMP_IN(0);
-          adc_data                  <= ADC_DATA_IN;
+          valid_frame_bits(3)       <= DATA_IN(31);
+          valid_frame_bits(2)       <= DATA_IN(23);
+          valid_frame_bits(1)       <= DATA_IN(15);
+          valid_frame_bits(0)       <= DATA_IN(7);
+          status_bits               <= DATA_IN(2 downto 1);
+          adc_data                  <= DATA_IN(43 downto 32);
           new_timestamp             <= '1';
         else
           valid_frame_bits          <= (others => '0');
-          nx_timestamp              <= (others => '0');
-          nx_channel_id             <= (others => '0');
           status_bits               <= (others => '0');
-          parity_error              <= '0';
           adc_data                  <= (others => '0');
           new_timestamp             <= '0';
         end if;
       end if;
     end if;
   end process PROC_TIMESTAMP_BITS;    
+
+  -- Check Parity Bit
+  PROC_PARITY_CHECKER: process(CLK_IN)
+    variable parity_bits : std_logic_vector(22 downto 0);
+    variable parity      : std_logic;
+  begin
+    if (rising_edge(CLK_IN)) then
+      if (RESET_IN = '1') then
+        parity_error        <= '0';
+      else
+        if (DATA_CLK_IN = '1') then
+          -- Timestamp Bit #6 is excluded (funny nxyter-bug)
+          parity_bits       := DATA_IN(31)           &
+                               DATA_IN(30 downto 24) &
+                               DATA_IN(21 downto 16) &
+                               DATA_IN(14 downto  8) &
+                               DATA_IN( 2 downto  1);
+          parity            := xor_all(parity_bits);
+
+          if (parity /= DATA_IN(0)) then
+            parity_error    <= '1';
+          else
+            parity_error    <= '0';
+          end if;
+        else
+          parity_error      <= '0';
+        end if;
+      end if;
+    end if;
+  end process PROC_PARITY_CHECKER;
 
   -----------------------------------------------------------------------------
   -- Filter only valid events
@@ -206,6 +254,7 @@ begin
         frame_rate_inc       <= '0';
         pileup_rate_inc      <= '0';
         overflow_rate_inc    <= '0';
+        parity_error_ctr     <= (others => '0');
         invalid_frame_ctr    <= (others => '0');
         overflow_ctr         <= (others => '0');
         pileup_ctr           <= (others => '0');
@@ -228,7 +277,11 @@ begin
         adc_tr_data_clk      <= '0';
         
         if (new_timestamp = '1') then
+
           adc_data_last                      <= adc_data;
+          if (parity_error = '1') then
+            parity_error_ctr <= parity_error_ctr + 1;
+          end if;
 
           case valid_frame_bits is
             
@@ -254,7 +307,7 @@ begin
               if (adc_tr_debug_mode = '0') then
                 adc_data_o                   <= adc_data;
               else
-                adc_data_o                   <= adc_tr_data_p;
+                adc_data_o                   <= std_logic_vector(adc_tr_data_p);
               end if;
               data_clk_o                     <= '1';
               
@@ -268,13 +321,13 @@ begin
               
               if (nx_token_return_o = '1') then
                 -- First Data Word after empty Frame
-                adc_tr_data_p                <= adc_data_last;
-                adc_tr_data_c                <= adc_data;
+                adc_tr_data_p                <= unsigned(adc_data_last);
+                adc_tr_data_c                <= unsigned(adc_data);
                 adc_tr_data_clk              <= '1';
               end if;
-              
-            -- Token return and nomore_data
+                          
             when "0000" =>
+              -- Token return and nomore_data
               nx_token_return_o              <= '1';
               nx_nomore_data_o               <= nx_token_return_o;
 
@@ -289,7 +342,18 @@ begin
           end case;
 
           frame_rate_inc                     <= '1';
-        
+
+          -- Token Return Pipeline
+          nx_token_return_pipe(0)            <= nx_token_return_o;
+          for I in 1 to 4 loop
+            nx_token_return_pipe(I)          <= nx_token_return_pipe(I - 1);
+          end loop;
+
+          -- Store ADC Value after 5 consecutive empty Frames
+          if (nx_token_return_pipe = "11111") then
+            adc_tr_value                     <= adc_data_last;
+          end if;
+          
         else
           nx_token_return_o                  <= nx_token_return_o;
           nx_nomore_data_o                   <= nx_nomore_data_o;
@@ -390,59 +454,55 @@ begin
   end process PROC_ADC_AVERAGE;
 
   PROC_ADC_TOKEN_RETURN: process(CLK_IN)
-    variable lower_limit   : unsigned(11 downto 0);
-    variable upper_limit   : unsigned(11 downto 0);
-    
+    variable lower_limit      : unsigned(11 downto 0);
   begin
     if (rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
-        adc_tr_average_ctr    <= (others => '0');
-        adc_tr_average_sum    <= (others => '0');
-        adc_tr_average        <= (others => '0');
-
         adc_tr_error_ctr      <= (others => '0');
         adc_tr_error          <= '0';
+        adc_tr_debug_p        <= '0';
+        adc_tr_debug_c        <= '0';
+        adc_tr_error_status   <= "00";     
       else
-        upper_limit           := adc_tr_mean + adc_tr_limit;
-        lower_limit           := adc_tr_mean - adc_tr_limit;
-        adc_tr_error          <= '0';
+        lower_limit            := unsigned(adc_tr_value) - adc_tr_limit;
+        adc_tr_error           <= '0';
+
+        lower_limit_r          <= lower_limit;
         
         if (adc_tr_data_clk = '1') then
-          if (unsigned(adc_tr_data_p) <= upper_limit and
-              unsigned(adc_tr_data_p) >= lower_limit) then
-            -- Empty token value is O.K., check next one
-            if (unsigned(adc_tr_data_c) > lower_limit) then
-              -- Following Value is not low enough, increase bit shift by one
-              adc_tr_error_ctr      <= adc_tr_error_ctr + 1;
-              adc_tr_error_status   <= "10";
-              adc_tr_error          <= '1';
-            else
-              adc_tr_error_status   <= "00";
-            end if;
+
+          if (adc_tr_data_p    < x"92e") then  -- 2350
+            adc_tr_debug_p     <= '1';
           else
-            -- Empty token value is not low enough, decrease bit shift by one
-            adc_tr_error_ctr        <= adc_tr_error_ctr + 1;
-            adc_tr_error_status     <= "01";
-            adc_tr_error            <= '1';
+            adc_tr_debug_p     <= '0';
           end if;
-        end if;
-        
-        if (adc_tr_average_ctr srl to_integer(adc_average_divisor) > 0) then
-          adc_tr_average            <=
-            (adc_tr_average_sum srl
-             to_integer(adc_average_divisor))(11 downto 0);
-          if (adc_tr_data_clk = '1') then
-            adc_tr_average_sum(11 downto 0)  <= unsigned(adc_tr_data_p);
-            adc_tr_average_sum(31 downto 12) <= (others => '0');
-            adc_tr_average_ctr               <= x"0001";
+
+          if (adc_tr_data_c    < x"92e") then
+            adc_tr_debug_c     <= '1';
           else
-            adc_tr_average_sum      <= (others => '0');
-            adc_tr_average_ctr      <= (others => '0');
+            adc_tr_debug_c     <= '0';
           end if;
-        elsif (adc_tr_data_clk = '1') then
-          adc_tr_average_sum        <=
-            adc_tr_average_sum + unsigned(adc_tr_data_p);
-          adc_tr_average_ctr        <= adc_tr_average_ctr + 1;
+          
+          if (adc_tr_data_p    > lower_limit and
+              adc_tr_data_c    < lower_limit) then
+            adc_tr_error_status  <= "00";
+            adc_tr_error         <= '0';
+            
+          elsif (adc_tr_data_p > lower_limit and
+                 adc_tr_data_c > lower_limit) then
+            adc_tr_error_status  <= "01";
+            adc_tr_error         <= '1';
+            
+          elsif (adc_tr_data_p < lower_limit and
+                 adc_tr_data_c < lower_limit) then
+            adc_tr_error_status  <= "10";
+            adc_tr_error         <= '1';
+            
+          elsif (adc_tr_data_p < lower_limit and
+                 adc_tr_data_c > lower_limit) then
+            adc_tr_error_status  <= "11";
+            adc_tr_error         <= '1';
+          end if;
         end if;
 
       end if;
@@ -473,6 +533,7 @@ begin
   PROC_FIFO_REGISTERS: process(CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then
+      adc_tr_value_r         <= adc_tr_value;          
       if( RESET_IN = '1' ) then
         slv_data_out_o         <= (others => '0');
         slv_ack_o              <= '0';
@@ -481,8 +542,6 @@ begin
         clear_counters         <= '0';
         adc_average_divisor    <= x"3";
 
-        adc_tr_average_divisor <= x"00";
-        adc_tr_mean            <= x"8f2";  -- 2290
         adc_tr_limit           <= x"014";  -- 20
         adc_tr_debug_mode      <= '0';
       else
@@ -490,7 +549,7 @@ begin
         slv_unknown_addr_o     <= '0';
         slv_no_more_data_o     <= '0';
         clear_counters         <= '0';
-        
+
         if (SLV_READ_IN  = '1') then
           case SLV_ADDR_IN is
           
@@ -531,7 +590,7 @@ begin
             
             when x"0006" =>
               slv_data_out_o(1 downto 0)    <= adc_tr_error_status;
-              slv_data_out_o(31 downto 8)   <= (others => '0');
+              slv_data_out_o(31 downto 2)   <= (others => '0');
               slv_ack_o                     <= '1'; 
               
             when x"0007" =>
@@ -541,15 +600,14 @@ begin
               slv_ack_o                     <= '1';
               
             when x"0008" =>
-              slv_data_out_o(11 downto 0)
-                <= std_logic_vector(adc_tr_average);
+              slv_data_out_o(11 downto 0)   <= adc_tr_value_r;
               slv_data_out_o(31 downto 12)  <= (others => '0');
               slv_ack_o                     <= '1'; 
 
             when x"0009" =>
-              slv_data_out_o(11 downto 0)
-                <= std_logic_vector(adc_tr_mean);
-              slv_data_out_o(31 downto 12)  <= (others => '0');
+              slv_data_out_o(15 downto 0)
+                <= std_logic_vector(parity_error_ctr);
+              slv_data_out_o(31 downto 16)  <= (others => '0');
               slv_ack_o                     <= '1'; 
 
             when x"000a" =>
@@ -603,11 +661,6 @@ begin
               adc_average_divisor           <= SLV_DATA_IN(3 downto 0);
               slv_ack_o                     <= '1';
             
-            when x"0009" =>
-              adc_tr_mean
-                <= unsigned(SLV_DATA_IN(11 downto 0));
-              slv_ack_o                     <= '1';
-
             when x"000a" =>
               adc_tr_limit
                 <= unsigned(SLV_DATA_IN(11 downto 0));

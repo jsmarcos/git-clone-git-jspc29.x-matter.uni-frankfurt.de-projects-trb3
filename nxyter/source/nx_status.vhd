@@ -21,7 +21,7 @@ entity nx_status is
     I2C_REG_RESET_OUT      : out std_logic;
     NX_TS_RESET_OUT        : out std_logic;
     NX_ONLINE_OUT          : out std_logic;
-
+    
     -- Error
     ERROR_ALL_IN           : in  std_logic_vector(7 downto 0);
     
@@ -53,7 +53,7 @@ architecture Behavioral of nx_status is
   signal online_trigger          : std_logic;
   signal online_last             : std_logic;
 
-  -- I2C Reset                    
+  -- Reset Handler                    
   signal i2c_sm_reset_start       : std_logic;
   signal i2c_reg_reset_start      : std_logic;
   signal nx_ts_reset_start        : std_logic;
@@ -104,7 +104,8 @@ architecture Behavioral of nx_status is
   signal slv_no_more_data_o       : std_logic;
   signal slv_unknown_addr_o       : std_logic;
   signal slv_ack_o                : std_logic;
-
+  signal nx_ts_reset_start_r      : std_logic;
+  
 begin
 
   DEBUG_OUT(0)            <= CLK_IN;
@@ -212,6 +213,7 @@ begin
   PROC_I2C_SM_RESET: process(CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then
+      nx_ts_reset_start    <= nx_ts_reset_start_r;
       if( RESET_IN = '1' ) then
         wait_timer_start   <= '0';
         i2c_sm_reset_o     <= '0';
@@ -226,12 +228,12 @@ begin
 
         case STATE is
           when S_IDLE =>
-            if (i2c_sm_reset_start = '1') then
+            if (nx_ts_reset_start = '1') then
+              STATE          <= S_NX_TS_RESET;
+            elsif (i2c_sm_reset_start = '1') then
               STATE          <= S_I2C_SM_RESET;
             elsif (i2c_reg_reset_start = '1') then
               STATE          <= S_I2C_REG_RESET;
-            elsif (nx_ts_reset_start = '1') then
-              STATE          <= S_NX_TS_RESET;
             else
               STATE          <= S_IDLE;
             end if;
@@ -376,7 +378,7 @@ begin
         slv_ack_o                  <= '0';
         i2c_sm_reset_start         <= '0';
         i2c_reg_reset_start        <= '0';
-        nx_ts_reset_start          <= '0';
+        nx_ts_reset_start_r        <= '0';
         offline_force              <= '0';
         nx_data_clk_dphase_o       <= x"7";
         nx_data_clk_finedelb_o     <= x"0";
@@ -388,7 +390,7 @@ begin
         slv_data_out_o             <= (others => '0');    
         i2c_sm_reset_start         <= '0';
         i2c_reg_reset_start        <= '0';
-        nx_ts_reset_start          <= '0';
+        nx_ts_reset_start_r        <= '0';
         clear_notlock_counters     <= '0';
         pll_reset_o                <= '0';
         
@@ -403,7 +405,7 @@ begin
               slv_ack_o                   <= '1';
 
             when x"0002" =>               
-              nx_ts_reset_start           <= '1';
+              nx_ts_reset_start_r         <= '1';
               slv_ack_o                   <= '1';
 
             when x"0003" =>               
