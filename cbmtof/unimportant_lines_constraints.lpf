@@ -8,8 +8,8 @@ MULTICYCLE FROM CELL "PROC_TDC_CTRL_REG*tdc_ctrl_reg*" 4x;
 MULTICYCLE TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/SimAdderNo*FC/FF*" 4x;
 MULTICYCLE TO CELL "THE_TDC/ReferenceChannel/Channel200/SimAdderNo*FC/FF*" 4x;
 
-MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/Channel200/RingBuffer*FIFO/*" CLKNET CLK_PCLK_LEFT_c TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/RingBuffer*FIFO/*" CLKNET clk_100_i_c 2x;
-MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/Channel200/RingBuffer*FIFO/*" CLKNET CLK_PCLK_LEFT_c TO CELL "THE_TDC/ReferenceChannel/Channel200/RingBuffer*FIFO/*" CLKNET clk_100_i_c 2x;
+MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/Channel200/RingBuffer*FIFO/*" CLKNET CLK_EXT_c TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/RingBuffer*FIFO/*" CLKNET clk_100_i_c 2x;
+MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/Channel200/RingBuffer*FIFO/*" CLKNET CLK_EXT_c TO CELL "THE_TDC/ReferenceChannel/Channel200/RingBuffer*FIFO/*" CLKNET clk_100_i_c 2x;
 
 MULTICYCLE TO CELL "THE_TDC/GEN_Channels*Channels/sync_q*" 4 x;
 MULTICYCLE TO CELL "THE_TDC/ReferenceChannel/sync_q*" 4 x;
