@@ -7,6 +7,7 @@ use work.trb_net_std.all;
 use work.trb_net_components.all;
 use work.trb3_components.all;
 use work.config.all;
+use work.tdc_version.all;
 use work.version.all;
 
 
@@ -266,14 +267,14 @@ architecture trb3_periph_32PinAddOn_arch of trb3_periph_32PinAddOn is
   signal stat_nack  : std_logic                     := '0';
   signal stat_addr  : std_logic_vector(15 downto 0) := (others => '0');
 
-  signal sed_error  : std_logic;
-  signal sed_din    : std_logic_vector(31 downto 0);
-  signal sed_dout   : std_logic_vector(31 downto 0);
-  signal sed_write  : std_logic := '0';
-  signal sed_read   : std_logic := '0';
-  signal sed_ack    : std_logic := '0';
-  signal sed_nack   : std_logic := '0';
-  signal sed_addr   : std_logic_vector(15 downto 0) := (others => '0');  
+  signal sed_error : std_logic;
+  signal sed_din   : std_logic_vector(31 downto 0);
+  signal sed_dout  : std_logic_vector(31 downto 0);
+  signal sed_write : std_logic                     := '0';
+  signal sed_read  : std_logic                     := '0';
+  signal sed_ack   : std_logic                     := '0';
+  signal sed_nack  : std_logic                     := '0';
+  signal sed_addr  : std_logic_vector(15 downto 0) := (others => '0');
 
   --TDC
   signal hit_in_i         : std_logic_vector(64 downto 1);
@@ -493,15 +494,15 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER                 => 9,
-      PORT_ADDRESSES              => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100",
-                                --5  => x"c200", 6  => x"c300", 7 => x"c400", 8 => x"c800", 9 => x"cf00",
-                                --10 => x"cf80", 11 => x"d500", others => x"0000"),
-                                5 => x"c800", 6 => x"cf00", 7 => x"cf80", 8 => x"d500", others => x"0000"),
-      PORT_ADDR_MASK              => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5,
-                                --5  => 7, 6  => 7, 7 => 7, 8 => 3, 9 => 6,
-                                --10 => 7, 11 => 4, others => 0)
-                                5 => 3, 6 => 6, 7 => 7, 8 => 4, others => 0)
+      PORT_NUMBER                       => 9,
+      PORT_ADDRESSES                    => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100",
+                                      --5  => x"c200", 6  => x"c300", 7 => x"c400", 8 => x"c800", 9 => x"cf00",
+                                      --10 => x"cf80", 11 => x"d500", others => x"0000"),
+                                      5 => x"c800", 6 => x"cf00", 7 => x"cf80", 8 => x"d500", others => x"0000"),
+      PORT_ADDR_MASK                    => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5,
+                                      --5  => 7, 6  => 7, 7 => 7, 8 => 3, 9 => 6,
+                                      --10 => 7, 11 => 4, others => 0)
+                                      5 => 3, 6 => 6, 7 => 7, 8 => 4, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -872,7 +873,7 @@ begin
       CHANNEL_NUMBER => NUM_TDC_CHANNELS,   -- Number of TDC channels
       STATUS_REG_NR  => 21,             -- Number of status regs
       CONTROL_REG_NR => 6,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
-      TDC_VERSION    => x"160",         -- TDC version number
+      TDC_VERSION    => TDC_VERSION,    -- TDC version number
       DEBUG          => c_YES,
       SIMULATION     => c_NO)
     port map (

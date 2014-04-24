@@ -13,7 +13,6 @@ package config is
 --Include GbE logic     
   constant NUM_TDC_CHANNELS        : integer range 1 to 65         := 65;
   constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6          := 6;  --the nearest power of two, for convenience reasons
-  constant TDC_VERSION             : std_logic_vector(11 downto 0) := x"160";
   constant USE_DOUBLE_EDGE         : integer                       := c_YES;
 
 --Include SPI on AddOn connector    

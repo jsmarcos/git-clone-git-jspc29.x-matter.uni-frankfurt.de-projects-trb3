@@ -7,6 +7,7 @@ use work.trb_net_std.all;
 use work.trb_net_components.all;
 use work.trb3_components.all;
 use work.config.all;
+use work.tdc_version.all;
 use work.version.all;
 
 
@@ -752,7 +753,7 @@ begin
       CHANNEL_NUMBER => NUM_TDC_CHANNELS,   -- Number of TDC channels
       STATUS_REG_NR  => 20,             -- Number of status regs
       CONTROL_REG_NR => 5,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
-      TDC_VERSION    => x"160",         -- TDC version number
+      TDC_VERSION    => TDC_VERSION,         -- TDC version number
       DEBUG          => c_YES,
       SIMULATION     => c_NO)
     port map (

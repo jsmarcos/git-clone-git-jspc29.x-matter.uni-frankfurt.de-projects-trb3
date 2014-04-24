@@ -52,6 +52,7 @@ impl -active "workdir"
 #add_file options
 
 add_file -vhdl -lib work "version.vhd"
+add_file -vhdl -lib work "tdc_version.vhd"
 add_file -vhdl -lib work "config.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_std.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_components.vhd"
@@ -166,6 +167,7 @@ add_file -vhdl -lib "work" "currentRelease/risingEdgeDetect.vhd"
 add_file -vhdl -lib "work" "currentRelease/hit_mux.vhd"
 add_file -vhdl -lib "work" "../base/cores/FIFO_36x128_OutReg.vhd"
 add_file -vhdl -lib "work" "../base/cores/FIFO_DC_36x128_OutReg.vhd"
+add_file -vhdl -lib "work" "../base/cores/FIFO_DC_36x64_OutReg.vhd"
 #add_file -vhdl -lib "work" "currentRelease/Reference_Channel_200.vhd"
 #add_file -vhdl -lib "work" "currentRelease/Reference_Channel.vhd"
 

@@ -7,6 +7,7 @@ use work.trb_net_std.all;
 use work.trb_net_components.all;
 use work.trb3_components.all;
 use work.config.all;
+use work.tdc_version.all;
 use work.version.all;
 
 
@@ -500,8 +501,8 @@ begin
 ---------------------------------------------------------------------------
 -- I/O
 ---------------------------------------------------------------------------
---  timing_trg_received_i <= SPARE_LINE(0);
-  timing_trg_received_i <= CLK_CM(3);
+  timing_trg_received_i <= SPARE_LINE(0);
+--  timing_trg_received_i <= CLK_CM(3);
 
 ---------------------------------------------------------------------------
 -- Bus Handler
