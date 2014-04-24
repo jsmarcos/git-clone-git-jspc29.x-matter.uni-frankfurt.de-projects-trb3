@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2014-04-18
+-- Last update: 2014-04-24
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -655,7 +655,7 @@ begin  -- Channel_200
             end if;
           --
           when FLUSH_A =>
-            FSM_RD_STATE <= FLUSH_B;
+            FSM_RD_STATE <= FLUSH_D;
           --
           when FLUSH_B =>
             FSM_RD_STATE <= FLUSH_C;
@@ -673,7 +673,7 @@ begin  -- Channel_200
           --
           when READOUT_EPOCH =>
             -- first epoch word should be readout
-            FSM_RD_STATE <= READOUT_DATA_C;
+            FSM_RD_STATE <= READOUT_DATA_A;
           --
           when READOUT_DATA_A =>
             FSM_RD_STATE <= READOUT_DATA_B;
@@ -744,7 +744,7 @@ begin  -- Channel_200
       when READOUT_EPOCH =>
         fifo_data_i       <= epoch_value;
         fifo_data_valid_i <= '1';
-        fifo_rd_data_i    <= '0';
+        fifo_rd_data_i    <= '1';
         fsm_rd_debug_i    <= x"6";
       when READOUT_DATA_A =>
         fifo_data_i                <= (others => '0');
