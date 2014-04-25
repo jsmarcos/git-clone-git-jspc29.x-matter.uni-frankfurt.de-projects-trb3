@@ -819,7 +819,7 @@ THE_SED : entity work.sedcheck
       CHANNEL_NUMBER => NUM_TDC_CHANNELS,  -- Number of TDC channels
       STATUS_REG_NR  => 22,                -- Number of status regs
       CONTROL_REG_NR => 6,                 -- Number of control regs - higher than 8 check tdc_ctrl_addr
-      TDC_VERSION    => TDC_VERSION        -- TDC version number
+      TDC_VERSION    => TDC_VERSION,       -- TDC version number
       DEBUG          => c_YES,
       SIMULATION     => c_NO)
     port map (
