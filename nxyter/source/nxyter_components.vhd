@@ -920,10 +920,10 @@ component nx_trigger_generator
     RESET_IN             : in  std_logic;
     NX_MAIN_CLK_IN       : in  std_logic;
     TRIGGER_BUSY_IN      : in  std_logic;
-    TRIGGER_OUT          : out std_logic;
+    EXTERNAL_TRIGGER_OUT : out std_logic;
+    INTERNAL_TRIGGER_OUT : out std_logic;
     DATA_IN              : in  std_logic_vector(43 downto 0);
     DATA_CLK_IN          : in  std_logic;
-    SELF_TRIGGER_OUT     : out std_logic;
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
     SLV_DATA_OUT         : out std_logic_vector(31 downto 0);

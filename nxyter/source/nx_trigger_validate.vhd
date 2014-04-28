@@ -165,7 +165,8 @@ architecture Behavioral of nx_trigger_validate is
   signal wait_timer_done       : std_logic;
   signal wait_timer_done_ns    : std_logic;
                                
-  -- Histogram                 
+  -- Histogram
+  signal histogram_trigger_all : std_logic;
   signal histogram_fill_o      : std_logic;
   signal histogram_bin_o       : std_logic_vector(6 downto 0);
   signal histogram_adc_o       : std_logic_vector(11 downto 0);
@@ -185,7 +186,8 @@ architecture Behavioral of nx_trigger_validate is
   signal slv_unknown_addr_o    : std_logic;
   signal slv_ack_o             : std_logic;
                                
-  signal readout_mode_r        : std_logic_vector(3 downto 0);
+  signal readout_mode_r           : std_logic_vector(3 downto 0);
+  signal histogram_trigger_all_r  : std_logic;
   signal out_of_window_error_ctr_clear : std_logic;
   
   -- Timestamp Trigger Window Settings
@@ -277,12 +279,13 @@ begin
         out_of_window_error     <= '0';
         fifo_delay_time         <= (others => '0');
         ch_status_cmd_pr        <= CS_NONE;
-
+        
         histogram_fill_o        <= '0';
         histogram_bin_o         <= (others => '0');
         histogram_adc_o         <= (others => '0');
         histogram_pileup_o      <= '0';
         histogram_ovfl_o        <= '0';
+        histogram_trigger_all   <= histogram_trigger_all_r;
         
         -----------------------------------------------------------------------
         -- Calculate Thresholds and values for FIFO Delay
@@ -408,6 +411,16 @@ begin
                   end if;
 
               end case;
+
+              -- Fill Histogram
+              if (histogram_trigger_all = '0') then
+                histogram_fill_o               <= '1';
+                histogram_bin_o                <= CHANNEL_IN;
+                histogram_adc_o                <= ADC_DATA_IN;
+                histogram_pileup_o             <= TIMESTAMP_STATUS_IN(S_PILEUP);
+                histogram_ovfl_o               <= TIMESTAMP_STATUS_IN(S_OVFL);
+              end if;
+          
             end if;
 
             if (out_of_window_error_ctr_clear = '1') then
@@ -416,12 +429,14 @@ begin
           end if;
 
           -- Fill Histogram
-          histogram_fill_o                   <= '1';
-          histogram_bin_o                    <= CHANNEL_IN;
-          histogram_adc_o                    <= ADC_DATA_IN;
-          histogram_pileup_o                 <= TIMESTAMP_STATUS_IN(S_PILEUP);
-          histogram_ovfl_o                   <= TIMESTAMP_STATUS_IN(S_OVFL);
-
+          if (histogram_trigger_all = '1') then
+            histogram_fill_o                   <= '1';
+            histogram_bin_o                    <= CHANNEL_IN;
+            histogram_adc_o                    <= ADC_DATA_IN;
+            histogram_pileup_o                 <= TIMESTAMP_STATUS_IN(S_PILEUP);
+            histogram_ovfl_o                   <= TIMESTAMP_STATUS_IN(S_OVFL);
+          end if;
+          
         end if;
       end if;
     end if;
@@ -844,7 +859,6 @@ begin
 
   -- Give status info to the TRB Slow Control Channel
   PROC_SLAVE_BUS: process(CLK_IN)
-
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
@@ -858,6 +872,7 @@ begin
         cts_trigger_delay             <= x"0c8";
         readout_mode_r                <= "0000";
         readout_time_max              <= x"3e8";
+        histogram_trigger_all_r       <= '1';
         fpga_timestamp_offset         <= (others => '0');
         out_of_window_error_ctr_clear <= '0';
         skip_wait_for_data            <= '0';
@@ -875,7 +890,8 @@ begin
           case SLV_ADDR_IN is
             when x"0000" =>
               slv_data_out_o( 3 downto  0)    <= readout_mode_r;
-              slv_data_out_o(31 downto  5)    <= (others => '0');
+              slv_data_out_o(30 downto  5)    <= (others => '0');
+              slv_data_out_o(31)              <= histogram_trigger_all_r;
               slv_ack_o                       <= '1';
 
             when x"0001" =>
@@ -1066,6 +1082,7 @@ begin
           case SLV_ADDR_IN is
             when x"0000" =>
               readout_mode_r                  <= SLV_DATA_IN(3 downto 0);
+              histogram_trigger_all_r         <= SLV_DATA_IN(31); 
               slv_ack_o                       <= '1';
                                               
             when x"0001" =>

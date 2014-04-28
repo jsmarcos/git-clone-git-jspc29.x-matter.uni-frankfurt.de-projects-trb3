@@ -55,7 +55,11 @@ architecture Behavioral of  adc_ad9228 is
 
   -- DDR Generic Handler
   signal DDR_DATA_CLK           : std_logic;
+  signal q_0_ff                 : std_logic_vector(19 downto 0);
+  signal q_0_f                  : std_logic_vector(19 downto 0);
   signal q_0                    : std_logic_vector(19 downto 0);
+  signal q_1_ff                 : std_logic_vector(19 downto 0);
+  signal q_1_f                  : std_logic_vector(19 downto 0);
   signal q_1                    : std_logic_vector(19 downto 0);
 
   -- NotLock Counters
@@ -219,10 +223,17 @@ begin
       datain_1(3)    => ADC1_DATA_D_IN,
       datain_1(4)    => ADC1_FCLK_IN,
                      
-      q_0            => q_0,
-      q_1            => q_1
+      q_0            => q_0_ff,
+      q_1            => q_1_ff
       );
 
+  -- Two Input FIFOs to relaxe timing
+  q_0_f   <= q_0_ff when rising_edge(DDR_DATA_CLK);
+  q_0     <= q_0_f  when rising_edge(DDR_DATA_CLK);
+
+  q_1_f   <= q_1_ff when rising_edge(DDR_DATA_CLK);
+  q_1     <= q_1_f  when rising_edge(DDR_DATA_CLK);
+  
   -----------------------------------------------------------------------------
   
   PROC_MERGE_DATA0: process(DDR_DATA_CLK)
