@@ -104,7 +104,6 @@ architecture Behavioral of nx_data_receiver is
 
   signal pll_adc_sampling_clk_o      : std_logic;
   signal pll_adc_sampling_clk_lock   : std_logic;
-  signal pll_adc_sampling_clk_reset  : std_logic;
 
   -- PLL ADC Monitor
   signal pll_adc_not_lock            : std_logic;
@@ -135,6 +134,8 @@ architecture Behavioral of nx_data_receiver is
   signal adc_debug_type              : std_logic_vector(3 downto 0);
 
   -- Merge Data Streams
+  signal merge_handler_reset_i       : std_logic;
+  signal merge_handler_reset         : std_logic;
   signal data_frame                  : std_logic_vector(43 downto 0);
   signal data_frame_clk              : std_logic;
   signal merge_timeout_ctr           : unsigned(3 downto 0);
@@ -265,7 +266,7 @@ architecture Behavioral of nx_data_receiver is
   signal R_STATE : R_STATES;
 
   signal frame_rates_reset           : std_logic;
-  signal sampling_clk_reset          : std_logic;
+  signal pll_adc_sampling_clk_reset  : std_logic;
   signal adc_reset_handler           : std_logic;
   signal adc_reset_p                 : std_logic;
   signal output_handler_reset        : std_logic;
@@ -334,7 +335,7 @@ begin
           DEBUG_OUT(8)            <= reset_for_offline;
           DEBUG_OUT(9)            <= fifo_reset_handler;
           DEBUG_OUT(10)           <= reset_handler_busy;
-          DEBUG_OUT(11)           <= sampling_clk_reset;
+          DEBUG_OUT(11)           <= pll_adc_sampling_clk_reset;
           DEBUG_OUT(15 downto 12) <= debug_state;
 
         when "010" =>
@@ -352,7 +353,7 @@ begin
           DEBUG_OUT(8)            <= error_adc0;
           DEBUG_OUT(9)            <= adc_frame_rate_error;
           DEBUG_OUT(10)           <= fifo_reset_handler;
-          DEBUG_OUT(11)           <= sampling_clk_reset;
+          DEBUG_OUT(11)           <= pll_adc_sampling_clk_reset;
           DEBUG_OUT(12)           <= adc_reset_handler;
           DEBUG_OUT(13)           <= output_handler_reset;
           DEBUG_OUT(14)           <= frame_rate_error;
@@ -469,8 +470,6 @@ begin
         std_logic_vector(13 + pll_adc_sample_clk_dphase_r);
       pll_adc_sample_clk_finedelb   <=
         std_logic_vector(8 + pll_adc_sample_clk_finedelb_r);
-      
-      pll_adc_sampling_clk_reset    <= sampling_clk_reset;
     end if;
   end process  PROC_PLL_PHASE_SETUP;
   
@@ -975,11 +974,15 @@ begin
   -----------------------------------------------------------------------------
   -- Merge Data Streams Timestamps and ADC Value
   -----------------------------------------------------------------------------
-  
+  merge_handler_reset_i   <=
+    output_handler_reset when rising_edge(NX_TIMESTAMP_CLK_IN);
+  merge_handler_reset   <=
+    merge_handler_reset_i when rising_edge(NX_TIMESTAMP_CLK_IN);
+
   PROC_DATA_MERGE_HANDLER: process(NX_TIMESTAMP_CLK_IN)
   begin
     if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
-      if (RESET_NX_TIMESTAMP_CLK_IN = '1' or output_handler_reset = '1') then
+      if (RESET_NX_TIMESTAMP_CLK_IN = '1' or merge_handler_reset = '1') then
         merge_timeout_ctr      <= (others => '0');
         merge_timeout_error    <= '0';
         merge_error_ctr        <= (others => '0');
@@ -1325,7 +1328,7 @@ begin
       if( RESET_IN = '1' ) then
         frame_rates_reset           <= '0';
         fifo_reset_handler          <= '0';
-        sampling_clk_reset          <= '0';
+        pll_adc_sampling_clk_reset  <= '0';
         adc_reset_p                 <= '0';
         adc_reset_handler           <= '0';
         output_handler_reset        <= '0';
@@ -1342,7 +1345,7 @@ begin
       else
         frame_rates_reset           <= '0';
         fifo_reset_handler          <= '0';
-        sampling_clk_reset          <= '0';
+        pll_adc_sampling_clk_reset  <= '0';
         adc_reset_p                 <= '0';
         adc_reset_handler           <= '0';
         output_handler_reset        <= '0';
@@ -1384,42 +1387,42 @@ begin
             when R_RESET_TIMESTAMP =>
               -- must reset/resync Timestamp clock and data trnasmission clock
               -- of nxyter first, afterwards wait a bit to let settle down
-              reset_handler_counter     <= reset_handler_counter + 1;
-              nx_timestamp_reset_o      <= '1';
-              rs_wait_timer_start       <= '1';  -- wait 1mue to settle
-              R_STATE                   <= R_WAIT_0;  
-              debug_state               <= x"1";
+              reset_handler_counter      <= reset_handler_counter + 1;
+              nx_timestamp_reset_o       <= '1';
+              rs_wait_timer_start        <= '1';  -- wait 1mue to settle
+              R_STATE                    <= R_WAIT_0;  
+              debug_state                <= x"1";
               
             when R_WAIT_0 =>
               if (rs_wait_timer_done = '0') then
-                R_STATE                 <= R_WAIT_0;
+                R_STATE                  <= R_WAIT_0;
               else
-                R_STATE                 <= R_SET_ALL_RESETS;
+                R_STATE                  <= R_SET_ALL_RESETS;
               end if;  
-              debug_state               <= x"2";
+              debug_state                <= x"2";
               
             when R_SET_ALL_RESETS =>
               -- timer reset should be finished, can we check status,To be done?
               -- now set reset of all handlers
-              frame_rates_reset         <= '1';
-              sampling_clk_reset        <= '1';
-              adc_reset_p               <= '1';
-              adc_reset_handler         <= '1';
-              output_handler_reset      <= '1';
-              fifo_reset_handler        <= '1';
+              frame_rates_reset          <= '1';
+              pll_adc_sampling_clk_reset <= '1';
+              adc_reset_p                <= '1';
+              adc_reset_handler          <= '1';
+              output_handler_reset       <= '1';
+              fifo_reset_handler         <= '1';
               
               -- give resets 1mue to take effect  
-              rs_wait_timer_start       <= '1';  
-              R_STATE                   <= R_WAIT_1;
-              debug_state               <= x"3";
+              rs_wait_timer_start        <= '1';  
+              R_STATE                    <= R_WAIT_1;
+              debug_state                <= x"3";
                             
             when R_WAIT_1 =>
-              sampling_clk_reset      <= '1';
-              adc_reset_handler       <= '1';
-              output_handler_reset    <= '1';
-              fifo_reset_handler      <= '1';
+              pll_adc_sampling_clk_reset <= '1';
+              adc_reset_handler          <= '1';
+              output_handler_reset       <= '1';
+              fifo_reset_handler         <= '1';
               if (rs_wait_timer_done = '0') then
-                R_STATE                 <= R_WAIT_1;
+                R_STATE                  <= R_WAIT_1;
               else
                 -- now start timeout timer and begin to release resets
                 -- step by step
@@ -1432,16 +1435,16 @@ begin
               if (nx_frame_rate_offline = '0' and
                   nx_frame_rate_error   = '0') then
                 -- Next: Release PLL Reset, i.e. sampling_clk_reset
-                adc_reset_handler       <= '1';
-                output_handler_reset    <= '1';
-                fifo_reset_handler      <= '1';
-                R_STATE                 <= R_PLL_WAIT_LOCK;
+                adc_reset_handler          <= '1';
+                output_handler_reset       <= '1';
+                fifo_reset_handler         <= '1';
+                R_STATE                    <= R_PLL_WAIT_LOCK;
               else
-                sampling_clk_reset      <= '1';
-                adc_reset_handler       <= '1';
-                output_handler_reset    <= '1';
-                fifo_reset_handler      <= '1';
-                R_STATE                 <= R_WAIT_NX_FRAME_RATE_OK;
+                pll_adc_sampling_clk_reset <= '1';
+                adc_reset_handler          <= '1';
+                output_handler_reset       <= '1';
+                fifo_reset_handler         <= '1';
+                R_STATE                    <= R_WAIT_NX_FRAME_RATE_OK;
               end if;
               debug_state               <= x"5";
               
@@ -1523,9 +1526,7 @@ begin
   -----------------------------------------------------------------------------
   -- TRBNet Slave Bus
   -----------------------------------------------------------------------------
-
-  -- Give status info to the TRB Slow Control Channel
-  PROC_SLAVE_BUS: process(CLK_IN)
+  PROC_SLAVE_BUS_BUFFER: process(CLK_IN)
   begin
     if (rising_edge(CLK_IN) ) then
       fifo_full_r                     <= fifo_full;
@@ -1535,15 +1536,21 @@ begin
       adc_notlock_ctr_r               <= adc_notlock_ctr;
       merge_error_ctr_r               <= merge_error_ctr;
       nx_frame_synced_r               <= nx_frame_synced;
-
+    end if;
+  end process PROC_SLAVE_BUS_BUFFER;
+  
+  -- Give status info to the TRB Slow Control Channel
+  PROC_SLAVE_BUS: process(CLK_IN)
+  begin
+    if (rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
         slv_data_out_o                <= (others => '0');
         slv_ack_o                     <= '0';
         slv_unknown_addr_o            <= '0';
         slv_no_more_data_o            <= '0';
+
         reset_resync_ctr              <= '0';
         reset_parity_error_ctr        <= '0';
-        debug_mode                     <= (others => '0');
         johnson_counter_sync_r        <= "00";
         pll_adc_sample_clk_dphase_r   <= x"d";
         pll_adc_sample_clk_finedelb_r <= (others => '0');
@@ -1552,8 +1559,7 @@ begin
         reset_handler_start_r         <= '0';
         adc_bit_shift                 <= x"0";
         adc_debug_type                <= (others => '0');
-        fifo_full_r                   <= '0';
-        fifo_empty_r                  <= '0';
+        debug_mode                     <= (others => '0');
       else                      
         slv_data_out_o                <= (others => '0');
         slv_ack_o                     <= '0';
@@ -1692,10 +1698,6 @@ begin
               slv_data_out_o(31 downto 12)  <= (others => '0');
               slv_ack_o                     <= '1';
 
-            when x"001c" =>
-              slv_data_out_o                <= (others => '0');
-              slv_ack_o                     <= '1';
-      
             when x"001e" =>
               slv_data_out_o(2 downto 0)    <= debug_mode;
               slv_data_out_o(31 downto 3)   <= (others => '0');

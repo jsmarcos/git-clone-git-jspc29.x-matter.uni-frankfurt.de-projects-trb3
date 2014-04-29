@@ -65,7 +65,7 @@ entity nx_trigger_handler is
     SLV_ACK_OUT                : out std_logic;
     SLV_NO_MORE_DATA_OUT       : out std_logic;
     SLV_UNKNOWN_ADDR_OUT       : out std_logic;
-                               
+
     -- Debug Line              
     DEBUG_OUT                  : out std_logic_vector(15 downto 0)
     );
@@ -179,7 +179,8 @@ architecture Behavioral of nx_trigger_handler is
   signal accepted_trigger_rate       : unsigned(27 downto 0);
   signal testpulse_rate              : unsigned(27 downto 0);
   signal invalid_t_trigger_ctr_clear : std_logic;
-   
+  signal bypass_ctr_trigger          : std_logic;
+       
   -- Reset
   signal RESET_NX_MAIN_CLK_IN        : std_logic;
   
@@ -437,19 +438,15 @@ begin
                 STATE                <= S_WAIT_TRG_DATA_VALID;
                 
               elsif (LVL1_VALID_TIMING_TRG_IN = '1') then
-                if (NXYTER_OFFLINE_IN = '0') then
+                if (NXYTER_OFFLINE_IN = '1' or bypass_ctr_trigger = '1') then
+                  -- Ignore Trigger for nxyter is or pretends to be offline 
+                  TRIGGER_TYPE        <= T_IGNORE;
+                  STATE               <= S_WAIT_TRG_DATA_VALID;
+                else
                   -- Normal Trigger
                   TRIGGER_TYPE       <= T_TIMING;
                   STATE              <= S_CTS_TRIGGER;
-                else
-                  -- Ignore Trigger for nxyter is offline
-                 TRIGGER_TYPE        <= T_IGNORE;
-                 STATE               <= S_WAIT_TRG_DATA_VALID;
                 end if;
-              elsif (INTERNAL_TRIGGER_IN = '1') then
-                -- Internal Trigger, not defined yet
-                TRIGGER_TYPE         <= T_INTERNAL;
-                STATE                <= S_INTERNAL_TRIGGER;
               else
                 trigger_busy_o       <= '0';
                 TRIGGER_TYPE         <= T_UNDEF;
@@ -669,6 +666,7 @@ begin
         reg_testpulse_length           <= x"064";
         reg_testpulse_enable           <= '0';
         invalid_t_trigger_ctr_clear    <= '1';
+        bypass_ctr_trigger             <= '0';
       else                             
         slv_unknown_addr_o             <= '0';
         slv_no_more_data_o             <= '0';
@@ -694,6 +692,10 @@ begin
               
             when x"0003" =>
               invalid_t_trigger_ctr_clear  <= '1';
+              slv_ack_o                    <= '1'; 
+
+            when x"0006" =>
+              bypass_ctr_trigger           <= SLV_DATA_IN(0);
               slv_ack_o                    <= '1'; 
               
             when others =>
@@ -732,11 +734,16 @@ begin
                 std_logic_vector(accepted_trigger_rate);
               slv_data_out_o(31 downto 28) <= (others => '0');
               slv_ack_o                    <= '1';  
-
+              
             when x"0005" =>
               slv_data_out_o(27 downto 0)  <=
                 std_logic_vector(testpulse_rate);
               slv_data_out_o(31 downto 28) <= (others => '0');
+              slv_ack_o                    <= '1';  
+
+            when x"0006" =>
+              slv_data_out_o(0)            <= bypass_ctr_trigger;
+              slv_data_out_o(31 downto 1)  <= (others => '0');
               slv_ack_o                    <= '1';  
               
             when others =>
@@ -767,7 +774,7 @@ begin
   FEE_TRG_RELEASE_OUT       <= fee_trg_release_o;
   FEE_TRG_STATUSBITS_OUT    <= fee_trg_statusbits_o;
 
-  NX_TESTPULSE_OUT          <= testpulse_o;
+  NX_TESTPULSE_OUT          <= testpulse_o or INTERNAL_TRIGGER_IN;
 
   -- Slave Bus              
   SLV_DATA_OUT              <= slv_data_out_o;    

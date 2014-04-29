@@ -59,18 +59,21 @@ LOCATE UGROUP        "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLI
 # Relax some of the timing constraints
 #################################################################
 
-BLOCK NET "nXyter_FEE_board_*/nx_data_receiver_*/adc_ad9228_*/fifo_adc_48to48_dc_*/r_gcount*";
+#BLOCK NET "nXyter_FEE_board_*/nx_data_receiver_*/adc_ad9228_*/fifo_adc_48to48_dc_*/r_gcount*";
+
 MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset*"                                                      30 ns;
 
-MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_status_*/nx_ts_reset_o"                                       100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_fpga_timestamp_*/signal_async_trans_RESET_IN/*"                30 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_fpga_timestamp_*/timestamp_sync_o*"                            10 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_fpga_timestamp_*/timestamp_hold_o_*"                           30 ns;
+
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_generator_*/signal_async_trans_RESET_IN/*"             30 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_generator_*/internal_trigger_o*"                      100 ns;
 
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_event_buffer_*/fifo_almost_full_thr_*"                        100 ns;
 
-MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_fpga_timestamp_*/signal_async_trans_RESET_IN/*"                30 ns;
-MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_fpga_timestamp_*/timestamp_hold_o_*"                           30 ns;
-MULTICYCLE TO   CELL "*/timestamp_sync_o*"                       10 ns;
-
-MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_trigger_handler_*/signal_async_trans_TRIGGER_BUSY*"            30 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_handler_*/signal_async_trans_RESET_IN/*"               30 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_trigger_handler_*/signal_async_trans_TRIGGER_BUSY/*"           30 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_handler_*/fast_clear_o"                                30 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_handler_*/reg_testpulse_delay*"                       100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_handler_*/reg_testpulse_length*"                      100 ns;
@@ -83,20 +86,21 @@ MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/ts_window_width_*
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/readout_time_max_*"                        100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/fpga_timestamp_offset_*"                   100 ns;
 
-MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_reset_handler*"                            30 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/signal_async_trans_RESET_IN/*"                 30 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/output_handler_reset*"                         30 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_reset_handler*"                            30 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/reset_handler_start_r*"                       100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/johnson_counter_sync_r*"                      100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_timestamp_delay_r*"                        100 ns;
-MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_frame_word_delay_r*"                       100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_frame_word_delay_rnx_*"                    100 ns;
 MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/fifo_full_r*"                                 100 ns;
 MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/fifo_empty_r*"                                100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/pll_adc_sample_clk_finedelb_r*"               100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/pll_adc_sample_clk_dphase_r*"                 100 ns;
-MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/sampling_clk_reset*"                          100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/pll_adc_sampling_clk_reset*"                  100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_bit_shift*"                               100 ns;
-MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/new_adc_dt_error_ctr_r*"                      100 ns;
-MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/new_timestamp_dt_error_ctr_r*"                100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/new_adc_dt_error_ctr_*"                       100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/new_timestamp_dt_error_ctr_*"                 100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_clk_ok"                                   100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_debug_type*"                              100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_timestamp_reset_o*"                        100 ns;
@@ -105,6 +109,7 @@ MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/merge_error_ctr_r*" 
 MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_frame_synced_r*"                           100 ns;
 
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/debug_multiplexer_*/port_select_*"                               100 ns;
+
 #SPI Interface
 REGION "REGION_SPI" "R9C108D" 20 20 DEVSIZE;
 LOCATE UGROUP "THE_SPI_MEMORY/SPI_group" REGION "REGION_SPI" ;

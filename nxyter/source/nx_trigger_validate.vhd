@@ -112,6 +112,7 @@ architecture Behavioral of nx_trigger_validate is
   signal validation_busy       : std_logic_vector(1 downto 0);
 
   -- Rate Calculations
+  signal data_rate_ctr_nr      : unsigned(31 downto 0);       
   signal data_rate_ctr         : unsigned(27 downto 0);
   signal data_rate             : unsigned(27 downto 0);
   signal rate_timer_ctr        : unsigned(27 downto 0);
@@ -495,6 +496,7 @@ begin
   begin
     if (rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
+        data_rate_ctr_nr       <= (others => '0');      
         data_rate_ctr          <= (others => '0');
         data_rate              <= (others => '0');
         rate_timer_ctr         <= (others => '0');
@@ -504,6 +506,7 @@ begin
 
           if (d_data_clk_o = '1') then
             data_rate_ctr            <= data_rate_ctr + 1;
+            data_rate_ctr_nr         <= data_rate_ctr_nr + 1;
           end if;
         else
           rate_timer_ctr             <= (others => '0');
@@ -1061,14 +1064,20 @@ begin
               slv_data_out_o(31 downto 16)    <= (others => '0');
               slv_ack_o                       <= '1';
 
+            --when x"001e" =>
+            --  slv_data_out_o(15 downto 0)     <=
+            --    std_logic_vector(out_of_window_h_ctr_r);
+            --  slv_data_out_o(31 downto 16)    <= (others => '0');
+            --  slv_ack_o                       <= '1';
+
             when x"001e" =>
-              slv_data_out_o(15 downto 0)     <=
-                std_logic_vector(out_of_window_h_ctr_r);
-              slv_data_out_o(31 downto 16)    <= (others => '0');
+              slv_data_out_o(27 downto 0)     <= std_logic_vector(data_rate);
+              slv_data_out_o(31 downto 28)    <= (others => '0');
               slv_ack_o                       <= '1';
 
             when x"001f" =>
-              slv_data_out_o(27 downto 0)     <= std_logic_vector(data_rate);
+              slv_data_out_o                  <=
+                std_logic_vector(data_rate_ctr_nr);
               slv_data_out_o(31 downto 28)    <= (others => '0');
               slv_ack_o                       <= '1';
 

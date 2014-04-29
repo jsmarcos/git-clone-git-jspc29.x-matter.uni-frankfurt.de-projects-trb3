@@ -487,7 +487,7 @@ begin
       FEE_DATA_WRITE_0_IN        => fee_data_write_o_0,
       FEE_DATA_1_IN              => fee_data_o_1,
       FEE_DATA_WRITE_1_IN        => fee_data_write_o_1,
-      INTERNAL_TRIGGER_IN        => '0', --internal_trigger,
+      INTERNAL_TRIGGER_IN        => internal_trigger,
 
       TRIGGER_VALIDATE_BUSY_IN   => trigger_validate_busy,
       TRIGGER_BUSY_0_IN          => trigger_evt_busy_0,

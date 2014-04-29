@@ -79,6 +79,7 @@ architecture Behavioral of nx_data_validate is
   
   -- Rate Calculation
   signal nx_trigger_ctr_t     : unsigned(27 downto 0);
+  signal nx_trigger_ctr_t_nr  : unsigned(31 downto 0);
   signal nx_frame_ctr_t       : unsigned(27 downto 0);
   signal nx_pileup_ctr_t      : unsigned(27 downto 0);
   signal nx_overflow_ctr_t    : unsigned(27 downto 0);
@@ -374,6 +375,7 @@ begin
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
         nx_trigger_ctr_t     <= (others => '0');
+        nx_trigger_ctr_t_nr  <= (others => '0');
         nx_frame_ctr_t       <= (others => '0');
         nx_rate_timer        <= (others => '0');
         nx_hit_rate          <= (others => '0');
@@ -383,6 +385,7 @@ begin
         if (nx_rate_timer < x"5f5e100") then
           if (trigger_rate_inc = '1') then
             nx_trigger_ctr_t               <= nx_trigger_ctr_t + 1;
+            nx_trigger_ctr_t_nr            <= nx_trigger_ctr_t_nr + 1;
           end if;
           if (frame_rate_inc = '1') then
             nx_frame_ctr_t                 <= nx_frame_ctr_t + 1;
@@ -645,7 +648,12 @@ begin
               slv_data_out_o(31 downto 1)   <= (others => '0');
               slv_ack_o                     <= '1';
               slv_ack_o                     <= '1';
-                   
+
+            when x"0010" =>
+              slv_data_out_o                <= nx_trigger_ctr_t_nr;
+              slv_ack_o                     <= '1';
+              slv_ack_o                     <= '1';    
+
             when others  =>
               slv_unknown_addr_o            <= '1';
               slv_ack_o                     <= '0';
