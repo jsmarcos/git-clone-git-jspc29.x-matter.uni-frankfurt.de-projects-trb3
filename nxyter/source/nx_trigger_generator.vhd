@@ -9,7 +9,6 @@ entity nx_trigger_generator is
   port (
     CLK_IN                 : in  std_logic;
     RESET_IN               : in  std_logic;
-    NX_MAIN_CLK_IN         : in  std_logic;
                            
     TRIGGER_BUSY_IN        : in  std_logic;
     EXTERNAL_TRIGGER_OUT   : out std_logic;
@@ -82,13 +81,10 @@ architecture Behavioral of nx_trigger_generator is
   signal slv_ack_o                 : std_logic;
   signal pulser_trigger_period_r   : unsigned(27 downto 0);
 
-  -- Reset
-  signal RESET_NX_MAIN_CLK_IN      : std_logic;
-
 begin
   -- Debug Line
   DEBUG_OUT(0)             <= CLK_IN;
-  DEBUG_OUT(1)             <= NX_MAIN_CLK_IN;
+  DEBUG_OUT(1)             <= '0';
   DEBUG_OUT(2)             <= DATA_CLK_IN;
   DEBUG_OUT(3)             <= TRIGGER_BUSY_IN;
   
@@ -107,16 +103,6 @@ begin
   DEBUG_OUT(13)            <= trigger;
   DEBUG_OUT(15 downto 14)  <= (others => '0');
                              
-  -----------------------------------------------------------------------------
-  -- Reset Domain Transfer
-  -----------------------------------------------------------------------------
-  signal_async_trans_RESET_IN: signal_async_trans
-    port map (
-      CLK_IN      => NX_MAIN_CLK_IN,
-      SIGNAL_A_IN => RESET_IN,
-      SIGNAL_OUT  => RESET_NX_MAIN_CLK_IN
-    );
-  
   -----------------------------------------------------------------------------
   -- Generate Pulser Trigger
   -----------------------------------------------------------------------------

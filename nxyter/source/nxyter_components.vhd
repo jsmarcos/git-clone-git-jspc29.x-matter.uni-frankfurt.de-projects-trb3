@@ -346,7 +346,6 @@ component nx_status
     PLL_RESET_OUT          : out std_logic;
     I2C_SM_RESET_OUT       : inout std_logic;
     I2C_REG_RESET_OUT      : out std_logic;
-    NX_TS_RESET_OUT        : out std_logic;
     NX_ONLINE_OUT          : out std_logic;
     ERROR_ALL_IN           : in  std_logic_vector(7 downto 0);
     SLV_READ_IN            : in  std_logic;
@@ -449,6 +448,7 @@ component nx_data_receiver
     CLK_IN                 : in  std_logic;
     RESET_IN               : in  std_logic;
     TRIGGER_IN             : in  std_logic;
+    NX_ONLINE_IN           : in  std_logic;
     NX_TIMESTAMP_CLK_IN    : in  std_logic;
     NX_TIMESTAMP_IN        : in  std_logic_vector (7 downto 0);
     NX_TIMESTAMP_RESET_OUT : out std_logic;
@@ -849,8 +849,7 @@ component nx_fpga_timestamp
     CLK_IN                   : in  std_logic;
     RESET_IN                 : in  std_logic;
     NX_MAIN_CLK_IN           : in  std_logic;
-    TIMESTAMP_RESET_1_IN     : in  std_logic;
-    TIMESTAMP_RESET_2_IN     : in  std_logic;
+    TIMESTAMP_RESET_IN       : in  std_logic;
     TIMESTAMP_RESET_OUT      : out std_logic;
     TRIGGER_IN               : in  std_logic;
     TIMESTAMP_HOLD_OUT       : out unsigned(11 downto 0);
@@ -918,7 +917,6 @@ component nx_trigger_generator
   port (
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
-    NX_MAIN_CLK_IN       : in  std_logic;
     TRIGGER_BUSY_IN      : in  std_logic;
     EXTERNAL_TRIGGER_OUT : out std_logic;
     INTERNAL_TRIGGER_OUT : out std_logic;

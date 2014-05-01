@@ -312,7 +312,7 @@ begin
 
         adc_read_id           <= (others => '0');
         adc_read              <= '0';
-        adc_num_averages      <= "001";
+        adc_num_averages      <= (others => '0');
         adc_average_enable    <= '1';
         
         pileup_read_id        <= (others => '0');

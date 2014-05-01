@@ -115,8 +115,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal slv_unknown_addr       : std_logic_vector(NUM_PORTS-1 downto 0);
 
   -- TRB Register               
-  signal nx_timestamp_reset_status   : std_logic;
-  signal nx_timestamp_reset_receiver : std_logic;
+  signal nx_timestamp_reset     : std_logic;
   signal nx_timestamp_reset_o   : std_logic;
   signal i2c_reg_reset_o        : std_logic;
   signal nxyter_online          : std_logic;
@@ -321,7 +320,6 @@ begin
 
       I2C_SM_RESET_OUT         => I2C_SM_RESET_OUT,
       I2C_REG_RESET_OUT        => i2c_reg_reset_o,
-      NX_TS_RESET_OUT          => nx_timestamp_reset_status,
       NX_ONLINE_OUT            => nxyter_online,
 
       ERROR_ALL_IN             => error_all,
@@ -437,8 +435,7 @@ begin
       CLK_IN                   => CLK_IN,
       RESET_IN                 => RESET_IN,
       NX_MAIN_CLK_IN           => CLK_NX_MAIN_IN,
-      TIMESTAMP_RESET_1_IN     => '0', --nx_timestamp_reset_status,
-      TIMESTAMP_RESET_2_IN     => nx_timestamp_reset_receiver,
+      TIMESTAMP_RESET_IN       => nx_timestamp_reset,
       TIMESTAMP_RESET_OUT      => nx_timestamp_reset_o, 
       TRIGGER_IN               => timestamp_trigger,
       TIMESTAMP_HOLD_OUT       => timestamp_hold,
@@ -522,7 +519,6 @@ begin
     port map (
       CLK_IN               => CLK_IN,
       RESET_IN             => RESET_IN,
-      NX_MAIN_CLK_IN       => CLK_NX_MAIN_IN,
 
       TRIGGER_BUSY_IN      => trigger_busy,
       EXTERNAL_TRIGGER_OUT => TRIGGER_OUT,
@@ -555,10 +551,11 @@ begin
       CLK_IN                 => CLK_IN,
       RESET_IN               => RESET_IN,
       TRIGGER_IN             => trigger_timing,
-                             
+      NX_ONLINE_IN           => nxyter_online,
+
       NX_TIMESTAMP_CLK_IN    => NX_DATA_CLK_IN,
       NX_TIMESTAMP_IN        => NX_TIMESTAMP_IN,
-      NX_TIMESTAMP_RESET_OUT => nx_timestamp_reset_receiver,
+      NX_TIMESTAMP_RESET_OUT => nx_timestamp_reset,
       
       ADC_CLK_DAT_IN         => CLK_ADC_IN,
       ADC_FCLK_IN            => ADC_FCLK_IN,

@@ -52,7 +52,9 @@ entity adc_ad9228 is
 end adc_ad9228;
 
 architecture Behavioral of  adc_ad9228 is
-
+  attribute HGROUP : string;
+  attribute HGROUP of Behavioral : architecture is "SAMPLING_ADC_AD9228";
+  
   -- DDR Generic Handler
   signal DDR_DATA_CLK           : std_logic;
   signal q_0_ff                 : std_logic_vector(19 downto 0);
@@ -136,7 +138,21 @@ architecture Behavioral of  adc_ad9228 is
   -- Resets
   signal RESET_CLK_ADCDAT_IN    : std_logic;
   signal RESET_DDR_DATA_CLK     : std_logic;
-    
+
+  -- 
+  attribute syn_keep : boolean;
+  attribute syn_keep of q_0_ff     : signal is true;
+  attribute syn_keep of q_0_f      : signal is true;
+  attribute syn_keep of q_1_ff     : signal is true;
+  attribute syn_keep of q_1_f      : signal is true;
+
+  attribute syn_preserve : boolean;
+  attribute syn_preserve of q_0_ff : signal is true;
+  attribute syn_preserve of q_0_f  : signal is true;
+  attribute syn_preserve of q_1_ff : signal is true;
+  attribute syn_preserve of q_1_f  : signal is true;
+  
+  
 begin
 
   PROC_DEBUG: process (DEBUG_IN)

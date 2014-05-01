@@ -24,6 +24,12 @@ architecture Behavioral of signal_async_to_pulse is
   signal pulse_ff      : std_logic_vector(NUM_FF - 1 downto 0);
   signal pulse_o       : std_logic;
 
+  attribute syn_keep : boolean;
+  attribute syn_keep of pulse_ff      : signal is true;
+
+  attribute syn_preserve : boolean;
+  attribute syn_preserve of pulse_ff  : signal is true;
+  
 begin
 
   -----------------------------------------------------------------------------

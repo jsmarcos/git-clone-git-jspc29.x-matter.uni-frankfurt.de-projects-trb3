@@ -19,6 +19,12 @@ architecture Behavioral of signal_async_trans is
 
   signal signal_ff      : signal_ff_t;
 
+  attribute syn_keep : boolean;
+  attribute syn_keep of signal_ff      : signal is true;
+
+  attribute syn_preserve : boolean;
+  attribute syn_preserve of signal_ff  : signal is true;
+  
 begin
 
   -----------------------------------------------------------------------------

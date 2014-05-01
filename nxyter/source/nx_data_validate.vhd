@@ -647,12 +647,10 @@ begin
               slv_data_out_o(0)             <= adc_tr_debug_mode;
               slv_data_out_o(31 downto 1)   <= (others => '0');
               slv_ack_o                     <= '1';
-              slv_ack_o                     <= '1';
 
             when x"0010" =>
               slv_data_out_o                <= nx_trigger_ctr_t_nr;
               slv_ack_o                     <= '1';
-              slv_ack_o                     <= '1';    
 
             when others  =>
               slv_unknown_addr_o            <= '1';

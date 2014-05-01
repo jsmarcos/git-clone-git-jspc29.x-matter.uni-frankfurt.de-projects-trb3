@@ -190,6 +190,10 @@ architecture Behavioral of nx_trigger_validate is
   signal readout_mode_r           : std_logic_vector(3 downto 0);
   signal histogram_trigger_all_r  : std_logic;
   signal out_of_window_error_ctr_clear : std_logic;
+
+  signal histogram_limits      : std_logic;
+  signal histogram_lower_limit : unsigned(13 downto 0);
+  signal histogram_upper_limit : unsigned(13 downto 0);
   
   -- Timestamp Trigger Window Settings
   signal nxyter_cv_time        : unsigned(11 downto 0);
@@ -415,13 +419,23 @@ begin
 
               -- Fill Histogram
               if (histogram_trigger_all = '0') then
-                histogram_fill_o               <= '1';
-                histogram_bin_o                <= CHANNEL_IN;
-                histogram_adc_o                <= ADC_DATA_IN;
-                histogram_pileup_o             <= TIMESTAMP_STATUS_IN(S_PILEUP);
-                histogram_ovfl_o               <= TIMESTAMP_STATUS_IN(S_OVFL);
+                if (histogram_limits = '1') then
+                  if (deltaTStore >= histogram_lower_limit and
+                      deltaTStore <= histogram_upper_limit) then
+                    histogram_fill_o       <= '1';
+                    histogram_bin_o        <= CHANNEL_IN;
+                    histogram_adc_o        <= ADC_DATA_IN;
+                    histogram_pileup_o     <= TIMESTAMP_STATUS_IN(S_PILEUP);
+                    histogram_ovfl_o       <= TIMESTAMP_STATUS_IN(S_OVFL);      
+                  end if;
+                else
+                  histogram_fill_o       <= '1';
+                  histogram_bin_o        <= CHANNEL_IN;
+                  histogram_adc_o        <= ADC_DATA_IN;
+                  histogram_pileup_o     <= TIMESTAMP_STATUS_IN(S_PILEUP);
+                  histogram_ovfl_o       <= TIMESTAMP_STATUS_IN(S_OVFL); 
+                end if;
               end if;
-          
             end if;
 
             if (out_of_window_error_ctr_clear = '1') then
@@ -585,7 +599,7 @@ begin
         -- Wait for Data and minimum Validation Time calculation
         min_validation_time         := resize(ts_window_width * 4, 20);        
         wait_for_data_time          :=
-          resize(nxyter_cv_time, 20) + data_fifo_delay_o * 32 + 320;
+          resize(nxyter_cv_time, 20) + data_fifo_delay_o * 32 + 280; --320;
 
         if (skip_wait_for_data = '1') then
           min_validation_time       :=
@@ -1076,9 +1090,13 @@ begin
               slv_ack_o                       <= '1';
 
             when x"001f" =>
-              slv_data_out_o                  <=
-                std_logic_vector(data_rate_ctr_nr);
-              slv_data_out_o(31 downto 28)    <= (others => '0');
+              slv_data_out_o(13 downto 0)     <=
+                std_logic_vector(histogram_lower_limit);
+              slv_data_out_o(15 downto 14)    <= (others => '0');
+              slv_data_out_o(29 downto 16)    <=
+                std_logic_vector(histogram_upper_limit);
+              slv_data_out_o(30)              <= '0';
+              slv_data_out_o(31)              <= histogram_limits;
               slv_ack_o                       <= '1';
 
             when others  =>
@@ -1137,6 +1155,12 @@ begin
                 unsigned(SLV_DATA_IN(11 downto 0));
               slv_ack_o                       <= '1'; 
 
+            when x"001f" =>
+              histogram_lower_limit           <= SLV_DATA_IN(13 downto 0);
+              histogram_upper_limit           <= SLV_DATA_IN(29 downto 16);
+              histogram_limits                <= SLV_DATA_IN(31);
+              slv_ack_o                       <= '1';
+              
             when others  =>                   
               slv_unknown_addr_o              <= '1';
               slv_ack_o                       <= '0';

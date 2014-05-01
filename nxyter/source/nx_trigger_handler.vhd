@@ -91,7 +91,12 @@ architecture Behavioral of nx_trigger_handler is
   signal invalid_timing_trigger     : std_logic;
   signal invalid_timing_trigger_ctr : unsigned(15 downto 0);
 
+  signal trigger_busy_ff            : std_logic;
+  signal trigger_busy_f             : std_logic;
   signal trigger_busy               : std_logic;
+
+  signal fast_clear_ff              : std_logic;
+  signal fast_clear_f               : std_logic;
   signal fast_clear                 : std_logic;
   
   type TS_STATES is (TS_IDLE,
@@ -180,10 +185,33 @@ architecture Behavioral of nx_trigger_handler is
   signal testpulse_rate              : unsigned(27 downto 0);
   signal invalid_t_trigger_ctr_clear : std_logic;
   signal bypass_ctr_trigger          : std_logic;
+  signal bypass_status_trigger       : std_logic;
        
   -- Reset
+  signal reset_nx_main_clk_in_ff     : std_logic;
+  signal reset_nx_main_clk_in_f      : std_logic;
   signal RESET_NX_MAIN_CLK_IN        : std_logic;
+
+  attribute syn_keep : boolean;
+  attribute syn_keep of reset_nx_main_clk_in_ff     : signal is true;
+  attribute syn_keep of reset_nx_main_clk_in_f      : signal is true;
+
+  attribute syn_keep of trigger_busy_ff             : signal is true;
+  attribute syn_keep of trigger_busy_f              : signal is true;
+
+  attribute syn_keep of fast_clear_ff               : signal is true;
+  attribute syn_keep of fast_clear_f                : signal is true;
   
+  attribute syn_preserve : boolean;
+  attribute syn_preserve of reset_nx_main_clk_in_ff : signal is true;
+  attribute syn_preserve of reset_nx_main_clk_in_f  : signal is true;
+
+  attribute syn_preserve of trigger_busy_ff         : signal is true;
+  attribute syn_preserve of trigger_busy_f          : signal is true;
+  
+  attribute syn_preserve of fast_clear_ff           : signal is true;
+  attribute syn_preserve of fast_clear_f            : signal is true;
+
 begin
 
   -- Debug Line
@@ -207,13 +235,13 @@ begin
   -----------------------------------------------------------------------------
   -- Reset Domain Transfer
   -----------------------------------------------------------------------------
-  signal_async_trans_RESET_IN: signal_async_trans
-    port map (
-      CLK_IN      => NX_MAIN_CLK_IN,
-      SIGNAL_A_IN => RESET_IN,
-      SIGNAL_OUT  => RESET_NX_MAIN_CLK_IN
-    );
+  reset_nx_main_clk_in_ff   <= RESET_IN when rising_edge(NX_MAIN_CLK_IN);
+  reset_nx_main_clk_in_f    <= reset_nx_main_clk_in_ff
+                               when rising_edge(NX_MAIN_CLK_IN); 
+  RESET_NX_MAIN_CLK_IN      <= reset_nx_main_clk_in_f
+                               when rising_edge(NX_MAIN_CLK_IN);
 
+  
   -----------------------------------------------------------------------------
   -- Trigger Handler
   -----------------------------------------------------------------------------
@@ -266,11 +294,27 @@ begin
       TIMER_DONE_OUT => ts_wait_timer_done
       );
 
+
+  -- Signal Domain Transfers to NX Clock
+  trigger_busy_ff  <= trigger_busy_o
+                      when rising_edge(NX_MAIN_CLK_IN);
+  trigger_busy_f   <= trigger_busy_ff
+                      when rising_edge(NX_MAIN_CLK_IN);
+  trigger_busy     <= trigger_busy_f
+                      when rising_edge(NX_MAIN_CLK_IN);
+
+  fast_clear_ff    <= fast_clear_o
+                      when rising_edge(NX_MAIN_CLK_IN);
+  fast_clear_f     <= fast_clear_ff
+                      when rising_edge(NX_MAIN_CLK_IN);
+  fast_clear       <= fast_clear_f
+                      when rising_edge(NX_MAIN_CLK_IN);
+
+  testpulse_enable <= reg_testpulse_enable when rising_edge(NX_MAIN_CLK_IN);
+
   PROC_TIMING_TRIGGER_HANDLER: process(NX_MAIN_CLK_IN)
   begin
     if( rising_edge(NX_MAIN_CLK_IN) ) then
-      testpulse_enable             <= reg_testpulse_enable;
-      
       if (RESET_NX_MAIN_CLK_IN = '1') then
         invalid_timing_trigger_n   <= '1';
         ts_wait_timer_start        <= '0';
@@ -355,29 +399,12 @@ begin
     end if;
   end process PROC_TIMING_TRIGGER_COUNTER;
   
-  signal_async_trans_TRIGGER_BUSY: signal_async_trans
-    port map (
-      CLK_IN      => NX_MAIN_CLK_IN,
-      SIGNAL_A_IN => trigger_busy_o,
-      SIGNAL_OUT  => trigger_busy
-      );
-
-  signal_async_to_pulse_FAST_CLEAR: signal_async_to_pulse
-    generic map (
-      NUM_FF => 2
-      )
-    port map (
-      CLK_IN     => NX_MAIN_CLK_IN,
-      RESET_IN   => RESET_NX_MAIN_CLK_IN,
-      PULSE_A_IN => fast_clear_o,
-      PULSE_OUT  => fast_clear
-      );
-
   -- Relax Timing 
-  invalid_timing_trigger_ff  <=
-    invalid_timing_trigger_n when rising_edge(NX_MAIN_CLK_IN);
-  invalid_timing_trigger_f   <=
-    invalid_timing_trigger_ff when rising_edge(NX_MAIN_CLK_IN);
+  invalid_timing_trigger_ff  <= invalid_timing_trigger_n
+                                when rising_edge(NX_MAIN_CLK_IN);
+  invalid_timing_trigger_f   <= invalid_timing_trigger_ff
+                                when rising_edge(NX_MAIN_CLK_IN);
+
   pulse_dtrans_INVALID_TIMING_TRIGGER: pulse_dtrans
     generic map (
       CLK_RATIO => 4
@@ -427,7 +454,8 @@ begin
             when  S_IDLE =>
               if (LVL1_VALID_NOTIMING_TRG_IN = '1') then
                 -- Calibration Trigger
-                if (LVL1_TRG_TYPE_IN = x"e") then
+                if (LVL1_TRG_TYPE_IN = x"e" and
+                    bypass_status_trigger = '0') then
                   -- Status Trigger
                   TRIGGER_TYPE       <= T_SETUP;
                   status_trigger_o   <= '1';
@@ -438,14 +466,15 @@ begin
                 STATE                <= S_WAIT_TRG_DATA_VALID;
                 
               elsif (LVL1_VALID_TIMING_TRG_IN = '1') then
-                if (NXYTER_OFFLINE_IN = '1' or bypass_ctr_trigger = '1') then
-                  -- Ignore Trigger for nxyter is or pretends to be offline 
-                  TRIGGER_TYPE        <= T_IGNORE;
-                  STATE               <= S_WAIT_TRG_DATA_VALID;
-                else
+                if (NXYTER_OFFLINE_IN = '0' and
+                    bypass_ctr_trigger = '0') then
                   -- Normal Trigger
                   TRIGGER_TYPE       <= T_TIMING;
                   STATE              <= S_CTS_TRIGGER;
+                else
+                  -- Ignore Trigger for nxyter is or pretends to be offline 
+                  TRIGGER_TYPE        <= T_IGNORE;
+                  STATE               <= S_WAIT_TRG_DATA_VALID;
                 end if;
               else
                 trigger_busy_o       <= '0';
@@ -540,13 +569,13 @@ begin
       TIMER_END_IN   => wait_timer_end,
       TIMER_DONE_OUT => wait_timer_done
       );
-  
+
+  testpulse_delay  <= reg_testpulse_delay when rising_edge(NX_MAIN_CLK_IN);
+  testpulse_length <= reg_testpulse_length when rising_edge(NX_MAIN_CLK_IN);
+
   PROC_TESTPULSE_HANDLER: process (NX_MAIN_CLK_IN)
   begin 
     if( rising_edge(NX_MAIN_CLK_IN) ) then
-      testpulse_delay        <= reg_testpulse_delay;
-      testpulse_length       <= reg_testpulse_length;
-      
       if (RESET_NX_MAIN_CLK_IN = '1') then
         wait_timer_start     <= '0';
         wait_timer_reset     <= '1';
@@ -667,6 +696,7 @@ begin
         reg_testpulse_enable           <= '0';
         invalid_t_trigger_ctr_clear    <= '1';
         bypass_ctr_trigger             <= '0';
+        bypass_status_trigger          <= '0';
       else                             
         slv_unknown_addr_o             <= '0';
         slv_no_more_data_o             <= '0';
@@ -696,6 +726,7 @@ begin
 
             when x"0006" =>
               bypass_ctr_trigger           <= SLV_DATA_IN(0);
+              bypass_status_trigger        <= SLV_DATA_IN(1);
               slv_ack_o                    <= '1'; 
               
             when others =>
@@ -743,7 +774,8 @@ begin
 
             when x"0006" =>
               slv_data_out_o(0)            <= bypass_ctr_trigger;
-              slv_data_out_o(31 downto 1)  <= (others => '0');
+              slv_data_out_o(1)            <= bypass_status_trigger;
+              slv_data_out_o(31 downto 2)  <= (others => '0');
               slv_ack_o                    <= '1';  
               
             when others =>
