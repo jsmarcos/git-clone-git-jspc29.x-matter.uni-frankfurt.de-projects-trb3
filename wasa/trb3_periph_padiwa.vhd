@@ -223,6 +223,14 @@ architecture trb3_periph_padiwa_arch of trb3_periph_padiwa is
   signal srb_data_ready : std_logic;
   signal srb_invalid    : std_logic;
 
+  signal cdb_read_en    : std_logic;
+  signal cdb_write_en   : std_logic;
+  signal cdb_data_in    : std_logic_vector(31 downto 0);
+  signal cdb_addr       : std_logic_vector(6 downto 0);
+  signal cdb_data_out   : std_logic_vector(31 downto 0);
+  signal cdb_data_ready : std_logic;
+  signal cdb_invalid    : std_logic;
+
   signal lhb_read_en    : std_logic;
   signal lhb_write_en   : std_logic;
   signal lhb_data_in    : std_logic_vector(31 downto 0);
@@ -535,13 +543,13 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 10,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100",
-                         5 => x"b000", 6 => x"c800", 7 => x"cf00", 8 => x"cf80", 9 => x"d500",
-                         others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5,
-                         5 => 9, 6 => 3, 7 => 6, 8 => 7, 9 => 4,
-                         others => 0)
+      PORT_NUMBER    => 11,
+      PORT_ADDRESSES => (0  => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100",
+                         5  => x"b000", 6 => x"c800", 7 => x"cf00", 8 => x"cf80", 9 => x"d500",
+                         10 => x"c200", others => x"0000"),
+      PORT_ADDR_MASK => (0  => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5,
+                         5  => 9, 6 => 3, 7 => 6, 8 => 7, 9 => 4,
+                         10 => 7, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -700,6 +708,19 @@ begin
       BUS_WRITE_ACK_IN(9)                 => sed_ack,
       BUS_NO_MORE_DATA_IN(9)              => '0',
       BUS_UNKNOWN_ADDR_IN(9)              => sed_nack,
+      --Channel Debug Registers
+      BUS_READ_ENABLE_OUT(10)              => cdb_read_en,
+      BUS_WRITE_ENABLE_OUT(10)             => cdb_write_en,
+      BUS_DATA_OUT(10*32+31 downto 10*32)   => open,
+      BUS_ADDR_OUT(10*16+6 downto 10*16)    => cdb_addr,
+      BUS_ADDR_OUT(10*16+15 downto 10*16+7) => open,
+      BUS_TIMEOUT_OUT(10)                  => open,
+      BUS_DATA_IN(10*32+31 downto 10*32)    => cdb_data_out,
+      BUS_DATAREADY_IN(10)                 => cdb_data_ready,
+      BUS_WRITE_ACK_IN(10)                 => '0',
+      BUS_NO_MORE_DATA_IN(10)              => '0',
+      BUS_UNKNOWN_ADDR_IN(10)              => cdb_invalid,
+
 
       STAT_DEBUG => open
       );
@@ -963,6 +984,13 @@ THE_SED : entity work.sedcheck
       SRB_DATA_OUT          => srb_data_out,  -- bus data
       SRB_DATAREADY_OUT     => srb_data_ready,    -- bus data ready strobe
       SRB_UNKNOWN_ADDR_OUT  => srb_invalid,   -- bus invalid addr
+      --Channel Debug Bus
+      CDB_READ_EN_IN        => cdb_read_en,   -- bus read en strobe
+      CDB_WRITE_EN_IN       => cdb_write_en,  -- bus write en strobe
+      CDB_ADDR_IN           => cdb_addr,    -- bus address
+      CDB_DATA_OUT          => cdb_data_out,  -- bus data
+      CDB_DATAREADY_OUT     => cdb_data_ready,    -- bus data ready strobe
+      CDB_UNKNOWN_ADDR_OUT  => cdb_invalid,   -- bus invalid addr
       --Encoder Start Registers Bus
       ESB_READ_EN_IN        => esb_read_en,   -- bus read en strobe
       ESB_WRITE_EN_IN       => esb_write_en,  -- bus write en strobe

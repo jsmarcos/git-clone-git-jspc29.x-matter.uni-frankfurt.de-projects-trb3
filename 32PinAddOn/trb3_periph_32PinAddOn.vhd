@@ -215,6 +215,13 @@ architecture trb3_periph_32PinAddOn_arch of trb3_periph_32PinAddOn is
   signal srb_data_ready : std_logic;
   signal srb_invalid    : std_logic;
 
+  signal cdb_read_en    : std_logic;
+  signal cdb_write_en   : std_logic;
+  signal cdb_addr       : std_logic_vector(6 downto 0);
+  signal cdb_data_out   : std_logic_vector(31 downto 0);
+  signal cdb_data_ready : std_logic;
+  signal cdb_invalid    : std_logic;
+
   signal lhb_read_en    : std_logic;
   signal lhb_write_en   : std_logic;
   signal lhb_addr       : std_logic_vector(6 downto 0);
@@ -494,15 +501,13 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER                       => 9,
-      PORT_ADDRESSES                    => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100",
-                                      --5  => x"c200", 6  => x"c300", 7 => x"c400", 8 => x"c800", 9 => x"cf00",
-                                      --10 => x"cf80", 11 => x"d500", others => x"0000"),
-                                      5 => x"c800", 6 => x"cf00", 7 => x"cf80", 8 => x"d500", others => x"0000"),
-      PORT_ADDR_MASK                    => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5,
-                                      --5  => 7, 6  => 7, 7 => 7, 8 => 3, 9 => 6,
-                                      --10 => 7, 11 => 4, others => 0)
-                                      5 => 3, 6 => 6, 7 => 7, 8 => 4, others => 0)
+      PORT_NUMBER    => 10,
+      PORT_ADDRESSES => (0  => x"d000", 1  => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100",
+                         5  => x"c800", 6  => x"cf00", 7 => x"cf80", 8 => x"d500", 9 => x"c200", --c300 c400
+                         others => x"0000"),
+      PORT_ADDR_MASK => (0  => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5,
+                         5  => 3, 6 => 6, 7 => 7, 8 => 4, 9 => 7,
+                         others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -579,42 +584,6 @@ begin
       BUS_WRITE_ACK_IN(4)                 => '0',
       BUS_NO_MORE_DATA_IN(4)              => '0',
       BUS_UNKNOWN_ADDR_IN(4)              => srb_invalid,
-      ----Encoder Start Registers
-      --BUS_READ_ENABLE_OUT(5)              => esb_read_en,
-      --BUS_WRITE_ENABLE_OUT(5)             => esb_write_en,
-      --BUS_DATA_OUT(5*32+31 downto 5*32)   => open,
-      --BUS_ADDR_OUT(5*16+6 downto 5*16)    => esb_addr,
-      --BUS_ADDR_OUT(5*16+15 downto 5*16+7) => open,
-      --BUS_TIMEOUT_OUT(5)                  => open,
-      --BUS_DATA_IN(5*32+31 downto 5*32)    => esb_data_out,
-      --BUS_DATAREADY_IN(5)                 => esb_data_ready,
-      --BUS_WRITE_ACK_IN(5)                 => '0',
-      --BUS_NO_MORE_DATA_IN(5)              => '0',
-      --BUS_UNKNOWN_ADDR_IN(5)              => esb_invalid,
-      ----Fifo Write Registers
-      --BUS_READ_ENABLE_OUT(6)              => efb_read_en,
-      --BUS_WRITE_ENABLE_OUT(6)             => efb_write_en,
-      --BUS_DATA_OUT(6*32+31 downto 6*32)   => open,
-      --BUS_ADDR_OUT(6*16+6 downto 6*16)    => efb_addr,
-      --BUS_ADDR_OUT(6*16+15 downto 6*16+7) => open,
-      --BUS_TIMEOUT_OUT(6)                  => open,
-      --BUS_DATA_IN(6*32+31 downto 6*32)    => efb_data_out,
-      --BUS_DATAREADY_IN(6)                 => efb_data_ready,
-      --BUS_WRITE_ACK_IN(6)                 => '0',
-      --BUS_NO_MORE_DATA_IN(6)              => '0',
-      --BUS_UNKNOWN_ADDR_IN(6)              => efb_invalid,
-      ----Lost Hit Registers
-      --BUS_READ_ENABLE_OUT(7)              => lhb_read_en,
-      --BUS_WRITE_ENABLE_OUT(7)             => lhb_write_en,
-      --BUS_DATA_OUT(7*32+31 downto 7*32)   => open,
-      --BUS_ADDR_OUT(7*16+6 downto 7*16)    => lhb_addr,
-      --BUS_ADDR_OUT(7*16+15 downto 7*16+7) => open,
-      --BUS_TIMEOUT_OUT(7)                  => open,
-      --BUS_DATA_IN(7*32+31 downto 7*32)    => lhb_data_out,
-      --BUS_DATAREADY_IN(7)                 => lhb_data_ready,
-      --BUS_WRITE_ACK_IN(7)                 => '0',
-      --BUS_NO_MORE_DATA_IN(7)              => '0',
-      --BUS_UNKNOWN_ADDR_IN(7)              => lhb_invalid,
       --TDC config registers
       BUS_READ_ENABLE_OUT(5)              => tdc_ctrl_read,
       BUS_WRITE_ENABLE_OUT(5)             => tdc_ctrl_write,
@@ -660,6 +629,55 @@ begin
       BUS_WRITE_ACK_IN(8)                 => sed_ack,
       BUS_NO_MORE_DATA_IN(8)              => '0',
       BUS_UNKNOWN_ADDR_IN(8)              => sed_nack,
+      --Channel Debug Registers
+      BUS_READ_ENABLE_OUT(9)              => cdb_read_en,
+      BUS_WRITE_ENABLE_OUT(9)             => cdb_write_en,
+      BUS_DATA_OUT(9*32+31 downto 9*32)   => open,
+      BUS_ADDR_OUT(9*16+6 downto 9*16)    => cdb_addr,
+      BUS_ADDR_OUT(9*16+15 downto 9*16+7) => open,
+      BUS_TIMEOUT_OUT(9)                  => open,
+      BUS_DATA_IN(9*32+31 downto 9*32)    => cdb_data_out,
+      BUS_DATAREADY_IN(9)                 => cdb_data_ready,
+      BUS_WRITE_ACK_IN(9)                 => '0',
+      BUS_NO_MORE_DATA_IN(9)              => '0',
+      BUS_UNKNOWN_ADDR_IN(9)              => cdb_invalid,
+
+      ----Encoder Start Registers
+      --BUS_READ_ENABLE_OUT(5)              => esb_read_en,
+      --BUS_WRITE_ENABLE_OUT(5)             => esb_write_en,
+      --BUS_DATA_OUT(5*32+31 downto 5*32)   => open,
+      --BUS_ADDR_OUT(5*16+6 downto 5*16)    => esb_addr,
+      --BUS_ADDR_OUT(5*16+15 downto 5*16+7) => open,
+      --BUS_TIMEOUT_OUT(5)                  => open,
+      --BUS_DATA_IN(5*32+31 downto 5*32)    => esb_data_out,
+      --BUS_DATAREADY_IN(5)                 => esb_data_ready,
+      --BUS_WRITE_ACK_IN(5)                 => '0',
+      --BUS_NO_MORE_DATA_IN(5)              => '0',
+      --BUS_UNKNOWN_ADDR_IN(5)              => esb_invalid,
+      ----Fifo Write Registers
+      --BUS_READ_ENABLE_OUT(6)              => efb_read_en,
+      --BUS_WRITE_ENABLE_OUT(6)             => efb_write_en,
+      --BUS_DATA_OUT(6*32+31 downto 6*32)   => open,
+      --BUS_ADDR_OUT(6*16+6 downto 6*16)    => efb_addr,
+      --BUS_ADDR_OUT(6*16+15 downto 6*16+7) => open,
+      --BUS_TIMEOUT_OUT(6)                  => open,
+      --BUS_DATA_IN(6*32+31 downto 6*32)    => efb_data_out,
+      --BUS_DATAREADY_IN(6)                 => efb_data_ready,
+      --BUS_WRITE_ACK_IN(6)                 => '0',
+      --BUS_NO_MORE_DATA_IN(6)              => '0',
+      --BUS_UNKNOWN_ADDR_IN(6)              => efb_invalid,
+      ----Lost Hit Registers
+      --BUS_READ_ENABLE_OUT(7)              => lhb_read_en,
+      --BUS_WRITE_ENABLE_OUT(7)             => lhb_write_en,
+      --BUS_DATA_OUT(7*32+31 downto 7*32)   => open,
+      --BUS_ADDR_OUT(7*16+6 downto 7*16)    => lhb_addr,
+      --BUS_ADDR_OUT(7*16+15 downto 7*16+7) => open,
+      --BUS_TIMEOUT_OUT(7)                  => open,
+      --BUS_DATA_IN(7*32+31 downto 7*32)    => lhb_data_out,
+      --BUS_DATAREADY_IN(7)                 => lhb_data_ready,
+      --BUS_WRITE_ACK_IN(7)                 => '0',
+      --BUS_NO_MORE_DATA_IN(7)              => '0',
+      --BUS_UNKNOWN_ADDR_IN(7)              => lhb_invalid,
 
       STAT_DEBUG => open
       );
@@ -922,6 +940,13 @@ begin
       SRB_DATA_OUT          => srb_data_out,  -- bus data
       SRB_DATAREADY_OUT     => srb_data_ready,    -- bus data ready strobe
       SRB_UNKNOWN_ADDR_OUT  => srb_invalid,   -- bus invalid addr
+      --Channel Debug Bus
+      CDB_READ_EN_IN        => cdb_read_en,   -- bus read en strobe
+      CDB_WRITE_EN_IN       => cdb_write_en,  -- bus write en strobe
+      CDB_ADDR_IN           => cdb_addr,    -- bus address
+      CDB_DATA_OUT          => cdb_data_out,  -- bus data
+      CDB_DATAREADY_OUT     => cdb_data_ready,    -- bus data ready strobe
+      CDB_UNKNOWN_ADDR_OUT  => cdb_invalid,   -- bus invalid addr
       --Encoder Start Registers Bus
       ESB_READ_EN_IN        => esb_read_en,   -- bus read en strobe
       ESB_WRITE_EN_IN       => esb_write_en,  -- bus write en strobe

@@ -90,6 +90,12 @@ package trb3_components is
       SRB_DATA_OUT          : out std_logic_vector(31 downto 0);
       SRB_DATAREADY_OUT     : out std_logic;
       SRB_UNKNOWN_ADDR_OUT  : out std_logic;
+      CDB_READ_EN_IN        : in  std_logic;
+      CDB_WRITE_EN_IN       : in  std_logic;
+      CDB_ADDR_IN           : in  std_logic_vector(6 downto 0);
+      CDB_DATA_OUT          : out std_logic_vector(31 downto 0);
+      CDB_DATAREADY_OUT     : out std_logic;
+      CDB_UNKNOWN_ADDR_OUT  : out std_logic;
       ESB_READ_EN_IN        : in  std_logic;
       ESB_WRITE_EN_IN       : in  std_logic;
       ESB_ADDR_IN           : in  std_logic_vector(6 downto 0);
