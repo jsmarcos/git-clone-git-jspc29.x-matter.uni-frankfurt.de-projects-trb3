@@ -50,7 +50,7 @@ BLOCK RD_DURING_WR_PATHS ;
 #     LED_YELLOW                     : out std_logic;
 #     SUPPL                          : in  std_logic; --terminated diff pair, PCLK, Pads
 #     --Test Connectors
-#     TEST_LINE                      : out std_logic_vector(15 downto 0)
+#     TEST_LINE                      : inout std_logic_vector(15 downto 0)
 #     );
 #     attribute syn_useioff : boolean;
 #     --no IO-FF for LEDs relaxes timing constraints
@@ -156,7 +156,7 @@ LOCATE COMP  "TEST_LINE_13"  SITE "C10";
 LOCATE COMP  "TEST_LINE_14"  SITE "H10";
 LOCATE COMP  "TEST_LINE_15"  SITE "H11";
 DEFINE PORT GROUP "TEST_LINE_group" "TEST_LINE*" ;
-IOBUF GROUP "TEST_LINE_group" IO_TYPE=LVCMOS25 PULLMODE=DOWN DRIVE=12;
+IOBUF GROUP "TEST_LINE_group" IO_TYPE=LVCMOS25 PULLMODE=DOWN;
 
 #################################################################
 # Connection to AddOn
