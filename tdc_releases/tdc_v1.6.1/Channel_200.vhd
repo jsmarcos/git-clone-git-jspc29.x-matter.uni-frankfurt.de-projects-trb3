@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2014-04-24
+-- Last update: 2014-04-30
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -107,19 +107,19 @@ architecture Channel_200 of Channel_200 is
   signal epoch_capture_time : std_logic_vector(10 downto 0);
   signal epoch_value        : std_logic_vector(35 downto 0);
 
-  -- fifo
-  signal fifo_data_out_i       : std_logic_vector(35 downto 0);
-  signal fifo_data_in_i        : std_logic_vector(35 downto 0);
-  signal fifo_empty_i          : std_logic;
-  signal fifo_full_i           : std_logic;
-  signal fifo_almost_full_sync : std_logic;
-  signal fifo_almost_full_i    : std_logic := '0';
-  signal fifo_almost_full_flag : std_logic := '0';
-  signal fifo_wr_en_i          : std_logic;
-  signal fifo_rd_en_i          : std_logic;
-  signal fifo_rd_data_i        : std_logic;
-  signal fifo_data_i           : std_logic_vector(35 downto 0);
-  signal fifo_data_valid_i     : std_logic;
+  -- ring bugger
+  signal ringBuffer_data_out_i       : std_logic_vector(35 downto 0);
+  signal ringBuffer_data_in_i        : std_logic_vector(35 downto 0);
+  signal ringBuffer_empty_i          : std_logic;
+  signal ringBuffer_full_i           : std_logic;
+  signal ringBuffer_almost_full_sync : std_logic;
+  signal ringBuffer_almost_full_i    : std_logic := '0';
+  signal ringBuffer_almost_full_flag : std_logic := '0';
+  signal ringBuffer_wr_en_i          : std_logic;
+  signal ringBuffer_rd_en_i          : std_logic;
+  signal ringBuffer_rd_data_i        : std_logic;
+  signal fifo_data_i                 : std_logic_vector(35 downto 0);
+  signal fifo_data_valid_i           : std_logic;
 
   -- fsm
   type FSM_WR is (WRITE_EPOCH, WRITE_DATA, WRITE_STOP_A, WRITE_STOP_B, WRITE_STOP_C, WRITE_STOP_D, WAIT_FOR_HIT,
@@ -284,45 +284,47 @@ begin  -- Channel_200
   RingBuffer_128 : if USE_64_FIFO = c_NO generate
     FIFO : FIFO_DC_36x128_OutReg
       port map (
-        Data       => fifo_data_in_i,
+        Data       => ringBuffer_data_in_i,
         WrClock    => CLK_200,
         RdClock    => CLK_100,
-        WrEn       => fifo_wr_en_i,
-        RdEn       => fifo_rd_en_i,
+        WrEn       => ringBuffer_wr_en_i,
+        RdEn       => ringBuffer_rd_en_i,
         Reset      => RESET_100,
-        RPReset    => RESET_200,
-        Q          => fifo_data_out_i,
-        Empty      => fifo_empty_i,
-        Full       => fifo_full_i,
-        AlmostFull => fifo_almost_full_i);
+        RPReset    => RESET_100,
+        Q          => ringBuffer_data_out_i,
+        Empty      => ringBuffer_empty_i,
+        Full       => ringBuffer_full_i,
+        AlmostFull => ringBuffer_almost_full_i);
   end generate RingBuffer_128;
 
   RingBuffer_64 : if USE_64_FIFO = c_YES generate
     FIFO : FIFO_DC_36x64_OutReg
       port map (
-        Data       => fifo_data_in_i,
+        Data       => ringBuffer_data_in_i,
         WrClock    => CLK_200,
         RdClock    => CLK_100,
-        WrEn       => fifo_wr_en_i,
-        RdEn       => fifo_rd_en_i,
+        WrEn       => ringBuffer_wr_en_i,
+        RdEn       => ringBuffer_rd_en_i,
         Reset      => RESET_100,
-        RPReset    => RESET_200,
-        Q          => fifo_data_out_i,
-        Empty      => fifo_empty_i,
-        Full       => fifo_full_i,
-        AlmostFull => fifo_almost_full_i);
+        RPReset    => RESET_100,
+        Q          => ringBuffer_data_out_i,
+        Empty      => ringBuffer_empty_i,
+        Full       => ringBuffer_full_i,
+        AlmostFull => ringBuffer_almost_full_i);
   end generate RingBuffer_64;
 
-  fifo_almost_full_sync <= fifo_almost_full_i                      when rising_edge(CLK_100);
-  fifo_rd_en_i          <= fifo_rd_data_i or fifo_almost_full_sync when rising_edge(CLK_100);
+  ringBuffer_almost_full_sync <= ringBuffer_almost_full_i                            when rising_edge(CLK_100);
+  ringBuffer_rd_en_i          <= ringBuffer_rd_data_i or ringBuffer_almost_full_sync when rising_edge(CLK_100);
 
   FifoAlmostmptyFlag : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      if FSM_RD_STATE = READOUT_DATA_C then
-        fifo_almost_full_flag <= '0';
-      elsif fifo_almost_full_sync = '1' then
-        fifo_almost_full_flag <= '1';
+      if RESET_100 = '1' then
+        ringBuffer_almost_full_flag <= '0';
+      elsif FSM_RD_STATE = READOUT_DATA_C then
+        ringBuffer_almost_full_flag <= '0';
+      elsif ringBuffer_almost_full_sync = '1' then
+        ringBuffer_almost_full_flag <= '1';
       end if;
     end if;
   end process FifoAlmostmptyFlag;
@@ -334,7 +336,9 @@ begin  -- Channel_200
   -- Readout fsm
   FSM_CLK : process (CLK_200)
   begin
-    if rising_edge(CLK_200) then
+    if RESET_200 = '1' then
+      FSM_WR_CURRENT    <= WRITE_EPOCH;
+    elsif rising_edge(CLK_200) then
       FSM_WR_CURRENT    <= FSM_WR_NEXT;
       write_epoch_i     <= write_epoch_fsm;
       write_data_i      <= write_data_fsm;
@@ -584,7 +588,9 @@ begin  -- Channel_200
   TriggerWindowFlag : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
-      if TRIGGER_WIN_END_TDC = '1' then
+      if RESET_200 = '1' then
+        trig_win_end_tdc_flag_i <= '0';
+      elsif TRIGGER_WIN_END_TDC = '1' then
         trig_win_end_tdc_flag_i <= '1';
       elsif FSM_WR_CURRENT = WRITE_STOP_D then
         trig_win_end_tdc_flag_i <= '0';
@@ -597,37 +603,37 @@ begin  -- Channel_200
   begin
     if rising_edge(CLK_200) then
       if write_epoch_i = '1' and EPOCH_WRITE_EN_IN = '1' then
-        fifo_data_in_i(35 downto 32) <= x"1";
-        fifo_data_in_i(31 downto 29) <= "011";
-        fifo_data_in_i(28)           <= '0';
-        fifo_data_in_i(27 downto 0)  <= epoch_cntr;
-        fifo_wr_en_i                 <= '1';
+        ringBuffer_data_in_i(35 downto 32) <= x"1";
+        ringBuffer_data_in_i(31 downto 29) <= "011";
+        ringBuffer_data_in_i(28)           <= '0';
+        ringBuffer_data_in_i(27 downto 0)  <= epoch_cntr;
+        ringBuffer_wr_en_i                 <= '1';
       elsif write_data_i = '1' then
-        fifo_data_in_i(35 downto 32) <= x"1";
-        fifo_data_in_i(31)           <= '1';                 -- data marker
-        fifo_data_in_i(30 downto 29) <= "00";                -- reserved bits
-        fifo_data_in_i(28 downto 22) <= std_logic_vector(to_unsigned(CHANNEL_ID, 7));  -- channel number
-        fifo_data_in_i(21 downto 12) <= encoder_data_out_i;  -- fine time from the encoder
-        fifo_data_in_i(11)           <= '1';  --edge_type_i;  -- rising '1' or falling '0' edge
-        fifo_data_in_i(10 downto 0)  <= time_stamp_6reg;     -- hit time stamp
-        fifo_wr_en_i                 <= '1';
+        ringBuffer_data_in_i(35 downto 32) <= x"1";
+        ringBuffer_data_in_i(31)           <= '1';   -- data marker
+        ringBuffer_data_in_i(30 downto 29) <= "00";  -- reserved bits
+        ringBuffer_data_in_i(28 downto 22) <= std_logic_vector(to_unsigned(CHANNEL_ID, 7));  -- channel number
+        ringBuffer_data_in_i(21 downto 12) <= encoder_data_out_i;  -- fine time from the encoder
+        ringBuffer_data_in_i(11)           <= '1';  --edge_type_i;  -- rising '1' or falling '0' edge
+        ringBuffer_data_in_i(10 downto 0)  <= time_stamp_6reg;  -- hit time stamp
+        ringBuffer_wr_en_i                 <= '1';
       elsif write_stop_a_i = '1' then
-        fifo_data_in_i(35 downto 32) <= x"f";
-        fifo_data_in_i(31 downto 0)  <= (others => '0');
-        fifo_wr_en_i                 <= '1';
+        ringBuffer_data_in_i(35 downto 32) <= x"f";
+        ringBuffer_data_in_i(31 downto 0)  <= (others => '0');
+        ringBuffer_wr_en_i                 <= '1';
       elsif write_stop_b_i = '1' then
-        fifo_data_in_i(35 downto 32) <= x"0";
-        fifo_data_in_i(31 downto 0)  <= (others => '0');
-        fifo_wr_en_i                 <= '1';
+        ringBuffer_data_in_i(35 downto 32) <= x"0";
+        ringBuffer_data_in_i(31 downto 0)  <= (others => '0');
+        ringBuffer_wr_en_i                 <= '1';
       else
-        fifo_data_in_i(35 downto 32) <= x"e";
-        fifo_data_in_i(31 downto 0)  <= (others => '0');
-        fifo_wr_en_i                 <= '0';
+        ringBuffer_data_in_i(35 downto 32) <= x"e";
+        ringBuffer_data_in_i(31 downto 0)  <= (others => '0');
+        ringBuffer_wr_en_i                 <= '0';
       end if;
     end if;
   end process FifoWriteSignal;
 
-  FIFO_WRITE_OUT       <= fifo_wr_en_i;
+  FIFO_WRITE_OUT       <= ringBuffer_wr_en_i;
   ENCODER_FINISHED_OUT <= encoder_finished_i;
 
 -------------------------------------------------------------------------------
@@ -648,7 +654,7 @@ begin  -- Channel_200
             if TRIGGER_WIN_END_RDO = '1' then
               FSM_RD_STATE <= READOUT_DATA_A;
             -- if the data readout is triggered by full fifo
-            elsif fifo_almost_full_flag = '1' then
+            elsif ringBuffer_almost_full_flag = '1' then
               FSM_RD_STATE <= FLUSH_A;
             else
               FSM_RD_STATE <= IDLE;
@@ -683,7 +689,7 @@ begin  -- Channel_200
           --  
           when READOUT_DATA_C =>
             -- normal data readout until the end of the readout request
-            if fifo_data_out_i(35 downto 32) = x"f" then
+            if ringBuffer_data_out_i(35 downto 32) = x"f" then
               FSM_RD_STATE <= IDLE;
             else
               FSM_RD_STATE <= READOUT_DATA_C;
@@ -698,79 +704,79 @@ begin  -- Channel_200
 
   -- Determine the output based only on the current state and the input (do not wait for a clock
   -- edge).
-  FSM_DATA_OUTPUT : process (FSM_RD_STATE, TRIGGER_WIN_END_RDO, fifo_data_out_i, epoch_value)
+  FSM_DATA_OUTPUT : process (FSM_RD_STATE, TRIGGER_WIN_END_RDO, ringBuffer_data_out_i, epoch_value)
   begin
     trigger_win_end_rdo_flag_i <= trigger_win_end_rdo_flag_i;
     epoch_value                <= epoch_value;
 
     case FSM_RD_STATE is
       when IDLE =>
-        fifo_data_i       <= (others => '0');
-        fifo_data_valid_i <= '0';
-        fifo_rd_data_i    <= '0';
-        fsm_rd_debug_i    <= x"1";
+        fifo_data_i          <= (others => '0');
+        fifo_data_valid_i    <= '0';
+        ringBuffer_rd_data_i <= '0';
+        fsm_rd_debug_i       <= x"1";
       when FLUSH_A =>
-        fifo_data_i       <= (others => '0');
-        fifo_data_valid_i <= '0';
-        fifo_rd_data_i    <= '0';
+        fifo_data_i          <= (others => '0');
+        fifo_data_valid_i    <= '0';
+        ringBuffer_rd_data_i <= '0';
         if TRIGGER_WIN_END_RDO = '1' then
           trigger_win_end_rdo_flag_i <= '1';
         end if;
         fsm_rd_debug_i <= x"2";
       when FLUSH_B =>
-        fifo_data_i       <= (others => '0');
-        fifo_data_valid_i <= '0';
-        fifo_rd_data_i    <= '0';
+        fifo_data_i          <= (others => '0');
+        fifo_data_valid_i    <= '0';
+        ringBuffer_rd_data_i <= '0';
         if TRIGGER_WIN_END_RDO = '1' then
           trigger_win_end_rdo_flag_i <= '1';
         end if;
         fsm_rd_debug_i <= x"3";
       when FLUSH_C =>
-        fifo_data_i       <= (others => '0');
-        fifo_data_valid_i <= '0';
-        fifo_rd_data_i    <= '0';
+        fifo_data_i          <= (others => '0');
+        fifo_data_valid_i    <= '0';
+        ringBuffer_rd_data_i <= '0';
         if TRIGGER_WIN_END_RDO = '1' then
           trigger_win_end_rdo_flag_i <= '1';
         end if;
         fsm_rd_debug_i <= x"4";
       when FLUSH_D =>
-        fifo_data_i       <= (others => '0');
-        fifo_data_valid_i <= '0';
-        fifo_rd_data_i    <= '0';
-        if fifo_data_out_i(31 downto 29) = "011" then
-          epoch_value <= fifo_data_out_i;
+        fifo_data_i          <= (others => '0');
+        fifo_data_valid_i    <= '0';
+        ringBuffer_rd_data_i <= '0';
+        if ringBuffer_data_out_i(31 downto 29) = "011" then
+          epoch_value <= ringBuffer_data_out_i;
         end if;
         fsm_rd_debug_i <= x"5";
       when READOUT_EPOCH =>
-        fifo_data_i       <= epoch_value;
-        fifo_data_valid_i <= '1';
-        fifo_rd_data_i    <= '1';
-        fsm_rd_debug_i    <= x"6";
+        fifo_data_i          <= epoch_value;
+        fifo_data_valid_i    <= '1';
+        ringBuffer_rd_data_i <= '1';
+        fsm_rd_debug_i       <= x"6";
       when READOUT_DATA_A =>
         fifo_data_i                <= (others => '0');
         fifo_data_valid_i          <= '0';
-        fifo_rd_data_i             <= '1';
+        ringBuffer_rd_data_i       <= '1';
         trigger_win_end_rdo_flag_i <= '0';
         fsm_rd_debug_i             <= x"7";
       when READOUT_DATA_B =>
-        fifo_data_i       <= (others => '0');
-        fifo_data_valid_i <= '0';
-        fifo_rd_data_i    <= '1';
-        fsm_rd_debug_i    <= x"8";
+        fifo_data_i          <= (others => '0');
+        fifo_data_valid_i    <= '0';
+        ringBuffer_rd_data_i <= '1';
+        fsm_rd_debug_i       <= x"8";
       when READOUT_DATA_C =>
-        fifo_data_i <= fifo_data_out_i;
-        if fifo_data_out_i(35 downto 32) = x"0" then
+        fifo_data_i <= ringBuffer_data_out_i;
+        if ringBuffer_data_out_i(35 downto 32) = x"0" then
           fifo_data_valid_i <= '0';
         else
           fifo_data_valid_i <= '1';
         end if;
-        fifo_rd_data_i <= '1';
-        fsm_rd_debug_i <= x"9";
+        ringBuffer_rd_data_i <= '1';
+        fsm_rd_debug_i       <= x"9";
       when others =>
-        fifo_data_i       <= (others => '0');
-        fifo_data_valid_i <= '0';
-        fifo_rd_data_i    <= '0';
-        fsm_rd_debug_i    <= x"0";
+        fifo_data_i          <= (others => '0');
+        fifo_data_valid_i    <= '0';
+        ringBuffer_rd_data_i <= '0';
+        fsm_rd_debug_i       <= x"0";
     end case;
   end process FSM_DATA_OUTPUT;
 
@@ -780,27 +786,28 @@ begin  -- Channel_200
   RegisterOutputs : process (CLK_100)
   begin
     if rising_edge(CLK_100) then
-      FIFO_EMPTY_OUT <= fifo_empty_i;
+      FIFO_EMPTY_OUT <= ringBuffer_empty_i;
     end if;
   end process RegisterOutputs;
 
-  FIFO_FULL_OUT        <= fifo_full_i        when rising_edge(CLK_200);
-  FIFO_ALMOST_FULL_OUT <= fifo_almost_full_i when rising_edge(CLK_200);
+  FIFO_FULL_OUT        <= ringBuffer_full_i        when rising_edge(CLK_200);
+  FIFO_ALMOST_FULL_OUT <= ringBuffer_almost_full_i when rising_edge(CLK_200);
 
 -------------------------------------------------------------------------------
 -- DEBUG
 -------------------------------------------------------------------------------
-  --CHANNEL_200_DEBUG(7 downto 0)   <= fifo_data_in_i(35 downto 28);
+  --CHANNEL_200_DEBUG(7 downto 0)   <= ringBuffer_data_in_i(35 downto 28);
   --CHANNEL_200_DEBUG(15 downto 8)  <= fifo_data_i(35 downto 28);
-  --CHANNEL_200_DEBUG(16)           <= fifo_wr_en_i;
+  --CHANNEL_200_DEBUG(16)           <= ringBuffer_wr_en_i;
   --CHANNEL_200_DEBUG(17)           <= fifo_data_valid_i;
-  --CHANNEL_200_DEBUG(18)           <= fifo_rd_en_i;
+  --CHANNEL_200_DEBUG(18)           <= ringBuffer_rd_en_i;
   --CHANNEL_200_DEBUG(23 downto 19) <= (others => '0');
-  --CHANNEL_200_DEBUG(27 downto 24) <= fsm_rd_debug_i;
-  --CHANNEL_200_DEBUG(31 downto 28) <= fsm_wr_debug_i;
+  CHANNEL_200_DEBUG(23 downto 0) <= (others => '0');
+  CHANNEL_200_DEBUG(27 downto 24) <= fsm_rd_debug_i;
+  CHANNEL_200_DEBUG(31 downto 28) <= fsm_wr_debug_i;
 
-  ch_fifo_counter_100            <= ch_fifo_counter when rising_edge(CLK_100);
-  CHANNEL_200_DEBUG(15 downto 0) <= std_logic_vector(ch_fifo_counter_100);
+  --ch_fifo_counter_100            <= ch_fifo_counter when rising_edge(CLK_100);
+  --CHANNEL_200_DEBUG(15 downto 0) <= std_logic_vector(ch_fifo_counter_100);
 
   gen_DEBUG : if DEBUG = c_YES generate
     debugChannelDataCount : process (CLK_200)
@@ -808,8 +815,8 @@ begin  -- Channel_200
       if rising_edge(CLK_200) then
         if RESET_COUNTERS = '1' then
           ch_fifo_counter <= (others => '0');
-        elsif fifo_wr_en_i = '1' then
-          if fifo_data_in_i(35 downto 31) = "00011" then  -- it is a data word
+        elsif ringBuffer_wr_en_i = '1' then
+          if ringBuffer_data_in_i(35 downto 31) = "00011" then  -- it is a data word
             ch_fifo_counter <= ch_fifo_counter + to_unsigned(1, 16);
           end if;
         end if;

@@ -62,6 +62,12 @@ entity TDC is
     SRB_DATA_OUT          : out std_logic_vector(31 downto 0);
     SRB_DATAREADY_OUT     : out std_logic;
     SRB_UNKNOWN_ADDR_OUT  : out std_logic;
+    CDB_READ_EN_IN        : in  std_logic;
+    CDB_WRITE_EN_IN       : in  std_logic;
+    CDB_ADDR_IN           : in  std_logic_vector(6 downto 0);
+    CDB_DATA_OUT          : out std_logic_vector(31 downto 0);
+    CDB_DATAREADY_OUT     : out std_logic;
+    CDB_UNKNOWN_ADDR_OUT  : out std_logic;
     ESB_READ_EN_IN        : in  std_logic;
     ESB_WRITE_EN_IN       : in  std_logic;
     ESB_ADDR_IN           : in  std_logic_vector(6 downto 0);
@@ -97,9 +103,9 @@ architecture TDC of TDC is
   signal reset_tdc                    : std_logic;
   signal reset_tdc_i                  : std_logic;
 -- Coarse counters
-  signal coarse_cntr                  : std_logic_vector_array_11(0 to 4);
+  signal coarse_cntr                  : std_logic_vector_array_11(0 to 16);
   signal coarse_cntr_reset            : std_logic;
-  signal coarse_cntr_reset_r          : std_logic_vector(4 downto 0);
+  signal coarse_cntr_reset_r          : std_logic_vector(16 downto 0);
 -- Slow control
   signal logic_anal_control           : std_logic_vector(3 downto 0);
   signal debug_mode_en_i              : std_logic;
@@ -161,6 +167,8 @@ architecture TDC of TDC is
   signal trig_win_end_rdo             : std_logic;
   signal trig_win_end_tdc             : std_logic;
   signal trig_win_end_tdc_i           : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+  signal valid_trigger_rdo            : std_logic;
+  signal valid_trigger_tdc            : std_logic;
 
 -- Debug signals
   signal ref_debug_i            : std_logic_vector(31 downto 0);
@@ -193,7 +201,7 @@ begin
   reset_counters_i        <= CONTROL_REG_IN(8) or reset_tdc when rising_edge(CLK_TDC);
   run_mode_i              <= CONTROL_REG_IN(12);
   run_mode_200            <= run_mode_i                     when rising_edge(CLK_TDC);
-  reset_coarse_cntr_i     <= CONTROL_REG_IN(13);
+  reset_coarse_cntr_i     <= CONTROL_REG_IN(13)             when rising_edge(CLK_TDC);
   reset_coarse_cntr_200   <= reset_coarse_cntr_i            when rising_edge(CLK_TDC);
   calibration_freq_select <= unsigned(CONTROL_REG_IN(31 downto 28));
   
@@ -295,7 +303,7 @@ begin
         CHANNEL_ID => 0,
         DEBUG      => DEBUG,
         SIMULATION => SIMULATION,
-        REFERENCE  => c_YES)
+        REFERENCE  => c_NO)
       port map (
         RESET_200               => reset_tdc,
         RESET_100               => reset_rdo,
@@ -345,7 +353,7 @@ begin
         TRIGGER_WIN_END_TDC     => trig_win_end_tdc_i(i),
         TRIGGER_WIN_END_RDO     => trig_win_end_rdo,
         EPOCH_COUNTER_IN        => epoch_cntr,
-        COARSE_COUNTER_IN       => coarse_cntr(integer(ceil(real(i)/real(16)))),
+        COARSE_COUNTER_IN       => coarse_cntr(integer(ceil(real(i)/real(4)))),
         READ_EN_IN              => rd_en_i(i),
         FIFO_DATA_OUT           => ch_data_i(i),
         FIFO_DATA_VALID_OUT     => ch_data_valid_i(i),
@@ -368,7 +376,18 @@ begin
   end generate GEN_Channels;
   ch_data_i(CHANNEL_NUMBER) <= (others => '1');
 
-  -- Trigger handler
+  -- Valid Trigger Sync
+  ValidTriggerPulseSync: entity work.pulse_sync
+    port map (
+      CLK_A_IN    => CLK_READOUT,
+      RESET_A_IN  => reset_rdo,
+      PULSE_A_IN  => valid_trigger_rdo,
+      CLK_B_IN    => CLK_TDC,
+      RESET_B_IN  => reset_tdc,
+      PULSE_B_OUT => valid_trigger_tdc);
+  valid_trigger_rdo <= VALID_NOTIMING_TRG_IN or VALID_TIMING_TRG_IN;
+    
+  -- Timing Trigger handler
   TheTriggerHandler : TriggerHandler
     generic map (
       TRIGGER_NUM            => 1,
@@ -387,8 +406,7 @@ begin
       TRIGGER_WIN_POST_IN     => unsigned(TRG_WIN_POST),
       TRIGGER_WIN_END_RDO_OUT => trig_win_end_rdo,
       TRIGGER_WIN_END_TDC_OUT => trig_win_end_tdc);
---  trig_in_i <= REFERENCE_TIME or VALID_NOTIMING_TRG_IN;
-  trig_in_i <= VALID_TIMING_TRG_IN or VALID_NOTIMING_TRG_IN;
+  trig_in_i <= REFERENCE_TIME or VALID_NOTIMING_TRG_IN;
   GenTriggerWindowEnd: for i in 0 to CHANNEL_NUMBER-1 generate
     trig_win_end_tdc_i(i) <= trig_win_end_tdc when rising_edge(CLK_TDC);
   end generate GenTriggerWindowEnd;
@@ -451,7 +469,7 @@ begin
   DATA_FINISHED_OUT <= data_finished_i;
 
 -- Coarse counter
-  GenCoarseCounter : for i in 0 to 4 generate
+  GenCoarseCounter : for i in 0 to 16 generate
     TheCoarseCounter : up_counter
       generic map (
         NUMBER_OF_BITS => 11)
@@ -471,14 +489,14 @@ begin
         coarse_cntr_reset <= trig_win_end_tdc_i(1);
       elsif run_mode_edge_200 = '1' then
         coarse_cntr_reset <= '1';
-      elsif reset_coarse_cntr_flag = '1' and (VALID_TIMING_TRG_IN = '1' or VALID_NOTIMING_TRG_IN = '1') then
+      elsif reset_coarse_cntr_flag = '1' and valid_trigger_tdc = '1' then --(VALID_TIMING_TRG_IN = '1' or VALID_NOTIMING_TRG_IN = '1') then
         coarse_cntr_reset <= '1';
       else
         coarse_cntr_reset <= '0';
       end if;
       if reset_coarse_cntr_edge_200 = '1' then
         reset_coarse_cntr_flag <= '1';
-      elsif VALID_TIMING_TRG_IN = '1' or VALID_NOTIMING_TRG_IN = '1' then
+      elsif valid_trigger_tdc = '1' then
         reset_coarse_cntr_flag <= '0';
       end if;
     end if;
@@ -496,7 +514,7 @@ begin
       SIGNAL_IN => reset_coarse_cntr_200,
       PULSE_OUT => reset_coarse_cntr_edge_200);
 
-  GenCoarseCounterReset : for i in 0 to 4 generate
+  GenCoarseCounterReset : for i in 0 to 16 generate
     coarse_cntr_reset_r(i) <= coarse_cntr_reset when rising_edge(CLK_TDC);
   end generate GenCoarseCounterReset;
 
@@ -550,7 +568,20 @@ begin
       DATAREADY_OUT    => SRB_DATAREADY_OUT,
       UNKNOWN_ADDR_OUT => SRB_UNKNOWN_ADDR_OUT);
 
---  status_registers_bus_i(21) <= ch_200_debug_i(0);
+  TheChannelDebugBus : BusHandler
+    generic map (
+      BUS_LENGTH => CHANNEL_NUMBER - 1)
+    port map (
+      RESET            => reset_rdo,
+      CLK              => CLK_READOUT,
+      DATA_IN          => ch_200_debug_i,
+      READ_EN_IN       => CDB_READ_EN_IN,
+      WRITE_EN_IN      => CDB_WRITE_EN_IN,
+      ADDR_IN          => CDB_ADDR_IN,
+      DATA_OUT         => CDB_DATA_OUT,
+      DATAREADY_OUT    => CDB_DATAREADY_OUT,
+      UNKNOWN_ADDR_OUT => CDB_UNKNOWN_ADDR_OUT);
+
   
   --TheLostHitBus : BusHandler
   --  generic map (

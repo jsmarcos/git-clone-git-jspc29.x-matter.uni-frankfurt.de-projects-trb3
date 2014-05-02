@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2014-04-22
+-- Last update: 2014-04-29
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -171,9 +171,11 @@ architecture behavioral of Readout is
   signal wr_finished_fsm         : std_logic;
   signal trig_release_fsm        : std_logic;
   signal wr_header_fsm           : std_logic;
+  signal wr_trailer_fsm          : std_logic;
   signal wr_ch_data_fsm          : std_logic;
   signal wr_status_fsm           : std_logic;
   signal wrong_readout_fsm       : std_logic;
+  signal wrong_reference_fsm     : std_logic;
   signal wr_number_fsm           : unsigned(7 downto 0);
   signal wr_number               : unsigned(7 downto 0);
   signal fifo_nr_rd_fsm          : integer range 0 to CHANNEL_NUMBER := 0;
@@ -200,7 +202,7 @@ architecture behavioral of Readout is
   signal wr_ch_data_i            : std_logic;
   signal wr_ch_data_reg          : std_logic;
   signal wr_status               : std_logic;
---  signal wr_trailer              : std_logic;
+  signal wr_trailer              : std_logic;
   signal wr_info                 : std_logic;
   signal wr_time                 : std_logic;
   signal wr_epoch                : std_logic;
@@ -238,6 +240,7 @@ architecture behavioral of Readout is
   signal readout_time_up         : std_logic;
   signal wait_time_up            : std_logic;
   signal wrong_readout_up        : std_logic;
+  signal wrong_reference         : std_logic;
   signal finished_i              : std_logic;
   -- debug
   signal header_error_bits       : std_logic_vector(15 downto 0);
@@ -274,7 +277,9 @@ begin  -- behavioral
   DefineTriggerTime : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
-      if TRIGGER_TDC_IN = '1' then
+      if RESET_200 = '1' then
+        trig_time_i <= (others => '0');
+      elsif TRIGGER_TDC_IN = '1' then
         trig_time_i <= epoch_cntr_12reg & coarse_cntr_12reg;
       end if;
     end if;
@@ -360,11 +365,13 @@ begin  -- behavioral
         RD_CURRENT       <= RD_NEXT;
         rd_en            <= rd_en_fsm;
         wr_header        <= wr_header_fsm;
+        wr_trailer       <= wr_trailer_fsm;
         wr_status        <= wr_status_fsm;
         data_finished    <= data_finished_fsm;
         trig_release_reg <= trig_release_fsm;
         buf_delay_i      <= buf_delay_fsm;
         wrong_readout_up <= wrong_readout_fsm;
+        wrong_reference  <= wrong_reference_fsm;
         idle_time_up     <= idle_fsm;
         readout_time_up  <= readout_fsm;
         wait_time_up     <= wait_fsm;
@@ -381,19 +388,21 @@ begin  -- behavioral
                          TRIG_WIN_END_RDO_IN, buf_delay_i, CH_EMPTY_IN, CLK_100)
   begin
 
-    rd_en_fsm         <= (others => '0');
-    wr_header_fsm     <= '0';
-    data_finished_fsm <= '0';
-    trig_release_fsm  <= '0';
-    wrong_readout_fsm <= '0';
-    idle_fsm          <= '0';
-    readout_fsm       <= '0';
-    wait_fsm          <= '0';
-    wr_status_fsm     <= '0';
-    buf_delay_fsm     <= 0;
-    fifo_nr_rd_fsm    <= fifo_nr_rd;
-    rd_fsm_debug_fsm  <= x"0";
-    RD_NEXT           <= RD_CURRENT;
+    rd_en_fsm           <= (others => '0');
+    wr_header_fsm       <= '0';
+    wr_trailer_fsm      <= '0';
+    data_finished_fsm   <= '0';
+    trig_release_fsm    <= '0';
+    wrong_readout_fsm   <= '0';
+    wrong_reference_fsm <= '0';
+    idle_fsm            <= '0';
+    readout_fsm         <= '0';
+    wait_fsm            <= '0';
+    wr_status_fsm       <= '0';
+    buf_delay_fsm       <= 0;
+    fifo_nr_rd_fsm      <= fifo_nr_rd;
+    rd_fsm_debug_fsm    <= x"0";
+    RD_NEXT             <= RD_CURRENT;
 
     case (RD_CURRENT) is
       when IDLE =>
@@ -462,13 +471,18 @@ begin  -- behavioral
       when WAIT_FOR_LVL1_TRIG_A =>      -- wait for trigger data valid
         if TRG_DATA_VALID_IN = '1' then
           RD_NEXT <= WAIT_FOR_LVL1_TRIG_B;
-        --elsif TMGTRG_TIMEOUT_IN = '1' then
-        --  RD_NEXT <= IDLE;
+        elsif TMGTRG_TIMEOUT_IN = '1' then
+          RD_NEXT           <= SEND_TRIG_RELEASE_A;
+          data_finished_fsm <= '1';
         end if;
         wait_fsm         <= '1';
         rd_fsm_debug_fsm <= x"6";
 
       when WAIT_FOR_LVL1_TRIG_B =>
+        --if MULTI_TMG_TRG_IN = '1' or SPIKE_DETECTED_IN = '1' then
+        --  wrong_reference_fsm <= '1';
+        --  wr_trailer_fsm      <= '1';
+        --end if;
         RD_NEXT          <= WAIT_FOR_LVL1_TRIG_C;
         wait_fsm         <= '1';
         rd_fsm_debug_fsm <= x"7";
@@ -476,6 +490,7 @@ begin  -- behavioral
       when WAIT_FOR_LVL1_TRIG_C =>
         if SPURIOUS_TRG_IN = '1' then
           wrong_readout_fsm <= '1';
+--          wr_trailer_fsm    <= '1';
         end if;
         RD_NEXT          <= SEND_TRIG_RELEASE_A;
         wait_fsm         <= '1';
