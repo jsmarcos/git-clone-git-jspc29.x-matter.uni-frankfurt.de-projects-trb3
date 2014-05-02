@@ -139,7 +139,6 @@ architecture Behavioral of nXyter_FEE_board is
   -- Data Receiver
   signal data_recv              : std_logic_vector(43 downto 0);
   signal data_clk_recv          : std_logic;
-  signal self_trigger           : std_logic;
   signal pll_sadc_clk_lock      : std_logic;
   
   -- Data Delay                 
@@ -205,8 +204,8 @@ architecture Behavioral of nXyter_FEE_board is
   signal timestamp_hold         : unsigned(11 downto 0);
   
   -- Trigger Generator
-  signal trigger_intern         : std_logic;
-
+  signal internal_trigger       : std_logic;
+  
   -- Error
   signal error_all              : std_logic_vector(7 downto 0);
   signal error_data_receiver    : std_logic;
@@ -438,7 +437,7 @@ begin
       CLK_IN                   => CLK_IN,
       RESET_IN                 => RESET_IN,
       NX_MAIN_CLK_IN           => CLK_NX_MAIN_IN,
-      TIMESTAMP_RESET_1_IN     => nx_timestamp_reset_status,
+      TIMESTAMP_RESET_1_IN     => '0', --nx_timestamp_reset_status,
       TIMESTAMP_RESET_2_IN     => nx_timestamp_reset_receiver,
       TIMESTAMP_RESET_OUT      => nx_timestamp_reset_o, 
       TRIGGER_IN               => timestamp_trigger,
@@ -488,7 +487,7 @@ begin
       FEE_DATA_WRITE_0_IN        => fee_data_write_o_0,
       FEE_DATA_1_IN              => fee_data_o_1,
       FEE_DATA_WRITE_1_IN        => fee_data_write_o_1,
-      INTERNAL_TRIGGER_IN        => trigger_intern,
+      INTERNAL_TRIGGER_IN        => '0', --internal_trigger,
 
       TRIGGER_VALIDATE_BUSY_IN   => trigger_validate_busy,
       TRIGGER_BUSY_0_IN          => trigger_evt_busy_0,
@@ -526,11 +525,11 @@ begin
       NX_MAIN_CLK_IN       => CLK_NX_MAIN_IN,
 
       TRIGGER_BUSY_IN      => trigger_busy,
-      TRIGGER_OUT          => trigger_intern,
-
+      EXTERNAL_TRIGGER_OUT => TRIGGER_OUT,
+      INTERNAL_TRIGGER_OUT => internal_trigger,
+      
       DATA_IN              => data_recv,
       DATA_CLK_IN          => data_clk_recv,
-      SELF_TRIGGER_OUT     => self_trigger,
       
       SLV_READ_IN          => slv_read(5),
       SLV_WRITE_IN         => slv_write(5),
@@ -800,7 +799,6 @@ begin
 -------------------------------------------------------------------------------
 -- Others
 -------------------------------------------------------------------------------
-  TRIGGER_OUT              <= self_trigger;
                               
 -------------------------------------------------------------------------------
 -- DEBUG Line Select

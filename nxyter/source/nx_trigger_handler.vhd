@@ -85,6 +85,9 @@ architecture Behavioral of nx_trigger_handler is
   signal timestamp_trigger_o        : std_logic;
 
   signal invalid_timing_trigger_n   : std_logic;
+
+  signal invalid_timing_trigger_ff  : std_logic;
+  signal invalid_timing_trigger_f   : std_logic;
   signal invalid_timing_trigger     : std_logic;
   signal invalid_timing_trigger_ctr : unsigned(15 downto 0);
 
@@ -114,6 +117,7 @@ architecture Behavioral of nx_trigger_handler is
   signal fee_trg_release_o          : std_logic;
   signal fee_trg_statusbits_o       : std_logic_vector(31 downto 0);
   signal send_testpulse             : std_logic;
+  
   signal testpulse_enable           : std_logic;
   
   type STATES is (S_IDLE,
@@ -155,6 +159,9 @@ architecture Behavioral of nx_trigger_handler is
   signal wait_timer_end              : unsigned(11 downto 0);
   
   -- Rate Calculation
+  signal send_testpulse_ff           : std_logic;
+  signal send_testpulse_f            : std_logic;
+  
   signal accepted_trigger_rate_t     : unsigned(27 downto 0);
   signal testpulse_o_clk100          : std_logic;
   signal testpulse_rate_t            : unsigned(27 downto 0);
@@ -364,7 +371,12 @@ begin
       PULSE_A_IN => fast_clear_o,
       PULSE_OUT  => fast_clear
       );
-  
+
+  -- Relax Timing 
+  invalid_timing_trigger_ff  <=
+    invalid_timing_trigger_n when rising_edge(NX_MAIN_CLK_IN);
+  invalid_timing_trigger_f   <=
+    invalid_timing_trigger_ff when rising_edge(NX_MAIN_CLK_IN);
   pulse_dtrans_INVALID_TIMING_TRIGGER: pulse_dtrans
     generic map (
       CLK_RATIO => 4
@@ -372,7 +384,7 @@ begin
     port map (
       CLK_A_IN    => NX_MAIN_CLK_IN,
       RESET_A_IN  => RESET_NX_MAIN_CLK_IN,
-      PULSE_A_IN  => invalid_timing_trigger_n,
+      PULSE_A_IN  => invalid_timing_trigger_f,
       CLK_B_IN    => CLK_IN,
       RESET_B_IN  => RESET_IN,
       PULSE_B_OUT => invalid_timing_trigger
@@ -594,6 +606,9 @@ begin
     end if;
   end process PROC_TESTPULSE_HANDLER; 
 
+  -- Relax Timing 
+  send_testpulse_ff <= send_testpulse    when rising_edge(NX_MAIN_CLK_IN);
+  send_testpulse_f  <= send_testpulse_ff when rising_edge(NX_MAIN_CLK_IN);
   pulse_dtrans_TESTPULSE_RATE: pulse_dtrans
     generic map (
       CLK_RATIO => 2
@@ -601,7 +616,7 @@ begin
     port map (
       CLK_A_IN    => NX_MAIN_CLK_IN,
       RESET_A_IN  => RESET_NX_MAIN_CLK_IN,
-      PULSE_A_IN  => testpulse_o,
+      PULSE_A_IN  => send_testpulse_f,
       CLK_B_IN    => CLK_IN,
       RESET_B_IN  => RESET_IN,
       PULSE_B_OUT => testpulse_o_clk100
