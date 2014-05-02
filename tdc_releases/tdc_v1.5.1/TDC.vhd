@@ -13,7 +13,7 @@ entity TDC is
   generic (
     CHANNEL_NUMBER : integer range 2 to 65;
     CONTROL_REG_NR : integer range 0 to 6;
-    TDC_VERSION    : std_logic_vector(10 downto 0));
+    TDC_VERSION    : std_logic_vector(11 downto 0));
   port (
     RESET                 : in  std_logic;
     CLK_TDC               : in  std_logic;
@@ -102,6 +102,10 @@ architecture TDC of TDC is
                                                     -- 0: free running mode
   signal run_mode_200                 : std_logic;
   signal run_mode_edge_200            : std_logic;
+  signal reset_coarse_cntr_i          : std_logic;
+  signal reset_coarse_cntr_200        : std_logic;
+  signal reset_coarse_cntr_edge_200   : std_logic;
+  signal reset_coarse_cntr_flag       : std_logic := '0';
   signal trigger_win_en_i             : std_logic;
   signal ch_en_i                      : std_logic_vector(64 downto 1);
   signal data_limit_i                 : unsigned(7 downto 0);
@@ -153,17 +157,21 @@ architecture TDC of TDC is
 begin
 
 -- Slow control signals
-  logic_anal_control <= CONTROL_REG_IN(3 downto 0) when rising_edge(CLK_READOUT);
-  debug_mode_en_i    <= CONTROL_REG_IN(4);
-  reset_counters_i   <= CONTROL_REG_IN(8);
-  run_mode_i         <= CONTROL_REG_IN(12);
-  run_mode_200       <= run_mode_i                 when rising_edge(CLK_TDC);  -- Run mode control register synchronised to the coarse counter clk
-  trigger_win_en_i   <= CONTROL_REG_IN(1*32+31);
-  ch_en_i            <= CONTROL_REG_IN(3*32+31 downto 2*32+0);
-  data_limit_i       <= unsigned(CONTROL_REG_IN(4*32+7 downto 4*32+0));
+  logic_anal_control    <= CONTROL_REG_IN(3 downto 0) when rising_edge(CLK_READOUT);
+  debug_mode_en_i       <= CONTROL_REG_IN(4);
+  reset_counters_i      <= CONTROL_REG_IN(8);
+  run_mode_i            <= CONTROL_REG_IN(12);
+  run_mode_200          <= run_mode_i                 when rising_edge(CLK_TDC);  -- Run mode control register synchronised to the coarse counter clk
+  reset_coarse_cntr_i   <= CONTROL_REG_IN(13);
+  reset_coarse_cntr_200 <= reset_coarse_cntr_i        when rising_edge(CLK_TDC);  -- Reset coarse counter control register synchronised to the coarse counter clk
+  
+  trigger_win_en_i    <= CONTROL_REG_IN(1*32+31);
+  ch_en_i             <= CONTROL_REG_IN(3*32+31 downto 2*32+0);
+  data_limit_i        <= unsigned(CONTROL_REG_IN(4*32+7 downto 4*32+0));
+  
 
 -- Reset signal
-  reset_tdc <= RESET;
+  reset_tdc <= RESET when rising_edge(CLK_TDC);
 
   -- Blocks the input after the rising edge against short pulses
   GEN_HitBlock : for i in 1 to CHANNEL_NUMBER-1 generate
@@ -236,7 +244,7 @@ begin
 
 -- Channels
   GEN_Channels : for i in 1 to CHANNEL_NUMBER - 1 generate
-    Channels : Channel
+    Channels : entity work.Channel
       generic map (
         CHANNEL_ID => i)
       port map (
@@ -268,7 +276,7 @@ begin
   TheReadout : Readout
     generic map (
       CHANNEL_NUMBER => CHANNEL_NUMBER,
-      TDC_VERSION    => TDC_VERSION)
+      TDC_VERSION    => TDC_VERSION(10 downto 0))
     port map (
       CLK_200                  => CLK_TDC,
       RESET_200                => reset_tdc,
@@ -325,12 +333,21 @@ begin
   Coarse_Counter_Reset : process (CLK_TDC)
   begin
     if rising_edge(CLK_TDC) then
-      if run_mode_200 = '0' then
+      if reset_tdc = '1' then
+        coarse_cntr_reset <= '1';
+      elsif run_mode_200 = '0' then
         coarse_cntr_reset <= trg_win_end_i;
       elsif run_mode_edge_200 = '1' then
         coarse_cntr_reset <= '1';
+      elsif reset_coarse_cntr_flag = '1' and (VALID_TIMING_TRG_IN = '1' or VALID_NOTIMING_TRG_IN = '1') then
+        coarse_cntr_reset <= '1';
       else
         coarse_cntr_reset <= '0';
+      end if;
+      if reset_coarse_cntr_edge_200 = '1' then
+        reset_coarse_cntr_flag <= '1';
+      elsif VALID_TIMING_TRG_IN = '1' or VALID_NOTIMING_TRG_IN = '1' then
+        reset_coarse_cntr_flag <= '0';        
       end if;
     end if;
   end process Coarse_Counter_Reset;
@@ -340,6 +357,12 @@ begin
       CLK       => CLK_TDC,
       SIGNAL_IN => run_mode_200,
       PULSE_OUT => run_mode_edge_200);
+
+  Reset_Coarse_Counter_Edge_Detect: risingEdgeDetect
+    port map (
+      CLK       => CLK_TDC,
+      SIGNAL_IN => reset_coarse_cntr_200,
+      PULSE_OUT => reset_coarse_cntr_edge_200);
   
   GenCoarseCounterReset : for i in 1 to 4 generate
     coarse_cntr_reset_r(i) <= coarse_cntr_reset when rising_edge(CLK_TDC);
@@ -355,7 +378,7 @@ begin
       COUNT_OUT => epoch_cntr,
       UP_IN     => epoch_cntr_up_i);
   epoch_cntr_up_i    <= and_all(coarse_cntr(1));
-  epoch_cntr_reset_i <= coarse_cntr_reset;
+  epoch_cntr_reset_i <= coarse_cntr_reset_r(1);
 
 -- Bus handler entities
   TheHitCounterBus : BusHandler
@@ -392,19 +415,19 @@ begin
       DATAREADY_OUT    => SRB_DATAREADY_OUT,
       UNKNOWN_ADDR_OUT => SRB_UNKNOWN_ADDR_OUT);
 
-  TheLostHitBus : BusHandler
-    generic map (
-      BUS_LENGTH => CHANNEL_NUMBER-1)
-    port map (
-      RESET            => RESET,
-      CLK              => CLK_READOUT,
-      DATA_IN          => ch_lost_hit_bus_i,
-      READ_EN_IN       => LHB_READ_EN_IN,
-      WRITE_EN_IN      => LHB_WRITE_EN_IN,
-      ADDR_IN          => LHB_ADDR_IN,
-      DATA_OUT         => LHB_DATA_OUT,
-      DATAREADY_OUT    => LHB_DATAREADY_OUT,
-      UNKNOWN_ADDR_OUT => LHB_UNKNOWN_ADDR_OUT);
+  --TheLostHitBus : BusHandler
+  --  generic map (
+  --    BUS_LENGTH => CHANNEL_NUMBER-1)
+  --  port map (
+  --    RESET            => RESET,
+  --    CLK              => CLK_READOUT,
+  --    DATA_IN          => ch_lost_hit_bus_i,
+  --    READ_EN_IN       => LHB_READ_EN_IN,
+  --    WRITE_EN_IN      => LHB_WRITE_EN_IN,
+  --    ADDR_IN          => LHB_ADDR_IN,
+  --    DATA_OUT         => LHB_DATA_OUT,
+  --    DATAREADY_OUT    => LHB_DATAREADY_OUT,
+  --    UNKNOWN_ADDR_OUT => LHB_UNKNOWN_ADDR_OUT);
 
   GenLostHitNumber : for i in 1 to CHANNEL_NUMBER-1 generate
     ch_lost_hit_bus_i(i) <= x"00" & ch_lost_hit_number_i(i) when rising_edge(CLK_READOUT);

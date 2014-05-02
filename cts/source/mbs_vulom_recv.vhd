@@ -33,6 +33,12 @@ entity mbs_vulom_recv is
     HEADER_REG_OUT : out std_logic_vector(1 downto 0);
     DEBUG          : out std_logic_vector(31 downto 0)    
     );
+
+    attribute syn_useioff : boolean;
+    --no IO-FF for MBS input
+    attribute syn_useioff of MBS_IN    : signal is false;
+
+
 end entity;
 
 --MBS format
@@ -105,6 +111,7 @@ TRG_SYNC_OUT  <= trg_sync when rising_edge(CLK);
 
 PROC_FSM: process begin
   wait until rising_edge(CLK_200);
+
   case state is
     when IDLE =>
       bitcnt <= 37;

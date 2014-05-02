@@ -45,9 +45,16 @@ begin
                             DEBUG_LINE_IN)
   begin
     if (unsigned(port_select) < NUM_PORTS) then
-      debug_line_o <= DEBUG_LINE_IN(to_integer(unsigned(port_select)));
+      debug_line_o               <=
+        DEBUG_LINE_IN(to_integer(unsigned(port_select)));
+    elsif (unsigned(port_select) = NUM_PORTS) then
+      -- Checkerboard
+      for I in 0 to 7 loop
+        debug_line_o(I * 2)      <= CLK_IN;
+        debug_line_o(I * 2 + 1)  <= not CLK_IN;
+      end loop; 
     else
-      debug_line_o <= (others => '1');
+      debug_line_o               <= (others => '1');
     end if;
   end process PROC_MULTIPLEXER;
 
@@ -69,7 +76,7 @@ begin
         if (SLV_WRITE_IN  = '1') then
           case SLV_ADDR_IN is
             when x"0000" =>
-              if (unsigned(SLV_DATA_IN(7 downto 0)) < NUM_PORTS) then
+              if (unsigned(SLV_DATA_IN(7 downto 0)) < NUM_PORTS + 1) then
                 port_select               <= SLV_DATA_IN(7 downto 0);
               end if;
               slv_ack_o                   <= '1';

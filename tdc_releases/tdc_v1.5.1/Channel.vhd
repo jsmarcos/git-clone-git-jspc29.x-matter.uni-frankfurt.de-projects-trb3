@@ -88,7 +88,7 @@ begin
   hit_in_i <= HIT_IN;
   hit_buf  <= not hit_in_i;
 
-  Channel_200_1 : Channel_200
+  Channel_200_1 : entity work.Channel_200
     generic map (
       CHANNEL_ID => CHANNEL_ID)
     port map (

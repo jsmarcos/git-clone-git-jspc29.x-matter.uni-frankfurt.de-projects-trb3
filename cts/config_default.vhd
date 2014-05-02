@@ -11,7 +11,8 @@ package config is
 ------------------------------------------------------------------------------
 
 --include TDC for all four trigger input lines
-    constant INCLUDE_TDC : integer range c_NO to c_YES := c_NO;
+    constant INCLUDE_TDC : integer range c_NO to c_YES := c_YES;
+    constant TDC_CHANNEL_NUMBER : integer := 5;
     
 --use all four SFP (1-4) as downlink to other boards.     
     constant USE_4_SFP   : integer range c_NO to c_YES := c_NO;

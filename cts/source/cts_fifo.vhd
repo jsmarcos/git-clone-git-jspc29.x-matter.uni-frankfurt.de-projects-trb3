@@ -28,8 +28,12 @@ end entity;
 architecture RTL of CTS_FIFO is
    constant DEPTH : integer := 2**ADDR_WIDTH;
    
+   attribute syn_ramstyle : string;
+   
    type memory_t is array(0 to DEPTH-1) of std_logic_vector(WIDTH-1 downto 0);
    signal memory_i : memory_t;   
+   attribute syn_ramstyle of memory_i : signal is "block_ram";
+   
    signal index_read_i, index_write_i : integer range 0 to DEPTH - 1 := 0;
    signal full_i, empty_i : std_logic;
    

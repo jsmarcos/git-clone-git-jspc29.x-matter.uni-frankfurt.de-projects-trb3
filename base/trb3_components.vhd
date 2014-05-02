@@ -13,18 +13,6 @@ package trb3_components is
   type std_logic_vector_array_8 is array (integer range <>) of std_logic_vector(7 downto 0);
   type unsigned_array_8 is array (integer range <>) of unsigned(7 downto 0);
 
-  --already in trb_net_components
---   component pll_in200_out100
---     port (
---       CLK   : in  std_logic;
---       RESET : in  std_logic := '0';
---       CLKOP : out std_logic;            --100 MHz
---       CLKOK : out std_logic;            --200 MHz, bypass
---       LOCK  : out std_logic
---       );
---   end component;
-
-
   component oddr is
     port (
       clk    : in  std_logic;
@@ -33,7 +21,6 @@ package trb3_components is
       db     : in  std_logic_vector(0 downto 0);
       q      : out std_logic_vector(0 downto 0));
   end component;
-
 
   component pll_in125_out125
     port (
@@ -51,12 +38,20 @@ package trb3_components is
       CLKOK : out std_logic;            -- 125 MHz, bypass
       LOCK  : out std_logic);
   end component pll_in125_out20;
-  
+
+  component OSCF  -- internal oscillator with a frequency of 2MHz
+    port (OSC : out
+          std_logic);
+  end component;
+
   component TDC is
     generic (
       CHANNEL_NUMBER : integer range 2 to 65;
+      STATUS_REG_NR  : integer range 0 to 31;
       CONTROL_REG_NR : integer range 0 to 6;
-      TDC_VERSION    : std_logic_vector(10 downto 0));
+      TDC_VERSION    : std_logic_vector(11 downto 0);
+      DEBUG          : integer range 0 to 1 := c_YES;
+      SIMULATION     : integer range 0 to 1 := c_NO);
     port (
       RESET                 : in  std_logic;
       CLK_TDC               : in  std_logic;
@@ -95,6 +90,12 @@ package trb3_components is
       SRB_DATA_OUT          : out std_logic_vector(31 downto 0);
       SRB_DATAREADY_OUT     : out std_logic;
       SRB_UNKNOWN_ADDR_OUT  : out std_logic;
+      CDB_READ_EN_IN        : in  std_logic;
+      CDB_WRITE_EN_IN       : in  std_logic;
+      CDB_ADDR_IN           : in  std_logic_vector(6 downto 0);
+      CDB_DATA_OUT          : out std_logic_vector(31 downto 0);
+      CDB_DATAREADY_OUT     : out std_logic;
+      CDB_UNKNOWN_ADDR_OUT  : out std_logic;
       ESB_READ_EN_IN        : in  std_logic;
       ESB_WRITE_EN_IN       : in  std_logic;
       ESB_ADDR_IN           : in  std_logic_vector(6 downto 0);
@@ -176,9 +177,12 @@ package trb3_components is
       COARSE_COUNTER_IN      : in  std_logic_vector(10 downto 0));
   end component;
 
-  component Channel is
+  component Channel
     generic (
-      CHANNEL_ID : integer range 0 to 64);
+      CHANNEL_ID : integer range 0 to 64;
+      DEBUG      : integer range 0 to 1;
+      SIMULATION : integer range 0 to 1;
+      REFERENCE  : integer range 0 to 1);
     port (
       RESET_200               : in  std_logic;
       RESET_100               : in  std_logic;
@@ -186,66 +190,83 @@ package trb3_components is
       CLK_200                 : in  std_logic;
       CLK_100                 : in  std_logic;
       HIT_IN                  : in  std_logic;
-      TRIGGER_IN              : in  std_logic;  -- not used after version 1.3
-      TRIGGER_WIN_END_IN      : in  std_logic;
+      TRIGGER_WIN_END_TDC     : in  std_logic;
+      TRIGGER_WIN_END_RDO     : in  std_logic;
       READ_EN_IN              : in  std_logic;
       FIFO_DATA_OUT           : out std_logic_vector(35 downto 0);
-      FIFO_WCNT_OUT           : out unsigned(7 downto 0);
+      FIFO_DATA_VALID_OUT     : out std_logic;
       FIFO_EMPTY_OUT          : out std_logic;
       FIFO_FULL_OUT           : out std_logic;
+      FIFO_ALMOST_EMPTY_OUT   : out std_logic;
       FIFO_ALMOST_FULL_OUT    : out std_logic;
       COARSE_COUNTER_IN       : in  std_logic_vector(10 downto 0);
       EPOCH_COUNTER_IN        : in  std_logic_vector(27 downto 0);
+      VALID_TIMING_TRG_IN     : in  std_logic;
+      VALID_NOTIMING_TRG_IN   : in  std_logic;
+      SPIKE_DETECTED_IN       : in  std_logic;
+      MULTI_TMG_TRG_IN        : in  std_logic;
+      EPOCH_WRITE_EN_IN       : in  std_logic;
       LOST_HIT_NUMBER         : out std_logic_vector(23 downto 0);
       HIT_DETECT_NUMBER       : out std_logic_vector(23 downto 0);
       ENCODER_START_NUMBER    : out std_logic_vector(23 downto 0);
       ENCODER_FINISHED_NUMBER : out std_logic_vector(23 downto 0);
+      FIFO_WRITE_NUMBER       : out std_logic_vector(23 downto 0);
+      Channel_200_DEBUG       : out std_logic_vector(31 downto 0);
       Channel_DEBUG           : out std_logic_vector(31 downto 0));
-  end component Channel;
+  end component;
 
-  component Channel_200 is
+  component Channel_200
     generic (
-      CHANNEL_ID : integer range 0 to 64);
+      CHANNEL_ID : integer range 0 to 64;
+      DEBUG      : integer range 0 to 1;
+      SIMULATION : integer range 0 to 1;
+      REFERENCE  : integer range 0 to 1);
     port (
-      CLK_200              : in  std_logic;
-      RESET_200            : in  std_logic;
-      CLK_100              : in  std_logic;
-      RESET_100            : in  std_logic;
-      HIT_IN               : in  std_logic;
-      TRIGGER_IN           : in  std_logic;  -- not used after version 1.3
-      TRIGGER_WIN_END_IN   : in  std_logic;
-      EPOCH_COUNTER_IN     : in  std_logic_vector(27 downto 0);
-      COARSE_COUNTER_IN    : in  std_logic_vector(10 downto 0);
-      READ_EN_IN           : in  std_logic;
-      FIFO_DATA_OUT        : out std_logic_vector(35 downto 0);
-      FIFO_WCNT_OUT        : out unsigned(7 downto 0);
-      FIFO_EMPTY_OUT       : out std_logic;
-      FIFO_FULL_OUT        : out std_logic;
-      FIFO_ALMOST_FULL_OUT : out std_logic;
-      ENCODER_START_OUT    : out std_logic;
-      ENCODER_FINISHED_OUT : out std_logic);
-  end component Channel_200;
+      CLK_200               : in  std_logic;
+      RESET_200             : in  std_logic;
+      CLK_100               : in  std_logic;
+      RESET_100             : in  std_logic;
+      RESET_COUNTERS        : in  std_logic;
+      HIT_IN                : in  std_logic;
+      TRIGGER_WIN_END_TDC   : in  std_logic;
+      TRIGGER_WIN_END_RDO   : in  std_logic;
+      EPOCH_COUNTER_IN      : in  std_logic_vector(27 downto 0);
+      COARSE_COUNTER_IN     : in  std_logic_vector(10 downto 0);
+      READ_EN_IN            : in  std_logic;
+      FIFO_DATA_OUT         : out std_logic_vector(35 downto 0);
+      FIFO_DATA_VALID_OUT   : out std_logic;
+      FIFO_EMPTY_OUT        : out std_logic;
+      FIFO_FULL_OUT         : out std_logic;
+      FIFO_ALMOST_FULL_OUT  : out std_logic;
+      VALID_TIMING_TRG_IN   : in  std_logic;
+      VALID_NOTIMING_TRG_IN : in  std_logic;
+      SPIKE_DETECTED_IN     : in  std_logic;
+      MULTI_TMG_TRG_IN      : in  std_logic;
+      EPOCH_WRITE_EN_IN     : in  std_logic;
+      ENCODER_START_OUT     : out std_logic;
+      ENCODER_FINISHED_OUT  : out std_logic;
+      FIFO_WRITE_OUT        : out std_logic;
+      Channel_200_DEBUG     : out std_logic_vector(31 downto 0));
+  end component;
 
   component Readout is
     generic (
       CHANNEL_NUMBER : integer range 2 to 65;
-      TDC_VERSION    : std_logic_vector(10 downto 0));
+      STATUS_REG_NR  : integer range 0 to 31;
+      TDC_VERSION    : std_logic_vector(11 downto 0));
     port (
-      CLK_200                  : in  std_logic;
-      RESET_200                : in  std_logic;
-      CLK_100                  : in  std_logic;
       RESET_100                : in  std_logic;
+      RESET_200                : in  std_logic;
       RESET_COUNTERS           : in  std_logic;
-      REFERENCE_TIME           : in  std_logic;
-      TRIGGER_TIME_IN          : in  std_logic_vector(38 downto 0);
-      TRG_WIN_PRE              : in  std_logic_vector(10 downto 0);
-      TRG_WIN_POST             : in  std_logic_vector(10 downto 0);
-      DEBUG_MODE_EN_IN         : in  std_logic;
-      TRIGGER_WIN_EN_IN        : in  std_logic;
+      CLK_100                  : in  std_logic;
+      CLK_200                  : in  std_logic;
+      TRIGGER_RDO_IN           : in  std_logic;
+      TRIGGER_TDC_IN           : in  std_logic;
       CH_DATA_IN               : in  std_logic_vector_array_36(0 to CHANNEL_NUMBER);
-      CH_WCNT_IN               : in  unsigned_array_8(0 to CHANNEL_NUMBER-1);
-      CH_EMPTY_IN              : in  std_logic_vector(CHANNEL_NUMBER downto 0);
+      CH_DATA_VALID_IN         : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+      CH_EMPTY_IN              : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
       CH_FULL_IN               : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+      CH_ALMOST_EMPTY_IN       : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
       CH_ALMOST_FULL_IN        : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
       TRG_DATA_VALID_IN        : in  std_logic;
       VALID_TIMING_TRG_IN      : in  std_logic;
@@ -266,10 +287,24 @@ package trb3_components is
       DATA_WRITE_OUT           : out std_logic;
       DATA_FINISHED_OUT        : out std_logic;
       READ_EN_OUT              : out std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+      TRG_WIN_PRE              : in  std_logic_vector(10 downto 0);
+      TRG_WIN_POST             : in  std_logic_vector(10 downto 0);
+      TRIGGER_WIN_EN_IN        : in  std_logic;
+      TRIG_WIN_END_TDC_IN      : in  std_logic;
+      TRIG_WIN_END_RDO_IN      : in  std_logic;
+      COARSE_COUNTER_IN        : in  std_logic_vector(10 downto 0);
+      EPOCH_COUNTER_IN         : in  std_logic_vector(27 downto 0);
+      DEBUG_MODE_EN_IN         : in  std_logic;
+      STATUS_REGISTERS_BUS_OUT : out std_logic_vector_array_32(0 to STATUS_REG_NR-1);
+      READOUT_DEBUG            : out std_logic_vector(31 downto 0);
+-- ports not used after tdc_v1.5.2
       TRIGGER_WIN_END_OUT      : out std_logic;
-      STATUS_REGISTERS_BUS_OUT : out std_logic_vector_array_32(0 to 18);
-      READOUT_DEBUG            : out std_logic_vector(31 downto 0));
+      CH_WCNT_IN               : in  unsigned_array_8(0 to CHANNEL_NUMBER-1);
+      REFERENCE_TIME           : in  std_logic;
+      TRIGGER_TIME_IN          : in  std_logic_vector(38 downto 0)
+      );
   end component Readout;
+
 
   component TriggerHandler is
     generic (
@@ -290,7 +325,7 @@ package trb3_components is
       TRIGGER_WIN_END_RDO_OUT : out std_logic;
       TRIGGER_WIN_END_TDC_OUT : out std_logic);
   end component TriggerHandler;
-  
+
   component LogicAnalyser
     generic (
       CHANNEL_NUMBER : integer range 2 to 65);
@@ -369,6 +404,15 @@ package trb3_components is
   --    ENCODER_DEBUG   : out std_logic_vector(31 downto 0));
   --end component;
 
+  component hit_mux is
+    port (
+      CH_EN_IN           : in  std_logic;
+      CALIBRATION_EN_IN  : in  std_logic;
+      HIT_CALIBRATION_IN : in  std_logic;
+      HIT_PHYSICAL_IN    : in  std_logic;
+      HIT_OUT            : out std_logic);
+  end component hit_mux;
+
   component FIFO_32x32_OutReg
     port (
       Data       : in  std_logic_vector(31 downto 0);
@@ -383,6 +427,49 @@ package trb3_components is
       Full       : out std_logic;
       AlmostFull : out std_logic);
   end component;
+
+  component FIFO_36x128_OutReg is
+    port (
+      Data        : in  std_logic_vector(35 downto 0);
+      Clock       : in  std_logic;
+      WrEn        : in  std_logic;
+      RdEn        : in  std_logic;
+      Reset       : in  std_logic;
+      Q           : out std_logic_vector(35 downto 0);
+      Empty       : out std_logic;
+      Full        : out std_logic;
+      AlmostEmpty : out std_logic);
+  end component FIFO_36x128_OutReg;
+
+  component FIFO_DC_36x128_OutReg is
+    port (
+      Data       : in  std_logic_vector(35 downto 0);
+      WrClock    : in  std_logic;
+      RdClock    : in  std_logic;
+      WrEn       : in  std_logic;
+      RdEn       : in  std_logic;
+      Reset      : in  std_logic;
+      RPReset    : in  std_logic;
+      Q          : out std_logic_vector(35 downto 0);
+      Empty      : out std_logic;
+      Full       : out std_logic;
+      AlmostFull : out std_logic);
+  end component FIFO_DC_36x128_OutReg;
+
+  component FIFO_DC_36x64_OutReg is
+    port (
+      Data       : in  std_logic_vector(35 downto 0);
+      WrClock    : in  std_logic;
+      RdClock    : in  std_logic;
+      WrEn       : in  std_logic;
+      RdEn       : in  std_logic;
+      Reset      : in  std_logic;
+      RPReset    : in  std_logic;
+      Q          : out std_logic_vector(35 downto 0);
+      Empty      : out std_logic;
+      Full       : out std_logic;
+      AlmostFull : out std_logic);
+  end component FIFO_DC_36x64_OutReg;
 
   component FIFO_36x128_OutReg_Counter is
     port (
@@ -608,6 +695,1116 @@ package trb3_components is
       CTRL_DEBUG     : in  std_logic_vector (63 downto 0) := (others => '0')
       );
   end component;
+
+
+  component input_to_trigger_logic is
+    generic(
+      INPUTS     : integer range 1 to 32 := 24;
+      OUTPUTS    : integer range 1 to 16 := 4
+      );
+    port(
+      CLK        : in std_logic;
+      
+      INPUT      : in  std_logic_vector(INPUTS-1 downto 0);
+      OUTPUT     : out std_logic_vector(OUTPUTS-1 downto 0);
+
+      DATA_IN    : in  std_logic_vector(31 downto 0) := (others => '0');
+      DATA_OUT   : out std_logic_vector(31 downto 0);
+      WRITE_IN   : in  std_logic := '0';
+      READ_IN    : in  std_logic := '0';
+      ACK_OUT    : out std_logic;
+      NACK_OUT   : out std_logic;
+      ADDR_IN    : in  std_logic_vector(15 downto 0) := (others => '0')
+      
+      );
+  end component;
+
+  component input_statistics is
+    generic (
+      INPUTS : integer range 1 to 32);
+    port (
+      CLK      : in  std_logic;
+      INPUT    : in  std_logic_vector(INPUTS-1 downto 0);
+      DATA_IN  : in  std_logic_vector(31 downto 0) := (others => '0');
+      DATA_OUT : out std_logic_vector(31 downto 0);
+      WRITE_IN : in  std_logic                     := '0';
+      READ_IN  : in  std_logic                     := '0';
+      ACK_OUT  : out std_logic;
+      NACK_OUT : out std_logic;
+      ADDR_IN  : in  std_logic_vector(15 downto 0) := (others => '0'));
+  end component input_statistics;
+
+
+component serdes_full_ctc is
+   GENERIC (USER_CONFIG_FILE    :  String := "serdes_full_ctc.txt");
+ port (
+------------------
+-- CH0 --
+    hdinp_ch0, hdinn_ch0    :   in std_logic;
+    hdoutp_ch0, hdoutn_ch0   :   out std_logic;
+    sci_sel_ch0    :   in std_logic;
+    rxiclk_ch0    :   in std_logic;
+    txiclk_ch0    :   in std_logic;
+    rx_full_clk_ch0   :   out std_logic;
+    rx_half_clk_ch0   :   out std_logic;
+    tx_full_clk_ch0   :   out std_logic;
+    tx_half_clk_ch0   :   out std_logic;
+    fpga_rxrefclk_ch0    :   in std_logic;
+    txdata_ch0    :   in std_logic_vector (15 downto 0);
+    tx_k_ch0    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch0    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch0    :   in std_logic_vector (1 downto 0);
+    rxdata_ch0   :   out std_logic_vector (15 downto 0);
+    rx_k_ch0   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch0   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch0   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch0_c    :   in std_logic;
+    sb_felb_rst_ch0_c    :   in std_logic;
+    tx_pwrup_ch0_c    :   in std_logic;
+    rx_pwrup_ch0_c    :   in std_logic;
+    rx_los_low_ch0_s   :   out std_logic;
+    lsm_status_ch0_s   :   out std_logic;
+    ctc_urun_ch0_s   :   out std_logic;
+    ctc_orun_ch0_s   :   out std_logic;
+    ctc_ins_ch0_s   :   out std_logic;
+    ctc_del_ch0_s   :   out std_logic;
+    rx_cdr_lol_ch0_s   :   out std_logic;
+    tx_div2_mode_ch0_c   : in std_logic;
+    rx_div2_mode_ch0_c   : in std_logic;
+-- CH1 --
+    hdinp_ch1, hdinn_ch1    :   in std_logic;
+    hdoutp_ch1, hdoutn_ch1   :   out std_logic;
+    sci_sel_ch1    :   in std_logic;
+    rxiclk_ch1    :   in std_logic;
+    txiclk_ch1    :   in std_logic;
+    rx_full_clk_ch1   :   out std_logic;
+    rx_half_clk_ch1   :   out std_logic;
+    tx_full_clk_ch1   :   out std_logic;
+    tx_half_clk_ch1   :   out std_logic;
+    fpga_rxrefclk_ch1    :   in std_logic;
+    txdata_ch1    :   in std_logic_vector (15 downto 0);
+    tx_k_ch1    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch1    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch1    :   in std_logic_vector (1 downto 0);
+    rxdata_ch1   :   out std_logic_vector (15 downto 0);
+    rx_k_ch1   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch1   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch1   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch1_c    :   in std_logic;
+    sb_felb_rst_ch1_c    :   in std_logic;
+    tx_pwrup_ch1_c    :   in std_logic;
+    rx_pwrup_ch1_c    :   in std_logic;
+    rx_los_low_ch1_s   :   out std_logic;
+    lsm_status_ch1_s   :   out std_logic;
+    ctc_urun_ch1_s   :   out std_logic;
+    ctc_orun_ch1_s   :   out std_logic;
+    ctc_ins_ch1_s   :   out std_logic;
+    ctc_del_ch1_s   :   out std_logic;
+    rx_cdr_lol_ch1_s   :   out std_logic;
+    tx_div2_mode_ch1_c   : in std_logic;
+    rx_div2_mode_ch1_c   : in std_logic;
+-- CH2 --
+    hdinp_ch2, hdinn_ch2    :   in std_logic;
+    hdoutp_ch2, hdoutn_ch2   :   out std_logic;
+    sci_sel_ch2    :   in std_logic;
+    rxiclk_ch2    :   in std_logic;
+    txiclk_ch2    :   in std_logic;
+    rx_full_clk_ch2   :   out std_logic;
+    rx_half_clk_ch2   :   out std_logic;
+    tx_full_clk_ch2   :   out std_logic;
+    tx_half_clk_ch2   :   out std_logic;
+    fpga_rxrefclk_ch2    :   in std_logic;
+    txdata_ch2    :   in std_logic_vector (15 downto 0);
+    tx_k_ch2    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch2    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch2    :   in std_logic_vector (1 downto 0);
+    rxdata_ch2   :   out std_logic_vector (15 downto 0);
+    rx_k_ch2   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch2   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch2   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch2_c    :   in std_logic;
+    sb_felb_rst_ch2_c    :   in std_logic;
+    tx_pwrup_ch2_c    :   in std_logic;
+    rx_pwrup_ch2_c    :   in std_logic;
+    rx_los_low_ch2_s   :   out std_logic;
+    lsm_status_ch2_s   :   out std_logic;
+    ctc_urun_ch2_s   :   out std_logic;
+    ctc_orun_ch2_s   :   out std_logic;
+    ctc_ins_ch2_s   :   out std_logic;
+    ctc_del_ch2_s   :   out std_logic;
+    rx_cdr_lol_ch2_s   :   out std_logic;
+    tx_div2_mode_ch2_c   : in std_logic;
+    rx_div2_mode_ch2_c   : in std_logic;
+-- CH3 --
+    hdinp_ch3, hdinn_ch3    :   in std_logic;
+    hdoutp_ch3, hdoutn_ch3   :   out std_logic;
+    sci_sel_ch3    :   in std_logic;
+    rxiclk_ch3    :   in std_logic;
+    txiclk_ch3    :   in std_logic;
+    rx_full_clk_ch3   :   out std_logic;
+    rx_half_clk_ch3   :   out std_logic;
+    tx_full_clk_ch3   :   out std_logic;
+    tx_half_clk_ch3   :   out std_logic;
+    fpga_rxrefclk_ch3    :   in std_logic;
+    txdata_ch3    :   in std_logic_vector (15 downto 0);
+    tx_k_ch3    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch3    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch3    :   in std_logic_vector (1 downto 0);
+    rxdata_ch3   :   out std_logic_vector (15 downto 0);
+    rx_k_ch3   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch3   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch3   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch3_c    :   in std_logic;
+    sb_felb_rst_ch3_c    :   in std_logic;
+    tx_pwrup_ch3_c    :   in std_logic;
+    rx_pwrup_ch3_c    :   in std_logic;
+    rx_los_low_ch3_s   :   out std_logic;
+    lsm_status_ch3_s   :   out std_logic;
+    ctc_urun_ch3_s   :   out std_logic;
+    ctc_orun_ch3_s   :   out std_logic;
+    ctc_ins_ch3_s   :   out std_logic;
+    ctc_del_ch3_s   :   out std_logic;
+    rx_cdr_lol_ch3_s   :   out std_logic;
+    tx_div2_mode_ch3_c   : in std_logic;
+    rx_div2_mode_ch3_c   : in std_logic;
+---- Miscillaneous ports
+    sci_wrdata    :   in std_logic_vector (7 downto 0);
+    sci_addr    :   in std_logic_vector (5 downto 0);
+    sci_rddata   :   out std_logic_vector (7 downto 0);
+    sci_sel_quad    :   in std_logic;
+    sci_rd    :   in std_logic;
+    sci_wrn    :   in std_logic;
+    fpga_txrefclk  :   in std_logic;
+    tx_serdes_rst_c    :   in std_logic;
+    tx_pll_lol_qd_s   :   out std_logic;
+    tx_sync_qd_c    :   in std_logic;
+    refclk2fpga   :   out std_logic;
+    rst_n      :   in std_logic;
+    serdes_rst_qd_c    :   in std_logic);
+
+end component;
   
+component serdes_full_noctc is
+   GENERIC (USER_CONFIG_FILE    :  String := "serdes_full_noctc.txt");
+ port (
+------------------
+-- CH0 --
+    hdinp_ch0, hdinn_ch0    :   in std_logic;
+    hdoutp_ch0, hdoutn_ch0   :   out std_logic;
+    sci_sel_ch0    :   in std_logic;
+    rxiclk_ch0    :   in std_logic;
+    txiclk_ch0    :   in std_logic;
+    rx_full_clk_ch0   :   out std_logic;
+    rx_half_clk_ch0   :   out std_logic;
+    tx_full_clk_ch0   :   out std_logic;
+    tx_half_clk_ch0   :   out std_logic;
+    fpga_rxrefclk_ch0    :   in std_logic;
+    txdata_ch0    :   in std_logic_vector (15 downto 0);
+    tx_k_ch0    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch0    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch0    :   in std_logic_vector (1 downto 0);
+    rxdata_ch0   :   out std_logic_vector (15 downto 0);
+    rx_k_ch0   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch0   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch0   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch0_c    :   in std_logic;
+    sb_felb_rst_ch0_c    :   in std_logic;
+    tx_pwrup_ch0_c    :   in std_logic;
+    rx_pwrup_ch0_c    :   in std_logic;
+    rx_los_low_ch0_s   :   out std_logic;
+    lsm_status_ch0_s   :   out std_logic;
+    rx_cdr_lol_ch0_s   :   out std_logic;
+    tx_div2_mode_ch0_c   : in std_logic;
+    rx_div2_mode_ch0_c   : in std_logic;
+-- CH1 --
+    hdinp_ch1, hdinn_ch1    :   in std_logic;
+    hdoutp_ch1, hdoutn_ch1   :   out std_logic;
+    sci_sel_ch1    :   in std_logic;
+    rxiclk_ch1    :   in std_logic;
+    txiclk_ch1    :   in std_logic;
+    rx_full_clk_ch1   :   out std_logic;
+    rx_half_clk_ch1   :   out std_logic;
+    tx_full_clk_ch1   :   out std_logic;
+    tx_half_clk_ch1   :   out std_logic;
+    fpga_rxrefclk_ch1    :   in std_logic;
+    txdata_ch1    :   in std_logic_vector (15 downto 0);
+    tx_k_ch1    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch1    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch1    :   in std_logic_vector (1 downto 0);
+    rxdata_ch1   :   out std_logic_vector (15 downto 0);
+    rx_k_ch1   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch1   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch1   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch1_c    :   in std_logic;
+    sb_felb_rst_ch1_c    :   in std_logic;
+    tx_pwrup_ch1_c    :   in std_logic;
+    rx_pwrup_ch1_c    :   in std_logic;
+    rx_los_low_ch1_s   :   out std_logic;
+    lsm_status_ch1_s   :   out std_logic;
+    rx_cdr_lol_ch1_s   :   out std_logic;
+    tx_div2_mode_ch1_c   : in std_logic;
+    rx_div2_mode_ch1_c   : in std_logic;
+-- CH2 --
+    hdinp_ch2, hdinn_ch2    :   in std_logic;
+    hdoutp_ch2, hdoutn_ch2   :   out std_logic;
+    sci_sel_ch2    :   in std_logic;
+    rxiclk_ch2    :   in std_logic;
+    txiclk_ch2    :   in std_logic;
+    rx_full_clk_ch2   :   out std_logic;
+    rx_half_clk_ch2   :   out std_logic;
+    tx_full_clk_ch2   :   out std_logic;
+    tx_half_clk_ch2   :   out std_logic;
+    fpga_rxrefclk_ch2    :   in std_logic;
+    txdata_ch2    :   in std_logic_vector (15 downto 0);
+    tx_k_ch2    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch2    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch2    :   in std_logic_vector (1 downto 0);
+    rxdata_ch2   :   out std_logic_vector (15 downto 0);
+    rx_k_ch2   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch2   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch2   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch2_c    :   in std_logic;
+    sb_felb_rst_ch2_c    :   in std_logic;
+    tx_pwrup_ch2_c    :   in std_logic;
+    rx_pwrup_ch2_c    :   in std_logic;
+    rx_los_low_ch2_s   :   out std_logic;
+    lsm_status_ch2_s   :   out std_logic;
+    rx_cdr_lol_ch2_s   :   out std_logic;
+    tx_div2_mode_ch2_c   : in std_logic;
+    rx_div2_mode_ch2_c   : in std_logic;
+-- CH3 --
+    hdinp_ch3, hdinn_ch3    :   in std_logic;
+    hdoutp_ch3, hdoutn_ch3   :   out std_logic;
+    sci_sel_ch3    :   in std_logic;
+    rxiclk_ch3    :   in std_logic;
+    txiclk_ch3    :   in std_logic;
+    rx_full_clk_ch3   :   out std_logic;
+    rx_half_clk_ch3   :   out std_logic;
+    tx_full_clk_ch3   :   out std_logic;
+    tx_half_clk_ch3   :   out std_logic;
+    fpga_rxrefclk_ch3    :   in std_logic;
+    txdata_ch3    :   in std_logic_vector (15 downto 0);
+    tx_k_ch3    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch3    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch3    :   in std_logic_vector (1 downto 0);
+    rxdata_ch3   :   out std_logic_vector (15 downto 0);
+    rx_k_ch3   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch3   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch3   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch3_c    :   in std_logic;
+    sb_felb_rst_ch3_c    :   in std_logic;
+    tx_pwrup_ch3_c    :   in std_logic;
+    rx_pwrup_ch3_c    :   in std_logic;
+    rx_los_low_ch3_s   :   out std_logic;
+    lsm_status_ch3_s   :   out std_logic;
+    rx_cdr_lol_ch3_s   :   out std_logic;
+    tx_div2_mode_ch3_c   : in std_logic;
+    rx_div2_mode_ch3_c   : in std_logic;
+---- Miscillaneous ports
+    sci_wrdata    :   in std_logic_vector (7 downto 0);
+    sci_addr    :   in std_logic_vector (5 downto 0);
+    sci_rddata   :   out std_logic_vector (7 downto 0);
+    sci_sel_quad    :   in std_logic;
+    sci_rd    :   in std_logic;
+    sci_wrn    :   in std_logic;
+    fpga_txrefclk  :   in std_logic;
+    tx_serdes_rst_c    :   in std_logic;
+    tx_pll_lol_qd_s   :   out std_logic;
+    tx_sync_qd_c    :   in std_logic;
+    refclk2fpga   :   out std_logic;
+    rst_n      :   in std_logic;
+    serdes_rst_qd_c    :   in std_logic);
+
+end component;
+  
+
+component serdes_onboard_full is
+   GENERIC (USER_CONFIG_FILE    :  String := "serdes_onboard_full.txt");
+ port (
+------------------
+-- CH0 --
+    hdinp_ch0, hdinn_ch0    :   in std_logic;
+    hdoutp_ch0, hdoutn_ch0   :   out std_logic;
+    sci_sel_ch0    :   in std_logic;
+    rxiclk_ch0    :   in std_logic;
+    txiclk_ch0    :   in std_logic;
+    rx_full_clk_ch0   :   out std_logic;
+    rx_half_clk_ch0   :   out std_logic;
+    tx_full_clk_ch0   :   out std_logic;
+    tx_half_clk_ch0   :   out std_logic;
+    fpga_rxrefclk_ch0    :   in std_logic;
+    txdata_ch0    :   in std_logic_vector (15 downto 0);
+    tx_k_ch0    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch0    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch0    :   in std_logic_vector (1 downto 0);
+    rxdata_ch0   :   out std_logic_vector (15 downto 0);
+    rx_k_ch0   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch0   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch0   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch0_c    :   in std_logic;
+    sb_felb_rst_ch0_c    :   in std_logic;
+    tx_pwrup_ch0_c    :   in std_logic;
+    rx_pwrup_ch0_c    :   in std_logic;
+    rx_los_low_ch0_s   :   out std_logic;
+    lsm_status_ch0_s   :   out std_logic;
+    rx_cdr_lol_ch0_s   :   out std_logic;
+    tx_div2_mode_ch0_c   : in std_logic;
+    rx_div2_mode_ch0_c   : in std_logic;
+-- CH1 --
+    hdinp_ch1, hdinn_ch1    :   in std_logic;
+    hdoutp_ch1, hdoutn_ch1   :   out std_logic;
+    sci_sel_ch1    :   in std_logic;
+    rxiclk_ch1    :   in std_logic;
+    txiclk_ch1    :   in std_logic;
+    rx_full_clk_ch1   :   out std_logic;
+    rx_half_clk_ch1   :   out std_logic;
+    tx_full_clk_ch1   :   out std_logic;
+    tx_half_clk_ch1   :   out std_logic;
+    fpga_rxrefclk_ch1    :   in std_logic;
+    txdata_ch1    :   in std_logic_vector (15 downto 0);
+    tx_k_ch1    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch1    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch1    :   in std_logic_vector (1 downto 0);
+    rxdata_ch1   :   out std_logic_vector (15 downto 0);
+    rx_k_ch1   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch1   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch1   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch1_c    :   in std_logic;
+    sb_felb_rst_ch1_c    :   in std_logic;
+    tx_pwrup_ch1_c    :   in std_logic;
+    rx_pwrup_ch1_c    :   in std_logic;
+    rx_los_low_ch1_s   :   out std_logic;
+    lsm_status_ch1_s   :   out std_logic;
+    rx_cdr_lol_ch1_s   :   out std_logic;
+    tx_div2_mode_ch1_c   : in std_logic;
+    rx_div2_mode_ch1_c   : in std_logic;
+-- CH2 --
+    hdinp_ch2, hdinn_ch2    :   in std_logic;
+    hdoutp_ch2, hdoutn_ch2   :   out std_logic;
+    sci_sel_ch2    :   in std_logic;
+    rxiclk_ch2    :   in std_logic;
+    txiclk_ch2    :   in std_logic;
+    rx_full_clk_ch2   :   out std_logic;
+    rx_half_clk_ch2   :   out std_logic;
+    tx_full_clk_ch2   :   out std_logic;
+    tx_half_clk_ch2   :   out std_logic;
+    fpga_rxrefclk_ch2    :   in std_logic;
+    txdata_ch2    :   in std_logic_vector (15 downto 0);
+    tx_k_ch2    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch2    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch2    :   in std_logic_vector (1 downto 0);
+    rxdata_ch2   :   out std_logic_vector (15 downto 0);
+    rx_k_ch2   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch2   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch2   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch2_c    :   in std_logic;
+    sb_felb_rst_ch2_c    :   in std_logic;
+    tx_pwrup_ch2_c    :   in std_logic;
+    rx_pwrup_ch2_c    :   in std_logic;
+    rx_los_low_ch2_s   :   out std_logic;
+    lsm_status_ch2_s   :   out std_logic;
+    rx_cdr_lol_ch2_s   :   out std_logic;
+    tx_div2_mode_ch2_c   : in std_logic;
+    rx_div2_mode_ch2_c   : in std_logic;
+-- CH3 --
+    hdinp_ch3, hdinn_ch3    :   in std_logic;
+    hdoutp_ch3, hdoutn_ch3   :   out std_logic;
+    sci_sel_ch3    :   in std_logic;
+    rxiclk_ch3    :   in std_logic;
+    txiclk_ch3    :   in std_logic;
+    rx_full_clk_ch3   :   out std_logic;
+    rx_half_clk_ch3   :   out std_logic;
+    tx_full_clk_ch3   :   out std_logic;
+    tx_half_clk_ch3   :   out std_logic;
+    fpga_rxrefclk_ch3    :   in std_logic;
+    txdata_ch3    :   in std_logic_vector (15 downto 0);
+    tx_k_ch3    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch3    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch3    :   in std_logic_vector (1 downto 0);
+    rxdata_ch3   :   out std_logic_vector (15 downto 0);
+    rx_k_ch3   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch3   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch3   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch3_c    :   in std_logic;
+    sb_felb_rst_ch3_c    :   in std_logic;
+    tx_pwrup_ch3_c    :   in std_logic;
+    rx_pwrup_ch3_c    :   in std_logic;
+    rx_los_low_ch3_s   :   out std_logic;
+    lsm_status_ch3_s   :   out std_logic;
+    rx_cdr_lol_ch3_s   :   out std_logic;
+    tx_div2_mode_ch3_c   : in std_logic;
+    rx_div2_mode_ch3_c   : in std_logic;
+---- Miscillaneous ports
+    sci_wrdata    :   in std_logic_vector (7 downto 0);
+    sci_addr    :   in std_logic_vector (5 downto 0);
+    sci_rddata   :   out std_logic_vector (7 downto 0);
+    sci_sel_quad    :   in std_logic;
+    sci_rd    :   in std_logic;
+    sci_wrn    :   in std_logic;
+    fpga_txrefclk  :   in std_logic;
+    tx_serdes_rst_c    :   in std_logic;
+    tx_pll_lol_qd_s   :   out std_logic;
+    tx_sync_qd_c    :   in std_logic;
+    refclk2fpga   :   out std_logic;
+    rst_n      :   in std_logic;
+    serdes_rst_qd_c    :   in std_logic);
+
+end component;
+
+
+component serdes_onboard_full_125 is
+   GENERIC (USER_CONFIG_FILE    :  String := "serdes_onboard_full_125.txt");
+ port (
+------------------
+-- CH0 --
+    hdinp_ch0, hdinn_ch0    :   in std_logic;
+    hdoutp_ch0, hdoutn_ch0   :   out std_logic;
+    sci_sel_ch0    :   in std_logic;
+    rxiclk_ch0    :   in std_logic;
+    txiclk_ch0    :   in std_logic;
+    rx_full_clk_ch0   :   out std_logic;
+    rx_half_clk_ch0   :   out std_logic;
+    tx_full_clk_ch0   :   out std_logic;
+    tx_half_clk_ch0   :   out std_logic;
+    fpga_rxrefclk_ch0    :   in std_logic;
+    txdata_ch0    :   in std_logic_vector (15 downto 0);
+    tx_k_ch0    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch0    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch0    :   in std_logic_vector (1 downto 0);
+    rxdata_ch0   :   out std_logic_vector (15 downto 0);
+    rx_k_ch0   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch0   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch0   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch0_c    :   in std_logic;
+    sb_felb_rst_ch0_c    :   in std_logic;
+    tx_pwrup_ch0_c    :   in std_logic;
+    rx_pwrup_ch0_c    :   in std_logic;
+    rx_los_low_ch0_s   :   out std_logic;
+    lsm_status_ch0_s   :   out std_logic;
+    rx_cdr_lol_ch0_s   :   out std_logic;
+    tx_div2_mode_ch0_c   : in std_logic;
+    rx_div2_mode_ch0_c   : in std_logic;
+-- CH1 --
+    hdinp_ch1, hdinn_ch1    :   in std_logic;
+    hdoutp_ch1, hdoutn_ch1   :   out std_logic;
+    sci_sel_ch1    :   in std_logic;
+    rxiclk_ch1    :   in std_logic;
+    txiclk_ch1    :   in std_logic;
+    rx_full_clk_ch1   :   out std_logic;
+    rx_half_clk_ch1   :   out std_logic;
+    tx_full_clk_ch1   :   out std_logic;
+    tx_half_clk_ch1   :   out std_logic;
+    fpga_rxrefclk_ch1    :   in std_logic;
+    txdata_ch1    :   in std_logic_vector (15 downto 0);
+    tx_k_ch1    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch1    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch1    :   in std_logic_vector (1 downto 0);
+    rxdata_ch1   :   out std_logic_vector (15 downto 0);
+    rx_k_ch1   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch1   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch1   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch1_c    :   in std_logic;
+    sb_felb_rst_ch1_c    :   in std_logic;
+    tx_pwrup_ch1_c    :   in std_logic;
+    rx_pwrup_ch1_c    :   in std_logic;
+    rx_los_low_ch1_s   :   out std_logic;
+    lsm_status_ch1_s   :   out std_logic;
+    rx_cdr_lol_ch1_s   :   out std_logic;
+    tx_div2_mode_ch1_c   : in std_logic;
+    rx_div2_mode_ch1_c   : in std_logic;
+-- CH2 --
+    hdinp_ch2, hdinn_ch2    :   in std_logic;
+    hdoutp_ch2, hdoutn_ch2   :   out std_logic;
+    sci_sel_ch2    :   in std_logic;
+    rxiclk_ch2    :   in std_logic;
+    txiclk_ch2    :   in std_logic;
+    rx_full_clk_ch2   :   out std_logic;
+    rx_half_clk_ch2   :   out std_logic;
+    tx_full_clk_ch2   :   out std_logic;
+    tx_half_clk_ch2   :   out std_logic;
+    fpga_rxrefclk_ch2    :   in std_logic;
+    txdata_ch2    :   in std_logic_vector (15 downto 0);
+    tx_k_ch2    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch2    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch2    :   in std_logic_vector (1 downto 0);
+    rxdata_ch2   :   out std_logic_vector (15 downto 0);
+    rx_k_ch2   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch2   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch2   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch2_c    :   in std_logic;
+    sb_felb_rst_ch2_c    :   in std_logic;
+    tx_pwrup_ch2_c    :   in std_logic;
+    rx_pwrup_ch2_c    :   in std_logic;
+    rx_los_low_ch2_s   :   out std_logic;
+    lsm_status_ch2_s   :   out std_logic;
+    rx_cdr_lol_ch2_s   :   out std_logic;
+    tx_div2_mode_ch2_c   : in std_logic;
+    rx_div2_mode_ch2_c   : in std_logic;
+-- CH3 --
+    hdinp_ch3, hdinn_ch3    :   in std_logic;
+    hdoutp_ch3, hdoutn_ch3   :   out std_logic;
+    sci_sel_ch3    :   in std_logic;
+    rxiclk_ch3    :   in std_logic;
+    txiclk_ch3    :   in std_logic;
+    rx_full_clk_ch3   :   out std_logic;
+    rx_half_clk_ch3   :   out std_logic;
+    tx_full_clk_ch3   :   out std_logic;
+    tx_half_clk_ch3   :   out std_logic;
+    fpga_rxrefclk_ch3    :   in std_logic;
+    txdata_ch3    :   in std_logic_vector (15 downto 0);
+    tx_k_ch3    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch3    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch3    :   in std_logic_vector (1 downto 0);
+    rxdata_ch3   :   out std_logic_vector (15 downto 0);
+    rx_k_ch3   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch3   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch3   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch3_c    :   in std_logic;
+    sb_felb_rst_ch3_c    :   in std_logic;
+    tx_pwrup_ch3_c    :   in std_logic;
+    rx_pwrup_ch3_c    :   in std_logic;
+    rx_los_low_ch3_s   :   out std_logic;
+    lsm_status_ch3_s   :   out std_logic;
+    rx_cdr_lol_ch3_s   :   out std_logic;
+    tx_div2_mode_ch3_c   : in std_logic;
+    rx_div2_mode_ch3_c   : in std_logic;
+---- Miscillaneous ports
+    sci_wrdata    :   in std_logic_vector (7 downto 0);
+    sci_addr    :   in std_logic_vector (5 downto 0);
+    sci_rddata   :   out std_logic_vector (7 downto 0);
+    sci_sel_quad    :   in std_logic;
+    sci_rd    :   in std_logic;
+    sci_wrn    :   in std_logic;
+    fpga_txrefclk  :   in std_logic;
+    tx_serdes_rst_c    :   in std_logic;
+    tx_pll_lol_qd_s   :   out std_logic;
+    tx_sync_qd_c    :   in std_logic;
+    refclk2fpga   :   out std_logic;
+    rst_n      :   in std_logic;
+    serdes_rst_qd_c    :   in std_logic);
+
+end component;
+
+
+component serdes_onboard_full_ctc is
+   GENERIC (USER_CONFIG_FILE    :  String := "serdes_onboard_full_ctc.txt");
+ port (
+------------------
+-- CH0 --
+    hdinp_ch0, hdinn_ch0    :   in std_logic;
+    hdoutp_ch0, hdoutn_ch0   :   out std_logic;
+    sci_sel_ch0    :   in std_logic;
+    rxiclk_ch0    :   in std_logic;
+    txiclk_ch0    :   in std_logic;
+    rx_full_clk_ch0   :   out std_logic;
+    rx_half_clk_ch0   :   out std_logic;
+    tx_full_clk_ch0   :   out std_logic;
+    tx_half_clk_ch0   :   out std_logic;
+    fpga_rxrefclk_ch0    :   in std_logic;
+    txdata_ch0    :   in std_logic_vector (15 downto 0);
+    tx_k_ch0    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch0    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch0    :   in std_logic_vector (1 downto 0);
+    rxdata_ch0   :   out std_logic_vector (15 downto 0);
+    rx_k_ch0   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch0   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch0   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch0_c    :   in std_logic;
+    sb_felb_rst_ch0_c    :   in std_logic;
+    tx_pwrup_ch0_c    :   in std_logic;
+    rx_pwrup_ch0_c    :   in std_logic;
+    rx_los_low_ch0_s   :   out std_logic;
+    lsm_status_ch0_s   :   out std_logic;
+    ctc_urun_ch0_s   :   out std_logic;
+    ctc_orun_ch0_s   :   out std_logic;
+    ctc_ins_ch0_s   :   out std_logic;
+    ctc_del_ch0_s   :   out std_logic;
+    rx_cdr_lol_ch0_s   :   out std_logic;
+    tx_div2_mode_ch0_c   : in std_logic;
+    rx_div2_mode_ch0_c   : in std_logic;
+-- CH1 --
+    hdinp_ch1, hdinn_ch1    :   in std_logic;
+    hdoutp_ch1, hdoutn_ch1   :   out std_logic;
+    sci_sel_ch1    :   in std_logic;
+    rxiclk_ch1    :   in std_logic;
+    txiclk_ch1    :   in std_logic;
+    rx_full_clk_ch1   :   out std_logic;
+    rx_half_clk_ch1   :   out std_logic;
+    tx_full_clk_ch1   :   out std_logic;
+    tx_half_clk_ch1   :   out std_logic;
+    fpga_rxrefclk_ch1    :   in std_logic;
+    txdata_ch1    :   in std_logic_vector (15 downto 0);
+    tx_k_ch1    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch1    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch1    :   in std_logic_vector (1 downto 0);
+    rxdata_ch1   :   out std_logic_vector (15 downto 0);
+    rx_k_ch1   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch1   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch1   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch1_c    :   in std_logic;
+    sb_felb_rst_ch1_c    :   in std_logic;
+    tx_pwrup_ch1_c    :   in std_logic;
+    rx_pwrup_ch1_c    :   in std_logic;
+    rx_los_low_ch1_s   :   out std_logic;
+    lsm_status_ch1_s   :   out std_logic;
+    ctc_urun_ch1_s   :   out std_logic;
+    ctc_orun_ch1_s   :   out std_logic;
+    ctc_ins_ch1_s   :   out std_logic;
+    ctc_del_ch1_s   :   out std_logic;
+    rx_cdr_lol_ch1_s   :   out std_logic;
+    tx_div2_mode_ch1_c   : in std_logic;
+    rx_div2_mode_ch1_c   : in std_logic;
+-- CH2 --
+    hdinp_ch2, hdinn_ch2    :   in std_logic;
+    hdoutp_ch2, hdoutn_ch2   :   out std_logic;
+    sci_sel_ch2    :   in std_logic;
+    rxiclk_ch2    :   in std_logic;
+    txiclk_ch2    :   in std_logic;
+    rx_full_clk_ch2   :   out std_logic;
+    rx_half_clk_ch2   :   out std_logic;
+    tx_full_clk_ch2   :   out std_logic;
+    tx_half_clk_ch2   :   out std_logic;
+    fpga_rxrefclk_ch2    :   in std_logic;
+    txdata_ch2    :   in std_logic_vector (15 downto 0);
+    tx_k_ch2    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch2    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch2    :   in std_logic_vector (1 downto 0);
+    rxdata_ch2   :   out std_logic_vector (15 downto 0);
+    rx_k_ch2   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch2   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch2   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch2_c    :   in std_logic;
+    sb_felb_rst_ch2_c    :   in std_logic;
+    tx_pwrup_ch2_c    :   in std_logic;
+    rx_pwrup_ch2_c    :   in std_logic;
+    rx_los_low_ch2_s   :   out std_logic;
+    lsm_status_ch2_s   :   out std_logic;
+    ctc_urun_ch2_s   :   out std_logic;
+    ctc_orun_ch2_s   :   out std_logic;
+    ctc_ins_ch2_s   :   out std_logic;
+    ctc_del_ch2_s   :   out std_logic;
+    rx_cdr_lol_ch2_s   :   out std_logic;
+    tx_div2_mode_ch2_c   : in std_logic;
+    rx_div2_mode_ch2_c   : in std_logic;
+-- CH3 --
+    hdinp_ch3, hdinn_ch3    :   in std_logic;
+    hdoutp_ch3, hdoutn_ch3   :   out std_logic;
+    sci_sel_ch3    :   in std_logic;
+    rxiclk_ch3    :   in std_logic;
+    txiclk_ch3    :   in std_logic;
+    rx_full_clk_ch3   :   out std_logic;
+    rx_half_clk_ch3   :   out std_logic;
+    tx_full_clk_ch3   :   out std_logic;
+    tx_half_clk_ch3   :   out std_logic;
+    fpga_rxrefclk_ch3    :   in std_logic;
+    txdata_ch3    :   in std_logic_vector (15 downto 0);
+    tx_k_ch3    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch3    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch3    :   in std_logic_vector (1 downto 0);
+    rxdata_ch3   :   out std_logic_vector (15 downto 0);
+    rx_k_ch3   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch3   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch3   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch3_c    :   in std_logic;
+    sb_felb_rst_ch3_c    :   in std_logic;
+    tx_pwrup_ch3_c    :   in std_logic;
+    rx_pwrup_ch3_c    :   in std_logic;
+    rx_los_low_ch3_s   :   out std_logic;
+    lsm_status_ch3_s   :   out std_logic;
+    ctc_urun_ch3_s   :   out std_logic;
+    ctc_orun_ch3_s   :   out std_logic;
+    ctc_ins_ch3_s   :   out std_logic;
+    ctc_del_ch3_s   :   out std_logic;
+    rx_cdr_lol_ch3_s   :   out std_logic;
+    tx_div2_mode_ch3_c   : in std_logic;
+    rx_div2_mode_ch3_c   : in std_logic;
+---- Miscillaneous ports
+    sci_wrdata    :   in std_logic_vector (7 downto 0);
+    sci_addr    :   in std_logic_vector (5 downto 0);
+    sci_rddata   :   out std_logic_vector (7 downto 0);
+    sci_sel_quad    :   in std_logic;
+    sci_rd    :   in std_logic;
+    sci_wrn    :   in std_logic;
+    fpga_txrefclk  :   in std_logic;
+    tx_serdes_rst_c    :   in std_logic;
+    tx_pll_lol_qd_s   :   out std_logic;
+    tx_sync_qd_c    :   in std_logic;
+    refclk2fpga   :   out std_logic;
+    rst_n      :   in std_logic;
+    serdes_rst_qd_c    :   in std_logic);
+
+end component;
+
+
+component serdes_sync_0 is
+   GENERIC (USER_CONFIG_FILE    :  String := "serdes_sync_0.txt");
+ port (
+------------------
+-- CH0 --
+    hdinp_ch0, hdinn_ch0    :   in std_logic;
+    hdoutp_ch0, hdoutn_ch0   :   out std_logic;
+    sci_sel_ch0    :   in std_logic;
+    rxiclk_ch0    :   in std_logic;
+    txiclk_ch0    :   in std_logic;
+    rx_full_clk_ch0   :   out std_logic;
+    rx_half_clk_ch0   :   out std_logic;
+    tx_full_clk_ch0   :   out std_logic;
+    tx_half_clk_ch0   :   out std_logic;
+    fpga_rxrefclk_ch0    :   in std_logic;
+    txdata_ch0    :   in std_logic_vector (7 downto 0);
+    tx_k_ch0    :   in std_logic;
+    tx_force_disp_ch0    :   in std_logic;
+    tx_disp_sel_ch0    :   in std_logic;
+    rxdata_ch0   :   out std_logic_vector (7 downto 0);
+    rx_k_ch0   :   out std_logic;
+    rx_disp_err_ch0   :   out std_logic;
+    rx_cv_err_ch0   :   out std_logic;
+    rx_serdes_rst_ch0_c    :   in std_logic;
+    sb_felb_ch0_c    :   in std_logic;
+    sb_felb_rst_ch0_c    :   in std_logic;
+    tx_pcs_rst_ch0_c    :   in std_logic;
+    tx_pwrup_ch0_c    :   in std_logic;
+    rx_pcs_rst_ch0_c    :   in std_logic;
+    rx_pwrup_ch0_c    :   in std_logic;
+    rx_los_low_ch0_s   :   out std_logic;
+    lsm_status_ch0_s   :   out std_logic;
+    rx_cdr_lol_ch0_s   :   out std_logic;
+    tx_div2_mode_ch0_c   : in std_logic;
+    rx_div2_mode_ch0_c   : in std_logic;
+-- CH1 --
+-- CH2 --
+-- CH3 --
+---- Miscillaneous ports
+    sci_wrdata    :   in std_logic_vector (7 downto 0);
+    sci_addr    :   in std_logic_vector (5 downto 0);
+    sci_rddata   :   out std_logic_vector (7 downto 0);
+    sci_sel_quad    :   in std_logic;
+    sci_rd    :   in std_logic;
+    sci_wrn    :   in std_logic;
+    fpga_txrefclk  :   in std_logic;
+    tx_serdes_rst_c    :   in std_logic;
+    tx_pll_lol_qd_s   :   out std_logic;
+    rst_qd_c    :   in std_logic;
+    serdes_rst_qd_c    :   in std_logic);
+
+end component;
+
+
+component serdes_sync_125_0 is
+   GENERIC (USER_CONFIG_FILE    :  String := "serdes_sync_125_0.txt");
+ port (
+------------------
+-- CH0 --
+    hdinp_ch0, hdinn_ch0    :   in std_logic;
+    hdoutp_ch0, hdoutn_ch0   :   out std_logic;
+    sci_sel_ch0    :   in std_logic;
+    rxiclk_ch0    :   in std_logic;
+    txiclk_ch0    :   in std_logic;
+    rx_full_clk_ch0   :   out std_logic;
+    rx_half_clk_ch0   :   out std_logic;
+    tx_full_clk_ch0   :   out std_logic;
+    tx_half_clk_ch0   :   out std_logic;
+    fpga_rxrefclk_ch0    :   in std_logic;
+    txdata_ch0    :   in std_logic_vector (7 downto 0);
+    tx_k_ch0    :   in std_logic;
+    tx_force_disp_ch0    :   in std_logic;
+    tx_disp_sel_ch0    :   in std_logic;
+    rxdata_ch0   :   out std_logic_vector (7 downto 0);
+    rx_k_ch0   :   out std_logic;
+    rx_disp_err_ch0   :   out std_logic;
+    rx_cv_err_ch0   :   out std_logic;
+    rx_serdes_rst_ch0_c    :   in std_logic;
+    sb_felb_ch0_c    :   in std_logic;
+    sb_felb_rst_ch0_c    :   in std_logic;
+    tx_pcs_rst_ch0_c    :   in std_logic;
+    tx_pwrup_ch0_c    :   in std_logic;
+    rx_pcs_rst_ch0_c    :   in std_logic;
+    rx_pwrup_ch0_c    :   in std_logic;
+    rx_los_low_ch0_s   :   out std_logic;
+    lsm_status_ch0_s   :   out std_logic;
+    rx_cdr_lol_ch0_s   :   out std_logic;
+    tx_div2_mode_ch0_c   : in std_logic;
+    rx_div2_mode_ch0_c   : in std_logic;
+-- CH1 --
+-- CH2 --
+-- CH3 --
+---- Miscillaneous ports
+    sci_wrdata    :   in std_logic_vector (7 downto 0);
+    sci_addr    :   in std_logic_vector (5 downto 0);
+    sci_rddata   :   out std_logic_vector (7 downto 0);
+    sci_sel_quad    :   in std_logic;
+    sci_rd    :   in std_logic;
+    sci_wrn    :   in std_logic;
+    fpga_txrefclk  :   in std_logic;
+    tx_serdes_rst_c    :   in std_logic;
+    tx_pll_lol_qd_s   :   out std_logic;
+    rst_qd_c    :   in std_logic;
+    serdes_rst_qd_c    :   in std_logic);
+
+end component;
+
+
+component sfp_0_200_ctc is
+   GENERIC (USER_CONFIG_FILE    :  String := "sfp_0_200_ctc.txt");
+ port (
+------------------
+-- CH0 --
+    hdinp_ch0, hdinn_ch0    :   in std_logic;
+    hdoutp_ch0, hdoutn_ch0   :   out std_logic;
+    sci_sel_ch0    :   in std_logic;
+    rxiclk_ch0    :   in std_logic;
+    txiclk_ch0    :   in std_logic;
+    rx_full_clk_ch0   :   out std_logic;
+    rx_half_clk_ch0   :   out std_logic;
+    tx_full_clk_ch0   :   out std_logic;
+    tx_half_clk_ch0   :   out std_logic;
+    fpga_rxrefclk_ch0    :   in std_logic;
+    txdata_ch0    :   in std_logic_vector (15 downto 0);
+    tx_k_ch0    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch0    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch0    :   in std_logic_vector (1 downto 0);
+    rxdata_ch0   :   out std_logic_vector (15 downto 0);
+    rx_k_ch0   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch0   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch0   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch0_c    :   in std_logic;
+    sb_felb_rst_ch0_c    :   in std_logic;
+    tx_pwrup_ch0_c    :   in std_logic;
+    rx_pwrup_ch0_c    :   in std_logic;
+    rx_los_low_ch0_s   :   out std_logic;
+    lsm_status_ch0_s   :   out std_logic;
+    ctc_urun_ch0_s   :   out std_logic;
+    ctc_orun_ch0_s   :   out std_logic;
+    ctc_ins_ch0_s   :   out std_logic;
+    ctc_del_ch0_s   :   out std_logic;
+    rx_cdr_lol_ch0_s   :   out std_logic;
+    tx_div2_mode_ch0_c   : in std_logic;
+    rx_div2_mode_ch0_c   : in std_logic;
+-- CH1 --
+-- CH2 --
+-- CH3 --
+---- Miscillaneous ports
+    sci_wrdata    :   in std_logic_vector (7 downto 0);
+    sci_addr    :   in std_logic_vector (5 downto 0);
+    sci_rddata   :   out std_logic_vector (7 downto 0);
+    sci_sel_quad    :   in std_logic;
+    sci_rd    :   in std_logic;
+    sci_wrn    :   in std_logic;
+    fpga_txrefclk  :   in std_logic;
+    tx_serdes_rst_c    :   in std_logic;
+    tx_pll_lol_qd_s   :   out std_logic;
+    rst_n      :   in std_logic;
+    serdes_rst_qd_c    :   in std_logic);
+
+end component;
+
+
+component sfp_0_200_int is
+   generic (USER_CONFIG_FILE    :  String := "sfp_0_200_int.txt");
+ port (
+------------------
+-- CH0 --
+    hdinp_ch0, hdinn_ch0    :   in std_logic;
+    hdoutp_ch0, hdoutn_ch0   :   out std_logic;
+    sci_sel_ch0    :   in std_logic;
+    rxiclk_ch0    :   in std_logic;
+    txiclk_ch0    :   in std_logic;
+    rx_full_clk_ch0   :   out std_logic;
+    rx_half_clk_ch0   :   out std_logic;
+    tx_full_clk_ch0   :   out std_logic;
+    tx_half_clk_ch0   :   out std_logic;
+    fpga_rxrefclk_ch0    :   in std_logic;
+    txdata_ch0    :   in std_logic_vector (15 downto 0);
+    tx_k_ch0    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch0    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch0    :   in std_logic_vector (1 downto 0);
+    rxdata_ch0   :   out std_logic_vector (15 downto 0);
+    rx_k_ch0   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch0   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch0   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch0_c    :   in std_logic;
+    sb_felb_rst_ch0_c    :   in std_logic;
+    tx_pwrup_ch0_c    :   in std_logic;
+    rx_pwrup_ch0_c    :   in std_logic;
+    rx_los_low_ch0_s   :   out std_logic;
+    lsm_status_ch0_s   :   out std_logic;
+    rx_cdr_lol_ch0_s   :   out std_logic;
+    tx_div2_mode_ch0_c   : in std_logic;
+    rx_div2_mode_ch0_c   : in std_logic;
+-- CH1 --
+-- CH2 --
+-- CH3 --
+---- Miscillaneous ports
+    sci_wrdata    :   in std_logic_vector (7 downto 0);
+    sci_addr    :   in std_logic_vector (5 downto 0);
+    sci_rddata   :   out std_logic_vector (7 downto 0);
+    sci_sel_quad    :   in std_logic;
+    sci_rd    :   in std_logic;
+    sci_wrn    :   in std_logic;
+    fpga_txrefclk  :   in std_logic;
+    tx_serdes_rst_c    :   in std_logic;
+    tx_pll_lol_qd_s   :   out std_logic;
+    rst_n      :   in std_logic;
+    serdes_rst_qd_c    :   in std_logic);
+
+end component;
+
+
+component sfp_1_125_int is
+   GENERIC (USER_CONFIG_FILE    :  String := "sfp_1_125_int.txt");
+ port (
+------------------
+-- CH0 --
+-- CH1 --
+    hdinp_ch1, hdinn_ch1    :   in std_logic;
+    hdoutp_ch1, hdoutn_ch1   :   out std_logic;
+    sci_sel_ch1    :   in std_logic;
+    rxiclk_ch1    :   in std_logic;
+    txiclk_ch1    :   in std_logic;
+    rx_full_clk_ch1   :   out std_logic;
+    rx_half_clk_ch1   :   out std_logic;
+    tx_full_clk_ch1   :   out std_logic;
+    tx_half_clk_ch1   :   out std_logic;
+    fpga_rxrefclk_ch1    :   in std_logic;
+    txdata_ch1    :   in std_logic_vector (15 downto 0);
+    tx_k_ch1    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch1    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch1    :   in std_logic_vector (1 downto 0);
+    rxdata_ch1   :   out std_logic_vector (15 downto 0);
+    rx_k_ch1   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch1   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch1   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch1_c    :   in std_logic;
+    sb_felb_rst_ch1_c    :   in std_logic;
+    tx_pwrup_ch1_c    :   in std_logic;
+    rx_pwrup_ch1_c    :   in std_logic;
+    rx_los_low_ch1_s   :   out std_logic;
+    lsm_status_ch1_s   :   out std_logic;
+    rx_cdr_lol_ch1_s   :   out std_logic;
+    tx_div2_mode_ch1_c   : in std_logic;
+    rx_div2_mode_ch1_c   : in std_logic;
+-- CH2 --
+-- CH3 --
+---- Miscillaneous ports
+    sci_wrdata    :   in std_logic_vector (7 downto 0);
+    sci_addr    :   in std_logic_vector (5 downto 0);
+    sci_rddata   :   out std_logic_vector (7 downto 0);
+    sci_sel_quad    :   in std_logic;
+    sci_rd    :   in std_logic;
+    sci_wrn    :   in std_logic;
+    fpga_txrefclk  :   in std_logic;
+    tx_serdes_rst_c    :   in std_logic;
+    tx_pll_lol_qd_s   :   out std_logic;
+    rst_n      :   in std_logic;
+    serdes_rst_qd_c    :   in std_logic);
+
+end component;
+
+
+component sfp_1_200_int is
+   GENERIC (USER_CONFIG_FILE    :  String := "sfp_1_200_int.txt");
+ port (
+------------------
+-- CH0 --
+-- CH1 --
+    hdinp_ch1, hdinn_ch1    :   in std_logic;
+    hdoutp_ch1, hdoutn_ch1   :   out std_logic;
+    sci_sel_ch1    :   in std_logic;
+    rxiclk_ch1    :   in std_logic;
+    txiclk_ch1    :   in std_logic;
+    rx_full_clk_ch1   :   out std_logic;
+    rx_half_clk_ch1   :   out std_logic;
+    tx_full_clk_ch1   :   out std_logic;
+    tx_half_clk_ch1   :   out std_logic;
+    fpga_rxrefclk_ch1    :   in std_logic;
+    txdata_ch1    :   in std_logic_vector (15 downto 0);
+    tx_k_ch1    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch1    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch1    :   in std_logic_vector (1 downto 0);
+    rxdata_ch1   :   out std_logic_vector (15 downto 0);
+    rx_k_ch1   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch1   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch1   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch1_c    :   in std_logic;
+    sb_felb_rst_ch1_c    :   in std_logic;
+    tx_pwrup_ch1_c    :   in std_logic;
+    rx_pwrup_ch1_c    :   in std_logic;
+    rx_los_low_ch1_s   :   out std_logic;
+    lsm_status_ch1_s   :   out std_logic;
+    rx_cdr_lol_ch1_s   :   out std_logic;
+    tx_div2_mode_ch1_c   : in std_logic;
+    rx_div2_mode_ch1_c   : in std_logic;
+-- CH2 --
+-- CH3 --
+---- Miscillaneous ports
+    sci_wrdata    :   in std_logic_vector (7 downto 0);
+    sci_addr    :   in std_logic_vector (5 downto 0);
+    sci_rddata   :   out std_logic_vector (7 downto 0);
+    sci_sel_quad    :   in std_logic;
+    sci_rd    :   in std_logic;
+    sci_wrn    :   in std_logic;
+    fpga_txrefclk  :   in std_logic;
+    tx_serdes_rst_c    :   in std_logic;
+    tx_pll_lol_qd_s   :   out std_logic;
+    rst_n      :   in std_logic;
+    serdes_rst_qd_c    :   in std_logic);
+
+end component;
+
+
+component sfp_ctc_0_200_int is
+   GENERIC (USER_CONFIG_FILE    :  String := "sfp_ctc_0_200_int.txt");
+ port (
+------------------
+-- CH0 --
+    hdinp_ch0, hdinn_ch0    :   in std_logic;
+    hdoutp_ch0, hdoutn_ch0   :   out std_logic;
+    sci_sel_ch0    :   in std_logic;
+    rxiclk_ch0    :   in std_logic;
+    txiclk_ch0    :   in std_logic;
+    rx_full_clk_ch0   :   out std_logic;
+    rx_half_clk_ch0   :   out std_logic;
+    tx_full_clk_ch0   :   out std_logic;
+    tx_half_clk_ch0   :   out std_logic;
+    fpga_rxrefclk_ch0    :   in std_logic;
+    txdata_ch0    :   in std_logic_vector (15 downto 0);
+    tx_k_ch0    :   in std_logic_vector (1 downto 0);
+    tx_force_disp_ch0    :   in std_logic_vector (1 downto 0);
+    tx_disp_sel_ch0    :   in std_logic_vector (1 downto 0);
+    rxdata_ch0   :   out std_logic_vector (15 downto 0);
+    rx_k_ch0   :   out std_logic_vector (1 downto 0);
+    rx_disp_err_ch0   :   out std_logic_vector (1 downto 0);
+    rx_cv_err_ch0   :   out std_logic_vector (1 downto 0);
+    sb_felb_ch0_c    :   in std_logic;
+    sb_felb_rst_ch0_c    :   in std_logic;
+    tx_pwrup_ch0_c    :   in std_logic;
+    rx_pwrup_ch0_c    :   in std_logic;
+    rx_los_low_ch0_s   :   out std_logic;
+    lsm_status_ch0_s   :   out std_logic;
+    ctc_urun_ch0_s   :   out std_logic;
+    ctc_orun_ch0_s   :   out std_logic;
+    ctc_ins_ch0_s   :   out std_logic;
+    ctc_del_ch0_s   :   out std_logic;
+    rx_cdr_lol_ch0_s   :   out std_logic;
+    tx_div2_mode_ch0_c   : in std_logic;
+    rx_div2_mode_ch0_c   : in std_logic;
+-- CH1 --
+-- CH2 --
+-- CH3 --
+---- Miscillaneous ports
+    sci_wrdata    :   in std_logic_vector (7 downto 0);
+    sci_addr    :   in std_logic_vector (5 downto 0);
+    sci_rddata   :   out std_logic_vector (7 downto 0);
+    sci_sel_quad    :   in std_logic;
+    sci_rd    :   in std_logic;
+    sci_wrn    :   in std_logic;
+    fpga_txrefclk  :   in std_logic;
+    tx_serdes_rst_c    :   in std_logic;
+    tx_pll_lol_qd_s   :   out std_logic;
+    rst_n      :   in std_logic;
+    serdes_rst_qd_c    :   in std_logic);
+
+end component;
+
 
 end package;

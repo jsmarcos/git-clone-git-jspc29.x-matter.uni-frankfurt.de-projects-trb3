@@ -17,7 +17,8 @@ use work.version.all;
 
 entity trb3_central is
   generic(
-    FULL_UPLINK : integer := c_YES
+    FULL_UPLINK : integer := c_YES;
+    IS_HADES_HUB : integer := c_YES
     );
   port(
     --Clocks
@@ -142,6 +143,7 @@ architecture trb3_central_arch of trb3_central is
   attribute syn_preserve : boolean;
   
   constant NUM_PORTS : integer := 5 + FULL_UPLINK*3;
+  constant RESET_SFP_IN : integer := 4 + IS_HADES_HUB;
   
   signal clk_100_i   : std_logic; --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i   : std_logic; --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
@@ -219,7 +221,7 @@ THE_RESET_HANDLER : trb_net_reset_handler
     SYSCLK_IN       => clk_100_i,       -- PLL/DLL remastered clock
     PLL_LOCKED_IN   => pll_lock,        -- master PLL lock signal (async)
     RESET_IN        => '0',             -- general reset signal (SYSCLK)
-    TRB_RESET_IN    => med_stat_op(4*16+13), -- TRBnet reset signal (SYSCLK)
+    TRB_RESET_IN    => med_stat_op(RESET_SFP_IN*16+13), -- TRBnet reset signal (SYSCLK)
     CLEAR_OUT       => clear_i,         -- async reset out, USE WITH CARE!
     RESET_OUT       => reset_i,         -- synchronous reset out (SYSCLK)
     DEBUG_OUT       => open
@@ -292,10 +294,11 @@ gen_single : if FULL_UPLINK = c_NO generate
 end generate;
 
 gen_full : if FULL_UPLINK = c_YES generate
-  THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp_4
+  THE_MEDIA_UPLINK : entity work.trb_net16_med_ecp3_sfp_4
     generic map(
       REVERSE_ORDER => c_NO,              --order of ports
-      FREQUENCY     => 200                --run on 200 MHz clock
+      FREQUENCY     => 200,               --run on 200 MHz clock
+      USE_CTC       => c_YES
       )
     port map(
       CLK                => clk_200_i,
@@ -319,8 +322,8 @@ gen_full : if FULL_UPLINK = c_YES generate
       SD_RXD_N_IN        => SFP_RX_N(8 downto 5),
       SD_TXD_P_OUT       => SFP_TX_P(8 downto 5),
       SD_TXD_N_OUT       => SFP_TX_N(8 downto 5),
-      SD_REFCLK_P_IN     => open,
-      SD_REFCLK_N_IN     => open,
+      SD_REFCLK_P_IN     => '0',
+      SD_REFCLK_N_IN     => '0',
       SD_PRSNT_N_IN      => SFP_MOD0(4 downto 1),
       SD_LOS_IN          => SFP_LOS(4 downto 1),
       SD_TXDIS_OUT       => SFP_TXDIS(4 downto 1),

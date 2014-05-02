@@ -1,0 +1,4 @@
+MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/Channel200/RingBuffer*FIFO/*" CLKNET CLK_PCLK_LEFT_c TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/RingBuffer*FIFO/*" CLKNET clk_100_i_c 2x;
+MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/Channel200/RingBuffer*FIFO/*" CLKNET CLK_PCLK_LEFT_c TO CELL "THE_TDC/ReferenceChannel/Channel200/RingBuffer*FIFO/*" CLKNET clk_100_i_c 2x;
+
+MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset*" CLKNET clk_100_i_c TO CLKNET clk_100_i_c 5x;

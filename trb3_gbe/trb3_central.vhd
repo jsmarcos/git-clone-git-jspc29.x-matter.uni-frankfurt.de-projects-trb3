@@ -29,6 +29,7 @@ entity trb3_central is
     TRIGGER_RIGHT                  : in  std_logic;  --right side trigger input from fan-out
 --     TRIGGER_EXT                    : in  std_logic_vector(4 downto 2); --additional trigger from RJ45
     TRIGGER_OUT                    : out std_logic;  --trigger to second input of fan-out
+    TRIGGER_OUT2                   : out std_logic;  --trigger output on RJ45
     --Serdes
     CLK_SERDES_INT_LEFT            : in  std_logic;  --Clock Manager 2/0, 200 MHz, only in case of problems
     CLK_SERDES_INT_RIGHT           : in  std_logic;  --Clock Manager 1/0, off, 125 MHz possible
@@ -126,10 +127,10 @@ entity trb3_central is
     attribute syn_useioff of FLASH_CS           : signal is true;
     attribute syn_useioff of FLASH_DIN          : signal is true;
     attribute syn_useioff of FLASH_DOUT         : signal is true;
-    attribute syn_useioff of FPGA1_COMM         : signal is true;
-    attribute syn_useioff of FPGA2_COMM         : signal is true;
-    attribute syn_useioff of FPGA3_COMM         : signal is true;
-    attribute syn_useioff of FPGA4_COMM         : signal is true;
+    attribute syn_useioff of FPGA1_COMM         : signal is false;
+    attribute syn_useioff of FPGA2_COMM         : signal is false;
+    attribute syn_useioff of FPGA3_COMM         : signal is false;
+    attribute syn_useioff of FPGA4_COMM         : signal is false;
 
 
 end entity;
@@ -253,6 +254,22 @@ signal gbe_stp_reg_read             : std_logic;
 signal gbe_stp_reg_write            : std_logic;
 signal gbe_stp_reg_data_rd          : std_logic_vector(31 downto 0);
 
+signal select_tc                   : std_logic_vector(31 downto 0);
+signal select_tc_data_in           : std_logic_vector(31 downto 0);
+signal select_tc_write             : std_logic;
+signal select_tc_read              : std_logic;
+signal select_tc_ack               : std_logic;
+
+signal trig_outputs : std_logic_vector(4 downto 0);
+signal trig_inputs  : std_logic_vector(15 downto 0);
+signal trig_din   : std_logic_vector(31 downto 0);
+signal trig_dout  : std_logic_vector(31 downto 0);
+signal trig_write : std_logic := '0';
+signal trig_read  : std_logic := '0';
+signal trig_ack   : std_logic := '0';
+signal trig_nack  : std_logic := '0';
+signal trig_addr  : std_logic_vector(15 downto 0) := (others => '0');
+
 signal debug : std_logic_vector(63 downto 0);
 
 signal next_reset, make_reset_via_network_q : std_logic;
@@ -325,6 +342,7 @@ gen_125 : if USE_125_MHZ = c_YES generate
   clk_sys_internal <= CLK_GPLL_RIGHT;
   clk_raw_internal <= CLK_GPLL_RIGHT;
   clk_gbe_internal <= CLK_GPLL_RIGHT;
+  pll_lock         <= '1';
 end generate;
 
 
@@ -735,9 +753,9 @@ end generate;
 ---------------------------------------------------------------------------
 THE_BUS_HANDLER : trb_net16_regio_bus_handler
   generic map(
-    PORT_NUMBER    => 5,
-    PORT_ADDRESSES => (0 => x"d000", 1 => x"8100", 2 => x"8300", 3 => x"b000", 4 => x"b200", others => x"0000"),
-    PORT_ADDR_MASK => (0 => 9,       1 => 8,       2 => 8,       3 => 9,       4 => 9,       others => 0)
+    PORT_NUMBER    => 7,
+    PORT_ADDRESSES => (0 => x"d000", 1 => x"8100", 2 => x"8300", 3 => x"b000", 4 => x"b200", 5 => x"d300", 6 => x"cf00", others => x"0000"),
+    PORT_ADDR_MASK => (0 => 9,       1 => 8,       2 => 8,       3 => 9,       4 => 9,       5 => 0,       6 => 6,       others => 0)
     )
   port map(
     CLK                   => clk_sys_i,
@@ -817,7 +835,30 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
     BUS_WRITE_ACK_IN(4)                 => sci2_ack,
     BUS_NO_MORE_DATA_IN(4)              => '0',
     BUS_UNKNOWN_ADDR_IN(4)              => '0',
+
+    -- Trigger and Clock Manager Settings
+    BUS_ADDR_OUT(6*16-1 downto 5*16) => open,
+    BUS_DATA_OUT(6*32-1 downto 5*32) => select_tc_data_in,
+    BUS_READ_ENABLE_OUT(5)           => select_tc_read,
+    BUS_WRITE_ENABLE_OUT(5)          => select_tc_write,
+    BUS_TIMEOUT_OUT(5)               => open,
+    BUS_DATA_IN(6*32-1 downto 5*32)  => select_tc,
+    BUS_DATAREADY_IN(5)              => select_tc_ack,
+    BUS_WRITE_ACK_IN(5)              => select_tc_ack,
+    BUS_NO_MORE_DATA_IN(5)           => '0',
+    BUS_UNKNOWN_ADDR_IN(5)           => '0',   
     
+    --Trigger logic registers
+    BUS_READ_ENABLE_OUT(6)              => trig_read,
+    BUS_WRITE_ENABLE_OUT(6)             => trig_write,
+    BUS_DATA_OUT(6*32+31 downto 6*32)   => trig_din,
+    BUS_ADDR_OUT(6*16+15 downto 6*16)   => trig_addr,
+    BUS_TIMEOUT_OUT(6)                  => open,
+    BUS_DATA_IN(6*32+31 downto 6*32)    => trig_dout,
+    BUS_DATAREADY_IN(6)                 => trig_ack,
+    BUS_WRITE_ACK_IN(6)                 => trig_ack,
+    BUS_NO_MORE_DATA_IN(6)              => '0',
+    BUS_UNKNOWN_ADDR_IN(6)              => trig_nack,    
     STAT_DEBUG  => open
     );
 
@@ -850,14 +891,54 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
     SPI_SDI_IN           => FLASH_DOUT
     );
 
+---------------------------------------------------------------------------
+-- Trigger logic
+---------------------------------------------------------------------------
+  THE_TRIG_LOGIC : input_to_trigger_logic
+    generic map(
+      INPUTS    => 16,
+      OUTPUTS   => 5
+      )
+    port map(
+      CLK       => clk_sys_i,
+      
+      INPUT     => trig_inputs,
+      OUTPUT    => trig_outputs,
+
+      DATA_IN   => trig_din,  
+      DATA_OUT  => trig_dout, 
+      WRITE_IN  => trig_write,
+      READ_IN   => trig_read,
+      ACK_OUT   => trig_ack,  
+      NACK_OUT  => trig_nack, 
+      ADDR_IN   => trig_addr
+      );
+
+TRIGGER_OUT2 <= trig_outputs(0);       
+trig_inputs <= FPGA4_COMM(10 downto 7) & FPGA3_COMM(10 downto 7) & FPGA2_COMM(10 downto 7) & FPGA1_COMM(10 downto 7); 
+
+
 
 ---------------------------------------------------------------------------
 -- Clock and Trigger Configuration
 ---------------------------------------------------------------------------
-  TRIGGER_SELECT <= '0'; --always external trigger source
-  CLOCK_SELECT   <= '0'; --use on-board oscillator
-  CLK_MNGR1_USER <= (others => '0');
-  CLK_MNGR2_USER <= (others => '0'); 
+
+process begin
+  wait until rising_edge(clk_sys_i);
+  if reset_i = '1' then
+    select_tc <= x"00000000"; --always external trigger source
+  elsif select_tc_write = '1' then
+    select_tc <= select_tc_data_in;
+  end if;
+  select_tc_ack <= select_tc_read or select_tc_write;
+end process;
+
+  TRIGGER_SELECT <= select_tc(0);
+  CLOCK_SELECT   <= select_tc(8); --use on-board oscillator
+  CLK_MNGR1_USER <= select_tc(19 downto 16);
+  CLK_MNGR2_USER <= select_tc(27 downto 24); 
+
+   
 
   TRIGGER_OUT    <= '0';
 
