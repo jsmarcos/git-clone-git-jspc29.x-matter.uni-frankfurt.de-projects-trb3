@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2014-04-29
+-- Last update: 2014-05-06
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -90,45 +90,40 @@ architecture behavioral of Readout is
 -------------------------------------------------------------------------------
 
   -- slow control
-  signal slow_control_ch_empty_i : std_logic_vector(63 downto 0);
-
+  signal slow_control_ch_empty_i  : std_logic_vector(63 downto 0);
   -- trigger window
-  signal trig_win_pre      : unsigned(10 downto 0);
-  signal trig_win_post     : unsigned(10 downto 0);
-  signal trig_win_en       : std_logic;
-  signal trig_time_i       : std_logic_vector(38 downto 0);
-  signal coarse_cntr_reg   : std_logic_vector(10 downto 0);
-  signal coarse_cntr_2reg  : std_logic_vector(10 downto 0);
-  signal coarse_cntr_3reg  : std_logic_vector(10 downto 0);
-  signal coarse_cntr_4reg  : std_logic_vector(10 downto 0);
-  signal coarse_cntr_5reg  : std_logic_vector(10 downto 0);
-  signal coarse_cntr_6reg  : std_logic_vector(10 downto 0);
-  signal coarse_cntr_7reg  : std_logic_vector(10 downto 0);
-  signal coarse_cntr_8reg  : std_logic_vector(10 downto 0);
-  signal coarse_cntr_9reg  : std_logic_vector(10 downto 0);
-  signal coarse_cntr_10reg : std_logic_vector(10 downto 0);
-  signal coarse_cntr_11reg : std_logic_vector(10 downto 0);
-  signal coarse_cntr_12reg : std_logic_vector(10 downto 0);
-  signal epoch_cntr_reg    : std_logic_vector(27 downto 0);
-  signal epoch_cntr_2reg   : std_logic_vector(27 downto 0);
-  signal epoch_cntr_3reg   : std_logic_vector(27 downto 0);
-  signal epoch_cntr_4reg   : std_logic_vector(27 downto 0);
-  signal epoch_cntr_5reg   : std_logic_vector(27 downto 0);
-  signal epoch_cntr_6reg   : std_logic_vector(27 downto 0);
-  signal epoch_cntr_7reg   : std_logic_vector(27 downto 0);
-  signal epoch_cntr_8reg   : std_logic_vector(27 downto 0);
-  signal epoch_cntr_9reg   : std_logic_vector(27 downto 0);
-  signal epoch_cntr_10reg  : std_logic_vector(27 downto 0);
-  signal epoch_cntr_11reg  : std_logic_vector(27 downto 0);
-  signal epoch_cntr_12reg  : std_logic_vector(27 downto 0);
-  signal TW_pre            : std_logic_vector(38 downto 0);
-  signal TW_post           : std_logic_vector(38 downto 0);
-  signal trig_win_l        : std_logic;
-  signal trig_win_r        : std_logic;
-
-
-
-
+  signal trig_win_pre             : unsigned(10 downto 0);
+  signal trig_win_post            : unsigned(10 downto 0);
+  signal trig_win_en              : std_logic;
+  signal trig_time_i              : std_logic_vector(38 downto 0);
+  signal coarse_cntr_reg          : std_logic_vector(10 downto 0);
+  signal coarse_cntr_2reg         : std_logic_vector(10 downto 0);
+  signal coarse_cntr_3reg         : std_logic_vector(10 downto 0);
+  signal coarse_cntr_4reg         : std_logic_vector(10 downto 0);
+  signal coarse_cntr_5reg         : std_logic_vector(10 downto 0);
+  signal coarse_cntr_6reg         : std_logic_vector(10 downto 0);
+  signal coarse_cntr_7reg         : std_logic_vector(10 downto 0);
+  signal coarse_cntr_8reg         : std_logic_vector(10 downto 0);
+  signal coarse_cntr_9reg         : std_logic_vector(10 downto 0);
+  signal coarse_cntr_10reg        : std_logic_vector(10 downto 0);
+  signal coarse_cntr_11reg        : std_logic_vector(10 downto 0);
+  signal coarse_cntr_12reg        : std_logic_vector(10 downto 0);
+  signal epoch_cntr_reg           : std_logic_vector(27 downto 0);
+  signal epoch_cntr_2reg          : std_logic_vector(27 downto 0);
+  signal epoch_cntr_3reg          : std_logic_vector(27 downto 0);
+  signal epoch_cntr_4reg          : std_logic_vector(27 downto 0);
+  signal epoch_cntr_5reg          : std_logic_vector(27 downto 0);
+  signal epoch_cntr_6reg          : std_logic_vector(27 downto 0);
+  signal epoch_cntr_7reg          : std_logic_vector(27 downto 0);
+  signal epoch_cntr_8reg          : std_logic_vector(27 downto 0);
+  signal epoch_cntr_9reg          : std_logic_vector(27 downto 0);
+  signal epoch_cntr_10reg         : std_logic_vector(27 downto 0);
+  signal epoch_cntr_11reg         : std_logic_vector(27 downto 0);
+  signal epoch_cntr_12reg         : std_logic_vector(27 downto 0);
+  signal TW_pre                   : std_logic_vector(38 downto 0);
+  signal TW_post                  : std_logic_vector(38 downto 0);
+  signal trig_win_l               : std_logic;
+  signal trig_win_r               : std_logic;
   signal start_trig_win_cnt       : std_logic := '0';
   signal start_trig_win_cnt_200_p : std_logic;
   signal trig_win_post_200        : std_logic_vector(10 downto 0);
@@ -140,29 +135,28 @@ architecture behavioral of Readout is
   signal trig_win_end_100_2reg    : std_logic;
   signal trig_win_end_100_3reg    : std_logic;
   signal trig_win_end_100_4reg    : std_logic;
-
   -- channel signals
-  signal ch_data_reg     : std_logic_vector_array_36(0 to CHANNEL_NUMBER);
-  signal ch_data_2reg    : std_logic_vector_array_36(0 to CHANNEL_NUMBER);
-  signal ch_data_3reg    : std_logic_vector_array_36(0 to CHANNEL_NUMBER);
+  signal ch_data_reg              : std_logic_vector_array_36(0 to CHANNEL_NUMBER);
+  signal ch_data_2reg             : std_logic_vector_array_36(0 to CHANNEL_NUMBER);
+  signal ch_data_3reg             : std_logic_vector_array_36(0 to CHANNEL_NUMBER);
 --  signal ch_data_4reg    : std_logic_vector_array_36(0 to CHANNEL_NUMBER);
-  signal ch_data_4reg    : std_logic_vector(31 downto 0);
-  signal ch_empty_reg    : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-  signal ch_empty_2reg   : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-  signal ch_empty_3reg   : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-  signal ch_empty_4reg   : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-  signal ch_hit_time     : std_logic_vector(38 downto 0);
-  signal ch_epoch_cntr_i : std_logic_vector(27 downto 0);
+  signal ch_data_4reg             : std_logic_vector(31 downto 0);
+  signal ch_empty_reg             : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+  signal ch_empty_2reg            : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+  signal ch_empty_3reg            : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+  signal ch_empty_4reg            : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+  signal ch_hit_time              : std_logic_vector(38 downto 0);
+  signal ch_epoch_cntr_i          : std_logic_vector(27 downto 0);
+  signal buffer_transfer_done     : std_logic;
   -- readout fsm
   type FSM_READ is (IDLE, WAIT_FOR_TRIG_WIND_END, RD_CH, WAIT_FOR_DATA_FINISHED, WAIT_FOR_LVL1_TRIG_A,
                     WAIT_FOR_LVL1_TRIG_B, WAIT_FOR_LVL1_TRIG_C, SEND_STATUS, SEND_TRIG_RELEASE_A,
-                    SEND_TRIG_RELEASE_B, WAIT_FOR_BUFFER_TRANSFER);
-  signal RD_CURRENT : FSM_READ  := IDLE;
-  signal RD_NEXT    : FSM_READ;
+                    SEND_TRIG_RELEASE_B, SEND_TRIG_RELEASE_C, WAIT_FOR_BUFFER_TRANSFER);
+  signal RD_CURRENT              : FSM_READ                          := IDLE;
+  signal RD_NEXT                 : FSM_READ;
   type FSM_WRITE is (IDLE, WR_CH, WAIT_A, WAIT_B, WAIT_C, WAIT_D);
-  signal WR_CURRENT : FSM_WRITE := IDLE;
-  signal WR_NEXT    : FSM_WRITE;
-
+  signal WR_CURRENT              : FSM_WRITE                         := IDLE;
+  signal WR_NEXT                 : FSM_WRITE;
   signal start_trig_win_cnt_fsm  : std_logic;
   signal rd_fsm_debug_fsm        : std_logic_vector(3 downto 0);
   signal wr_fsm_debug_fsm        : std_logic_vector(3 downto 0);
@@ -180,8 +174,8 @@ architecture behavioral of Readout is
   signal wr_number               : unsigned(7 downto 0);
   signal fifo_nr_rd_fsm          : integer range 0 to CHANNEL_NUMBER := 0;
   signal fifo_nr_wr_fsm          : integer range 0 to CHANNEL_NUMBER := 0;
-  signal buf_delay_fsm           : integer range 0 to 31             := 0;
-  signal buf_delay_i             : integer range 0 to 31             := 0;
+  signal buf_delay_fsm           : integer range 0 to 63             := 0;
+  signal buf_delay_i             : integer range 0 to 63             := 0;
 --  signal wr_trailer_fsm          : std_logic;
   signal idle_fsm                : std_logic;
   signal readout_fsm             : std_logic;
@@ -362,21 +356,22 @@ begin  -- behavioral
         RD_CURRENT <= IDLE;
         fifo_nr_rd <= 0;
       else
-        RD_CURRENT       <= RD_NEXT;
-        rd_en            <= rd_en_fsm;
-        wr_header        <= wr_header_fsm;
-        wr_trailer       <= wr_trailer_fsm;
-        wr_status        <= wr_status_fsm;
-        data_finished    <= data_finished_fsm;
-        trig_release_reg <= trig_release_fsm;
-        buf_delay_i      <= buf_delay_fsm;
-        wrong_readout_up <= wrong_readout_fsm;
-        wrong_reference  <= wrong_reference_fsm;
-        idle_time_up     <= idle_fsm;
-        readout_time_up  <= readout_fsm;
-        wait_time_up     <= wait_fsm;
-        fifo_nr_rd       <= fifo_nr_rd_fsm;
-        rd_fsm_debug     <= rd_fsm_debug_fsm;
+        RD_CURRENT           <= RD_NEXT;
+        rd_en                <= rd_en_fsm;
+        wr_header            <= wr_header_fsm;
+        wr_trailer           <= wr_trailer_fsm;
+        wr_status            <= wr_status_fsm;
+        data_finished        <= data_finished_fsm;
+        trig_release_reg     <= trig_release_fsm;
+        buf_delay_i          <= buf_delay_fsm;
+        wrong_readout_up     <= wrong_readout_fsm;
+        wrong_reference      <= wrong_reference_fsm;
+        idle_time_up         <= idle_fsm;
+        readout_time_up      <= readout_fsm;
+        wait_time_up         <= wait_fsm;
+        fifo_nr_rd           <= fifo_nr_rd_fsm;
+        rd_fsm_debug         <= rd_fsm_debug_fsm;
+        buffer_transfer_done <= and_all(CH_EMPTY_IN);
       end if;
     end if;
   end process RD_FSM_CLK;
@@ -437,7 +432,7 @@ begin  -- behavioral
         rd_fsm_debug_fsm <= x"2";
 
       when WAIT_FOR_BUFFER_TRANSFER =>  -- the data from channel fifo is written to the buffer
-        if buf_delay_i = 31 then
+        if buffer_transfer_done = '0' or buf_delay_i = 63 then
           RD_NEXT <= RD_CH;
         else
           buf_delay_fsm <= buf_delay_i + 1;
@@ -512,16 +507,21 @@ begin  -- behavioral
 
       when SEND_TRIG_RELEASE_A =>
         RD_NEXT           <= SEND_TRIG_RELEASE_B;
-        data_finished_fsm <= '1';
         fifo_nr_rd_fsm    <= 0;
         readout_fsm       <= '1';
         rd_fsm_debug_fsm  <= x"A";
 
       when SEND_TRIG_RELEASE_B =>
+        RD_NEXT           <= SEND_TRIG_RELEASE_C;
+        data_finished_fsm <= '1';
+        readout_fsm       <= '1';
+        rd_fsm_debug_fsm  <= x"B";
+
+      when SEND_TRIG_RELEASE_C =>
         RD_NEXT          <= IDLE;
         trig_release_fsm <= '1';
         readout_fsm      <= '1';
-        rd_fsm_debug_fsm <= x"B";
+        rd_fsm_debug_fsm <= x"C";
 
       when others =>
         RD_NEXT          <= IDLE;
@@ -645,8 +645,10 @@ begin  -- behavioral
           --  end if;
           if trig_win_l = '1' and trig_win_r = '1' then  -- if both of the trigger window edges are in the coarse counter boundries
             ch_data_4reg <= ch_data_3reg(fifo_nr_wr_reg)(31 downto 0);
+          elsif trig_win_r = '0' then   -- any hit that might come after the trigger window 
+            ch_data_4reg <= (others => '0');
           --else
-          --  ch_data_4reg <= (others => '1');
+          --  ch_data_4reg <= (others => '0');
           end if;
         else
           ch_data_4reg <= ch_data_3reg(fifo_nr_wr_reg)(31 downto 0);

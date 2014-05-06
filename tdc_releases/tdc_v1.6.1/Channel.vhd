@@ -172,7 +172,7 @@ begin
   FIFO_EMPTY_OUT        <= buf_empty_i;
   FIFO_ALMOST_EMPTY_OUT <= buf_almost_empty_i;
   trig_win_end_tdc_i    <= TRIGGER_WIN_END_TDC;
-  trig_win_end_rdo_i    <= TRIGGER_WIN_END_RDO             when rising_edge(CLK_100);
+  trig_win_end_rdo_i    <= TRIGGER_WIN_END_RDO;
   rd_en_reg             <= READ_EN_IN                      when rising_edge(CLK_100);
   buf_empty_reg         <= buf_empty_i                     when rising_edge(CLK_100);
   buf_data_valid_i      <= rd_en_reg and not buf_empty_reg when rising_edge(CLK_100);

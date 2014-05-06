@@ -4,7 +4,7 @@
 -- File       : TriggerHandler.vhd
 -- Author     : Cahit Ugur  c.ugur@gsi.de
 -- Created    : 2013-03-13
--- Last update: 2014-01-20
+-- Last update: 2014-05-06
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -168,7 +168,7 @@ begin  -- architecture behavioral
       PULSE_B_OUT => trig_win_end_rdo);
 
   TRIGGER_WIN_END_TDC_OUT <= trig_win_end_tdc;
-  TRIGGER_WIN_END_RDO_OUT <= trig_win_end_rdo when rising_edge(CLK_RDO);
+  TRIGGER_WIN_END_RDO_OUT <= trig_win_end_rdo;
 
 
 end architecture behavioral;
