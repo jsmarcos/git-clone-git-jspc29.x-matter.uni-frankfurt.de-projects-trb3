@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2014-04-30
+-- Last update: 2014-05-06
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -337,7 +337,7 @@ begin  -- Channel_200
   FSM_CLK : process (CLK_200)
   begin
     if RESET_200 = '1' then
-      FSM_WR_CURRENT    <= WRITE_EPOCH;
+      FSM_WR_CURRENT <= WRITE_EPOCH;
     elsif rising_edge(CLK_200) then
       FSM_WR_CURRENT    <= FSM_WR_NEXT;
       write_epoch_i     <= write_epoch_fsm;
@@ -802,7 +802,7 @@ begin  -- Channel_200
   --CHANNEL_200_DEBUG(17)           <= fifo_data_valid_i;
   --CHANNEL_200_DEBUG(18)           <= ringBuffer_rd_en_i;
   --CHANNEL_200_DEBUG(23 downto 19) <= (others => '0');
-  CHANNEL_200_DEBUG(23 downto 0) <= (others => '0');
+  CHANNEL_200_DEBUG(23 downto 0)  <= (others => '0');
   CHANNEL_200_DEBUG(27 downto 24) <= fsm_rd_debug_i;
   CHANNEL_200_DEBUG(31 downto 28) <= fsm_wr_debug_i;
 

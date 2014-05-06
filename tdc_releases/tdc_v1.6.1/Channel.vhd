@@ -84,7 +84,6 @@ architecture Channel of Channel is
 
   -- debug
   signal sync_q                  : std_logic_vector(2 downto 0);
-  signal hit_pulse               : std_logic;
   signal hit_pulse_100           : std_logic;
   signal encoder_finished_i      : std_logic;
   signal encoder_finished_100    : std_logic;
@@ -221,24 +220,15 @@ begin
 -------------------------------------------------------------------------------
   gen_DEBUG : if DEBUG = c_YES generate
     --purpose: Hit Signal Synchroniser
-    sync_q(0) <= HIT_IN    when rising_edge(CLK_200);
-    sync_q(1) <= sync_q(0) when rising_edge(CLK_200);
-    sync_q(2) <= sync_q(1) when rising_edge(CLK_200);
+    sync_q(0) <= HIT_IN    when rising_edge(CLK_100);
+    sync_q(1) <= sync_q(0) when rising_edge(CLK_100);
+    sync_q(2) <= sync_q(1) when rising_edge(CLK_100);
 
     risingEdgeDetect_1 : risingEdgeDetect
       port map (
-        CLK       => CLK_200,
+        CLK       => CLK_100,
         SIGNAL_IN => sync_q(2),
-        PULSE_OUT => hit_pulse);
-
-    pulse_sync_hit : pulse_sync
-      port map (
-        CLK_A_IN    => CLK_200,
-        RESET_A_IN  => RESET_200,
-        PULSE_A_IN  => hit_pulse,
-        CLK_B_IN    => CLK_100,
-        RESET_B_IN  => RESET_100,
-        PULSE_B_OUT => hit_pulse_100);
+        PULSE_OUT => hit_pulse_100);
 
     --purpose: Counts the detected but unwritten hits
     Lost_Hit_Counter : process (CLK_100)

@@ -128,6 +128,7 @@ architecture TDC of TDC is
   signal hit_latch                    : std_logic_vector(CHANNEL_NUMBER-1 downto 1) := (others => '0');
   signal hit_reg                      : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
   signal hit_2reg                     : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
+  signal hit_3reg                     : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
 -- Calibration
   signal hit_calibration_cntr         : unsigned(15 downto 0)                       := (others => '0');
   signal hit_calibration_i            : std_logic;
@@ -230,9 +231,9 @@ begin
 
   -- Blocks the input after the rising edge against short pulses
   GEN_HitBlock : for i in 1 to CHANNEL_NUMBER-1 generate
-    TheStretcher : process (HIT_IN, hit_2reg)
+    TheStretcher : process (HIT_IN, hit_3reg)
     begin
-      if hit_2reg(i) = '1' then
+      if hit_3reg(i) = '1' then
         hit_latch(i) <= '0';
       elsif rising_edge(HIT_IN(i)) then
         hit_latch(i) <= '1';
@@ -241,6 +242,7 @@ begin
   end generate GEN_HitBlock;
   hit_reg  <= hit_latch when rising_edge(CLK_TDC);
   hit_2reg <= hit_reg   when rising_edge(CLK_TDC);
+  hit_3reg <= hit_2reg  when rising_edge(CLK_TDC);
 
   GEN_hit_mux: for i in 1 to CHANNEL_NUMBER-1 generate
     hit_mux_ch: hit_mux
