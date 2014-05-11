@@ -110,10 +110,12 @@ $c=qq|$lattice_path/ispfpga/bin/lin/map  -retime -split_node -a $FAMILYNAME -p $
 execute($c);
 
 system("rm $TOPNAME.ncd");
-
+system("rm $TOPNAME.dir/*");
 
 $c=qq|$lattice_path/ispfpga/bin/lin/par -f "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.dir" "$TOPNAME.prf"|;
 execute($c);
+
+system("cp -a ${TOPNAME}.dir/*.ncd ./${TOPNAME}.ncd");
 
 # IOR IO Timing Report
 $c=qq|$lattice_path/ispfpga/bin/lin/iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;

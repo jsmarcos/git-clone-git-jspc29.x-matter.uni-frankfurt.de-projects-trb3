@@ -7,6 +7,9 @@ use work.trb_net_std.all;
 use work.nxyter_components.all;
 
 entity adc_ad9228 is
+  generic (
+    DEBUG_ENABLE : boolean := false
+    );
   port (
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
@@ -34,15 +37,15 @@ entity adc_ad9228 is
     ADC0_DATA_B_OUT      : out std_logic_vector(11 downto 0);
     ADC0_DATA_C_OUT      : out std_logic_vector(11 downto 0);
     ADC0_DATA_D_OUT      : out std_logic_vector(11 downto 0);
-    ADC0_DATA_VALID_OUT  : out std_logic;
+    ADC0_DATA_CLK_OUT    : out std_logic;
 
     ADC1_DATA_A_OUT      : out std_logic_vector(11 downto 0);
     ADC1_DATA_B_OUT      : out std_logic_vector(11 downto 0);
     ADC1_DATA_C_OUT      : out std_logic_vector(11 downto 0);
     ADC1_DATA_D_OUT      : out std_logic_vector(11 downto 0);
-    ADC1_DATA_VALID_OUT  : out std_logic;
-    ADC0_NOTLOCK_COUNTER : out unsigned(7 downto 0);
-    ADC1_NOTLOCK_COUNTER : out unsigned(7 downto 0);
+    ADC1_DATA_CLK_OUT    : out std_logic;
+    ADC0_LOCKED_OUT      : out std_logic;
+    ADC1_LOCKED_OUT      : out std_logic;
 
     ERROR_ADC0_OUT       : out std_logic;
     ERROR_ADC1_OUT       : out std_logic;
@@ -52,9 +55,7 @@ entity adc_ad9228 is
 end adc_ad9228;
 
 architecture Behavioral of  adc_ad9228 is
-  attribute HGROUP : string;
-  attribute HGROUP of Behavioral : architecture is "SAMPLING_ADC_AD9228";
-  
+
   -- DDR Generic Handler
   signal DDR_DATA_CLK           : std_logic;
   signal q_0_ff                 : std_logic_vector(19 downto 0);
@@ -64,46 +65,42 @@ architecture Behavioral of  adc_ad9228 is
   signal q_1_f                  : std_logic_vector(19 downto 0);
   signal q_1                    : std_logic_vector(19 downto 0);
 
-  -- NotLock Counters
-  signal adc0_frame_notlocked   : std_logic;
-  signal adc0_frame_notlocked_p : std_logic;
-  signal adc0_notlock_ctr       : unsigned(7 downto 0);
-  
-  signal adc1_frame_notlocked   : std_logic;
-  signal adc1_frame_notlocked_p : std_logic;
-  signal adc1_notlock_ctr       : unsigned(7 downto 0);
-
   -- Merge Data
-  type q_map_t          is array(0 to 4) of std_logic_vector(3 downto 0);
-  type adc_data_buf_t   is array(0 to 4) of std_logic_vector(15 downto 0);
+  type adc_data_s       is array(0 to 4) of std_logic_vector(13 downto 0);
   type adc_data_t       is array(0 to 3) of std_logic_vector(11 downto 0);
 
-  signal adc0_data_buf          : adc_data_buf_t;
-  signal adc0_frame_ctr         : unsigned(2 downto 0);
-  signal adc0_frame_ctr_last    : unsigned(2 downto 0);
-  signal adc0_bit_shift         : unsigned(1 downto 0);
-  signal adc0_bit_shift_last    : unsigned(1 downto 0);
-  signal adc0_ctr_error         : std_logic;
-  signal adc0_shift_error       : std_logic;
-  signal adc0_error_status      : std_logic_vector(15 downto 0);
-  signal adc0_frame_locked      : std_logic;
+  type BYTE_STATUS is (B_UNDEF,
+                       B_ALIGNED,
+                       B_SHIFTED
+                       );
+  -- ADC0
+  signal adc0_data_shift        : adc_data_s;
   
-  signal adc0_new_data_t        : std_logic;
-  signal adc0_data_t            : adc_data_t;
-                                
-  signal adc1_data_buf          : adc_data_buf_t;
-  signal adc1_frame_ctr         : unsigned(2 downto 0);
-  signal adc1_frame_ctr_last    : unsigned(2 downto 0);
-  signal adc1_bit_shift         : unsigned(1 downto 0);
-  signal adc1_bit_shift_last    : unsigned(1 downto 0);
-  signal adc1_ctr_error         : std_logic;
-  signal adc1_shift_error       : std_logic;
-  signal adc1_error_status      : std_logic_vector(15 downto 0);
+  signal adc0_data_m            : adc_data_t;
+  signal adc0_data_clk_m        : std_logic;
+
+  signal adc0_byte_status       : BYTE_STATUS;
+  signal adc0_byte_status_last  : BYTE_STATUS;
+
+  signal adc0_frame_clk_ok      : std_logic;
+  signal adc0_frame_clk_ok_hist : std_logic_vector(15 downto 0);
+  signal adc0_frame_locked      : std_logic;
+  signal adc0_error             : std_logic;
+
+  -- ADC0
+  signal adc1_data_shift        : adc_data_s;
+  
+  signal adc1_data_m            : adc_data_t;
+  signal adc1_data_clk_m        : std_logic;
+
+  signal adc1_byte_status       : BYTE_STATUS;
+  signal adc1_byte_status_last  : BYTE_STATUS;
+
+  signal adc1_frame_clk_ok      : std_logic;
+  signal adc1_frame_clk_ok_hist : std_logic_vector(15 downto 0);
   signal adc1_frame_locked      : std_logic;
-                                
-  signal adc1_new_data_t        : std_logic;
-  signal adc1_data_t            : adc_data_t;
-                                
+  signal adc1_error             : std_logic;
+     
   -- Clock Transfer             
   signal adc0_fifo_empty        :  std_logic;
   signal adc0_fifo_full         :  std_logic;
@@ -111,7 +108,9 @@ architecture Behavioral of  adc_ad9228 is
   signal adc0_read_enable       :  std_logic;
   signal adc0_read_enable_t     :  std_logic;
   signal adc0_read_enable_tt    :  std_logic;
-  signal adc0_fifo_reset        :  std_logic;
+  signal adc0_locked_ff         : std_logic;
+  signal adc0_locked_f          : std_logic;
+  signal adc0_locked_o          : std_logic;
   
   signal adc1_fifo_empty        :  std_logic;
   signal adc1_fifo_full         :  std_logic;
@@ -119,112 +118,250 @@ architecture Behavioral of  adc_ad9228 is
   signal adc1_read_enable       :  std_logic;
   signal adc1_read_enable_t     :  std_logic;
   signal adc1_read_enable_tt    :  std_logic;
-  signal adc1_fifo_reset        :  std_logic;                                
-
+  signal adc1_locked_ff         : std_logic;
+  signal adc1_locked_f          : std_logic;
+  signal adc1_locked_o          : std_logic;
+  
   -- Error
   signal error_adc0_o           : std_logic;
   signal error_adc1_o           : std_logic;
 
   -- Output
-  signal adc0_data_valid_o      : std_logic;
+  signal adc0_data_clk_o        : std_logic;
   signal adc0_data_f            : adc_data_t;
   signal adc0_data_o            : adc_data_t;
                                 
-  signal adc1_data_valid_o      : std_logic;
+  signal adc1_data_clk_o        : std_logic;
   signal adc1_data_f            : adc_data_t;
   signal adc1_data_o            : adc_data_t;
 
+  -- RESET Handler
+  type R_STATES is (R_IDLE,
+                    R_WAIT_CLKDIV,
+                    R_WAIT_RESET_ADC,
+                    R_WAIT_RESET_END
+                    );
+  signal R_STATE : R_STATES;
 
-  -- Resets
-  signal RESET_CLK_ADCDAT_IN    : std_logic;
-  signal RESET_DDR_DATA_CLK     : std_logic;
+  signal startup_reset          : std_logic;
+  signal timer_reset            : std_logic;
+  signal wait_timer_start       : std_logic;
+  signal wait_timer_done        : std_logic;
+  signal RESET_CLKDIV           : std_logic;
+  signal RESET_ADC0             : std_logic;
+  signal RESET_ADC1             : std_logic;
 
+  signal RESET_ADC0_CLKD_F      : std_logic;
+  signal RESET_ADC0_CLKD        : std_logic;
+  signal RESET_ADC1_CLKD_F      : std_logic;
+  signal RESET_ADC1_CLKD        : std_logic;
+  
   -- 
   attribute syn_keep : boolean;
-  attribute syn_keep of q_0_ff     : signal is true;
-  attribute syn_keep of q_0_f      : signal is true;
-  attribute syn_keep of q_1_ff     : signal is true;
-  attribute syn_keep of q_1_f      : signal is true;
+  attribute syn_keep of q_0_ff              : signal is true;
+  attribute syn_keep of q_0_f               : signal is true;
+  attribute syn_keep of q_1_ff              : signal is true;
+  attribute syn_keep of q_1_f               : signal is true;
+
+  attribute syn_keep of adc0_locked_ff      : signal is true;
+  attribute syn_keep of adc0_locked_f       : signal is true;
+  attribute syn_keep of adc1_locked_ff      : signal is true;
+  attribute syn_keep of adc1_locked_f       : signal is true;
+
+  attribute syn_keep of RESET_ADC0_CLKD_F   : signal is true;
+  attribute syn_keep of RESET_ADC0_CLKD     : signal is true;
+  attribute syn_keep of RESET_ADC1_CLKD_F   : signal is true;
+  attribute syn_keep of RESET_ADC1_CLKD     : signal is true;
 
   attribute syn_preserve : boolean;
-  attribute syn_preserve of q_0_ff : signal is true;
-  attribute syn_preserve of q_0_f  : signal is true;
-  attribute syn_preserve of q_1_ff : signal is true;
-  attribute syn_preserve of q_1_f  : signal is true;
+  attribute syn_preserve of q_0_ff          : signal is true;
+  attribute syn_preserve of q_0_f           : signal is true;
+  attribute syn_preserve of q_1_ff          : signal is true;
+  attribute syn_preserve of q_1_f           : signal is true;
   
-  
+  attribute syn_preserve of adc0_locked_ff  : signal is true;
+  attribute syn_preserve of adc0_locked_f   : signal is true;
+  attribute syn_preserve of adc1_locked_ff  : signal is true;
+  attribute syn_preserve of adc1_locked_f   : signal is true;
+
+  attribute syn_preserve of RESET_ADC0_CLKD_F : signal is true;
+  attribute syn_preserve of RESET_ADC0_CLKD   : signal is true;
+  attribute syn_preserve of RESET_ADC1_CLKD_F : signal is true;
+  attribute syn_preserve of RESET_ADC1_CLKD   : signal is true;
+
 begin
 
-  PROC_DEBUG: process (DEBUG_IN)
+  -----------------------------------------------------------------------------
+  -- Debug Handler
+  -----------------------------------------------------------------------------
+
+  DFALSE: if (DEBUG_ENABLE = false) generate
+    
+    DEBUG_OUT(0)            <= CLK_IN;
+    DEBUG_OUT(1)            <= DDR_DATA_CLK;
+    DEBUG_OUT(2)            <= adc0_write_enable;
+    DEBUG_OUT(3)            <= adc0_fifo_full;
+    DEBUG_OUT(4)            <= adc0_fifo_empty;
+    DEBUG_OUT(5)            <= adc0_data_clk_m;
+    DEBUG_OUT(6)            <= adc0_read_enable;
+    DEBUG_OUT(7)            <= adc0_read_enable_t;
+    DEBUG_OUT(8)            <= adc0_read_enable_tt;
+    DEBUG_OUT(9)            <= adc0_data_clk_o;
+    DEBUG_OUT(10)           <= adc0_error;
+    DEBUG_OUT(11)           <= adc0_frame_locked;
+    DEBUG_OUT(12)           <= adc0_frame_clk_ok;
+    DEBUG_OUT(13)           <= wait_timer_done;
+    DEBUG_OUT(14)           <= RESET_CLKDIV;
+    DEBUG_OUT(15)           <= RESET_ADC0;
+  end generate DFALSE;
+
+  DTRUE: if (DEBUG_ENABLE = true) generate
+    
+    PROC_DEBUG: process (DEBUG_IN)
+    begin
+      DEBUG_OUT(0)            <= CLK_IN;
+      DEBUG_OUT(1)            <= DDR_DATA_CLK;
+
+      case DEBUG_IN is
+        
+        when x"1" =>
+          DEBUG_OUT(15 downto 2)  <= adc0_data_shift(0);
+
+        when x"2" =>
+          DEBUG_OUT(15 downto 2)  <= adc0_data_shift(1);
+
+        when x"3" =>
+          DEBUG_OUT(15 downto 2)  <= adc0_data_shift(2);
+
+        when x"4" =>
+          DEBUG_OUT(15 downto 2)  <= adc0_data_shift(3);
+
+        when x"5" =>
+          DEBUG_OUT(15 downto 2)  <= adc0_data_shift(4);
+          
+        when others =>
+          -- DEBUG
+          DEBUG_OUT(2)            <= adc0_write_enable;
+          DEBUG_OUT(3)            <= adc0_fifo_full;
+          DEBUG_OUT(4)            <= adc0_fifo_empty;
+          DEBUG_OUT(5)            <= adc0_data_clk_m;
+          DEBUG_OUT(6)            <= adc0_read_enable;
+          DEBUG_OUT(7)            <= adc0_read_enable_t;
+          DEBUG_OUT(8)            <= adc0_read_enable_tt;
+          DEBUG_OUT(9)            <= adc0_data_clk_o;
+          DEBUG_OUT(10)           <= adc0_error;
+          DEBUG_OUT(11)           <= adc0_frame_locked;
+          DEBUG_OUT(12)           <= adc0_frame_clk_ok;
+          DEBUG_OUT(13)           <= wait_timer_done;
+          DEBUG_OUT(14)           <= RESET_CLKDIV;
+          DEBUG_OUT(15)           <= RESET_ADC0;
+          
+      end case;
+    end process PROC_DEBUG;       
+
+  end generate DTRUE;
+
+  -----------------------------------------------------------------------------
+
+  RESET_ADC0_CLKD_F  <= RESET_ADC0        when rising_edge(DDR_DATA_CLK);
+  RESET_ADC0_CLKD    <= RESET_ADC0_CLKD_F when rising_edge(DDR_DATA_CLK);
+  
+  RESET_ADC1_CLKD_F  <= RESET_ADC1        when rising_edge(DDR_DATA_CLK);
+  RESET_ADC1_CLKD    <= RESET_ADC1_CLKD_F when rising_edge(DDR_DATA_CLK);
+
+  -----------------------------------------------------------------------------
+  
+  timer_static_RESET_TIMER: timer_static
+    generic map (
+      CTR_WIDTH => 20,
+      CTR_END   => 625000 -- 5ms
+      )
+    port map (
+      CLK_IN         => CLK_IN,
+      RESET_IN       => timer_reset,
+      TIMER_START_IN => wait_timer_start,
+      TIMER_DONE_OUT => wait_timer_done
+      );
+  
+  PROC_DDR_RESET_HANDLER: process(CLK_IN)
   begin
-    case DEBUG_IN is
-      when x"0" =>
-        -- DEBUG
-        DEBUG_OUT(0)            <= CLK_IN;
-        DEBUG_OUT(1)            <= DDR_DATA_CLK;
-        DEBUG_OUT(2)            <= adc0_write_enable;
-        DEBUG_OUT(3)            <= adc0_fifo_full;
-        DEBUG_OUT(4)            <= adc0_fifo_empty;
-        DEBUG_OUT(5)            <= adc0_new_data_t;
-        DEBUG_OUT(6)            <= adc0_read_enable;
-        DEBUG_OUT(7)            <= adc0_read_enable_t;
-        DEBUG_OUT(8)            <= adc0_read_enable_tt;
-        DEBUG_OUT(9)            <= adc0_data_valid_o;
-        DEBUG_OUT(10)           <= adc0_ctr_error;
-        DEBUG_OUT(11)           <= adc0_shift_error;
-        DEBUG_OUT(12)           <= adc0_frame_locked;
-        DEBUG_OUT(13)           <= adc0_frame_notlocked;
-        DEBUG_OUT(14)           <= adc0_frame_notlocked_p;
-        DEBUG_OUT(15)           <= error_adc0_o;
-                
-      when x"1" =>
-        DEBUG_OUT               <= adc0_data_buf(0);
+    if (rising_edge(CLK_IN)) then
+      if (RESET_IN = '1') then
+        RESET_CLKDIV      <= '1';
+        RESET_ADC0        <= '1';
+        RESET_ADC1        <= '1';
+        wait_timer_start  <= '0';
+        timer_reset       <= '1';
+        startup_reset     <= '1';
+        R_STATE           <= R_IDLE; 
+      else
+        RESET_CLKDIV      <= '0';
+        RESET_ADC0        <= '0';
+        RESET_ADC1        <= '0';
+        wait_timer_start  <= '0';
+        timer_reset       <= '0';
+        startup_reset     <= '0';
+          
+        case R_STATE is
+          when R_IDLE =>
+            if (startup_reset = '1') then
+              -- Start Reset
+              RESET_CLKDIV      <= '1';
+              RESET_ADC0        <= '1';
+              RESET_ADC1        <= '1';
+              wait_timer_start  <= '1';
+              R_STATE           <= R_WAIT_CLKDIV;
+            else
+              timer_reset       <= '1';
+              R_STATE           <= R_IDLE;
+            end if;
 
-      when x"2" =>
-        DEBUG_OUT               <= adc0_data_buf(1);
+          when R_WAIT_CLKDIV =>
+            if (wait_timer_done = '0') then
+              RESET_CLKDIV      <= '1';
+              RESET_ADC0        <= '1';
+              RESET_ADC1        <= '1';
+              R_STATE           <= R_WAIT_CLKDIV;
+            else
+              -- Release RESET_CLKDIV
+              RESET_ADC0        <= '1';
+              RESET_ADC1        <= '1';
+              wait_timer_start  <= '1';
+              R_STATE           <= R_WAIT_RESET_ADC;
+            end if;
 
-      when x"3" =>
-        DEBUG_OUT               <= adc0_data_buf(2);
+          when R_WAIT_RESET_ADC =>
+            if (wait_timer_done = '0') then
+              RESET_ADC0        <= '1';
+              RESET_ADC1        <= '1';
+              R_STATE           <= R_WAIT_RESET_ADC;
+            else
+              -- Release reset_adc
+              wait_timer_start  <= '1';
+              R_STATE           <= R_WAIT_RESET_END;
+            end if; 
 
-      when x"4" =>
-        DEBUG_OUT               <= adc0_data_buf(3);
-
-      when x"5" =>
-        DEBUG_OUT               <= adc0_data_buf(4);
-
-      when others =>
-        DEBUG_OUT               <= (others => '0');
-
-    end case;
-  end process PROC_DEBUG;       
+          when R_WAIT_RESET_END =>
+            if (wait_timer_done = '0') then
+              R_STATE           <= R_WAIT_RESET_END;
+            else
+              R_STATE           <= R_IDLE;
+            end if;  
+        end case;
+      end if;
+    end if;
+  end process PROC_DDR_RESET_HANDLER;
 
   -----------------------------------------------------------------------------
-  -- Reset Domain Transfer
-  -----------------------------------------------------------------------------
-  signal_async_trans_RESET_IN: signal_async_trans
-    port map (
-      CLK_IN      => CLK_ADCDAT_IN,
-      SIGNAL_A_IN => RESET_IN,
-      SIGNAL_OUT  => RESET_CLK_ADCDAT_IN
-    );
-
-  signal_async_trans_RESET_IN_2: signal_async_trans
-    port map (
-      CLK_IN      => DDR_DATA_CLK,
-      SIGNAL_A_IN => RESET_IN,
-      SIGNAL_OUT  => RESET_DDR_DATA_CLK
-    );
-  
-  -----------------------------------------------------------------------------
-  
+    
   adc_ddr_generic_1: adc_ddr_generic
     port map (
       clk_0          => ADC0_DCLK_IN,
       clk_1          => ADC1_DCLK_IN,
-      clkdiv_reset   => RESET_CLK_ADCDAT_IN,
+      clkdiv_reset   => RESET_CLKDIV,
       eclk           => CLK_ADCDAT_IN,
-      reset_0        => RESET_DDR_DATA_CLK,
-      reset_1        => RESET_DDR_DATA_CLK,
+      reset_0        => RESET_ADC0,
+      reset_1        => RESET_ADC1,
       sclk           => DDR_DATA_CLK,
                      
       datain_0(0)    => ADC0_DATA_A_IN,
@@ -238,7 +375,7 @@ begin
       datain_1(2)    => ADC1_DATA_C_IN,
       datain_1(3)    => ADC1_DATA_D_IN,
       datain_1(4)    => ADC1_FCLK_IN,
-                     
+      
       q_0            => q_0_ff,
       q_1            => q_1_ff
       );
@@ -251,243 +388,216 @@ begin
   q_1     <= q_1_f  when rising_edge(DDR_DATA_CLK);
   
   -----------------------------------------------------------------------------
-  
-  PROC_MERGE_DATA0: process(DDR_DATA_CLK)
-    variable q_0_map      : q_map_t;
+
+  PROC_MERGE_DATA_ADC0: process(DDR_DATA_CLK)
   begin
     if (rising_edge(DDR_DATA_CLK)) then
-      if (RESET_DDR_DATA_CLK = '1') then
-        adc0_new_data_t        <= '0';
-        adc0_frame_ctr         <= (others => '0');
-        adc0_frame_ctr_last    <= (others => '0');
-        adc0_bit_shift         <= "00";
-        adc0_bit_shift_last    <= "00";
-        adc0_ctr_error         <= '0';
-        adc0_shift_error       <= '0';
-        adc0_error_status      <= (others => '0');
-        adc0_frame_locked      <= '0';
-        
+      if (RESET_ADC0_CLKD = '1') then 
+        for I in 0 to 4 loop
+          adc0_data_shift(I)         <= (others => '0');
+        end loop;
+
         for I in 0 to 3 loop
-          adc0_data_t(I)       <= (others => '0');
-        end loop;
-
+          adc0_data_m(I)             <= (others => '0');
+        end loop;                  
+        adc0_data_clk_m            <= '0';
+        
+        adc0_byte_status           <= B_UNDEF;
+        adc0_byte_status_last      <= B_UNDEF;
+        adc0_frame_clk_ok          <= '0';
+        adc0_frame_clk_ok_hist     <= (others => '0');
+        adc0_frame_locked          <= '0';
+        adc0_error                 <= '0';
       else
-        adc0_shift_error       <= '0';
-        adc0_frame_locked      <= '0';
-
-        -- Remap DDR Output q_value
+        -- Store new incoming Data in Shift Registers
         for I in 0 to 4 loop
-          q_0_map(I) := q_0(I + 0) & q_0(I + 5) & q_0(I + 10) & q_0(I + 15);
-        end loop; 
-
-        -- Buffer new incoming Data
-        for I in 0 to 4 loop
-          adc0_data_buf(I)(3 downto 0)  <= q_0_map(I);
-          adc0_data_buf(I)(15 downto 4) <= adc0_data_buf(I)(11 downto 0);
+          adc0_data_shift(I)(3)            <= q_0(I + 0);
+          adc0_data_shift(I)(2)            <= q_0(I + 5);
+          adc0_data_shift(I)(1)            <= q_0(I + 10);
+          adc0_data_shift(I)(0)            <= q_0(I + 15);
+          adc0_data_shift(I)(13 downto  4) <= adc0_data_shift(I)(9 downto 0);
         end loop;
         
-        -- Test Frame Clock Pattern
-        case  adc0_data_buf(4) is             -- q_0_map(4) is THE Frame Clock
-          when "0000111111000000" =>    
+        -- Check Frame Lock and valid Status, Index 4 is THE Frame Clock
+        case adc0_data_shift(4)(11 downto 0) is
+          when "111111000000" =>
+            -- Input Data is correct and new Frame is available
             for I in 0 to 3 loop
-              adc0_data_t(I)            <= adc0_data_buf(I)(11 downto 0);
+              adc0_data_m(I)            <= adc0_data_shift(I)(11 downto 0);
             end loop;
-            adc0_new_data_t             <= '1';
-            adc0_bit_shift              <= "00";
-            adc0_frame_ctr              <= (others => '0');
+            adc0_data_clk_m             <= '1';
+            adc0_frame_clk_ok           <= '1';
+            adc0_byte_status            <= B_ALIGNED;
             
-          when "0001111110000001" =>    
+          when "111100000011" =>
+            -- Input Data is correct and new Frame is available,
+            -- but byte shifted by one
             for I in 0 to 3 loop
-              adc0_data_t(I)            <= adc0_data_buf(I)(12 downto 1);
+              adc0_data_m(I)            <= adc0_data_shift(I)(13 downto 2);
             end loop;
-            adc0_new_data_t             <= '1';
-            adc0_bit_shift              <= "01";                          
-            adc0_frame_ctr              <= (others => '0');
+            adc0_data_clk_m             <= '1';
+            adc0_frame_clk_ok           <= '1';
+            adc0_byte_status            <= B_SHIFTED;
+
+          when "110000001111" | "000011111100"    =>
+            -- Input Data is correct
+            adc0_data_clk_m             <= '0';
+            adc0_frame_clk_ok           <= '1';
+            adc0_byte_status            <= B_ALIGNED;
             
-          when "0011111100000011" =>    
-            for I in 0 to 3 loop
-              adc0_data_t(I)            <= adc0_data_buf(I)(13 downto 2);
-            end loop;
-            adc0_new_data_t             <= '1';
-            adc0_bit_shift              <= "10";                              
-            adc0_frame_ctr              <= (others => '0');
-            
-          when "0111111000000111" =>    
-            for I in 0 to 3 loop
-              adc0_data_t(I)            <= adc0_data_buf(I)(14 downto 3);
-            end loop;
-            adc0_new_data_t             <= '1';
-            adc0_bit_shift              <= "11";
-            adc0_frame_ctr              <= (others => '0');
+          when "000000111111" | "001111110000" =>
+            -- Input Data is correct
+            adc0_data_clk_m             <= '0';
+            adc0_frame_clk_ok           <= '1';
+            adc0_byte_status            <= B_SHIFTED;
             
           when others =>
-            for I in 0 to 3 loop
-              adc0_data_t(I)            <= (others => '0');
-            end loop;
-            adc0_new_data_t             <= '0';
-            adc0_frame_ctr              <= adc0_frame_ctr + 1;
+            -- Input Data is invalid, Fatal Error of DDR Data, needs reset.
+            adc0_data_clk_m             <= '0';
+            adc0_frame_clk_ok           <= '0';
+            adc0_byte_status            <= B_UNDEF;
+            
         end case;
 
-        -- Monitor ADC Lock Status
-        adc0_frame_ctr_last             <= adc0_frame_ctr;
-        if (adc0_new_data_t = '1') then
-          if (adc0_frame_ctr_last /= x"2") then
-            adc0_ctr_error                <= '1'; 
-          else
-            adc0_ctr_error                <= '0'; 
-          end if;
-        end if;
-
-        adc0_bit_shift_last             <= adc0_bit_shift;
-        if (adc0_bit_shift /= adc0_bit_shift_last) then
-          adc0_shift_error              <= '1';
-        else
-          adc0_shift_error              <= '0';
-        end if;
-
-        -- Error Status
-        adc0_error_status(0)            <= adc0_ctr_error or adc0_shift_error;
-        for X in 0 to 14 loop
-          adc0_error_status(X + 1)      <= adc0_error_status(X);
-        end loop;
+        -- Determin ADC Frame Lock Status
+        adc0_frame_clk_ok_hist(0)           <= adc0_frame_clk_ok;
+        adc0_frame_clk_ok_hist(15 downto 1) <=
+          adc0_frame_clk_ok_hist(14 downto 0);
         
-        if (adc0_error_status = x"0000") then
+        if (adc0_frame_clk_ok_hist = x"ffff") then
           adc0_frame_locked             <= '1';
         else
           adc0_frame_locked             <= '0';
         end if;
         
+        -- Error Status
+        adc0_byte_status_last           <= adc0_byte_status;
+        if ( adc0_byte_status  /= adc0_byte_status_last or
+             adc0_byte_status = B_UNDEF) then
+          adc0_error                    <= '1';
+        else
+          adc0_error                    <= '0';
+        end if;
       end if;
+
     end if;
-  end process PROC_MERGE_DATA0;
+  end process PROC_MERGE_DATA_ADC0;
 
   -----------------------------------------------------------------------------
-  
-  PROC_MERGE_DATA1: process(DDR_DATA_CLK)
-    variable q_1_map  : q_map_t;
+
+  PROC_MERGE_DATA_ADC1: process(DDR_DATA_CLK)
   begin
     if (rising_edge(DDR_DATA_CLK)) then
-      if (RESET_DDR_DATA_CLK = '1') then
-        adc1_new_data_t        <= '0';
-        adc1_frame_ctr         <= (others => '0');
-        adc1_frame_ctr_last    <= (others => '0');
-        adc1_bit_shift         <= "00";
-        adc1_bit_shift_last    <= "00";
-        adc1_ctr_error         <= '0';
-        adc1_shift_error       <= '0';
-        adc1_error_status      <= (others => '0');
-        adc1_frame_locked      <= '0';
-        
+      if (RESET_ADC1_CLKD = '1') then
+        for I in 0 to 4 loop
+          adc1_data_shift(I)         <= (others => '0');
+        end loop;
+
         for I in 0 to 3 loop
-          adc1_data_t(I)       <= (others => '0');
-        end loop;
-      else
-        adc1_ctr_error         <= '0';
-        adc1_shift_error       <= '0';
+          adc1_data_m(I)             <= (others => '0');
+        end loop;                  
+        adc1_data_clk_m            <= '0';
         
-        -- Remap DDR Output q_value
-        for I in 0 to 4 loop
-          q_1_map(I) := q_1(I + 0) & q_1(I + 5) & q_1(I + 10) & q_1(I + 15);
-        end loop; 
+        adc1_byte_status           <= B_UNDEF;
+        adc1_byte_status_last      <= B_UNDEF;
+        adc1_frame_clk_ok          <= '0';
+        adc1_frame_clk_ok_hist     <= (others => '0');
+        adc1_frame_locked          <= '0';
+        adc1_error                 <= '0';
+      else
 
-        -- Buffer new incoming Data
+        -- Store new incoming Data in Shift Registers
         for I in 0 to 4 loop
-          adc1_data_buf(I)(3 downto 0)  <= q_1_map(I);
-          adc1_data_buf(I)(15 downto 4) <= adc1_data_buf(I)(11 downto 0);
+          adc1_data_shift(I)(3)         <= q_1(I + 0);
+          adc1_data_shift(I)(2)         <= q_1(I + 5);
+          adc1_data_shift(I)(1)         <= q_1(I + 10);
+          adc1_data_shift(I)(0)         <= q_1(I + 15);
+          
+          adc1_data_shift(I)(13 downto  4) <= adc1_data_shift(I)(9 downto 0);
         end loop;
 
-        -- Test Frame Clock Pattern
-        case adc1_data_buf(4) is           -- adc1_data_buf(4) is frame clock
-          when "0000111111000000" =>    
+        -- Check Frame Lock and valid Status, Index 4 is THE Frame Clock
+        case adc1_data_shift(4)(11 downto 0) is
+          when "111111000000" =>
+            -- Input Data is correct and new Frame is available
             for I in 0 to 3 loop
-              adc1_data_t(I)            <= adc1_data_buf(I)(11 downto 0);
+              adc1_data_m(I)            <= adc1_data_shift(I)(11 downto 0);
             end loop;
-            adc1_new_data_t             <= '1';
-            adc1_bit_shift              <= "00";
-            adc1_frame_ctr              <= (others => '0');
+            adc1_data_clk_m             <= '1';
+            adc1_frame_clk_ok           <= '1';
+            adc1_byte_status            <= B_ALIGNED;
             
-          when "0001111110000001" =>    
+          when "111100000011" =>
+            -- Input Data is correct and new Frame is available,
+            -- but byte shifted by one
             for I in 0 to 3 loop
-              adc1_data_t(I)            <= adc1_data_buf(I)(12 downto 1);
+              adc1_data_m(I)            <= adc1_data_shift(I)(13 downto 2);
             end loop;
-            adc1_new_data_t             <= '1';
-            adc1_bit_shift              <= "01";
-            adc1_frame_ctr              <= (others => '0');
+            adc1_data_clk_m             <= '1';
+            adc1_frame_clk_ok           <= '1';
+            adc1_byte_status            <= B_SHIFTED;
+
+          when "110000001111" | "000011111100"    =>
+            -- Input Data is correct
+            adc1_data_clk_m             <= '0';
+            adc1_frame_clk_ok           <= '1';
+            adc1_byte_status            <= B_ALIGNED;
             
-          when "0011111100000011" =>    
-            for I in 0 to 3 loop
-              adc1_data_t(I)            <= adc1_data_buf(I)(13 downto 2);
-            end loop;
-            adc1_new_data_t             <= '1';
-            adc1_bit_shift              <= "10";
-            adc1_frame_ctr              <= (others => '0');
-            
-          when "0111111000000111" =>    
-            for I in 0 to 3 loop
-              adc1_data_t(I)            <= adc1_data_buf(I)(14 downto 3);
-            end loop;
-            adc1_new_data_t             <= '1';
-            adc1_bit_shift              <= "11";
-            adc1_frame_ctr              <= (others => '0');
+          when "000000111111" | "001111110000" =>
+            -- Input Data is correct
+            adc1_data_clk_m             <= '0';
+            adc1_frame_clk_ok           <= '1';
+            adc1_byte_status            <= B_SHIFTED;
             
           when others =>
-            for I in 0 to 3 loop
-              adc1_data_t(I)            <= (others => '0');
-            end loop;
-            adc1_new_data_t             <= '0';
-            adc1_frame_ctr              <= adc1_frame_ctr + 1;
+            -- Input Data is invalid, Fatal Error of DDR Data, needs reset.
+            adc1_data_clk_m             <= '0';
+            adc1_frame_clk_ok           <= '0';
+            adc1_byte_status            <= B_UNDEF;
             
         end case;
 
-        -- Monitor ADC Lock Status
-        adc1_frame_ctr_last             <= adc1_frame_ctr;
-        if (adc1_new_data_t = '1') then
-          if (adc1_frame_ctr_last /= x"2") then
-            adc1_ctr_error                <= '1'; 
-          else
-            adc1_ctr_error                <= '0'; 
-          end if;
-        end if;
-
-        adc1_bit_shift_last             <= adc1_bit_shift;        
-        if (adc1_bit_shift /= adc1_bit_shift_last) then
-          adc1_shift_error              <= '1';
-        else
-          adc1_shift_error              <= '0';
-        end if;
-
-        -- Error Status
-        adc1_error_status(0)            <= adc1_ctr_error or adc1_shift_error;
-        for X in 0 to 14 loop
-          adc1_error_status(X + 1)      <= adc1_error_status(X);
-        end loop;
+        -- Determin ADC Frame Lock Status
+        adc1_frame_clk_ok_hist(0)           <= adc1_frame_clk_ok;
+        adc1_frame_clk_ok_hist(15 downto 1) <=
+          adc1_frame_clk_ok_hist(14 downto 0);
         
-        if (adc1_error_status = x"0000") then
+        if (adc1_frame_clk_ok_hist = x"ffff") then
           adc1_frame_locked             <= '1';
         else
           adc1_frame_locked             <= '0';
         end if;
         
+        -- Error Status
+        adc1_byte_status_last           <= adc1_byte_status;
+        if (adc1_byte_status  /= adc1_byte_status_last or
+            adc1_byte_status = B_UNDEF) then
+          adc1_error                    <= '1';
+        else
+          adc1_error                    <= '0';
+        end if;
+
       end if;
     end if;
-  end process PROC_MERGE_DATA1;
-
+  end process PROC_MERGE_DATA_ADC1;
+  
+  
   -----------------------------------------------------------------------------
   -- Tansfer to CLK_IN
   -----------------------------------------------------------------------------
 
   fifo_adc_48to48_dc_1: fifo_adc_48to48_dc
     port map (
-      Data(11 downto 0)  => adc0_data_t(0),
-      Data(23 downto 12) => adc0_data_t(1),
-      Data(35 downto 24) => adc0_data_t(2),
-      Data(47 downto 36) => adc0_data_t(3),
+      Data(11 downto 0)  => adc0_data_m(0),
+      Data(23 downto 12) => adc0_data_m(1),
+      Data(35 downto 24) => adc0_data_m(2),
+      Data(47 downto 36) => adc0_data_m(3),
       WrClock            => DDR_DATA_CLK,
       RdClock            => CLK_IN,
       WrEn               => adc0_write_enable,
       RdEn               => adc0_read_enable,
-      Reset              => RESET_IN,
-      RPReset            => adc0_fifo_reset,
+      Reset              => RESET_ADC0_CLKD,
+      RPReset            => RESET_ADC0,
       Q(11 downto 0)     => adc0_data_f(0),
       Q(23 downto 12)    => adc0_data_f(1),
       Q(35 downto 24)    => adc0_data_f(2),
@@ -497,20 +607,19 @@ begin
       );
     
   -- Readout Handler
-  adc0_fifo_reset      <= RESET_IN;
-  adc0_write_enable    <= adc0_new_data_t and not adc0_fifo_full;
+  adc0_write_enable    <= adc0_data_clk_m and not adc0_fifo_full;
   adc0_read_enable     <= not adc0_fifo_empty;
   
   PROC_ADC0_FIFO_READ: process(CLK_IN)
   begin
     if (rising_edge(CLK_IN)) then
-      adc0_read_enable_t   <= adc0_read_enable;
-      if (RESET_IN = '1') then
+      adc0_read_enable_t     <= adc0_read_enable;
+      if (RESET_ADC0_CLKD = '1') then
         adc0_read_enable_tt  <= '0';
         for I in 0 to 3 loop
           adc0_data_o(I)     <= (others => '0');
         end loop; 
-        adc0_data_valid_o    <= '0';
+        adc0_data_clk_o      <= '0';
       else
         -- Read enable
         adc0_read_enable_tt  <= adc0_read_enable_t;
@@ -519,9 +628,9 @@ begin
           for I in 0 to 3 loop
             adc0_data_o(I)   <= adc0_data_f(I); 
           end loop;
-          adc0_data_valid_o  <= '1';
+          adc0_data_clk_o    <= '1';
         else
-          adc0_data_valid_o  <= '0';
+          adc0_data_clk_o    <= '0';
         end if;
       end if;
     end if;
@@ -531,16 +640,16 @@ begin
 
   fifo_adc_48to48_dc_2: fifo_adc_48to48_dc
     port map (
-      Data(11 downto 0)  => adc1_data_t(0),
-      Data(23 downto 12) => adc1_data_t(1),
-      Data(35 downto 24) => adc1_data_t(2),
-      Data(47 downto 36) => adc1_data_t(3),
+      Data(11 downto 0)  => adc1_data_m(0),
+      Data(23 downto 12) => adc1_data_m(1),
+      Data(35 downto 24) => adc1_data_m(2),
+      Data(47 downto 36) => adc1_data_m(3),
       WrClock            => DDR_DATA_CLK,
       RdClock            => CLK_IN,
-      WrEn               => adc1_new_data_t,
+      WrEn               => adc1_write_enable,
       RdEn               => adc1_read_enable,
-      Reset              => RESET_IN,
-      RPReset            => adc1_fifo_reset,
+      Reset              => RESET_ADC1_CLKD,
+      RPReset            => RESET_ADC1,
       Q(11 downto 0)     => adc1_data_f(0),
       Q(23 downto 12)    => adc1_data_f(1),
       Q(35 downto 24)    => adc1_data_f(2),
@@ -550,20 +659,19 @@ begin
       );
   
   -- Readout Handler
-  adc1_fifo_reset      <= RESET_IN;
-  adc1_write_enable    <= adc1_new_data_t and not adc1_fifo_full;
+  adc1_write_enable    <= adc1_data_clk_m and not adc1_fifo_full;
   adc1_read_enable     <= not adc1_fifo_empty;
   
   PROC_ADC1_FIFO_READ: process(CLK_IN)
   begin
     if (rising_edge(CLK_IN)) then
-      if (RESET_IN = '1') then
+      if (RESET_ADC1_CLKD = '1') then
         adc1_read_enable_t   <= '0';
         adc1_read_enable_tt  <= '0';
         for I in 0 to 3 loop
           adc1_data_o(I)     <= (others => '0');
         end loop; 
-        adc1_data_valid_o    <= '0';
+        adc1_data_clk_o      <= '0';
       else
         -- Read enable
         adc1_read_enable_t   <= adc1_read_enable;
@@ -573,88 +681,50 @@ begin
           for I in 0 to 3 loop
             adc1_data_o(I)   <= adc1_data_f(I); 
           end loop;
-          adc1_data_valid_o  <= '1';
+          adc1_data_clk_o    <= '1';
         else
-          adc1_data_valid_o  <= '0';
+          adc1_data_clk_o    <= '0';
         end if;
       end if;
     end if;
   end process PROC_ADC1_FIFO_READ;
 
-  -----------------------------------------------------------------------------
-  -- Lock Monitor 
-  -----------------------------------------------------------------------------
-  signal_async_trans_1: signal_async_trans
+  -- Domain Transfer
+  adc0_locked_ff <= adc0_frame_locked when rising_edge(CLK_IN);
+  adc0_locked_f  <= adc0_locked_ff    when rising_edge(CLK_IN);
+  adc0_locked_o  <= adc0_locked_f     when rising_edge(CLK_IN);
+
+  adc1_locked_ff <= adc1_frame_locked when rising_edge(CLK_IN);
+  adc1_locked_f  <= adc1_locked_ff    when rising_edge(CLK_IN);
+  adc1_locked_o  <= adc1_locked_f     when rising_edge(CLK_IN);
+
+  pulse_dtrans_ADC0_ERROR: pulse_dtrans
+    generic map (
+      CLK_RATIO => 2
+      )
     port map (
-      CLK_IN      => CLK_IN,
-      SIGNAL_A_IN => not adc0_frame_locked,
-      SIGNAL_OUT  => adc0_frame_notlocked
+      CLK_A_IN    => DDR_DATA_CLK,
+      RESET_A_IN  => '0',
+      PULSE_A_IN  => adc0_error,
+      CLK_B_IN    => CLK_IN,
+      RESET_B_IN  => '0',
+      PULSE_B_OUT => error_adc0_o
       );
 
-  signal_async_trans_2: signal_async_trans
+  pulse_dtrans_ADC1_ERROR: pulse_dtrans
+    generic map (
+      CLK_RATIO => 2
+      )
     port map (
-      CLK_IN      => CLK_IN,
-      SIGNAL_A_IN => not adc1_frame_locked,
-      SIGNAL_OUT  => adc1_frame_notlocked
+      CLK_A_IN    => DDR_DATA_CLK,
+      RESET_A_IN  => '0',
+      PULSE_A_IN  => adc1_error,
+      CLK_B_IN    => CLK_IN,
+      RESET_B_IN  => '0',
+      PULSE_B_OUT => error_adc1_o
       );
   
-  level_to_pulse_1: level_to_pulse
-    port map (
-      CLK_IN    => CLK_IN,
-      RESET_IN  => RESET_IN,
-      LEVEL_IN  => adc0_frame_notlocked,
-      PULSE_OUT => adc0_frame_notlocked_p
-      );
-  
-  level_to_pulse_2: level_to_pulse
-    port map (
-      CLK_IN    => CLK_IN,
-      RESET_IN  => RESET_IN,
-      LEVEL_IN  => adc1_frame_notlocked,
-      PULSE_OUT => adc1_frame_notlocked_p
-      );
-
-  PROC_NOTLOCK_COUNTER: process(CLK_IN)
-  begin
-    if (rising_edge(CLK_IN)) then
-      if (RESET_IN = '1') then
-        adc0_notlock_ctr     <= (others => '0');
-        adc1_notlock_ctr     <= (others => '0');
-      else
-        if (adc0_frame_notlocked_p = '1') then
-          adc0_notlock_ctr   <= adc0_notlock_ctr + 1;
-        end if;
-
-        if (adc1_frame_notlocked_p = '1') then
-          adc1_notlock_ctr   <= adc1_notlock_ctr + 1;
-        end if;
-      end if;
-    end if;
-  end process PROC_NOTLOCK_COUNTER;
-
-  PROC_ERROR: process(CLK_IN)
-  begin
-    if (rising_edge(CLK_IN)) then
-      if (RESET_IN = '1') then
-        error_adc0_o     <= '0';
-        error_adc1_o     <= '0';
-      else
-        error_adc0_o     <= '0';
-        error_adc1_o     <= '0';
-        
-        if (adc0_frame_notlocked = '1') then
-          error_adc0_o   <= '1';
-        end if;
-
-        if (adc1_frame_notlocked = '1') then
-          error_adc1_o   <= '1';
-        end if;
-      end if;
-    end if;
-  end process PROC_ERROR;
-        
   -- Output
-  
   ADC0_SCLK_OUT        <= ADC0_SCLK_IN;
   ADC1_SCLK_OUT        <= ADC1_SCLK_IN;
   
@@ -662,16 +732,16 @@ begin
   ADC0_DATA_B_OUT      <= adc0_data_o(1);
   ADC0_DATA_C_OUT      <= adc0_data_o(2);
   ADC0_DATA_D_OUT      <= adc0_data_o(3);
-  ADC0_DATA_VALID_OUT  <= adc0_data_valid_o;
+  ADC0_DATA_CLK_OUT    <= adc0_data_clk_o;
 
   ADC1_DATA_A_OUT      <= adc1_data_o(0);
   ADC1_DATA_B_OUT      <= adc1_data_o(1);
   ADC1_DATA_C_OUT      <= adc1_data_o(2);
   ADC1_DATA_D_OUT      <= adc1_data_o(3);
-  ADC1_DATA_VALID_OUT  <= adc1_data_valid_o;
+  ADC1_DATA_CLK_OUT    <= adc1_data_clk_o;
 
-  ADC0_NOTLOCK_COUNTER <= adc0_notlock_ctr;
-  ADC1_NOTLOCK_COUNTER <= adc1_notlock_ctr;
+  ADC0_LOCKED_OUT      <= adc0_locked_o;
+  ADC1_LOCKED_OUT      <= adc1_locked_o;
 
   ERROR_ADC0_OUT       <= error_adc0_o;
   ERROR_ADC1_OUT       <= error_adc1_o;

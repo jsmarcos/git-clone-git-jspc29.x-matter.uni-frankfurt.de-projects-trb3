@@ -72,8 +72,6 @@ entity nx_trigger_handler is
 end entity;
 
 architecture Behavioral of nx_trigger_handler is
-  attribute HGROUP : string;
-  attribute HGROUP of Behavioral : architecture is "NX_TRIGGER_HANDLER";
 
   -- Timing Trigger Handler
   constant NUM_FF                   : integer := 10;

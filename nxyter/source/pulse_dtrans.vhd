@@ -20,8 +20,8 @@ entity pulse_dtrans is
 end entity;
 
 architecture Behavioral of pulse_dtrans is
-  attribute HGROUP : string;
-  attribute HGROUP of Behavioral : architecture is "PULSE_DTRANS";
+--  attribute HGROUP : string;
+--  attribute HGROUP of Behavioral : architecture is "PULSE_DTRANS";
 
   signal pulse_a_l      : std_logic;
   signal pulse_b_o      : std_logic;

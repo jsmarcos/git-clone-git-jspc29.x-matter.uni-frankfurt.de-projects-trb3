@@ -13,7 +13,7 @@ entity nx_trigger_validate is
   port (
     CLK_IN                 : in  std_logic;  
     RESET_IN               : in  std_logic;
-                           
+    
     -- Inputs              
     DATA_CLK_IN            : in  std_logic;
     TIMESTAMP_IN           : in  std_logic_vector(13 downto 0);
@@ -22,14 +22,14 @@ entity nx_trigger_validate is
     ADC_DATA_IN            : in  std_logic_vector(11 downto 0); -- 1: Pileup
     NX_TOKEN_RETURN_IN     : in  std_logic;                     -- 0: Ovfl
     NX_NOMORE_DATA_IN      : in  std_logic;
-                           
+    
     TRIGGER_IN             : in  std_logic;
     TRIGGER_BUSY_IN        : in  std_logic;
     FAST_CLEAR_IN          : in  std_logic;
     TRIGGER_BUSY_OUT       : out std_logic;
     TIMESTAMP_FPGA_IN      : in  unsigned(11 downto 0);
     DATA_FIFO_DELAY_OUT    : out std_logic_vector(7 downto 0);
-                           
+    
     -- Event Buffer I/O    
     DATA_OUT               : out std_logic_vector(31 downto 0);
     DATA_CLK_OUT           : out std_logic;
@@ -38,6 +38,7 @@ entity nx_trigger_validate is
     EVT_BUFFER_FULL_IN     : in  std_logic; 
     
     -- Histogram
+    HISTOGRAM_RESET_OUT    : out std_logic;
     HISTOGRAM_FILL_OUT     : out std_logic;
     HISTOGRAM_BIN_OUT      : out std_logic_vector(6 downto 0);
     HISTOGRAM_ADC_OUT      : out std_logic_vector(11 downto 0);
@@ -53,14 +54,13 @@ entity nx_trigger_validate is
     SLV_ACK_OUT            : out std_logic;
     SLV_NO_MORE_DATA_OUT   : out std_logic;
     SLV_UNKNOWN_ADDR_OUT   : out std_logic;
-                           
+    
     DEBUG_OUT              : out std_logic_vector(15 downto 0)
     );
 
 end entity;
 
 architecture Behavioral of nx_trigger_validate is
-
 
   constant S_PARITY            : integer := 2;
   constant S_PILEUP            : integer := 1;
@@ -87,7 +87,7 @@ architecture Behavioral of nx_trigger_validate is
                    CS_SET_HIT,
                    CS_SET_DONE,
                    CS_NONE
-                  );
+                   );
   signal channel_status_cmd    : CS_CMDS; 
   
   -- Process Calculate Trigger Window
@@ -110,13 +110,14 @@ architecture Behavioral of nx_trigger_validate is
   signal window_hit_ctr_r      : unsigned(15 downto 0);
   signal out_of_window_h_ctr_r : unsigned(15 downto 0);
   signal validation_busy       : std_logic_vector(1 downto 0);
-
+  signal histogram_trigger_filter : std_logic;
+  
   -- Rate Calculations
   signal data_rate_ctr_nr      : unsigned(31 downto 0);       
   signal data_rate_ctr         : unsigned(27 downto 0);
   signal data_rate             : unsigned(27 downto 0);
   signal rate_timer_ctr        : unsigned(27 downto 0);
-  
+
   -- Self Trigger Mode
   signal self_trigger_mode     : std_logic;
 
@@ -165,15 +166,16 @@ architecture Behavioral of nx_trigger_validate is
   signal timer_reset           : std_logic;
   signal wait_timer_done       : std_logic;
   signal wait_timer_done_ns    : std_logic;
-                               
+  
   -- Histogram
+
   signal histogram_trigger_all : std_logic;
   signal histogram_fill_o      : std_logic;
   signal histogram_bin_o       : std_logic_vector(6 downto 0);
   signal histogram_adc_o       : std_logic_vector(11 downto 0);
   signal histogram_pileup_o    : std_logic;
   signal histogram_ovfl_o      : std_logic;
-                               
+  
   -- Data FIFO Delay           
   signal data_fifo_delay_o     : unsigned(7 downto 0);
   
@@ -186,14 +188,16 @@ architecture Behavioral of nx_trigger_validate is
   signal slv_no_more_data_o    : std_logic;
   signal slv_unknown_addr_o    : std_logic;
   signal slv_ack_o             : std_logic;
-                               
+  
   signal readout_mode_r           : std_logic_vector(3 downto 0);
-  signal histogram_trigger_all_r  : std_logic;
+  signal histogram_trigger_filter_r  : std_logic;
   signal out_of_window_error_ctr_clear : std_logic;
 
   signal histogram_limits      : std_logic;
   signal histogram_lower_limit : unsigned(13 downto 0);
   signal histogram_upper_limit : unsigned(13 downto 0);
+  signal reset_hists_r         : std_logic;
+  signal reset_hists_o         : std_logic;
   
   -- Timestamp Trigger Window Settings
   signal nxyter_cv_time        : unsigned(11 downto 0);
@@ -208,22 +212,22 @@ architecture Behavioral of nx_trigger_validate is
 begin
   
   -- Debug Line
- DEBUG_OUT(0)            <= CLK_IN;
- DEBUG_OUT(1)            <= TRIGGER_IN;
- DEBUG_OUT(2)            <= trigger_busy_o;
- DEBUG_OUT(3)            <= DATA_CLK_IN;
- DEBUG_OUT(4)            <= out_of_window_l;
- DEBUG_OUT(5)            <= out_of_window_h;
- DEBUG_OUT(6)            <= NX_TOKEN_RETURN_IN;
- DEBUG_OUT(7)            <= NX_NOMORE_DATA_IN;
- DEBUG_OUT(8)            <= channel_all_done;
- DEBUG_OUT(9)            <= store_to_fifo;
- DEBUG_OUT(10)           <= data_clk_o;
- DEBUG_OUT(11)           <= out_of_window_error or EVT_BUFFER_FULL_IN;
- DEBUG_OUT(12)           <= TIMESTAMP_STATUS_IN(S_PARITY);-- token_update; --TRIGGER_BUSY_IN; --wait_timer_done;
- DEBUG_OUT(13)           <= min_val_time_expired;
- DEBUG_OUT(14)           <= token_update;
- DEBUG_OUT(15)           <= nomore_data_o;
+  DEBUG_OUT(0)            <= CLK_IN;
+  DEBUG_OUT(1)            <= TRIGGER_IN;
+  DEBUG_OUT(2)            <= trigger_busy_o;
+  DEBUG_OUT(3)            <= DATA_CLK_IN;
+  DEBUG_OUT(4)            <= out_of_window_l;
+  DEBUG_OUT(5)            <= out_of_window_h;
+  DEBUG_OUT(6)            <= NX_TOKEN_RETURN_IN;
+  DEBUG_OUT(7)            <= NX_NOMORE_DATA_IN;
+  DEBUG_OUT(8)            <= channel_all_done;
+  DEBUG_OUT(9)            <= store_to_fifo;
+  DEBUG_OUT(10)           <= data_clk_o;
+  DEBUG_OUT(11)           <= out_of_window_error or EVT_BUFFER_FULL_IN;
+  DEBUG_OUT(12)           <= TIMESTAMP_STATUS_IN(S_PARITY);
+  DEBUG_OUT(13)           <= min_val_time_expired;
+  DEBUG_OUT(14)           <= token_update;
+  DEBUG_OUT(15)           <= nomore_data_o;
   
   -- Timer
   timer_1: timer
@@ -267,30 +271,31 @@ begin
   begin 
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
-        d_data_o                <= (others => '0');
-        d_data_clk_o            <= '0';
-        out_of_window_l         <= '0';
-        out_of_window_h         <= '0';
-        window_hit              <= '0';
-        out_of_window_error     <= '0';
-        fifo_delay_time         <= (others => '0');
-        out_of_window_error_ctr <= (others => '0');
+        d_data_o                 <= (others => '0');
+        d_data_clk_o             <= '0';
+        out_of_window_l          <= '0';
+        out_of_window_h          <= '0';
+        window_hit               <= '0';
+        out_of_window_error      <= '0';
+        fifo_delay_time          <= (others => '0');
+        out_of_window_error_ctr  <= (others => '0');
+        histogram_trigger_filter <= '0';
       else
-        d_data_o                <= (others => '0');
-        d_data_clk_o            <= '0';
-        out_of_window_l         <= '0';
-        out_of_window_h         <= '0';
-        window_hit              <= '0';
-        out_of_window_error     <= '0';
-        fifo_delay_time         <= (others => '0');
-        ch_status_cmd_pr        <= CS_NONE;
+        d_data_o                 <= (others => '0');
+        d_data_clk_o             <= '0';
+        out_of_window_l          <= '0';
+        out_of_window_h          <= '0';
+        window_hit               <= '0';
+        out_of_window_error      <= '0';
+        fifo_delay_time          <= (others => '0');
+        ch_status_cmd_pr         <= CS_NONE;
         
-        histogram_fill_o        <= '0';
-        histogram_bin_o         <= (others => '0');
-        histogram_adc_o         <= (others => '0');
-        histogram_pileup_o      <= '0';
-        histogram_ovfl_o        <= '0';
-        histogram_trigger_all   <= histogram_trigger_all_r;
+        histogram_fill_o         <= '0';
+        histogram_bin_o          <= (others => '0');
+        histogram_adc_o          <= (others => '0');
+        histogram_pileup_o       <= '0';
+        histogram_ovfl_o         <= '0';
+        histogram_trigger_filter <= histogram_trigger_filter_r;
         
         -----------------------------------------------------------------------
         -- Calculate Thresholds and values for FIFO Delay
@@ -373,7 +378,7 @@ begin
             if (store_data = '1') then
 
               case readout_mode(1 downto 0) is              
-                               
+                
                 when "00" =>
                   -- Default Mode
                   if (TIMESTAMP_STATUS_IN(S_PARITY) = '0') then
@@ -477,12 +482,12 @@ begin
             out_of_window_l_ctr      <= (others => '0');
             window_hit_ctr           <= (others => '0');
             out_of_window_l_ctr      <= (others => '0');
-                                     
+            
           when "01"=>                   -- Start validation
             out_of_window_l_ctr      <= (others => '0');
             window_hit_ctr           <= (others => '0');
             out_of_window_l_ctr      <= (others => '0');
-                                            
+            
           when "10"=>                   -- End validation
             out_of_window_l_ctr_r    <= out_of_window_l_ctr;
             window_hit_ctr_r         <= window_hit_ctr;
@@ -608,7 +613,7 @@ begin
         end if;
         min_validation_time_r       <= min_validation_time;
         wait_for_data_time_r        <= wait_for_data_time;
-       
+        
         -- Check Token Return
         token_return_last           <= NX_TOKEN_RETURN_IN;
         if (store_to_fifo      = '1' and  -- min_val_time handled by TK-UPDATE
@@ -630,7 +635,7 @@ begin
 
           when S_TEST_SELF_TRIGGER =>
             state_d <= "00";
-        
+            
             if (self_trigger_mode = '1') then
               -- Wait End of LVL2 Trigger Cycle
               if (TRIGGER_BUSY_IN = '1') then
@@ -645,7 +650,7 @@ begin
               min_val_time_expired        <= '0';
               STATE                       <= S_IDLE;
             end if;
-                  
+            
           when S_IDLE =>
             state_d <= "01";
 
@@ -842,7 +847,7 @@ begin
             
           when CS_SET_DONE =>
             channel_done(to_integer(unsigned(channel_index))) <= '1';
-      
+            
           when CS_NONE => null;
 
         end case;
@@ -859,7 +864,7 @@ begin
         data_fifo_delay_o       <= x"01";
       else
         -- nxyter delay assumed to be 400ns
-         nx_cvt                 := nxyter_cv_time / 4;
+        nx_cvt                 := nxyter_cv_time / 4;
         if (fifo_delay_time > nx_cvt and fifo_delay_time < 1000) then
           fifo_delay            := (fifo_delay_time - nx_cvt) / 8;   
           data_fifo_delay_o     <= fifo_delay(7 downto 0);
@@ -883,32 +888,33 @@ begin
         slv_ack_o                     <= '0';
         slv_unknown_addr_o            <= '0';
         slv_no_more_data_o            <= '0';
-                                      
+        
         ts_window_offset              <= (others => '0');
         ts_window_width               <= "0000110010";  -- 50
         cts_trigger_delay             <= x"0c8";
         readout_mode_r                <= "0000";
         readout_time_max              <= x"3e8";
-        histogram_trigger_all_r       <= '1';
+        histogram_trigger_filter_r    <= '1';
         fpga_timestamp_offset         <= (others => '0');
         out_of_window_error_ctr_clear <= '0';
         skip_wait_for_data            <= '0';
         nxyter_cv_time                <= x"190";  -- 400ns
+        reset_hists_r                 <= '0';
       else
-        slv_data_out_o                <= (others => '0');
-        slv_unknown_addr_o            <= '0';
-        slv_no_more_data_o            <= '0';
+        slv_data_out_o                   <= (others => '0');
+        slv_unknown_addr_o               <= '0';
+        slv_no_more_data_o               <= '0';
 
         cts_trigger_delay(11 downto 10)  <= (others => '0'); 
         readout_time_max(11 downto 10)   <= (others => '0'); 
         out_of_window_error_ctr_clear    <= '0';
+        reset_hists_r                    <= '0';
 
         if (SLV_READ_IN  = '1') then
           case SLV_ADDR_IN is
             when x"0000" =>
               slv_data_out_o( 3 downto  0)    <= readout_mode_r;
-              slv_data_out_o(30 downto  5)    <= (others => '0');
-              slv_data_out_o(31)              <= histogram_trigger_all_r;
+              slv_data_out_o(31 downto  5)    <= (others => '0');
               slv_ack_o                       <= '1';
 
             when x"0001" =>
@@ -932,7 +938,7 @@ begin
                 std_logic_vector(cts_trigger_delay(9 downto 0));
               slv_data_out_o(31 downto 10)    <= (others => '0');
               slv_ack_o                       <= '1'; 
-                          
+              
             when x"0004" =>
               slv_data_out_o(9 downto  0)     <=
                 std_logic_vector(readout_time_max(9 downto 0));
@@ -972,8 +978,8 @@ begin
               slv_data_out_o(31 downto  8)    <= (others => '0');
               slv_ack_o                       <= '1'; 
 
-            -- 4x Channel WAIT
-           
+              -- 4x Channel WAIT
+              
             when x"000b" =>
               slv_data_out_o                  <=
                 std_logic_vector(channel_wait_r(31 downto 0));
@@ -1078,11 +1084,11 @@ begin
               slv_data_out_o(31 downto 16)    <= (others => '0');
               slv_ack_o                       <= '1';
 
-            --when x"001e" =>
-            --  slv_data_out_o(15 downto 0)     <=
-            --    std_logic_vector(out_of_window_h_ctr_r);
-            --  slv_data_out_o(31 downto 16)    <= (others => '0');
-            --  slv_ack_o                       <= '1';
+              --when x"001e" =>
+              --  slv_data_out_o(15 downto 0)     <=
+              --    std_logic_vector(out_of_window_h_ctr_r);
+              --  slv_data_out_o(31 downto 16)    <= (others => '0');
+              --  slv_ack_o                       <= '1';
 
             when x"001e" =>
               slv_data_out_o(27 downto 0)     <= std_logic_vector(data_rate);
@@ -1092,11 +1098,11 @@ begin
             when x"001f" =>
               slv_data_out_o(13 downto 0)     <=
                 std_logic_vector(histogram_lower_limit);
-              slv_data_out_o(15 downto 14)    <= (others => '0');
-              slv_data_out_o(29 downto 16)    <=
+              slv_data_out_o(28 downto 15)    <=
                 std_logic_vector(histogram_upper_limit);
-              slv_data_out_o(30)              <= '0';
-              slv_data_out_o(31)              <= histogram_limits;
+              slv_data_out_o(29)              <= '0';
+              slv_data_out_o(30)              <= histogram_limits;
+              slv_data_out_o(31)              <= histogram_trigger_filter_r;
               slv_ack_o                       <= '1';
 
             when others  =>
@@ -1109,9 +1115,8 @@ begin
           case SLV_ADDR_IN is
             when x"0000" =>
               readout_mode_r                  <= SLV_DATA_IN(3 downto 0);
-              histogram_trigger_all_r         <= SLV_DATA_IN(31); 
               slv_ack_o                       <= '1';
-                                              
+              
             when x"0001" =>
               if ((signed(SLV_DATA_IN(11 downto 0)) > -2048) and
                   (signed(SLV_DATA_IN(11 downto 0)) <  2048)) then
@@ -1119,7 +1124,7 @@ begin
                   signed(SLV_DATA_IN(11 downto 0));
               end if;
               slv_ack_o                       <= '1';
-                                              
+              
             when x"0002" =>                   
               ts_window_width                 <=
                 unsigned(SLV_DATA_IN(9 downto 0));
@@ -1157,8 +1162,10 @@ begin
 
             when x"001f" =>
               histogram_lower_limit           <= SLV_DATA_IN(13 downto 0);
-              histogram_upper_limit           <= SLV_DATA_IN(29 downto 16);
-              histogram_limits                <= SLV_DATA_IN(31);
+              histogram_upper_limit           <= SLV_DATA_IN(28 downto 15);
+              reset_hists_r                   <= SLV_DATA_IN(29);
+              histogram_limits                <= SLV_DATA_IN(30);
+              histogram_trigger_filter_r      <= SLV_DATA_IN(31);
               slv_ack_o                       <= '1';
               
             when others  =>                   
@@ -1176,8 +1183,21 @@ begin
   -- Output Signals
   -----------------------------------------------------------------------------
 
-  data_clk_o <= d_data_clk_o or t_data_clk_o;
-  data_o     <= d_data_o or t_data_o;
+  pulse_to_level_RESET_HISTS: pulse_to_level
+    generic map (
+      NUM_CYCLES => 15
+      )
+    port map (
+      CLK_IN    => CLK_IN,
+      RESET_IN  => RESET_IN,
+      PULSE_IN  => reset_hists_r,
+      LEVEL_OUT => reset_hists_o
+      );
+  
+  data_clk_o             <= d_data_clk_o or t_data_clk_o;
+  data_o                 <= d_data_o or t_data_o;
+
+  -----------------------------------------------------------------------------
   
   TRIGGER_BUSY_OUT       <= trigger_busy_o;
   DATA_OUT               <= data_o or t_data_o;
@@ -1185,7 +1205,8 @@ begin
   NOMORE_DATA_OUT        <= nomore_data_o;
   DATA_FIFO_DELAY_OUT    <= std_logic_vector(data_fifo_delay_o);
   EVT_BUFFER_CLEAR_OUT   <= evt_buffer_clear_o;
-  
+
+  HISTOGRAM_RESET_OUT    <= reset_hists_o;
   HISTOGRAM_FILL_OUT     <= histogram_fill_o;
   HISTOGRAM_BIN_OUT      <= histogram_bin_o;
   HISTOGRAM_ADC_OUT      <= histogram_adc_o;

@@ -84,22 +84,25 @@ architecture Behavioral of nx_histograms is
   signal ovfl_read_data_valid : std_logic;
 
   -- ADC Value Histogram
-  signal adc_num_averages    : unsigned(2 downto 0);
-  signal adc_average_enable  : std_logic;
-  signal adc_write_busy      : std_logic;
-  signal adc_read_busy       : std_logic;
-  
-  signal adc_write_id        : std_logic_vector(6 downto 0);
-  signal adc_write_data      : std_logic_vector(31 downto 0);
-  signal adc_write           : std_logic;
-  signal adc_add             : std_logic;
-
-  signal adc_read_id         : std_logic_vector(6 downto 0);
-  signal adc_read            : std_logic;
-  signal adc_read_data       : std_logic_vector(31 downto 0);
-  signal adc_read_data_valid : std_logic;
-
-  -- Slave Bus                    
+  signal adc_num_averages     : unsigned(2 downto 0);
+  signal adc_average_enable   : std_logic;
+  signal adc_write_busy       : std_logic;
+  signal adc_read_busy        : std_logic;
+                              
+  signal adc_write_id         : std_logic_vector(6 downto 0);
+  signal adc_write_data       : std_logic_vector(31 downto 0);
+  signal adc_write            : std_logic;
+  signal adc_add              : std_logic;
+                              
+  signal adc_read_id          : std_logic_vector(6 downto 0);
+  signal adc_read             : std_logic;
+  signal adc_read_data        : std_logic_vector(31 downto 0);
+  signal adc_read_data_valid  : std_logic;
+                              
+  -- Reset Hists              
+  signal RESET_HISTS          : std_logic;
+                              
+  -- Slave Bus                     
   signal slv_data_out_o       : std_logic_vector(31 downto 0);
   signal slv_no_more_data_o   : std_logic;
   signal slv_unknown_addr_o   : std_logic;
@@ -128,10 +131,12 @@ begin
 
   -----------------------------------------------------------------------------
 
+  RESET_HISTS    <= RESET_IN or RESET_HISTS_IN;
+
   nx_histogram_hits: nx_histogram
     port map (
       CLK_IN                 => CLK_IN,
-      RESET_IN               => RESET_IN,
+      RESET_IN               => RESET_HISTS,
 
       NUM_AVERAGES_IN        => hit_num_averages,
       AVERAGE_ENABLE_IN      => hit_average_enable,
@@ -153,7 +158,7 @@ begin
   nx_histogram_adc: nx_histogram
     port map (
       CLK_IN                 => CLK_IN,
-      RESET_IN               => RESET_IN,
+      RESET_IN               => RESET_HISTS,
 
       NUM_AVERAGES_IN        => adc_num_averages,
       AVERAGE_ENABLE_IN      => adc_average_enable,
@@ -175,7 +180,7 @@ begin
   nx_histogram_pileup: nx_histogram
     port map (
       CLK_IN                 => CLK_IN,
-      RESET_IN               => RESET_IN,
+      RESET_IN               => RESET_HISTS,
 
       NUM_AVERAGES_IN        => pileup_num_averages,
       AVERAGE_ENABLE_IN      => pileup_average_enable,
@@ -197,7 +202,7 @@ begin
   nx_histogram_ovfl: nx_histogram
     port map (
       CLK_IN                 => CLK_IN,
-      RESET_IN               => RESET_IN,
+      RESET_IN               => RESET_HISTS,
 
       NUM_AVERAGES_IN        => ovfl_num_averages,
       AVERAGE_ENABLE_IN      => ovfl_average_enable,
@@ -223,7 +228,7 @@ begin
   PROC_FILL_HISTOGRAMS: process(CLK_IN)
   begin
     if (rising_edge(CLK_IN)) then
-      if (RESET_IN = '1') then
+      if (RESET_HISTS = '1') then
         hit_write_id                   <= (others => '0');
         hit_write_data                 <= (others => '0');
         hit_write                      <= '0';
@@ -299,7 +304,7 @@ begin
   PROC_HISTOGRAMS_READ: process(CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then
-      if( RESET_IN = '1' ) then
+      if (RESET_HISTS = '1') then
         slv_data_out_o        <= (others => '0');
         slv_no_more_data_o    <= '0';
         slv_unknown_addr_o    <= '0';

@@ -18,8 +18,8 @@ entity timer_static is
 end entity;
 
 architecture Behavioral of timer_static is
-  attribute HGROUP : string;
-  attribute HGROUP of Behavioral : architecture is "NX_TIMER_STATIC";
+--  attribute HGROUP : string;
+--  attribute HGROUP of Behavioral : architecture is "NX_TIMER_STATIC";
   
   -- Timer
   constant ctr_limit     : unsigned(CTR_WIDTH - 1 downto 0)

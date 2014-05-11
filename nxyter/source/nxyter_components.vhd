@@ -213,6 +213,9 @@ end component;
 -------------------------------------------------------------------------------
 
 component adc_ad9228
+  generic (
+    DEBUG_ENABLE : boolean
+    );
   port (
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
@@ -240,19 +243,19 @@ component adc_ad9228
     ADC0_DATA_B_OUT      : out std_logic_vector(11 downto 0);
     ADC0_DATA_C_OUT      : out std_logic_vector(11 downto 0);
     ADC0_DATA_D_OUT      : out std_logic_vector(11 downto 0);
-    ADC0_DATA_VALID_OUT  : out std_logic;
+    ADC0_DATA_CLK_OUT    : out std_logic;
 
     ADC1_DATA_A_OUT      : out std_logic_vector(11 downto 0);
     ADC1_DATA_B_OUT      : out std_logic_vector(11 downto 0);
     ADC1_DATA_C_OUT      : out std_logic_vector(11 downto 0);
     ADC1_DATA_D_OUT      : out std_logic_vector(11 downto 0);
-    ADC1_DATA_VALID_OUT  : out std_logic;
+    ADC1_DATA_CLK_OUT    : out std_logic;
 
-    ADC0_NOTLOCK_COUNTER : out unsigned(7 downto 0);
-    ADC1_NOTLOCK_COUNTER : out unsigned(7 downto 0);
-
+    ADC0_LOCKED_OUT      : out std_logic;
+    ADC1_LOCKED_OUT      : out std_logic;
     ERROR_ADC0_OUT       : out std_logic;
     ERROR_ADC1_OUT       : out std_logic;
+
     DEBUG_IN             : in std_logic_vector(3 downto 0);
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
@@ -549,6 +552,7 @@ component nx_trigger_validate
     NOMORE_DATA_OUT        : out std_logic;
     EVT_BUFFER_CLEAR_OUT   : out std_logic;
     EVT_BUFFER_FULL_IN     : in  std_logic;
+    HISTOGRAM_RESET_OUT    : out std_logic;
     HISTOGRAM_FILL_OUT     : out std_logic;
     HISTOGRAM_BIN_OUT      : out std_logic_vector(6 downto 0);
     HISTOGRAM_ADC_OUT      : out std_logic_vector(11 downto 0);
@@ -734,7 +738,7 @@ end component;
 
 component signal_async_trans
   generic (
-    NUM_FF : integer range 2 to 4
+    NUM_FF : integer range 2 to 5
     );
   port (
     CLK_IN      : in  std_logic;

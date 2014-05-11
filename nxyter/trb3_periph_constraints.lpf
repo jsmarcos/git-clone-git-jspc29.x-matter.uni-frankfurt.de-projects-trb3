@@ -65,7 +65,6 @@ LOCATE UGROUP        "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLI
 #
 #################################################
 
-#BLOCK NET "nXyter_FEE_board_*/nx_data_receiver_*/adc_ad9228_*/fifo_adc_48to48_dc_*/r_gcount*";
 
 MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset*"                                                      50 ns;
 
@@ -84,9 +83,8 @@ MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_fpga_timestamp_*/timestamp_sync_o*" 
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_fpga_timestamp_*/timestamp_hold_o_*"                           30 ns;
 
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/reset_nx_timestamp_clk_in_ff*"                 30 ns;
-MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/error_adc0_ff*"                                30 ns;
 MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/merge_handler_reset_i*"                        30 ns;
-MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_reset_handler*"                            30 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_reset_handler_cnx_ff*"                     30 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/reset_handler_start_r*"                       100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/johnson_counter_sync_r*"                      100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_timestamp_delay_r*"                        100 ns;
@@ -99,13 +97,18 @@ MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/pll_adc_sampling_clk
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_bit_shift*"                               100 ns;
 MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/new_adc_dt_error_ctr_*"                       100 ns;
 MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/new_timestamp_dt_error_ctr_*"                 100 ns;
-MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_clk_ok"                                   100 ns;
-MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_debug_type*"                              100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_sclk_ok_f*"                               100 ns; 
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_debug_type_r*"                            100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_timestamp_reset_o*"                        100 ns;
-MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_notlock_ctr_r*"                           100 ns;
-MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/merge_error_ctr_r*"                           100 ns;
-MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_frame_synced_r*"                           100 ns;
-MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/disable_adc_n*"                               100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/fifo_full_rr*"                                100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/fifo_empty_rr*"                               100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_frame_synced_rr*"                          100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/disable_adc_f*"                               100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_debug_type_f*"                            100 ns;
+
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_ad9228_*/RESET_CLKDIV*"                    30 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_ad9228_*/RESET_ADC0_CLKD_F*"               30 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_ad9228_*/adc0_locked_o*"                  100 ns;
  
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/readout_mode_r_*"                          100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/cts_trigger_delay_*"                       100 ns;
@@ -129,25 +132,15 @@ LOCATE UGROUP "THE_SPI_MEMORY/SPI_group" REGION "REGION_SPI" ;
 # look at .par and .twr.setup file for clocks 
 # IN .mrp  you find the semantic errors
 
-#PROHIBIT PRIMARY   NET "nXyter_FEE_board_0/nx_data_receiver_1/adc_ad9228_1/DDR_DATA_CLK_c";
-#PROHIBIT SECONDARY NET "nXyter_FEE_board_0/nx_data_receiver_1/adc_ad9228_1/DDR_DATA_CLK_c";
-
+# DDR Generic PLL Setup, very important, do never remove!
+LOCATE COMP "pll_adc_clk_1/PLLInst_0" SITE "PLL_R61C5" ;
 
 PROHIBIT PRIMARY   NET "NX1_DATA_CLK_*";
 PROHIBIT SECONDARY NET "NX1_DATA_CLK_*";
 
-#PROHIBIT PRIMARY   NET "NX2_DATA_CLK_*";
-#PROHIBIT SECONDARY NET "NX2_DATA_CLK_*";
-
 DEFINE PORT GROUP    "NX1_IN" "NX1_TIMESTAMP_*";
-INPUT_SETUP GROUP    "NX1_IN" 1.0 ns HOLD 1.0 ns CLKPORT="NX1_DATA_CLK_IN"; 
+INPUT_SETUP GROUP    "NX1_IN" 1.5 ns HOLD 1.5 ns CLKPORT="NX1_DATA_CLK_IN"; 
 
-#DEFINE PORT GROUP    "NX2_IN" "NX2_TIMESTAMP_*";
-#INPUT_SETUP GROUP    "NX2_IN" 2.0 ns HOLD 2.0 ns CLKPORT="NX2_DATA_CLK_IN"; 
-
-UGROUP NXYTER1 BBOX 76 58
+UGROUP NXYTER1 BBOX 100 70
  BLKNAME nXyter_FEE_board_0;
-LOCATE UGROUP NXYTER1 SITE "R28C2D";
-
-
-LOCATE COMP "pll_adc_clk_1/PLLInst_0" SITE "PLL_R61C5" ;
+LOCATE UGROUP NXYTER1 SITE "R2C2D";

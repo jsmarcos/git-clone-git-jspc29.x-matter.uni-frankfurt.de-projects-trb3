@@ -167,7 +167,8 @@ architecture Behavioral of nXyter_FEE_board is
   signal trigger_validate_adc    : std_logic_vector(11 downto 0);
   signal trigger_validate_pileup : std_logic;
   signal trigger_validate_ovfl   : std_logic;
-  
+  signal reset_hists             : std_logic;
+
   -- Event Buffer                
   signal fee_data_o_0           : std_logic_vector(31 downto 0);
   signal fee_data_write_o_0     : std_logic;
@@ -677,7 +678,8 @@ begin
       NOMORE_DATA_OUT          => validate_nomore_data,
       EVT_BUFFER_CLEAR_OUT     => event_buffer_clear,
       EVT_BUFFER_FULL_IN       => evt_buffer_full,
-                               
+
+      HISTOGRAM_RESET_OUT      => reset_hists,
       HISTOGRAM_FILL_OUT       => trigger_validate_fill,
       HISTOGRAM_BIN_OUT        => trigger_validate_bin,
       HISTOGRAM_ADC_OUT        => trigger_validate_adc,
@@ -763,7 +765,7 @@ begin
       CLK_IN                      => CLK_IN,
       RESET_IN                    => RESET_IN,
                                  
-      RESET_HISTS_IN              => '0',
+      RESET_HISTS_IN              => reset_hists,
       CHANNEL_FILL_IN             => trigger_validate_fill,
       CHANNEL_ID_IN               => trigger_validate_bin,
       CHANNEL_ADC_IN              => trigger_validate_adc,

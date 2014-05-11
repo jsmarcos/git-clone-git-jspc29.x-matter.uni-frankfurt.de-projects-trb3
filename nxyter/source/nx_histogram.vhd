@@ -14,7 +14,6 @@ entity nx_histogram is
     CLK_IN                 : in  std_logic;
     RESET_IN               : in  std_logic;
 
-    
     NUM_AVERAGES_IN        : in  unsigned(2 downto 0);
     AVERAGE_ENABLE_IN      : in  std_logic;
     CHANNEL_ID_IN          : in  std_logic_vector(BUS_WIDTH - 1 downto 0);
@@ -39,7 +38,9 @@ architecture Behavioral of nx_histogram is
   -- Hist Fill/Ctr Handler
   type H_STATES is (H_IDLE,
                     H_WRITEADD_CHANNEL,
-                    H_WRITE_CHANNEL
+                    H_WRITE_CHANNEL,
+                    H_ERASE,
+                    H_ERASE_CHANNEL
                     );
   signal H_STATE, H_NEXT_STATE : H_STATES;
 
@@ -63,6 +64,9 @@ architecture Behavioral of nx_histogram is
   signal write_enable            : std_logic;
 
   signal channel_write_busy_o    : std_logic;
+
+  signal erase_counter_x         : unsigned(BUS_WIDTH - 1 downto 0);
+  signal erase_counter           : unsigned(BUS_WIDTH - 1 downto 0);
   
   -- Hist Read Handler
   signal read_address            : std_logic_vector(BUS_WIDTH - 1 downto 0);
@@ -86,7 +90,8 @@ begin
   DEBUG_OUT(5)              <= CHANNEL_READ_IN;
   DEBUG_OUT(6)              <= read_enable;
   DEBUG_OUT(7)              <= channel_data_valid_o;
-  DEBUG_OUT(15 downto 8)    <= channel_data_o(7 downto 0);
+  DEBUG_OUT(8)              <= RESET_IN;
+  DEBUG_OUT(15 downto 9)    <= channel_data_o(6 downto 0);
   
   -----------------------------------------------------------------------------
 
@@ -181,10 +186,12 @@ begin
       if( RESET_IN = '1' ) then
         address_hist_m       <= (others => '0');
         data_hist_m          <= (others => '0');
-        H_STATE              <= H_IDLE;
+        erase_counter        <= (others => '0');
+        H_STATE              <= H_ERASE;
       else
         address_hist_m       <= address_hist_m_x;
         data_hist_m          <= data_hist_m_x;
+        erase_counter        <= erase_counter_x;
         H_STATE              <= H_NEXT_STATE;
       end if;
     end if;
@@ -200,6 +207,7 @@ begin
   begin
     address_hist_m_x            <= address_hist_m;
     data_hist_m_x               <= data_hist_m;
+    erase_counter_x             <= erase_counter;
     
     case H_STATE is
       when H_IDLE =>
@@ -281,6 +289,41 @@ begin
         write_enable            <= '1';
         channel_write_busy_o    <= '1';
         H_NEXT_STATE            <= H_IDLE;
+
+      when H_ERASE =>
+        write_address_hist      <= (others => '0');
+        write_data_hist         <= (others => '0');
+        write_data_ctr_hist     <= (others => '0');
+        write_enable_hist       <= '0';
+        write_address           <= (others => '0');
+        write_data              <= (others => '0');
+        write_enable            <= '0';
+        erase_counter_x         <= erase_counter + 1;
+        read_address_hist       <= (others => '0');
+        read_enable_hist        <= '0';
+        address_hist_m_x        <= std_logic_vector(erase_counter);
+        data_hist_m_x           <= (others => '0');
+        channel_write_busy_o    <= '1';
+        H_NEXT_STATE            <= H_ERASE_CHANNEL;
+
+      when H_ERASE_CHANNEL  =>
+        new_data                := unsigned(data_hist_m);
+        read_address_hist       <= (others => '0');
+        read_enable_hist        <= '0';
+        write_address_hist      <= address_hist_m;
+        write_data_hist         <= new_data;
+        write_data_ctr_hist     <= (others => '0');
+        write_enable_hist       <= '1';
+
+        write_address           <= address_hist_m;
+        write_data              <= new_data;
+        write_enable            <= '1';
+        channel_write_busy_o    <= '1';
+        if (erase_counter > 0) then
+          H_NEXT_STATE          <= H_ERASE;
+        else
+          H_NEXT_STATE          <= H_IDLE;
+        end if;
 
     end case;
         
