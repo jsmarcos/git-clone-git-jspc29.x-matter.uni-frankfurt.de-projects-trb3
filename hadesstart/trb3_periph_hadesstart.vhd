@@ -251,7 +251,6 @@ architecture trb3_periph_hadesstart_arch of trb3_periph_hadesstart is
   signal trig_nack  : std_logic := '0';
   signal trig_addr  : std_logic_vector(15 downto 0) := (others => '0');
 
-  signal stat_out   : std_logic_vector(3 downto 0);
   signal stat_din   : std_logic_vector(31 downto 0);
   signal stat_dout  : std_logic_vector(31 downto 0);
   signal stat_write : std_logic := '0';
@@ -787,14 +786,6 @@ THE_SED : entity work.sedcheck
     ADDR_IN    => sed_addr
     );
 
--- THE_SED : entity work.sedcheck 
---   port map(
---     CLK        => clk_100_i,
---     ERROR_OUT  => sed_error,
---     i_rst_p    => i_rst_p,
---     STATUS_OUT => TEST_LINE(11 downto 0)
---     ); 
-    
 ---------------------------------------------------------------------------
 -- LED
 ---------------------------------------------------------------------------
