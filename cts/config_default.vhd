@@ -11,8 +11,11 @@ package config is
 ------------------------------------------------------------------------------
 
 --include TDC for all four trigger input lines
-    constant INCLUDE_TDC : integer range c_NO to c_YES := c_YES;
+    constant INCLUDE_TDC : integer range c_NO to c_YES := c_NO;
     constant TDC_CHANNEL_NUMBER : integer := 5;
+--Use 64 word ringbuffer instead of 128 word ringbuffer in TDC channels
+    constant USE_64_FIFO : integer := c_YES;
+
     
 --use all four SFP (1-4) as downlink to other boards.     
     constant USE_4_SFP   : integer range c_NO to c_YES := c_NO;
@@ -21,6 +24,10 @@ package config is
 --Run wih 125 MHz instead of 100 MHz     
     constant USE_125_MHZ : integer range c_NO to c_YES := c_NO;    
 
+--Run external 200 MHz clock source
+    constant USE_EXTERNAL_CLOCK : integer range c_NO to c_YES := c_NO;    
+    
+    
 --Which external trigger module (ETM) to use?
     type ETM_CHOICE_type is (ETM_CHOICE_MBS_VULOM, ETM_CHOICE_MAINZ_A2);
     constant ETM_CHOICE : ETM_CHOICE_type := ETM_CHOICE_MBS_VULOM;

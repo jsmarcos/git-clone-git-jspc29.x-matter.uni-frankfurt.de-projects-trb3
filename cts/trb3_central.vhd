@@ -173,6 +173,9 @@ entity trb3_central is
     attribute syn_useioff of CLK_MNGR2_USER     : signal is false;
     attribute syn_useioff of TRIGGER_SELECT     : signal is false;
     attribute syn_useioff of CLOCK_SELECT       : signal is false;
+
+    attribute syn_useioff of CLK_EXT            : signal is false;
+
 end entity;
 
 architecture trb3_central_arch of trb3_central is
@@ -257,7 +260,7 @@ architecture trb3_central_arch of trb3_central is
   signal gbe_fee_busy                     : std_logic;
 
   signal stage_stat_regs              : std_logic_vector (31 downto 0);
-  signal stage_ctrl_regs              : std_logic_vector (31 downto 0);
+  signal stage_ctrl_regs              : std_logic_vector (31 downto 0) := (others => '0');
 
   signal mb_stat_reg_data_wr          : std_logic_vector(31 downto 0);
   signal mb_stat_reg_data_rd          : std_logic_vector(31 downto 0);
@@ -270,9 +273,9 @@ architecture trb3_central_arch of trb3_central is
   signal mb_ip_mem_read               : std_logic;
   signal mb_ip_mem_write              : std_logic;
   signal mb_ip_mem_ack                : std_logic;
-  signal ip_cfg_mem_clk				: std_logic;
-  signal ip_cfg_mem_addr				: std_logic_vector(7 downto 0);
-  signal ip_cfg_mem_data				: std_logic_vector(31 downto 0);
+  signal ip_cfg_mem_clk        : std_logic;
+  signal ip_cfg_mem_addr        : std_logic_vector(7 downto 0);
+  signal ip_cfg_mem_data        : std_logic_vector(31 downto 0) := (others => '0');
   signal ctrl_reg_addr                : std_logic_vector(15 downto 0);
   signal gbe_stp_reg_addr             : std_logic_vector(15 downto 0);
   signal gbe_stp_data                 : std_logic_vector(31 downto 0);
@@ -315,7 +318,7 @@ architecture trb3_central_arch of trb3_central is
   signal cts_ext_status              : std_logic_vector(31 downto 0) := (others => '0');
   signal cts_ext_control             : std_logic_vector(31 downto 0);
   signal cts_ext_debug               : std_logic_vector(31 downto 0);
-  signal cts_ext_header 						 : std_logic_vector(1 downto 0);
+  signal cts_ext_header              : std_logic_vector(1 downto 0);
 
   signal cts_rdo_additional_data            : std_logic_vector(31+INCLUDE_TDC*32 downto 0);
   signal cts_rdo_additional_write           : std_logic_vector(0+INCLUDE_TDC downto 0) := (others => '0');
@@ -383,7 +386,7 @@ architecture trb3_central_arch of trb3_central is
   signal hitreg_write_en   : std_logic;
   signal hitreg_data_in    : std_logic_vector(31 downto 0);
   signal hitreg_addr       : std_logic_vector(6 downto 0);
-  signal hitreg_data_out   : std_logic_vector(31 downto 0);
+  signal hitreg_data_out   : std_logic_vector(31 downto 0) := (others => '0');
   signal hitreg_data_ready : std_logic;
   signal hitreg_invalid    : std_logic;
 
@@ -391,7 +394,7 @@ architecture trb3_central_arch of trb3_central is
   signal srb_write_en   : std_logic;
   signal srb_data_in    : std_logic_vector(31 downto 0);
   signal srb_addr       : std_logic_vector(6 downto 0);
-  signal srb_data_out   : std_logic_vector(31 downto 0);
+  signal srb_data_out   : std_logic_vector(31 downto 0) := (others => '0');
   signal srb_data_ready : std_logic;
   signal srb_invalid    : std_logic;
 
@@ -407,7 +410,7 @@ architecture trb3_central_arch of trb3_central is
   signal esb_write_en   : std_logic;
   signal esb_data_in    : std_logic_vector(31 downto 0);
   signal esb_addr       : std_logic_vector(6 downto 0);
-  signal esb_data_out   : std_logic_vector(31 downto 0);
+  signal esb_data_out   : std_logic_vector(31 downto 0) := (others => '0');
   signal esb_data_ready : std_logic;
   signal esb_invalid    : std_logic;
 
@@ -415,7 +418,7 @@ architecture trb3_central_arch of trb3_central is
   signal fwb_write_en   : std_logic;
   signal fwb_data_in    : std_logic_vector(31 downto 0);
   signal fwb_addr       : std_logic_vector(6 downto 0);
-  signal fwb_data_out   : std_logic_vector(31 downto 0);
+  signal fwb_data_out   : std_logic_vector(31 downto 0) := (others => '0');
   signal fwb_data_ready : std_logic;
   signal fwb_invalid    : std_logic;
 
@@ -424,7 +427,7 @@ architecture trb3_central_arch of trb3_central is
   signal tdc_ctrl_write     : std_logic;
   signal tdc_ctrl_addr      : std_logic_vector(2 downto 0);
   signal tdc_ctrl_data_in   : std_logic_vector(31 downto 0);
-  signal tdc_ctrl_data_out  : std_logic_vector(31 downto 0);
+  signal tdc_ctrl_data_out  : std_logic_vector(31 downto 0) := (others => '0');
   signal tdc_ctrl_reg   : std_logic_vector(6*32-1 downto 0);
   signal tdc_debug      : std_logic_vector(15 downto 0);  
 
@@ -456,31 +459,31 @@ begin
       DEBUG => cts_ext_debug
    );
    
-	end generate;
+  end generate;
 
 -- Mainz A2 Module
-	gen_mainz_a2_as_etm: if ETM_CHOICE = ETM_CHOICE_MAINZ_A2 generate
-		mainz_a2_recv_1: entity work.mainz_a2_recv
-			port map (
-				CLK						 => clk_100_i,
-				RESET_IN			 => reset_i,
-				TIMER_TICK_1US_IN => timer_ticks(0),
-				SERIAL_IN			 => CLK_EXT(3),
-				EXT_TRG_IN		 => CLK_EXT(4),
-				TRG_SYNC_OUT	 => cts_ext_trigger,
-				TRIGGER_IN     => cts_rdo_trg_data_valid,
-				DATA_OUT       => cts_rdo_additional_data(31 downto 0),
-				WRITE_OUT      => cts_rdo_additional_write(0),
-				STATUSBIT_OUT  => cts_rdo_trg_status_bits_additional(31 downto 0),
-				FINISHED_OUT   => cts_rdo_additional_finished(0),
+  gen_mainz_a2_as_etm: if ETM_CHOICE = ETM_CHOICE_MAINZ_A2 generate
+    mainz_a2_recv_1: entity work.mainz_a2_recv
+      port map (
+        CLK             => clk_100_i,
+        RESET_IN       => reset_i,
+        TIMER_TICK_1US_IN => timer_ticks(0),
+        SERIAL_IN       => CLK_EXT(3),
+        EXT_TRG_IN     => CLK_EXT(4),
+        TRG_SYNC_OUT   => cts_ext_trigger,
+        TRIGGER_IN     => cts_rdo_trg_data_valid,
+        DATA_OUT       => cts_rdo_additional_data(31 downto 0),
+        WRITE_OUT      => cts_rdo_additional_write(0),
+        STATUSBIT_OUT  => cts_rdo_trg_status_bits_additional(31 downto 0),
+        FINISHED_OUT   => cts_rdo_additional_finished(0),
 
-				CONTROL_REG_IN => cts_ext_control,
-				STATUS_REG_OUT => cts_ext_status,
-				HEADER_REG_OUT => cts_ext_header,
-				
-				DEBUG => cts_ext_debug
-				);
-	end generate;
+        CONTROL_REG_IN => cts_ext_control,
+        STATUS_REG_OUT => cts_ext_status,
+        HEADER_REG_OUT => cts_ext_header,
+        
+        DEBUG => cts_ext_debug
+        );
+  end generate;
 
 
  THE_CTS: CTS 
@@ -811,11 +814,11 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
 
   THE_HUB: trb_net16_hub_streaming_port_sctrl_cts
   generic map( 
-	  INIT_ADDRESS        => x"F3C0",
-	  MII_NUMBER           => INTERFACE_NUM,
+    INIT_ADDRESS        => x"F3C0",
+    MII_NUMBER           => INTERFACE_NUM,
     MII_IS_UPLINK        => IS_UPLINK,
     MII_IS_DOWNLINK      => IS_DOWNLINK,
-    MII_IS_UPLINK_ONLY   => IS_UPLINK_ONLY,	
+    MII_IS_UPLINK_ONLY   => IS_UPLINK_ONLY,  
     COMPILE_VERSION                  => x"0001",
     HARDWARE_VERSION                 => HARDWARE_INFO,
     INIT_ENDPOINT_ID                 => x"0005",
@@ -830,21 +833,21 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
     RDO_HEADER_BUFFER_FULL_THRESH    => 2**9-16  
     )
   port map( 
-	  CLK                     => clk_100_i,
-	  RESET                   => reset_i,
-	  CLK_EN                  => '1',
+    CLK                     => clk_100_i,
+    RESET                   => reset_i,
+    CLK_EN                  => '1',
  
 -- Media interfacces ---------------------------------------------------------------
-	  MED_DATAREADY_OUT(INTERFACE_NUM*1-1 downto 0)   => med_dataready_out,
-	  MED_DATA_OUT(INTERFACE_NUM*16-1 downto 0)       => med_data_out,
-	  MED_PACKET_NUM_OUT(INTERFACE_NUM*3-1 downto 0)  => med_packet_num_out,
-	  MED_READ_IN(INTERFACE_NUM*1-1 downto 0)         => med_read_in,
-	  MED_DATAREADY_IN(INTERFACE_NUM*1-1 downto 0)    => med_dataready_in,
-	  MED_DATA_IN(INTERFACE_NUM*16-1 downto 0)        => med_data_in,
-	  MED_PACKET_NUM_IN(INTERFACE_NUM*3-1 downto 0)   => med_packet_num_in,
-	  MED_READ_OUT(INTERFACE_NUM*1-1 downto 0)        => med_read_out,
-	  MED_STAT_OP(INTERFACE_NUM*16-1 downto 0)        => med_stat_op,
-	  MED_CTRL_OP(INTERFACE_NUM*16-1 downto 0)        => med_ctrl_op,
+    MED_DATAREADY_OUT(INTERFACE_NUM*1-1 downto 0)   => med_dataready_out,
+    MED_DATA_OUT(INTERFACE_NUM*16-1 downto 0)       => med_data_out,
+    MED_PACKET_NUM_OUT(INTERFACE_NUM*3-1 downto 0)  => med_packet_num_out,
+    MED_READ_IN(INTERFACE_NUM*1-1 downto 0)         => med_read_in,
+    MED_DATAREADY_IN(INTERFACE_NUM*1-1 downto 0)    => med_dataready_in,
+    MED_DATA_IN(INTERFACE_NUM*16-1 downto 0)        => med_data_in,
+    MED_PACKET_NUM_IN(INTERFACE_NUM*3-1 downto 0)   => med_packet_num_in,
+    MED_READ_OUT(INTERFACE_NUM*1-1 downto 0)        => med_read_out,
+    MED_STAT_OP(INTERFACE_NUM*16-1 downto 0)        => med_stat_op,
+    MED_CTRL_OP(INTERFACE_NUM*16-1 downto 0)        => med_ctrl_op,
 
 -- Gbe Read-out Path ---------------------------------------------------------------
     --Event information coming from CTS for GbE
@@ -906,25 +909,25 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
     RDO_ADDITIONAL_FINISHED        => cts_rdo_additional_finished,
     
 -- Slow Control --------------------------------------------------------------------
-	  COMMON_STAT_REGS        => common_stat_regs, --open,
-	  COMMON_CTRL_REGS        => common_ctrl_regs, --open,
-	  ONEWIRE                 => TEMPSENS,
-	  ONEWIRE_MONITOR_IN      => open,
-	  MY_ADDRESS_OUT          => my_address,
+    COMMON_STAT_REGS        => common_stat_regs, --open,
+    COMMON_CTRL_REGS        => common_ctrl_regs, --open,
+    ONEWIRE                 => TEMPSENS,
+    ONEWIRE_MONITOR_IN      => open,
+    MY_ADDRESS_OUT          => my_address,
     UNIQUE_ID_OUT           => mc_unique_id,
     TIMER_TICKS_OUT         => timer_ticks,
     EXTERNAL_SEND_RESET     => reset_via_gbe,
 
-	  REGIO_ADDR_OUT          => regio_addr_out,
-	  REGIO_READ_ENABLE_OUT   => regio_read_enable_out,
-	  REGIO_WRITE_ENABLE_OUT  => regio_write_enable_out,
-	  REGIO_DATA_OUT          => regio_data_out,
-	  REGIO_DATA_IN           => regio_data_in,
-	  REGIO_DATAREADY_IN      => regio_dataready_in,
-	  REGIO_NO_MORE_DATA_IN   => regio_no_more_data_in,
-	  REGIO_WRITE_ACK_IN      => regio_write_ack_in,
-	  REGIO_UNKNOWN_ADDR_IN   => regio_unknown_addr_in,
-	  REGIO_TIMEOUT_OUT       => regio_timeout_out,
+    REGIO_ADDR_OUT          => regio_addr_out,
+    REGIO_READ_ENABLE_OUT   => regio_read_enable_out,
+    REGIO_WRITE_ENABLE_OUT  => regio_write_enable_out,
+    REGIO_DATA_OUT          => regio_data_out,
+    REGIO_DATA_IN           => regio_data_in,
+    REGIO_DATAREADY_IN      => regio_dataready_in,
+    REGIO_NO_MORE_DATA_IN   => regio_no_more_data_in,
+    REGIO_WRITE_ACK_IN      => regio_write_ack_in,
+    REGIO_UNKNOWN_ADDR_IN   => regio_unknown_addr_in,
+    REGIO_TIMEOUT_OUT       => regio_timeout_out,
 
     --Gbe Sctrl Input
     GSC_INIT_DATAREADY_IN        => gsc_init_dataready,
@@ -945,9 +948,9 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
     STAT_REGS                    => open,
     STAT_CTRL_REGS               => open,
 
-	  --Fixed status and control ports
-	  STAT_DEBUG              => open,
-	  CTRL_DEBUG              => (others => '0')
+    --Fixed status and control ports
+    STAT_DEBUG              => open,
+    CTRL_DEBUG              => (others => '0')
   );
 
   
@@ -957,50 +960,50 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
 
   GBE: trb_net16_gbe_buf
   generic map( 
-	  DO_SIMULATION               => c_NO,
-	  USE_125MHZ_EXTCLK           => c_NO
+    DO_SIMULATION               => c_NO,
+    USE_125MHZ_EXTCLK           => c_NO
   )
   port map( 
-	  CLK                         => clk_100_i,
-	  TEST_CLK                    => '0',
-	  CLK_125_IN                  => clk_125_i,
-	  RESET                       => reset_i,
-	  GSR_N                       => gsr_n,
-	  --Debug
-	  STAGE_STAT_REGS_OUT         => open, --stage_stat_regs, -- should be come STATUS or similar
-	  STAGE_CTRL_REGS_IN          => stage_ctrl_regs, -- OBSELETE!
-	  ----gk 22.04.10 not used any more, ip_configurator moved inside
-	  ---configuration interface
-	  IP_CFG_START_IN              => stage_ctrl_regs(15),
-	  IP_CFG_BANK_SEL_IN           => stage_ctrl_regs(11 downto 8),
-	  IP_CFG_DONE_OUT              => open,
-	  IP_CFG_MEM_ADDR_OUT          => ip_cfg_mem_addr,
-	  IP_CFG_MEM_DATA_IN           => ip_cfg_mem_data,
-	  IP_CFG_MEM_CLK_OUT           => ip_cfg_mem_clk,
-	  MR_RESET_IN                  => stage_ctrl_regs(3),
-	  MR_MODE_IN                   => stage_ctrl_regs(1),
-	  MR_RESTART_IN                => stage_ctrl_regs(0),
-	  ---gk 29.03.10
-	  --interface to ip_configurator memory
-	  SLV_ADDR_IN                  => mb_ip_mem_addr(7 downto 0),
-	  SLV_READ_IN                  => mb_ip_mem_read,
-	  SLV_WRITE_IN                 => mb_ip_mem_write,
-	  SLV_BUSY_OUT                 => open,
-	  SLV_ACK_OUT                  => mb_ip_mem_ack,
-	  SLV_DATA_IN                  => mb_ip_mem_data_wr,
-	  SLV_DATA_OUT                 => mb_ip_mem_data_rd,
-	  --gk 26.04.10
-	  ---gk 22.04.10
-	  ---registers setup interface
-	  BUS_ADDR_IN                 => gbe_stp_reg_addr(7 downto 0), --ctrl_reg_addr(7 downto 0),
-	  BUS_DATA_IN                 => gbe_stp_reg_data_wr, --stage_ctrl_regs,
-	  BUS_DATA_OUT                => gbe_stp_reg_data_rd,
-	  BUS_WRITE_EN_IN             => gbe_stp_reg_write,
-	  BUS_READ_EN_IN              => gbe_stp_reg_read,
-	  BUS_ACK_OUT                 => gbe_stp_reg_ack,
-	  --gk 23.04.10
-	  LED_PACKET_SENT_OUT         => open, --buf_SFP_LED_ORANGE(17),
-	  LED_AN_DONE_N_OUT           => link_ok, --buf_SFP_LED_GREEN(17),
+    CLK                         => clk_100_i,
+    TEST_CLK                    => '0',
+    CLK_125_IN                  => clk_125_i,
+    RESET                       => reset_i,
+    GSR_N                       => gsr_n,
+    --Debug
+    STAGE_STAT_REGS_OUT         => open, --stage_stat_regs, -- should be come STATUS or similar
+    STAGE_CTRL_REGS_IN          => stage_ctrl_regs, -- OBSELETE!
+    ----gk 22.04.10 not used any more, ip_configurator moved inside
+    ---configuration interface
+    IP_CFG_START_IN              => stage_ctrl_regs(15),
+    IP_CFG_BANK_SEL_IN           => stage_ctrl_regs(11 downto 8),
+    IP_CFG_DONE_OUT              => open,
+    IP_CFG_MEM_ADDR_OUT          => ip_cfg_mem_addr,
+    IP_CFG_MEM_DATA_IN           => ip_cfg_mem_data,
+    IP_CFG_MEM_CLK_OUT           => ip_cfg_mem_clk,
+    MR_RESET_IN                  => stage_ctrl_regs(3),
+    MR_MODE_IN                   => stage_ctrl_regs(1),
+    MR_RESTART_IN                => stage_ctrl_regs(0),
+    ---gk 29.03.10
+    --interface to ip_configurator memory
+    SLV_ADDR_IN                  => mb_ip_mem_addr(7 downto 0),
+    SLV_READ_IN                  => mb_ip_mem_read,
+    SLV_WRITE_IN                 => mb_ip_mem_write,
+    SLV_BUSY_OUT                 => open,
+    SLV_ACK_OUT                  => mb_ip_mem_ack,
+    SLV_DATA_IN                  => mb_ip_mem_data_wr,
+    SLV_DATA_OUT                 => mb_ip_mem_data_rd,
+    --gk 26.04.10
+    ---gk 22.04.10
+    ---registers setup interface
+    BUS_ADDR_IN                 => gbe_stp_reg_addr(7 downto 0), --ctrl_reg_addr(7 downto 0),
+    BUS_DATA_IN                 => gbe_stp_reg_data_wr, --stage_ctrl_regs,
+    BUS_DATA_OUT                => gbe_stp_reg_data_rd,
+    BUS_WRITE_EN_IN             => gbe_stp_reg_write,
+    BUS_READ_EN_IN              => gbe_stp_reg_read,
+    BUS_ACK_OUT                 => gbe_stp_reg_ack,
+    --gk 23.04.10
+    LED_PACKET_SENT_OUT         => open, --buf_SFP_LED_ORANGE(17),
+    LED_AN_DONE_N_OUT           => link_ok, --buf_SFP_LED_GREEN(17),
     --CTS interface
     CTS_NUMBER_IN               => gbe_cts_number,
     CTS_CODE_IN                 => gbe_cts_code,
@@ -1019,16 +1022,16 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
     FEE_READ_OUT                => gbe_fee_read,
     FEE_STATUS_BITS_IN          => gbe_fee_status_bits,
     FEE_BUSY_IN                 => gbe_fee_busy,
-	  --SFP   Connection
-	  SFP_RXD_P_IN                => SFP_RX_P(9), --these ports are don't care
-	  SFP_RXD_N_IN                => SFP_RX_N(9),
-	  SFP_TXD_P_OUT               => SFP_TX_P(9),
-	  SFP_TXD_N_OUT               => SFP_TX_N(9),
-	  SFP_REFCLK_P_IN             => open, --SFP_REFCLKP(2),
-	  SFP_REFCLK_N_IN             => open, --SFP_REFCLKN(2),
-	  SFP_PRSNT_N_IN              => SFP_MOD0(8), -- SFP Present ('0' = SFP in place, '1' = no SFP mounted)
-	  SFP_LOS_IN                  => SFP_LOS(8), -- SFP Loss Of Signal ('0' = OK, '1' = no signal)
-	  SFP_TXDIS_OUT               => SFP_TXDIS(8),  -- SFP disable
+    --SFP   Connection
+    SFP_RXD_P_IN                => SFP_RX_P(9), --these ports are don't care
+    SFP_RXD_N_IN                => SFP_RX_N(9),
+    SFP_TXD_P_OUT               => SFP_TX_P(9),
+    SFP_TXD_N_OUT               => SFP_TX_N(9),
+    SFP_REFCLK_P_IN             => open, --SFP_REFCLKP(2),
+    SFP_REFCLK_N_IN             => open, --SFP_REFCLKN(2),
+    SFP_PRSNT_N_IN              => SFP_MOD0(8), -- SFP Present ('0' = SFP in place, '1' = no SFP mounted)
+    SFP_LOS_IN                  => SFP_LOS(8), -- SFP Loss Of Signal ('0' = OK, '1' = no signal)
+    SFP_TXDIS_OUT               => SFP_TXDIS(8),  -- SFP disable
 
     -- interface between main_controller and hub logic
     MC_UNIQUE_ID_IN          => mc_unique_id,
@@ -1045,12 +1048,12 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
 
     MAKE_RESET_OUT           => reset_via_gbe,
 
-	  --for simulation of receiving part only
-	  MAC_RX_EOF_IN		=> '0',
-	  MAC_RXD_IN		=> "00000000",
-	  MAC_RX_EN_IN		=> '0',
+    --for simulation of receiving part only
+    MAC_RX_EOF_IN    => '0',
+    MAC_RXD_IN    => "00000000",
+    MAC_RX_EN_IN    => '0',
 
-	  ANALYZER_DEBUG_OUT          => debug
+    ANALYZER_DEBUG_OUT          => debug
   );
 
 
@@ -1299,7 +1302,7 @@ gen_TDC : if INCLUDE_TDC = c_YES generate
   THE_TDC : TDC
     generic map (
       CHANNEL_NUMBER => TDC_CHANNEL_NUMBER,   -- Number of TDC channels
-      STATUS_REG_NR  => 20,             -- Number of status regs
+      STATUS_REG_NR  => 21,             -- Number of status regs
       CONTROL_REG_NR => 6,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
       TDC_VERSION    => x"160"         -- TDC version number
     )
@@ -1377,7 +1380,10 @@ gen_TDC : if INCLUDE_TDC = c_YES generate
 end generate;    
 
 gen_no_TDC : if INCLUDE_TDC = c_NO generate
-  
+  srb_data_ready <= '0';
+  esb_data_ready <= '0';
+  fwb_data_ready <= '0';
+  hitreg_data_ready <= '0';
   srb_invalid <= '1';
   esb_invalid <= '1';
   fwb_invalid <= '1';
@@ -1393,6 +1399,9 @@ process begin
   wait until rising_edge(clk_100_i);
   if reset_i = '1' then
     select_tc <= x"00000001"; --always internal trigger source
+    if USE_EXTERNAL_CLOCK = c_YES then
+      select_tc(8) <= '1';
+    end if;  
   elsif select_tc_write = '1' then
     select_tc <= select_tc_data_in;
   end if;
@@ -1498,15 +1507,5 @@ LED_YELLOW <= link_ok; --debug(3);
   TEST_LINE(31 downto 17) <= (others => '0');
 --   TEST_LINE(31 downto 0) <= cts_ext_debug;
 
-
----------------------------------------------------------------------------
--- Test Circuits
----------------------------------------------------------------------------
---   process
---     begin
---       wait until rising_edge(clk_100_i);
---       time_counter <= time_counter + 1;
---     end process;
--- 
 
 end architecture;
