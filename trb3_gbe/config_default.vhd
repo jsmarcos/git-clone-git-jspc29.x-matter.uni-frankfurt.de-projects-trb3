@@ -27,13 +27,19 @@ package config is
 
 --Use sync mode, RX clock for all parts of the FPGA
     constant USE_RXCLOCK            : integer := c_NO;
-    
+
+--Run external 200 MHz clock source
+    constant USE_EXTERNAL_CLOCK : integer range c_NO to c_YES := c_NO;        
    
 --Address settings   
     constant INIT_ENDPOINT_ID       : std_logic_vector := x"0005";
     constant INIT_ADDRESS           : std_logic_vector := x"F305";
     constant BROADCAST_SPECIAL_ADDR : std_logic_vector := x"40";
-   
+
+
+--Statistics for generated trigger signals?
+    constant INCLUDE_STATISTICS     : integer := c_YES;
+    
 ------------------------------------------------------------------------------
 --End of design configuration
 ------------------------------------------------------------------------------
@@ -88,6 +94,9 @@ package config is
     constant USED_CHANNELS_ARR    : hub_chn_t := ((1,1,0,1),(0,0,0,1));
     constant CLOCK_FREQUENCY_ARR  : hub_mii_t := (100,125);
     constant MEDIA_FREQUENCY_ARR  : hub_mii_t := (200,125);
+                          
+    constant INCLUDED_FEATURES    : std_logic_vector(63 downto 0) := (others => '0');       
+                          
                           
   --declare constants, filled in body                          
     constant INTERNAL_NUM         : integer;

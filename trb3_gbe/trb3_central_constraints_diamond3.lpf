@@ -1,0 +1,283 @@
+BLOCK RESETPATHS ;
+BLOCK ASYNCPATHS ;
+BLOCK RD_DURING_WR_PATHS ;
+
+#################################################################
+# Basic Settings
+#################################################################
+
+  SYSCONFIG MCCLK_FREQ = 20;
+
+  FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
+  FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;
+  FREQUENCY PORT CLK_GPLL_RIGHT 125 MHz;
+  FREQUENCY PORT CLK_GPLL_LEFT  200 MHz;
+  FREQUENCY PORT CLK_EXT_3      10  MHz;
+  FREQUENCY PORT CLK_EXT_4      10  MHz;
+  
+#################################################################
+# Reset Nets
+#################################################################  
+GSR_NET NET "GSR_N";  
+
+
+#################################################################
+# Locate Serdes and media interfaces
+#################################################################
+LOCATE COMP   "gen_ethernet_hub_GBE/imp_gen_serdes_intclk_gen_PCS_SERDES/clk_int_SERDES_GBE/PCSD_INST" SITE "PCSB";
+LOCATE COMP   "gen_uplink_THE_MEDIA_UPLINK/gen_serdes_0_200_ctc_THE_SERDES/PCSD_INST" SITE "PCSA" ;
+LOCATE COMP   "gen_uplink_THE_MEDIA_UPLINK/gen_serdes_0_200_THE_SERDES/PCSD_INST" SITE "PCSA" ;
+LOCATE COMP   "THE_MEDIA_ONBOARD/gen_serdes_200_THE_SERDES/PCSD_INST" SITE "PCSC" ;
+LOCATE COMP   "THE_MEDIA_ONBOARD/gen_serdes_125_THE_SERDES/PCSD_INST" SITE "PCSC" ;
+
+
+REGION "MEDIA_UPLINK" "R98C95" 17 27;
+LOCATE UGROUP "gen_uplink_THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLINK" ;
+
+REGION "MEDIA_ONBOARD" "R90C122" 20 40;
+LOCATE UGROUP "THE_MEDIA_ONBOARD/media_interface_group" REGION "MEDIA_ONBOARD" ;
+
+MULTICYCLE TO CELL "THE_MEDIA_ONBOARD/SCI_DATA_OUT*" 50 ns;
+MULTICYCLE TO CELL "gen_uplink_THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
+MULTICYCLE TO CELL "THE_SPI_RELOAD_THE_SPI_MASTER_THE_SPI_SLIM_*io*" 20 ns;
+MULTICYCLE FROM CELL "THE_MEDIA_*_sfp_losio*" 20 ns;
+
+#SPI Interface
+#REGION "REGION_SPI" "R13C150D" 12 16 DEVSIZE;
+#LOCATE UGROUP "THE_SPI_RELOAD/THE_SPI_MASTER/SPI_group" REGION "REGION_SPI" ; 
+#LOCATE UGROUP "THE_SPI_RELOAD/THE_SPI_MEMORY/SPI_group" REGION "REGION_SPI" ;
+
+
+MULTICYCLE FROM CELL "gen_ethernet_hub_THE_HUB/reset_i" 20 ns;
+MULTICYCLE FROM CELL "THE_RESET_HANDLER/reset" 20 ns;
+
+#TrbNet Hub 
+REGION "REGION_IOBUF" "R20C96D" 88 86 DEVSIZE;
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_muxes.0.MPLEX/MUX_group" REGION "REGION_IOBUF" ;
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_muxes.1.MPLEX/MUX_group" REGION "REGION_IOBUF" ;
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_muxes.2.MPLEX/MUX_group" REGION "REGION_IOBUF" ;
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_muxes.3.MPLEX/MUX_group" REGION "REGION_IOBUF" ;
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_muxes.4.MPLEX/MUX_group" REGION "REGION_IOBUF" ;
+               
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_hub_logic.1.gen_logic.gen_select_logic2.HUBLOGIC/HUBIPULOGIC_group"  REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_hub_logic.0.gen_logic.gen_select_logic1.HUBLOGIC/HUBLOGIC_group"     REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_hub_logic.3.gen_logic.gen_select_logic1.HUBLOGIC/HUBLOGIC_group"     REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.0.gen_iobufs.0.gen_iobuf.IOBUF/genINITOBUF1.INITOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.1.gen_iobufs.0.gen_iobuf.IOBUF/genINITOBUF1.INITOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.2.gen_iobufs.0.gen_iobuf.IOBUF/genINITOBUF1.INITOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.3.gen_iobufs.0.gen_iobuf.IOBUF/genINITOBUF1.INITOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.0.gen_iobufs.1.gen_iobuf.IOBUF/genINITOBUF1.INITOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.1.gen_iobufs.1.gen_iobuf.IOBUF/genINITOBUF1.INITOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.2.gen_iobufs.1.gen_iobuf.IOBUF/genINITOBUF1.INITOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.3.gen_iobufs.1.gen_iobuf.IOBUF/genINITOBUF1.INITOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.0.gen_iobufs.3.gen_iobuf.IOBUF/genINITOBUF1.INITOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.1.gen_iobufs.3.gen_iobuf.IOBUF/genINITOBUF1.INITOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.2.gen_iobufs.3.gen_iobuf.IOBUF/genINITOBUF1.INITOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.3.gen_iobufs.3.gen_iobuf.IOBUF/genINITOBUF1.INITOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.4.gen_iobufs.0.gen_iobuf.IOBUF/genREPLYOBUF1.REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.4.gen_iobufs.1.gen_iobuf.IOBUF/genREPLYOBUF1.REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.4.gen_iobufs.3.gen_iobuf.IOBUF/genREPLYOBUF1.REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.0.gen_iobufs.0.gen_iobuf.IOBUF/GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.1.gen_iobufs.0.gen_iobuf.IOBUF/GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.2.gen_iobufs.0.gen_iobuf.IOBUF/GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.3.gen_iobufs.0.gen_iobuf.IOBUF/GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.4.gen_iobufs.0.gen_iobuf.IOBUF/GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.0.gen_iobufs.1.gen_iobuf.IOBUF/GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.1.gen_iobufs.1.gen_iobuf.IOBUF/GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.2.gen_iobufs.1.gen_iobuf.IOBUF/GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.3.gen_iobufs.1.gen_iobuf.IOBUF/GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.4.gen_iobufs.1.gen_iobuf.IOBUF/GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.0.gen_iobufs.3.gen_iobuf.IOBUF/GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.1.gen_iobufs.3.gen_iobuf.IOBUF/GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.2.gen_iobufs.3.gen_iobuf.IOBUF/GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.3.gen_iobufs.3.gen_iobuf.IOBUF/GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.4.gen_iobufs.3.gen_iobuf.IOBUF/GEN_IBUF.THE_IBUF/IBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.0.gen_iobufs.0.gen_iobuf.IOBUF/genREPLYOBUF2.gen_REPLYOBUF3.REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.0.gen_iobufs.1.gen_iobuf.IOBUF/genREPLYOBUF2.gen_REPLYOBUF3.REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.0.gen_iobufs.3.gen_iobuf.IOBUF/genREPLYOBUF2.gen_REPLYOBUF3.REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.1.gen_iobufs.0.gen_iobuf.IOBUF/genREPLYOBUF2.gen_REPLYOBUF3.REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.1.gen_iobufs.1.gen_iobuf.IOBUF/genREPLYOBUF2.gen_REPLYOBUF3.REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.1.gen_iobufs.3.gen_iobuf.IOBUF/genREPLYOBUF2.gen_REPLYOBUF3.REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.2.gen_iobufs.0.gen_iobuf.IOBUF/genREPLYOBUF2.gen_REPLYOBUF3.REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.2.gen_iobufs.1.gen_iobuf.IOBUF/genREPLYOBUF2.gen_REPLYOBUF3.REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.2.gen_iobufs.3.gen_iobuf.IOBUF/genREPLYOBUF2.gen_REPLYOBUF3.REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.3.gen_iobufs.0.gen_iobuf.IOBUF/genREPLYOBUF2.gen_REPLYOBUF3.REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.3.gen_iobufs.1.gen_iobuf.IOBUF/genREPLYOBUF2.gen_REPLYOBUF3.REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.3.gen_iobufs.3.gen_iobuf.IOBUF/genREPLYOBUF2.gen_REPLYOBUF3.REPLYOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.4.gen_iobufs.0.gen_iobuf.IOBUF/genINITOBUF2.gen_INITOBUF3.INITOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.4.gen_iobufs.1.gen_iobuf.IOBUF/genINITOBUF2.gen_INITOBUF3.INITOBUF/OBUF_group" REGION "REGION_IOBUF";
+LOCATE UGROUP "gen_ethernet_hub.THE_HUB/THE_HUB/gen_bufs.4.gen_iobufs.3.gen_iobuf.IOBUF/genINITOBUF2.gen_INITOBUF3.INITOBUF/OBUF_group" REGION "REGION_IOBUF";
+
+
+
+
+#GbE Part
+
+FREQUENCY NET "gen_ethernet_hub.GBE/serdes_clk_125"                              125.000000 MHz ;
+FREQUENCY NET "gen_ethernet_hub.GBE/CLK_125_OUT_inferred_clock"                  125.00 MHz ;
+FREQUENCY NET "gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/clk_int_SERDES_GBE/ff_txfullclk"  125.000000 MHz ;
+FREQUENCY NET "gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/clk_int_SERDES_GBE/ff_rxfullclk"  125.000000 MHz ;
+
+FREQUENCY NET "gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/sd_tx_clock"              125.000000 MHz ;
+FREQUENCY NET "gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/sd_rx_clock"              125.000000 MHz ;
+FREQUENCY NET "gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/refclkcore"             125.000000 MHz ;
+
+FREQUENCY NET "gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/CLK_RX_OUT"               125.000000 MHz ;
+FREQUENCY NET "gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/clk_int_SERDES_GBE/CLK_TX_OUT_inferred_clock"  125.000000 MHz ;
+
+FREQUENCY PORT "gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/clk_int_SERDES_GBE/PCSC_INST.FF_TX_F_CLK"  125.000000 MHz;
+FREQUENCY PORT "gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/clk_int_SERDES_GBE/PCSC_INST.FF_RX_F_CLK"  125.000000 MHz;
+
+
+UGROUP "tsmac" 
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_MAC
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SGMII_GBE_PCS
+	BLKNAME gen_ethernet_hub.GBE/FRAME_RECEIVER
+	BLKNAME gen_ethernet_hub.GBE/FRAME_TRANSMITTER;
+UGROUP "controllers" 
+	BLKNAME gen_ethernet_hub.GBE/MAIN_CONTROL
+	BLKNAME gen_ethernet_hub.GBE/RECEIVE_CONTROLLER
+	BLKNAME gen_ethernet_hub.GBE/TRANSMIT_CONTROLLER;
+UGROUP "gbe_rx_tx" 
+	BLKNAME gen_ethernet_hub.GBE/FRAME_CONSTRUCTOR
+	BLKNAME gen_ethernet_hub.GBE/MB_IP_CONFIG
+	BLKNAME gen_ethernet_hub.GBE/THE_IP_CONFIGURATOR
+#	BLKNAME gen_ethernet_hub.GBE/PACKET_CONSTRUCTOR
+# BLKNAME gen_ethernet_hub.GBE/THE_IPU_INTERFACE
+	BLKNAME gen_ethernet_hub.GBE/setup_imp_gen_SETUP;
+
+
+	
+#Normal design
+REGION "GBE_REGION" "R30C20D" 35 40 DEVSIZE;
+REGION "GBE_MAIN_REGION" "R74C40C" 38 36 DEVSIZE;
+#LOCATE UGROUP "controllers" REGION "GBE_MAIN_REGION" ;
+#LOCATE UGROUP "gbe_rx_tx" REGION "GBE_REGION" ;
+
+#Reduced design
+# REGION "GBE_REGION" "R40C2D" 35 40 DEVSIZE;
+#REGION "GBE_MAIN_REGION" "R74C30C" 35 90 DEVSIZE;
+#LOCATE UGROUP "controllers" REGION "GBE_MAIN_REGION" ;
+#LOCATE UGROUP "gbe_rx_tx" REGION "GBE_MAIN_REGION" ;
+
+
+
+REGION "MED0" "R69C4D" 35 40 DEVSIZE;
+FREQUENCY NET "gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/un1_PCS_SERDES_1" 125.000000 MHz ;
+FREQUENCY NET "gen_ethernet_hub.GBE/serdes_clk_125_c" 125.000000 MHz ;
+#LOCATE UGROUP "tsmac" REGION "MED0" ;
+BLOCK JTAGPATHS ;
+UGROUP "sd_tx_to_pcs" 
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_TX_PROC.sd_tx_correct_disp_q
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_TX_PROC.sd_tx_data_q_0
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_TX_PROC.sd_tx_data_q_1
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_TX_PROC.sd_tx_data_q_2
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_TX_PROC.sd_tx_data_q_3
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_TX_PROC.sd_tx_data_q_4
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_TX_PROC.sd_tx_data_q_5
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_TX_PROC.sd_tx_data_q_6
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_TX_PROC.sd_tx_data_q_7
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_TX_PROC.sd_tx_kcntl_q;
+UGROUP "sd_rx_to_pcs" 
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_RX_PROC.sd_rx_cv_error_q
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_RX_PROC.sd_rx_data_q_0
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_RX_PROC.sd_rx_data_q_1
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_RX_PROC.sd_rx_data_q_2
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_RX_PROC.sd_rx_data_q_3
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_RX_PROC.sd_rx_data_q_4
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_RX_PROC.sd_rx_data_q_5
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_RX_PROC.sd_rx_data_q_6
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_RX_PROC.sd_rx_data_q_7
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_RX_PROC.sd_rx_disp_error_q
+	BLKNAME gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/SYNC_RX_PROC.sd_rx_kcntl_q;
+UGROUP "pcs_tx_to_mac" 
+	BLKNAME gen_ethernet_hub.GBE/pcs_tx_en_q
+	BLKNAME gen_ethernet_hub.GBE/pcs_tx_en_qq
+	BLKNAME gen_ethernet_hub.GBE/pcs_tx_er_q
+	BLKNAME gen_ethernet_hub.GBE/pcs_tx_er_qq
+	BLKNAME gen_ethernet_hub.GBE/pcs_txd_q_0
+	BLKNAME gen_ethernet_hub.GBE/pcs_txd_q_1
+	BLKNAME gen_ethernet_hub.GBE/pcs_txd_q_2
+	BLKNAME gen_ethernet_hub.GBE/pcs_txd_q_3
+	BLKNAME gen_ethernet_hub.GBE/pcs_txd_q_4
+	BLKNAME gen_ethernet_hub.GBE/pcs_txd_q_5
+	BLKNAME gen_ethernet_hub.GBE/pcs_txd_q_6
+	BLKNAME gen_ethernet_hub.GBE/pcs_txd_q_7
+	BLKNAME gen_ethernet_hub.GBE/pcs_txd_qq_0
+	BLKNAME gen_ethernet_hub.GBE/pcs_txd_qq_1
+	BLKNAME gen_ethernet_hub.GBE/pcs_txd_qq_2
+	BLKNAME gen_ethernet_hub.GBE/pcs_txd_qq_3
+	BLKNAME gen_ethernet_hub.GBE/pcs_txd_qq_4
+	BLKNAME gen_ethernet_hub.GBE/pcs_txd_qq_5
+	BLKNAME gen_ethernet_hub.GBE/pcs_txd_qq_6
+	BLKNAME gen_ethernet_hub.GBE/pcs_txd_qq_7;
+UGROUP "pcs_rx_to_mac" 
+	BLKNAME gen_ethernet_hub.GBE/pcs_rx_en_q
+	BLKNAME gen_ethernet_hub.GBE/pcs_rx_en_qq
+	BLKNAME gen_ethernet_hub.GBE/pcs_rx_er_q
+	BLKNAME gen_ethernet_hub.GBE/pcs_rx_er_qq
+	BLKNAME gen_ethernet_hub.GBE/pcs_rxd_q_0
+	BLKNAME gen_ethernet_hub.GBE/pcs_rxd_q_1
+	BLKNAME gen_ethernet_hub.GBE/pcs_rxd_q_2
+	BLKNAME gen_ethernet_hub.GBE/pcs_rxd_q_3
+	BLKNAME gen_ethernet_hub.GBE/pcs_rxd_q_4
+	BLKNAME gen_ethernet_hub.GBE/pcs_rxd_q_5
+	BLKNAME gen_ethernet_hub.GBE/pcs_rxd_q_6
+	BLKNAME gen_ethernet_hub.GBE/pcs_rxd_q_7
+	BLKNAME gen_ethernet_hub.GBE/pcs_rxd_qq_0
+	BLKNAME gen_ethernet_hub.GBE/pcs_rxd_qq_1
+	BLKNAME gen_ethernet_hub.GBE/pcs_rxd_qq_2
+	BLKNAME gen_ethernet_hub.GBE/pcs_rxd_qq_3
+	BLKNAME gen_ethernet_hub.GBE/pcs_rxd_qq_4
+	BLKNAME gen_ethernet_hub.GBE/pcs_rxd_qq_5
+	BLKNAME gen_ethernet_hub.GBE/pcs_rxd_qq_6
+	BLKNAME gen_ethernet_hub.GBE/pcs_rxd_qq_7;
+USE PRIMARY NET "CLK_GPLL_RIGHT_c" ;
+FREQUENCY NET "gen_ethernet_hub.GBE/serdes_rx_clk_c" 125.000000 MHz PAR_ADJ 25.000000 ;
+FREQUENCY NET "gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/clk_int_SERDES_GBE/FF_TX_F_CLK_0" 125.000000 MHz PAR_ADJ 25.000000 ;
+FREQUENCY NET "gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/clk_int_SERDES_GBE/FF_TX_F_CLK_1" 125.000000 MHz PAR_ADJ 25.000000 ;
+FREQUENCY NET "gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/clk_int_SERDES_GBE/FF_TX_F_CLK_2" 125.000000 MHz PAR_ADJ 25.000000 ;
+FREQUENCY NET "gen_ethernet_hub.GBE/imp_gen_serdes_intclk.gen_PCS_SERDES/clk_int_SERDES_GBE/FF_TX_F_CLK_3" 125.000000 MHz PAR_ADJ 25.000000 ;
+
+MAXDELAY NET "gen_ethernet_hub.GBE/pcs_rx_en_q" 1.5 ns;
+MAXDELAY NET "gen_ethernet_hub.GBE/pcs_rx_er_q" 1.5 ns;
+MAXDELAY NET "gen_ethernet_hub.GBE/pcs_rxd_q_0" 1.5 ns;
+MAXDELAY NET "gen_ethernet_hub.GBE/pcs_rxd_q_1" 1.5 ns;
+MAXDELAY NET "gen_ethernet_hub.GBE/pcs_rxd_q_2" 1.5 ns;
+MAXDELAY NET "gen_ethernet_hub.GBE/pcs_rxd_q_3" 1.5 ns;
+MAXDELAY NET "gen_ethernet_hub.GBE/pcs_rxd_q_4" 1.5 ns;
+MAXDELAY NET "gen_ethernet_hub.GBE/pcs_rxd_q_5" 1.5 ns;
+MAXDELAY NET "gen_ethernet_hub.GBE/pcs_rxd_q_6" 1.5 ns;
+MAXDELAY NET "gen_ethernet_hub.GBE/pcs_rxd_q_7" 1.5 ns;
+
+DEFINE PORT GROUP "RX_GRP" "gen_ethernet_hub.GBE/pcs_rx_en_q"
+							"gen_ethernet_hub.GBE/pcs_rx_er_q"
+							"gen_ethernet_hub.GBE/pcs_rxd_q_*";
+INPUT_SETUP GROUP "RX_GRP" 3.500000 ns HOLD 0.000000 ns CLKPORT "gen_ethernet_hub_GBE/serdes_rx_clk_c" ;
+
+PRIORITIZE NET "gen_ethernet_hub.GBE/pcs_rx_en_q" 100;
+PRIORITIZE NET "gen_ethernet_hub.GBE/pcs_rx_er_q" 100;
+PRIORITIZE NET "gen_ethernet_hub.GBE/pcs_rxd_q_0" 100;
+PRIORITIZE NET "gen_ethernet_hub.GBE/pcs_rxd_q_1" 100;
+PRIORITIZE NET "gen_ethernet_hub.GBE/pcs_rxd_q_2" 100;
+PRIORITIZE NET "gen_ethernet_hub.GBE/pcs_rxd_q_3" 100;
+PRIORITIZE NET "gen_ethernet_hub.GBE/pcs_rxd_q_4" 100;
+PRIORITIZE NET "gen_ethernet_hub.GBE/pcs_rxd_q_5" 100;
+PRIORITIZE NET "gen_ethernet_hub.GBE/pcs_rxd_q_6" 100;
+PRIORITIZE NET "gen_ethernet_hub.GBE/pcs_rxd_q_7" 100;
+PRIORITIZE NET "gen_ethernet_hub.GBE/pcs_rxd_q_0" 100;
+PRIORITIZE NET "gen_ethernet_hub.GBE/serdes_rx_clk_c" 80;
+
+BLOCK PATH FROM CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_cpu_if*" TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac*" ;
+BLOCK PATH FROM CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_cpu_if*" TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_rx_mac*" ;
+
+# MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_gmii/sync_rxd_m*"           2.000000 X ;
+# MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_gmii/ipg_shrink_m*"         2.000000 X ;
+# MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_gmii/nib_alig*"             2.000000 X ;
+# MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac/U1_tx_rfifo/rd_ptr*" 2.000000 X ;
+# MULTICYCLE FROM CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac/U1_tx_rfifo/rd_ptr*" 2.000000 X ;
+# MULTICYCLE   TO CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac/U1_tx_rfifo/wr_ptr*" 2.000000 X ;
+# MULTICYCLE FROM CELL "*U1_ts_mac_core*U1_LSC_ts_mac_core/U1_tx_mac/U1_tx_rfifo/wr_ptr*" 2.000000 X ;
+
+#BLOCK INTERCLOCKDOMAIN PATHS ;
