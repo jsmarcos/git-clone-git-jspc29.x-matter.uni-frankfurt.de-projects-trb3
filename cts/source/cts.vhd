@@ -684,42 +684,45 @@ begin
 -- Event Builder Selection
 -----------------------------------------
    eb_proc: process(CLK) is
+      variable next_eb_selection : unsigned(3 downto 0);
+      variable get_next_eb : std_logic;
    begin
       if rising_edge(CLK) then
          if RESET='1' then
-            eb_mask_buf_i <= (0 => '1', others => '0');
             eb_aggr_counter_i   <= x"00";
             eb_selection_i <= x"0";
+            next_eb_selection := x"0";
+            get_next_eb := '0';
+         end if;
          
-         elsif eb_mask_buf_i = x"0000" or eb_regio_updated_i = '1'then
-            -- we already unmasked all active ebs, so let's start over and again select all active ebs
-            eb_mask_buf_i <= eb_mask_i;
+         if (eb_aggr_threshold_i = x"00" or eb_mask_i = x"0") then
+            -- no round-robin active
+            eb_selection_i <= x"0";
+            get_next_eb := '0';
             
-         elsif (eb_aggr_threshold_i /= x"00" and ro_next_cycle_i = '1')  then
+         elsif (eb_aggr_threshold_i /= x"00" and eb_mask_i /= x"0" and ro_next_cycle_i = '1')  then
+            -- round-robin active active, and a new event just started
             if eb_aggr_threshold_i = eb_aggr_counter_i then
                eb_aggr_counter_i <= (others => '0');
-
-               -- let's waste some logic to save some lines of code. if we run out of area,
-               -- we can switch to a sequential process instead of a parallel priority encoder
-               eb_sel_loop: for i in 0 to 15 loop
-                  if eb_mask_buf_i(i) = '1' then
-                     if i=15 or OR_ALL(eb_mask_buf_i(15 downto i+1)) = '0' then
-                        eb_mask_buf_i <= eb_mask_i;
-                     else
-                        eb_mask_buf_i(i downto 0) <= (others => '0');
-                     end if;
-                     
-                     eb_selection_i <= STD_LOGIC_VECTOR(TO_UNSIGNED(i, 4));
-                     exit eb_sel_loop;
-                     
-                  end if;
-               end loop;
+               eb_selection_i <= next_eb_selection;
+               get_next_eb := '1';
                
             else
                eb_aggr_counter_i <= eb_aggr_counter_i + TO_UNSIGNED(1,1);
                
             end if;
-            
+
+         end if;
+         
+         
+         -- increment (with overflow) next_eb_selection until we find an active eb
+         -- with this sequential approach, the result is ready in at most 16 cycles,
+         -- i.e. the result is ready long before we need it for the (worst case) next event ...
+         if get_next_eb='1' then
+            next_eb_selection := next_eb_selection + TO_UNSIGNED(1,1);
+            if eb_mask_i(to_integer(next_eb_selection)) = '1' then
+               get_next_eb := '0';
+            end if;
          end if;
       end if;
    end process;
