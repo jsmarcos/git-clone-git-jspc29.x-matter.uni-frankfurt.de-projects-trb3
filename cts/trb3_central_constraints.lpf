@@ -12,8 +12,8 @@ BLOCK RD_DURING_WR_PATHS ;
   FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;
   FREQUENCY PORT CLK_GPLL_RIGHT 125 MHz;
   FREQUENCY PORT CLK_GPLL_LEFT  200 MHz;
-  FREQUENCY PORT CLK_EXT_3      10  MHz;
-  FREQUENCY PORT CLK_EXT_4      10  MHz;
+#  FREQUENCY PORT CLK_EXT_3      10  MHz;
+#  FREQUENCY PORT CLK_EXT_4      10  MHz;
   
 #################################################################
 # Reset Nets
