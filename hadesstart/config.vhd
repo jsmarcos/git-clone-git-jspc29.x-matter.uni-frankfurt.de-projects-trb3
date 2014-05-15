@@ -11,9 +11,11 @@ package config is
 ------------------------------------------------------------------------------
 
 --TDC settings
-  constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 33;
+  constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 2;
   constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6  := 5;  --the nearest power of two, for convenience reasons 
   constant USE_DOUBLE_EDGE         : integer               := c_YES;
+--Define ringbuffer size for TDC channels: 32-64-128
+  constant RING_BUFFER_SIZE : integer range 32 to 128 := 64;
 
 --use only every fourth input as in HPTDC high precision mode    
   constant USE_HPTDC_FASTMODE_PINOUT : integer := c_YES;
@@ -29,9 +31,6 @@ package config is
 
 --number of real inputs to the FPGA    
   constant PHYSICAL_INPUTS : integer := 16;
-
---Define ringbuffer size for TDC channels: 32-64-128
-  constant RING_BUFFER_SIZE : integer range 32 to 128 := 32;
 
 --Run wih 125 MHz instead of 100 MHz     
   constant USE_125_MHZ : integer := c_NO;  --not implemented yet!  

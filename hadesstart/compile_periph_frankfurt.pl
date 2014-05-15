@@ -36,10 +36,14 @@ my $SPEEDGRADE="8";
 
 
 #create full lpf file
-system("cp ../base/trb3_periph_ada.lpf workdir/$TOPNAME.lpf");
-system("cat currentRelease/trbnet_constraints.lpf >> workdir/$TOPNAME.lpf");
-system("cat currentRelease/tdc_constraints_4.lpf >> workdir/$TOPNAME.lpf");
-
+# system("cp ../base/trb3_periph_ada.lpf workdir/$TOPNAME.lpf");
+# system("cat currentRelease/trbnet_constraints.lpf >> workdir/$TOPNAME.lpf");
+# system("cat currentRelease/tdc_constraints_4.lpf >> workdir/$TOPNAME.lpf");
+system("cp ../base/trb3_periph_ada.lpf workdir/trb3_periph.lpf");
+system("cat currentRelease/trbnet_constraints.lpf >> workdir/trb3_periph.lpf");
+system("cat currentRelease/tdc_constraints_64.lpf >> workdir/trb3_periph.lpf");
+system("cat currentRelease/unimportant_lines_constraints.lpf >> workdir/trb3_periph.lpf");
+system("cat unimportant_lines_constraints.lpf >> workdir/trb3_periph.lpf");
 
 #set -e
 #set -o errexit
