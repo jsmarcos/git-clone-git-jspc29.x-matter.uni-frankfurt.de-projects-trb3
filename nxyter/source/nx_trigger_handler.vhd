@@ -119,7 +119,7 @@ architecture Behavioral of nx_trigger_handler is
   signal fee_data_finished_o        : std_logic;
   signal fee_trg_release_o          : std_logic;
   signal fee_trg_statusbits_o       : std_logic_vector(31 downto 0);
-  signal send_testpulse             : std_logic;
+  signal testpulse_trigger          : std_logic;
   
   signal testpulse_enable           : std_logic;
   
@@ -152,7 +152,8 @@ architecture Behavioral of nx_trigger_handler is
                     );
   
   signal T_STATE : T_STATES;
-
+  
+  signal start_testpulse             : std_logic;
   signal testpulse_delay             : unsigned(11 downto 0);
   signal testpulse_length            : unsigned(11 downto 0);
   signal testpulse_o                 : std_logic;
@@ -160,13 +161,15 @@ architecture Behavioral of nx_trigger_handler is
   signal wait_timer_start            : std_logic;
   signal wait_timer_done             : std_logic;
   signal wait_timer_end              : unsigned(11 downto 0);
-  
+  signal internal_trigger_f          : std_logic;
+  signal internal_trigger            : std_logic;
+    
   -- Rate Calculation
-  signal send_testpulse_ff           : std_logic;
-  signal send_testpulse_f            : std_logic;
+  signal start_testpulse_ff          : std_logic;
+  signal start_testpulse_f           : std_logic;
   
   signal accepted_trigger_rate_t     : unsigned(27 downto 0);
-  signal testpulse_o_clk100          : std_logic;
+  signal start_testpulse_clk100      : std_logic;
   signal testpulse_rate_t            : unsigned(27 downto 0);
   signal rate_timer                  : unsigned(27 downto 0);
   
@@ -199,6 +202,12 @@ architecture Behavioral of nx_trigger_handler is
 
   attribute syn_keep of fast_clear_ff               : signal is true;
   attribute syn_keep of fast_clear_f                : signal is true;
+
+  attribute syn_keep of internal_trigger_f          : signal is true;
+  attribute syn_keep of internal_trigger            : signal is true;
+
+  attribute syn_keep of start_testpulse_ff          : signal is true;
+  attribute syn_keep of start_testpulse_f           : signal is true;
   
   attribute syn_preserve : boolean;
   attribute syn_preserve of reset_nx_main_clk_in_ff : signal is true;
@@ -210,6 +219,12 @@ architecture Behavioral of nx_trigger_handler is
   attribute syn_preserve of fast_clear_ff           : signal is true;
   attribute syn_preserve of fast_clear_f            : signal is true;
 
+  attribute syn_preserve of internal_trigger_f      : signal is true;
+  attribute syn_preserve of internal_trigger        : signal is true;
+
+  attribute syn_preserve of start_testpulse_ff      : signal is true;
+  attribute syn_preserve of start_testpulse_f       : signal is true;
+  
 begin
 
   -- Debug Line
@@ -227,7 +242,7 @@ begin
   DEBUG_OUT(11)           <= fee_trg_release_o;
   DEBUG_OUT(12)           <= trigger_busy_o;
   DEBUG_OUT(13)           <= timestamp_trigger_o;
-  DEBUG_OUT(14)           <= send_testpulse;
+  DEBUG_OUT(14)           <= testpulse_trigger;
   DEBUG_OUT(15)           <= testpulse_o;
 
   -----------------------------------------------------------------------------
@@ -317,14 +332,14 @@ begin
         invalid_timing_trigger_n   <= '1';
         ts_wait_timer_start        <= '0';
         ts_wait_timer_reset        <= '1';
-        send_testpulse             <= '0';
+        testpulse_trigger          <= '0';
         timestamp_trigger_o        <= '0';
         TS_STATE                   <= TS_IDLE;     
       else
         invalid_timing_trigger_n   <= '0';
         ts_wait_timer_start        <= '0';
         ts_wait_timer_reset        <= '0';
-        send_testpulse             <= '0';
+        testpulse_trigger          <= '0';
         timestamp_trigger_o        <= '0';
 
         if (fast_clear = '1') then
@@ -340,7 +355,7 @@ begin
                   TS_STATE                <= TS_INVALID_TRIGGER;
                 else
                   if (reg_testpulse_enable = '1') then
-                    send_testpulse        <= '1';
+                    testpulse_trigger     <= '1';
                   end if;
                   timestamp_trigger_o     <= '1';
                   ts_wait_timer_start     <= '1';
@@ -568,9 +583,14 @@ begin
       TIMER_DONE_OUT => wait_timer_done
       );
 
-  testpulse_delay  <= reg_testpulse_delay when rising_edge(NX_MAIN_CLK_IN);
-  testpulse_length <= reg_testpulse_length when rising_edge(NX_MAIN_CLK_IN);
+  testpulse_delay     <= reg_testpulse_delay when rising_edge(NX_MAIN_CLK_IN);
+  testpulse_length    <= reg_testpulse_length when rising_edge(NX_MAIN_CLK_IN);
 
+  internal_trigger_f  <= INTERNAL_TRIGGER_IN when rising_edge(NX_MAIN_CLK_IN);
+  internal_trigger    <= internal_trigger_f  when rising_edge(NX_MAIN_CLK_IN);
+
+  start_testpulse     <= testpulse_trigger or internal_trigger;
+  
   PROC_TESTPULSE_HANDLER: process (NX_MAIN_CLK_IN)
   begin 
     if( rising_edge(NX_MAIN_CLK_IN) ) then
@@ -591,7 +611,7 @@ begin
           case T_STATE is
 
             when T_IDLE => 
-              if (send_testpulse = '1') then
+              if (start_testpulse = '1') then
                 if (reg_testpulse_delay > 0) then
                   wait_timer_end    <= testpulse_delay;
                   wait_timer_start  <= '1';
@@ -631,19 +651,20 @@ begin
   end process PROC_TESTPULSE_HANDLER; 
 
   -- Relax Timing 
-  send_testpulse_ff <= send_testpulse    when rising_edge(NX_MAIN_CLK_IN);
-  send_testpulse_f  <= send_testpulse_ff when rising_edge(NX_MAIN_CLK_IN);
+  start_testpulse_ff <= start_testpulse    when rising_edge(NX_MAIN_CLK_IN);
+  start_testpulse_f  <= start_testpulse_ff when rising_edge(NX_MAIN_CLK_IN);
+
   pulse_dtrans_TESTPULSE_RATE: pulse_dtrans
     generic map (
-      CLK_RATIO => 2
+      CLK_RATIO => 4
       )
     port map (
       CLK_A_IN    => NX_MAIN_CLK_IN,
       RESET_A_IN  => RESET_NX_MAIN_CLK_IN,
-      PULSE_A_IN  => send_testpulse_f,
+      PULSE_A_IN  => start_testpulse_f,
       CLK_B_IN    => CLK_IN,
       RESET_B_IN  => RESET_IN,
-      PULSE_B_OUT => testpulse_o_clk100
+      PULSE_B_OUT => start_testpulse_clk100
       );
   
   PROC_CAL_RATES: process (CLK_IN)
@@ -661,7 +682,7 @@ begin
             accepted_trigger_rate_t            <= accepted_trigger_rate_t + 1;
           end if;
 
-          if (testpulse_o_clk100 = '1') then
+          if (start_testpulse_clk100 = '1') then
             testpulse_rate_t                   <= testpulse_rate_t + 1; 
           end if;
           rate_timer                           <= rate_timer + 1;
@@ -804,7 +825,7 @@ begin
   FEE_TRG_RELEASE_OUT       <= fee_trg_release_o;
   FEE_TRG_STATUSBITS_OUT    <= fee_trg_statusbits_o;
 
-  NX_TESTPULSE_OUT          <= testpulse_o or INTERNAL_TRIGGER_IN;
+  NX_TESTPULSE_OUT          <= testpulse_o;
 
   -- Slave Bus              
   SLV_DATA_OUT              <= slv_data_out_o;    

@@ -78,6 +78,9 @@ architecture Behavioral of nx_histogram is
   signal channel_data_valid_o_f  : std_logic_vector(2 downto 0);
   signal channel_read_busy_o     : std_logic;
 
+  signal debug_state_x        : std_logic_vector(2 downto 0);
+  signal debug_state          : std_logic_vector(2 downto 0);
+
 begin
 
   -----------------------------------------------------------------------------
@@ -91,7 +94,8 @@ begin
   DEBUG_OUT(6)              <= read_enable;
   DEBUG_OUT(7)              <= channel_data_valid_o;
   DEBUG_OUT(8)              <= RESET_IN;
-  DEBUG_OUT(15 downto 9)    <= channel_data_o(6 downto 0);
+  DEBUG_OUT(11 downto 9)    <= debug_state;
+  DEBUG_OUT(15 downto 12)   <= channel_data_o(3 downto 0);
   
   -----------------------------------------------------------------------------
 
@@ -188,11 +192,13 @@ begin
         data_hist_m          <= (others => '0');
         erase_counter        <= (others => '0');
         H_STATE              <= H_ERASE;
+        debug_state          <= (others => '0');
       else
         address_hist_m       <= address_hist_m_x;
         data_hist_m          <= data_hist_m_x;
         erase_counter        <= erase_counter_x;
         H_STATE              <= H_NEXT_STATE;
+        debug_state          <= debug_state_x;
       end if;
     end if;
   end process PROC_HIST_HANDLER_TRANSFER;
@@ -210,6 +216,7 @@ begin
     erase_counter_x             <= erase_counter;
     
     case H_STATE is
+
       when H_IDLE =>
         write_address_hist      <= (others => '0');
         write_data_hist         <= (others => '0');
@@ -239,6 +246,7 @@ begin
           data_hist_m_x         <= (others => '0');
           H_NEXT_STATE          <= H_IDLE;
         end if;                 
+        debug_state_x <= "001";
 
       when H_WRITEADD_CHANNEL =>
         if (AVERAGE_ENABLE_IN = '0') then
@@ -274,6 +282,7 @@ begin
         write_enable_hist       <= '1';
         channel_write_busy_o    <= '1';
         H_NEXT_STATE            <= H_IDLE;
+        debug_state_x <= "010";
 
       when H_WRITE_CHANNEL =>
         new_data                := unsigned(data_hist_m);
@@ -289,6 +298,7 @@ begin
         write_enable            <= '1';
         channel_write_busy_o    <= '1';
         H_NEXT_STATE            <= H_IDLE;
+        debug_state_x <= "011";
 
       when H_ERASE =>
         write_address_hist      <= (others => '0');
@@ -305,6 +315,7 @@ begin
         data_hist_m_x           <= (others => '0');
         channel_write_busy_o    <= '1';
         H_NEXT_STATE            <= H_ERASE_CHANNEL;
+        debug_state_x <= "100";
 
       when H_ERASE_CHANNEL  =>
         new_data                := unsigned(data_hist_m);
@@ -324,7 +335,8 @@ begin
         else
           H_NEXT_STATE          <= H_IDLE;
         end if;
-
+        debug_state_x <= "101";
+        
     end case;
         
   end process PROC_HIST_HANDLER;

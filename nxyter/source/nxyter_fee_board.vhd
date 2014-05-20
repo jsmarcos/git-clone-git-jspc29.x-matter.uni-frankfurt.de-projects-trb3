@@ -165,6 +165,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal trigger_validate_fill   : std_logic;
   signal trigger_validate_bin    : std_logic_vector(6 downto 0);
   signal trigger_validate_adc    : std_logic_vector(11 downto 0);
+  signal trigger_validate_ts     : std_logic_vector(6 downto 0);
   signal trigger_validate_pileup : std_logic;
   signal trigger_validate_ovfl   : std_logic;
   signal reset_hists             : std_logic;
@@ -683,6 +684,7 @@ begin
       HISTOGRAM_FILL_OUT       => trigger_validate_fill,
       HISTOGRAM_BIN_OUT        => trigger_validate_bin,
       HISTOGRAM_ADC_OUT        => trigger_validate_adc,
+      HISTOGRAM_TS_OUT         => trigger_validate_ts,
       HISTOGRAM_PILEUP_OUT     => trigger_validate_pileup,
       HISTOGRAM_OVERFLOW_OUT   => trigger_validate_ovfl,
                                
@@ -769,6 +771,7 @@ begin
       CHANNEL_FILL_IN             => trigger_validate_fill,
       CHANNEL_ID_IN               => trigger_validate_bin,
       CHANNEL_ADC_IN              => trigger_validate_adc,
+      CHANNEL_TS_IN               => trigger_validate_ts,
       CHANNEL_PILEUP_IN           => trigger_validate_pileup,
       CHANNEL_OVERFLOW_IN         => trigger_validate_ovfl,
      

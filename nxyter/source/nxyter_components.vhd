@@ -556,6 +556,7 @@ component nx_trigger_validate
     HISTOGRAM_FILL_OUT     : out std_logic;
     HISTOGRAM_BIN_OUT      : out std_logic_vector(6 downto 0);
     HISTOGRAM_ADC_OUT      : out std_logic_vector(11 downto 0);
+    HISTOGRAM_TS_OUT       : out std_logic_vector(6 downto 0);
     HISTOGRAM_PILEUP_OUT   : out std_logic;
     HISTOGRAM_OVERFLOW_OUT : out std_logic;
     SLV_READ_IN            : in  std_logic;
@@ -657,6 +658,7 @@ component nx_histograms
     CHANNEL_FILL_IN      : in  std_logic;
     CHANNEL_ID_IN        : in  std_logic_vector(6 downto 0);
     CHANNEL_ADC_IN       : in  std_logic_vector(11 downto 0);
+    CHANNEL_TS_IN        : in  std_logic_vector(6 downto 0);
     CHANNEL_PILEUP_IN    : in  std_logic;
     CHANNEL_OVERFLOW_IN  : in  std_logic;
     SLV_READ_IN          : in  std_logic;

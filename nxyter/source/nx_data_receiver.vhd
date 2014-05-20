@@ -238,6 +238,7 @@ architecture Behavioral of nx_data_receiver is
   signal pll_adc_sample_clk_dphase_r   : unsigned(3 downto 0);
   signal pll_adc_sample_clk_finedelb_r : unsigned(3 downto 0);
   signal nx_timestamp_delay_r          : unsigned(2 downto 0);
+  signal nx_frame_word_delay_rr        : unsigned(1 downto 0);
   signal nx_frame_word_delay_r         : unsigned(1 downto 0);
   signal fifo_full_rr                  : std_logic;
   signal fifo_full_r                   : std_logic;
@@ -339,7 +340,10 @@ architecture Behavioral of nx_data_receiver is
 
   attribute syn_keep of adc_debug_type_f                  : signal is true;
   attribute syn_keep of adc_debug_type                    : signal is true;
-  
+
+  attribute syn_keep of nx_frame_word_delay_rr            : signal is true;
+  attribute syn_keep of nx_frame_word_delay_r             : signal is true;
+
   attribute syn_preserve : boolean;
   attribute syn_preserve of reset_nx_timestamp_clk_in_ff  : signal is true;
   attribute syn_preserve of reset_nx_timestamp_clk_in_f   : signal is true;
@@ -358,6 +362,9 @@ architecture Behavioral of nx_data_receiver is
 
   attribute syn_preserve of adc_debug_type_f              : signal is true;
   attribute syn_preserve of adc_debug_type                : signal is true;
+
+  attribute syn_preserve of nx_frame_word_delay_rr        : signal is true;
+  attribute syn_preserve of nx_frame_word_delay_r         : signal is true;
   
 begin
 
@@ -906,8 +913,6 @@ begin
     if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
       nx_frame_word_delay             <= nx_frame_word_delay_f;
       adc_data_clk_last(0)            <= adc_data_s_clk;
-      -- Register Info
-      nx_frame_word_delay_r           <= nx_frame_word_delay;
       
       if (RESET_NX_TIMESTAMP_CLK_IN = '1') then
         nx_frame_word_delay_f         <= "10";
@@ -1503,7 +1508,7 @@ begin
               debug_state                <= x"5";
               
             when R_RESET_TIMESTAMP =>
-              -- must reset/resync Timestamp clock and data trnasmission clock
+              -- must reset/resync Timestamp clock and data transmission clock
               -- of nxyter first, afterwards wait a bit to let settle down
               reset_handler_counter      <= reset_handler_counter + 1;
               nx_timestamp_reset_o       <= '1';
@@ -1715,6 +1720,11 @@ begin
   end process PROC_SLAVE_BUS_BUFFER;
   
   -- Give status info to the TRB Slow Control Channel
+
+  -- Register Info
+  nx_frame_word_delay_rr     <= nx_frame_word_delay_f  when rising_edge(CLK_IN);
+  nx_frame_word_delay_r      <= nx_frame_word_delay_rr when rising_edge(CLK_IN);
+  
   PROC_SLAVE_BUS: process(CLK_IN)
   begin
     if (rising_edge(CLK_IN) ) then
