@@ -39,18 +39,7 @@ my $DEVICENAME="LFE3-150EA";
 my $PACKAGE="FPBGA1156";
 my $SPEEDGRADE="8";
 
-unless(-e 'workdir') {
-  print "Creating workdir\n";
-  system ("mkdir workdir");
-  system ("cd workdir; ../../base/linkdesignfiles.sh; cd ..;");
-  system ("ln -sfT ../tdc_release/Adder_304.ngo workdir/Adder_304.ngo");
-}
-  
-#create full lpf file
-system("cp ../base/trb3_central_cts.lpf workdir/$TOPNAME.lpf");
-system("cat tdc_release/tdc_constraints_4.lpf >> workdir/$TOPNAME.lpf");
-system("cat ".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
-system("sed -i 's#THE_TDC/#gen_TDC_THE_TDC/#g' workdir/$TOPNAME.lpf");
+system("./compile_constraints.pl");
 
 system("ln -f -s config_default.vhd config.vhd");
 

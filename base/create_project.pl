@@ -49,19 +49,11 @@ sub generateLDF {
 
    my $def_impl = $options->{'top_module'};
 
-   my $lpf1 = $options->{'top_module'} . '_constraints.lpf';
-   my $lpf2 = '../base/' . $options->{'top_module'} . '.lpf';
-   
-   if (not (-e $lpf1) and not (-e $lpf2)) {
-      print "WARNING: Could not find LPF files. Searched at\n $lpf1\n $lpf2\n";
-      print " Diamond will not open the project unless you at atleast one lpf\n";
-   }
-
    print FH "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
    print FH "<BaliProject version=\"2.0\" title=\"$prj_title\" device=\"$device\" default_implementation=\"$def_impl\">\n";
    print FH "    <Options/>\n";
    print FH "    <Implementation title=\"$def_impl\" dir=\"$def_impl\" description=\"Automatically generated implemenatation\" default_strategy=\"Strategy1\">\n";
-   print FH "        <Options/>\n";
+   print FH "        <Options def_top=\"$def_impl\" top=\"$def_impl\"/>\n";
    for my $filer (@{$files}) {
       my $file = $filer->[1];
       my $lib = $filer->[0];
@@ -72,14 +64,12 @@ sub generateLDF {
          print FH "        <Source name=\"$fpath\" type=\"VHDL\" type_short=\"VHDL\"><Options lib=\"$lib\" /></Source>\n"
       } elsif ("v" eq $suffix) {
          print FH "        <Source name=\"$fpath\" type=\"Verilog\" type_short=\"Verilog\"><Options lib=\"$lib\" /></Source>\n"
+      } elsif ("lpf" eq $suffix) {
+         print FH "        <Source name=\"$fpath\" type=\"Logic Preference\" type_short=\"LPF\"><Options/></Source>\n"
       } else {
          print "WARNING: Could not determine type of input file $file. Not included!\n";
       }
    }
-   
-   print FH "        <Source name=\"../$lpf1\" type=\"Logic Preference\" type_short=\"LPF\"><Options/></Source>\n" if (-e $lpf1);
-   print FH "        <Source name=\"../$lpf2\" type=\"Logic Preference\" type_short=\"LPF\"><Options/></Source>\n" if (-e $lpf2);
-
 
    print FH "    </Implementation>\n";
    print FH "    <Strategy name=\"Strategy1\" file=\"auto_strat.sty\"/>\n";
@@ -297,7 +287,25 @@ STY
 
 # create dir if necessary
    mkdir 'project' unless (-e 'project');
-  
+
+# create workdir
+   if (-e './compile_constraints.pl') {
+      my $workdir = 'project/' . $options->{'top_module'};
+      my $lpffile = $workdir . '/' . $options->{'top_module'} . ".lpf";
+      
+      print "NOTE: execute ./compile_constraints.pl $workdir\n";
+      system "./compile_constraints.pl $workdir";
+      
+      if(-e $lpffile) {
+         rename $lpffile, 'project/' . $options->{'top_module'} . '.lpf';         
+         push @$files, ['work', 'project/' . $options->{'top_module'} . '.lpf'];
+      } else {
+         print "WARNING: compile_constraints did not generate $lpffile. Please include the necessary contraint files manually\n";
+      }
+   } else {
+      print "No ./compile_constraints.pl script found. Please make sure, the workdir contains all links and constraint-files\n";
+   }
+   
 # generate ldf
    my $project_file = 'project/' . $options->{'top_module'} . '.ldf';
    if (-e $project_file) {move $project_file, $project_file . '.backup'};
@@ -309,5 +317,9 @@ STY
       generateSTY 'project/auto_strat.sty';
       print "NOTE: STY generated\n";
    }
-  
+   
+   
+   
+print "\nNOTE: The version.vhd file is neither generated nor updated when building in diamond.\n"
+print "\nUse command-line compilation to create a version file.\n"
 print "\nDone. Execute \n> diamond $project_file\nto open the project\n";
