@@ -320,6 +320,6 @@ STY
    
    
    
-print "\nNOTE: The version.vhd file is neither generated nor updated when building in diamond.\n"
-print "\nUse command-line compilation to create a version file.\n"
+print "\nNOTE: The version.vhd file is neither generated nor updated when building in diamond.\n";
+print "\nUse command-line compilation to create a version file.\n";
 print "\nDone. Execute \n> diamond $project_file\nto open the project\n";
