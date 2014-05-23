@@ -78,6 +78,8 @@ my $c="$synplify_path/bin/synplify_premier_dp -batch $TOPNAME.prj";
 $r=execute($c, "do_not_exit" );
 
 
+
+
 chdir $WORKDIR or die "can't chdir to $WORKDIR: $!";
 
 
@@ -90,7 +92,7 @@ $fh->close;
 foreach (@a) {
   if (/\@E:/) {
     print "\n";
-    $c="cat $TOPNAME.srr | grep \"\@E\"";
+    $c="cat $TOPNAME.srr | grep -C 3 \"\@E\"";
     system($c);
     print "\n\n";
     exit 129;
