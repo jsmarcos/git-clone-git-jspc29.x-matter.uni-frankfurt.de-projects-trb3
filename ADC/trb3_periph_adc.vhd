@@ -57,10 +57,10 @@ entity trb3_periph_adc is
     
     P_CLOCK              : out std_logic;
     
-    FPGA_CS              : out std_logic;
-    FPGA_SCK             : out std_logic;
-    FPGA_SDI             : out std_logic;
-    FPGA_SDO             : in  std_logic;
+    FPGA_CS              : out std_logic_vector(1 downto 0);
+    FPGA_SCK             : out std_logic_vector(1 downto 0);
+    FPGA_SDI             : out std_logic_vector(1 downto 0);
+    FPGA_SDO             : in  std_logic_vector(1 downto 0);
     
     --Flash ROM & Reboot
     FLASH_CLK  : out   std_logic;
@@ -566,18 +566,18 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
   -- we multiplex the SDI/O and SCK lines according to CS. This way we can control
   -- when which SPI device should be addressed via software
 
-  FPGA_CS  <= spi_CS(0);
-  FPGA_SCK <= spi_SCK when spi_CS(0) = '0' else '1';
-  FPGA_SDI <= spi_SDO when spi_CS(0) = '0' else '0';
-  spi_SDI  <= FPGA_SDO when spi_CS(0) = '0' else '0';
+  FPGA_CS  <= spi_CS(1 downto 0);
+  FPGA_SCK(0) <= spi_SCK     when spi_CS(1 downto 0) /= b"11" else '1';
+  FPGA_SDI(0) <= spi_SDO     when spi_CS(1 downto 0) /= b"11" else '0';
+  spi_SDI     <= FPGA_SDO(0) when spi_CS(1 downto 0) /= b"11" else '0';
   
-  SPI_ADC_SCK         <= spi_SCK when spi_CS(1) = '0' else '1';
-  SPI_ADC_SDIO        <= spi_SDO when spi_CS(1) = '0' else '0';
+  SPI_ADC_SCK         <= spi_SCK when spi_CS(2) = '0' else '1';
+  SPI_ADC_SDIO        <= spi_SDO when spi_CS(2) = '0' else '0';
   
-  LMK_CLK             <= spi_SCK when spi_CS(2) = '0' or spi_CS(3) = '0' else '1' ;
-  LMK_DATA            <= spi_SDO when spi_CS(2) = '0' or spi_CS(3) = '0' else '0' ;
-  LMK_LE_1            <= spi_CS(2); -- active low
-  LMK_LE_2            <= spi_CS(3); -- active low
+  LMK_CLK             <= spi_SCK when spi_CS(4 downto 3) /= b"11" else '1' ;
+  LMK_DATA            <= spi_SDO when spi_CS(4 downto 3) /= b"11" else '0' ;
+  LMK_LE_1            <= spi_CS(3); -- active low
+  LMK_LE_2            <= spi_CS(4); -- active low
   
 
 ---------------------------------------------------------------------------
