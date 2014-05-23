@@ -3,13 +3,16 @@ LIBRARY IEEE;
    USE IEEE.numeric_std.all;
 
 library work;
---   use work.trb_net_std.all;
+   use work.trb_net_std.all;
 --   use work.trb_net_components.all;
 --   use work.med_sync_define.all;
    use work.cbmnet_interface_pkg.all;
    use work.cbmnet_phy_pkg.all;
 
 entity CBMNET_PHY_RX_GEAR is
+   generic(
+      IS_SYNC_SLAVE   : integer := c_NO       --select slave mode
+   );
    port (
    -- SERDES PORT
       CLK_250_IN  : in std_logic;
@@ -24,7 +27,7 @@ entity CBMNET_PHY_RX_GEAR is
       DATA_OUT    : out std_logic_vector(17 downto 0);
       
    -- DEBUG
-      DEBUG_OUT   : out std_logic_vector(15 downto 0) := (others => '0')
+      DEBUG_OUT   : out std_logic_vector(31 downto 0) := (others => '0')
    );
 end entity;
 
@@ -93,7 +96,7 @@ begin
                
                elsif indi_misalignment_i = '1' then
                   -- in this state we should already have a stable and correct lock. 
-                  -- if we, however detect a missalignment, something is terribly wrong.
+                  -- if we, however, detect a missalignment, something is terribly wrong.
                   -- in this case, will perform a resychronisation
                   
                   fsm_i <= FSM_RESET;
@@ -108,21 +111,26 @@ begin
       end if;
    end process;
    
--- Timeout (approx. 1ms)
+-- Timeout (approx. 2ms)
    proc_timeout: process is 
-      variable timer_v : unsigned(17 downto 0);
+      variable timer_v : unsigned(19 downto 0) := (others => '0');
+      variable idx : integer := 18;
    begin
       wait until rising_edge(clk_125_i);
+      
+      if IS_SYNC_SLAVE = 0 then
+         idx := timer_v'high;
+      end if;
       
       if reset_timer_i = '1' then
          timer_v := TO_UNSIGNED(0, timer_v'length);
          
-      elsif timer_v(timer_v'high) = '0' then
+      elsif timer_v(idx) = '0' then
          timer_v := timer_v + TO_UNSIGNED(1,1);
          
       end if;
 
-      timeout_i <= timer_v(timer_v'high);
+      timeout_i <= timer_v(idx);
    end process;
 
 -- Implement the 2:1 gearing and clock down-sampling
@@ -152,6 +160,8 @@ begin
    
    DEBUG_OUT(3 downto 0) <= STD_LOGIC_VECTOR(fsm_state_i);
    DEBUG_OUT(4) <= delay_clock_i;
+   DEBUG_OUT(5) <= indi_alignment_i;
+   DEBUG_OUT(6) <= indi_misalignment_i;
    
 -- Detect Indications for correct or wrong alignment   
    indi_alignment_i <= '1' when data_out_buf_i(17 downto 16) = "01" and data_out_buf_i(15 downto 8) = x"00" and

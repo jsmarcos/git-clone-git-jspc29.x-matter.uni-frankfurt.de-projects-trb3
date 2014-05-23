@@ -107,7 +107,7 @@ begin
    end process;
                                                                                               
                                                                                               
-   proc_fsm_trans: process(cs, tx_pll_lol_qd_s_int, rx_los_low_int, rx_lol_los_int, timer2)
+   proc_fsm_trans: process(cs, tx_pll_lol_qd_s_int, rx_los_low_int, rx_lol_los_int, timer2, proper_word_align_i, proper_byte_align_i, rx_lol_los_int, rm_reset_i)
    begin
    --       reset_timer1 <= '0';
          reset_timer2 <= '0';

@@ -121,7 +121,7 @@ begin
       tx_pcs_rst_ch_c_int <= '1';
       RST_QD_C_int <= '1';
       reset_timer1 <= '1';
-        ns <= WAIT_FOR_TIMER1;
+      ns <= WAIT_FOR_TIMER1;
                                                                                               
     when WAIT_FOR_TIMER1 =>
       STATE_OUT <= x"2";

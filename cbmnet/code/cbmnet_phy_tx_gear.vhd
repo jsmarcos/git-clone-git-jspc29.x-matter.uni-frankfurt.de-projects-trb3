@@ -20,10 +20,12 @@ entity CBMNET_PHY_TX_GEAR is
       CLK_125_OUT : out std_logic;
       
       RESET_IN    : in std_logic;
+      ALLOW_RELOCK_IN : in std_logic;
       
       DATA_IN     : in std_logic_vector(17 downto 0);
+      DATA_OUT    : out std_logic_vector(8 downto 0);
       
-      DATA_OUT    : out std_logic_vector(8 downto 0)
+      DEBUG_OUT   : out std_logic_vector(31 downto 0)
    );
 end entity;
 
@@ -38,10 +40,14 @@ architecture CBMNET_PHY_TX_GEAR_ARCH of CBMNET_PHY_TX_GEAR is
    signal clk_125_xfer_buf_i : std_logic := '0';
    signal clk_125_xfer_del_i : std_logic := '0';
    
-   
+   signal delay_counter_i : unsigned(15 downto 0);
 begin
    process is begin
       wait until rising_edge(CLK_250_IN);
+      
+      if RESET_IN='1' then
+         delay_counter_i <= TO_UNSIGNED(0,16);
+      end if;
       
       clk_125_xfer_buf_i <= clk_125_xfer_i;
       clk_125_xfer_del_i <= clk_125_xfer_buf_i;
@@ -55,8 +61,9 @@ begin
             low_data_i <= data_in_buf125_i(16) & data_in_buf125_i( 7 downto 0);
             fsm_i <= FSM_LOW;
 
-            if clk_125_xfer_buf_i /= clk_125_xfer_del_i then
+            if clk_125_xfer_buf_i /= clk_125_xfer_del_i and ALLOW_RELOCK_IN = '1' then
                fsm_i <= FSM_HIGH;
+               delay_counter_i <= delay_counter_i + 1;
             end if;
 
             
@@ -64,7 +71,7 @@ begin
             DATA_OUT <= low_data_i;
             fsm_i <= FSM_HIGH;
       end case;
-  end process;
+   end process;
    
    process is begin
       wait until rising_edge(CLK_125_IN);
@@ -72,4 +79,6 @@ begin
       data_in_buf125_i <= DATA_IN;
       clk_125_xfer_i   <= not clk_125_xfer_i;
    end process;
+   
+   DEBUG_OUT <= x"0000" & STD_LOGIC_VECTOR( delay_counter_i );
 end architecture CBMNET_PHY_TX_GEAR_ARCH;
