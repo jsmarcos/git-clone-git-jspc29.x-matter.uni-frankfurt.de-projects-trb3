@@ -73,6 +73,7 @@ begin
   t(63 downto 56) := std_logic_vector(to_unsigned(2,8)); --table version 2
   t(7 downto 0)   := std_logic_vector(to_unsigned(USE_HPTDC_FASTMODE_PINOUT*3,8));
   t(11 downto 8)  := std_logic_vector(to_unsigned(USE_DOUBLE_EDGE*2,4));
+  t(15)           := '1'; --TDC
   t(42 downto 42) := std_logic_vector(to_unsigned(INCLUDE_SPI,1));
   t(44 downto 44) := std_logic_vector(to_unsigned(INCLUDE_STATISTICS,1));
   t(51 downto 48) := std_logic_vector(to_unsigned(INCLUDE_TRIGGER_LOGIC,4));
