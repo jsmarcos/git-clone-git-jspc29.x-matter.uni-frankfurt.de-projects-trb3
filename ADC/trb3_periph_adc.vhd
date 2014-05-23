@@ -566,16 +566,29 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
   -- we multiplex the SDI/O and SCK lines according to CS. This way we can control
   -- when which SPI device should be addressed via software
 
-  FPGA_CS  <= spi_CS(1 downto 0);
-  FPGA_SCK(0) <= spi_SCK     when spi_CS(1 downto 0) /= b"11" else '1';
-  FPGA_SDI(0) <= spi_SDO     when spi_CS(1 downto 0) /= b"11" else '0';
-  spi_SDI     <= FPGA_SDO(0) when spi_CS(1 downto 0) /= b"11" else '0';
+  FPGA_CS_mux: process (spi_CS(2 downto 0)) is
+	begin  -- process FPGA_CS_mux
+		case spi_CS(2 downto 0) is
+			when b"110"  =>
+				FPGA_CS <= b"00";
+			when b"101"  =>
+				FPGA_CS <= b"01";
+			when b"011"  =>
+				FPGA_CS <= b"10";				
+			when others =>
+				FPGA_CS <= b"11";
+		end case;
+	end process FPGA_CS_mux;
   
-  SPI_ADC_SCK         <= spi_SCK when spi_CS(2) = '0' else '1';
-  SPI_ADC_SDIO        <= spi_SDO when spi_CS(2) = '0' else '0';
+  FPGA_SCK(0) <= spi_SCK     when spi_CS(2 downto 0) /= b"111" else '1';
+  FPGA_SDI(0) <= spi_SDO     when spi_CS(2 downto 0) /= b"111" else '0';
+  spi_SDI     <= FPGA_SDO(0) when spi_CS(2 downto 0) /= b"111" else '0';
   
-  LMK_CLK             <= spi_SCK when spi_CS(4 downto 3) /= b"11" else '1' ;
-  LMK_DATA            <= spi_SDO when spi_CS(4 downto 3) /= b"11" else '0' ;
+  SPI_ADC_SCK         <= spi_SCK when spi_CS(3) = '0' else '1';
+  SPI_ADC_SDIO        <= spi_SDO when spi_CS(3) = '0' else '0';
+  
+  LMK_CLK             <= spi_SCK when spi_CS(5 downto 4) /= b"11" else '1' ;
+  LMK_DATA            <= spi_SDO when spi_CS(5 downto 4) /= b"11" else '0' ;
   LMK_LE_1            <= spi_CS(3); -- active low
   LMK_LE_2            <= spi_CS(4); -- active low
   
