@@ -695,12 +695,12 @@ begin
             get_next_eb := '0';
          end if;
          
-         if (eb_aggr_threshold_i = x"00" or eb_mask_i = x"0") then
+         if (eb_aggr_threshold_i = x"00" or eb_mask_i = x"0000") then
             -- no round-robin active
             eb_selection_i <= x"0";
             get_next_eb := '0';
             
-         elsif (eb_aggr_threshold_i /= x"00" and eb_mask_i /= x"0" and ro_next_cycle_i = '1')  then
+         elsif ro_next_cycle_i = '1' then
             -- round-robin active active, and a new event just started
             if eb_aggr_threshold_i = eb_aggr_counter_i then
                eb_aggr_counter_i <= (others => '0');
@@ -713,7 +713,6 @@ begin
             end if;
 
          end if;
-         
          
          -- increment (with overflow) next_eb_selection until we find an active eb
          -- with this sequential approach, the result is ready in at most 16 cycles,
