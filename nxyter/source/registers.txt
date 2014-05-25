@@ -36,6 +36,13 @@
 0x8270 : r     Token register, 14 in a row
 
 -- Trigger Generator
+0x8140 : r/w   3Bit: #0  Self Trigger On
+                     #1  Pulser Trigger On
+                     #2  Trigger Output Select (0: extern, 1: Intern)
+0x8141 : r/w   Pulser Trigger Period (28 Bit)
+0x8142 : r     Self Trigger Rate (1/s)
+0x8143 : r     Pulser Trigger Rate (1/s)
+0x8144 : r     Trigger Rate (1/s)
 
 -- Trigger Handler
 0x8160 :  r/w  Enable Testpulse Signal (default: off)
@@ -94,10 +101,10 @@
 0x8125 :  r    Frame Rate (in Hz)
 
 -- NX Data Delay
-0x8180 :  r    FIFO Delay, i.e. Trigger Delay (8 Bit, in 32ns).
+0x8000 :  r    FIFO Delay, i.e. Trigger Delay (8 Bit, in 32ns).
                 Calculation is based on CTS Trigger Delay
                (see NX Trigger Validate)
-0x8181 : r/w   Debug Multiplexer (0=Data Delay, 1=FIFO)
+0x8001 : r/w   Debug Multiplexer (0=Data Delay, 1=FIFO)
 
 -- NX Trigger Validate
 0x8400 :  r/w  Readout Mode: 4 Bits
@@ -173,10 +180,11 @@
 0x8060 :       Access to SPI Interface
 
 -- Histogram Handler
-0x8800 :  r    Read Channel Hit Statistic (128 channel in a row)
-0x8900 :  r    Read Channel Pileup Rate (128 channel in a row, 1/s)
-0x8a00 :  r    Read Channel Overflow Rate (128 channel in a row, 1/s)
-0x8b00 :  r    Read Channel averaged ADC Value (128 channel in a row)
+0x8800 :  r    Read Channel Hit Statistic (128 channels in a row)
+0x8900 :  r    Read Channel Pileup Rate (128 channels in a row, 1/s)
+0x8a00 :  r    Read Channel Overflow Rate (128 channels in a row, 1/s)
+0x8b00 :  r    Read Channel averaged ADC Value (128 channels in a row)
+0x8c00 :  r    Read Channel Timestamp Statistic (512 channels in a row)
 
 0x8880 :  r/w  Hit Rate num averages (3 Bit)
 0x8881 :  r/w  Hit Rate average enable 

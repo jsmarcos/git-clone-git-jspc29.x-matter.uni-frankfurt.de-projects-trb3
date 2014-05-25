@@ -35,6 +35,7 @@ entity nx_data_validate is
     SLV_NO_MORE_DATA_OUT : out std_logic;
     SLV_UNKNOWN_ADDR_OUT : out std_logic;
 
+    DISABLE_ADC_IN       : in std_logic;
     ERROR_OUT            : out std_logic;
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
@@ -518,13 +519,12 @@ begin
       if (RESET_IN = '1') then
         error_o       <= '0';
       else
-        if (adc_tr_error_rate > x"0000020") then
+        if (adc_tr_error_rate > x"0000020" and DISABLE_ADC_IN = '0') then
           error_o     <= '1';
         else
           error_o     <= '0';
         end if;
       end if;
-
     end if;
   end process PROC_ADC_TOKEN_RETURN_ERROR;
  

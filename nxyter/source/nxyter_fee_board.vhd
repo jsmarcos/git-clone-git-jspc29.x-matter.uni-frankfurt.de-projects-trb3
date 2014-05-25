@@ -139,6 +139,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal data_recv              : std_logic_vector(43 downto 0);
   signal data_clk_recv          : std_logic;
   signal pll_sadc_clk_lock      : std_logic;
+  signal disable_adc_receiver   : std_logic;
   
   -- Data Delay                 
   signal data_delayed           : std_logic_vector(43 downto 0);
@@ -165,7 +166,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal trigger_validate_fill   : std_logic;
   signal trigger_validate_bin    : std_logic_vector(6 downto 0);
   signal trigger_validate_adc    : std_logic_vector(11 downto 0);
-  signal trigger_validate_ts     : std_logic_vector(6 downto 0);
+  signal trigger_validate_ts     : std_logic_vector(8 downto 0);
   signal trigger_validate_pileup : std_logic;
   signal trigger_validate_ovfl   : std_logic;
   signal reset_hists             : std_logic;
@@ -245,7 +246,7 @@ begin
       PORT_ADDRESSES      => (  0 => x"0100",    -- NX Status Handler
                                 1 => x"0040",    -- I2C Master
                                 2 => x"0500",    -- Data Receiver
-                                3 => x"0600",    -- Data Buffer
+                                3 => x"0080",    -- Event Buffer
                                 4 => x"0060",    -- SPI Master
                                 5 => x"0140",    -- Trigger Generator
                                 6 => x"0120",    -- Data Validate
@@ -254,23 +255,23 @@ begin
                                 9 => x"0200",    -- NX Register Setup
                                10 => x"0800",    -- NX Histograms
                                11 => x"0020",    -- Debug Handler
-                               12 => x"0180",    -- Data Delay
+                               12 => x"0000",    -- Data Delay
                                 others => x"0000"
                                 ),
 
       PORT_ADDR_MASK      => (  0 => 4,          -- NX Status Handler
                                 1 => 1,          -- I2C master
                                 2 => 5,          -- Data Receiver
-                                3 => 3,          -- Data Buffer
+                                3 => 3,          -- Event Buffer
                                 4 => 0,          -- SPI Master
                                 5 => 3,          -- Trigger Generator
                                 6 => 5,          -- Data Validate
                                 7 => 4,          -- Trigger Handler
-                                8 => 5,          -- Trigger Validate
+                                8 => 6,          -- Trigger Validate
                                 9 => 9,          -- NX Register Setup
-                               10 => 10,         -- NX Histograms
+                               10 => 11,         -- NX Histograms
                                11 => 0,          -- Debug Handler
-                               12 => 2,          -- Data Delay
+                               12 => 1,          -- Data Delay
                                 others => 0
                                 ),
 
@@ -579,7 +580,8 @@ begin
       SLV_ADDR_IN            => slv_addr(2*16+15 downto 2*16),    
       SLV_ACK_OUT            => slv_ack(2),                       
       SLV_NO_MORE_DATA_OUT   => slv_no_more_data(2),              
-      SLV_UNKNOWN_ADDR_OUT   => slv_unknown_addr(2),              
+      SLV_UNKNOWN_ADDR_OUT   => slv_unknown_addr(2),
+      DISABLE_ADC_OUT        => disable_adc_receiver,
       ERROR_OUT              => error_data_receiver,
       DEBUG_OUT              => debug_line(7)
       );
@@ -642,6 +644,7 @@ begin
       SLV_NO_MORE_DATA_OUT  => slv_no_more_data(6),
       SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(6),
 
+      DISABLE_ADC_IN        => disable_adc_receiver,
       ERROR_OUT             => error_data_validate,
       DEBUG_OUT             => debug_line(9)
       );

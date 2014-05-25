@@ -73,7 +73,6 @@ architecture Behavioral of nx_data_delay is
   signal debug_r               : std_logic;
 
   -- Misc
-  signal fifo_select           : std_logic;
   signal debug_fifo            : std_logic_vector(15 downto 0);
 
 begin
@@ -196,7 +195,6 @@ begin
         slv_no_more_data_o      <= '0';
         fifo_reset_r            <= '0';
         debug_r                 <= '0';
-        fifo_select             <= '0';
       else                      
         slv_data_o              <= (others => '0');
         slv_unknown_addr_o      <= '0';
@@ -215,11 +213,6 @@ begin
               slv_data_o(31 downto 1)  <= (others => '0');
               slv_ack_o                <= '1';
 
-            when x"0002" =>
-              slv_data_o(0)            <= fifo_select;
-              slv_data_o(31 downto 1)  <= (others => '0');
-              slv_ack_o                <= '1';
-              
             when others =>
               slv_unknown_addr_o       <= '1';
               slv_ack_o                <= '0';
@@ -235,10 +228,6 @@ begin
               debug_r                  <= SLV_DATA_IN(0);
               slv_ack_o                <= '1';
 
-            when x"0002" =>
-              fifo_select              <= SLV_DATA_IN(0);
-              slv_ack_o                <= '1';
-              
             when others =>
               slv_unknown_addr_o       <= '1';
               slv_ack_o                <= '0';

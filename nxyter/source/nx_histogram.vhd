@@ -7,8 +7,7 @@ use work.nxyter_components.all;
 
 entity nx_histogram is
   generic (
-    BUS_WIDTH    : integer   := 7;
-    DATA_WIDTH   : integer   := 32
+    BUS_WIDTH  : integer   := 7
     );
   port (
     CLK_IN                 : in  std_logic;
@@ -17,14 +16,14 @@ entity nx_histogram is
     NUM_AVERAGES_IN        : in  unsigned(2 downto 0);
     AVERAGE_ENABLE_IN      : in  std_logic;
     CHANNEL_ID_IN          : in  std_logic_vector(BUS_WIDTH - 1 downto 0);
-    CHANNEL_DATA_IN        : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
+    CHANNEL_DATA_IN        : in  std_logic_vector(31 downto 0);
     CHANNEL_ADD_IN         : in  std_logic;
     CHANNEL_WRITE_IN       : in  std_logic;
     CHANNEL_WRITE_BUSY_OUT : out std_logic;      
     
     CHANNEL_ID_READ_IN     : in  std_logic_vector(BUS_WIDTH - 1 downto 0);
     CHANNEL_READ_IN        : in  std_logic;
-    CHANNEL_DATA_OUT       : out std_logic_vector(DATA_WIDTH - 1 downto 0);
+    CHANNEL_DATA_OUT       : out std_logic_vector(31 downto 0);
     CHANNEL_DATA_VALID_OUT : out std_logic;
     CHANNEL_READ_BUSY_OUT  : out std_logic;
     
@@ -44,23 +43,23 @@ architecture Behavioral of nx_histogram is
                     );
   signal H_STATE, H_NEXT_STATE : H_STATES;
 
-  signal address_hist_m          : std_logic_vector(6 downto 0);
-  signal address_hist_m_x        : std_logic_vector(6 downto 0);
-  signal data_hist_m             : std_logic_vector(DATA_WIDTH - 1 downto 0);
-  signal data_hist_m_x           : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal address_hist_m          : std_logic_vector(BUS_WIDTH - 1 downto 0);
+  signal address_hist_m_x        : std_logic_vector(BUS_WIDTH - 1 downto 0);
+  signal data_hist_m             : std_logic_vector(31 downto 0);
+  signal data_hist_m_x           : std_logic_vector(31 downto 0);
   
-  signal read_data_hist          : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal read_data_hist          : std_logic_vector(31 downto 0);
   signal read_data_ctr_hist      : unsigned(7 downto 0);
   signal read_address_hist       : std_logic_vector(BUS_WIDTH - 1 downto 0);
   signal read_enable_hist        : std_logic;
 
-  signal write_data_hist         : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal write_data_hist         : std_logic_vector(31 downto 0);
   signal write_data_ctr_hist     : unsigned(7 downto 0);
   signal write_address_hist      : std_logic_vector(BUS_WIDTH - 1 downto 0);
   signal write_enable_hist       : std_logic;
 
   signal write_address           : std_logic_vector(BUS_WIDTH - 1 downto 0);
-  signal write_data              : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal write_data              : std_logic_vector(31 downto 0);
   signal write_enable            : std_logic;
 
   signal channel_write_busy_o    : std_logic;
@@ -70,10 +69,10 @@ architecture Behavioral of nx_histogram is
   
   -- Hist Read Handler
   signal read_address            : std_logic_vector(BUS_WIDTH - 1 downto 0);
-  signal read_data               : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal read_data               : std_logic_vector(31 downto 0);
   signal read_enable_p           : std_logic;
   signal read_enable             : std_logic;
-  signal channel_data_o          : std_logic_vector(DATA_WIDTH - 1 downto 0);
+  signal channel_data_o          : std_logic_vector(31 downto 0);
   signal channel_data_valid_o    : std_logic;
   signal channel_data_valid_o_f  : std_logic_vector(2 downto 0);
   signal channel_read_busy_o     : std_logic;
@@ -99,36 +98,73 @@ begin
   
   -----------------------------------------------------------------------------
 
-  ram_dp_128x40_hist: ram_dp_128x40
-    port map (
-      WrAddress          => write_address_hist,
-      RdAddress          => read_address_hist,
-      Data(31 downto 0)  => write_data_hist,
-      Data(39 downto 32) => write_data_ctr_hist,
-      WE                 => not RESET_IN,
-      RdClock            => CLK_IN,
-      RdClockEn          => read_enable_hist,
-      Reset              => RESET_IN,
-      WrClock            => CLK_IN,
-      WrClockEn          => write_enable_hist,
-      Q(31 downto 0)     => read_data_hist,
-      Q(39 downto 32)    => read_data_ctr_hist
-      );
+  SMALL: if (BUS_WIDTH = 7) generate
 
-  ram_dp_128x32_result: ram_dp_128x32
-    port map (
-      WrAddress => write_address,
-      RdAddress => read_address,
-      Data      => write_data,
-      WE        => not RESET_IN,
-      RdClock   => CLK_IN,
-      RdClockEn => read_enable,
-      Reset     => RESET_IN,
-      WrClock   => CLK_IN,
-      WrClockEn => write_enable,
-      Q         => read_data
-      );
+    ram_dp_COUNTER_HIST: ram_dp_128x40
+      port map (
+        WrAddress          => write_address_hist,
+        RdAddress          => read_address_hist,
+        Data(31 downto 0)  => write_data_hist,
+        Data(39 downto 32) => write_data_ctr_hist,
+        WE                 => not RESET_IN,
+        RdClock            => CLK_IN,
+        RdClockEn          => read_enable_hist,
+        Reset              => RESET_IN,
+        WrClock            => CLK_IN,
+        WrClockEn          => write_enable_hist,
+        Q(31 downto 0)     => read_data_hist,
+        Q(39 downto 32)    => read_data_ctr_hist
+        );
 
+    ram_dp_RESULT_HIST: ram_dp_128x32
+      port map (
+        WrAddress => write_address,
+        RdAddress => read_address,
+        Data      => write_data,
+        WE        => not RESET_IN,
+        RdClock   => CLK_IN,
+        RdClockEn => read_enable,
+        Reset     => RESET_IN,
+        WrClock   => CLK_IN,
+        WrClockEn => write_enable,
+        Q         => read_data
+        );
+  end generate SMALL;
+
+  
+  LARGE: if (BUS_WIDTH = 9) generate
+
+    ram_dp_COUNTER_HIST: ram_dp_512x40
+      port map (
+        WrAddress          => write_address_hist,
+        RdAddress          => read_address_hist,
+        Data(31 downto 0)  => write_data_hist,
+        Data(39 downto 32) => write_data_ctr_hist,
+        WE                 => not RESET_IN,
+        RdClock            => CLK_IN,
+        RdClockEn          => read_enable_hist,
+        Reset              => RESET_IN,
+        WrClock            => CLK_IN,
+        WrClockEn          => write_enable_hist,
+        Q(31 downto 0)     => read_data_hist,
+        Q(39 downto 32)    => read_data_ctr_hist
+        );
+
+    ram_dp_RESULT_HIST: ram_dp_512x32
+      port map (
+        WrAddress => write_address,
+        RdAddress => read_address,
+        Data      => write_data,
+        WE        => not RESET_IN,
+        RdClock   => CLK_IN,
+        RdClockEn => read_enable,
+        Reset     => RESET_IN,
+        WrClock   => CLK_IN,
+        WrClockEn => write_enable,
+        Q         => read_data
+        );
+  end generate LARGE;
+  
   -----------------------------------------------------------------------------
   -- Memory Handler
   -----------------------------------------------------------------------------

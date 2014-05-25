@@ -47,6 +47,7 @@ entity nx_data_receiver is
     SLV_NO_MORE_DATA_OUT   : out std_logic;
     SLV_UNKNOWN_ADDR_OUT   : out std_logic;
                            
+    DISABLE_ADC_OUT        : out std_logic;
     ERROR_OUT              : out std_logic;
     DEBUG_OUT              : out std_logic_vector(15 downto 0)
     );
@@ -1073,7 +1074,7 @@ begin
           if (disable_adc = '0') then
             data_frame(43 downto 32) <= adc_data_s;
           else
-            data_frame(43 downto 32) <= x"dea";
+            data_frame(43 downto 32) <= x"000";
           end if;
           data_frame_clk           <= '1';
           merge_timeout_ctr        <= (others => '0');
@@ -1645,6 +1646,7 @@ begin
   
 
   PROC_ERROR_STATUS: process(CLK_IN)
+    variable error_mask : std_logic_vector(15 downto 0);
   begin
     if (rising_edge(CLK_IN)) then
       adc_sclk_ok_f            <= adc_sclk_ok;
@@ -1656,7 +1658,7 @@ begin
         adc_error_counter      <= (others => '0');        
       else
         adc_sclk_ok_c100                 <= adc_sclk_ok_f;
-
+        
         error_status_bits(0)             <= nx_frame_rate_offline;
         error_status_bits(1)             <= frame_rate_error;
         error_status_bits(2)             <= nx_frame_rate_error;
@@ -1671,8 +1673,14 @@ begin
         error_status_bits(11)            <= adc_dt_error;
         error_status_bits(12)            <= reset_handler_busy;
         error_status_bits(15 downto 13)  <= (others => '0');
-        
-        if (error_status_bits = x"0000") then
+
+        if (disable_adc_r = '1') then
+          error_mask := x"f437";
+        else
+          error_mask := x"0000";
+        end if;
+                        
+        if ((error_status_bits and error_mask) = x"0000") then
           error_o                        <= '0';
         else
           error_o                        <= '1';
@@ -1985,6 +1993,7 @@ begin
   DATA_OUT                 <= data_o;
   DATA_CLK_OUT             <= data_clk_o;
   ADC_SCLK_LOCK_OUT        <= pll_adc_sampling_clk_lock;
+  DISABLE_ADC_OUT          <= disable_adc_r;
   ERROR_OUT                <= error_o;
                            
   SLV_DATA_OUT             <= slv_data_out_o;    

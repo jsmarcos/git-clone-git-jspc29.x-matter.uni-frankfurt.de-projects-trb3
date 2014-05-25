@@ -474,6 +474,7 @@ component nx_data_receiver
     SLV_ACK_OUT            : out std_logic;
     SLV_NO_MORE_DATA_OUT   : out std_logic;
     SLV_UNKNOWN_ADDR_OUT   : out std_logic;
+    DISABLE_ADC_OUT        : out std_logic;
     ERROR_OUT              : out std_logic;
     DEBUG_OUT              : out std_logic_vector(15 downto 0)
     );
@@ -521,6 +522,7 @@ component nx_data_validate
     SLV_ACK_OUT          : out std_logic;
     SLV_NO_MORE_DATA_OUT : out std_logic;
     SLV_UNKNOWN_ADDR_OUT : out std_logic;
+    DISABLE_ADC_IN       : in std_logic;
     ERROR_OUT            : out std_logic;
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
@@ -556,7 +558,7 @@ component nx_trigger_validate
     HISTOGRAM_FILL_OUT     : out std_logic;
     HISTOGRAM_BIN_OUT      : out std_logic_vector(6 downto 0);
     HISTOGRAM_ADC_OUT      : out std_logic_vector(11 downto 0);
-    HISTOGRAM_TS_OUT       : out std_logic_vector(6 downto 0);
+    HISTOGRAM_TS_OUT       : out std_logic_vector(8 downto 0);
     HISTOGRAM_PILEUP_OUT   : out std_logic;
     HISTOGRAM_OVERFLOW_OUT : out std_logic;
     SLV_READ_IN            : in  std_logic;
@@ -629,8 +631,7 @@ end component;
 
 component nx_histogram
   generic (
-    BUS_WIDTH  : integer;
-    DATA_WIDTH : integer
+    BUS_WIDTH  : integer
     );
   port (
     CLK_IN                 : in  std_logic;
@@ -638,13 +639,13 @@ component nx_histogram
     NUM_AVERAGES_IN        : in  unsigned(2 downto 0);
     AVERAGE_ENABLE_IN      : in  std_logic;
     CHANNEL_ID_IN          : in  std_logic_vector(BUS_WIDTH - 1 downto 0);
-    CHANNEL_DATA_IN        : in  std_logic_vector(DATA_WIDTH - 1 downto 0);
+    CHANNEL_DATA_IN        : in  std_logic_vector(31 downto 0);
     CHANNEL_ADD_IN         : in  std_logic;
     CHANNEL_WRITE_IN       : in  std_logic;
     CHANNEL_WRITE_BUSY_OUT : out std_logic;
     CHANNEL_ID_READ_IN     : in  std_logic_vector(BUS_WIDTH - 1 downto 0);
     CHANNEL_READ_IN        : in  std_logic;
-    CHANNEL_DATA_OUT       : out std_logic_vector(DATA_WIDTH - 1 downto 0);
+    CHANNEL_DATA_OUT       : out std_logic_vector(31 downto 0);
     CHANNEL_DATA_VALID_OUT : out std_logic;
     CHANNEL_READ_BUSY_OUT  : out std_logic;
     DEBUG_OUT              : out std_logic_vector(15 downto 0));
@@ -658,7 +659,7 @@ component nx_histograms
     CHANNEL_FILL_IN      : in  std_logic;
     CHANNEL_ID_IN        : in  std_logic_vector(6 downto 0);
     CHANNEL_ADC_IN       : in  std_logic_vector(11 downto 0);
-    CHANNEL_TS_IN        : in  std_logic_vector(6 downto 0);
+    CHANNEL_TS_IN        : in  std_logic_vector(8 downto 0);
     CHANNEL_PILEUP_IN    : in  std_logic;
     CHANNEL_OVERFLOW_IN  : in  std_logic;
     SLV_READ_IN          : in  std_logic;
@@ -700,6 +701,36 @@ component ram_dp_128x32
     WrClock     : in  std_logic;
     WrClockEn   : in  std_logic;
     Q           : out std_logic_vector(31 downto 0)
+    );
+end component;
+
+component ram_dp_512x40
+  port (
+    WrAddress : in  std_logic_vector(8 downto 0);
+    RdAddress : in  std_logic_vector(8 downto 0);
+    Data      : in  std_logic_vector(39 downto 0);
+    WE        : in  std_logic;
+    RdClock   : in  std_logic;
+    RdClockEn : in  std_logic;
+    Reset     : in  std_logic;
+    WrClock   : in  std_logic;
+    WrClockEn : in  std_logic;
+    Q         : out std_logic_vector(39 downto 0)
+    );
+end component;
+
+component ram_dp_512x32
+  port (
+    WrAddress : in  std_logic_vector(8 downto 0);
+    RdAddress : in  std_logic_vector(8 downto 0);
+    Data      : in  std_logic_vector(31 downto 0);
+    WE        : in  std_logic;
+    RdClock   : in  std_logic;
+    RdClockEn : in  std_logic;
+    Reset     : in  std_logic;
+    WrClock   : in  std_logic;
+    WrClockEn : in  std_logic;
+    Q         : out std_logic_vector(31 downto 0)
     );
 end component;
 

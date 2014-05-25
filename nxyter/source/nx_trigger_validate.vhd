@@ -42,7 +42,7 @@ entity nx_trigger_validate is
     HISTOGRAM_FILL_OUT     : out std_logic;
     HISTOGRAM_BIN_OUT      : out std_logic_vector(6 downto 0);
     HISTOGRAM_ADC_OUT      : out std_logic_vector(11 downto 0);
-    HISTOGRAM_TS_OUT       : out std_logic_vector(6 downto 0);
+    HISTOGRAM_TS_OUT       : out std_logic_vector(8 downto 0);
     HISTOGRAM_PILEUP_OUT   : out std_logic;
     HISTOGRAM_OVERFLOW_OUT : out std_logic;
 
@@ -172,10 +172,12 @@ architecture Behavioral of nx_trigger_validate is
   signal histogram_fill_o      : std_logic;
   signal histogram_bin_o       : std_logic_vector(6 downto 0);
   signal histogram_adc_o       : std_logic_vector(11 downto 0);
-  signal histogram_ts_o        : std_logic_vector(6 downto 0);
+  signal histogram_ts_o        : std_logic_vector(8 downto 0);
   signal histogram_pileup_o    : std_logic;
   signal histogram_ovfl_o      : std_logic;
-  
+
+  signal histogram_ts_range    : std_logic_vector(2 downto 0);
+
   -- Data FIFO Delay           
   signal data_fifo_delay_o     : unsigned(7 downto 0);
   
@@ -276,6 +278,7 @@ begin
     variable window_upper_thr          : unsigned(11 downto 0);
     variable ts_window_check_value     : unsigned(11 downto 0);
     variable deltaTStore               : unsigned(13 downto 0);
+    variable histTStore                : unsigned(8 downto 0);
     variable store_data                : std_logic;
   begin 
     if( rising_edge(CLK_IN) ) then
@@ -439,21 +442,38 @@ begin
 
               -- Fill Histogram
               if (histogram_trig_filter = '1') then
+                case histogram_ts_range is
+                  when  "000"  =>
+                    histTStore         := deltaTStore( 8 downto 0);
+                  when  "001"  =>      
+                    histTStore         := deltaTStore( 9 downto 1);
+                  when  "010"  =>      
+                    histTStore         := deltaTStore(10 downto 2);
+                  when  "011"  =>
+                    histTStore         := deltaTStore(11 downto 3);
+                  when  "100"  =>
+                    histTStore         := deltaTStore(12 downto 4);
+                  when  "101" =>
+                    histTStore         := deltaTStore(13 downto 5);
+                  when others =>
+                    histTStore         := deltaTStore(12 downto 4);
+                end case;
+                
                 if (histogram_limits = '1') then
                   if (deltaTStore >= histogram_lower_limit and
                       deltaTStore <= histogram_upper_limit) then
-                    histogram_fill_o       <= '1';
-                    histogram_bin_o        <= CHANNEL_IN;
-                    histogram_adc_o        <= ADC_DATA_IN;
-                    histogram_ts_o         <= deltaTStore(10 downto 4);
-                    histogram_pileup_o     <= TIMESTAMP_STATUS_IN(S_PILEUP);
-                    histogram_ovfl_o       <= TIMESTAMP_STATUS_IN(S_OVFL);      
+                    histogram_fill_o     <= '1';
+                    histogram_bin_o      <= CHANNEL_IN;
+                    histogram_adc_o      <= ADC_DATA_IN;
+                    histogram_ts_o       <= histTStore;
+                    histogram_pileup_o   <= TIMESTAMP_STATUS_IN(S_PILEUP);
+                    histogram_ovfl_o     <= TIMESTAMP_STATUS_IN(S_OVFL);      
                   end if;
                 else
                   histogram_fill_o       <= '1';
                   histogram_bin_o        <= CHANNEL_IN;
                   histogram_adc_o        <= ADC_DATA_IN;
-                  histogram_ts_o         <= deltaTStore(10 downto 4);
+                  histogram_ts_o         <= histTStore;
                   histogram_pileup_o     <= TIMESTAMP_STATUS_IN(S_PILEUP);
                   histogram_ovfl_o       <= TIMESTAMP_STATUS_IN(S_OVFL); 
                 end if;
@@ -926,6 +946,7 @@ begin
         reset_hists                   <= '0';
         histogram_limits              <= '0';
         histogram_trig_filter         <= '0';
+        histogram_ts_range            <= "100";
       else
         slv_data_out_o                   <= (others => '0');
         slv_unknown_addr_o               <= '0';
@@ -1104,24 +1125,24 @@ begin
               slv_data_out_o(31 downto 16)    <= (others => '0');
               slv_ack_o                       <= '1';
 
-            --when x"001d" =>
-            --  slv_data_out_o(15 downto 0)     <=
-            --    std_logic_vector(window_hit_ctr_r);
-            --  slv_data_out_o(31 downto 16)    <= (others => '0');
-            --  slv_ack_o                       <= '1';
-
             when x"001d" =>
+              slv_data_out_o(15 downto 0)     <=
+                std_logic_vector(window_hit_ctr_r);
+              slv_data_out_o(31 downto 16)    <= (others => '0');
+              slv_ack_o                       <= '1';
+
+            when x"001e" =>
               slv_data_out_o(15 downto 0)     <=
                 std_logic_vector(out_of_window_h_ctr_r);
               slv_data_out_o(31 downto 16)    <= (others => '0');
               slv_ack_o                       <= '1';
 
-            when x"001e" =>
+            when x"001f" =>
               slv_data_out_o(27 downto 0)     <= std_logic_vector(data_rate);
               slv_data_out_o(31 downto 28)    <= (others => '0');
               slv_ack_o                       <= '1';
-
-            when x"001f" =>
+              
+            when x"0020" =>
               slv_data_out_o(13 downto 0)     <=
                 std_logic_vector(histogram_lower_limit);
               slv_data_out_o(28 downto 15)    <=
@@ -1131,6 +1152,11 @@ begin
               slv_data_out_o(31)              <= histogram_trig_filter;
               slv_ack_o                       <= '1';
 
+            when x"0021" =>
+              slv_data_out_o(2  downto 0)     <= histogram_ts_range;
+              slv_data_out_o(31 downto 3)     <= (others => '0');
+              slv_ack_o                       <= '1';
+              
             when others  =>
               slv_unknown_addr_o              <= '1';
               slv_ack_o                       <= '0';
@@ -1186,7 +1212,7 @@ begin
                 unsigned(SLV_DATA_IN(11 downto 0));
               slv_ack_o                       <= '1'; 
 
-            when x"001f" =>
+            when x"0020" =>
               histogram_lower_limit           <= SLV_DATA_IN(13 downto 0);
               histogram_upper_limit           <= SLV_DATA_IN(28 downto 15);
               reset_hists                     <= SLV_DATA_IN(29);
@@ -1194,6 +1220,9 @@ begin
               histogram_trig_filter           <= SLV_DATA_IN(31);
               slv_ack_o                       <= '1';
               
+            when x"0021" =>
+              histogram_ts_range              <= SLV_DATA_IN(2 downto 0); 
+
             when others  =>                   
               slv_unknown_addr_o              <= '1';
               slv_ack_o                       <= '0';

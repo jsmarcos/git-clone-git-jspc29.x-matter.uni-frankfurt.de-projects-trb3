@@ -15,7 +15,7 @@ entity nx_histograms is
     CHANNEL_FILL_IN      : in  std_logic;
     CHANNEL_ID_IN        : in  std_logic_vector(6 downto 0);
     CHANNEL_ADC_IN       : in  std_logic_vector(11 downto 0);
-    CHANNEL_TS_IN        : in  std_logic_vector(6 downto 0);
+    CHANNEL_TS_IN        : in  std_logic_vector(8 downto 0);
     CHANNEL_PILEUP_IN    : in  std_logic;
     CHANNEL_OVERFLOW_IN  : in  std_logic;
     
@@ -106,12 +106,12 @@ architecture Behavioral of nx_histograms is
   signal ts_write_busy        : std_logic;
   signal ts_read_busy         : std_logic;
                               
-  signal ts_write_id          : std_logic_vector(6 downto 0);
+  signal ts_write_id          : std_logic_vector(8 downto 0);
   signal ts_write_data        : std_logic_vector(31 downto 0);
   signal ts_write             : std_logic;
   signal ts_add               : std_logic;
                               
-  signal ts_read_id           : std_logic_vector(6 downto 0);
+  signal ts_read_id           : std_logic_vector(8 downto 0);
   signal ts_read              : std_logic;
   signal ts_read_data         : std_logic_vector(31 downto 0);
   signal ts_read_data_valid   : std_logic;
@@ -151,6 +151,9 @@ begin
   RESET_HISTS    <= RESET_IN or RESET_HISTS_IN;
 
   nx_histogram_hits: nx_histogram
+    generic map (
+      BUS_WIDTH => 7
+      )
     port map (
       CLK_IN                 => CLK_IN,
       RESET_IN               => RESET_HISTS,
@@ -169,10 +172,13 @@ begin
       CHANNEL_DATA_VALID_OUT => hit_read_data_valid,
       CHANNEL_READ_BUSY_OUT  => hit_read_busy,
 
-      DEBUG_OUT              => DEBUG_OUT --open
+      DEBUG_OUT              => open
       );
 
   nx_histogram_adc: nx_histogram
+    generic map (
+      BUS_WIDTH => 7
+      )
     port map (
       CLK_IN                 => CLK_IN,
       RESET_IN               => RESET_HISTS,
@@ -195,6 +201,9 @@ begin
       );
   
   nx_histogram_pileup: nx_histogram
+    generic map (
+      BUS_WIDTH => 7
+      )
     port map (
       CLK_IN                 => CLK_IN,
       RESET_IN               => RESET_HISTS,
@@ -217,6 +226,9 @@ begin
       );
 
   nx_histogram_ovfl: nx_histogram
+    generic map (
+      BUS_WIDTH => 7
+      )
     port map (
       CLK_IN                 => CLK_IN,
       RESET_IN               => RESET_HISTS,
@@ -237,8 +249,11 @@ begin
 
       DEBUG_OUT              => open
       );
-
+  
   nx_histogram_ts: nx_histogram
+    generic map (
+      BUS_WIDTH => 9
+      )
     port map (
       CLK_IN                 => CLK_IN,
       RESET_IN               => RESET_HISTS,
@@ -257,7 +272,7 @@ begin
       CHANNEL_DATA_VALID_OUT => ts_read_data_valid,
       CHANNEL_READ_BUSY_OUT  => ts_read_busy,
 
-      DEBUG_OUT              => open
+      DEBUG_OUT              => DEBUG_OUT 
       );
   
   -----------------------------------------------------------------------------
@@ -455,8 +470,8 @@ begin
             adc_read                         <= '1';
             slv_ack_o                        <= '0';
           elsif (unsigned(SLV_ADDR_IN) >= x"0400" and
-                 unsigned(SLV_ADDR_IN) <= x"047f") then
-            ts_read_id                       <= SLV_ADDR_IN(6 downto 0);
+                 unsigned(SLV_ADDR_IN) <= x"05ff") then
+            ts_read_id                       <= SLV_ADDR_IN(8 downto 0);
             ts_read                          <= '1';
             slv_ack_o                        <= '0';
           else
@@ -505,7 +520,13 @@ begin
                 slv_data_out_o(31 downto 1)  <= (others => '0');
                 slv_ack_o                    <= '1';
 
-              when x"0481" =>
+              when x"0600" =>
+                slv_data_out_o(2 downto 0)   <=
+                  std_logic_vector(ts_num_averages);
+                slv_data_out_o(31 downto 3)  <= (others => '0');
+                slv_ack_o                    <= '1';
+
+              when x"0601" =>
                 slv_data_out_o(0)            <= ts_average_enable;
                 slv_data_out_o(31 downto 1)  <= (others => '0');
                 slv_ack_o                    <= '1';
@@ -552,7 +573,11 @@ begin
               adc_average_enable             <= SLV_DATA_IN(0);
               slv_ack_o                      <= '1';
 
-            when x"0481" =>
+            when x"0600" =>
+              ts_num_averages                <= SLV_DATA_IN(2 downto 0);
+              slv_ack_o                      <= '1';
+              
+            when x"0601" =>
               ts_average_enable              <= SLV_DATA_IN(0);
               slv_ack_o                      <= '1';
 
