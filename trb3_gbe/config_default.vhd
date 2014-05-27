@@ -39,12 +39,14 @@ package config is
 
 --Statistics for generated trigger signals?
     constant INCLUDE_STATISTICS     : integer := c_YES;
+    constant INCLUDE_TRIGGER_LOGIC  : integer := c_YES;
+    constant PHYSICAL_INPUTS        : integer := 16;    
     
 ------------------------------------------------------------------------------
 --End of design configuration
 ------------------------------------------------------------------------------
 
-
+function generateIncludedFeatures return std_logic_vector;
 
 
 -- Be careful when setting the MII_NUMBER and MII_IS_* generics!
@@ -94,10 +96,8 @@ package config is
     constant USED_CHANNELS_ARR    : hub_chn_t := ((1,1,0,1),(0,0,0,1));
     constant CLOCK_FREQUENCY_ARR  : hub_mii_t := (100,125);
     constant MEDIA_FREQUENCY_ARR  : hub_mii_t := (200,125);
-                          
-    constant INCLUDED_FEATURES    : std_logic_vector(63 downto 0) := (others => '0');       
-                          
-                          
+
+
   --declare constants, filled in body                          
     constant INTERNAL_NUM         : integer;
     constant INTERFACE_NUM        : integer;
@@ -109,11 +109,29 @@ package config is
     constant USED_CHANNELS        : hub_channel_config_t;
     constant CLOCK_FREQUENCY      : integer;
     constant MEDIA_FREQUENCY      : integer;
+    constant INCLUDED_FEATURES    : std_logic_vector(63 downto 0);
+
 
 end;
 
 package body config is
---compute correct configuration mode
+  --compute correct configuration mode
+  function generateIncludedFeatures return std_logic_vector is
+    variable t : std_logic_vector(63 downto 0);
+  begin
+    t               := (others => '0');
+    t(63 downto 56) := std_logic_vector(to_unsigned(1,8)); --table version 1
+    t(16 downto 16) := std_logic_vector(to_unsigned(USE_ETHERNET,1));
+    t(17 downto 17) := std_logic_vector(to_unsigned(1,1)); --sctrl via GbE
+    t(26 downto 24) := std_logic_vector(to_unsigned(1,3)); --num SFPs with TrbNet
+    t(44 downto 44) := std_logic_vector(to_unsigned(INCLUDE_STATISTICS,1));
+    t(51 downto 48) := std_logic_vector(to_unsigned(INCLUDE_TRIGGER_LOGIC,4));
+    t(52 downto 52) := std_logic_vector(to_unsigned(USE_125_MHZ,1));
+    t(53 downto 53) := std_logic_vector(to_unsigned(USE_RXCLOCK,1));
+    t(54 downto 54) := std_logic_vector(to_unsigned(USE_EXTERNAL_CLOCK,1));
+    return t;
+  end function;  
+
   constant CFG_MODE : integer := USE_ETHERNET;
   constant HW_INFO_MODE : integer := USE_ETHERNET + 2 * USE_RXCLOCK + 4 * USE_SCTRL_ONLY;
 
@@ -127,5 +145,5 @@ package body config is
   constant USED_CHANNELS        : hub_channel_config_t := USED_CHANNELS_ARR(USE_SCTRL_ONLY);
   constant CLOCK_FREQUENCY      : integer := CLOCK_FREQUENCY_ARR(USE_125_MHZ);
   constant MEDIA_FREQUENCY      : integer := MEDIA_FREQUENCY_ARR(USE_125_MHZ);
-  
+  constant INCLUDED_FEATURES    : std_logic_vector := generateIncludedFeatures;
 end package body;

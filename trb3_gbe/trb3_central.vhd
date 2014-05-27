@@ -568,7 +568,7 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
     MII_IS_UPLINK_ONLY  => IS_UPLINK_ONLY,
     USE_ONEWIRE         => c_YES,
     HARDWARE_VERSION    => HARDWARE_INFO,
-    INCLUDED_FEATURES      => INCLUDED_FEATURES,
+    INCLUDED_FEATURES   => INCLUDED_FEATURES,
     INIT_ENDPOINT_ID    => x"0005",
     CLOCK_FREQUENCY     => CLOCK_FREQUENCY,
     BROADCAST_SPECIAL_ADDR => BROADCAST_SPECIAL_ADDR
@@ -918,9 +918,10 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
 ---------------------------------------------------------------------------
 -- Trigger logic
 ---------------------------------------------------------------------------
+gen_TRIG_LOGIC : if INCLUDE_TRIGGER_LOGIC = 1 generate
   THE_TRIG_LOGIC : input_to_trigger_logic
     generic map(
-      INPUTS    => 16,
+      INPUTS    => PHYSICAL_INPUTS,
       OUTPUTS   => 5
       )
     port map(
@@ -936,10 +937,11 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
       ACK_OUT   => trig_ack,  
       NACK_OUT  => trig_nack, 
       ADDR_IN   => trig_addr
-      );
+      );      
 
-TRIGGER_OUT2 <= trig_outputs(0);       
-trig_inputs <= FPGA4_COMM(10 downto 7) & FPGA3_COMM(10 downto 7) & FPGA2_COMM(10 downto 7) & FPGA1_COMM(10 downto 7); 
+  TRIGGER_OUT2 <= trig_outputs(0);       
+  trig_inputs <= FPGA4_COMM(10 downto 7) & FPGA3_COMM(10 downto 7) & FPGA2_COMM(10 downto 7) & FPGA1_COMM(10 downto 7); 
+end generate;
 
 ---------------------------------------------------------------------------
 -- Input Statistics
