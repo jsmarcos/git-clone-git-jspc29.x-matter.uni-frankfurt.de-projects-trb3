@@ -349,7 +349,7 @@ begin
       I2C_DATA_IN          => i2c_data,
       I2C_DATA_BYTES_IN    => i2c_data_bytes,
       I2C_LOCK_OUT         => i2c_lock,
-      I2C_REG_RESET_IN     => not i2c_reg_reset_o,
+      I2C_REG_RESET_IN     => i2c_reg_reset_o,
       SPI_COMMAND_OUT      => spi_command,
       SPI_COMMAND_BUSY_IN  => spi_command_busy,
       SPI_DATA_IN          => spi_data,
@@ -793,13 +793,13 @@ begin
 -------------------------------------------------------------------------------
 -- nXyter Signals
 -------------------------------------------------------------------------------
-  NX_RESET_OUT          <= not nx_timestamp_reset_o;
+  NX_RESET_OUT         <= not nx_timestamp_reset_o;
 
 -------------------------------------------------------------------------------
 -- I2C Signals
 -------------------------------------------------------------------------------
 
-  I2C_REG_RESET_OUT   <= i2c_reg_reset_o;
+  I2C_REG_RESET_OUT    <= not i2c_reg_reset_o;
 
 -------------------------------------------------------------------------------
 -- Others
