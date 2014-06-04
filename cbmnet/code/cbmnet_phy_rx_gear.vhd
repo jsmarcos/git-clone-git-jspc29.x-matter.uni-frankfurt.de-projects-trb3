@@ -47,7 +47,17 @@ architecture CBMNET_PHY_RX_GEAR_ARCH of CBMNET_PHY_RX_GEAR is
    
    signal reset_timer_i : std_logic;
    signal timeout_i : std_logic;
+   
+   signal data_in_buf_i : std_logic_vector( 8 downto 0); 
+   
+   
+   signal delay_clock_buf_i : std_logic;
+   signal delay_clock_buf1_i : std_logic;
+   signal last_delay_clock_i : std_logic := '0';
+   signal word_idx_i : std_logic := '0';   
 begin
+   data_in_buf_i <= DATA_IN when rising_edge(CLK_250_IN);
+
 -- FSM sync part
    process is begin
       wait until rising_edge(clk_125_i);
@@ -134,26 +144,35 @@ begin
    end process;
 
 -- Implement the 2:1 gearing and clock down-sampling
-   proc_gear: process is
-      variable last_delay_clock_v : std_logic := '0';
-      variable word_idx_v : std_logic := '0';
+   delay_clock_buf1_i <= delay_clock_i when rising_edge(CLK_250_IN);
+   delay_clock_buf_i <= delay_clock_buf1_i when rising_edge(CLK_250_IN); 
+
+   proc_ctrl_gear: process
    begin
       wait until rising_edge(CLK_250_IN);
 
-      if word_idx_v = '0' then
-         data_delay_i <= DATA_IN;
+      if not (delay_clock_buf_i = '1' and last_delay_clock_i = '0') then
+         word_idx_i <= not word_idx_i;
+      end if;
+      
+      last_delay_clock_i <= delay_clock_buf_i;
+   end process;
+   
+   proc_gear: process
+   begin
+      wait until rising_edge(CLK_250_IN);
+
+      if word_idx_i = '0' then
+         data_delay_i <= data_in_buf_i;
          clk_125_i <= '0';
       else
-         data_out_buf_i <= data_delay_i(8) & DATA_IN(8) & data_delay_i(7 downto 0) & DATA_IN(7 downto 0);
+         data_out_buf_i <= data_delay_i(8) & data_in_buf_i(8) & data_delay_i(7 downto 0) & data_in_buf_i(7 downto 0);
          clk_125_i <= '1';
       end if;      
 
-      if not (delay_clock_i = '1' and last_delay_clock_v = '0') then
-         word_idx_v := not word_idx_v;
-      end if;
-      
-      last_delay_clock_v := delay_clock_i;
    end process;
+   
+   
    
    DATA_OUT <= data_out_buf_i;
    CLK_125_OUT <= clk_125_i;

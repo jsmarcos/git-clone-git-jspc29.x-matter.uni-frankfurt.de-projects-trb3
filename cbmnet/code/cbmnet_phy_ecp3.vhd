@@ -165,8 +165,8 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    signal tx_gear_allow_relock_i : std_logic;
    
    
-   signal rx_gear_debug_i : std_logic_vector(31 downto 0) := (others => '0');
-   signal tx_gear_debug_i : std_logic_vector(31 downto 0) := (others => '0');
+   signal rx_gear_debug_i : std_logic_vector(31 downto 0);
+   signal tx_gear_debug_i : std_logic_vector(31 downto 0);
    
 -- CBMNet Ready Managers
    signal rm_rx_ready_i : std_logic;
@@ -199,6 +199,8 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    signal low_level_rx_see_dlm0     : std_logic;
    signal low_level_tx_see_dlm0     : std_logic;
    signal low_level_tx_see_dlm0_125 : std_logic;
+   
+   signal stat_dlm_counter_i : unsigned(15 downto 0);
 begin
    clk_125_local <= CLK;
    CLK_RX_HALF_OUT <= rclk_125_i when IS_SYNC_SLAVE = c_YES or 1=1 else clk_tx_half_i;
@@ -665,6 +667,16 @@ begin
             low_level_tx_see_dlm0_125 <= '1';
          end if;
       end process;
+	  
+	  PROC_SENSE_DLMS: process begin
+		wait until rising_edge(clk_125_i);
+		
+		if serdes_ready_i = '0' then
+			stat_dlm_counter_i <= (others => '0');
+		elsif rx_data_i(17) = '1' and rx_data_i(15 downto 8) = K277 then
+			stat_dlm_counter_i <= stat_dlm_counter_i + TO_UNSIGNED(1,1);
+		end if;
+	  end process;
 
 -- DEBUG_OUT_BEGIN      
       DEBUG_OUT(19 downto  0) <= "00" & tx_data_i(17 downto 0);
@@ -691,6 +703,7 @@ begin
       DEBUG_OUT(179 downto 148) <= stat_last_reconnect_duration_i(31 downto 0);
       DEBUG_OUT(195 downto 180) <= stat_reconnect_counter_i(15 downto 0);
       DEBUG_OUT(211 downto 196) <= stat_wa_int_i(15 downto 0);
+	  DEBUG_OUT(227 downto 212) <= stat_dlm_counter_i(15 downto 0);
 	  --DEBUG_OUT(255 downto 170) <= (others => '0');
       
 -- DEBUG_OUT_END

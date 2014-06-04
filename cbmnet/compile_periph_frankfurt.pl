@@ -7,34 +7,6 @@ use File::stat;
 use POSIX;
 
 
-
-my $build_master = 1;
-my $build_slave  = 1;
-
-my $mode = $ARGV[0];
-$mode = 's' unless defined $mode;
- 
-$build_master = 0 if $mode eq 's';  
-$build_slave  = 0 if $mode eq 'm' or $mode eq 'w';
-
-print "Will build:\n";
-print " -> Slave\n" if $build_slave;
-print " -> Master\n" if $build_master;
-
-if ($build_master and $build_slave) {
-   if (fork()) {
-      system "xterm -geometry 200x25 -e './compile_periph_frankfurt.pl s;'";
-      exit;
-   }
-   if (fork()) {
-      system "xterm -geometry 200x25 -e './compile_periph_frankfurt.pl m;'";      
-      exit;
-   }
-   wait;
-   exit (-e 'workdir_master/trb3_periph_cbmnet.bit') && (-e 'workdir_slave/trb3_periph_cbmnet.bit') ? 1 : 0;
-}
-
-
 ###################################################################################
 #Settings for this project
 my $TOPNAME                      = "trb3_periph_cbmnet";  #Name of top-level entity
@@ -51,28 +23,11 @@ my $synplify_path                = '/d/jspc29/lattice/synplify/G-2012.09-SP1/';
 #my $synplify_path              = '/d/jspc29/lattice/synplify/I-2013.09-SP1/'; 
 ###################################################################################
 
-my $btype = ($build_slave ? 'slave' : 'master');
+my $btype = 'slave';
 
-
-if (-e "../cbmnet_build_$btype/workdir/trb3_periph_cbmnet.bit") {
-   my $cd = stat("../cbmnet_build_$btype/workdir/trb3_periph_cbmnet.bit")->ctime;
-   system "mv ../cbmnet_build_$btype /tmp/cbmnet_build_" . $btype . "_" . POSIX::strftime("%Y%m%d_%H%M%S", localtime $cd);
-} else {
-   system  "rm -rf  ../cbmnet_build_$btype";
-}
-
-
-system  "cp -ar . ../cbmnet_build_$btype";
-mkdir   "../cbmnet_build_$btype/workdir";
-symlink "../cbmnet_build_$btype/workdir", "workdir_$btype";
-chdir   "../cbmnet_build_$btype";
+system("./compile_constraints.pl");
 
 symlink($CbmNetPath, 'cbmnet') unless (-e 'cbmnet');
-
-chdir "workdir";
-system '../../base/linkdesignfiles.sh';
-symlink '../cores/cbmnet_sfp1.txt', 'cbmnet_sfp1.txt';
-chdir '..';
 
 use FileHandle;
 
@@ -87,8 +42,6 @@ my $PACKAGE="FPBGA672";
 my $SPEEDGRADE="8";
 
 #create full lpf file
-system("cp $BasePath/$TOPNAME.lpf workdir/$TOPNAME.lpf");
-system("cat ".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
 
 #set -e
 #set -o errexit
@@ -109,7 +62,7 @@ use ieee.numeric_std.all;
 package version is
 
     constant VERSION_NUMBER_TIME  : integer   := $t;
-    constant CBM_FEE_MODE_C       : integer   := $build_slave;
+    constant CBM_FEE_MODE_C       : integer   := 1;
     constant INCLUDE_TRBNET_C     : integer   := 1;
     
 end package version;
@@ -155,8 +108,6 @@ $c=qq'$lattice_path/ispfpga/bin/lin/ngdbuild  -a $FAMILYNAME -d $DEVICENAME -p "
 execute($c);
 
 my $tpmap = $TOPNAME . "_map" ;
-
-execute('env');
 
 $c=qq|$lattice_path/ispfpga/bin/lin/map  -retime -split_node -a $FAMILYNAME -p $DEVICENAME -t $PACKAGE -s $SPEEDGRADE "$TOPNAME.ngd" -o "$tpmap.ncd"  -mp "$TOPNAME.mrp" "$TOPNAME.lpf"|;
 execute($c);
