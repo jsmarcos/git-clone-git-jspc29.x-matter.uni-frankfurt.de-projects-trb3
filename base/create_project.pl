@@ -9,6 +9,7 @@ use strict;
 use warnings;
 use Data::Dumper;
 use File::Copy;
+use Term::ANSIColor;
 
 sub parsePRJ {
    my $input = shift;
@@ -22,7 +23,7 @@ sub parsePRJ {
          $options->{$1} = $2;
       }
       
-      if ($line =~ m/^\s*add_file -(vhdl|verilog) (-lib "?([^"\s]+)"?|) "?([^"]+)"?$/g) {
+      if ($line =~ m/^\s*add_file -(vhdl|verilog)( -lib "?([^"\s]+)"?|)? "?([^"]+)"?$/g) {
          push @files, [$3, $4];
       }
    }
@@ -54,6 +55,9 @@ sub generateLDF {
    print FH "    <Options/>\n";
    print FH "    <Implementation title=\"$def_impl\" dir=\"$def_impl\" description=\"Automatically generated implemenatation\" default_strategy=\"Strategy1\">\n";
    print FH "        <Options def_top=\"$def_impl\" top=\"$def_impl\"/>\n";
+   
+   my $lpf_included = 0;
+   
    for my $filer (@{$files}) {
       my $file = $filer->[1];
       my $lib = $filer->[0];
@@ -61,21 +65,28 @@ sub generateLDF {
       my $fpath = $path . $file;
       $suffix =~ s/^.*\.([^.]+)$/$1/g;
       if ("vhd" eq $suffix) {
-         print FH "        <Source name=\"$fpath\" type=\"VHDL\" type_short=\"VHDL\"><Options lib=\"$lib\" /></Source>\n"
+         print FH "        <Source name=\"$fpath\" type=\"VHDL\" type_short=\"VHDL\"><Options " . ($lib? " lib=\"$lib\"":'') . " /></Source>\n";
       } elsif ("v" eq $suffix) {
-         print FH "        <Source name=\"$fpath\" type=\"Verilog\" type_short=\"Verilog\"><Options lib=\"$lib\" /></Source>\n"
+         print FH "        <Source name=\"$fpath\" type=\"Verilog\" type_short=\"Verilog\"><Options " . ($lib? " lib=\"$lib\"":'') . " /></Source>\n";
       } elsif ("lpf" eq $suffix) {
-         print FH "        <Source name=\"$fpath\" type=\"Logic Preference\" type_short=\"LPF\"><Options/></Source>\n"
+         print FH "        <Source name=\"$fpath\" type=\"Logic Preference\" type_short=\"LPF\"><Options/></Source>\n";
+         $lpf_included = 1;
       } else {
          print "WARNING: Could not determine type of input file $file. Not included!\n";
       }
    }
-
+   
    print FH "    </Implementation>\n";
    print FH "    <Strategy name=\"Strategy1\" file=\"auto_strat.sty\"/>\n";
    print FH "</BaliProject>\n";
    
    close FH;
+   
+   if (!$lpf_included) {
+      print color "red bold";
+      print "WARNING: No lpf included. You won't be able to load this project with diamond. Check your compile_constraints.pl script!\n";
+      print color "reset";
+   }
 }
 
 sub generateSTY {
@@ -284,7 +295,7 @@ STY
   
 # parse PRJ file
    my ($options, $files) = parsePRJ $input;
-
+   
 # create dir if necessary
    mkdir 'project' unless (-e 'project');
 
