@@ -375,6 +375,9 @@ begin
       CLOCK_FREQUENCY           => 100,
       TIMING_TRIGGER_RAW        => c_YES,
 
+      -- Feature Register, see TRB# Docu page 12
+      REGIO_INCLUDED_FEATURES   => x"0101_0000_0000_0000",
+      
       --Configure data handler
       DATA_INTERFACE_NUMBER     => NUM_NXYTER,
       DATA_BUFFER_DEPTH         => 13,         --13

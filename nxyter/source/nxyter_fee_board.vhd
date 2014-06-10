@@ -130,6 +130,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal spi_command            : std_logic_vector(31 downto 0);
   signal spi_command_busy       : std_logic;
   signal spi_data               : std_logic_vector(31 downto 0);
+  signal nxyter_clock_on        : std_logic;
 
   -- SPI Interface ADC          
   signal spi_sdi                : std_logic;
@@ -358,6 +359,7 @@ begin
       INT_ADDR_IN          => int_addr,
       INT_ACK_OUT          => int_ack,
       INT_DATA_OUT         => int_data,
+      NX_CLOCK_ON_OUT      => nxyter_clock_on,
       SLV_READ_IN          => slv_read(9),
       SLV_WRITE_IN         => slv_write(9),
       SLV_DATA_OUT         => slv_data_rd(9*32+31 downto 9*32),
@@ -555,7 +557,8 @@ begin
       RESET_IN               => RESET_IN,
       TRIGGER_IN             => trigger_timing,
       NX_ONLINE_IN           => nxyter_online,
-
+      NX_CLOCK_ON_IN         => nxyter_clock_on,
+      
       NX_TIMESTAMP_CLK_IN    => NX_DATA_CLK_IN,
       NX_TIMESTAMP_IN        => NX_TIMESTAMP_IN,
       NX_TIMESTAMP_RESET_OUT => nx_timestamp_reset,

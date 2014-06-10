@@ -16,6 +16,7 @@ entity nx_data_receiver is
     RESET_IN               : in  std_logic;
     TRIGGER_IN             : in  std_logic;
     NX_ONLINE_IN           : in  std_logic;
+    NX_CLOCK_ON_IN         : in  std_logic;
     
     -- nXyter Ports        
     NX_TIMESTAMP_CLK_IN    : in  std_logic;
@@ -1460,18 +1461,35 @@ begin
           
           case R_STATE is
             when R_IDLE => 
-              if (reset_for_offline     = '1'  or
-                  (disable_adc_r = '0' and
-                   (pll_adc_not_lock    = '1'   or
-                    adc_reset_sync      = '1')) or
-                  startup_reset         = '1'
-                  ) then
-                R_STATE                 <= R_RESET_TIMESTAMP;
-              else 
-                reset_timeout_flag      <= '0';
-                rs_timeout_timer_reset  <= '1';
-                reset_handler_busy      <= '0';
-                R_STATE                 <= R_IDLE;
+              if (NX_CLOCK_ON_IN = '1') then
+                if ((disable_adc_r = '0' and
+                     (pll_adc_not_lock     = '1' or
+                      adc_reset_sync       = '1' or
+                      adc_frame_rate_error = '1' or
+                      adc_error            = '1' or
+                      pll_adc_not_lock     = '1' or
+                      adc_dt_error         = '1' or
+                      adc_sclk_ok_c100     = '0' or
+                      adc_locked_c100      = '0' 
+                      )
+                     ) or
+                    nx_frame_rate_error   = '1' or
+                    startup_reset         = '1' or
+                    timestamp_dt_error    = '1' or
+                    parity_rate_error     = '1' or
+                    nx_frame_rate_error   = '1'
+                    ) then
+                  R_STATE                 <= R_RESET_TIMESTAMP;
+                else 
+                  reset_timeout_flag      <= '0';
+                  rs_timeout_timer_reset  <= '1';
+                  reset_handler_busy      <= '0';
+                  R_STATE                 <= R_IDLE;
+                end if;
+              else
+                reset_timeout_flag        <= '0';
+                rs_timeout_timer_reset    <= '1';
+                R_STATE                   <= R_IDLE;
               end if;
               debug_state                <= x"1";
               
@@ -1578,7 +1596,8 @@ begin
               debug_state                  <= x"9";
               
             when R_PLL_WAIT_LOCK =>
-              if (pll_adc_not_lock = '0') then
+              if (adc_sclk_ok_c100 = '1' and
+                  pll_adc_not_lock = '0') then
                 -- Next: Release ADC Reset
                 output_handler_reset    <= '1';
                 fifo_reset_handler      <= '1';
@@ -1592,7 +1611,7 @@ begin
               debug_state               <= x"6";
               
             when R_WAIT_ADC_OK =>
-              if (adc_locked_c100 = '1' and
+              if (adc_locked_c100      = '1' and
                   adc_frame_rate_error = '0') then
                 -- Next: Release Output Handler and Clock Domain transfer Fifo
                 -- Resets
@@ -1605,7 +1624,7 @@ begin
               debug_state               <= x"a";
 
             when R_WAIT_DATA_HANDLER_OK =>
-              if (frame_rate_error = '0') then
+              if (frame_rate_error  = '0') then
                 startup_reset           <= '0';
                 reset_timeout_flag      <= '0';
                 rs_timeout_timer_reset  <= '1';

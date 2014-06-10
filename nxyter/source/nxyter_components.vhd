@@ -327,6 +327,7 @@ component nx_register_setup
     INT_ADDR_IN          : in  std_logic_vector(15 downto 0);
     INT_ACK_OUT          : out std_logic;
     INT_DATA_OUT         : out std_logic_vector(31 downto 0);
+    NX_CLOCK_ON_OUT      : out std_logic;
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
     SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
@@ -452,6 +453,7 @@ component nx_data_receiver
     RESET_IN               : in  std_logic;
     TRIGGER_IN             : in  std_logic;
     NX_ONLINE_IN           : in  std_logic;
+    NX_CLOCK_ON_IN         : in  std_logic;
     NX_TIMESTAMP_CLK_IN    : in  std_logic;
     NX_TIMESTAMP_IN        : in  std_logic_vector (7 downto 0);
     NX_TIMESTAMP_RESET_OUT : out std_logic;
