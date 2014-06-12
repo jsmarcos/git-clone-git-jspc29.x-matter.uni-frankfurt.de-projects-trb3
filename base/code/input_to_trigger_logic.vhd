@@ -6,8 +6,8 @@ use work.trb_net_std.all;
 
 entity input_to_trigger_logic is
   generic(
-    INPUTS     : integer range 1 to 32 := 24;
-    OUTPUTS    : integer range 1 to 16 := 4
+    INPUTS      : integer range 1 to 32 := 24;
+    OUTPUTS     : integer range 1 to 16 := 4
     );
   port(
     CLK        : in std_logic;
@@ -31,19 +31,20 @@ architecture input_to_trigger_logic_arch of input_to_trigger_logic is
 
 type reg_t is array(0 to OUTPUTS-1) of std_logic_vector(31 downto 0);
 signal enable : reg_t;
-signal invert : std_logic_vector(INPUTS-1 downto 0);
-
+signal invert      : std_logic_vector(INPUTS-1 downto 0);
+signal coincidence : std_logic_vector(INPUTS-1 downto 0);
 signal stretch_inp : std_logic_vector(INPUTS-1 downto 0);
 
+type inp_t is array(0 to 4) of std_logic_vector(INPUTS-1 downto 0);
+signal inp_shift    : inp_t;
 
 signal inp_inv      : std_logic_vector(INPUTS-1 downto 0);  
 signal inp_long     : std_logic_vector(INPUTS-1 downto 0);  
-signal inp_long_reg : std_logic_vector(INPUTS-1 downto 0);  
+signal inp_verylong : std_logic_vector(INPUTS-1 downto 0);  
 
-signal output_i: std_logic_vector(OUTPUTS-1 downto 0);
-
-signal inp_reg : std_logic_vector(INPUTS-1 downto 0);
-signal out_reg : std_logic_vector(OUTPUTS-1 downto 0);
+signal output_i     : std_logic_vector(OUTPUTS-1 downto 0);
+signal out_reg      : std_logic_vector(OUTPUTS-1 downto 0);
+signal got_coincidence : std_logic;
 
 begin
 
@@ -62,6 +63,7 @@ begin
     elsif ADDR_IN(5) = '1' then
       case ADDR_IN(2 downto 0) is
         when "010"   =>  stretch_inp <= DATA_IN(INPUTS-1 downto 0);
+        when "011"   =>  coincidence <= DATA_IN(INPUTS-1 downto 0);
         when "100"   =>  invert      <= DATA_IN(INPUTS-1 downto 0);
       end case;
     else
@@ -73,11 +75,15 @@ begin
     if ADDR_IN(5) = '0' and ADDR_IN(0) = '0' and tmp < OUTPUTS then
       DATA_OUT <= enable(tmp);
     elsif ADDR_IN(5) = '1' then
+      DATA_OUT <= (others => '0');
       case ADDR_IN(2 downto 0) is
-        when "000"   => DATA_OUT(INPUTS-1 downto 0)  <= inp_reg;     DATA_OUT(31 downto INPUTS)  <= (others => '0');
-        when "001"   => DATA_OUT(OUTPUTS-1 downto 0) <= out_reg;     DATA_OUT(31 downto OUTPUTS) <= (others => '0');
-        when "010"   => DATA_OUT(INPUTS-1 downto 0)  <= stretch_inp; DATA_OUT(31 downto INPUTS) <= (others => '0');
-        when "100"   => DATA_OUT(INPUTS-1 downto 0)  <= invert;      DATA_OUT(31 downto INPUTS) <= (others => '0');
+        when "000"   => DATA_OUT(INPUTS-1 downto 0)  <= inp_shift(1);     
+        when "001"   => DATA_OUT(OUTPUTS-1 downto 0) <= out_reg;     
+        when "010"   => DATA_OUT(INPUTS-1 downto 0)  <= stretch_inp; 
+        when "011"   => DATA_OUT(INPUTS-1 downto 0)  <= coincidence; 
+        when "100"   => DATA_OUT(INPUTS-1 downto 0)  <= invert;     
+        when "111"   => DATA_OUT( 5 downto  0)   <= std_logic_vector(to_unsigned(INPUTS,6));
+                        DATA_OUT(11 downto  8)   <= std_logic_vector(to_unsigned(OUTPUTS,4));
         when others => NACK_OUT <= '1'; ACK_OUT <= '0';
       end case;
     else
@@ -90,17 +96,22 @@ begin
   
   end process;
 
+  inp_shift(0)      <= (inp_inv or inp_shift(0)) and not (inp_shift(1) and not inp_inv); 
+gen_shift: for i in 1 to 4 generate
+  inp_shift(i)      <= inp_shift(i-1) when rising_edge(CLK);
+end generate;
   
 inp_inv           <= INPUT xor invert;
-inp_long          <= (inp_inv or inp_long) and not inp_long_reg;
-inp_long_reg      <= inp_long when rising_edge(CLK);
+inp_long          <= inp_shift(0) or inp_shift(1);
+inp_verylong      <= inp_shift(0) or inp_shift(1) or inp_shift(2) or inp_shift(3) or inp_shift(4) when rising_edge(CLK);
 
+got_coincidence   <= and_all(inp_verylong or not coincidence) when rising_edge(CLK);
   
 gen_outs : for i in 0 to OUTPUTS-1 generate
-  output_i(i) <= or_all((((inp_long or inp_long_reg) and stretch_inp) or (inp_inv and not stretch_inp)) and enable(i)(INPUTS-1 downto 0));
+  output_i(i) <= or_all(((inp_long and stretch_inp) or (inp_inv and not stretch_inp)) and enable(i)(INPUTS-1 downto 0)) or (got_coincidence and enable(i)(INPUTS));
 end generate;
 
-inp_reg <= INPUT when rising_edge(CLK);
+
 out_reg <= output_i when rising_edge(CLK);
 
 OUTPUT  <= output_i;
