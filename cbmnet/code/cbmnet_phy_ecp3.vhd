@@ -52,9 +52,9 @@ entity cbmnet_phy_ecp3 is
       LED_OK_OUT         : out std_logic;
       
       -- Status and control port
-      STAT_OP            : out std_logic_vector (15 downto 0) := (others => '0');
-      CTRL_OP            : in  std_logic_vector (15 downto 0) := (others => '0');
-      DEBUG_OUT          : out std_logic_vector (127 downto 0) := (others => '0')
+      STAT_OP            : out std_logic_vector ( 15 downto 0) := (others => '0');
+      CTRL_OP            : in  std_logic_vector ( 15 downto 0) := (others => '0');
+      DEBUG_OUT          : out std_logic_vector (255 downto 0) := (others => '0')
    );
 end entity;
 
@@ -63,6 +63,11 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    attribute HGROUP : string;
    -- for whole architecture
    attribute HGROUP of cbmnet_phy_ecp3_arch : architecture  is "cbmnet_phy_group";
+   
+   attribute syn_hier: string;
+   attribute syn_hier of cbmnet_phy_ecp3_arch : architecture is "hard"; 
+   
+   
    attribute syn_sharing : string;
    attribute syn_sharing of cbmnet_phy_ecp3_arch : architecture is "off";
 
@@ -112,7 +117,7 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    signal sci_qd_i          : std_logic;
    signal sci_reg_i         : std_logic;
    signal sci_addr_i        : std_logic_vector(8 downto 0);
-   signal sci_data_in_i     : std_logic_vector(7 downto 0);
+   signal sci_data_in_i     : std_logic_vector(7 downto 0) := (others => '0');
    signal sci_data_out_i    : std_logic_vector(7 downto 0);
    signal sci_read_i        : std_logic;
    signal sci_write_i       : std_logic;
@@ -150,13 +155,19 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    
    signal rx_data_i     : std_logic_vector(17 downto 0); -- in the front end this signal is identical to rx_data_from_gear_i
                                                          -- otherwise a clock domain crossing from rclk_125_i to clk_125_local is
-                                                         -- necessary. this signal will no exhibit a deterministic latency !!!!!!
-                                                         -- (however, this is no problem, as the clock master will no receive DLMs)
+                                                         -- necessary. this signal will not exhibit a deterministic latency !!!!!!
+                                                         -- (however, this is no problem, as the clock master will not receive DLMs)
+
+   signal rx_data_debug_i : std_logic_vector(17 downto 0);                                        
                                                          
    signal tx_data_i     : std_logic_vector(17 downto 0); -- 16(+2) bit word generated fed to gear
    signal tx_gear_reset_i : std_logic;
+   signal tx_gear_allow_relock_i : std_logic;
    
-   signal rx_gear_debug_i : std_logic_vector(15 downto 0);
+   signal tx_gear_ready_i : std_logic;
+   
+   signal rx_gear_debug_i : std_logic_vector(31 downto 0);
+   signal tx_gear_debug_i : std_logic_vector(31 downto 0);
    
 -- CBMNet Ready Managers
    signal rm_rx_ready_i : std_logic;
@@ -170,6 +181,27 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    signal rm_tx_almost_ready_i : std_logic;
    
    signal rm_rx_to_gear_reset_i : std_logic;
+   
+   signal rm_rx_data_buf_i : std_logic_vector(17 downto 0);
+   
+   signal rm_rx_ebtb_code_err_cntr_clr_i  : std_logic;
+   signal rm_rx_ebtb_disp_err_cntr_clr_i  : std_logic;
+   signal rm_rx_ebtb_code_err_cntr_i      : std_logic_vector(15 downto 0);
+   signal rm_rx_ebtb_disp_err_cntr_i      : std_logic_vector(15 downto 0);
+   signal rm_rx_ebtb_code_err_cntr_flag_i : std_logic;
+   signal rm_rx_ebtb_disp_err_cntr_flag_i : std_logic;
+   
+   signal rm_tx_to_rx_reinit_i : std_logic;
+   
+   signal rm_rx_see_reinit : std_logic;
+   signal rm_rx_ebtb_detect_i : std_logic;
+   signal rm_tx_link_lost_i : std_logic;
+   
+   signal rm_tx_pcs_startup_cntr_clr  : std_logic;
+   signal rm_tx_pcs_startup_cntr      : std_logic_vector(15 downto 0);       -- Counts for link startups
+   signal rm_tx_pcs_startup_cntr_flag : std_logic;   
+   
+   signal rm_rx_rxpcs_ready_i : std_logic;
 
 -- LEDs
    signal led_ok_i                 : std_logic;
@@ -179,6 +211,9 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
 
 -- Stats
    signal stat_reconnect_counter_i : unsigned(15 downto 0); -- counts the number of RX-serdes resets since last external reset
+   signal stat_last_reconnect_duration_i : unsigned(31 downto 0);
+   
+   signal stat_wa_int_i : std_logic_vector(15 downto 0) := (others => '0');
    
    signal tx_data_debug_i : std_logic_vector(17 downto 0);
    signal tx_data_debug_state_i : std_logic;
@@ -187,10 +222,10 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    signal low_level_tx_see_dlm0     : std_logic;
    signal low_level_tx_see_dlm0_125 : std_logic;
    
-   
+   signal stat_dlm_counter_i : unsigned(15 downto 0);
 begin
    clk_125_local <= CLK;
-   CLK_RX_HALF_OUT <= rclk_125_i;
+   CLK_RX_HALF_OUT <= rclk_125_i when IS_SYNC_SLAVE = c_YES or 1=1 else clk_tx_half_i;
    CLK_RX_FULL_OUT <= rclk_250_i;
 
    SD_TXDIS_OUT <= '0';
@@ -303,7 +338,7 @@ begin
       RX_PCS_RST_CH_C     => rx_pcs_rst_i,
       STATE_OUT           => rx_rst_fsm_state_i
    );
-   byte_alignment_to_fsm_i <= (not barrel_shifter_misaligned_i);
+   byte_alignment_to_fsm_i <= (not barrel_shifter_misaligned_i) or CTRL_OP(3);
    word_alignment_to_fsm_i <= not (gear_to_fsm_rst_i or AND_ALL(rx_error_delay));
    rx_error_delay <= rx_error_delay(rx_error_delay'high - 1 downto 0) & rx_dec_error_i when rising_edge(clk_125_local);
    
@@ -334,7 +369,10 @@ begin
       end if;
    end process;
    
-   THE_RX_GEAR: CBMNET_PHY_RX_GEAR port map (
+   THE_RX_GEAR: CBMNET_PHY_RX_GEAR 
+   generic map (
+      IS_SYNC_SLAVE => IS_SYNC_SLAVE
+   ) port map (
    -- SERDES PORT
       CLK_250_IN      => rclk_250_i,             -- in std_logic;
       PCS_READY_IN    => rx_rst_fsm_ready_i, -- in std_logic;
@@ -350,6 +388,24 @@ begin
       DEBUG_OUT   => rx_gear_debug_i
    );
    
+   process is 
+      variable state_v : std_logic;
+      variable data_buf_v : std_logic_vector(8 downto 0);
+   begin
+      wait until rising_edge(rclk_250_i);
+      
+      if state_v = '0' then
+         rx_data_debug_i(7 downto 0) <= data_buf_v(7 downto 0);
+         rx_data_debug_i(16) <= data_buf_v(8);
+      else
+         rx_data_debug_i(15 downto 8) <= data_buf_v(7 downto 0);
+         rx_data_debug_i(17) <= data_buf_v(8);
+      end if;
+      
+      data_buf_v := data_buf_v;
+      state_v := not state_v;
+   end process;
+   
    rx_data_i <= rx_data_from_gear_i when rising_edge(clk_125_local) or (IS_SYNC_SLAVE = c_YES);
    
    THE_TX_GEAR: CBMNET_PHY_TX_GEAR
@@ -360,12 +416,16 @@ begin
       CLK_125_OUT => clk_tx_half_i,
       
       RESET_IN    => tx_gear_reset_i, -- in std_logic;
+      ALLOW_RELOCK_IN => tx_gear_allow_relock_i, -- in std_logic
+      
+      TX_READY_OUT => tx_gear_ready_i,
       
       DATA_IN     => tx_data_i, -- in std_logic_vector(17 downto 0)
       
       DATA_OUT    => tx_data_to_serdes_i -- out std_logic_vector(8 downto 0);
    );
    tx_gear_reset_i <= not tx_rst_fsm_ready_i;
+   tx_gear_allow_relock_i <= ((not tx_rst_fsm_ready_i) and not CTRL_OP(1)) or CTRL_OP(2);
    
    process is
    begin
@@ -387,51 +447,78 @@ begin
    -------------------------------------------------      
    -- CBMNet Ready Modules
    -------------------------------------------------      
-   THE_RX_READY: gtp_rx_ready_module 
-   generic map (INCL_8B10B_DEC => c_No)
-   port map (
-      clk => clk_125_i,
-      res_n => gear_to_rm_n_rst_i,
-      ready_MGT2RM => '1',
-      
-      rxdata_in(17 downto 0) => rx_data_i,
+   THE_RX_READY: cn_rx_pcs_wrapper
+   generic map (
+      SIMULATION => 0,
+      USE_BS => 0,
+      SYNC_SIGNALS => 1,
+      INCL_8B10B_DEC => 0
+   )
+   port map (   
+      rx_clk                  => clk_125_i,             -- in std_logic;
+      res_n_rx                => gear_to_rm_n_rst_i,    -- in std_logic;
+      rxpcs_reinit            => rm_tx_to_rx_reinit_i,  -- in std_logic;                     -- Reinit RXPCS 
+      rxdata_in(17 downto 0)  => rx_data_i,
       rxdata_in(19 downto 18) => "00",
-      tx_ready => rm_tx_ready_i,
-      tx_almost_ready => rm_tx_almost_ready_i,
-
-      ready_RM2LP => rm_rx_ready_i,
-
-      rxdata_out  => PHY_RXDATA_OUT,
-      charisk_out => PHY_RXDATA_K_OUT,
+      reset_rx_cdr            => rm_rx_to_gear_reset_i, -- out std_logic;                    -- Reset RX CDR to align
+      rxpcs_almost_ready      => rm_rx_almost_ready_i,  -- out std_logic;                    -- Ready1 detected, only waiting for break
+      rxpcs_ready             => rm_rx_rxpcs_ready_i,   -- out std_logic;                    -- RXPCS initialization done
+      see_reinit              => rm_rx_see_reinit,      -- out std_logic;                    -- Initialization pattern detected although ready
+      bs_position             => open,                  -- out std_logic_vector(4 downto 0); -- Number of bit-shifts necessary for word-alignment
+      rxdata_out              => rm_rx_data_buf_i,      -- out std_logic_vector(17 downto 0);
+      ebtb_detect             => rm_rx_ebtb_detect_i,   -- out std_logic;                    -- Depends on the FSM state, alignment done
       
-      almost_ready_OUT => rm_rx_almost_ready_i,
-      see_ready0 => rm_rx_see_ready0_i,
-      saw_ready1 => rm_rx_saw_ready1_i,
-      valid_char => rm_rx_valid_char_i,
-      
-      reset_rx => rm_rx_to_gear_reset_i
+      --diagnostics
+      ebtb_code_err_cntr_clr  => rm_rx_ebtb_code_err_cntr_clr_i, -- in std_logic;
+      ebtb_disp_err_cntr_clr  => rm_rx_ebtb_disp_err_cntr_clr_i, -- in std_logic;
+      ebtb_code_err_cntr      => rm_rx_ebtb_code_err_cntr_i,     -- out std_logic_vector(15 downto 0); -- Counts for code errors if ebtb_detect is true
+      ebtb_disp_err_cntr      => rm_rx_ebtb_disp_err_cntr_i,     -- out std_logic_vector(15 downto 0); -- Counts for disparity errors if ebtb_detect is true
+      ebtb_code_err_cntr_flag => rm_rx_ebtb_code_err_cntr_flag_i,-- out std_logic;
+      ebtb_disp_err_cntr_flag => rm_rx_ebtb_disp_err_cntr_flag_i -- out std_logic
    );
+
+   PHY_RXDATA_OUT   <= rm_rx_data_buf_i(15 downto 0);
+   PHY_RXDATA_K_OUT <= rm_rx_data_buf_i(1 downto 0);
    gear_to_rm_n_rst_i <= not gear_to_rm_rst_i when rising_edge(clk_125_i);
    
-   THE_TX_READY: gtp_tx_ready_module
-   port map (
-      clk => clk_125_i,                   -- :  in std_logic;
-      res_n => tx_rst_fsm_ready_buf_i,               -- :  in std_logic;
-      restart_link => CTRL_OP(14),        -- :  in std_logic;
-      ready_MGT2RM => '1',     -- :  in std_logic;
-      txdata_in => PHY_TXDATA_IN ,        -- :  in std_logic_vector((DATAWIDTH-1) downto 0);
-      txcharisk_in => PHY_TXDATA_K_IN,    -- :  in std_logic_vector((WORDS-1) downto 0);
+   
+   THE_TX_READY: cn_tx_pcs_wrapper 
+   generic map (
+--      READY_CHAR0    => , --std_logic_vector( 7 downto 0) :=  K284;
+--      READY_CHAR1    => , --std_logic_vector( 7 downto 0) :=  K287;
+--      ALIGN_CHAR     => , --std_logic_vector( 7 downto 0) :=  K285;
+--      PMA_INIT_CHAR  => , --std_logic_vector(19 downto 0) := x"aaaaa";
+      
+      REVERSE_OUTPUT => 0, --integer range 0 to 1 := 1;
+      LINK_MASTER    => 0, --integer range 0 to 1 := 1;
+      SYNC_SIGNALS   => 1, --integer range 0 to 1 := 1;
 
-      see_ready0 => rm_rx_see_ready0_i,      -- :  in std_logic;
-      saw_ready1 => rm_rx_saw_ready1_i,      -- :  in std_logic;
-      valid_char => rm_rx_valid_char_i,      -- :  in std_logic;
-      rx_rm_ready => rm_rx_status_for_tx_i,       -- :  in std_logic;
-
-      ready_RM2LP => rm_tx_ready_i,          -- :  out std_logic;
-      txdata_out => tx_data_i,            -- :  out std_logic_vector((WORDS*9)-1 downto 0);
-      almost_ready => rm_tx_almost_ready_i,  -- :  out std_logic;
-      gt11_reinit => open                 -- :  out std_logic   
+      INCL_8B10B_ENC => 0  --integer range 0 to 1 := 1
+   ) port map (
+      tx_clk                 => clk_125_i,               --in std_logic;
+      res_n_tx               => tx_rst_fsm_ready_buf_i,  --in std_logic;
+      pcs_restart            => CTRL_OP(14),             --in std_logic;          -- restart pcs layer
+      pma_ready              => tx_gear_ready_i,         --in std_logic;
+      ebtb_detect            => rm_rx_ebtb_detect_i,     --in std_logic;            -- alignment done and valid 8b10b stream detected
+      see_reinit             => rm_rx_see_reinit,        --in std_logic;
+      rxpcs_almost_ready     => rm_rx_almost_ready_i,    --in std_logic;
+      txdata_in(15 downto 0) => PHY_TXDATA_IN,           --in std_logic_vector(17 downto 0);
+      txdata_in(17 downto 16)=> PHY_TXDATA_K_IN,
+      
+      txpcs_ready            => rm_tx_ready_i,           --out std_logic;
+      link_lost              => rm_tx_link_lost_i,       --out std_logic;
+      reset_out              => open,                    --out std_logic;
+      rxpcs_reinit           => rm_tx_to_rx_reinit_i,    --out std_logic;           -- Reinit the RXPCS FSM
+      txdata_out             => tx_data_i,               --out std_logic_vector(17 downto 0);             -- tx data to transceiver
+      txdata_out_coded       => open,                    --out std_logic_vector(19 downto 0);       -- tx data to transceiver already 8b10b coded
+      
+      --diagnostics
+      pcs_startup_cntr_clr   => rm_tx_pcs_startup_cntr_clr,  --in std_logic;
+      pcs_startup_cntr       => rm_tx_pcs_startup_cntr,      --out std_logic_vector(15 downto 0);       -- Counts for link startups
+      pcs_startup_cntr_flag  => rm_tx_pcs_startup_cntr_flag  --out std_logic;
    );
+
+   
    rm_rx_status_for_tx_i <= rm_rx_almost_ready_i or rm_rx_ready_i;
    
    -- clock domain crossing from clk_125_local to clk_125_i
@@ -447,7 +534,7 @@ begin
       end if;
    end process;
       
-   serdes_ready_i <= rm_tx_ready_i and rm_rx_ready_i when rising_edge(clk_125_i);
+   serdes_ready_i <= rm_tx_ready_i and rm_rx_rxpcs_ready_i when rising_edge(clk_125_i);
    led_ok_i       <= serdes_ready_i;
    SERDES_ready   <= serdes_ready_i;
    
@@ -458,11 +545,9 @@ begin
    -- upon retrival the barrel shifter is checked and - if necessary - a serdes reset is issued
    PROC_SCI_CTRL: process 
       variable cnt : integer range 0 to 4 := 0;
-      variable lsm_status_buf : std_logic;
    begin
       wait until rising_edge(clk_125_local);
-      barrel_shifter_misaligned_i <= '0';
-      
+     
       case sci_state is
          when IDLE =>
             sci_ch_i        <= x"0";
@@ -480,10 +565,6 @@ begin
             if cnt = 4 then
                cnt           := 0;
                sci_state     <= IDLE;
-               
-               if lsm_status_buf = '1' and wa_position_i(3 downto 0) /= x"0" then
-                  barrel_shifter_misaligned_i <= '1';
-               end if;
                
             else
                sci_state     <= GET_WA_WAIT;
@@ -505,10 +586,17 @@ begin
             cnt             := cnt + 1;
          
       end case;
-      
-      lsm_status_buf := lsm_status_i;
    end process;
-
+   
+   process is begin
+      wait until rising_edge(clk_125_local);
+      barrel_shifter_misaligned_i <= '0';
+      if lsm_status_i = '1' and  wa_position_i(3 downto 0) /= x"0" then
+         barrel_shifter_misaligned_i <= '1';
+      end if;
+   end process;
+   
+   
    -- RX/TX leds are on as soon as the correspondent pll is locked and data
    -- other than the idle word is transmitted
    PROC_LEDS: process is
@@ -566,10 +654,18 @@ begin
          
          if rst_n_i = '0' then
             stat_reconnect_counter_i <= (others => '0');
+            stat_last_reconnect_duration_i <= (others => '0');
+            stat_wa_int_i <= (others => '0');
          else
             if rx_serdes_rst_i = '1' and last_rx_serdes_rst_i = '0' then
                stat_reconnect_counter_i <= stat_reconnect_counter_i + TO_UNSIGNED(1,1);
             end if;
+            
+            if serdes_ready_i = '0' then
+               stat_last_reconnect_duration_i <= stat_last_reconnect_duration_i + TO_UNSIGNED(1,1);
+            end if;
+            
+            stat_wa_int_i <= stat_wa_int_i or wa_position_i;
          end if;
          
          last_rx_serdes_rst_i := rx_serdes_rst_i;
@@ -624,36 +720,55 @@ begin
             low_level_tx_see_dlm0_125 <= '1';
          end if;
       end process;
-   
-      DEBUG_OUT(19 downto  0) <= "00" & tx_data_i;
+	  
+	  PROC_SENSE_DLMS: process begin
+		wait until rising_edge(clk_125_i);
+		
+		if serdes_ready_i = '0' then
+			stat_dlm_counter_i <= (others => '0');
+		elsif rx_data_i(17) = '1' and rx_data_i(15 downto 8) = K277 then
+			stat_dlm_counter_i <= stat_dlm_counter_i + TO_UNSIGNED(1,1);
+		end if;
+	  end process;
+
+-- DEBUG_OUT_BEGIN      
+      DEBUG_OUT(19 downto  0) <= "00" & tx_data_i(17 downto 0);
+      
       DEBUG_OUT(23 downto 20) <= "0" & tx_pll_lol_i & rx_los_low_i & rx_cdr_lol_i;
+
       DEBUG_OUT(27 downto 24) <= gear_to_fsm_rst_i & barrel_shifter_misaligned_i & SD_PRSNT_N_IN & SD_LOS_IN;
       DEBUG_OUT(31 downto 28) <= rst_qd_i & rx_serdes_rst_i & tx_pcs_rst_i & rx_pcs_rst_i;
       
-      DEBUG_OUT(51 downto 32) <= "00" & rx_data_i;
-      DEBUG_OUT(59 downto 52) <= rx_rst_fsm_state_i & tx_rst_fsm_state_i;
+      DEBUG_OUT( 51 downto 32) <= "00" & rx_data_i(17 downto 0);
+      DEBUG_OUT( 59 downto 52) <= rx_rst_fsm_state_i(3 downto 0) & tx_rst_fsm_state_i(3 downto 0);
          
-      DEBUG_OUT(63 downto 60) <= serdes_ready_i & rm_rx_ready_i &  rm_tx_ready_i & rm_tx_almost_ready_i;
+      DEBUG_OUT( 63 downto 60) <= serdes_ready_i & rm_rx_ready_i &  rm_tx_ready_i & rm_tx_almost_ready_i;
       
-      DEBUG_OUT(71 downto 64) <= rx_gear_debug_i(7 downto 0);
+      DEBUG_OUT( 79 downto 64) <= rx_gear_debug_i(15 downto 0);
+      DEBUG_OUT( 95 downto 80) <= tx_gear_debug_i(15 downto 0);
       
-      DEBUG_OUT(99 downto 96) <= rm_rx_almost_ready_i & rm_rx_see_ready0_i & rm_rx_saw_ready1_i & rm_rx_valid_char_i;
+      DEBUG_OUT( 99 downto 96) <= rm_rx_almost_ready_i & rm_rx_rxpcs_ready_i & rm_rx_see_reinit & rm_rx_ebtb_detect_i;
       DEBUG_OUT(103 downto 100) <= wa_position_i(3 downto 0);
       DEBUG_OUT(107 downto 104) <= "00" & rm_rx_to_gear_reset_i & gear_to_rm_rst_i;
       
-      DEBUG_OUT(127 downto 108) <= "00" & tx_data_debug_i; --STD_LOGIC_VECTOR(stat_reconnect_counter_i);
+      DEBUG_OUT(127 downto 108) <= "00" & tx_data_debug_i(17 downto 0);
+      DEBUG_OUT(147 downto 128) <= "00" & rx_data_debug_i(17 downto 0) when rising_edge(clk_125_local);
+      DEBUG_OUT(179 downto 148) <= stat_last_reconnect_duration_i(31 downto 0);
+      DEBUG_OUT(195 downto 180) <= stat_reconnect_counter_i(15 downto 0);
+      DEBUG_OUT(211 downto 196) <= stat_dlm_counter_i(15 downto 0);
+	   DEBUG_OUT(243 downto 212) <= rm_rx_ebtb_code_err_cntr_i(15 downto 0) & rm_rx_ebtb_disp_err_cntr_i(15 downto 0);
+	  --DEBUG_OUT(255 downto 170) <= (others => '0');
       
+-- DEBUG_OUT_END
+
       -- STAT_OP REGISTER
       STAT_OP(6 downto 0) <= tx_data_to_serdes_i(6 downto 0);
-
-      STAT_OP( 7) <= low_level_tx_see_dlm0_125;
+      STAT_OP( 7) <= low_level_rx_see_dlm0;
       STAT_OP( 8) <= clk_125_local;
       STAT_OP( 9) <= rclk_250_i;
       STAT_OP(10) <= rclk_125_i;
       STAT_OP(11) <= clk_tx_full_i;
       STAT_OP(12) <= clk_tx_half_i;
-      
-      STAT_OP(13) <= low_level_rx_see_dlm0;
-      STAT_OP(14) <= low_level_tx_see_dlm0;
+      STAT_OP(13) <= low_level_tx_see_dlm0;
    end generate;
 end architecture;

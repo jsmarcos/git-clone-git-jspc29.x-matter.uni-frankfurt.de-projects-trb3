@@ -35,6 +35,7 @@ entity nx_data_validate is
     SLV_NO_MORE_DATA_OUT : out std_logic;
     SLV_UNKNOWN_ADDR_OUT : out std_logic;
 
+    DISABLE_ADC_IN       : in std_logic;
     ERROR_OUT            : out std_logic;
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
@@ -79,6 +80,7 @@ architecture Behavioral of nx_data_validate is
   
   -- Rate Calculation
   signal nx_trigger_ctr_t     : unsigned(27 downto 0);
+  signal nx_trigger_ctr_t_nr  : unsigned(31 downto 0);
   signal nx_frame_ctr_t       : unsigned(27 downto 0);
   signal nx_pileup_ctr_t      : unsigned(27 downto 0);
   signal nx_overflow_ctr_t    : unsigned(27 downto 0);
@@ -374,6 +376,7 @@ begin
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
         nx_trigger_ctr_t     <= (others => '0');
+        nx_trigger_ctr_t_nr  <= (others => '0');
         nx_frame_ctr_t       <= (others => '0');
         nx_rate_timer        <= (others => '0');
         nx_hit_rate          <= (others => '0');
@@ -383,6 +386,7 @@ begin
         if (nx_rate_timer < x"5f5e100") then
           if (trigger_rate_inc = '1') then
             nx_trigger_ctr_t               <= nx_trigger_ctr_t + 1;
+            nx_trigger_ctr_t_nr            <= nx_trigger_ctr_t_nr + 1;
           end if;
           if (frame_rate_inc = '1') then
             nx_frame_ctr_t                 <= nx_frame_ctr_t + 1;
@@ -515,13 +519,12 @@ begin
       if (RESET_IN = '1') then
         error_o       <= '0';
       else
-        if (adc_tr_error_rate > x"0000020") then
+        if (adc_tr_error_rate > x"0000020" and DISABLE_ADC_IN = '0') then
           error_o     <= '1';
         else
           error_o     <= '0';
         end if;
       end if;
-
     end if;
   end process PROC_ADC_TOKEN_RETURN_ERROR;
  
@@ -644,8 +647,11 @@ begin
               slv_data_out_o(0)             <= adc_tr_debug_mode;
               slv_data_out_o(31 downto 1)   <= (others => '0');
               slv_ack_o                     <= '1';
+
+            when x"0010" =>
+              slv_data_out_o                <= nx_trigger_ctr_t_nr;
               slv_ack_o                     <= '1';
-                   
+
             when others  =>
               slv_unknown_addr_o            <= '1';
               slv_ack_o                     <= '0';

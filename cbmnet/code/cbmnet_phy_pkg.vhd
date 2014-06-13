@@ -49,7 +49,7 @@ package cbmnet_phy_pkg is
          -- Status and control port
          STAT_OP            : out std_logic_vector (15 downto 0);
          CTRL_OP            : in  std_logic_vector (15 downto 0) := (others => '0');
-         DEBUG_OUT          : out std_logic_vector (127 downto 0) := (others => '0')
+         DEBUG_OUT          : out std_logic_vector (255 downto 0) := (others => '0')
       );
    end component;
    
@@ -57,6 +57,9 @@ package cbmnet_phy_pkg is
 -- INTERNAL
 -----------------------------------------------------------------------------------------------------------------------
    component CBMNET_PHY_RX_GEAR is
+      generic(
+         IS_SYNC_SLAVE   : integer := c_NO       --select slave mode
+      );
       port (
       -- SERDES PORT
          CLK_250_IN  : in std_logic;
@@ -71,7 +74,7 @@ package cbmnet_phy_pkg is
          DATA_OUT    : out std_logic_vector(17 downto 0);
          
       -- DEBUG
-         DEBUG_OUT   : out std_logic_vector(15 downto 0) := (others => '0')
+         DEBUG_OUT   : out std_logic_vector(31 downto 0) := (others => '0')
       );
    end component;   
    
@@ -85,10 +88,14 @@ package cbmnet_phy_pkg is
          CLK_125_OUT : out std_logic;
          
          RESET_IN    : in std_logic;
-         
+         ALLOW_RELOCK_IN : in std_logic;
+
          DATA_IN     : in std_logic_vector(17 downto 0);
+         DATA_OUT    : out std_logic_vector(8 downto 0);
          
-         DATA_OUT    : out std_logic_vector(8 downto 0)
+         TX_READY_OUT: out std_logic;
+      
+         DEBUG_OUT   : out std_logic_vector(31 downto 0)
       );
    end component;  
   

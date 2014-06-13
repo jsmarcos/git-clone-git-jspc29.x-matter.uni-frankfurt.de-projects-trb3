@@ -52,7 +52,7 @@ impl -active "workdir"
 #add_file options
 
 add_file -vhdl -lib work "version.vhd"
-add_file -vhdl -lib work "currectRelease/tdc_version.vhd"
+add_file -vhdl -lib work "currentRelease/tdc_version.vhd"
 add_file -vhdl -lib work "config.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_std.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_components.vhd"
@@ -127,7 +127,7 @@ add_file -vhdl -lib work "../../trbnet/lattice/ecp3/lattice_ecp3_fifo_16x16_dual
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/lattice_ecp3_fifo_18x16_dualport.vhd"
 
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/spi_dpram_32_to_8.vhd"
-
+add_file -vhdl -lib work "../../trbnet/special/bus_register_handler.vhd"
 add_file -vhdl -lib work "../../trbnet/special/spi_slim.vhd"
 add_file -vhdl -lib work "../../trbnet/special/spi_master.vhd"
 add_file -vhdl -lib work "../../trbnet/special/spi_databus_memory.vhd"
@@ -166,8 +166,13 @@ add_file -vhdl -lib "work" "currentRelease/fallingEdgeDetect.vhd"
 add_file -vhdl -lib "work" "currentRelease/risingEdgeDetect.vhd"
 add_file -vhdl -lib "work" "currentRelease/hit_mux.vhd"
 add_file -vhdl -lib "work" "../base/cores/FIFO_36x128_OutReg.vhd"
+add_file -vhdl -lib "work" "../base/cores/FIFO_36x64_OutReg.vhd"
+add_file -vhdl -lib "work" "../base/cores/FIFO_36x32_OutReg.vhd"
+add_file -vhdl -lib "work" "../base/cores/FIFO_36x16_OutReg.vhd"
 add_file -vhdl -lib "work" "../base/cores/FIFO_DC_36x128_OutReg.vhd"
 add_file -vhdl -lib "work" "../base/cores/FIFO_DC_36x64_OutReg.vhd"
+add_file -vhdl -lib "work" "../base/cores/FIFO_DC_36x32_OutReg.vhd"
+add_file -vhdl -lib "work" "../base/cores/FIFO_DC_36x16_OutReg.vhd"
 #add_file -vhdl -lib "work" "currentRelease/Reference_Channel_200.vhd"
 #add_file -vhdl -lib "work" "currentRelease/Reference_Channel.vhd"
 

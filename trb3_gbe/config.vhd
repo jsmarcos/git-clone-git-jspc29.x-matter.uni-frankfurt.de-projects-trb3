@@ -1,1 +1,1 @@
-config_125.vhd
+config_default.vhd

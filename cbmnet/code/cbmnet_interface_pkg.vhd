@@ -22,61 +22,77 @@ package cbmnet_interface_pkg is
    constant CBMNET_READY_CHAR1 : std_logic_vector(7 downto 0) :=  K287;
    constant CBMNET_ALIGN_CHAR  : std_logic_vector(7 downto 0) :=  K285;
          
-   component gtp_rx_ready_module is
+   component cn_rx_pcs_wrapper is
       generic (
-         READY_CHAR0  : std_logic_vector(7 downto 0) :=  K284;
-         READY_CHAR1  : std_logic_vector(7 downto 0) :=  K287;
-         ALIGN_CHAR  : std_logic_vector(7 downto 0) :=  K285;
-         DATAWIDTH  : integer :=  16;
-         WORDS : integer := 2; --DATAWIDTH/8;
+         SIMULATION     : integer range 0 to 1 := 0;
          
+         READY_CHAR0    : std_logic_vector(7 downto 0) :=  K284;
+         READY_CHAR1    : std_logic_vector(7 downto 0) :=  K287;
+         ALIGN_CHAR     : std_logic_vector(7 downto 0)  :=  K285;
+         
+         USE_BS         : integer range 0 to 1 := 1;  -- Use barrel-shifter, otherwise reset rx CDR
+         SYNC_SIGNALS   : integer range 0 to 1 := 1; -- Sync input signals to rx clock domain
+
          INCL_8B10B_DEC : integer range 0 to 1 := 1
       );
-      port (
-         clk : in std_logic;
-         res_n : in std_logic;
-         ready_MGT2RM : in std_logic;
-         rxdata_in : in std_logic_vector((WORDS*10)-1 downto 0);
-
-         tx_ready : in std_logic;
-         tx_almost_ready : in std_logic;
-
-         ready_RM2LP : out std_logic;
-         almost_ready_OUT : out std_logic;
-         rxdata_out : out std_logic_vector((DATAWIDTH-1) downto 0);
-         charisk_out : out std_logic_vector((WORDS-1) downto 0);
-         see_ready0 : out std_logic;
-         saw_ready1 : out std_logic;
-         valid_char : out std_logic;
-         reset_rx : out std_logic
+      port (   
+         rx_clk                  : in std_logic;
+         res_n_rx                : in std_logic;
+         rxpcs_reinit            : in std_logic;                     -- Reinit RXPCS 
+         rxdata_in               : in std_logic_vector(19 downto 0);
+         reset_rx_cdr            : out std_logic;                    -- Reset RX CDR to align
+         rxpcs_almost_ready      : out std_logic;                    -- Ready1 detected, only waiting for break
+         rxpcs_ready             : out std_logic;                    -- RXPCS initialization done
+         see_reinit              : out std_logic;                    -- Initialization pattern detected although ready
+         bs_position             : out std_logic_vector(4 downto 0); -- Number of bit-shifts necessary for word-alignment
+         rxdata_out              : out std_logic_vector(17 downto 0);
+         ebtb_detect             : out std_logic;                    -- Depends on the FSM state, alignment done
+         
+         --diagnostics
+         ebtb_code_err_cntr_clr  : in std_logic;
+         ebtb_disp_err_cntr_clr  : in std_logic;
+         ebtb_code_err_cntr      : out std_logic_vector(15 downto 0); -- Counts for code errors if ebtb_detect is true
+         ebtb_disp_err_cntr      : out std_logic_vector(15 downto 0); -- Counts for disparity errors if ebtb_detect is true
+         ebtb_code_err_cntr_flag : out std_logic;
+         ebtb_disp_err_cntr_flag : out std_logic
       );
    end component;
 
-   component gtp_tx_ready_module is
+
+   component cn_tx_pcs_wrapper is
       generic (
---          READY_CHAR0  : std_logic_vector(7 downto 0) :=  K284;
---          READY_CHAR1  : std_logic_vector(7 downto 0) :=  K287;
---          ALIGN_CHAR  : std_logic_vector(7 downto 0) :=  K285;
-         DATAWIDTH  : integer :=  16;
-         WORDS :integer := 2 --DATAWIDTH/8;
+         READY_CHAR0    : std_logic_vector( 7 downto 0) :=  K284;
+         READY_CHAR1    : std_logic_vector( 7 downto 0) :=  K287;
+         ALIGN_CHAR     : std_logic_vector( 7 downto 0) :=  K285;
+         PMA_INIT_CHAR  : std_logic_vector(19 downto 0) := x"aaaaa";
+         
+         REVERSE_OUTPUT : integer range 0 to 1 := 1;
+         LINK_MASTER    : integer range 0 to 1 := 1;
+         SYNC_SIGNALS   : integer range 0 to 1 := 1;
+
+         INCL_8B10B_ENC : integer range 0 to 1 := 1
       );
       port (
-         clk : in std_logic;
-         res_n : in std_logic;
-         restart_link : in std_logic;
-         ready_MGT2RM : in std_logic;
-         txdata_in : in std_logic_vector((DATAWIDTH-1) downto 0);
-         txcharisk_in : in std_logic_vector((WORDS-1) downto 0);
-
-         see_ready0 : in std_logic;
-         saw_ready1 : in std_logic;
-         valid_char : in std_logic;
-         rx_rm_ready : in std_logic;
-
-         ready_RM2LP : out std_logic;
-         txdata_out : out std_logic_vector((WORDS*9)-1 downto 0);
-         almost_ready : out std_logic;
-         gt11_reinit : out std_logic
+         tx_clk                 : in std_logic;
+         res_n_tx               : in std_logic;
+         pcs_restart            : in std_logic;          -- restart pcs layer
+         pma_ready              : in std_logic;
+         ebtb_detect            : in std_logic;            -- alignment done and valid 8b10b stream detected
+         see_reinit             : in std_logic;
+         rxpcs_almost_ready     : in std_logic;
+         txdata_in              : in std_logic_vector(17 downto 0);
+         
+         txpcs_ready            : out std_logic;
+         link_lost              : out std_logic;
+         reset_out              : out std_logic;
+         rxpcs_reinit           : out std_logic;           -- Reinit the RXPCS FSM
+         txdata_out             : out std_logic_vector(17 downto 0);             -- tx data to transceiver
+         txdata_out_coded       : out std_logic_vector(19 downto 0);       -- tx data to transceiver already 8b10b coded
+         
+         --diagnostics
+         pcs_startup_cntr_clr   : in std_logic;
+         pcs_startup_cntr       : out std_logic_vector(15 downto 0);       -- Counts for link startups
+         pcs_startup_cntr_flag  : out std_logic
       );
    end component;
 
@@ -123,7 +139,51 @@ package cbmnet_interface_pkg is
          link_activeovr    : in  std_logic; -- Overrides; set 0 by default
          link_readyovr     : in  std_logic;
 
-         SERDES_ready      : in  std_logic    -- signalize when PHY ready
+         SERDES_ready      : in  std_logic; -- signalize when PHY ready
+               
+         -- diagnostics Lane0
+         crc_error_cntr_flag_0     : out std_logic;
+         retrans_cntr_flag_0       : out std_logic;
+         retrans_error_cntr_flag_0 : out std_logic;
+         crc_error_cntr_0          : out std_logic_vector(15 downto 0);
+         retrans_cntr_0            : out std_logic_vector(15 downto 0);
+         retrans_error_cntr_0      : out std_logic_vector(15 downto 0);
+         crc_error_cntr_clr_0      : in std_logic;
+         retrans_cntr_clr_0        : in std_logic;
+         retrans_error_cntr_clr_0  : in std_logic;
+
+         -- diagnostics Lane1
+         crc_error_cntr_flag_1     : out std_logic;
+         retrans_cntr_flag_1       : out std_logic;
+         retrans_error_cntr_flag_1 : out std_logic;
+         crc_error_cntr_1          : out std_logic_vector(15 downto 0);
+         retrans_cntr_1            : out std_logic_vector(15 downto 0);
+         retrans_error_cntr_1      : out std_logic_vector(15 downto 0);
+         crc_error_cntr_clr_1      : in std_logic;   
+         retrans_cntr_clr_1        : in std_logic;    
+         retrans_error_cntr_clr_1  : in std_logic; 
+
+         -- diagnostics Lane2
+         crc_error_cntr_flag_2     : out std_logic;
+         retrans_cntr_flag_2       : out std_logic;
+         retrans_error_cntr_flag_2 : out std_logic;
+         crc_error_cntr_2          : out std_logic_vector(15 downto 0);
+         retrans_cntr_2            : out std_logic_vector(15 downto 0);
+         retrans_error_cntr_2      : out std_logic_vector(15 downto 0);
+         crc_error_cntr_clr_2      : in std_logic;   
+         retrans_cntr_clr_2        : in std_logic;    
+         retrans_error_cntr_clr_2  : in std_logic; 
+
+         -- diagnostics Lane3
+         crc_error_cntr_flag_3     : out std_logic;
+         retrans_cntr_flag_3       : out std_logic;
+         retrans_error_cntr_flag_3 : out std_logic;
+         crc_error_cntr_3          : out std_logic_vector(15 downto 0);
+         retrans_cntr_3            : out std_logic_vector(15 downto 0);
+         retrans_error_cntr_3      : out std_logic_vector(15 downto 0);
+         crc_error_cntr_clr_3      : in std_logic;   
+         retrans_cntr_clr_3        : in std_logic;    
+         retrans_error_cntr_clr_3  : in std_logic
       );
    end component;
 

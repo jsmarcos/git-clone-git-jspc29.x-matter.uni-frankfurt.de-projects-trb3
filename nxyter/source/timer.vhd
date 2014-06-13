@@ -18,8 +18,8 @@ entity timer is
 end entity;
 
 architecture Behavioral of timer is
-  attribute HGROUP : string;
-  attribute HGROUP of Behavioral : architecture is "NX_TIMER";
+--  attribute HGROUP : string;
+--  attribute HGROUP of Behavioral : architecture is "NX_TIMER";
   
   -- Timer
   signal timer_ctr_x     : unsigned(CTR_WIDTH - 1 downto 0);

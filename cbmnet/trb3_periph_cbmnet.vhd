@@ -14,8 +14,9 @@ use work.cbmnet_phy_pkg.all;
 
 entity trb3_periph_cbmnet is
    generic (
-      CBM_FEE_MODE : integer := CBM_FEE_MODE_C -- in FEE mode, logic will run on recovered clock and (for now) listen only to data received
+      CBM_FEE_MODE : integer := CBM_FEE_MODE_C; -- in FEE mode, logic will run on recovered clock and (for now) listen only to data received
                                      -- in Master mode, logic will run on internal clock and regularly send dlms
+      INCLUDE_TRBNET : integer := INCLUDE_TRBNET_C
    );
    port(
       --Clocks
@@ -72,7 +73,8 @@ entity trb3_periph_cbmnet is
       SUPPL      : in    std_logic;       --terminated diff pair, PCLK, Pads
 
       --Test Connectors
-      TEST_LINE : out std_logic_vector(15 downto 0);
+      TEST_LINE : out std_logic_vector(15 downto 0); 
+      --TEST_LVDS_LINE : out std_logic_vector(1 downto 0);
 
       -- PCS Core TODO: Suppose this is necessary only for simulation
       SD_RXD_N_IN     : in std_logic;
@@ -109,7 +111,6 @@ entity trb3_periph_cbmnet is
    
    attribute syn_keep : boolean;
    attribute syn_keep of CLK_GPLL_LEFT, CLK_GPLL_RIGHT, CLK_PCLK_LEFT, CLK_PCLK_RIGHT, TRIGGER_LEFT, TRIGGER_RIGHT : signal is true;
-   attribute syn_keep     : boolean;
    attribute syn_preserve : boolean;
    
 end entity;
@@ -139,7 +140,7 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
 
 
    --Media Interface
-   signal med_stat_op        : std_logic_vector (1*16-1 downto 0);
+   signal med_stat_op        : std_logic_vector (1*16-1 downto 0) := (others => '0');
    signal med_ctrl_op        : std_logic_vector (1*16-1 downto 0);
    signal med_stat_debug     : std_logic_vector (1*64-1 downto 0);
    signal med_ctrl_debug     : std_logic_vector (1*64-1 downto 0);
@@ -279,7 +280,9 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    signal phy_stat_op,    phy_ctrl_op    : std_logic_vector(15 downto 0) := (others => '0');
    signal phy_stat_debug, phy_ctrl_debug : std_logic_vector(63 downto 0) := (others => '0');
    
-   signal phy_debug_i : std_logic_vector (127 downto 0) := (others => '0');
+   signal phy_debug_i : std_logic_vector (255 downto 0) := (others => '0');
+   signal phy_debug_i_buf : std_logic_vector (255 downto 0);
+   
 
 -- Link Tester
    signal link_tester_ctrl_en   :std_logic;
@@ -299,9 +302,70 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    
    signal dummy : std_logic;
    
+   type SEND_FSM_T is (IDLE, WAITc, SEND);
+   signal send_fsm_i : SEND_FSM_T;
+   signal send_wait_counter_i : unsigned(16 downto 0);
+   signal send_pack_counter_i : unsigned( 4 downto 0);
+   
+   signal send_num_pack_counter_i : unsigned(15 downto 0);
+   
+   signal send_enabled_i : std_logic := '0';
+   
+   signal dlm_counter_i : unsigned(31 downto 0);
+   signal dlm_glob_counter_i : unsigned(31 downto 0);
+   
+   
+   -- diagnostics Lane0
+   signal cbm_crc_error_cntr_flag_0     : std_logic;
+   signal cbm_retrans_cntr_flag_0       : std_logic;
+   signal cbm_retrans_error_cntr_flag_0 : std_logic;
+   signal cbm_crc_error_cntr_0          : std_logic_vector(15 downto 0);
+   signal cbm_retrans_cntr_0            : std_logic_vector(15 downto 0);
+   signal cbm_retrans_error_cntr_0      : std_logic_vector(15 downto 0);
+   signal cbm_crc_error_cntr_clr_0      : std_logic;
+   signal cbm_retrans_cntr_clr_0        : std_logic;
+   signal cbm_retrans_error_cntr_clr_0  : std_logic;
+
+   -- diagnostics Lane1
+   signal cbm_crc_error_cntr_flag_1     : std_logic;
+   signal cbm_retrans_cntr_flag_1       : std_logic;
+   signal cbm_retrans_error_cntr_flag_1 : std_logic;
+   signal cbm_crc_error_cntr_1          : std_logic_vector(15 downto 0);
+   signal cbm_retrans_cntr_1            : std_logic_vector(15 downto 0);
+   signal cbm_retrans_error_cntr_1      : std_logic_vector(15 downto 0);
+   signal cbm_crc_error_cntr_clr_1      : std_logic;   
+   signal cbm_retrans_cntr_clr_1        : std_logic;    
+   signal cbm_retrans_error_cntr_clr_1  : std_logic; 
+
+   -- diagnostics Lane2
+   signal cbm_crc_error_cntr_flag_2     : std_logic;
+   signal cbm_retrans_cntr_flag_2       : std_logic;
+   signal cbm_retrans_error_cntr_flag_2 : std_logic;
+   signal cbm_crc_error_cntr_2          : std_logic_vector(15 downto 0);
+   signal cbm_retrans_cntr_2            : std_logic_vector(15 downto 0);
+   signal cbm_retrans_error_cntr_2      : std_logic_vector(15 downto 0);
+   signal cbm_crc_error_cntr_clr_2      : std_logic;   
+   signal cbm_retrans_cntr_clr_2        : std_logic;    
+   signal cbm_retrans_error_cntr_clr_2  : std_logic; 
+
+   -- diagnostics Lane3
+   signal cbm_crc_error_cntr_flag_3     : std_logic;
+   signal cbm_retrans_cntr_flag_3       : std_logic;
+   signal cbm_retrans_error_cntr_flag_3 : std_logic;
+   signal cbm_crc_error_cntr_3          : std_logic_vector(15 downto 0);
+   signal cbm_retrans_cntr_3            : std_logic_vector(15 downto 0);
+   signal cbm_retrans_error_cntr_3      : std_logic_vector(15 downto 0);
+   signal cbm_crc_error_cntr_clr_3      : std_logic;   
+   signal cbm_retrans_cntr_clr_3        : std_logic;    
+   signal cbm_retrans_error_cntr_clr_3  : std_logic;
+   
+   signal cbm_debug_overrides_i : std_logic_vector(1 downto 0) := "00";
+   
 begin
    clk_125_i <= CLK_GPLL_LEFT; 
 
+   assert(INCLUDE_TRBNET = c_YES);
+   
 ---------------------------------------------------------------------------
 -- CBMNet and PHY
 ---------------------------------------------------------------------------   
@@ -347,12 +411,24 @@ begin
       DEBUG_OUT          => phy_debug_i
    );
 
+   
    SFP_RATESEL   <= (others => '1');
    
-   TEST_LINE(14 downto 0) <= phy_stat_op(14 downto 0);
-   TEST_LINE(15) <= cbm_dlm2send_va when CBM_FEE_MODE = c_YES else cbm_dlm_rec_va;
+   --TEST_LINE(1 downto 0) <= cbm_dlm2send_va & cbm_dlm_rec_va;
 
-
+   process is
+      variable counter_v : unsigned(20 downto 0); 
+   begin
+      wait until rising_edge(rclk_125_i);
+      counter_v := counter_v + to_unsigned(1,1);
+      cbm_dlm2send_va <= '0';
+      if counter_v = 0 then
+         cbm_dlm2send_va <= '1';
+      end if;
+   end process;
+   
+   
+-- cbm_data2link <= "00" & x"dead";
    THE_CBM_ENDPOINT: lp_top 
    generic map (
       NUM_LANES => NUM_LANES,
@@ -366,8 +442,8 @@ begin
    -- Phy
       data_from_link => cbm_data_from_link,
       data2link => cbm_data2link,
-      link_activeovr => '0',
-      link_readyovr => '0',
+      link_activeovr => cbm_debug_overrides_i(0),
+      link_readyovr => cbm_debug_overrides_i(1),
       SERDES_ready => cbm_SERDES_ready,
 
    -- CBMNet Interface
@@ -396,129 +472,136 @@ begin
       ctrl_rec => cbm_ctrl_rec,
       ctrl_rec_start => cbm_ctrl_rec_start,
       ctrl_rec_end => cbm_ctrl_rec_end,
-      ctrl_rec_stop => cbm_ctrl_rec_stop
+      ctrl_rec_stop => cbm_ctrl_rec_stop,
+      
+      -- diagnostics Lane0
+      crc_error_cntr_flag_0     => cbm_crc_error_cntr_flag_0,      --  out std_logic;
+      retrans_cntr_flag_0       => cbm_retrans_cntr_flag_0,        --  out std_logic;
+      retrans_error_cntr_flag_0 => cbm_retrans_error_cntr_flag_0,  --  out std_logic;
+      crc_error_cntr_0          => cbm_crc_error_cntr_0,           --  out std_logic_vector(15 downto 0);
+      retrans_cntr_0            => cbm_retrans_cntr_0,             --  out std_logic_vector(15 downto 0);
+      retrans_error_cntr_0      => cbm_retrans_error_cntr_0,       --  out std_logic_vector(15 downto 0);
+      crc_error_cntr_clr_0      => cbm_crc_error_cntr_clr_0,       --  in std_logic;
+      retrans_cntr_clr_0        => cbm_retrans_cntr_clr_0,         --  in std_logic;
+      retrans_error_cntr_clr_0  => cbm_retrans_error_cntr_clr_0,   --  in std_logic;
+
+      -- diagnostics Lane1
+      crc_error_cntr_flag_1     => cbm_crc_error_cntr_flag_1,      --  out std_logic;
+      retrans_cntr_flag_1       => cbm_retrans_cntr_flag_1,        --  out std_logic;
+      retrans_error_cntr_flag_1 => cbm_retrans_error_cntr_flag_1,  --  out std_logic;
+      crc_error_cntr_1          => cbm_crc_error_cntr_1,           --  out std_logic_vector(15 downto 0);
+      retrans_cntr_1            => cbm_retrans_cntr_1,             --  out std_logic_vector(15 downto 0);
+      retrans_error_cntr_1      => cbm_retrans_error_cntr_1,       --  out std_logic_vector(15 downto 0);
+      crc_error_cntr_clr_1      => cbm_crc_error_cntr_clr_1,       --  in std_logic;   
+      retrans_cntr_clr_1        => cbm_retrans_cntr_clr_1,         --  in std_logic;    
+      retrans_error_cntr_clr_1  => cbm_retrans_error_cntr_clr_1,   --  in std_logic; 
+
+      -- diagnostics Lane2
+      crc_error_cntr_flag_2     => cbm_crc_error_cntr_flag_2,      --  out std_logic;
+      retrans_cntr_flag_2       => cbm_retrans_cntr_flag_2,        --  out std_logic;
+      retrans_error_cntr_flag_2 => cbm_retrans_error_cntr_flag_2,  --  out std_logic;
+      crc_error_cntr_2          => cbm_crc_error_cntr_2,           --  out std_logic_vector(15 downto 0);
+      retrans_cntr_2            => cbm_retrans_cntr_2,             --  out std_logic_vector(15 downto 0);
+      retrans_error_cntr_2      => cbm_retrans_error_cntr_2,       --  out std_logic_vector(15 downto 0);
+      crc_error_cntr_clr_2      => cbm_crc_error_cntr_clr_2,       --  in std_logic;   
+      retrans_cntr_clr_2        => cbm_retrans_cntr_clr_2,         --  in std_logic;    
+      retrans_error_cntr_clr_2  => cbm_retrans_error_cntr_clr_2,   --  in std_logic; 
+
+      -- diagnostics Lane3
+      crc_error_cntr_flag_3     => cbm_crc_error_cntr_flag_3,      --  out std_logic;
+      retrans_cntr_flag_3       => cbm_retrans_cntr_flag_3,        --  out std_logic;
+      retrans_error_cntr_flag_3 => cbm_retrans_error_cntr_flag_3,  --  out std_logic;
+      crc_error_cntr_3          => cbm_crc_error_cntr_3,           --  out std_logic_vector(15 downto 0);
+      retrans_cntr_3            => cbm_retrans_cntr_3,             --  out std_logic_vector(15 downto 0);
+      retrans_error_cntr_3      => cbm_retrans_error_cntr_3,       --  out std_logic_vector(15 downto 0);
+      crc_error_cntr_clr_3      => cbm_crc_error_cntr_clr_3,       --  in std_logic;   
+      retrans_cntr_clr_3        => cbm_retrans_cntr_clr_3,         --  in std_logic;    
+      retrans_error_cntr_clr_3  => cbm_retrans_error_cntr_clr_3    --  in std_logic
+      
       
    );
    cbm_res_n <= not rreset_i;
 
----------------------------------------------------------------------------
--- CBMNet Link Tester
----------------------------------------------------------------------------      
-   GEN_LINK_TESTER_BE: if CBM_FEE_MODE = c_NO generate
---       THE_LINK_TESTER: link_tester_be
---       generic map (
---          MIN_CTRL_PACKET_SIZE => 12, -- : integer := 12;
---          MAX_CTRL_PACKET_SIZE => 60, -- : integer := 60;
--- 
---          DATAWIDTH  => 16, -- : integer := 16;
---          SINGLE_DEST => 1, -- : integer := 1;        
---          DATA_PADDING => 0, -- : integer := 0;
---          CTRL_PADDING => 16#A5A5# -- : integer := 16#A5A5#;
---       )
---       port map (
---          clk => rclk_125_i, -- in std_logic;
---          res_n => cbm_res_n, -- in std_logic;
---          link_active => cbm_link_active, -- in std_logic;
--- 
---          ctrl_en => link_tester_ctrl_en, -- in std_logic;              //enable ctrl packet generation
---          dlm_en  => link_tester_dlm_en, -- in std_logic;               //enable dlm generation        
---          force_rec_data_stop => link_tester_data_stop, -- in std_logic;  //force data flow to stop
---          force_rec_ctrl_stop => link_tester_ctrl_stop, -- in std_logic;  //force ctrl flow to stop
--- 
---          ctrl2send_stop => cbm_ctrl2send_stop, -- in std_logic;
---          ctrl2send_start => cbm_ctrl2send_start, -- out std_logic;
---          ctrl2send_end => cbm_ctrl2send_end, -- out std_logic;
---          ctrl2send => cbm_ctrl2send, -- out std_logic_vector(15 downto 0);
--- 
---          dlm2send_valid => cbm_dlm2send_va, -- out std_logic;
---          dlm2send => cbm_dlm2send, -- out std_logic_vector(3 downto 0);
--- 
---          dlm_rec => cbm_dlm_rec_type, -- in std_logic_vector(3 downto 0);
---          dlm_rec_valid => cbm_dlm_rec_va, -- in std_logic;
--- 
---          data_rec_start => cbm_data_rec_start(0), -- in std_logic;
---          data_rec_end => cbm_data_rec_end(0), -- in std_logic;
---          data_rec => cbm_data_rec, -- in std_logic_vector(DATAWIDTH-1 downto 0);
---          data_rec_stop => cbm_data_rec_stop(0), -- out std_logic;
--- 
---          ctrl_rec_start => cbm_ctrl_rec_start, -- in std_logic;
---          ctrl_rec_end => cbm_ctrl_rec_end, -- in std_logic;
---          ctrl_rec => cbm_ctrl_rec, -- in std_logic_vector(15 downto 0);
---          ctrl_rec_stop => cbm_ctrl_rec_stop, -- out std_logic;
--- 
---          data_valid => link_tester_data_valid, -- out std_logic;
---          ctrl_valid => link_tester_ctrl_valid, -- out std_logic;
---          dlm_valid => link_tester_dlm_valid -- out std_logic
---       );
-   end generate;
-
-   GEN_LINK_TESTER_FE: if CBM_FEE_MODE = c_YES generate
-      THE_LINK_TESTER: link_tester_fe 
-     generic map (
-         MIN_PACKET_SIZE => 8, -- : integer := 8;
-         MAX_PACKET_SIZE => 64, -- : integer := 64;
-         PACKET_GRAN => 2, -- : integer := 2;
-         MIN_CTRL_PACKET_SIZE => 12, -- : integer := 12;
-         MAX_CTRL_PACKET_SIZE => 60, -- : integer := 60;
+   cbm_crc_error_cntr_clr_0     <= reset_i;
+   cbm_retrans_cntr_clr_0       <= reset_i;
+   cbm_retrans_error_cntr_clr_0 <= reset_i;
+   cbm_crc_error_cntr_clr_1     <= reset_i;
+   cbm_retrans_cntr_clr_1       <= reset_i;
+   cbm_retrans_error_cntr_clr_1 <= reset_i;
+   cbm_crc_error_cntr_clr_2     <= reset_i;
+   cbm_retrans_cntr_clr_2       <= reset_i;
+   cbm_retrans_error_cntr_clr_2 <= reset_i;
+   cbm_crc_error_cntr_clr_3     <= reset_i;
+   cbm_retrans_cntr_clr_3       <= reset_i;
+   cbm_retrans_error_cntr_clr_3 <= reset_i;
    
-         CTRL_PADDING => 16#A5A5#, -- : integer := 16#A5A5#;
-         
-         OWN_ADDR  => "1000000000000000", -- : std_logic_vector(15 downto 0) := "1000000000000000";
-         DEST_ADDR => "1000000000000000", -- : std_logic_vector(15 downto 0) := "0000000000000000";
+   PROC_DATA_SEND: process begin
+      wait until rising_edge(rclk_125_i);
       
-         PACKET_MODE => 1 -- : integer := 1 --if enabled generates another packet size order to test further corner cases
-    )
-      port map (
-         clk => rclk_125_i, -- in std_logic;
-         res_n => cbm_res_n, -- in std_logic;
-         link_active => cbm_link_active, -- in std_logic;
+      send_wait_counter_i <= send_wait_counter_i + TO_UNSIGNED(1,1);
+      
+      if cbm_data2send_stop = "0" then
+         send_pack_counter_i <= send_pack_counter_i + TO_UNSIGNED(1,1);
+      end if;
 
-         data_en => link_tester_data_en, -- in std_logic;     //enable data packet generation
-         ctrl_en => link_tester_ctrl_en, -- in std_logic;     //enable ctrl packet generation
-         force_rec_ctrl_stop => link_tester_ctrl_stop, -- in std_logic;  //force ctrl flow to stop
+      cbm_data2send <= (others => '0');
+      cbm_data2send(send_pack_counter_i'HIGH downto 0)     <= STD_LOGIC_VECTOR(send_pack_counter_i);
+      cbm_data2send(send_pack_counter_i'HIGH + 9 downto 9) <= STD_LOGIC_VECTOR(send_pack_counter_i);
 
-         ctrl2send_stop => cbm_ctrl2send_stop, -- in std_logic;
-         ctrl2send_start => cbm_ctrl2send_start, -- out std_logic;
-         ctrl2send_end => cbm_ctrl2send_end, -- out std_logic;
-         ctrl2send => cbm_ctrl2send, -- out std_logic_vector(15 downto 0);
+      cbm_data2send_start <= "0";
+      cbm_data2send_end <= "0";
 
-         data2send_stop => cbm_data2send_stop(0), -- in std_logic;
-         data2send_start => cbm_data2send_start(0), -- out std_logic;
-         data2send_end => cbm_data2send_end(0), -- out std_logic;
-         data2send => cbm_data2send, -- out std_logic_vector(15 downto 0);
-
-         dlm2send_valid => cbm_dlm2send_va, -- out std_logic;
-         dlm2send => cbm_dlm2send, -- out std_logic_vector(3 downto 0);
-
-         dlm_rec => cbm_dlm_rec_type, -- in std_logic_vector(3 downto 0);
-         dlm_rec_valid => cbm_dlm_rec_va, -- in std_logic;
-
-         data_rec_start => cbm_data_rec_start(0), -- in std_logic;
-         data_rec_end => cbm_data_rec_end(0), -- in std_logic;
-         data_rec => cbm_data_rec, -- in std_logic_vector(15 downto 0);
-         data_rec_stop => cbm_data_rec_stop(0), -- out std_logic;
-
-         ctrl_rec_start => cbm_ctrl_rec_start, -- in std_logic;
-         ctrl_rec_end => cbm_ctrl_rec_end, -- in std_logic;
-         ctrl_rec => cbm_ctrl_rec, -- in std_logic_vector(15 downto 0);
-         ctrl_rec_stop => cbm_ctrl_rec_stop -- out std_logic
-      );
-   end generate;
+      if reset_i = '1' or send_enabled_i = '0' then
+         send_fsm_i <= IDLE;
+         send_num_pack_counter_i <= (others => '0');
+         
+      else
+         case(send_fsm_i) is
+            when IDLE =>
+               if cbm_link_active='1' and cbm_data2send_stop = "0" then
+                  send_fsm_i <= WAITc;
+                  send_wait_counter_i <= (others => '0');
+                  send_num_pack_counter_i <= send_num_pack_counter_i + TO_UNSIGNED(1, 1);
+               end if;
+               
+            when WAITc =>
+               if send_wait_counter_i(send_pack_counter_i'HIGH) = '1' then
+                  send_fsm_i <= SEND;
+                  cbm_data2send_start <= "1";
+               end if;
+               
+            when SEND =>
+               if send_wait_counter_i(send_pack_counter_i'HIGH) = '1' then
+                  cbm_data2send_end <= "1";
+                  send_fsm_i <= IDLE;
+               end if;
+         end case;
+      end if;
+   end process;
    
-   link_tester_stat <= (
-      0 => link_tester_data_valid,
-      1 => link_tester_ctrl_valid,
-      2 => link_tester_dlm_valid,
-      others => '0'
-   );
+   PROC_DLM_COUNTER: process is
+      variable dlm_type_v : integer range 15 downto 0;
+   begin
+      wait until rising_edge(rclk_125_i);
+      
+      if reset_i = '1' then
+         dlm_counter_i <= (others => '0');
+		 dlm_glob_counter_i <= (others => '0');
+      elsif cbm_dlm_rec_va = '1' then
+	     dlm_glob_counter_i <= dlm_glob_counter_i + TO_UNSIGNED(1,1);
+	  
+         dlm_type_v := to_integer(unsigned(cbm_dlm_rec_type));
+         for i in 0 to 15 loop
+            if dlm_type_v = i then
+               dlm_counter_i(1+i*2 downto i*2) <= dlm_counter_i(1+i*2 downto i*2) + TO_UNSIGNED(1,1);
+            end if;
+         end loop;
+      end if;
+   end process;
+      
+   phy_debug_i_buf <= phy_debug_i when rising_edge(clk_100_i);
 
-   link_tester_data_en <= link_tester_ctrl(0);
-   link_tester_ctrl_en <= link_tester_ctrl(1);
-   link_tester_dlm_en  <= link_tester_ctrl(2);
 
-   link_tester_data_stop <= link_tester_ctrl(4);
-   link_tester_ctrl_stop <= link_tester_ctrl(5);
-   
    PROC_REGIO_DEBUG: process is 
       variable address : integer range 0 to 255;
    begin
@@ -526,7 +609,6 @@ begin
       address := to_integer(unsigned(debug_addr));
       
       debug_data_out <= x"00000000";
-      debug_ack <= '0';
       
       debug_ack <= debug_read_en or debug_write_en;
       case address is
@@ -537,13 +619,35 @@ begin
          when 16#4# => debug_data_out <= phy_ctrl_debug(31 downto  0);
          when 16#5# => debug_data_out <= phy_ctrl_debug(63 downto 32);
          when 16#6# => debug_data_out <= STD_LOGIC_VECTOR(TO_UNSIGNED(CBM_FEE_MODE, 32));
-         when 16#8# => debug_data_out <= phy_debug_i(31+32*0 downto 32*0);
-         when 16#9# => debug_data_out <= phy_debug_i(31+32*1 downto 32*1);
-         when 16#a# => debug_data_out <= phy_debug_i(31+32*2 downto 32*2);
-         when 16#b# => debug_data_out <= phy_debug_i(31+32*3 downto 32*3);         
-
-         when 16#c# => debug_data_out <= link_tester_stat;
-         when 16#d# => debug_data_out <= link_tester_ctrl;
+         
+         when 16#8# => debug_data_out <= phy_debug_i_buf(31+32*0 downto 32*0);
+         when 16#9# => debug_data_out <= phy_debug_i_buf(31+32*1 downto 32*1);
+         when 16#a# => debug_data_out <= phy_debug_i_buf(31+32*2 downto 32*2);
+         when 16#b# => debug_data_out <= phy_debug_i_buf(31+32*3 downto 32*3);         
+         when 16#c# => debug_data_out <= phy_debug_i_buf(31+32*4 downto 32*4);
+         when 16#d# => debug_data_out <= phy_debug_i_buf(31+32*5 downto 32*5);
+         when 16#e# => debug_data_out <= phy_debug_i_buf(31+32*6 downto 32*6);
+         when 16#f# => debug_data_out <= phy_debug_i_buf(31+32*7 downto 32*7);  
+         
+--         when 16#10# => debug_data_out <= link_tester_stat;
+--        when 16#11# => debug_data_out <= link_tester_ctrl;
+         
+         when 16#12# => debug_data_out <= STD_LOGIC_VECTOR(dlm_counter_i);
+         when 16#13# => debug_data_out <= STD_LOGIC_VECTOR(dlm_glob_counter_i);
+         when 16#14# =>
+			debug_data_out(21 downto 20) <= cbm_debug_overrides_i;
+            debug_data_out(19 downto 16) <= "0" & send_enabled_i & cbm_data2send_stop & cbm_link_active;
+            debug_data_out(15 downto 0) <= STD_LOGIC_VECTOR(send_num_pack_counter_i);
+            
+            
+         when 16#15# => debug_data_out(15 downto 0) <= cbm_crc_error_cntr_0;
+         when 16#16# => debug_data_out <= cbm_retrans_error_cntr_0 & cbm_retrans_cntr_0;
+         when 16#17# => debug_data_out(15 downto 0) <= cbm_crc_error_cntr_1;
+         when 16#18# => debug_data_out <= cbm_retrans_error_cntr_1 & cbm_retrans_cntr_1;
+         when 16#19# => debug_data_out(15 downto 0) <= cbm_crc_error_cntr_2;
+         when 16#1a# => debug_data_out <= cbm_retrans_error_cntr_2 & cbm_retrans_cntr_2;
+         when 16#1b# => debug_data_out(15 downto 0) <= cbm_crc_error_cntr_3;
+         when 16#1c# => debug_data_out <= cbm_retrans_error_cntr_3 & cbm_retrans_cntr_3;
          
          when others => debug_ack <= '0';
       end case;
@@ -554,12 +658,19 @@ begin
             when 16#4# => phy_ctrl_debug(31 downto  0) <= debug_data_in;
             when 16#5# => phy_ctrl_debug(63 downto 32) <= debug_data_in;
             
-            when 16#d# => link_tester_ctrl <= debug_data_in;   
+            when 16#14# => 
+				send_enabled_i <= debug_data_in(18);
+				cbm_debug_overrides_i <= debug_data_in(21 downto 20);
+            
+--            when 16#11# => link_tester_ctrl <= debug_data_in;   
             when others => debug_ack <= '0';
          end case;
       end if;
    end process;
-    
+   
+   
+   
+   
 ---------------------------------------------------------------------------
 -- Reset Generation
 ---------------------------------------------------------------------------
@@ -598,7 +709,7 @@ begin
       
    pll_lock <= pll_lock1; -- and pll_lock2;
 
-
+--   GEN_TRBNET: if INCLUDE_TRBNET = c_YES generate
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (to other FPGA)
 ---------------------------------------------------------------------------
@@ -898,12 +1009,15 @@ begin
   LED_RED    <= not time_counter(26);
   LED_YELLOW <= not med_stat_op(11);
 
----------------------------------------------------------------------------
--- Test Circuits
----------------------------------------------------------------------------
-  process
-  begin
-    wait until rising_edge(clk_100_i);
-    time_counter <= time_counter + 1;
-  end process;
+--   end generate;
+
+
+------ DUMMY to check integrity of TEST_LINE connection
+--    process is 
+--       variable test_line_v : std_logic_vector(15 downto 0) := x"0001";
+--    begin
+--       wait until rising_edge(rclk_125_i);
+--       test_line_v := test_line_v(14 downto 0) & test_line_v(15);
+--       TEST_LINE <= test_line_v;
+--    end process;
 end architecture;

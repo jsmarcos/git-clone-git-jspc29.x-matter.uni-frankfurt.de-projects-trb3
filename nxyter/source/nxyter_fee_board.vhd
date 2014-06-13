@@ -115,8 +115,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal slv_unknown_addr       : std_logic_vector(NUM_PORTS-1 downto 0);
 
   -- TRB Register               
-  signal nx_timestamp_reset_status   : std_logic;
-  signal nx_timestamp_reset_receiver : std_logic;
+  signal nx_timestamp_reset     : std_logic;
   signal nx_timestamp_reset_o   : std_logic;
   signal i2c_reg_reset_o        : std_logic;
   signal nxyter_online          : std_logic;
@@ -140,6 +139,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal data_recv              : std_logic_vector(43 downto 0);
   signal data_clk_recv          : std_logic;
   signal pll_sadc_clk_lock      : std_logic;
+  signal disable_adc_receiver   : std_logic;
   
   -- Data Delay                 
   signal data_delayed           : std_logic_vector(43 downto 0);
@@ -166,9 +166,11 @@ architecture Behavioral of nXyter_FEE_board is
   signal trigger_validate_fill   : std_logic;
   signal trigger_validate_bin    : std_logic_vector(6 downto 0);
   signal trigger_validate_adc    : std_logic_vector(11 downto 0);
+  signal trigger_validate_ts     : std_logic_vector(8 downto 0);
   signal trigger_validate_pileup : std_logic;
   signal trigger_validate_ovfl   : std_logic;
-  
+  signal reset_hists             : std_logic;
+
   -- Event Buffer                
   signal fee_data_o_0           : std_logic_vector(31 downto 0);
   signal fee_data_write_o_0     : std_logic;
@@ -244,7 +246,7 @@ begin
       PORT_ADDRESSES      => (  0 => x"0100",    -- NX Status Handler
                                 1 => x"0040",    -- I2C Master
                                 2 => x"0500",    -- Data Receiver
-                                3 => x"0600",    -- Data Buffer
+                                3 => x"0080",    -- Event Buffer
                                 4 => x"0060",    -- SPI Master
                                 5 => x"0140",    -- Trigger Generator
                                 6 => x"0120",    -- Data Validate
@@ -253,23 +255,23 @@ begin
                                 9 => x"0200",    -- NX Register Setup
                                10 => x"0800",    -- NX Histograms
                                11 => x"0020",    -- Debug Handler
-                               12 => x"0180",    -- Data Delay
+                               12 => x"0000",    -- Data Delay
                                 others => x"0000"
                                 ),
 
       PORT_ADDR_MASK      => (  0 => 4,          -- NX Status Handler
                                 1 => 1,          -- I2C master
                                 2 => 5,          -- Data Receiver
-                                3 => 3,          -- Data Buffer
+                                3 => 3,          -- Event Buffer
                                 4 => 0,          -- SPI Master
                                 5 => 3,          -- Trigger Generator
                                 6 => 5,          -- Data Validate
                                 7 => 4,          -- Trigger Handler
-                                8 => 5,          -- Trigger Validate
+                                8 => 6,          -- Trigger Validate
                                 9 => 9,          -- NX Register Setup
-                               10 => 10,         -- NX Histograms
+                               10 => 11,         -- NX Histograms
                                11 => 0,          -- Debug Handler
-                               12 => 2,          -- Data Delay
+                               12 => 1,          -- Data Delay
                                 others => 0
                                 ),
 
@@ -321,7 +323,6 @@ begin
 
       I2C_SM_RESET_OUT         => I2C_SM_RESET_OUT,
       I2C_REG_RESET_OUT        => i2c_reg_reset_o,
-      NX_TS_RESET_OUT          => nx_timestamp_reset_status,
       NX_ONLINE_OUT            => nxyter_online,
 
       ERROR_ALL_IN             => error_all,
@@ -437,8 +438,7 @@ begin
       CLK_IN                   => CLK_IN,
       RESET_IN                 => RESET_IN,
       NX_MAIN_CLK_IN           => CLK_NX_MAIN_IN,
-      TIMESTAMP_RESET_1_IN     => '0', --nx_timestamp_reset_status,
-      TIMESTAMP_RESET_2_IN     => nx_timestamp_reset_receiver,
+      TIMESTAMP_RESET_IN       => nx_timestamp_reset,
       TIMESTAMP_RESET_OUT      => nx_timestamp_reset_o, 
       TRIGGER_IN               => timestamp_trigger,
       TIMESTAMP_HOLD_OUT       => timestamp_hold,
@@ -487,7 +487,7 @@ begin
       FEE_DATA_WRITE_0_IN        => fee_data_write_o_0,
       FEE_DATA_1_IN              => fee_data_o_1,
       FEE_DATA_WRITE_1_IN        => fee_data_write_o_1,
-      INTERNAL_TRIGGER_IN        => '0', --internal_trigger,
+      INTERNAL_TRIGGER_IN        => internal_trigger,
 
       TRIGGER_VALIDATE_BUSY_IN   => trigger_validate_busy,
       TRIGGER_BUSY_0_IN          => trigger_evt_busy_0,
@@ -522,7 +522,6 @@ begin
     port map (
       CLK_IN               => CLK_IN,
       RESET_IN             => RESET_IN,
-      NX_MAIN_CLK_IN       => CLK_NX_MAIN_IN,
 
       TRIGGER_BUSY_IN      => trigger_busy,
       EXTERNAL_TRIGGER_OUT => TRIGGER_OUT,
@@ -555,10 +554,11 @@ begin
       CLK_IN                 => CLK_IN,
       RESET_IN               => RESET_IN,
       TRIGGER_IN             => trigger_timing,
-                             
+      NX_ONLINE_IN           => nxyter_online,
+
       NX_TIMESTAMP_CLK_IN    => NX_DATA_CLK_IN,
       NX_TIMESTAMP_IN        => NX_TIMESTAMP_IN,
-      NX_TIMESTAMP_RESET_OUT => nx_timestamp_reset_receiver,
+      NX_TIMESTAMP_RESET_OUT => nx_timestamp_reset,
       
       ADC_CLK_DAT_IN         => CLK_ADC_IN,
       ADC_FCLK_IN            => ADC_FCLK_IN,
@@ -580,7 +580,8 @@ begin
       SLV_ADDR_IN            => slv_addr(2*16+15 downto 2*16),    
       SLV_ACK_OUT            => slv_ack(2),                       
       SLV_NO_MORE_DATA_OUT   => slv_no_more_data(2),              
-      SLV_UNKNOWN_ADDR_OUT   => slv_unknown_addr(2),              
+      SLV_UNKNOWN_ADDR_OUT   => slv_unknown_addr(2),
+      DISABLE_ADC_OUT        => disable_adc_receiver,
       ERROR_OUT              => error_data_receiver,
       DEBUG_OUT              => debug_line(7)
       );
@@ -643,6 +644,7 @@ begin
       SLV_NO_MORE_DATA_OUT  => slv_no_more_data(6),
       SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(6),
 
+      DISABLE_ADC_IN        => disable_adc_receiver,
       ERROR_OUT             => error_data_validate,
       DEBUG_OUT             => debug_line(9)
       );
@@ -680,10 +682,12 @@ begin
       NOMORE_DATA_OUT          => validate_nomore_data,
       EVT_BUFFER_CLEAR_OUT     => event_buffer_clear,
       EVT_BUFFER_FULL_IN       => evt_buffer_full,
-                               
+
+      HISTOGRAM_RESET_OUT      => reset_hists,
       HISTOGRAM_FILL_OUT       => trigger_validate_fill,
       HISTOGRAM_BIN_OUT        => trigger_validate_bin,
       HISTOGRAM_ADC_OUT        => trigger_validate_adc,
+      HISTOGRAM_TS_OUT         => trigger_validate_ts,
       HISTOGRAM_PILEUP_OUT     => trigger_validate_pileup,
       HISTOGRAM_OVERFLOW_OUT   => trigger_validate_ovfl,
                                
@@ -766,10 +770,11 @@ begin
       CLK_IN                      => CLK_IN,
       RESET_IN                    => RESET_IN,
                                  
-      RESET_HISTS_IN              => '0',
+      RESET_HISTS_IN              => reset_hists,
       CHANNEL_FILL_IN             => trigger_validate_fill,
       CHANNEL_ID_IN               => trigger_validate_bin,
       CHANNEL_ADC_IN              => trigger_validate_adc,
+      CHANNEL_TS_IN               => trigger_validate_ts,
       CHANNEL_PILEUP_IN           => trigger_validate_pileup,
       CHANNEL_OVERFLOW_IN         => trigger_validate_ovfl,
      

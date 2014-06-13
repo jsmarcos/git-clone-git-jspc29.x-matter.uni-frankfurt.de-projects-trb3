@@ -57,10 +57,10 @@ entity trb3_periph_adc is
     
     P_CLOCK              : out std_logic;
     
-    FPGA_CS              : out std_logic;
-    FPGA_SCK             : out std_logic;
-    FPGA_SDI             : out std_logic;
-    FPGA_SDO             : in  std_logic;
+    FPGA_CS              : out std_logic_vector(1 downto 0);
+    FPGA_SCK             : out std_logic_vector(1 downto 0);
+    FPGA_SDI             : out std_logic_vector(1 downto 0);
+    FPGA_SDO             : in  std_logic_vector(1 downto 0);
     
     --Flash ROM & Reboot
     FLASH_CLK  : out   std_logic;
@@ -192,7 +192,7 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   signal spimem_unknown_addr_out : std_logic;
   signal spimem_write_ack_out    : std_logic;
 
-  --SPI to FPGA
+  --SPI to MachXO FPGA (and LMK01010, and ADC SPI) 
   signal spifpga_read_en   : std_logic;
   signal spifpga_write_en  : std_logic;
   signal spifpga_data_in   : std_logic_vector(31 downto 0);
@@ -201,6 +201,9 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   signal spifpga_ack       : std_logic;
   signal spifpga_busy      : std_logic;
 
+  signal spi_cs        					   : std_logic_vector(15 downto 0);
+  signal spi_sdi, spi_sdo, spi_sck : std_logic;
+  
   signal clk_adcfast_i     : std_logic;
   signal clk_adcref_i      : std_logic;
   signal debug_adc         : std_logic_vector(31 downto 0);
@@ -534,39 +537,61 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
 -- SPI
 -------------------------------------------------------------------------------
 
-FPGA_SPI : spi_ltc2600
-  generic map (
-    BITS       => 32,
-    WAITCYCLES => 15)
-  port map (
-    CLK_IN         => clk_100_i,
-    RESET_IN       => reset_i,
-    -- Slave bus
-    BUS_READ_IN    => spifpga_read_en,
-    BUS_WRITE_IN   => spifpga_write_en,
-    BUS_BUSY_OUT   => spifpga_busy,
-    BUS_ACK_OUT    => spifpga_ack,
-    BUS_ADDR_IN    => spifpga_addr,
-    BUS_DATA_IN    => spifpga_data_in,
-    BUS_DATA_OUT   => spifpga_data_out,
-    -- SPI connections
-    SPI_CS_OUT(0)  => FPGA_CS,
-    SPI_SDI_IN     => FPGA_SDO,
-    SPI_SDO_OUT    => FPGA_SDI,
-    SPI_SCK_OUT    => FPGA_SCK,
-    SPI_CLR_OUT(0) => open
-    );
+  FPGA_SPI : spi_ltc2600
+	  generic map (
+		  BITS       => 32,
+		  WAITCYCLES => 15)
+	  port map (
+		  CLK_IN         => clk_100_i,
+		  RESET_IN       => reset_i,
+		  -- Slave bus
+		  BUS_READ_IN    => spifpga_read_en,
+		  BUS_WRITE_IN   => spifpga_write_en,
+		  BUS_BUSY_OUT   => spifpga_busy,
+		  BUS_ACK_OUT    => spifpga_ack,
+		  BUS_ADDR_IN    => spifpga_addr,
+		  BUS_DATA_IN    => spifpga_data_in,
+		  BUS_DATA_OUT   => spifpga_data_out,
+		  -- SPI connections
+		  SPI_CS_OUT  => spi_CS,
+		  SPI_SDI_IN  => spi_SDI,
+		  SPI_SDO_OUT => spi_SDO,
+		  SPI_SCK_OUT => spi_SCK,
+		  SPI_CLR_OUT => open
+		  );
 
+  -- the bits spi_CS (chip select) determines which SPI device is to be programmed
+  -- it is already inverted, such that spi_CS=0xffff when nothing is to be programmed
+  -- since the CS of the ADCs can only be controlled via the FPGA,
+  -- we multiplex the SDI/O and SCK lines according to CS. This way we can control
+  -- when which SPI device should be addressed via software
 
-
-    SPI_ADC_SCK         <= clk_100_i;
-    SPI_ADC_SDIO        <= '0';
-    
-    LMK_CLK             <= clk_100_i;
-    LMK_DATA            <= '0';
-    LMK_LE_1            <= reset_i;
-    LMK_LE_2            <= reset_i;
-    
+  FPGA_CS_mux: process (spi_CS(2 downto 0)) is
+	begin  -- process FPGA_CS_mux
+		case spi_CS(2 downto 0) is
+			when b"110"  =>
+				FPGA_CS <= b"00";
+			when b"101"  =>
+				FPGA_CS <= b"01";
+			when b"011"  =>
+				FPGA_CS <= b"10";				
+			when others =>
+				FPGA_CS <= b"11";
+		end case;
+	end process FPGA_CS_mux;
+  
+  FPGA_SCK(0) <= spi_SCK     when spi_CS(2 downto 0) /= b"111" else '1';
+  FPGA_SDI(0) <= spi_SDO     when spi_CS(2 downto 0) /= b"111" else '0';
+  spi_SDI     <= FPGA_SDO(0) when spi_CS(2 downto 0) /= b"111" else '0';
+  
+  SPI_ADC_SCK         <= spi_SCK when spi_CS(3) = '0' else '1';
+  SPI_ADC_SDIO        <= spi_SDO when spi_CS(3) = '0' else '0';
+  
+  LMK_CLK             <= spi_SCK when spi_CS(5 downto 4) /= b"11" else '1' ;
+  LMK_DATA            <= spi_SDO when spi_CS(5 downto 4) /= b"11" else '0' ;
+  LMK_LE_1            <= spi_CS(3); -- active low
+  LMK_LE_2            <= spi_CS(4); -- active low
+  
 
 ---------------------------------------------------------------------------
 -- LED

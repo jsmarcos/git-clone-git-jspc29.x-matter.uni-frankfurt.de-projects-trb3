@@ -596,10 +596,10 @@ begin
       others => '0'
    );
    
-   cts_periph_trigger_i <= FPGA4_COMM(10) & FPGA4_COMM(7 downto 4)
-                         & FPGA3_COMM(10) & FPGA3_COMM(7 downto 4)
-                         & FPGA2_COMM(10) & FPGA2_COMM(7 downto 4)
-                         & FPGA1_COMM(10) & FPGA1_COMM(7 downto 4);
+   cts_periph_trigger_i <= FPGA4_COMM(10 downto 6)
+                         & FPGA3_COMM(10 downto 6)
+                         & FPGA2_COMM(10 downto 6)
+                         & FPGA1_COMM(10 downto 6);
    
    JOUT1    <= cts_output_multiplexers_i(3 downto 0);
    JOUT2    <= cts_output_multiplexers_i(7 downto 4);
@@ -1384,10 +1384,17 @@ gen_no_TDC : if INCLUDE_TDC = c_NO generate
   esb_data_ready <= '0';
   fwb_data_ready <= '0';
   hitreg_data_ready <= '0';
-  srb_invalid <= '1';
-  esb_invalid <= '1';
-  fwb_invalid <= '1';
-  hitreg_invalid  <= '1';
+  
+  
+process begin
+   wait until rising_edge(clk_100_i);
+   srb_invalid <= srb_read_en or srb_write_en;
+   esb_invalid <= esb_read_en or esb_write_en;
+   fwb_invalid <= fwb_read_en or fwb_write_en;
+   hitreg_invalid <= hitreg_read_en or hitreg_write_en;
+
+end process;
+
 end generate;
 
 

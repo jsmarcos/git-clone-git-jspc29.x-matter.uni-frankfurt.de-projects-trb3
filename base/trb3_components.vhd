@@ -449,8 +449,9 @@ package trb3_components is
       Reset       : in  std_logic;
       Q           : out std_logic_vector(35 downto 0);
       Empty       : out std_logic;
-      Full        : out std_logic);
-  end component FIFO_36x64_OutReg;
+      Full        : out std_logic;
+      AlmostEmpty : out std_logic);
+  end component;
 
   component FIFO_36x32_OutReg is
     port (
@@ -473,8 +474,9 @@ package trb3_components is
       Reset       : in  std_logic;
       Q           : out std_logic_vector(35 downto 0);
       Empty       : out std_logic;
-      Full        : out std_logic);
-  end component FIFO_36x16_OutReg;
+      Full        : out std_logic;
+      AlmostEmpty : out std_logic);
+  end component;  
 
   component FIFO_DC_36x128_OutReg is
     port (
@@ -519,8 +521,8 @@ package trb3_components is
       Empty      : out std_logic;
       Full       : out std_logic;
       AlmostFull : out std_logic);
-  end component FIFO_DC_36x32_OutReg;
-
+  end component;
+  
   component FIFO_DC_36x16_OutReg is
     port (
       Data       : in  std_logic_vector(35 downto 0);
@@ -534,7 +536,7 @@ package trb3_components is
       Empty      : out std_logic;
       Full       : out std_logic;
       AlmostFull : out std_logic);
-  end component FIFO_DC_36x16_OutReg;
+  end component;  
 
   component FIFO_36x128_OutReg_Counter is
     port (
@@ -551,6 +553,36 @@ package trb3_components is
       Full    : out std_logic);
   end component FIFO_36x128_OutReg_Counter;
 
+--  component FIFO_DC_36x32_OutReg is
+--    port (
+--      Data       : in  std_logic_vector(35 downto 0);
+--      WrClock    : in  std_logic;
+--      RdClock    : in  std_logic;
+--      WrEn       : in  std_logic;
+--      RdEn       : in  std_logic;
+--      Reset      : in  std_logic;
+--      RPReset    : in  std_logic;
+--      Q          : out std_logic_vector(35 downto 0);
+--      Empty      : out std_logic;
+--      Full       : out std_logic;
+--      AlmostFull : out std_logic);
+--  end component;
+--  
+--  component FIFO_DC_36x16_OutReg is
+--    port (
+--      Data       : in  std_logic_vector(35 downto 0);
+--      WrClock    : in  std_logic;
+--      RdClock    : in  std_logic;
+--      WrEn       : in  std_logic;
+--      RdEn       : in  std_logic;
+--      Reset      : in  std_logic;
+--      RPReset    : in  std_logic;
+--      Q          : out std_logic_vector(35 downto 0);
+--      Empty      : out std_logic;
+--      Full       : out std_logic;
+--      AlmostFull : out std_logic);
+--  end component;  
+  
   --component FIFO_24x2_OutReg
   --  port (
   --    Data    : in  std_logic_vector(23 downto 0);
