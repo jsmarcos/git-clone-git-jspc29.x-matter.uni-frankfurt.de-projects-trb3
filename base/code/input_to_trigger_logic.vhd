@@ -31,9 +31,12 @@ architecture input_to_trigger_logic_arch of input_to_trigger_logic is
 
 type reg_t is array(0 to OUTPUTS-1) of std_logic_vector(31 downto 0);
 signal enable : reg_t;
-signal invert      : std_logic_vector(INPUTS-1 downto 0);
-signal coincidence : std_logic_vector(INPUTS-1 downto 0);
-signal stretch_inp : std_logic_vector(INPUTS-1 downto 0);
+signal invert       : std_logic_vector(INPUTS-1 downto 0);
+signal coincidence1 : std_logic_vector(INPUTS-1 downto 0);
+signal coincidence2 : std_logic_vector(INPUTS-1 downto 0);
+signal coin_in_1    : std_logic;
+signal coin_in_2    : std_logic;
+signal stretch_inp  : std_logic_vector(INPUTS-1 downto 0);
 
 type inp_t is array(0 to 4) of std_logic_vector(INPUTS-1 downto 0);
 signal inp_shift    : inp_t;
@@ -63,8 +66,9 @@ begin
     elsif ADDR_IN(5) = '1' then
       case ADDR_IN(2 downto 0) is
         when "010"   =>  stretch_inp <= DATA_IN(INPUTS-1 downto 0);
-        when "011"   =>  coincidence <= DATA_IN(INPUTS-1 downto 0);
         when "100"   =>  invert      <= DATA_IN(INPUTS-1 downto 0);
+        when "101"   =>  coincidence1<= DATA_IN(INPUTS-1 downto 0);
+        when "110"   =>  coincidence2<= DATA_IN(INPUTS-1 downto 0);
       end case;
     else
       NACK_OUT <= '1'; 
@@ -80,8 +84,9 @@ begin
         when "000"   => DATA_OUT(INPUTS-1 downto 0)  <= inp_shift(1);     
         when "001"   => DATA_OUT(OUTPUTS-1 downto 0) <= out_reg;     
         when "010"   => DATA_OUT(INPUTS-1 downto 0)  <= stretch_inp; 
-        when "011"   => DATA_OUT(INPUTS-1 downto 0)  <= coincidence; 
         when "100"   => DATA_OUT(INPUTS-1 downto 0)  <= invert;     
+        when "101"   => DATA_OUT(INPUTS-1 downto 0)  <= coincidence1; 
+        when "110"   => DATA_OUT(INPUTS-1 downto 0)  <= coincidence2; 
         when "111"   => DATA_OUT( 5 downto  0)   <= std_logic_vector(to_unsigned(INPUTS,6));
                         DATA_OUT(11 downto  8)   <= std_logic_vector(to_unsigned(OUTPUTS,4));
         when others => NACK_OUT <= '1'; ACK_OUT <= '0';
@@ -103,9 +108,11 @@ end generate;
   
 inp_inv           <= INPUT xor invert;
 inp_long          <= inp_shift(0) or inp_shift(1);
-inp_verylong      <= inp_shift(0) or inp_shift(1) or inp_shift(2) or inp_shift(3) or inp_shift(4) when rising_edge(CLK);
+inp_verylong      <= inp_shift(1) or inp_shift(2) or inp_shift(3) or inp_shift(4) when rising_edge(CLK);
 
-got_coincidence   <= and_all(inp_verylong or not coincidence) when rising_edge(CLK);
+coin_in_1         <= or_all(coincidence1 and inp_verylong) when rising_edge(CLK);
+coin_in_2         <= or_all(coincidence2 and inp_verylong) when rising_edge(CLK);
+got_coincidence   <= coin_in_1 and coin_in_2               when rising_edge(CLK);
   
 gen_outs : for i in 0 to OUTPUTS-1 generate
   output_i(i) <= or_all(((inp_long and stretch_inp) or (inp_inv and not stretch_inp)) and enable(i)(INPUTS-1 downto 0)) or (got_coincidence and enable(i)(INPUTS));
