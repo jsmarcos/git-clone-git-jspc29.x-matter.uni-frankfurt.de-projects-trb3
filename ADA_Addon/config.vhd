@@ -11,8 +11,8 @@ package config is
 ------------------------------------------------------------------------------
 
 --Include GbE logic     
-    constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 65;
-    constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6  := 6;  --the nearest power of two, for convenience reasons
+    constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 33;
+    constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6  := 5;  --the nearest power of two, for convenience reasons
     constant USE_DOUBLE_EDGE         : integer               := c_YES;
 
 --Include SPI on AddOn connector    
@@ -20,6 +20,12 @@ package config is
 
 --Add logic to generate configurable trigger signal from input signals.
     constant INCLUDE_TRIGGER_LOGIC  : integer := c_YES;
+
+--Do histos of all inputs
+  constant INCLUDE_STATISTICS : integer := c_YES;
+
+--number of real inputs to the FPGA    
+  constant PHYSICAL_INPUTS : integer := 16;
 
 --Define ringbuffer size for TDC channels: 32-64-128
   constant RING_BUFFER_SIZE : integer range 32 to 128 := 128;
