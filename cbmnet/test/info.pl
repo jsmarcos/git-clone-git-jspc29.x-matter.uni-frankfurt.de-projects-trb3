@@ -95,23 +95,60 @@ for my $line (@lines) {
 my @names = paddListR (map {$_->[0]} @defs);
 
 
+sub show8b10b {
+   my $data = shift;
+   my $k = shift;
+   
+   if ($k) {
+      my %codes = (
+         28, "K.28.0",
+         60, "K.28.1",
+         92, "K.28.2",
+         124, "K.28.3",
+         156, "K.28.4",
+         188, "K.28.5",
+         220, "K.28.6",
+         252, "K.28.7",
+         247, "K.23.7",
+         251, "K.27.7",
+         253, "K.29.7",
+         254, "K.30.7");
+   
+      return $codes{$data};
+   } else {
+      return sprintf("D.%02d.%d", $data & 0x1f, ($data >> 5) & 0x7);
+   }
+}
+
+sub show8b10bWord {
+   my $data = shift;
+   return
+      show8b10b( ($data >> 8) & 0xff, ($data >> 17) & 1 ) . " " .
+      show8b10b( ($data >> 0) & 0xff, ($data >> 16) & 1 );
+}      
+
 
 my @old_results;
+my $first_one = 1;
 while (1) {
    my @results = ();
 
-   for my $i (0 .. 1) {
+   for my $i (1 .. 1) {
       my $reg = readRegs 0x8000 + $i, 8;
       my @slices = ();
       for my $def (@defs) {
          my $idx = $def->[1];
          my $len = $def->[2];
-         push @slices, sprintf($len == 1 ? "%x" : "0x%0" . (ceil($len / 4.0)) . "x", ($reg >> $idx) & ((1 << $len) - 1));
+         my $text = sprintf($len == 1 ? "%x" : "0x%0" . (ceil(($len+3) / 4.0)) . "x", ($reg >> $idx) & ((1 << $len) - 1));
+         if ($len == 18) {
+            $text .= " " . show8b10bWord(($reg >> $idx) & ((1 << $len) - 1));
+         }
+         push @slices, $text;
       }
       
       push @results, [paddListL @slices];
    }
-   
+
    for my $idx (0..$#names) {
       my $line = $names[$idx] . " | ";
    
@@ -133,5 +170,6 @@ while (1) {
    
    
    sleep 1;
-   print chr(27) . "[1;1H" ;
+print $first_one ? `reset` : chr(27) . "[1;1H";
+$first_one = 0;
 }

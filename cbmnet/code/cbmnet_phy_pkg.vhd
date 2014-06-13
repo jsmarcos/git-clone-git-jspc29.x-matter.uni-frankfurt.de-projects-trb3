@@ -92,6 +92,8 @@ package cbmnet_phy_pkg is
 
          DATA_IN     : in std_logic_vector(17 downto 0);
          DATA_OUT    : out std_logic_vector(8 downto 0);
+         
+         TX_READY_OUT: out std_logic;
       
          DEBUG_OUT   : out std_logic_vector(31 downto 0)
       );

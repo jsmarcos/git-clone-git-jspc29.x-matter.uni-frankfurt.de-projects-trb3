@@ -309,8 +309,57 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    
    signal send_num_pack_counter_i : unsigned(15 downto 0);
    
+   signal send_enabled_i : std_logic := '0';
+   
    signal dlm_counter_i : unsigned(31 downto 0);
    signal dlm_glob_counter_i : unsigned(31 downto 0);
+   
+   
+   -- diagnostics Lane0
+   signal cbm_crc_error_cntr_flag_0     : std_logic;
+   signal cbm_retrans_cntr_flag_0       : std_logic;
+   signal cbm_retrans_error_cntr_flag_0 : std_logic;
+   signal cbm_crc_error_cntr_0          : std_logic_vector(15 downto 0);
+   signal cbm_retrans_cntr_0            : std_logic_vector(15 downto 0);
+   signal cbm_retrans_error_cntr_0      : std_logic_vector(15 downto 0);
+   signal cbm_crc_error_cntr_clr_0      : std_logic;
+   signal cbm_retrans_cntr_clr_0        : std_logic;
+   signal cbm_retrans_error_cntr_clr_0  : std_logic;
+
+   -- diagnostics Lane1
+   signal cbm_crc_error_cntr_flag_1     : std_logic;
+   signal cbm_retrans_cntr_flag_1       : std_logic;
+   signal cbm_retrans_error_cntr_flag_1 : std_logic;
+   signal cbm_crc_error_cntr_1          : std_logic_vector(15 downto 0);
+   signal cbm_retrans_cntr_1            : std_logic_vector(15 downto 0);
+   signal cbm_retrans_error_cntr_1      : std_logic_vector(15 downto 0);
+   signal cbm_crc_error_cntr_clr_1      : std_logic;   
+   signal cbm_retrans_cntr_clr_1        : std_logic;    
+   signal cbm_retrans_error_cntr_clr_1  : std_logic; 
+
+   -- diagnostics Lane2
+   signal cbm_crc_error_cntr_flag_2     : std_logic;
+   signal cbm_retrans_cntr_flag_2       : std_logic;
+   signal cbm_retrans_error_cntr_flag_2 : std_logic;
+   signal cbm_crc_error_cntr_2          : std_logic_vector(15 downto 0);
+   signal cbm_retrans_cntr_2            : std_logic_vector(15 downto 0);
+   signal cbm_retrans_error_cntr_2      : std_logic_vector(15 downto 0);
+   signal cbm_crc_error_cntr_clr_2      : std_logic;   
+   signal cbm_retrans_cntr_clr_2        : std_logic;    
+   signal cbm_retrans_error_cntr_clr_2  : std_logic; 
+
+   -- diagnostics Lane3
+   signal cbm_crc_error_cntr_flag_3     : std_logic;
+   signal cbm_retrans_cntr_flag_3       : std_logic;
+   signal cbm_retrans_error_cntr_flag_3 : std_logic;
+   signal cbm_crc_error_cntr_3          : std_logic_vector(15 downto 0);
+   signal cbm_retrans_cntr_3            : std_logic_vector(15 downto 0);
+   signal cbm_retrans_error_cntr_3      : std_logic_vector(15 downto 0);
+   signal cbm_crc_error_cntr_clr_3      : std_logic;   
+   signal cbm_retrans_cntr_clr_3        : std_logic;    
+   signal cbm_retrans_error_cntr_clr_3  : std_logic;
+   
+   signal cbm_debug_overrides_i : std_logic_vector(1 downto 0) := "00";
    
 begin
    clk_125_i <= CLK_GPLL_LEFT; 
@@ -393,8 +442,8 @@ begin
    -- Phy
       data_from_link => cbm_data_from_link,
       data2link => cbm_data2link,
-      link_activeovr => '0',
-      link_readyovr => '0',
+      link_activeovr => cbm_debug_overrides_i(0),
+      link_readyovr => cbm_debug_overrides_i(1),
       SERDES_ready => cbm_SERDES_ready,
 
    -- CBMNet Interface
@@ -423,11 +472,68 @@ begin
       ctrl_rec => cbm_ctrl_rec,
       ctrl_rec_start => cbm_ctrl_rec_start,
       ctrl_rec_end => cbm_ctrl_rec_end,
-      ctrl_rec_stop => cbm_ctrl_rec_stop
+      ctrl_rec_stop => cbm_ctrl_rec_stop,
+      
+      -- diagnostics Lane0
+      crc_error_cntr_flag_0     => cbm_crc_error_cntr_flag_0,      --  out std_logic;
+      retrans_cntr_flag_0       => cbm_retrans_cntr_flag_0,        --  out std_logic;
+      retrans_error_cntr_flag_0 => cbm_retrans_error_cntr_flag_0,  --  out std_logic;
+      crc_error_cntr_0          => cbm_crc_error_cntr_0,           --  out std_logic_vector(15 downto 0);
+      retrans_cntr_0            => cbm_retrans_cntr_0,             --  out std_logic_vector(15 downto 0);
+      retrans_error_cntr_0      => cbm_retrans_error_cntr_0,       --  out std_logic_vector(15 downto 0);
+      crc_error_cntr_clr_0      => cbm_crc_error_cntr_clr_0,       --  in std_logic;
+      retrans_cntr_clr_0        => cbm_retrans_cntr_clr_0,         --  in std_logic;
+      retrans_error_cntr_clr_0  => cbm_retrans_error_cntr_clr_0,   --  in std_logic;
+
+      -- diagnostics Lane1
+      crc_error_cntr_flag_1     => cbm_crc_error_cntr_flag_1,      --  out std_logic;
+      retrans_cntr_flag_1       => cbm_retrans_cntr_flag_1,        --  out std_logic;
+      retrans_error_cntr_flag_1 => cbm_retrans_error_cntr_flag_1,  --  out std_logic;
+      crc_error_cntr_1          => cbm_crc_error_cntr_1,           --  out std_logic_vector(15 downto 0);
+      retrans_cntr_1            => cbm_retrans_cntr_1,             --  out std_logic_vector(15 downto 0);
+      retrans_error_cntr_1      => cbm_retrans_error_cntr_1,       --  out std_logic_vector(15 downto 0);
+      crc_error_cntr_clr_1      => cbm_crc_error_cntr_clr_1,       --  in std_logic;   
+      retrans_cntr_clr_1        => cbm_retrans_cntr_clr_1,         --  in std_logic;    
+      retrans_error_cntr_clr_1  => cbm_retrans_error_cntr_clr_1,   --  in std_logic; 
+
+      -- diagnostics Lane2
+      crc_error_cntr_flag_2     => cbm_crc_error_cntr_flag_2,      --  out std_logic;
+      retrans_cntr_flag_2       => cbm_retrans_cntr_flag_2,        --  out std_logic;
+      retrans_error_cntr_flag_2 => cbm_retrans_error_cntr_flag_2,  --  out std_logic;
+      crc_error_cntr_2          => cbm_crc_error_cntr_2,           --  out std_logic_vector(15 downto 0);
+      retrans_cntr_2            => cbm_retrans_cntr_2,             --  out std_logic_vector(15 downto 0);
+      retrans_error_cntr_2      => cbm_retrans_error_cntr_2,       --  out std_logic_vector(15 downto 0);
+      crc_error_cntr_clr_2      => cbm_crc_error_cntr_clr_2,       --  in std_logic;   
+      retrans_cntr_clr_2        => cbm_retrans_cntr_clr_2,         --  in std_logic;    
+      retrans_error_cntr_clr_2  => cbm_retrans_error_cntr_clr_2,   --  in std_logic; 
+
+      -- diagnostics Lane3
+      crc_error_cntr_flag_3     => cbm_crc_error_cntr_flag_3,      --  out std_logic;
+      retrans_cntr_flag_3       => cbm_retrans_cntr_flag_3,        --  out std_logic;
+      retrans_error_cntr_flag_3 => cbm_retrans_error_cntr_flag_3,  --  out std_logic;
+      crc_error_cntr_3          => cbm_crc_error_cntr_3,           --  out std_logic_vector(15 downto 0);
+      retrans_cntr_3            => cbm_retrans_cntr_3,             --  out std_logic_vector(15 downto 0);
+      retrans_error_cntr_3      => cbm_retrans_error_cntr_3,       --  out std_logic_vector(15 downto 0);
+      crc_error_cntr_clr_3      => cbm_crc_error_cntr_clr_3,       --  in std_logic;   
+      retrans_cntr_clr_3        => cbm_retrans_cntr_clr_3,         --  in std_logic;    
+      retrans_error_cntr_clr_3  => cbm_retrans_error_cntr_clr_3    --  in std_logic
+      
       
    );
    cbm_res_n <= not rreset_i;
-   
+
+   cbm_crc_error_cntr_clr_0     <= reset_i;
+   cbm_retrans_cntr_clr_0       <= reset_i;
+   cbm_retrans_error_cntr_clr_0 <= reset_i;
+   cbm_crc_error_cntr_clr_1     <= reset_i;
+   cbm_retrans_cntr_clr_1       <= reset_i;
+   cbm_retrans_error_cntr_clr_1 <= reset_i;
+   cbm_crc_error_cntr_clr_2     <= reset_i;
+   cbm_retrans_cntr_clr_2       <= reset_i;
+   cbm_retrans_error_cntr_clr_2 <= reset_i;
+   cbm_crc_error_cntr_clr_3     <= reset_i;
+   cbm_retrans_cntr_clr_3       <= reset_i;
+   cbm_retrans_error_cntr_clr_3 <= reset_i;
    
    PROC_DATA_SEND: process begin
       wait until rising_edge(rclk_125_i);
@@ -444,31 +550,32 @@ begin
 
       cbm_data2send_start <= "0";
       cbm_data2send_end <= "0";
-      
-      case(send_fsm_i) is
-         when IDLE =>
-            if cbm_link_active='1' and cbm_data2send_stop = "0" then
-               send_fsm_i <= WAITc;
-               send_wait_counter_i <= (others => '0');
-               send_num_pack_counter_i <= send_num_pack_counter_i + TO_UNSIGNED(1, 1);
-            end if;
-            
-         when WAITc =>
-            if send_wait_counter_i(send_pack_counter_i'HIGH) = '1' then
-               send_fsm_i <= SEND;
-               cbm_data2send_start <= "1";
-            end if;
-            
-         when SEND =>
-            if send_wait_counter_i(send_pack_counter_i'HIGH) = '1' then
-               cbm_data2send_end <= "1";
-               send_fsm_i <= IDLE;
-            end if;
-      end case;
-      
-      if reset_i = '1' then
+
+      if reset_i = '1' or send_enabled_i = '0' then
          send_fsm_i <= IDLE;
          send_num_pack_counter_i <= (others => '0');
+         
+      else
+         case(send_fsm_i) is
+            when IDLE =>
+               if cbm_link_active='1' and cbm_data2send_stop = "0" then
+                  send_fsm_i <= WAITc;
+                  send_wait_counter_i <= (others => '0');
+                  send_num_pack_counter_i <= send_num_pack_counter_i + TO_UNSIGNED(1, 1);
+               end if;
+               
+            when WAITc =>
+               if send_wait_counter_i(send_pack_counter_i'HIGH) = '1' then
+                  send_fsm_i <= SEND;
+                  cbm_data2send_start <= "1";
+               end if;
+               
+            when SEND =>
+               if send_wait_counter_i(send_pack_counter_i'HIGH) = '1' then
+                  cbm_data2send_end <= "1";
+                  send_fsm_i <= IDLE;
+               end if;
+         end case;
       end if;
    end process;
    
@@ -502,7 +609,6 @@ begin
       address := to_integer(unsigned(debug_addr));
       
       debug_data_out <= x"00000000";
-      debug_ack <= '0';
       
       debug_ack <= debug_read_en or debug_write_en;
       case address is
@@ -528,9 +634,20 @@ begin
          
          when 16#12# => debug_data_out <= STD_LOGIC_VECTOR(dlm_counter_i);
          when 16#13# => debug_data_out <= STD_LOGIC_VECTOR(dlm_glob_counter_i);
-         when 16#14# => 
-            debug_data_out(19 downto 16) <= "00" & cbm_data2send_stop & cbm_link_active;
+         when 16#14# =>
+			debug_data_out(21 downto 20) <= cbm_debug_overrides_i;
+            debug_data_out(19 downto 16) <= "0" & send_enabled_i & cbm_data2send_stop & cbm_link_active;
             debug_data_out(15 downto 0) <= STD_LOGIC_VECTOR(send_num_pack_counter_i);
+            
+            
+         when 16#15# => debug_data_out(15 downto 0) <= cbm_crc_error_cntr_0;
+         when 16#16# => debug_data_out <= cbm_retrans_error_cntr_0 & cbm_retrans_cntr_0;
+         when 16#17# => debug_data_out(15 downto 0) <= cbm_crc_error_cntr_1;
+         when 16#18# => debug_data_out <= cbm_retrans_error_cntr_1 & cbm_retrans_cntr_1;
+         when 16#19# => debug_data_out(15 downto 0) <= cbm_crc_error_cntr_2;
+         when 16#1a# => debug_data_out <= cbm_retrans_error_cntr_2 & cbm_retrans_cntr_2;
+         when 16#1b# => debug_data_out(15 downto 0) <= cbm_crc_error_cntr_3;
+         when 16#1c# => debug_data_out <= cbm_retrans_error_cntr_3 & cbm_retrans_cntr_3;
          
          when others => debug_ack <= '0';
       end case;
@@ -540,6 +657,10 @@ begin
             when 16#1# => phy_ctrl_op <= debug_data_in(15 downto 0);
             when 16#4# => phy_ctrl_debug(31 downto  0) <= debug_data_in;
             when 16#5# => phy_ctrl_debug(63 downto 32) <= debug_data_in;
+            
+            when 16#14# => 
+				send_enabled_i <= debug_data_in(18);
+				cbm_debug_overrides_i <= debug_data_in(21 downto 20);
             
 --            when 16#11# => link_tester_ctrl <= debug_data_in;   
             when others => debug_ack <= '0';
