@@ -60,7 +60,7 @@ sub interpretLine {
 sub readRegs {
    my $endpoint = shift;
    my $length = shift;
-   my $firstReg = 0xa008;
+   my $firstReg = 0xa020;
    my $res = `trbcmd rm $endpoint $firstReg $length 0`;
    
    my $reg = 0;
@@ -114,7 +114,7 @@ sub show8b10b {
          253, "K.29.7",
          254, "K.30.7");
    
-      return $codes{$data};
+      return exists $codes{$data} ? $codes{$data} : "E.EE.E";
    } else {
       return sprintf("D.%02d.%d", $data & 0x1f, ($data >> 5) & 0x7);
    }
@@ -134,7 +134,7 @@ while (1) {
    my @results = ();
 
    for my $i (1 .. 1) {
-      my $reg = readRegs 0x8000 + $i, 8;
+      my $reg = readRegs 0x8000 + $i, 0x10;
       my @slices = ();
       for my $def (@defs) {
          my $idx = $def->[1];
@@ -169,7 +169,7 @@ while (1) {
    @old_results = @results;
    
    
-   sleep 1;
-print $first_one ? `reset` : chr(27) . "[1;1H";
+sleep 1;
+print $first_one ? `clear` : chr(27) . "[1;1H";
 $first_one = 0;
 }

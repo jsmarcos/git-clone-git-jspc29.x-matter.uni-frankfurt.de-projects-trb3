@@ -13,7 +13,8 @@ use work.cbmnet_phy_pkg.all;
 
 entity cbmnet_phy_ecp3 is
    generic(
-      IS_SYNC_SLAVE   : integer := c_NO;       --select slave mode
+      IS_SYNC_SLAVE   : integer := c_YES;       --select slave mode
+      DETERMINISTIC_LATENCY : integer := c_NO; -- if selected proper alignment of barrel shifter and word alignment is enforced (link may come up slower)
       IS_SIMULATED    : integer := c_NO;
       INCL_DEBUG_AIDS : integer := c_YES
    );
@@ -54,7 +55,7 @@ entity cbmnet_phy_ecp3 is
       -- Status and control port
       STAT_OP            : out std_logic_vector ( 15 downto 0) := (others => '0');
       CTRL_OP            : in  std_logic_vector ( 15 downto 0) := (others => '0');
-      DEBUG_OUT          : out std_logic_vector (255 downto 0) := (others => '0')
+      DEBUG_OUT          : out std_logic_vector (511 downto 0) := (others => '0')
    );
 end entity;
 
@@ -72,6 +73,7 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    attribute syn_sharing of cbmnet_phy_ecp3_arch : architecture is "off";
 
    constant WA_FIXATION : integer := c_YES;
+   signal DETERMINISTIC_LATENCY_C : std_logic;
 
 -- Clocks and global resets   
    signal clk_125_local     : std_logic;  -- local 125 MHz reference clock driven by clock generators
@@ -95,7 +97,9 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    signal tx_pll_lol_i  : std_logic;
    signal lsm_status_i : std_logic;
 
-   signal rx_dec_error_i: std_logic;
+   signal rx_dec_error_i:     std_logic;
+   signal rx_dec_error_125_i, rx_dec_error_125_buf_i: std_logic_vector(1 downto 0);
+
    signal rx_error_delay : std_logic_vector(3 downto 0); -- shift register to detect a "stable error condition"
    
    -- resets
@@ -212,6 +216,8 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
 -- Stats
    signal stat_reconnect_counter_i : unsigned(15 downto 0); -- counts the number of RX-serdes resets since last external reset
    signal stat_last_reconnect_duration_i : unsigned(31 downto 0);
+   signal stat_decode_error_counter_i : unsigned(31 downto 0);
+   
    
    signal stat_wa_int_i : std_logic_vector(15 downto 0) := (others => '0');
    
@@ -223,9 +229,23 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    signal low_level_tx_see_dlm0_125 : std_logic;
    
    signal stat_dlm_counter_i : unsigned(15 downto 0);
+   signal stat_init_ack_counter_i : unsigned(15 downto 0);
+   
+   signal test_line_i : std_logic_vector(15 downto 0) := x"0001";
+   
+   signal rx_stab_i, tx_stab_i : unsigned(15 downto 0);
+   
+   signal rx_data_sp_i0, rx_data_sp_i1, rx_data_sp_i2, rx_data_sp_i3 : std_logic_vector(17 downto 0);
+   
 begin
+   assert IS_SYNC_SLAVE = c_YES 
+      report "Support of clock master PHY is not tested anymore and probably broken"
+      severity failure;
+	  
+   DETERMINISTIC_LATENCY_C <= '1' when DETERMINISTIC_LATENCY = c_YES else '0';
+
    clk_125_local <= CLK;
-   CLK_RX_HALF_OUT <= rclk_125_i when IS_SYNC_SLAVE = c_YES or 1=1 else clk_tx_half_i;
+   CLK_RX_HALF_OUT <= rclk_125_i when IS_SYNC_SLAVE = c_YES else clk_tx_half_i;
    CLK_RX_FULL_OUT <= rclk_250_i;
 
    SD_TXDIS_OUT <= '0';
@@ -338,9 +358,26 @@ begin
       RX_PCS_RST_CH_C     => rx_pcs_rst_i,
       STATE_OUT           => rx_rst_fsm_state_i
    );
-   byte_alignment_to_fsm_i <= (not barrel_shifter_misaligned_i) or CTRL_OP(3);
-   word_alignment_to_fsm_i <= not (gear_to_fsm_rst_i or AND_ALL(rx_error_delay));
-   rx_error_delay <= rx_error_delay(rx_error_delay'high - 1 downto 0) & rx_dec_error_i when rising_edge(clk_125_local);
+   byte_alignment_to_fsm_i <= not (DETERMINISTIC_LATENCY_C and barrel_shifter_misaligned_i) or CTRL_OP(3);
+   word_alignment_to_fsm_i <= not (gear_to_fsm_rst_i or AND_ALL(rx_error_delay)) or CTRL_OP(5);
+   
+   
+   -- decode error
+   rx_dec_error_125_i <= rx_dec_error_125_i(0) & rx_dec_error_i when rising_edge(rclk_250_i);
+   rx_dec_error_125_buf_i <= rx_dec_error_125_i when rising_edge(clk_125_local);
+   
+   rx_error_delay <= rx_error_delay(rx_error_delay'high - 2 downto 0) & rx_dec_error_125_buf_i when rising_edge(clk_125_local);
+   process is 
+   begin
+      wait until rising_edge(clk_125_i);
+      if RESET='1' then
+         stat_decode_error_counter_i <= (others => '0');
+      elsif rx_dec_error_125_buf_i = "11" then
+         stat_decode_error_counter_i <= stat_decode_error_counter_i + 2;
+      elsif rx_dec_error_125_buf_i = "10" or rx_dec_error_125_buf_i = "01" then
+         stat_decode_error_counter_i <= stat_decode_error_counter_i + 1;
+      end if;
+   end process;
    
       
    THE_TX_FSM : cbmnet_phy_ecp3_tx_reset_fsm
@@ -425,24 +462,24 @@ begin
       DATA_OUT    => tx_data_to_serdes_i -- out std_logic_vector(8 downto 0);
    );
    tx_gear_reset_i <= not tx_rst_fsm_ready_i;
-   tx_gear_allow_relock_i <= ((not tx_rst_fsm_ready_i) and not CTRL_OP(1)) or CTRL_OP(2);
+   tx_gear_allow_relock_i <= (not tx_rst_fsm_ready_i and not CTRL_OP(1) and DETERMINISTIC_LATENCY_C) or CTRL_OP(2);
    
-   process is
-   begin
-      wait until rising_edge(clk_tx_full_i);
-      
-      tx_data_debug_state_i <= not tx_data_debug_state_i;
-      
-      if tx_data_debug_state_i = '1' then
-         tx_data_debug_i(7 downto 0) <= tx_data_to_serdes_i(7 downto 0);
-         tx_data_debug_i(16) <= tx_data_to_serdes_i(8);
-         
-      else
-         tx_data_debug_i(15 downto 8) <= tx_data_to_serdes_i(7 downto 0);
-         tx_data_debug_i(17) <= tx_data_to_serdes_i(8);
-      
-      end if;
-   end process;
+--    process is
+--    begin
+--       wait until rising_edge(clk_tx_full_i);
+--       
+--       tx_data_debug_state_i <= not tx_data_debug_state_i;
+--       
+--       if tx_data_debug_state_i = '1' then
+--          tx_data_debug_i(7 downto 0) <= tx_data_to_serdes_i(7 downto 0);
+--          tx_data_debug_i(16) <= tx_data_to_serdes_i(8);
+--          
+--       else
+--          tx_data_debug_i(15 downto 8) <= tx_data_to_serdes_i(7 downto 0);
+--          tx_data_debug_i(17) <= tx_data_to_serdes_i(8);
+--       
+--       end if;
+--    end process;
          
    -------------------------------------------------      
    -- CBMNet Ready Modules
@@ -469,16 +506,16 @@ begin
       ebtb_detect             => rm_rx_ebtb_detect_i,   -- out std_logic;                    -- Depends on the FSM state, alignment done
       
       --diagnostics
-      ebtb_code_err_cntr_clr  => rm_rx_ebtb_code_err_cntr_clr_i, -- in std_logic;
-      ebtb_disp_err_cntr_clr  => rm_rx_ebtb_disp_err_cntr_clr_i, -- in std_logic;
-      ebtb_code_err_cntr      => rm_rx_ebtb_code_err_cntr_i,     -- out std_logic_vector(15 downto 0); -- Counts for code errors if ebtb_detect is true
-      ebtb_disp_err_cntr      => rm_rx_ebtb_disp_err_cntr_i,     -- out std_logic_vector(15 downto 0); -- Counts for disparity errors if ebtb_detect is true
-      ebtb_code_err_cntr_flag => rm_rx_ebtb_code_err_cntr_flag_i,-- out std_logic;
-      ebtb_disp_err_cntr_flag => rm_rx_ebtb_disp_err_cntr_flag_i -- out std_logic
+      ebtb_code_err_cntr_clr  => '0', -- in std_logic;
+      ebtb_disp_err_cntr_clr  => '0', -- in std_logic;
+      ebtb_code_err_cntr      => open,     -- out std_logic_vector(15 downto 0); -- Counts for code errors if ebtb_detect is true
+      ebtb_disp_err_cntr      => open,     -- out std_logic_vector(15 downto 0); -- Counts for disparity errors if ebtb_detect is true
+      ebtb_code_err_cntr_flag => open,-- out std_logic;
+      ebtb_disp_err_cntr_flag => open -- out std_logic
    );
 
-   PHY_RXDATA_OUT   <= rm_rx_data_buf_i(15 downto 0);
-   PHY_RXDATA_K_OUT <= rm_rx_data_buf_i(1 downto 0);
+   PHY_RXDATA_OUT   <= rx_data_i(15 downto 0);
+   PHY_RXDATA_K_OUT <= rx_data_i(17 downto 16);
    gear_to_rm_n_rst_i <= not gear_to_rm_rst_i when rising_edge(clk_125_i);
    
    
@@ -596,36 +633,6 @@ begin
       end if;
    end process;
    
-   
-   -- RX/TX leds are on as soon as the correspondent pll is locked and data
-   -- other than the idle word is transmitted
-   PROC_LEDS: process is
-   begin
-      wait until rising_edge(CLK);
-
-      led_rx_i <= not gear_to_rm_rst_i;
-      led_tx_i <= tx_rst_fsm_ready_i;
-      
-      if (led_timer_i(20) = '1') or (rx_data_i(17 downto 16) = "10" and rx_data_i(15 downto 0) = x"fcce") then
-         led_rx_i <= '0';
-      end if;
-      
-      if (led_timer_i(20) = '1') or (tx_data_i(17 downto 16) = "10" and tx_data_i(15 downto 0) = x"fcce") then
-         led_tx_i <= '0';
-      end if;
-
-      led_timer_i <= led_timer_i + 1 ;
-      if led_timer_i(20) = '1' then
-         led_timer_i <= (others => '0');
-         last_led_rx_i <= led_rx_i ;
-         last_led_tx_i <= led_tx_i;
-      end if;      
-   end process;
-   
-   LED_OK_OUT <= led_ok_i;
-   LED_RX_OUT <= led_rx_i;
-   LED_TX_OUT <= led_tx_i;
-   
    -- Produce 1us reset pulse for external logic
    PROC_CLK_RESET: process is
       variable counter : unsigned(8 downto 0) := (others => '0');
@@ -671,45 +678,45 @@ begin
          last_rx_serdes_rst_i := rx_serdes_rst_i;
       end process;
       
-      PROC_SENSE_RX_DLM0: process is 
-         variable detected_first_word_v : std_logic := '0';
-      begin
-         wait until rising_edge(rclk_250_i);
-         low_level_rx_see_dlm0 <= '0';
-         
-         if detected_first_word_v = '0' then
-            if rx_data_from_serdes_i = "1" & x"fb" then
-               detected_first_word_v := '1';
-            end if;
-            
-         else
-            detected_first_word_v := '0';
-            if rx_data_from_serdes_i = "001101010" then
-               low_level_rx_see_dlm0 <= '1';
-            end if;
-            
-         end if;
-      end process;
+--       PROC_SENSE_RX_DLM0: process is 
+--          variable detected_first_word_v : std_logic := '0';
+--       begin
+--          wait until rising_edge(rclk_250_i);
+--          low_level_rx_see_dlm0 <= '0';
+--          
+--          if detected_first_word_v = '0' then
+--             if rx_data_from_serdes_i = "1" & x"fb" then
+--                detected_first_word_v := '1';
+--             end if;
+--             
+--          else
+--             detected_first_word_v := '0';
+--             if rx_data_from_serdes_i = "001101010" then
+--                low_level_rx_see_dlm0 <= '1';
+--             end if;
+--             
+--          end if;
+--       end process;
                   
-      PROC_SENSE_TX_DLM0: process is 
-         variable detected_first_word_v : std_logic := '0';
-      begin
-         wait until rising_edge(clk_tx_full_i);
-         low_level_tx_see_dlm0 <= '0';
-         
-         if detected_first_word_v = '0' then
-            if tx_data_to_serdes_i = "1" & x"fb" then
-               detected_first_word_v := '1';
-            end if;
-            
-         else
-            detected_first_word_v := '0';
-            if tx_data_to_serdes_i = "001101010" then
-               low_level_tx_see_dlm0 <= '1';
-            end if;
-            
-         end if;
-      end process;
+--       PROC_SENSE_TX_DLM0: process is 
+--          variable detected_first_word_v : std_logic := '0';
+--       begin
+--          wait until rising_edge(clk_tx_full_i);
+--          low_level_tx_see_dlm0 <= '0';
+--          
+--          if detected_first_word_v = '0' then
+--             if tx_data_to_serdes_i = "1" & x"fb" then
+--                detected_first_word_v := '1';
+--             end if;
+--             
+--          else
+--             detected_first_word_v := '0';
+--             if tx_data_to_serdes_i = "001101010" then
+--                low_level_tx_see_dlm0 <= '1';
+--             end if;
+--             
+--          end if;
+--       end process;
       
       PROC_SENSE_TX_DLM125: process is
       begin
@@ -720,7 +727,33 @@ begin
             low_level_tx_see_dlm0_125 <= '1';
          end if;
       end process;
-	  
+      
+      proc_sense_init_ack: process is 
+      begin
+         wait until rising_edge(clk_125_i);
+         if reset = '1' then
+            stat_init_ack_counter_i <= (others => '0');
+         elsif rx_data_i = "11" & K297 & K283 then 
+            stat_init_ack_counter_i <= stat_init_ack_counter_i + 1;
+         end if;
+      end process;
+      
+	  process is
+      variable rx_v, tx_v : std_logic_vector(17 downto 0);
+	  begin
+      wait until rising_edge(clk_125_i);
+      
+      if reset = '1' or rx_v /= rx_data_i then rx_stab_i <= (others => '0');
+	   else                                     rx_stab_i <= rx_stab_i + 1; end if;
+
+      if reset = '1' or tx_v /= tx_data_i then tx_stab_i <= (others => '0');
+      else                                     tx_stab_i <= tx_stab_i + 1; end if;
+	   
+	   rx_v := rx_data_i;
+	   tx_v := tx_data_i;
+	  end process;
+	   
+	   
 	  PROC_SENSE_DLMS: process begin
 		wait until rising_edge(clk_125_i);
 		
@@ -733,7 +766,6 @@ begin
 
 -- DEBUG_OUT_BEGIN      
       DEBUG_OUT(19 downto  0) <= "00" & tx_data_i(17 downto 0);
-      
       DEBUG_OUT(23 downto 20) <= "0" & tx_pll_lol_i & rx_los_low_i & rx_cdr_lol_i;
 
       DEBUG_OUT(27 downto 24) <= gear_to_fsm_rst_i & barrel_shifter_misaligned_i & SD_PRSNT_N_IN & SD_LOS_IN;
@@ -749,26 +781,55 @@ begin
       
       DEBUG_OUT( 99 downto 96) <= rm_rx_almost_ready_i & rm_rx_rxpcs_ready_i & rm_rx_see_reinit & rm_rx_ebtb_detect_i;
       DEBUG_OUT(103 downto 100) <= wa_position_i(3 downto 0);
-      DEBUG_OUT(107 downto 104) <= "00" & rm_rx_to_gear_reset_i & gear_to_rm_rst_i;
-      
-      DEBUG_OUT(127 downto 108) <= "00" & tx_data_debug_i(17 downto 0);
-      DEBUG_OUT(147 downto 128) <= "00" & rx_data_debug_i(17 downto 0) when rising_edge(clk_125_local);
+      DEBUG_OUT(107 downto 104) <= word_alignment_to_fsm_i & byte_alignment_to_fsm_i & rm_rx_to_gear_reset_i & gear_to_rm_rst_i;
+
+      DEBUG_OUT(123 downto 108) <= tx_stab_i(15 downto 0);
+
+      DEBUG_OUT(139 downto 124) <= rx_stab_i(15 downto 0);
+      DEBUG_OUT(147 downto 140) <= stat_init_ack_counter_i(7 downto 0);
       DEBUG_OUT(179 downto 148) <= stat_last_reconnect_duration_i(31 downto 0);
+
       DEBUG_OUT(195 downto 180) <= stat_reconnect_counter_i(15 downto 0);
       DEBUG_OUT(211 downto 196) <= stat_dlm_counter_i(15 downto 0);
 	   DEBUG_OUT(243 downto 212) <= rm_rx_ebtb_code_err_cntr_i(15 downto 0) & rm_rx_ebtb_disp_err_cntr_i(15 downto 0);
-	  --DEBUG_OUT(255 downto 170) <= (others => '0');
+
+	   DEBUG_OUT(315 downto 244) <= rx_data_sp_i3(17 downto 0) & rx_data_sp_i2(17 downto 0) & rx_data_sp_i1(17 downto 0) & rx_data_sp_i0(17 downto 0);
+	   
+	   DEBUG_OUT(333 downto 316) <= PHY_TXDATA_K_IN(1 downto 0) & PHY_TXDATA_IN(15 downto 0);
+	   
+	   --DEBUG_OUT(255 downto 170) <= (others => '0');
       
 -- DEBUG_OUT_END
+   
+   process is
+   begin
+      wait until rising_edge(rclk_125_i);
+      if rx_data_i /= "10" & x"fcc3" then
+         rx_data_sp_i0 <= rx_data_i;
+         rx_data_sp_i1 <= rx_data_sp_i0;
+         rx_data_sp_i2 <= rx_data_sp_i1;
+         rx_data_sp_i3 <= rx_data_sp_i2;
+      end if;
+   end process;
+      
+      
+--      DEBUG_OUT(127 downto 108) <= "00" & tx_data_debug_i(17 downto 0);
+--      DEBUG_OUT(147 downto 128) <= "00" & rx_data_debug_i(17 downto 0) when rising_edge(clk_125_local);
 
       -- STAT_OP REGISTER
-      STAT_OP(6 downto 0) <= tx_data_to_serdes_i(6 downto 0);
-      STAT_OP( 7) <= low_level_rx_see_dlm0;
-      STAT_OP( 8) <= clk_125_local;
-      STAT_OP( 9) <= rclk_250_i;
-      STAT_OP(10) <= rclk_125_i;
-      STAT_OP(11) <= clk_tx_full_i;
-      STAT_OP(12) <= clk_tx_half_i;
-      STAT_OP(13) <= low_level_tx_see_dlm0;
+-- STAT_OP <= tx_data_i(15 downto 0) when CTRL_OP(9 downto 8) = "01" else 
+--            rx_data_i(15 downto 0) when CTRL_OP(9 downto 8) = "10" else
+--            test_line_i;
+--            
+-- test_line_i <= test_line_i(14 downto 0) & test_line_i(15) when rising_edge(clk_125_local);
+      
+--       STAT_OP(6 downto 0) <= tx_data_to_serdes_i(6 downto 0);
+--       STAT_OP( 7) <= low_level_rx_see_dlm0;
+--       STAT_OP( 8) <= clk_125_local;
+--       STAT_OP( 9) <= rclk_250_i;
+--       STAT_OP(10) <= rclk_125_i;
+--       STAT_OP(11) <= clk_tx_full_i;
+--       STAT_OP(12) <= clk_tx_half_i;
+--       STAT_OP(13) <= low_level_tx_see_dlm0;
    end generate;
 end architecture;

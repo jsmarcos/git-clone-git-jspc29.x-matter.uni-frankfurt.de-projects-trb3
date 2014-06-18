@@ -1,4 +1,5 @@
 #!/bin/bash
-rebootfpga.sh 0x8000
+#rebootfpga.sh 0x8000
 rebootfpga.sh 0x8001
+sleep 1
 test/start

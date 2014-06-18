@@ -280,8 +280,8 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    signal phy_stat_op,    phy_ctrl_op    : std_logic_vector(15 downto 0) := (others => '0');
    signal phy_stat_debug, phy_ctrl_debug : std_logic_vector(63 downto 0) := (others => '0');
    
-   signal phy_debug_i : std_logic_vector (255 downto 0) := (others => '0');
-   signal phy_debug_i_buf : std_logic_vector (255 downto 0);
+   signal phy_debug_i : std_logic_vector (511 downto 0) := (others => '0');
+   signal phy_debug_i_buf : std_logic_vector (511 downto 0);
    
 
 -- Link Tester
@@ -302,14 +302,14 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    
    signal dummy : std_logic;
    
-   type SEND_FSM_T is (IDLE, WAITc, SEND);
+   type SEND_FSM_T is (START, SEND_HEADER, SEND_LENGTH, SEND_DATA, SEND_FOOTER, AFTER_SEND_WAIT);
    signal send_fsm_i : SEND_FSM_T;
-   signal send_wait_counter_i : unsigned(16 downto 0);
-   signal send_pack_counter_i : unsigned( 4 downto 0);
-   
-   signal send_num_pack_counter_i : unsigned(15 downto 0);
-   
+   signal send_length_i : unsigned(4 downto 0);
+   signal send_num_pack_counter_i : unsigned(15 downto 0); 
    signal send_enabled_i : std_logic := '0';
+   
+   signal send_wait_counter_i : std_logic_vector(31 downto 0);
+   signal send_wait_threshold_i : std_logic_vector(31 downto 0);
    
    signal dlm_counter_i : unsigned(31 downto 0);
    signal dlm_glob_counter_i : unsigned(31 downto 0);
@@ -411,27 +411,28 @@ begin
       DEBUG_OUT          => phy_debug_i
    );
 
+   TEST_LINE <= phy_stat_op;
    
    SFP_RATESEL   <= (others => '1');
    
    --TEST_LINE(1 downto 0) <= cbm_dlm2send_va & cbm_dlm_rec_va;
 
-   process is
-      variable counter_v : unsigned(20 downto 0); 
-   begin
-      wait until rising_edge(rclk_125_i);
-      counter_v := counter_v + to_unsigned(1,1);
-      cbm_dlm2send_va <= '0';
-      if counter_v = 0 then
-         cbm_dlm2send_va <= '1';
-      end if;
-   end process;
-   
+--    process is
+--       variable counter_v : unsigned(20 downto 0); 
+--    begin
+--       wait until rising_edge(rclk_125_i);
+--       counter_v := counter_v + to_unsigned(1,1);
+--       cbm_dlm2send_va <= '0';
+--       if counter_v = 0 then
+--          cbm_dlm2send_va <= '1';
+--       end if;
+--    end process;
+--    
    
 -- cbm_data2link <= "00" & x"dead";
    THE_CBM_ENDPOINT: lp_top 
    generic map (
-      NUM_LANES => NUM_LANES,
+      NUM_LANES => 1,
       TX_SLAVE  => 1
    )
    port map (
@@ -535,46 +536,72 @@ begin
    cbm_retrans_cntr_clr_3       <= reset_i;
    cbm_retrans_error_cntr_clr_3 <= reset_i;
    
+   THE_DLM_REFLECT: dlm_reflect port map (
+      clk            => rclk_125_i,       -- in std_logic;
+      res_n          => cbm_res_n,        -- in std_logic;
+      dlm_rec_in     => cbm_dlm_rec_type, -- in std_logic_vector(3 downto 0);
+      dlm_rec_va_in  => cbm_dlm_rec_va,   -- in std_logic;
+      dlm_rec_out    => open,             -- out std_logic_vector(3 downto 0);
+      dlm_rec_va_out => open,             -- out std_logic;
+      dlm2send_va    => cbm_dlm2send_va,  -- out std_logic;
+      dlm2send       => cbm_dlm2send      -- out std_logic_vector(3 downto 0)
+   );
+   
+   
    PROC_DATA_SEND: process begin
       wait until rising_edge(rclk_125_i);
       
-      send_wait_counter_i <= send_wait_counter_i + TO_UNSIGNED(1,1);
-      
-      if cbm_data2send_stop = "0" then
-         send_pack_counter_i <= send_pack_counter_i + TO_UNSIGNED(1,1);
-      end if;
-
       cbm_data2send <= (others => '0');
-      cbm_data2send(send_pack_counter_i'HIGH downto 0)     <= STD_LOGIC_VECTOR(send_pack_counter_i);
-      cbm_data2send(send_pack_counter_i'HIGH + 9 downto 9) <= STD_LOGIC_VECTOR(send_pack_counter_i);
-
       cbm_data2send_start <= "0";
       cbm_data2send_end <= "0";
 
       if reset_i = '1' or send_enabled_i = '0' then
-         send_fsm_i <= IDLE;
+         send_fsm_i <= START;
          send_num_pack_counter_i <= (others => '0');
          
       else
          case(send_fsm_i) is
-            when IDLE =>
+            when START =>
                if cbm_link_active='1' and cbm_data2send_stop = "0" then
-                  send_fsm_i <= WAITc;
-                  send_wait_counter_i <= (others => '0');
-                  send_num_pack_counter_i <= send_num_pack_counter_i + TO_UNSIGNED(1, 1);
+                  send_fsm_i <= SEND_HEADER;
+                  send_num_pack_counter_i <= send_num_pack_counter_i + 1;
+                  send_length_i <= "1" & send_num_pack_counter_i(3 downto 0);
+               end if;
+            
+            when SEND_HEADER =>
+               cbm_data2send <= x"f123";
+               cbm_data2send_start <= "1";
+               send_fsm_i <= SEND_LENGTH;
+            
+            when SEND_LENGTH =>
+               cbm_data2send(send_length_i'range) <= send_length_i;
+               send_fsm_i <= SEND_DATA;
+               
+            when SEND_DATA =>
+               send_length_i <= send_length_i - 1;
+               cbm_data2send(15 downto 8) <= "0" & std_logic_vector(send_length_i(2 downto 0)) & std_logic_vector(send_length_i(3 downto 0));
+               cbm_data2send(send_length_i'high + 0 downto 0) <= send_length_i;
+               
+               if send_length_i = TO_UNSIGNED(1, send_length_i'length) then
+                  send_fsm_i <= SEND_FOOTER;
                end if;
                
-            when WAITc =>
-               if send_wait_counter_i(send_pack_counter_i'HIGH) = '1' then
-                  send_fsm_i <= SEND;
-                  cbm_data2send_start <= "1";
+            when SEND_FOOTER =>
+               cbm_data2send <= x"f321";
+               cbm_data2send_end <= "1";
+               
+               send_wait_counter_i <= (others => '0');
+               send_fsm_i <= AFTER_SEND_WAIT;
+
+            when AFTER_SEND_WAIT =>
+               send_wait_counter_i <= STD_LOGIC_VECTOR( UNSIGNED(send_wait_counter_i) + 1 );
+               if send_wait_counter_i = send_wait_threshold_i then
+                  send_fsm_i <= START;
                end if;
                
-            when SEND =>
-               if send_wait_counter_i(send_pack_counter_i'HIGH) = '1' then
-                  cbm_data2send_end <= "1";
-                  send_fsm_i <= IDLE;
-               end if;
+            when others =>
+               send_fsm_i <= START;
+               
          end case;
       end if;
    end process;
@@ -620,17 +647,26 @@ begin
          when 16#5# => debug_data_out <= phy_ctrl_debug(63 downto 32);
          when 16#6# => debug_data_out <= STD_LOGIC_VECTOR(TO_UNSIGNED(CBM_FEE_MODE, 32));
          
-         when 16#8# => debug_data_out <= phy_debug_i_buf(31+32*0 downto 32*0);
-         when 16#9# => debug_data_out <= phy_debug_i_buf(31+32*1 downto 32*1);
-         when 16#a# => debug_data_out <= phy_debug_i_buf(31+32*2 downto 32*2);
-         when 16#b# => debug_data_out <= phy_debug_i_buf(31+32*3 downto 32*3);         
-         when 16#c# => debug_data_out <= phy_debug_i_buf(31+32*4 downto 32*4);
-         when 16#d# => debug_data_out <= phy_debug_i_buf(31+32*5 downto 32*5);
-         when 16#e# => debug_data_out <= phy_debug_i_buf(31+32*6 downto 32*6);
-         when 16#f# => debug_data_out <= phy_debug_i_buf(31+32*7 downto 32*7);  
+         when 16#20# => debug_data_out <= phy_debug_i_buf(31+32*0 downto 32*0);
+         when 16#21# => debug_data_out <= phy_debug_i_buf(31+32*1 downto 32*1);
+         when 16#22# => debug_data_out <= phy_debug_i_buf(31+32*2 downto 32*2);
+         when 16#23# => debug_data_out <= phy_debug_i_buf(31+32*3 downto 32*3);         
+         when 16#24# => debug_data_out <= phy_debug_i_buf(31+32*4 downto 32*4);
+         when 16#25# => debug_data_out <= phy_debug_i_buf(31+32*5 downto 32*5);
+         when 16#26# => debug_data_out <= phy_debug_i_buf(31+32*6 downto 32*6);
+         when 16#27# => debug_data_out <= phy_debug_i_buf(31+32*7 downto 32*7);  
+         when 16#28# => debug_data_out <= phy_debug_i_buf(31+32*8 downto 32*8);
+         when 16#29# => debug_data_out <= phy_debug_i_buf(31+32*9 downto 32*9);
+         when 16#2a# => debug_data_out <= phy_debug_i_buf(31+32*10 downto 32*10);
+         when 16#2b# => debug_data_out <= phy_debug_i_buf(31+32*11 downto 32*11);         
+         when 16#2c# => debug_data_out <= phy_debug_i_buf(31+32*12 downto 32*12);
+         when 16#2d# => debug_data_out <= phy_debug_i_buf(31+32*13 downto 32*13);
+         when 16#2e# => debug_data_out <= phy_debug_i_buf(31+32*14 downto 32*14);
+         when 16#2f# => debug_data_out <= phy_debug_i_buf(31+32*15 downto 32*15);  
          
---         when 16#10# => debug_data_out <= link_tester_stat;
---        when 16#11# => debug_data_out <= link_tester_ctrl;
+         
+         when 16#10# => debug_data_out <= send_wait_threshold_i;
+         when 16#11# => debug_data_out(20 downto 0) <= cbm_res_n & "00" & cbm_data_from_link;
          
          when 16#12# => debug_data_out <= STD_LOGIC_VECTOR(dlm_counter_i);
          when 16#13# => debug_data_out <= STD_LOGIC_VECTOR(dlm_glob_counter_i);
@@ -657,12 +693,12 @@ begin
             when 16#1# => phy_ctrl_op <= debug_data_in(15 downto 0);
             when 16#4# => phy_ctrl_debug(31 downto  0) <= debug_data_in;
             when 16#5# => phy_ctrl_debug(63 downto 32) <= debug_data_in;
-            
+            when 16#10# => send_wait_threshold_i <= debug_data_in;
             when 16#14# => 
 				send_enabled_i <= debug_data_in(18);
 				cbm_debug_overrides_i <= debug_data_in(21 downto 20);
             
---            when 16#11# => link_tester_ctrl <= debug_data_in;   
+
             when others => debug_ack <= '0';
          end case;
       end if;
@@ -1012,12 +1048,4 @@ begin
 --   end generate;
 
 
------- DUMMY to check integrity of TEST_LINE connection
---    process is 
---       variable test_line_v : std_logic_vector(15 downto 0) := x"0001";
---    begin
---       wait until rising_edge(rclk_125_i);
---       test_line_v := test_line_v(14 downto 0) & test_line_v(15);
---       TEST_LINE <= test_line_v;
---    end process;
 end architecture;
