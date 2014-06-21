@@ -41,6 +41,8 @@ add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/pcs_init/cn_tx_pcs_init
 add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/pcs_init/cn_tx_pcs_wrapper.v"
 add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/pcs_init/cn_async_input_sync.v"
 
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/dlm_reflect.v"
+
 
 add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_top.v"
 add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_arbiter_fsm.v"

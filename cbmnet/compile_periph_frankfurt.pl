@@ -19,8 +19,8 @@ my $lattice_path                 = '/d/jspc29/lattice/diamond/2.2_x64/';
 #my $synplify_path                = '/d/jspc29/lattice/synplify/F-2012.03-SP1/';
 my $synplify_path                = '/d/jspc29/lattice/synplify/G-2012.09-SP1/';
 
-#my $lattice_path                 = '/d/jspc29/lattice/diamond/3.0_x64';
 #my $synplify_path              = '/d/jspc29/lattice/synplify/I-2013.09-SP1/'; 
+#my $lattice_path                 = '/d/jspc29/lattice/diamond/3.1/';
 ###################################################################################
 
 my $btype = 'slave';

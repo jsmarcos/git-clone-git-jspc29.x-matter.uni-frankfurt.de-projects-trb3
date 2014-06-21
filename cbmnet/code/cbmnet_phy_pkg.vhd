@@ -49,7 +49,7 @@ package cbmnet_phy_pkg is
          -- Status and control port
          STAT_OP            : out std_logic_vector (15 downto 0);
          CTRL_OP            : in  std_logic_vector (15 downto 0) := (others => '0');
-         DEBUG_OUT          : out std_logic_vector (255 downto 0) := (others => '0')
+         DEBUG_OUT          : out std_logic_vector (511 downto 0) := (others => '0')
       );
    end component;
    

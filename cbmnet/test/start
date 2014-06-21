@@ -10,9 +10,9 @@ system "trbcmd i 0xffff";
 
 print "Checks\n";
 my $ver_reg = "0xa006";
-print "\nWRONG VERSION IN MASTER\n" unless(`trbcmd r 0x8000 $ver_reg` =~ m/0x00000000/);
+#print "\nWRONG VERSION IN MASTER\n" unless(`trbcmd r 0x8000 $ver_reg` =~ m/0x00000000/);
 print "\nWRONG VERSION IN SLAVE\n"  unless(`trbcmd r 0x8001 $ver_reg` =~ m/0x00000001/);
 
-system "compiletime.pl 0x8000";
+#system "compiletime.pl 0x8000";
 system "compiletime.pl 0x8001";
 

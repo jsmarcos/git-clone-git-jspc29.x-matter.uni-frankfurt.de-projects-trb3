@@ -187,6 +187,19 @@ package cbmnet_interface_pkg is
       );
    end component;
 
+   component dlm_reflect is 
+   port
+   (
+      clk            : in std_logic;
+      res_n          : in std_logic;
+      dlm_rec_in     : in std_logic_vector(3 downto 0);
+      dlm_rec_va_in  : in std_logic;
+      dlm_rec_out    : out std_logic_vector(3 downto 0);
+      dlm_rec_va_out : out std_logic;
+      dlm2send_va    : out std_logic;
+      dlm2send       : out std_logic_vector(3 downto 0)
+   );
+   end component;
    
    component link_tester_be is
       generic (

@@ -32,10 +32,15 @@ entity CBMNET_PHY_TX_GEAR is
 end entity;
 
 architecture CBMNET_PHY_TX_GEAR_ARCH of CBMNET_PHY_TX_GEAR is
+   attribute HGROUP : string;
+   attribute HGROUP of CBMNET_PHY_TX_GEAR_ARCH : architecture  is "cbmnet_phy_tx_gear";
+
    type   FSM_STATES is (FSM_HIGH, FSM_LOW);
    signal fsm_i : FSM_STATES;
    
    signal data_in_buf125_i : std_logic_vector(17 downto 0);
+   signal data_in_buf250_i : std_logic_vector(17 downto 0);
+   
    signal low_data_i : std_logic_vector(8 downto 0);
    
    signal clk_125_xfer_i     : std_logic := '0';
@@ -51,6 +56,8 @@ begin
          delay_counter_i <= TO_UNSIGNED(0,16);
       end if;
       
+      data_in_buf250_i <= data_in_buf125_i;
+      
       clk_125_xfer_buf_i <= clk_125_xfer_i;
       clk_125_xfer_del_i <= clk_125_xfer_buf_i;
       CLK_125_OUT <= '0';
@@ -59,8 +66,8 @@ begin
          when FSM_HIGH =>
             CLK_125_OUT <= '1';
             
-            DATA_OUT   <= data_in_buf125_i(17) & data_in_buf125_i(15 downto 8);
-            low_data_i <= data_in_buf125_i(16) & data_in_buf125_i( 7 downto 0);
+            low_data_i   <= data_in_buf250_i(17) & data_in_buf250_i(15 downto 8);
+            DATA_OUT <= data_in_buf250_i(16) & data_in_buf250_i( 7 downto 0);
             fsm_i <= FSM_LOW;
 
             if clk_125_xfer_buf_i /= clk_125_xfer_del_i and ALLOW_RELOCK_IN = '1' then
