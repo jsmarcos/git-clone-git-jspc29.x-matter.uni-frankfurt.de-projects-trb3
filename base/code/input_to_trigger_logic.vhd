@@ -48,6 +48,7 @@ signal inp_verylong : std_logic_vector(INPUTS-1 downto 0);
 signal output_i     : std_logic_vector(OUTPUTS-1 downto 0);
 signal out_reg      : std_logic_vector(OUTPUTS-1 downto 0);
 signal got_coincidence : std_logic;
+signal coin_enable  : std_logic;
 
 begin
 
@@ -105,7 +106,9 @@ begin
 gen_shift: for i in 1 to 4 generate
   inp_shift(i)      <= inp_shift(i-1) when rising_edge(CLK);
 end generate;
-  
+
+coin_enable <= or_all(coincidence1) when rising_edge(CLK);
+
 inp_inv           <= INPUT xor invert;
 inp_long          <= inp_shift(0) or inp_shift(1);
 inp_verylong      <= inp_shift(1) or inp_shift(2) or inp_shift(3) or inp_shift(4) when rising_edge(CLK);
@@ -115,7 +118,7 @@ coin_in_2         <= or_all(coincidence2 and inp_verylong) when rising_edge(CLK)
 got_coincidence   <= coin_in_1 and coin_in_2               when rising_edge(CLK);
   
 gen_outs : for i in 0 to OUTPUTS-1 generate
-  output_i(i) <= or_all(((inp_long and stretch_inp) or (inp_inv and not stretch_inp)) and enable(i)(INPUTS-1 downto 0)) or (got_coincidence and enable(i)(INPUTS));
+  output_i(i) <= or_all(((inp_long and stretch_inp) or (inp_inv and not stretch_inp)) and enable(i)(INPUTS-1 downto 0)) or got_coincidence;
 end generate;
 
 
