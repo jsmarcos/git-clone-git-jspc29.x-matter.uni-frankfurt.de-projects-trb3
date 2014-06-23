@@ -113,9 +113,9 @@ inp_inv           <= INPUT xor invert;
 inp_long          <= inp_shift(0) or inp_shift(1);
 inp_verylong      <= inp_shift(1) or inp_shift(2) or inp_shift(3) or inp_shift(4) when rising_edge(CLK);
 
-coin_in_1         <= or_all(coincidence1 and inp_verylong) when rising_edge(CLK);
-coin_in_2         <= or_all(coincidence2 and inp_verylong) when rising_edge(CLK);
-got_coincidence   <= coin_in_1 and coin_in_2               when rising_edge(CLK);
+coin_in_1         <= or_all(coincidence1 and inp_verylong)   when rising_edge(CLK);
+coin_in_2         <= or_all(coincidence2 and inp_verylong)   when rising_edge(CLK);
+got_coincidence   <= coin_in_1 and coin_in_2 and coin_enable when rising_edge(CLK);
   
 gen_outs : for i in 0 to OUTPUTS-1 generate
   output_i(i) <= or_all(((inp_long and stretch_inp) or (inp_inv and not stretch_inp)) and enable(i)(INPUTS-1 downto 0)) or got_coincidence;
