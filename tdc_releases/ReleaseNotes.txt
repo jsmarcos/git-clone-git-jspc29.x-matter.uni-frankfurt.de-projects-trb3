@@ -4,6 +4,16 @@ tdc_v2.0	15.11.2012	Double edge detection for longer than 20 ns is
 				implemented. (Not stable-will be fixed in
 				future releases.)
 
+tdc_v1.7	19.05.2014	Paralel working Readouts are implemented.
+				Trigger time calculation is done in the
+				trigger hadler.
+	
+tdc_v1.6.3	24.06.2014	Bug fix in the hit rate counters
+				(syncronisation problem).
+
+tdc_v1.6.2	08.05.2014	Small bug fix in the wait time for data
+				transfer to buffer.
+
 tdc_v1.6.1	06.05.2014	Less EPOCH counter - unnecessary EPOCH words,
 				which occur with enabled trigger window, are
 				eliminated from the data stream.

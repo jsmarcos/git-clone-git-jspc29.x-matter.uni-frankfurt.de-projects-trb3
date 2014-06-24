@@ -14,12 +14,12 @@ package config is
   constant NUM_TDC_CHANNELS        : integer range 1 to 65   := 33;
   constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6    := 5;  --the nearest power of two, for convenience reasons 
   constant USE_DOUBLE_EDGE         : integer                 := c_YES;
-  constant RING_BUFFER_SIZE        : integer range 32 to 128 := 64; --ring buffer size: 32,64,128
+  constant RING_BUFFER_SIZE        : integer range 32 to 128 := 32; --ring buffer size: 32,64,128
 
---use only every fourth input as in HPTDC high precision mode    
+--use only every fourth input as in HPTDC high precision mode
   constant USE_HPTDC_FASTMODE_PINOUT : integer    := c_YES;
 
---Include SPI on AddOn connector    
+--Include SPI on AddOn connector
   constant INCLUDE_SPI               : integer    := c_YES;
 
 --Add logic to generate configurable trigger signal from input signals.
