@@ -31,9 +31,14 @@ end entity;
 
 architecture Behavioral of debug_multiplexer is
 
+  -- Multiplexer
   signal port_select        : std_logic_vector(7 downto 0);
   signal debug_line_o       : std_logic_vector(15 downto 0);
-  
+
+  -- Checkerboard
+  signal checker_counter    : unsigned(15 downto 0);
+
+  -- Slave Bus
   signal slv_data_out_o     : std_logic_vector(31 downto 0);
   signal slv_no_more_data_o : std_logic;
   signal slv_unknown_addr_o : std_logic;
@@ -45,19 +50,27 @@ begin
                             DEBUG_LINE_IN)
   begin
     if (unsigned(port_select) < NUM_PORTS) then
-      debug_line_o               <=
+      debug_line_o             <=
         DEBUG_LINE_IN(to_integer(unsigned(port_select)));
     elsif (unsigned(port_select) = NUM_PORTS) then
       -- Checkerboard
-      for I in 0 to 7 loop
-        debug_line_o(I * 2)      <= CLK_IN;
-        debug_line_o(I * 2 + 1)  <= not CLK_IN;
-      end loop; 
+      debug_line_o             <= checker_counter;
     else
-      debug_line_o               <= (others => '1');
+      debug_line_o             <= (others => '1');
     end if;
   end process PROC_MULTIPLEXER;
 
+  PROC_CHECKERBOARD: process(CLK_IN)
+  begin
+    if( rising_edge(CLK_IN) ) then
+      if( RESET_IN = '1' ) then
+        checker_counter <= (others => '0');
+      else
+        checker_counter <= checker_counter + 1;
+      end if;
+    end if;
+  end process PROC_CHECKERBOARD;
+  
   PROC_SLAVE_BUS: process(CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then

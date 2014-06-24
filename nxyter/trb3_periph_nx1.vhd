@@ -67,7 +67,7 @@ entity trb3_periph is
     NX1B_ADC_B_IN              : in    std_logic;
     NX1B_ADC_NX_IN             : in    std_logic;
     NX1B_ADC_D_IN              : in    std_logic;
-    
+
     ---------------------------------------------------------------------------
     -- END AddonBoard nXyter
     ---------------------------------------------------------------------------
@@ -87,7 +87,8 @@ entity trb3_periph is
     LED_YELLOW           : out   std_logic;
     SUPPL                : in    std_logic;  --terminated diff pair, PCLK, Pads
     --Test Connectors
-    TEST_LINE            : out   std_logic_vector(15 downto 0)
+    TEST_LINE            : out   std_logic_vector(15 downto 0);
+    NX1_DEBUG_LINE       : out   std_logic_vector(15 downto 0)
     );
 
   attribute syn_useioff                  : boolean;
@@ -107,7 +108,8 @@ entity trb3_periph is
   attribute syn_useioff of FLASH_DIN     : signal is true;
   attribute syn_useioff of FLASH_DOUT    : signal is true;
   attribute syn_useioff of FPGA5_COMM    : signal is true;
-  attribute syn_useioff of TEST_LINE     : signal is true;
+  attribute syn_useioff of TEST_LINE     : signal is false;
+  attribute syn_useioff of NX1_DEBUG_LINE  : signal is false;
   --attribute syn_useioff of INP           : signal is false;
   attribute syn_useioff of NX1_TIMESTAMP_IN   : signal is true;
 
@@ -273,6 +275,8 @@ architecture trb3_periph_arch of trb3_periph is
   signal nx1_regio_no_more_data_out  : std_logic;
   signal nx1_regio_unknown_addr_out  : std_logic;
 
+  signal nx1_debug_line_o            : std_logic_vector(15 downto 0);
+  
   -- Internal Trigger
   signal fee1_trigger                : std_logic;
   
@@ -700,12 +704,15 @@ begin
       REGIO_NO_MORE_DATA_OUT     => nx1_regio_no_more_data_out,
       REGIO_UNKNOWN_ADDR_OUT     => nx1_regio_unknown_addr_out,
                                  
-      DEBUG_LINE_OUT            => TEST_LINE
+      DEBUG_LINE_OUT             => nx1_debug_line_o
       --DEBUG_LINE_OUT                => open
       );
-  
-      FPGA5_COMM(10)            <= fee1_trigger;
 
+  TEST_LINE                     <= nx1_debug_line_o;
+  NX1_DEBUG_LINE                <= nx1_debug_line_o;
+
+  FPGA5_COMM(10)                <= fee1_trigger;
+    
   -----------------------------------------------------------------------------
   -- nXyter Main and ADC Clocks
   -----------------------------------------------------------------------------

@@ -48,9 +48,12 @@
 0x8160 :  r/w  Enable Testpulse Signal (default: off)
 0x8161 :  r/w  Delay Testpulse Signal after Trigger (12 Bit, in 10ns)
 0x8162 :  r/w  Length of Trigger TestPulse (12 Bit, in 4ns)
-0x8163 :  r    Accepted Trigger Rate (28 Bit, in Hz)
-0x8164 :  r/w  r: Invalid Timing Trigger Counter
+0x8163 :  r/w  r: Invalid Timing Trigger Counter (16 Bit)
                w: Clear Counter
+0x8164 :  r/w  Clear Countercceptred Trigger Rate (1/s)
+0x8165 :  r/w  Testpulse Rate (1/s)
+0x8166 :  r/w  Bit0: Bypass CTS Trigger
+               Bit1: Bypass Status Trigger
 
 -- NX Data Receiver
 0x8500 :  r    current Timestamp FIFO value
