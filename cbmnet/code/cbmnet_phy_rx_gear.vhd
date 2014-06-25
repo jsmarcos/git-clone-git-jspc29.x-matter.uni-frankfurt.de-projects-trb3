@@ -46,7 +46,8 @@ architecture CBMNET_PHY_RX_GEAR_ARCH of CBMNET_PHY_RX_GEAR is
    signal indi_misalignment_i : std_logic;
    
    signal data_delay_i   : std_logic_vector(8 downto 0);
-   signal data_out_buf_i : std_logic_vector(17 downto 0);
+   signal data_out_buf250_i : std_logic_vector(17 downto 0);
+   signal data_out_buf125_i : std_logic_vector(17 downto 0);
    signal clk_125_i : std_logic;
    
    signal reset_timer_i : std_logic;
@@ -60,7 +61,6 @@ architecture CBMNET_PHY_RX_GEAR_ARCH of CBMNET_PHY_RX_GEAR is
    signal last_delay_clock_i : std_logic := '0';
    signal word_idx_i : std_logic := '0';   
 begin
-   data_in_buf_i <= DATA_IN when rising_edge(CLK_250_IN);
 
 -- FSM sync part
    process is begin
@@ -163,6 +163,8 @@ begin
       last_delay_clock_i <= delay_clock_buf_i;
    end process;
    
+   data_in_buf_i <= DATA_IN when rising_edge(CLK_250_IN);
+
    proc_gear: process
    begin
       wait until rising_edge(CLK_250_IN);
@@ -172,16 +174,16 @@ begin
          clk_125_i <= '1';
       else
 --         data_out_buf_i <= data_delay_i(8) & data_in_buf_i(8) & data_delay_i(7 downto 0) & data_in_buf_i(7 downto 0);
-         data_out_buf_i <=  data_in_buf_i(8) & data_delay_i(8)  & data_in_buf_i(7 downto 0) & data_delay_i(7 downto 0);
+         data_out_buf250_i <=  data_in_buf_i(8) & data_delay_i(8)  & data_in_buf_i(7 downto 0) & data_delay_i(7 downto 0);
          clk_125_i <= '0';
       end if;      
 
    end process;
    
    
-   
-   DATA_OUT <= data_out_buf_i when rising_edge(clk_125_i);
-   CLK_125_OUT <= clk_125_i;
+   data_out_buf125_i <= data_out_buf250_i when rising_edge(clk_125_i);
+   DATA_OUT <= data_out_buf125_i;
+   CLK_125_OUT <= clk_125_i; -- when rising_edge(CLK_250_IN);
    
    DEBUG_OUT(3 downto 0) <= STD_LOGIC_VECTOR(fsm_state_i);
    DEBUG_OUT(4) <= delay_clock_i;
@@ -189,10 +191,10 @@ begin
    DEBUG_OUT(6) <= indi_misalignment_i;
    
 -- Detect Indications for correct or wrong alignment   
-   indi_alignment_i <= '1' when data_out_buf_i(17 downto 16) = "01" and data_out_buf_i(15 downto 8) = x"00" and
-      (data_out_buf_i(7 downto 0) = CBMNET_READY_CHAR0 or data_out_buf_i(7 downto 0) = CBMNET_READY_CHAR1 or data_out_buf_i(7 downto 0) = CBMNET_ALIGN_CHAR) else '0';
+   indi_alignment_i <= '1' when data_out_buf125_i(17 downto 16) = "01" and data_out_buf125_i(15 downto 8) = x"00" and
+      (data_out_buf125_i(7 downto 0) = CBMNET_READY_CHAR0 or data_out_buf125_i(7 downto 0) = CBMNET_READY_CHAR1 or data_out_buf125_i(7 downto 0) = CBMNET_ALIGN_CHAR) else '0';
    
-   indi_misalignment_i <= '1' when data_out_buf_i(17 downto 16) = "10" and data_out_buf_i(7 downto 0) = x"00" and
-      (data_out_buf_i(15 downto 8) = CBMNET_READY_CHAR0 or data_out_buf_i(15 downto 8) = CBMNET_READY_CHAR1 or data_out_buf_i(15 downto 8) = CBMNET_ALIGN_CHAR) else '0';
+   indi_misalignment_i <= '1' when data_out_buf125_i(17 downto 16) = "10" and data_out_buf125_i(7 downto 0) = x"00" and
+      (data_out_buf125_i(15 downto 8) = CBMNET_READY_CHAR0 or data_out_buf125_i(15 downto 8) = CBMNET_READY_CHAR1 or data_out_buf125_i(15 downto 8) = CBMNET_ALIGN_CHAR) else '0';
    
 end architecture CBMNET_PHY_RX_GEAR_ARCH;  

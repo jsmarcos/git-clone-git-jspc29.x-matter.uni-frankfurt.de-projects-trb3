@@ -160,6 +160,7 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4
 add_file -vhdl -lib work "./code/cbmnet_interface_pkg.vhd"
 add_file -vhdl -lib work "./code/cbmnet_phy_pkg.vhd"
 add_file -vhdl -lib work "./cores/cbmnet_sfp1.vhd"
+add_file -vhdl -lib work "./cores/cbmnet_sfp1_slow.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/med_sync_define.vhd"
 add_file -vhdl -lib work "./code/cbmnet_phy_ecp3_rx_reset_fsm.vhd"
 add_file -vhdl -lib work "./code/cbmnet_phy_ecp3_tx_reset_fsm.vhd"

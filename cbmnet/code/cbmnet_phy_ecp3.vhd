@@ -93,9 +93,10 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    signal tx_pll_lol_i  : std_logic;
    signal lsm_status_i : std_logic;
 
-   signal rx_dec_error_i:     std_logic;
-   signal rx_dec_errors2_i : std_logic_vector(1 downto 0);
-   signal rx_dec_error_125_i, rx_dec_error_125_buf_i: std_logic_vector(1 downto 0);
+   signal rx_dec_error_i:          std_logic;
+   signal rx_dec_error_delayed_i : std_logic;
+   signal rx_dec_error_250_i : std_logic_vector(1 downto 0);
+   signal rx_dec_error_125_i, rx_dec_error_125_buf_i: std_logic_vector(3 downto 0);
 
    signal rx_error_delay : std_logic_vector(3 downto 0); -- shift register to detect a "stable error condition"
    
@@ -392,22 +393,25 @@ begin
    word_alignment_to_fsm_i <= not (gear_to_fsm_rst_i or AND_ALL(rx_error_delay)) or CTRL_OP(5);
    
    
-   -- decode error
-   rx_dec_error_125_i <= rx_dec_error_125_i(0) & rx_dec_error_i when rising_edge(rclk_250_i);
-   rx_dec_error_125_buf_i <= rx_dec_error_125_i when rising_edge(clk_125_local);
-   
-   rx_error_delay <= rx_error_delay(rx_error_delay'high - 2 downto 0) & rx_dec_error_125_buf_i when rising_edge(clk_125_local);
-   process is 
-   begin
-      wait until rising_edge(rclk_125_i);
-      if RESET='1' then
-         stat_decode_error_counter_i <= (others => '0');
-      elsif rx_dec_error_125_buf_i = "11" then
-         stat_decode_error_counter_i <= stat_decode_error_counter_i + 2;
-      elsif rx_dec_error_125_buf_i = "10" or rx_dec_error_125_buf_i = "01" then
-         stat_decode_error_counter_i <= stat_decode_error_counter_i + 1;
-      end if;
-   end process;
+--   -- decode error
+--   rx_dec_error_delayed_i <= rx_dec_error_delayed_i when rising_edge(rclk_250_i);
+--   rx_dec_error_250_i <= rx_dec_error_i & rx_dec_error_delayed_i when rising_edge(rclk_250_i);
+--   
+--   rx_dec_error_125_i <= rx_dec_error_125_i(0) & rx_dec_error_i when rising_edge(clk_125_local);
+--   rx_dec_error_125_buf_i <= rx_dec_error_125_i when rising_edge(clk_125_local);
+--   
+--   rx_error_delay <= rx_error_delay(rx_error_delay'high - 2 downto 0) & rx_dec_error_125_buf_i when rising_edge(clk_125_local);
+--   process is 
+--   begin
+--      wait until rising_edge(rclk_125_i);
+--      if RESET='1' then
+--         stat_decode_error_counter_i <= (others => '0');
+--      elsif rx_dec_error_125_buf_i = "11" then
+--         stat_decode_error_counter_i <= stat_decode_error_counter_i + 2;
+--      elsif rx_dec_error_125_buf_i = "10" or rx_dec_error_125_buf_i = "01" then
+--         stat_decode_error_counter_i <= stat_decode_error_counter_i + 1;
+--      end if;
+--   end process;
    
       
    THE_TX_FSM : cbmnet_phy_ecp3_tx_reset_fsm

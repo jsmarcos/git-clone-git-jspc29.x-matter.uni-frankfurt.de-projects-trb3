@@ -2,13 +2,13 @@
 -w
 #-i 1
 #-l 5
-#-n 1
+-n 1
 -y
 #-s 12
 -t 3
 -c 1
 #-e 2
--m nodelist.txt
+#-m nodelist.txt
 # -w
 # -i 6
 # -l 5

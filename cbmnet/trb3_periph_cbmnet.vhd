@@ -521,7 +521,7 @@ begin
       
       
    );
-   cbm_res_n <= not rreset_i;
+   cbm_res_n <= not rreset_i when rising_edge(rclk_125_i);
 
    cbm_crc_error_cntr_clr_0     <= reset_i;
    cbm_retrans_cntr_clr_0       <= reset_i;
@@ -670,7 +670,7 @@ begin
          
          
          when 16#10# => debug_data_out <= send_wait_threshold_i;
-         when 16#11# => debug_data_out(20 downto 0) <= cbm_res_n & "00" & cbm_data_from_link;
+         when 16#11# => debug_data_out(20 downto 0) <= "000" & cbm_data_from_link;
          
          when 16#12# => debug_data_out <= STD_LOGIC_VECTOR(dlm_counter_i);
          when 16#13# => debug_data_out <= STD_LOGIC_VECTOR(dlm_glob_counter_i);
