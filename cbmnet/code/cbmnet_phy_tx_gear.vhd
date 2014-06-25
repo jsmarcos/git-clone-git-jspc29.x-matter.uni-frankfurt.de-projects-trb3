@@ -40,8 +40,9 @@ architecture CBMNET_PHY_TX_GEAR_ARCH of CBMNET_PHY_TX_GEAR is
    
    signal data_in_buf125_i : std_logic_vector(17 downto 0);
    signal data_in_buf250_i : std_logic_vector(17 downto 0);
+   signal data_in_buf250_0_i : std_logic_vector(17 downto 0);
    
-   signal low_data_i : std_logic_vector(8 downto 0);
+   signal delay_data_i : std_logic_vector(8 downto 0);
    
    signal clk_125_xfer_i     : std_logic := '0';
    signal clk_125_xfer_buf_i : std_logic := '0';
@@ -56,7 +57,9 @@ begin
          delay_counter_i <= TO_UNSIGNED(0,16);
       end if;
       
-      data_in_buf250_i <= data_in_buf125_i;
+      data_in_buf250_0_i <= data_in_buf250_i;
+      data_in_buf250_i <= data_in_buf250_0_i;
+      
       
       clk_125_xfer_buf_i <= clk_125_xfer_i;
       clk_125_xfer_del_i <= clk_125_xfer_buf_i;
@@ -66,18 +69,18 @@ begin
          when FSM_HIGH =>
             CLK_125_OUT <= '1';
             
-            low_data_i   <= data_in_buf250_i(17) & data_in_buf250_i(15 downto 8);
-            DATA_OUT <= data_in_buf250_i(16) & data_in_buf250_i( 7 downto 0);
+            delay_data_i <= data_in_buf250_i(17) & data_in_buf250_i(15 downto 8);
+            DATA_OUT     <= data_in_buf250_i(16) & data_in_buf250_i( 7 downto 0);
             fsm_i <= FSM_LOW;
 
-            if clk_125_xfer_buf_i /= clk_125_xfer_del_i and ALLOW_RELOCK_IN = '1' then
-               fsm_i <= FSM_HIGH;
-               delay_counter_i <= delay_counter_i + 1;
-            end if;
+--             if clk_125_xfer_buf_i /= clk_125_xfer_del_i and ALLOW_RELOCK_IN = '1' then
+--                fsm_i     <= FSM_HIGH;
+--                delay_counter_i <= delay_counter_i + 1;
+--             end if;
 
             
          when others =>
-            DATA_OUT <= low_data_i;
+            DATA_OUT <= delay_data_i;
             fsm_i <= FSM_HIGH;
       end case;
    end process;
@@ -91,5 +94,5 @@ begin
       clk_125_xfer_i   <= not clk_125_xfer_i;
    end process;
    
-   DEBUG_OUT <= x"0000" & STD_LOGIC_VECTOR( delay_counter_i );
+   DEBUG_OUT <= (others => '0'); -- x"0000" & STD_LOGIC_VECTOR( delay_counter_i );
 end architecture CBMNET_PHY_TX_GEAR_ARCH;

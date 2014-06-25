@@ -15,12 +15,12 @@ my $CbmNetPath                   = "../../cbmnet";
 my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
 my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
 
-my $lattice_path                 = '/d/jspc29/lattice/diamond/2.2_x64/';
+#my $lattice_path                 = '/d/jspc29/lattice/diamond/2.2_x64/';
 #my $synplify_path                = '/d/jspc29/lattice/synplify/F-2012.03-SP1/';
-my $synplify_path                = '/d/jspc29/lattice/synplify/G-2012.09-SP1/';
+#my $synplify_path                = '/d/jspc29/lattice/synplify/G-2012.09-SP1/';
 
-#my $synplify_path              = '/d/jspc29/lattice/synplify/I-2013.09-SP1/'; 
-#my $lattice_path                 = '/d/jspc29/lattice/diamond/3.1/';
+my $synplify_path              = '/d/jspc29/lattice/synplify/I-2013.09-SP1/'; 
+my $lattice_path                 = '/d/jspc29/lattice/diamond/3.1/';
 ###################################################################################
 
 my $btype = 'slave';
@@ -113,23 +113,38 @@ $c=qq|$lattice_path/ispfpga/bin/lin/map  -retime -split_node -a $FAMILYNAME -p $
 execute($c);
 
 
-system("rm $TOPNAME.ncd");
+ system("rm $TOPNAME.ncd");
+ 
+# #$c=qq|$lattice_path/ispfpga/bin/lin/multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t" "$tpmap.ncd" "$TOPNAME.ncd"|;
+# #$c=qq|$lattice_path/ispfpga/bin/lin/par -f "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.dir" "$TOPNAME.prf"|;
+# $c=qq|$lattice_path/bin/lin/mpartrce -p "../$TOPNAME.p2t" -f "../$TOPNAME.p3t" -tf "$TOPNAME.pt" "|.$TOPNAME.qq|_map.ncd" "$TOPNAME.ncd"|;
+# execute($c);
+# 
+# #Make Bitfile
+# $c=qq|$lattice_path/ispfpga/bin/lin/ltxt2ptxt $TOPNAME.ncd|;
+# execute($c);
+# $c=qq|$lattice_path/ispfpga/bin/lin/bitgen  -w "$TOPNAME.ncd"  "$TOPNAME.prf"|;
+# execute($c);
+# 
+# 
+# # IOR IO Timing Report
+# $c=qq|$lattice_path/ispfpga/bin/lin/iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;
+# execute($c);
+# 
+# # TWR Timing Report
+# $c=qq|$lattice_path/ispfpga/bin/lin/trce -c -v 15 -o "$TOPNAME.twr.setup" "$TOPNAME.ncd" "$TOPNAME.prf"|;
+# execute($c);
+# 
+# $c=qq|$lattice_path/ispfpga/bin/lin/trce -hld -c -v 5 -o "$TOPNAME.twr.hold"  "$TOPNAME.ncd" "$TOPNAME.prf"|;
+# execute($c);
 
-#$c=qq|$lattice_path/ispfpga/bin/lin/multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t" "$tpmap.ncd" "$TOPNAME.ncd"|;
-#$c=qq|$lattice_path/ispfpga/bin/lin/par -f "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.dir" "$TOPNAME.prf"|;
-$c=qq|$lattice_path/bin/lin/mpartrce -p "../$TOPNAME.p2t" -f "../$TOPNAME.p3t" -tf "$TOPNAME.pt" "|.$TOPNAME.qq|_map.ncd" "$TOPNAME.ncd"|;
+#$c=qq|mpartrce -p "../$TOPNAME.p2t" -log "$TOPNAME.log" -o "$TOPNAME.rpt" -pr "$TOPNAME.prf" -tf "$TOPNAME.pt" "|.$TOPNAME.qq|_map.ncd" "$TOPNAME.ncd"|;
+#  $c=qq|$lattice_path/ispfpga/bin/lin/multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
+$c=qq|$lattice_path/ispfpga/bin/lin/par -w -l 5 -i 6 -t 4 -c 0 -e 0 -exp parUseNBR=1:parCDP=0:parCDR=0:parPathBased=OFF $tpmap.ncd $TOPNAME.ncd $TOPNAME.prf|;
 execute($c);
-
-#Make Bitfile
-$c=qq|$lattice_path/ispfpga/bin/lin/ltxt2ptxt $TOPNAME.ncd|;
-execute($c);
-$c=qq|$lattice_path/ispfpga/bin/lin/bitgen  -w "$TOPNAME.ncd"  "$TOPNAME.prf"|;
-execute($c);
-
-
 # IOR IO Timing Report
-$c=qq|$lattice_path/ispfpga/bin/lin/iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;
-execute($c);
+# $c=qq|$lattice_path/ispfpga/bin/lin/iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;
+# execute($c);
 
 # TWR Timing Report
 $c=qq|$lattice_path/ispfpga/bin/lin/trce -c -v 15 -o "$TOPNAME.twr.setup" "$TOPNAME.ncd" "$TOPNAME.prf"|;
@@ -138,6 +153,12 @@ execute($c);
 $c=qq|$lattice_path/ispfpga/bin/lin/trce -hld -c -v 5 -o "$TOPNAME.twr.hold"  "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
 
+$c=qq|$lattice_path/ispfpga/bin/lin/ltxt2ptxt $TOPNAME.ncd|;
+execute($c);
+
+$c=qq|$lattice_path/ispfpga/bin/lin/bitgen -w -g CfgMode:Disable -g RamCfg:Reset -g ES:No  $TOPNAME.ncd $TOPNAME.bit $TOPNAME.prf|;
+# $c=qq|$lattice_path/ispfpga/bin/lin/bitgen  -w "$TOPNAME.ncd"  "$TOPNAME.prf"|;
+execute($c);
 
 chdir "..";
 

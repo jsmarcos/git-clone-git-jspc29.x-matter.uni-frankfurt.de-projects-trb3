@@ -25,36 +25,33 @@ USE PRIMARY NET "CLK_GPLL_LEFT";
 GSR_NET NET "GSR_N";  
 
 
-################################################################
-# Locate Serdes and media interfaces
-#################################################################
-LOCATE COMP   "THE_MEDIA_UPLINK/gen_serdes_1_200_THE_SERDES/PCSD_INST" SITE "PCSA" ;
-REGION "MEDIA_UPLINK" "R102C95D" 13 25;
+LOCATE COMP "THE_MEDIA_UPLINK/gen_serdes_1_200.THE_SERDES/PCSD_INST" SITE "PCSA" ;
+REGION "MEDIA_UPLINK" "R102C95D" 13 25 DEVSIZE;
 LOCATE UGROUP "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLINK" ;
-
 LOCATE COMP   "THE_CBM_PHY/THE_SERDES/PCSD_INST" SITE "PCSB" ;
+#LOCATE COMP "THE_CBM_PHY/GEN_EASY_SERDES/THE_EASY_SERDES/PCSD_INST" SITE "PCSB" ;
 REGION "CBM_PHY" "R102C49D" 13 25;
 LOCATE UGROUP "THE_CBM_PHY/cbmnet_phy_group" REGION "CBM_PHY";
-
-REGION "CBM_PHY_RX_GEAR" "R102C50D" 13 15;
-LOCATE UGROUP "THE_CBM_PHY/THE_RX_GEAR/cbmnet_phy_rx_gear" REGION "CBM_PHY_RX_GEAR";
-
-REGION "CBM_PHY_TX_GEAR" "R102C50D" 13 15;
-LOCATE UGROUP "THE_CBM_PHY/THE_TX_GEAR/cbmnet_phy_tx_gear" REGION "CBM_PHY_TX_GEAR";
-
-
+REGION "CBM_PHY_RX_GEAR" "R102C50D" 13 15 DEVSIZE;
+LOCATE UGROUP "THE_CBM_PHY/THE_RX_GEAR/cbmnet_phy_rx_gear" REGION "CBM_PHY_RX_GEAR" ;
+REGION "CBM_PHY_TX_GEAR" "R102C50D" 13 15 DEVSIZE;
+LOCATE UGROUP "THE_CBM_PHY/THE_TX_GEAR/cbmnet_phy_tx_gear" REGION "CBM_PHY_TX_GEAR" ;
 
 #################################################################
 # Relax some of the timing constraints
 #################################################################
-MULTICYCLE TO CELL "THE_MEDIA_DOWNLINK/SCI_DATA_OUT*" 50 ns;
-MULTICYCLE TO CELL "THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
 
-FREQUENCY NET "rclk_125_i" 125.000000 MHz ;
-FREQUENCY NET "phy_stat_op[11]" 250.000000 MHz ;
-FREQUENCY PORT "CLK_GPLL_LEFT" 200.000000 MHz ;
-FREQUENCY NET "clk_200_i" 200.000000 MHz ;
-FREQUENCY NET "clk_100_i_c" 100.000000 MHz ;
-FREQUENCY NET "CLK_RX_FULL_OUT" 250.000000 MHz ;
+FREQUENCY PORT "CLK_GPLL_LEFT" 200 MHz ;
+FREQUENCY NET "clk_200_i" 200 MHz ;
+FREQUENCY NET "clk_100_i_c" 100 MHz ;
+FREQUENCY NET "CLK_RX_FULL_OUT" 250 MHz ;
+FREQUENCY NET "THE_CBM_PHY/clk_tx_full_i" 250 MHz ;
+FREQUENCY NET "THE_MEDIA_UPLINK/un1_THE_MEDIA_UPLINK_2_c" 100 MHz ;
+FREQUENCY NET "THE_CBM_PHY/THE_RX_GEAR/clk_125_i_i" 125 MHz ;
+FREQUENCY NET "rclk_125_i" 125 MHz ;
 
-MULTICYCLE FROM CLKNET "CLK_RX_FULL_OUT" TO CLKNET "rclk_125_i" 2.000000 X_DEST ;
+DEFINE BUS "rx_data" NET "THE_CBM_PHY/rx_data_from_serdes_i[0]"  NET "THE_CBM_PHY/rx_data_from_serdes_i[1]"  NET "THE_CBM_PHY/rx_data_from_serdes_i[2]"  NET "THE_CBM_PHY/rx_data_from_serdes_i[3]"  NET "THE_CBM_PHY/rx_data_from_serdes_i[4]"  NET "THE_CBM_PHY/rx_data_from_serdes_i[5]"  NET "THE_CBM_PHY/rx_data_from_serdes_i[6]"  NET "THE_CBM_PHY/rx_data_from_serdes_i[7]"  NET "THE_CBM_PHY/rx_data_from_serdes_i[8]";
+DEFINE BUS "tx_data" NET "THE_CBM_PHY/tx_data_to_serdes_i[0]"  NET "THE_CBM_PHY/tx_data_to_serdes_i[1]"  NET "THE_CBM_PHY/tx_data_to_serdes_i[2]"  NET "THE_CBM_PHY/tx_data_to_serdes_i[3]"  NET "THE_CBM_PHY/tx_data_to_serdes_i[4]"  NET "THE_CBM_PHY/tx_data_to_serdes_i[5]"  NET "THE_CBM_PHY/tx_data_to_serdes_i[6]"  NET "THE_CBM_PHY/tx_data_to_serdes_i[7]"  NET "THE_CBM_PHY/tx_data_to_serdes_i[8]";
+
+PRIORITIZE BUS "rx_data" 51;
+PRIORITIZE BUS "tx_data" 50;

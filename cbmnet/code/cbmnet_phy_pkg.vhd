@@ -181,7 +181,18 @@ package cbmnet_phy_pkg is
 
       );
    end component;   
+   
+   function EBTB_D_ENCODE(
+      constant x : integer range 0 to 31;
+      constant y : integer range 0 to 7
+   ) return std_logic_vector;
+   
 end package cbmnet_phy_pkg;
 
 package body cbmnet_phy_pkg is
+   function EBTB_D_ENCODE(constant x : integer range 0 to 31; constant y : integer range 0 to 7) return std_logic_vector
+   is begin
+      return STD_LOGIC_VECTOR(TO_UNSIGNED(x, 5)) & STD_LOGIC_VECTOR(TO_UNSIGNED(y, 3));
+   end EBTB_D_ENCODE;
+   
 end package body;
