@@ -57,7 +57,7 @@ begin
          delay_counter_i <= TO_UNSIGNED(0,16);
       end if;
       
-      data_in_buf250_0_i <= data_in_buf250_i;
+      data_in_buf250_0_i <= data_in_buf125_i;
       data_in_buf250_i <= data_in_buf250_0_i;
       
       

@@ -10,7 +10,8 @@ package cbmnet_phy_pkg is
       generic(
          IS_SYNC_SLAVE   : integer := c_NO;       --select slave mode
          IS_SIMULATED    : integer := c_NO;
-         INCL_DEBUG_AIDS : integer := c_YES
+         INCL_DEBUG_AIDS : integer;
+         DETERMINISTIC_LATENCY : integer := c_YES -- if selected proper alignment of barrel shifter and word alignment is enforced (link may come up slower)
       );
       port(
          CLK                : in  std_logic; -- *internal* 125 MHz reference clock

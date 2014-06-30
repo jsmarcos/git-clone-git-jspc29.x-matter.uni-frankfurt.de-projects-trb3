@@ -96,9 +96,9 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    signal rx_dec_error_i:          std_logic;
    signal rx_dec_error_delayed_i : std_logic;
    signal rx_dec_error_250_i : std_logic_vector(1 downto 0);
-   signal rx_dec_error_125_i, rx_dec_error_125_buf_i: std_logic_vector(3 downto 0);
+   signal rx_dec_error_125_i, rx_dec_error_125_buf_i: std_logic_vector(1 downto 0);
 
-   signal rx_error_delay : std_logic_vector(3 downto 0); -- shift register to detect a "stable error condition"
+   signal rx_error_delay : std_logic_vector(7 downto 0) := (others => '0'); -- shift register to detect a "stable error condition"
    
    -- resets
    signal rst_qd_i            : std_logic;
@@ -235,6 +235,13 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    
    signal rx_data_sp_i0, rx_data_sp_i1, rx_data_sp_i2, rx_data_sp_i3 : std_logic_vector(17 downto 0);
    
+   signal tx_data_sp_i0, tx_data_sp_i1, tx_data_sp_i2, tx_data_sp_i3 : std_logic_vector(17 downto 0);
+   signal tx_data_sp_i4, tx_data_sp_i5, tx_data_sp_i6, tx_data_sp_i7 : std_logic_vector(17 downto 0);
+   signal tx_data_sp_i8, tx_data_sp_i9, tx_data_sp_i10,tx_data_sp_i11: std_logic_vector(17 downto 0);
+   
+   signal dlm_counter_i : unsigned(15 downto 0) := x"0000";
+   signal detect_dlm_125_i, detect_dlm_250_i : std_logic := '0';
+   
    --signal see_dlm_lb_i, see_dlm_lb_buf_i : std_logic_vector(15 downto 0) := (others => '0');
    --signal see_dlm_lb_aggr_i, see_dlm_hb_i, see_dlm_hb_buf_i : std_logic;
    --signal stat_sync_dlm_counter_i, stat_sync_dlm_inv_counter_i : unsigned(7 downto 0);
@@ -342,7 +349,7 @@ begin
       DEBUG_OUT   => rx_gear_debug_i
    );
    
-   rx_data_i <= rx_data_from_gear_i when rising_edge(clk_125_local);
+   rx_data_i <= rx_data_from_gear_i when rising_edge(rclk_125_i);
    
    THE_TX_GEAR: CBMNET_PHY_TX_GEAR
    generic map (IS_SYNC_SLAVE => IS_SYNC_SLAVE)
@@ -394,13 +401,13 @@ begin
    
    
 --   -- decode error
---   rx_dec_error_delayed_i <= rx_dec_error_delayed_i when rising_edge(rclk_250_i);
---   rx_dec_error_250_i <= rx_dec_error_i & rx_dec_error_delayed_i when rising_edge(rclk_250_i);
---   
---   rx_dec_error_125_i <= rx_dec_error_125_i(0) & rx_dec_error_i when rising_edge(clk_125_local);
---   rx_dec_error_125_buf_i <= rx_dec_error_125_i when rising_edge(clk_125_local);
---   
---   rx_error_delay <= rx_error_delay(rx_error_delay'high - 2 downto 0) & rx_dec_error_125_buf_i when rising_edge(clk_125_local);
+  rx_dec_error_delayed_i <= rx_dec_error_i when rising_edge(rclk_250_i);
+  rx_dec_error_250_i <= rx_dec_error_i & rx_dec_error_delayed_i when rising_edge(rclk_250_i);
+  
+  rx_dec_error_125_i     <= rx_dec_error_250_i when rising_edge(clk_125_local);
+  rx_dec_error_125_buf_i <= rx_dec_error_125_i when rising_edge(clk_125_local);
+  
+  rx_error_delay <= rx_error_delay(rx_error_delay'high - 2 downto 0) & rx_dec_error_125_buf_i when rising_edge(clk_125_local);
 --   process is 
 --   begin
 --      wait until rising_edge(rclk_125_i);
@@ -547,7 +554,7 @@ begin
             sci_read_i      <= '0';
             sci_write_i     <= '0';
             sci_timer       <= sci_timer + 1;
-            if sci_timer(sci_timer'left) = '1' then
+            if sci_timer(sci_timer'left) = '1' and rx_rst_fsm_ready_i = '1' then
                sci_timer     <= (others => '0');
                sci_state     <= GET_WA;
             end if;      
@@ -698,8 +705,12 @@ begin
 	   DEBUG_OUT(243 downto 212) <= rm_rx_ebtb_code_err_cntr_i(15 downto 0) & rm_rx_ebtb_disp_err_cntr_i(15 downto 0);
 
 	   DEBUG_OUT(315 downto 244) <= rx_data_sp_i3(17 downto 0) & rx_data_sp_i2(17 downto 0) & rx_data_sp_i1(17 downto 0) & rx_data_sp_i0(17 downto 0);
+	   DEBUG_OUT(331 downto 316) <= dlm_counter_i(15 downto 0);
+--	   DEBUG_OUT(333 downto 316) <= PHY_TXDATA_K_IN(1 downto 0) & PHY_TXDATA_IN(15 downto 0);
 	   
-	   DEBUG_OUT(333 downto 316) <= PHY_TXDATA_K_IN(1 downto 0) & PHY_TXDATA_IN(15 downto 0);
+
+	   DEBUG_OUT(511 downto 332) <= tx_data_sp_i3(17 downto 0) & tx_data_sp_i2(17 downto 0) & tx_data_sp_i1(17 downto 0) & tx_data_sp_i0(17 downto 0) & tx_data_sp_i7(17 downto 0) & tx_data_sp_i6(17 downto 0) & tx_data_sp_i5(17 downto 0) & tx_data_sp_i4(17 downto 0) &         tx_data_sp_i8(17 downto 0) & tx_data_sp_i9(17 downto 0);
+	   
 	   --DEBUG_OUT(341 downto 334) <= stat_sync_dlm_inv_counter_i(7 downto 0) when rising_edge(rclk_125_i);
       --DEBUG_OUT(349 downto 342) <= stat_sync_dlm_counter_i(7 downto 0) when rising_edge(rclk_125_i); 
 	   
@@ -712,13 +723,61 @@ begin
       process is
       begin
          wait until rising_edge(rclk_125_i);
-         if rx_data_i /= "10" & x"fcc3" then
+         if rx_data_i /= "10" & x"fcc3" and  rx_data_i /= "00" & x"0000" then
             rx_data_sp_i0 <= rx_data_i;
             rx_data_sp_i1 <= rx_data_sp_i0;
             rx_data_sp_i2 <= rx_data_sp_i1;
             rx_data_sp_i3 <= rx_data_sp_i2;
          end if;
       end process;
+
+      
+      process is
+      begin
+         wait until rising_edge(rclk_125_i);
+         if tx_data_i /= "10" & x"fcc3" and tx_data_i(17 downto 16) /= "00" then
+            tx_data_sp_i0 <= tx_data_i;
+            tx_data_sp_i1 <= tx_data_sp_i0;
+            tx_data_sp_i2 <= tx_data_sp_i1;
+            tx_data_sp_i3 <= tx_data_sp_i2;
+            tx_data_sp_i4 <= tx_data_sp_i3;
+            tx_data_sp_i5 <= tx_data_sp_i4;
+            tx_data_sp_i6 <= tx_data_sp_i5;
+            tx_data_sp_i7 <= tx_data_sp_i6;
+            tx_data_sp_i8 <= tx_data_sp_i7;
+            tx_data_sp_i9 <= tx_data_sp_i8;
+            tx_data_sp_i10 <= tx_data_sp_i9;
+            tx_data_sp_i11 <= tx_data_sp_i10;
+         end if;
+      end process;
+      
+      
+      process is 
+         variable detect_first_v : std_logic := '0';
+      begin
+         wait until rising_edge(rclk_250_i);
+         
+         if rx_data_from_serdes_i = "1" & K277 and detect_first_v = '1' then
+            detect_dlm_250_i <= not detect_dlm_250_i;
+         end if;
+         
+         detect_first_v := '0';
+         if rx_data_from_serdes_i = "0" & EBTB_D_ENCODE(14, 6) then
+            detect_first_v := '1';
+         end if;
+      end process;
+      
+      process is 
+      begin
+         wait until rising_edge(rclk_125_i);
+         
+         if detect_dlm_250_i /= detect_dlm_125_i then
+            dlm_counter_i <= dlm_counter_i + 1;
+         end if;
+         
+         detect_dlm_125_i <= detect_dlm_250_i;
+      end process;
+      
       
       --PROC_SEE_FAST_DLM: process is
          --variable saw_lb_v, saw_hb_v : std_logic;

@@ -73,7 +73,7 @@ begin
          delay_clock_i <= '0';
          fsm_state_i <= x"0";
          
-      elsif rising_edge(clk_125_i) then
+      else
          SERDES_RESET_OUT <= '0';
          RESET_OUT <= '1';
          reset_timer_i <= '0';
@@ -125,38 +125,33 @@ begin
       end if;
    end process;
    
--- Timeout (approx. 2ms)
+-- Timeout (approx. 4ms)
    proc_timeout: process is 
-      variable timer_v : unsigned(19 downto 0) := (others => '0');
-      variable idx : integer := 18;
+      variable timer_v : unsigned(20 downto 0) := (others => '0');
    begin
       wait until rising_edge(clk_125_i);
-      
-      if IS_SYNC_SLAVE = 0 then
-         idx := timer_v'high;
-      end if;
       
       if reset_timer_i = '1' then
          timer_v := TO_UNSIGNED(0, timer_v'length);
          
-      elsif timer_v(idx) = '0' then
+      elsif timer_v(timer_v'high) = '0' then
          timer_v := timer_v + TO_UNSIGNED(1,1);
          
       end if;
 
-      timeout_i <= timer_v(idx);
+      timeout_i <= timer_v(timer_v'high);
    end process;
 
 -- Implement the 2:1 gearing and clock down-sampling
-   delay_clock_buf1_i <= delay_clock_i when rising_edge(CLK_250_IN);
-   delay_clock_buf_i <= delay_clock_buf1_i when rising_edge(CLK_250_IN);
+   --delay_clock_buf1_i <= delay_clock_i when rising_edge(CLK_250_IN);
+   delay_clock_buf_i <= delay_clock_i when rising_edge(CLK_250_IN);
  
 
    proc_ctrl_gear: process
    begin
       wait until rising_edge(CLK_250_IN);
 
-      if not (delay_clock_buf_i = '1' and last_delay_clock_i = '0') then
+      if not (delay_clock_buf_i = '1' and last_delay_clock_i = '0') or PCS_READY_IN='0' then
          word_idx_i <= not word_idx_i;
       end if;
       
