@@ -1,4 +1,4 @@
-library ieee;
+Library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use ieee.std_logic_unsigned.all;
@@ -12,6 +12,9 @@ library work;
    use work.tdc_version.all;
    use work.trb_net_gbe_components.all;
    
+   use work.cbmnet_interface_pkg.all;
+   use work.cbmnet_phy_pkg.all;
+   
    use work.cts_pkg.all;
    
 --Configuration is done in this file:   
@@ -24,7 +27,7 @@ library work;
 --   C0 -   CF  Hub control registers
 -- 4000 - 40FF  Hub status registers
 -- 7000 - 72FF  Readout endpoint registers
--- 8100 - 83FF  GbE configuration & status
+-- 8100 - 83FF  bGE configuration & status
 -- A000 - A1FF  CTS configuration & status
 -- C000 - CFFF  TDC configuration & status
 -- D000 - D13F  Flash Programming
@@ -247,6 +250,19 @@ architecture trb3_central_arch of trb3_central is
   signal spi_bram_rd_d           : std_logic_vector(7 downto 0);
   signal spi_bram_we             : std_logic;
 
+  signal hub_cts_number                   : std_logic_vector(15 downto 0);
+  signal hub_cts_code                     : std_logic_vector(7 downto 0);
+  signal hub_cts_information              : std_logic_vector(7 downto 0);
+  signal hub_cts_start_readout            : std_logic;
+  signal hub_cts_readout_type             : std_logic_vector(3 downto 0);
+  signal hub_cts_readout_finished         : std_logic;
+  signal hub_cts_status_bits              : std_logic_vector(31 downto 0);
+  signal hub_fee_data                     : std_logic_vector(15 downto 0);
+  signal hub_fee_dataready                : std_logic;
+  signal hub_fee_read                     : std_logic;
+  signal hub_fee_status_bits              : std_logic_vector(31 downto 0);
+  signal hub_fee_busy                     : std_logic;
+
   signal gbe_cts_number                   : std_logic_vector(15 downto 0);
   signal gbe_cts_code                     : std_logic_vector(7 downto 0);
   signal gbe_cts_information              : std_logic_vector(7 downto 0);
@@ -258,8 +274,8 @@ architecture trb3_central_arch of trb3_central is
   signal gbe_fee_dataready                : std_logic;
   signal gbe_fee_read                     : std_logic;
   signal gbe_fee_status_bits              : std_logic_vector(31 downto 0);
-  signal gbe_fee_busy                     : std_logic;
-
+  signal gbe_fee_busy                     : std_logic;  
+  
   signal stage_stat_regs              : std_logic_vector (31 downto 0);
   signal stage_ctrl_regs              : std_logic_vector (31 downto 0) := (others => '0');
 
@@ -433,9 +449,76 @@ architecture trb3_central_arch of trb3_central is
   signal tdc_debug      : std_logic_vector(15 downto 0);  
 
   signal led_time_ref_i : std_logic;
+
+-- cbmnet  
+  signal cbm_clk_i             : std_logic;
+  signal cbm_reset_i           : std_logic;
+  signal cbm_reset_n_i         : std_logic;
+
+  signal cbm_phy_led_rx_i      : std_logic;
+  signal cbm_phy_led_tx_i      : std_logic;
+  signal cbm_phy_led_ok_i      : std_logic;
+
+  signal cbm_ctrl2send_stop_i  :  std_logic := '0'; -- send control interface
+  signal cbm_ctrl2send_start_i :  std_logic := '0';
+  signal cbm_ctrl2send_end_i   :  std_logic := '0';
+  signal cbm_ctrl2send_i       :  std_logic_vector(15 downto 0) := (others => '0');
+
+  signal cbm_data2send_stop_i  :  std_logic_vector(0 downto 0) := (others => '0'); -- send data interface
+  signal cbm_data2send_start_i :  std_logic_vector(0 downto 0) := (others => '0');
+  signal cbm_data2send_end_i   :  std_logic_vector(0 downto 0) := (others => '0');
+  signal cbm_data2send_i       :  std_logic_vector(15 downto 0) := (others => '0');
+
+  signal cbm_dlm2send_va_i     :  std_logic := '0';                      -- send dlm interface
+  signal cbm_dlm2send_i        :  std_logic_vector(3 downto 0) := (others => '0');
+
+  signal cbm_dlm_ref_rec_type_i:  std_logic_vector(3 downto 0) := (others => '0');   -- receive dlm interface
+  signal cbm_dlm_ref_rec_va_i  :  std_logic := '0';
+
+  signal cbm_dlm_rec_type_i    :  std_logic_vector(3 downto 0) := (others => '0');   -- receive dlm interface
+  signal cbm_dlm_rec_va_i      :  std_logic := '0';
+
+  signal cbm_data_rec_i        :  std_logic_vector(15 downto 0);   -- receive data interface
+  signal cbm_data_rec_start_i  :  std_logic_vector(0 downto 0);
+  signal cbm_data_rec_end_i    :  std_logic_vector(0 downto 0);         
+  signal cbm_data_rec_stop_i   :  std_logic_vector(0 downto 0) := (others =>'0');  
+
+  signal cbm_ctrl_rec_i        :  std_logic_vector(15 downto 0);       -- receive control interface
+  signal cbm_ctrl_rec_start_i  :  std_logic;
+  signal cbm_ctrl_rec_end_i    :  std_logic;                 
+  signal cbm_ctrl_rec_stop_i   :  std_logic;
+
+  signal cbm_data_from_link_i  :  std_logic_vector(17 downto 0);   -- interface from the phy
+  signal cbm_data2link_i       :  std_logic_vector(17 downto 0);   -- interface to the phy
+
+  signal cbm_link_activeovr_i  :  std_logic := '0'; -- overrides; set 0 by default
+  signal cbm_link_readyovr_i   :  std_logic := '0';
+
+  signal cbm_serdes_ready_i    :  std_logic;    --   signalize when phy ready  
+  signal cbm_link_active_i     :  std_logic;    --   signalize when lp_top is ready
+
+
+  signal cbm_crc_error_cntr_flag_i     : std_logic;
+  signal cbm_retrans_cntr_flag_i       : std_logic;
+  signal cbm_retrans_error_cntr_flag_i : std_logic;
+  signal cbm_crc_error_cntr_i          : std_logic_vector(15 downto 0);
+  signal cbm_retrans_cntr_i            : std_logic_vector(15 downto 0);
+  signal cbm_retrans_error_cntr_i      : std_logic_vector(15 downto 0);
+  signal cbm_crc_error_cntr_clr_i      : std_logic;
+  signal cbm_retrans_cntr_clr_i        : std_logic;
+  signal cbm_retrans_error_cntr_clr_i  : std_logic;
+
+  signal cbm_rdo_regio_addr_i         : std_logic_vector(15 downto 0);
+  signal cbm_rdo_regio_data_status_i  : std_logic_vector(31 downto 0);
+  signal cbm_rdo_regio_read_enable_i  : std_logic;
+  signal cbm_rdo_regio_write_enable_i : std_logic;
+  signal cbm_rdo_regio_data_ctrl_i    : std_logic_vector(31 downto 0);
+  signal cbm_rdo_regio_dataready_i    : std_logic;
+  signal cbm_rdo_regio_write_ack_i    : std_logic;
+  signal cbm_rdo_regio_unknown_addr_i : std_logic;
 begin
 -- MBS Module
-  gen_mbs_vulom_as_etm : if ETM_CHOICE = ETM_CHOICE_MBS_VULOM generate
+  gen_mbs_vulom_as_etm : if ETM_CHOICE = ETM_CHOICE_MBS_VULOM and INCLUDE_CTS = c_YES generate
    THE_MBS: entity work.mbs_vulom_recv
    port map (
       CLK => clk_100_i,
@@ -463,7 +546,7 @@ begin
   end generate;
 
 -- Mainz A2 Module
-  gen_mainz_a2_as_etm: if ETM_CHOICE = ETM_CHOICE_MAINZ_A2 generate
+  gen_mainz_a2_as_etm: if ETM_CHOICE = ETM_CHOICE_MAINZ_A2 and INCLUDE_CTS = c_YES generate
     mainz_a2_recv_1: entity work.mainz_a2_recv
       port map (
         CLK             => clk_100_i,
@@ -486,125 +569,399 @@ begin
         );
   end generate;
 
+-- CBMNet ETM
+   gen_cbmnet_etm: if (ETM_CHOICE_CBMNET = ETM_CHOICE_CBMNET and INCLUDE_CTS = c_YES) generate
+      assert(INCLUDE_CBMNET = c_YES) report "CBMNET DLM ETM requires the CBMNET stack (INCLUDE_CBMNET = c_YES)" severity failure;
+      THE_CBMNET_ETM: entity work.cbmnet_dlm_etm
+      generic map (DLM_NUM => 10)
+      port map (
+         CLK        => clk_100_i,
+         RESET_IN   => reset_i,
 
- THE_CTS: CTS 
-   generic map (
-      EXTERNAL_TRIGGER_ID  => X"60"+ETM_CHOICE_type'pos(ETM_CHOICE), -- fill in trigger logic enumeration id of external trigger logic
-      
-      TRIGGER_COIN_COUNT   => 4,
-      TRIGGER_PULSER_COUNT => 2,
-      TRIGGER_RAND_PULSER  => 1,
+         TRG_SYNC_OUT   => cts_ext_trigger,
+         
+         -- CBMNET DLM Port
+         CBMNET_CLK_IN     => cbm_clk_i,
+         CBMNET_DLM_REC_IN => cbm_dlm_rec_type_i,
+         CBMNET_DLM_REC_VALID_IN => cbm_dlm_rec_va_i, 
+         
+         --data output for read-out
+         TRIGGER_IN     => cts_rdo_trg_data_valid,
+         DATA_OUT       => cts_rdo_additional_data(31 downto 0),
+         WRITE_OUT      => cts_rdo_additional_write(0),
+         STATUSBIT_OUT  => cts_rdo_trg_status_bits_additional(31 downto 0),
+         FINISHED_OUT   => cts_rdo_additional_finished(0),
+            
+            --Registers / Debug    
+         CONTROL_REG_IN => cts_ext_control,
+         STATUS_REG_OUT => cts_ext_status,
+         HEADER_REG_OUT => cts_ext_header,
+         
+         DEBUG => cts_ext_debug
+      );
+   end generate;
+  
+   GEN_CTS: if INCLUDE_CTS = c_YES generate
+      THE_CTS: CTS 
+      generic map (
+         EXTERNAL_TRIGGER_ID  => X"60"+ETM_CHOICE_type'pos(ETM_CHOICE), -- fill in trigger logic enumeration id of external trigger logic
+         
+         TRIGGER_COIN_COUNT   => 4,
+         TRIGGER_PULSER_COUNT => 2,
+         TRIGGER_RAND_PULSER  => 1,
 
-      TRIGGER_INPUT_COUNT  => 0, -- now all inputs are routed via an input multiplexer!
-      TRIGGER_ADDON_COUNT  => 6,
-      
-      PERIPH_TRIGGER_COUNT => 2,
-      
-      OUTPUT_MULTIPLEXERS  => CTS_OUTPUT_MULTIPLEXERS,
-      
-      ADDON_LINE_COUNT     => CTS_ADDON_LINE_COUNT,
-      ADDON_GROUPS         => 7,
-      ADDON_GROUP_UPPER    => (3,7,11,15,16,17, others=>0)
-   )
-   port map ( 
-      CLK => clk_100_i,
-      RESET => reset_i,
-      
-      --TRIGGERS_IN => trigger_in_buf_i,
-      TRIGGER_BUSY_OUT => trigger_busy_i,
-      TIME_REFERENCE_OUT => cts_trigger_out,
-      
-      ADDON_TRIGGERS_IN        => cts_addon_triggers_in,
-      ADDON_GROUP_ACTIVITY_OUT => cts_addon_activity_i,
-      ADDON_GROUP_SELECTED_OUT => cts_addon_selected_i,
-      
-      EXT_TRIGGER_IN => cts_ext_trigger,
-      EXT_STATUS_IN  => cts_ext_status,
-      EXT_CONTROL_OUT => cts_ext_control,
-      EXT_HEADER_BITS_IN => cts_ext_header,
-      
-      PERIPH_TRIGGER_IN => cts_periph_trigger_i,
-      
-      OUTPUT_MULTIPLEXERS_OUT => cts_output_multiplexers_i,
-      
-      CTS_TRG_SEND_OUT => cts_trg_send,
-      CTS_TRG_TYPE_OUT => cts_trg_type,
-      CTS_TRG_NUMBER_OUT => cts_trg_number,
-      CTS_TRG_INFORMATION_OUT => cts_trg_information,
-      CTS_TRG_RND_CODE_OUT => cts_trg_code,
-      CTS_TRG_STATUS_BITS_IN => cts_trg_status_bits,
-      CTS_TRG_BUSY_IN => cts_trg_busy,
-       
-      CTS_IPU_SEND_OUT => cts_ipu_send,
-      CTS_IPU_TYPE_OUT => cts_ipu_type,
-      CTS_IPU_NUMBER_OUT => cts_ipu_number,
-      CTS_IPU_INFORMATION_OUT => cts_ipu_information,
-      CTS_IPU_RND_CODE_OUT => cts_ipu_code,
-      CTS_IPU_STATUS_BITS_IN => cts_ipu_status_bits,
-      CTS_IPU_BUSY_IN => cts_ipu_busy,
-       
-      CTS_REGIO_ADDR_IN => cts_regio_addr,
-      CTS_REGIO_DATA_IN => cts_regio_data_out,
-      CTS_REGIO_READ_ENABLE_IN => cts_regio_read,
-      CTS_REGIO_WRITE_ENABLE_IN => cts_regio_write,
-      CTS_REGIO_DATA_OUT => cts_regio_data_in,
-      CTS_REGIO_DATAREADY_OUT => cts_regio_dataready,
-      CTS_REGIO_WRITE_ACK_OUT => cts_regio_write_ack,
-      CTS_REGIO_UNKNOWN_ADDR_OUT => cts_regio_unknown_addr,
-  
-      LVL1_TRG_DATA_VALID_IN    => cts_rdo_trg_data_valid,
-      LVL1_VALID_TIMING_TRG_IN  => cts_rdo_valid_timing_trg,
-      LVL1_VALID_NOTIMING_TRG_IN=> cts_rdo_valid_notiming_trg,
-      LVL1_INVALID_TRG_IN       => cts_rdo_invalid_trg,
-  
-      FEE_TRG_STATUSBITS_OUT  => cts_rdo_trg_status_bits_cts,
-      FEE_DATA_OUT            => cts_rdo_data,
-      FEE_DATA_WRITE_OUT      => cts_rdo_write,
-      FEE_DATA_FINISHED_OUT   => cts_rdo_finished
-   );   
+         TRIGGER_INPUT_COUNT  => 0, -- now all inputs are routed via an input multiplexer!
+         TRIGGER_ADDON_COUNT  => 6,
+         
+         PERIPH_TRIGGER_COUNT => 2,
+         
+         OUTPUT_MULTIPLEXERS  => CTS_OUTPUT_MULTIPLEXERS,
+         
+         ADDON_LINE_COUNT     => CTS_ADDON_LINE_COUNT,
+         ADDON_GROUPS         => 7,
+         ADDON_GROUP_UPPER    => (3,7,11,15,16,17, others=>0)
+      )
+      port map ( 
+         CLK => clk_100_i,
+         RESET => reset_i,
+         
+         --TRIGGERS_IN => trigger_in_buf_i,
+         TRIGGER_BUSY_OUT => trigger_busy_i,
+         TIME_REFERENCE_OUT => cts_trigger_out,
+         
+         ADDON_TRIGGERS_IN        => cts_addon_triggers_in,
+         ADDON_GROUP_ACTIVITY_OUT => cts_addon_activity_i,
+         ADDON_GROUP_SELECTED_OUT => cts_addon_selected_i,
+         
+         EXT_TRIGGER_IN => cts_ext_trigger,
+         EXT_STATUS_IN  => cts_ext_status,
+         EXT_CONTROL_OUT => cts_ext_control,
+         EXT_HEADER_BITS_IN => cts_ext_header,
+         
+         PERIPH_TRIGGER_IN => cts_periph_trigger_i,
+         
+         OUTPUT_MULTIPLEXERS_OUT => cts_output_multiplexers_i,
+         
+         CTS_TRG_SEND_OUT => cts_trg_send,
+         CTS_TRG_TYPE_OUT => cts_trg_type,
+         CTS_TRG_NUMBER_OUT => cts_trg_number,
+         CTS_TRG_INFORMATION_OUT => cts_trg_information,
+         CTS_TRG_RND_CODE_OUT => cts_trg_code,
+         CTS_TRG_STATUS_BITS_IN => cts_trg_status_bits,
+         CTS_TRG_BUSY_IN => cts_trg_busy,
+            
+         CTS_IPU_SEND_OUT => cts_ipu_send,
+         CTS_IPU_TYPE_OUT => cts_ipu_type,
+         CTS_IPU_NUMBER_OUT => cts_ipu_number,
+         CTS_IPU_INFORMATION_OUT => cts_ipu_information,
+         CTS_IPU_RND_CODE_OUT => cts_ipu_code,
+         CTS_IPU_STATUS_BITS_IN => cts_ipu_status_bits,
+         CTS_IPU_BUSY_IN => cts_ipu_busy,
+            
+         CTS_REGIO_ADDR_IN => cts_regio_addr,
+         CTS_REGIO_DATA_IN => cts_regio_data_out,
+         CTS_REGIO_READ_ENABLE_IN => cts_regio_read,
+         CTS_REGIO_WRITE_ENABLE_IN => cts_regio_write,
+         CTS_REGIO_DATA_OUT => cts_regio_data_in,
+         CTS_REGIO_DATAREADY_OUT => cts_regio_dataready,
+         CTS_REGIO_WRITE_ACK_OUT => cts_regio_write_ack,
+         CTS_REGIO_UNKNOWN_ADDR_OUT => cts_regio_unknown_addr,
+
+         LVL1_TRG_DATA_VALID_IN    => cts_rdo_trg_data_valid,
+         LVL1_VALID_TIMING_TRG_IN  => cts_rdo_valid_timing_trg,
+         LVL1_VALID_NOTIMING_TRG_IN=> cts_rdo_valid_notiming_trg,
+         LVL1_INVALID_TRG_IN       => cts_rdo_invalid_trg,
+
+         FEE_TRG_STATUSBITS_OUT  => cts_rdo_trg_status_bits_cts,
+         FEE_DATA_OUT            => cts_rdo_data,
+         FEE_DATA_WRITE_OUT      => cts_rdo_write,
+         FEE_DATA_FINISHED_OUT   => cts_rdo_finished
+      );   
+
+      cts_addon_triggers_in( 1 downto  0) <= CLK_EXT;                 -- former trigger inputs
+      cts_addon_triggers_in( 3 downto  2) <= TRIGGER_EXT(3 downto 2); -- former trigger inputs
+
+      cts_addon_triggers_in( 7 downto  4) <= ECL_IN;
+      cts_addon_triggers_in(11 downto  8) <= JIN1;
+      cts_addon_triggers_in(15 downto 12) <= JIN2;
+      cts_addon_triggers_in(17 downto 16) <= NIM_IN;
+
+      cts_addon_triggers_in(18) <= or_all(ECL_IN);
+      cts_addon_triggers_in(19) <= or_all(JIN1);
+      cts_addon_triggers_in(20) <= or_all(JIN2);
+      cts_addon_triggers_in(21) <= or_all(NIM_IN);
+
+      LED_BANK(7 downto 6) <= cts_addon_activity_i(4 downto 3);
+      LED_RJ_GREEN <= (
+         0 => cts_addon_activity_i(2),
+         1 => cts_addon_activity_i(3),
+         5 => cts_addon_activity_i(1),
+         others => '0'
+      );
+         
+      LED_RJ_RED <= (
+         0 => cts_addon_selected_i(2),
+         1 => cts_addon_selected_i(3),
+         5 => cts_addon_selected_i(1),
+         others => '0'
+      );
+
+      cts_periph_trigger_i <= FPGA4_COMM(10 downto 6)
+                              & FPGA3_COMM(10 downto 6)
+                              & FPGA2_COMM(10 downto 6)
+                              & FPGA1_COMM(10 downto 6);
+
+      JOUT1    <= cts_output_multiplexers_i(3 downto 0);
+      JOUT2    <= cts_output_multiplexers_i(7 downto 4);
+      JOUTLVDS <= cts_output_multiplexers_i(7 downto 0);
+      --LED_BANK <= cts_output_multiplexers_i(7 downto 0);
+   end generate;
    
-   --process is
-   --begin
-      --wait until rising_edge(clk_100_i);
+   GEN_NO_CTS: if INCLUDE_CTS = c_NO generate
+      cts_rdo_trg_status_bits <= (others => '0');
+      cts_rdo_finished <= '1';
+      cts_regio_unknown_addr <= '1';
       
-   cts_addon_triggers_in( 1 downto  0) <= CLK_EXT;                 -- former trigger inputs
-   cts_addon_triggers_in( 3 downto  2) <= TRIGGER_EXT(3 downto 2); -- former trigger inputs
+      cts_ipu_send <= '0';
+      cts_trg_send <= '0';
+      cts_trigger_out <= '0';
+   end generate;
    
-   cts_addon_triggers_in( 7 downto  4) <= ECL_IN;
-   cts_addon_triggers_in(11 downto  8) <= JIN1;
-   cts_addon_triggers_in(15 downto 12) <= JIN2;
-   cts_addon_triggers_in(17 downto 16) <= NIM_IN;
-   
-   cts_addon_triggers_in(18) <= or_all(ECL_IN);
-   cts_addon_triggers_in(19) <= or_all(JIN1);
-   cts_addon_triggers_in(20) <= or_all(JIN2);
-   cts_addon_triggers_in(21) <= or_all(NIM_IN);
-   --end process;
-   
-   LED_BANK(7 downto 6) <= cts_addon_activity_i(4 downto 3);
-   LED_RJ_GREEN <= (
-      0 => cts_addon_activity_i(2),
-      1 => cts_addon_activity_i(3),
-      5 => cts_addon_activity_i(1),
-      others => '0'
-   );
+---------------------------------------------------------------------------
+-- CBMNET stack
+---------------------------------------------------------------------------   
+   GEN_CBMNET: if INCLUDE_CBMNET = c_YES generate
+      THE_CBM_PHY: cbmnet_phy_ecp3
+      generic map (
+         IS_SYNC_SLAVE => c_YES,
+         DETERMINISTIC_LATENCY => c_YES
+      )
+      port map (
+         CLK                => clk_125_i,
+         RESET              => reset_i,
+         CLEAR              => '0',
+            
+         --Internal Connection TX
+         PHY_TXDATA_IN      => cbm_data2link_i(15 downto  0),
+         PHY_TXDATA_K_IN    => cbm_data2link_i(17 downto 16),
+         
+         --Internal Connection RX
+         PHY_RXDATA_OUT     => cbm_data_from_link_i(15 downto 0),
+         PHY_RXDATA_K_OUT   => cbm_data_from_link_i(17 downto 16),
+         
+         CLK_RX_HALF_OUT    => cbm_clk_i,
+         CLK_RX_FULL_OUT    => open,
+         CLK_RX_RESET_OUT   => cbm_reset_i,
+
+         LINK_ACTIVE_OUT    => open,
+         SERDES_ready       => cbm_serdes_ready_i,
+         
+         --SFP Connection
+         SD_RXD_P_IN        => SFP_RX_P(5),
+         SD_RXD_N_IN        => SFP_RX_N(5),
+         SD_TXD_P_OUT       => SFP_TX_P(5),
+         SD_TXD_N_OUT       => SFP_TX_N(5),
+
+         SD_PRSNT_N_IN      => SFP_MOD0(1),
+         SD_LOS_IN          => SFP_LOS(1),
+         SD_TXDIS_OUT       => SFP_TXDIS(1),
+         
+         LED_RX_OUT         => cbm_phy_led_rx_i,
+         LED_TX_OUT         => cbm_phy_led_tx_i,
+         LED_OK_OUT         => cbm_phy_led_ok_i,
+         
+         -- Status and control port
+         STAT_OP            => open,
+         CTRL_OP            => open,
+         DEBUG_OUT          => open
+      );
       
-   LED_RJ_RED <= (
-      0 => cts_addon_selected_i(2),
-      1 => cts_addon_selected_i(3),
-      5 => cts_addon_selected_i(1),
-      others => '0'
-   );
+      THE_CBM_ENDPOINT: lp_top 
+         generic map (
+            NUM_LANES => 1,
+            TX_SLAVE  => 0
+         )
+         port map (
+         -- Clk & Reset
+            clk => cbm_clk_i,
+            res_n => cbm_reset_n_i,
+
+         -- Phy
+            data_from_link => cbm_data_from_link_i,
+            data2link => cbm_data2link_i,
+            link_activeovr => '0',
+            link_readyovr => '0', 
+            SERDES_ready => cbm_serdes_ready_i,
+
+         -- CBMNet Interface
+            link_active => cbm_link_active_i,
+            ctrl2send_stop => cbm_ctrl2send_stop_i,
+            ctrl2send_start => cbm_ctrl2send_start_i,
+            ctrl2send_end => cbm_ctrl2send_end_i,
+            ctrl2send => cbm_ctrl2send_i,
+            
+            data2send_stop => cbm_data2send_stop_i,
+            data2send_start => cbm_data2send_start_i,
+            data2send_end => cbm_data2send_end_i,
+            data2send => cbm_data2send_i,
+            
+            dlm2send_va => cbm_dlm2send_va_i,
+            dlm2send => cbm_dlm2send_i,
+            
+            dlm_rec_type => cbm_dlm_rec_type_i,
+            dlm_rec_va => cbm_dlm_rec_va_i,
+
+            data_rec => cbm_data_rec_i,
+            data_rec_start => cbm_data_rec_start_i,
+            data_rec_end => cbm_data_rec_end_i,
+            data_rec_stop => cbm_data_rec_stop_i,
+            
+            ctrl_rec => cbm_ctrl_rec_i,
+            ctrl_rec_start => cbm_ctrl_rec_start_i,
+            ctrl_rec_end => cbm_ctrl_rec_end_i,
+            ctrl_rec_stop => cbm_ctrl_rec_stop_i,
+            
+            -- diagnostics Lane0
+            crc_error_cntr_flag_0     => cbm_crc_error_cntr_flag_i,      --  out std_logic;
+            retrans_cntr_flag_0       => cbm_retrans_cntr_flag_i,        --  out std_logic;
+            retrans_error_cntr_flag_0 => cbm_retrans_error_cntr_flag_i,  --  out std_logic;
+            crc_error_cntr_0          => cbm_crc_error_cntr_i,           --  out std_logic_vector(15 downto 0);
+            retrans_cntr_0            => cbm_retrans_cntr_i,             --  out std_logic_vector(15 downto 0);
+            retrans_error_cntr_0      => cbm_retrans_error_cntr_i,       --  out std_logic_vector(15 downto 0);
+            crc_error_cntr_clr_0      => cbm_crc_error_cntr_clr_i,       --  in std_logic;
+            retrans_cntr_clr_0        => cbm_retrans_cntr_clr_i,         --  in std_logic;
+            retrans_error_cntr_clr_0  => cbm_retrans_error_cntr_clr_i,   --  in std_logic;
+
+            -- diagnostics Lane1
+            crc_error_cntr_flag_1     => open, -- out std_logic;
+            retrans_cntr_flag_1       => open, -- out std_logic;
+            retrans_error_cntr_flag_1 => open, -- out std_logic;
+            crc_error_cntr_1          => open, -- out std_logic_vector(15 downto 0);
+            retrans_cntr_1            => open, -- out std_logic_vector(15 downto 0);
+            retrans_error_cntr_1      => open, -- out std_logic_vector(15 downto 0);
+            crc_error_cntr_clr_1      => '0', -- in std_logic;   
+            retrans_cntr_clr_1        => '0', -- in std_logic;    
+            retrans_error_cntr_clr_1  => '0', -- in std_logic; 
+
+            -- diagnostics Lane2
+            crc_error_cntr_flag_2     => open, -- out std_logic;
+            retrans_cntr_flag_2       => open, -- out std_logic;
+            retrans_error_cntr_flag_2 => open, -- out std_logic;
+            crc_error_cntr_2          => open, -- out std_logic_vector(15 downto 0);
+            retrans_cntr_2            => open, -- out std_logic_vector(15 downto 0);
+            retrans_error_cntr_2      => open, -- out std_logic_vector(15 downto 0);
+            crc_error_cntr_clr_2      => '0', -- in std_logic;   
+            retrans_cntr_clr_2        => '0', -- in std_logic;    
+            retrans_error_cntr_clr_2  => '0', -- in std_logic; 
+
+            -- diagnostics Lane3
+            crc_error_cntr_flag_3     => open, -- out std_logic;
+            retrans_cntr_flag_3       => open, -- out std_logic;
+            retrans_error_cntr_flag_3 => open, -- out std_logic;
+            crc_error_cntr_3          => open, -- out std_logic_vector(15 downto 0);
+            retrans_cntr_3            => open, -- out std_logic_vector(15 downto 0);
+            retrans_error_cntr_3      => open, -- out std_logic_vector(15 downto 0);
+            crc_error_cntr_clr_3      => '0', -- in std_logic;   
+            retrans_cntr_clr_3        => '0', -- in std_logic;    
+            retrans_error_cntr_clr_3  => '0'  -- in std_logic
+         );
+         cbm_reset_n_i <= not cbm_reset_i when rising_edge(cbm_clk_i);
+
+         cbm_crc_error_cntr_clr_i     <= cbm_reset_i;
+         cbm_retrans_cntr_clr_i       <= cbm_reset_i;
+         cbm_retrans_error_cntr_clr_i <= cbm_reset_i;
+
+         
+         THE_DLM_REFLECT: dlm_reflect
+         port map (
+            clk            => cbm_clk_i,       -- in std_logic;
+            res_n          => cbm_reset_n_i,    -- in std_logic;
+            
+            -- from interface
+            dlm_rec_in     => cbm_dlm_ref_rec_type_i, -- in std_logic_vector(3 downto 0);
+            dlm_rec_va_in  => cbm_dlm_ref_rec_va_i,   -- in std_logic;
+            
+            -- to application logic
+            dlm_rec_out    => cbm_dlm_rec_type_i,     -- out std_logic_vector(3 downto 0);
+            dlm_rec_va_out => cbm_dlm_rec_va_i,       -- out std_logic;
+            
+            -- to interface
+            dlm2send_va    => cbm_dlm2send_va_i,  -- out std_logic;
+            dlm2send       => cbm_dlm2send_i      -- out std_logic_vector(3 downto 0)
+         );
+         
+         THE_CBMNET_READOUT: cbmnet_readout 
+         port map(
+         -- TrbNet
+            CLK_IN   => clk_100_i, -- in std_logic;
+            RESET_IN => reset_i, -- in std_logic;
+
+            -- connect to hub
+            HUB_CTS_NUMBER_IN              => hub_cts_number, -- in  std_logic_vector (15 downto 0);
+            HUB_CTS_CODE_IN                => hub_cts_code, -- in  std_logic_vector (7  downto 0);
+            HUB_CTS_INFORMATION_IN         => hub_cts_information, -- in  std_logic_vector (7  downto 0);
+            HUB_CTS_READOUT_TYPE_IN        => hub_cts_readout_type, -- in  std_logic_vector (3  downto 0);
+            HUB_CTS_START_READOUT_IN       => hub_cts_start_readout, -- in  std_logic;
+            HUB_CTS_READOUT_FINISHED_OUT   => hub_cts_readout_finished, -- out std_logic;  --no more data, end transfer, send TRM
+            HUB_CTS_STATUS_BITS_OUT        => hub_cts_status_bits, -- out std_logic_vector (31 downto 0);
+            HUB_FEE_DATA_IN                => hub_fee_data, -- in  std_logic_vector (15 downto 0);
+            HUB_FEE_DATAREADY_IN           => hub_fee_dataready, -- in  std_logic;
+            HUB_FEE_READ_OUT               => hub_fee_read, -- out std_logic;  --must be high when idle, otherwise you will never get a dataready
+            HUB_FEE_STATUS_BITS_IN         => hub_fee_status_bits, -- in  std_logic_vector (31 downto 0);
+            HUB_FEE_BUSY_IN                => hub_fee_busy, -- in  std_logic;   
+
+            -- connect to GbE
+            GBE_CTS_NUMBER_OUT             => gbe_cts_number, -- out std_logic_vector (15 downto 0);
+            GBE_CTS_CODE_OUT               => gbe_cts_code, -- out std_logic_vector (7  downto 0);
+            GBE_CTS_INFORMATION_OUT        => gbe_cts_information, -- out std_logic_vector (7  downto 0);
+            GBE_CTS_READOUT_TYPE_OUT       => gbe_cts_readout_type, -- out std_logic_vector (3  downto 0);
+            GBE_CTS_START_READOUT_OUT      => gbe_cts_start_readout, -- out std_logic;
+            GBE_CTS_READOUT_FINISHED_IN    => gbe_cts_readout_finished, -- in  std_logic;      --no more data, end transfer, send TRM
+            GBE_CTS_STATUS_BITS_IN         => gbe_cts_status_bits, -- in  std_logic_vector (31 downto 0);
+            GBE_FEE_DATA_OUT               => gbe_fee_data, -- out std_logic_vector (15 downto 0);
+            GBE_FEE_DATAREADY_OUT          => gbe_fee_dataready, -- out std_logic;
+            GBE_FEE_READ_IN                => gbe_fee_read, -- in  std_logic;  --must be high when idle, otherwise you will never get a dataready
+            GBE_FEE_STATUS_BITS_OUT        => gbe_fee_status_bits, -- out std_logic_vector (31 downto 0);
+            GBE_FEE_BUSY_OUT               => gbe_fee_busy, -- out std_logic;
+
+            -- reg io
+            REGIO_ADDR_IN                  => cbm_rdo_regio_addr_i, -- in  std_logic_vector(15 downto 0);
+            REGIO_DATA_IN                  => cbm_rdo_regio_data_ctrl_i, -- in  std_logic_vector(31 downto 0);
+            REGIO_READ_ENABLE_IN           => cbm_rdo_regio_read_enable_i, -- in  std_logic;
+            REGIO_WRITE_ENABLE_IN          => cbm_rdo_regio_write_enable_i, -- in  std_logic;
+            REGIO_DATA_OUT                 => cbm_rdo_regio_data_status_i, -- out std_logic_vector(31 downto 0);
+            REGIO_DATAREADY_OUT            => cbm_rdo_regio_dataready_i, -- out std_logic;
+            REGIO_WRITE_ACK_OUT            => cbm_rdo_regio_write_ack_i, -- out std_logic;
+            REGIO_UNKNOWN_ADDR_OUT         => cbm_rdo_regio_unknown_addr_i, -- out std_logic;
+
+         -- CBMNet
+            CBMNET_CLK_IN         => cbm_clk_i, -- in std_logic;
+            CBMNET_RESET_IN       => cbm_reset_i, -- in std_logic;
+            CBMNET_LINK_ACTIVE_IN => cbm_link_active_i, -- in std_logic;
+               
+            CBMNET_DATA2SEND_STOP_IN   => cbm_data2send_stop_i(0),  -- in std_logic;
+            CBMNET_DATA2SEND_START_OUT => cbm_data2send_start_i(0), -- out std_logic;
+            CBMNET_DATA2SEND_END_OUT   => cbm_data2send_end_i(0),   -- out std_logic;
+            CBMNET_DATA2SEND_DATA_OUT  => cbm_data2send_i        -- out std_logic_vector(15 downto 0)         
+         );
+   end generate;
    
-   cts_periph_trigger_i <= FPGA4_COMM(10 downto 6)
-                         & FPGA3_COMM(10 downto 6)
-                         & FPGA2_COMM(10 downto 6)
-                         & FPGA1_COMM(10 downto 6);
+   GEN_NO_CBMNET: if INCLUDE_CBMNET = c_NO generate
+      gbe_cts_number        <= hub_cts_number;
+      gbe_cts_code          <= hub_cts_code;
+      gbe_cts_information   <= hub_cts_information;
+      gbe_cts_readout_type  <= hub_cts_readout_type;
+      gbe_cts_start_readout <= hub_cts_start_readout;
+      gbe_fee_data          <= hub_fee_data;
+      gbe_fee_dataready     <= hub_fee_dataready;
+      gbe_fee_status_bits   <= hub_fee_status_bits;
+      gbe_fee_busy          <= hub_fee_busy;   
+
+      hub_cts_status_bits      <= gbe_cts_status_bits;
+      hub_cts_readout_finished <= gbe_cts_readout_finished;
+      hub_fee_read             <= gbe_fee_read;
+   end generate;
    
-   JOUT1    <= cts_output_multiplexers_i(3 downto 0);
-   JOUT2    <= cts_output_multiplexers_i(7 downto 4);
-   JOUTLVDS <= cts_output_multiplexers_i(7 downto 0);
-   --LED_BANK <= cts_output_multiplexers_i(7 downto 0);
    
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -665,7 +1022,7 @@ clk_125_i <= CLK_GPLL_RIGHT;
 -- The TrbNet media interface (SFP)
 ---------------------------------------------------------------------------
 
-gen_single_sfp : if USE_4_SFP = c_NO generate
+gen_single_sfp : if USE_4_SFP = c_NO and INCLUDE_CBMNET = c_NO generate
 THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
   generic map(
     SERDES_NUM  => 0,     --number of serdes in quad
@@ -709,7 +1066,7 @@ THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
 SFP_TXDIS(7 downto 2) <= (others => '1');
 end generate;
 
-gen_four_sfp : if USE_4_SFP = c_YES generate
+gen_four_sfp : if USE_4_SFP = c_YES and INCLUDE_CBMNET = c_NO generate
   THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp_4
     generic map(
       REVERSE_ORDER => c_NO,              --order of ports
@@ -851,20 +1208,20 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
 
 -- Gbe Read-out Path ---------------------------------------------------------------
     --Event information coming from CTS for GbE
-    GBE_CTS_NUMBER_OUT             => gbe_cts_number,
-    GBE_CTS_CODE_OUT               => gbe_cts_code,
-    GBE_CTS_INFORMATION_OUT        => gbe_cts_information,
-    GBE_CTS_READOUT_TYPE_OUT       => gbe_cts_readout_type,
-    GBE_CTS_START_READOUT_OUT      => gbe_cts_start_readout,
+    GBE_CTS_NUMBER_OUT             => hub_cts_number,
+    GBE_CTS_CODE_OUT               => hub_cts_code,
+    GBE_CTS_INFORMATION_OUT        => hub_cts_information,
+    GBE_CTS_READOUT_TYPE_OUT       => hub_cts_readout_type,
+    GBE_CTS_START_READOUT_OUT      => hub_cts_start_readout,
     --Information sent to CTS
-    GBE_CTS_READOUT_FINISHED_IN    => gbe_cts_readout_finished,
-    GBE_CTS_STATUS_BITS_IN         => gbe_cts_status_bits,
+    GBE_CTS_READOUT_FINISHED_IN    => hub_cts_readout_finished,
+    GBE_CTS_STATUS_BITS_IN         => hub_cts_status_bits,
     -- Data from Frontends
-    GBE_FEE_DATA_OUT               => gbe_fee_data,
-    GBE_FEE_DATAREADY_OUT          => gbe_fee_dataready,
-    GBE_FEE_READ_IN                => gbe_fee_read,
-    GBE_FEE_STATUS_BITS_OUT        => gbe_fee_status_bits,
-    GBE_FEE_BUSY_OUT               => gbe_fee_busy,
+    GBE_FEE_DATA_OUT               => hub_fee_data,
+    GBE_FEE_DATAREADY_OUT          => hub_fee_dataready,
+    GBE_FEE_READ_IN                => hub_fee_read,
+    GBE_FEE_STATUS_BITS_OUT        => hub_fee_status_bits,
+    GBE_FEE_BUSY_OUT               => hub_fee_busy,
 
 -- CTS Request Sending -------------------------------------------------------------
     --LVL1 trigger
