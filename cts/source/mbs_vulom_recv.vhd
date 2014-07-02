@@ -24,7 +24,7 @@ entity mbs_vulom_recv is
     TRIGGER_IN   : in  std_logic;
     DATA_OUT     : out std_logic_vector(31 downto 0);
     WRITE_OUT    : out std_logic;
-    STATUSBIT_OUT: out std_logic_vector(31 downto 0);
+    STATUSBIT_OUT: out std_logic_vector(31 downto 0) := (others => '0');
     FINISHED_OUT : out std_logic;
     
     --Registers / Debug    
@@ -172,7 +172,6 @@ PROC_RDO : process begin
   wait until rising_edge(CLK);
   WRITE_OUT     <= '0';
   FINISHED_OUT  <= config_rdo_disable_i;
-  STATUSBIT_OUT <= (23 => error_reg, others => '0');
   case rdostate is
     when RDO_IDLE =>
       if TRIGGER_IN = '1' and config_rdo_disable_i = '0' then
@@ -199,7 +198,8 @@ end process;
 
 config_rdo_disable_i <= CONTROL_REG_IN(0);
 
-STATUS_REG_OUT <= error_reg & '0' & std_logic_vector(to_unsigned(bitcnt,6)) & number_reg;
+STATUSBIT_OUT(23) <= error_reg when rising_edge(CLK);
+STATUS_REG_OUT <= error_reg & "0000000" & number_reg;
 DEBUG <= x"00000000"; -- & done & '0' & shift_reg(13 downto 0);
 
 end architecture;
