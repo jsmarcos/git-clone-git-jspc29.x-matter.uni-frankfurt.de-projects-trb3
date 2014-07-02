@@ -42,6 +42,8 @@ package config is
     constant INCLUDE_TRIGGER_LOGIC  : integer := c_YES;
     constant PHYSICAL_INPUTS        : integer := 16;    
     
+--Include generic UART on clock RJ-45?
+    constant INCLUDE_UART           : integer  := c_YES;
 ------------------------------------------------------------------------------
 --End of design configuration
 ------------------------------------------------------------------------------
@@ -124,6 +126,7 @@ package body config is
     t(16 downto 16) := std_logic_vector(to_unsigned(USE_ETHERNET,1));
     t(17 downto 17) := std_logic_vector(to_unsigned(1,1)); --sctrl via GbE
     t(26 downto 24) := std_logic_vector(to_unsigned(1,3)); --num SFPs with TrbNet
+    t(43 downto 43) := std_logic_vector(to_unsigned(INCLUDE_UART,1));
     t(44 downto 44) := std_logic_vector(to_unsigned(INCLUDE_STATISTICS,1));
     t(51 downto 48) := std_logic_vector(to_unsigned(INCLUDE_TRIGGER_LOGIC,4));
     t(52 downto 52) := std_logic_vector(to_unsigned(USE_125_MHZ,1));

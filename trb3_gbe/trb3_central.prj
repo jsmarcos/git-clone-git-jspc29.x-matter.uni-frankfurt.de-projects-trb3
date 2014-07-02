@@ -73,6 +73,10 @@ add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net_gbe_components.vhd"
 
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/serdes_ch4.vhd"
 
+add_file -vhdl -lib work "../../trbnet/special/uart_rec.vhd"
+add_file -vhdl -lib work "../../trbnet/special/uart_trans.vhd"
+add_file -vhdl -lib work "../../trbnet/special/uart.vhd"
+add_file -vhdl -lib work "../../trbnet/lattice/ecp3/fifo/fifo_9x2k_oreg.vhd"
 
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_frame_receiver.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_receive_control.vhd"
