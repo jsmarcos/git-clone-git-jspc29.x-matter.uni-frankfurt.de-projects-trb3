@@ -589,8 +589,8 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
   
   LMK_CLK             <= spi_SCK when spi_CS(5 downto 4) /= b"11" else '1' ;
   LMK_DATA            <= spi_SDO when spi_CS(5 downto 4) /= b"11" else '0' ;
-  LMK_LE_1            <= spi_CS(3); -- active low
-  LMK_LE_2            <= spi_CS(4); -- active low
+  LMK_LE_1            <= spi_CS(4); -- active low
+  LMK_LE_2            <= spi_CS(5); -- active low
   
 
 ---------------------------------------------------------------------------
