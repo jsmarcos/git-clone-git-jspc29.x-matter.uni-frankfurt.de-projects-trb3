@@ -287,6 +287,9 @@ signal uart_ack   : std_logic := '0';
 signal uart_nack  : std_logic := '0';
 signal uart_empty : std_logic := '0';
 signal uart_addr  : std_logic_vector(15 downto 0) := (others => '0');  
+signal uart_tx    : std_logic_vector(4 downto 0);
+signal uart_rx    : std_logic_vector(4 downto 0);
+
 
 signal debug : std_logic_vector(63 downto 0);
 
@@ -775,7 +778,7 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
   generic map(
     PORT_NUMBER    => 9,
     PORT_ADDRESSES => (0 => x"d000", 1 => x"8100", 2 => x"8300", 3 => x"b000", 4 => x"b200", 5 => x"d300", 6 => x"cf00", 7 => x"cf80", 8 => x"d600", others => x"0000"),
-    PORT_ADDR_MASK => (0 => 9,       1 => 8,       2 => 8,       3 => 9,       4 => 9,       5 => 0,       6 => 7,       7 => 7,       8 => 1,       others => 0)
+    PORT_ADDR_MASK => (0 => 9,       1 => 8,       2 => 8,       3 => 9,       4 => 9,       5 => 0,       6 => 7,       7 => 7,       8 => 2,       others => 0)
     )
   port map(
     CLK                   => clk_sys_i,
@@ -993,11 +996,14 @@ monitor_inputs_i(19 downto 16) <= trig_outputs(3 downto 0);
 
 gen_uart : if INCLUDE_UART = 1 generate
   THE_UART : entity work.uart
+    generic map(
+      OUTPUTS => 5
+      )
     port map(
       CLK       => clk_sys_i,
       RESET     => reset_i,
-      UART_RX   => CLKRJ(0),
-      UART_TX   => CLKRJ(2), 
+      UART_RX   => uart_rx,
+      UART_TX   => uart_tx, 
       DATA_OUT  => uart_dout,
       DATA_IN   => uart_din,
       ADDR_IN   => uart_addr,
@@ -1007,6 +1013,18 @@ gen_uart : if INCLUDE_UART = 1 generate
       EMPTY_OUT => uart_empty,
       UNKWN_OUT => uart_nack 
       );
+      
+  uart_rx(0) <= CLKRJ(0);  
+  uart_rx(1) <= FPGA1_TTL(0);
+  uart_rx(2) <= FPGA2_TTL(0);
+  uart_rx(3) <= FPGA3_TTL(0);
+  uart_rx(4) <= FPGA4_TTL(0);
+  
+  CLKRJ(2)     <= uart_tx(0);
+  FPGA1_TTL(1) <= uart_tx(1);
+  FPGA2_TTL(1) <= uart_tx(2);
+  FPGA3_TTL(1) <= uart_tx(3);
+  FPGA4_TTL(1) <= uart_tx(4);
 end generate;
 
 
@@ -1040,10 +1058,10 @@ end process;
 -- FPGA communication
 ---------------------------------------------------------------------------
 
-  FPGA1_TTL <= (others => 'Z');
-  FPGA2_TTL <= (others => 'Z');
-  FPGA3_TTL <= (others => 'Z');
-  FPGA4_TTL <= (others => 'Z');
+--   FPGA1_TTL <= (others => 'Z');
+--   FPGA2_TTL <= (others => 'Z');
+--   FPGA3_TTL <= (others => 'Z');
+--   FPGA4_TTL <= (others => 'Z');
 
   FPGA1_CONNECTOR <= (others => 'Z');
   FPGA2_CONNECTOR <= (others => 'Z');
