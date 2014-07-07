@@ -198,3 +198,48 @@ LOCATE COMP  "FPGA_SDO_1"            SITE "T24";
 DEFINE PORT GROUP "FPGA_group" "FPGA_*" ;
 IOBUF GROUP "FPGA_group" IO_TYPE=LVCMOS25 PULLMODE=DOWN;
 
+
+#################################################################
+# Flash ROM and Reboot
+#################################################################
+
+LOCATE COMP  "FLASH_CLK"    SITE "B12";
+LOCATE COMP  "FLASH_CS"   SITE "E11";
+LOCATE COMP  "FLASH_DIN"   SITE "E12";
+LOCATE COMP  "FLASH_DOUT"    SITE "A12";
+
+DEFINE PORT GROUP "FLASH_group" "FLASH*" ;
+IOBUF GROUP "FLASH_group" IO_TYPE=LVCMOS25 PULLMODE=NONE;
+
+LOCATE COMP  "PROGRAMN"   SITE "B11";
+IOBUF  PORT "PROGRAMN" IO_TYPE=LVCMOS25 PULLMODE=UP DRIVE=8  ;
+
+
+#################################################################
+# Misc
+#################################################################
+LOCATE COMP  "TEMPSENS"    SITE "A13";
+IOBUF  PORT "TEMPSENS" IO_TYPE=LVCMOS25 PULLMODE=UP DRIVE=8  ;
+
+#coding of FPGA number
+LOCATE COMP "CODE_LINE_1"    SITE "AA20";
+LOCATE COMP "CODE_LINE_0"    SITE "Y21";
+IOBUF  PORT "CODE_LINE_1" IO_TYPE=LVCMOS25 PULLMODE=UP  ;
+IOBUF  PORT "CODE_LINE_0" IO_TYPE=LVCMOS25 PULLMODE=UP  ;
+
+#terminated differential pair to pads
+#LOCATE COMP  "SUPPL"   SITE "C14";
+#IOBUF  PORT "SUPPL" IO_TYPE=LVDS25   ;
+
+
+#################################################################
+# LED
+#################################################################
+LOCATE COMP  "LED_GREEN"    SITE "F12";
+LOCATE COMP  "LED_ORANGE"   SITE "G13";
+LOCATE COMP  "LED_RED"      SITE "A15";
+LOCATE COMP  "LED_YELLOW"   SITE "A16";
+DEFINE PORT GROUP "LED_group" "LED*" ;
+IOBUF GROUP "LED_group" IO_TYPE=LVCMOS25 PULLMODE=NONE DRIVE=12;
+
+
