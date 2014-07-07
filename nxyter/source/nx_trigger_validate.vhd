@@ -1222,7 +1222,8 @@ begin
               
             when x"0021" =>
               histogram_ts_range              <= SLV_DATA_IN(2 downto 0); 
-
+              slv_ack_o                       <= '1';
+              
             when others  =>                   
               slv_unknown_addr_o              <= '1';
               slv_ack_o                       <= '0';
