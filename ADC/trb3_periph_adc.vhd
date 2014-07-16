@@ -585,7 +585,7 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
   FPGA_SDI(0) <= spi_SDO     when spi_CS(2 downto 0) /= b"111" else '0';
   spi_SDI     <= FPGA_SDO(0) when spi_CS(2 downto 0) /= b"111" else '0';
   
-  SPI_ADC_SCK         <= spi_SCK when spi_CS(3) = '0' else '1';
+  SPI_ADC_SCK         <= spi_SCK when spi_CS(3) = '0' else '0';
   SPI_ADC_SDIO        <= spi_SDO when spi_CS(3) = '0' else '0';
   
   LMK_CLK             <= spi_SCK when spi_CS(5 downto 4) /= b"11" else '1' ;
