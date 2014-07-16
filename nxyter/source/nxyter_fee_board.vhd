@@ -153,7 +153,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal timestamp_status       : std_logic_vector(2 downto 0);
   signal adc_data               : std_logic_vector(11 downto 0);
   signal data_clk               : std_logic;
-                                
+  signal adc_tr_error           : std_logic;
   signal nx_token_return        : std_logic;
   signal nx_nomore_data         : std_logic;
                                 
@@ -199,6 +199,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal timestamp_trigger      : std_logic;
   signal trigger_timing         : std_logic;
   signal trigger_status         : std_logic;
+  signal trigger_calibration    : std_logic;
   signal trigger_busy           : std_logic;
   signal fast_clear             : std_logic;
   signal fee_trg_release_o      : std_logic;
@@ -499,6 +500,7 @@ begin
       TIMESTAMP_TRIGGER_OUT      => timestamp_trigger,
       TRIGGER_TIMING_OUT         => trigger_timing,
       TRIGGER_STATUS_OUT         => trigger_status,
+      TRIGGER_CALIBRATION_OUT    => trigger_calibration,
       FAST_CLEAR_OUT             => fast_clear,
       TRIGGER_BUSY_OUT           => trigger_busy,
 
@@ -555,7 +557,7 @@ begin
     port map (
       CLK_IN                 => CLK_IN,
       RESET_IN               => RESET_IN,
-      TRIGGER_IN             => trigger_timing,
+      TRIGGER_IN             => trigger_timing,  -- for debugging only
       NX_ONLINE_IN           => nxyter_online,
       NX_CLOCK_ON_IN         => nxyter_clock_on,
       
@@ -584,6 +586,8 @@ begin
       SLV_ACK_OUT            => slv_ack(2),                       
       SLV_NO_MORE_DATA_OUT   => slv_no_more_data(2),              
       SLV_UNKNOWN_ADDR_OUT   => slv_unknown_addr(2),
+
+      ADC_TR_ERROR_IN        => adc_tr_error,
       DISABLE_ADC_OUT        => disable_adc_receiver,
       ERROR_OUT              => error_data_receiver,
       DEBUG_OUT              => debug_line(7)
@@ -623,33 +627,34 @@ begin
 
   nx_data_validate_1: nx_data_validate
     port map (
-      CLK_IN                => CLK_IN,
-      RESET_IN              => RESET_IN,
-      
-      DATA_IN               => data_delayed,
-      DATA_CLK_IN           => data_clk_delayed,
+      CLK_IN                 => CLK_IN,
+      RESET_IN               => RESET_IN,
+                             
+      DATA_IN                => data_delayed,
+      DATA_CLK_IN            => data_clk_delayed,
+                             
+      TIMESTAMP_OUT          => timestamp,
+      CHANNEL_OUT            => timestamp_channel_id,
+      TIMESTAMP_STATUS_OUT   => timestamp_status,
+      ADC_DATA_OUT           => adc_data,
+      DATA_CLK_OUT           => data_clk,
+                             
+      NX_TOKEN_RETURN_OUT    => nx_token_return,
+      NX_NOMORE_DATA_OUT     => nx_nomore_data,
+                             
+      SLV_READ_IN            => slv_read(6),
+      SLV_WRITE_IN           => slv_write(6),
+      SLV_DATA_OUT           => slv_data_rd(6*32+31 downto 6*32),
+      SLV_DATA_IN            => slv_data_wr(6*32+31 downto 6*32),
+      SLV_ADDR_IN            => slv_addr(6*16+15 downto 6*16),
+      SLV_ACK_OUT            => slv_ack(6),
+      SLV_NO_MORE_DATA_OUT   => slv_no_more_data(6),
+      SLV_UNKNOWN_ADDR_OUT   => slv_unknown_addr(6),
 
-      TIMESTAMP_OUT         => timestamp,
-      CHANNEL_OUT           => timestamp_channel_id,
-      TIMESTAMP_STATUS_OUT  => timestamp_status,
-      ADC_DATA_OUT          => adc_data,
-      DATA_CLK_OUT          => data_clk,
-      
-      NX_TOKEN_RETURN_OUT   => nx_token_return,
-      NX_NOMORE_DATA_OUT    => nx_nomore_data,
-      
-      SLV_READ_IN           => slv_read(6),
-      SLV_WRITE_IN          => slv_write(6),
-      SLV_DATA_OUT          => slv_data_rd(6*32+31 downto 6*32),
-      SLV_DATA_IN           => slv_data_wr(6*32+31 downto 6*32),
-      SLV_ADDR_IN           => slv_addr(6*16+15 downto 6*16),
-      SLV_ACK_OUT           => slv_ack(6),
-      SLV_NO_MORE_DATA_OUT  => slv_no_more_data(6),
-      SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(6),
-
-      DISABLE_ADC_IN        => disable_adc_receiver,
-      ERROR_OUT             => error_data_validate,
-      DEBUG_OUT             => debug_line(9)
+      ADC_TR_ERROR_OUT       => adc_tr_error,
+      DISABLE_ADC_IN         => disable_adc_receiver,
+      ERROR_OUT              => error_data_validate,
+      DEBUG_OUT              => debug_line(9)
       );
 
 -------------------------------------------------------------------------------
@@ -674,6 +679,7 @@ begin
       NX_NOMORE_DATA_IN        => nx_nomore_data,
                                
       TRIGGER_IN               => trigger,
+      TRIGGER_CALIBRATION_IN   => trigger_calibration,
       TRIGGER_BUSY_IN          => trigger_busy,
       FAST_CLEAR_IN            => fast_clear,
       TRIGGER_BUSY_OUT         => trigger_validate_busy,

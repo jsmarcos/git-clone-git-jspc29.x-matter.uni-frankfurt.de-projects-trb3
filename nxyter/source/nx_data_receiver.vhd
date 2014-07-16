@@ -37,7 +37,7 @@ entity nx_data_receiver is
     -- Outputs             
     DATA_OUT               : out std_logic_vector(43 downto 0);
     DATA_CLK_OUT           : out std_logic;
-                           
+    
     -- Slave bus           
     SLV_READ_IN            : in  std_logic;
     SLV_WRITE_IN           : in  std_logic;
@@ -47,7 +47,8 @@ entity nx_data_receiver is
     SLV_ACK_OUT            : out std_logic;
     SLV_NO_MORE_DATA_OUT   : out std_logic;
     SLV_UNKNOWN_ADDR_OUT   : out std_logic;
-                           
+
+    ADC_TR_ERROR_IN        : in  std_logic;
     DISABLE_ADC_OUT        : out std_logic;
     ERROR_OUT              : out std_logic;
     DEBUG_OUT              : out std_logic_vector(15 downto 0)
@@ -239,7 +240,11 @@ architecture Behavioral of nx_data_receiver is
   signal johnson_counter_sync_r        : unsigned(1 downto 0);
   signal pll_adc_sample_clk_dphase_r   : unsigned(3 downto 0);
   signal pll_adc_sample_clk_finedelb_r : unsigned(3 downto 0);
+  signal nx_timestamp_delay_adjust     : std_logic;
   signal nx_timestamp_delay_r          : unsigned(2 downto 0);
+  signal nx_timestamp_delay_a          : unsigned(2 downto 0);
+  signal nx_timestamp_delay_s          : unsigned(2 downto 0);
+  signal nx_timestamp_delay_actr       : unsigned(15 downto 0);
   signal nx_frame_word_delay_rr        : unsigned(1 downto 0);
   signal nx_frame_word_delay_r         : unsigned(1 downto 0);
   signal fifo_full_rr                  : std_logic;
@@ -562,7 +567,7 @@ begin
   
   PROC_PLL_LOCK_COUNTER: process(CLK_IN)
   begin
-    if (rising_edge(CLK_IN) ) then
+    if (rising_edge(CLK_IN)) then
       if( RESET_IN = '1' or pll_adc_not_lock_ctr_clear = '1') then
         pll_adc_not_lock_f     <= (others => '0');
         pll_adc_not_lock_ctr   <= (others => '0');
@@ -744,7 +749,7 @@ begin
   PROC_NX_SHIFT_REGISTER_DELAY: process(NX_TIMESTAMP_CLK_IN)
   begin
     if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
-      nx_timestamp_delay_f            <= nx_timestamp_delay_r;
+      nx_timestamp_delay_f            <= nx_timestamp_delay_s;
       if( RESET_NX_TIMESTAMP_CLK_IN = '1' ) then
         nx_timestamp_delay            <= "010";
         nx_shift_register_delay       <= "011011"; -- 27
@@ -776,7 +781,7 @@ begin
   -- Merge TS Data 8bit to 32Bit Timestamp Frame
   PROC_8_TO_32_BIT: process(NX_TIMESTAMP_CLK_IN)
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
+    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
       case frame_byte_pos is
         when "11" => nx_frame_word_t(31 downto 24) <= nx_frame_word_s;
                      nx_frame_clk_t                <= '0';
@@ -805,7 +810,7 @@ begin
   -- TS Frame Sync process
   PROC_SYNC_TO_NX_FRAME: process(NX_TIMESTAMP_CLK_IN)
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
+    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
       if( RESET_NX_TIMESTAMP_CLK_IN = '1' ) then
         frame_byte_pos    <= "11";
         rs_sync_set       <= '0';
@@ -844,7 +849,7 @@ begin
   -- RS FlipFlop to hold Sync Status
   PROC_RS_FRAME_SYNCED: process(NX_TIMESTAMP_CLK_IN)
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
+    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
       if (RESET_NX_TIMESTAMP_CLK_IN = '1') then
         nx_frame_synced     <= '0';
       else
@@ -892,7 +897,7 @@ begin
   -----------------------------------------------------------------------------
   PROC_NX_TIMESTAMP_FRAME_DELAY: process(NX_TIMESTAMP_CLK_IN)
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
+    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
       nx_frame_word_delayed_t(0)      <= nx_frame_word;
       nx_frame_clk_delayed_t(0)       <= nx_frame_clk;
 
@@ -912,7 +917,7 @@ begin
   
   PROC_NX_FRAME_WORD_DELAY_AUTO_SETUP: process(NX_TIMESTAMP_CLK_IN)
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
+    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
       nx_frame_word_delay             <= nx_frame_word_delay_f;
       adc_data_clk_last(0)            <= adc_data_s_clk;
       
@@ -1031,7 +1036,7 @@ begin
   PROC_ADC_DATA_BIT_SHIFT: process(NX_TIMESTAMP_CLK_IN)
     variable adcval : unsigned(11 downto 0) := (others => '0');
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
+    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
       if (adc_bit_shift(3) = '1') then
         adcval             := unsigned(adc_data) rol
                               to_integer(adc_bit_shift(2 downto 0));
@@ -1062,7 +1067,7 @@ begin
   
   PROC_DATA_MERGE_HANDLER: process(NX_TIMESTAMP_CLK_IN)
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
+    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
       if (RESET_NX_TIMESTAMP_CLK_IN = '1' or merge_handler_reset = '1') then
         merge_timeout_ctr      <= (others => '0');
         merge_timeout_error    <= '0';
@@ -1119,7 +1124,7 @@ begin
                             
   PROC_NX_FIFO_READ_ENABLE: process(CLK_IN)
   begin
-    if (rising_edge(CLK_IN) ) then
+    if (rising_edge(CLK_IN)) then
       fifo_data_clk_tt    <= fifo_read_enable;
       if(RESET_IN = '1') then
         fifo_data_clk_t    <= '0';
@@ -1134,7 +1139,7 @@ begin
   
   PROC_DATA_OUTPUT_HANDLER: process(CLK_IN)
   begin
-    if (rising_edge(CLK_IN) ) then
+    if (rising_edge(CLK_IN)) then
       if(RESET_IN = '1') then
         data_o         <= (others => '0');      
         data_clk_o     <= '0';
@@ -1171,7 +1176,7 @@ begin
   -- Counters
   PROC_RESYNC_COUNTER: process(CLK_IN)
   begin
-    if (rising_edge(CLK_IN) ) then
+    if (rising_edge(CLK_IN)) then
       if (RESET_IN = '1' or reset_resync_ctr = '1') then
         resync_counter   <= (others => '0');
       else
@@ -1184,7 +1189,7 @@ begin
 
   PROC_PARITY_ERROR_COUNTER: process(CLK_IN)
   begin
-    if (rising_edge(CLK_IN) ) then
+    if (rising_edge(CLK_IN)) then
       if (RESET_IN = '1' or reset_parity_error_ctr = '1') then
         parity_error_counter   <= (others => '0');
       else
@@ -1202,7 +1207,7 @@ begin
 
   PROC_RATE_COUNTER: process(CLK_IN)
   begin
-    if (rising_edge(CLK_IN) ) then
+    if (rising_edge(CLK_IN)) then
       if (RESET_IN = '1' or frame_rates_reset = '1') then
         nx_frame_rate_ctr      <= (others => '0');
         nx_frame_rate          <= (others => '0');
@@ -1343,7 +1348,7 @@ begin
   
   PROC_EVENT_ERRORS_PER_SECOND: process(CLK_IN)
   begin
-    if (rising_edge(CLK_IN) ) then
+    if (rising_edge(CLK_IN)) then
       if (RESET_IN = '1' or frame_rates_reset = '1') then
         adc_dt_error_cur        <= '0';
         adc_dt_error            <= '0';
@@ -1369,7 +1374,7 @@ begin
     
   PROC_DATA_STREAM_DELTA_T: process(NX_TIMESTAMP_CLK_IN)
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN) ) then
+    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
       if (RESET_NX_TIMESTAMP_CLK_IN = '1') then
         new_adc_dt_ctr              <= (others => '0');
         new_timestamp_dt_ctr        <= (others => '0');
@@ -1414,7 +1419,7 @@ begin
   
   PROC_RESET_HANDLER: process(CLK_IN)
   begin
-    if (rising_edge(CLK_IN) ) then
+    if (rising_edge(CLK_IN)) then
       if( RESET_IN = '1' ) then
         frame_rates_reset           <= '0';
         fifo_reset_handler          <= '0';
@@ -1716,13 +1721,40 @@ begin
       end if;
     end if;
   end process PROC_ERROR_STATUS;
+
+  PROC_NX_TIMESTAMP_DELAY_ADJUST: process(CLK_IN)
+  begin
+    if (rising_edge(CLK_IN)) then
+      if (RESET_IN = '1') then
+        nx_timestamp_delay_a          <= (others => '0');
+        nx_timestamp_delay_actr       <= (others => '0'); 
+      else
+        -- Automatic nx_timestamp_delay adjust
+        if (nx_timestamp_delay_adjust = '1' and ADC_TR_ERROR_IN = '1') then
+          if (nx_timestamp_delay_a <= "100") then
+            nx_timestamp_delay_a      <= nx_timestamp_delay_a + 1;
+          else
+            nx_timestamp_delay_a      <= (others => '0');
+          end if;
+          nx_timestamp_delay_actr     <= nx_timestamp_delay_actr + 1;
+        end if;
+
+        -- Multiplexer
+        if (nx_timestamp_delay_adjust = '1') then
+          nx_timestamp_delay_s        <= nx_timestamp_delay_a;
+        else
+          nx_timestamp_delay_s        <= nx_timestamp_delay_r;
+        end if;
+      end if;
+    end if;
+  end process PROC_NX_TIMESTAMP_DELAY_ADJUST;
   
   -----------------------------------------------------------------------------
   -- TRBNet Slave Bus
   -----------------------------------------------------------------------------
   PROC_SLAVE_BUS_BUFFER: process(CLK_IN)
   begin
-    if (rising_edge(CLK_IN) ) then
+    if (rising_edge(CLK_IN)) then
       fifo_full_rr                      <= fifo_full;
       fifo_empty_rr                     <= fifo_empty;
       nx_frame_synced_rr                <= nx_frame_synced;
@@ -1746,15 +1778,10 @@ begin
     end if;
   end process PROC_SLAVE_BUS_BUFFER;
   
-  -- Give status info to the TRB Slow Control Channel
-
-  -- Register Info
-  nx_frame_word_delay_rr     <= nx_frame_word_delay_f  when rising_edge(CLK_IN);
-  nx_frame_word_delay_r      <= nx_frame_word_delay_rr when rising_edge(CLK_IN);
-  
+  -- Slave Bus
   PROC_SLAVE_BUS: process(CLK_IN)
   begin
-    if (rising_edge(CLK_IN) ) then
+    if (rising_edge(CLK_IN)) then
       if( RESET_IN = '1' ) then
         slv_data_out_o                <= (others => '0');
         slv_ack_o                     <= '0';
@@ -1767,6 +1794,7 @@ begin
         pll_adc_sample_clk_dphase_r   <= x"d";
         pll_adc_sample_clk_finedelb_r <= (others => '0');
         pll_adc_not_lock_ctr_clear    <= '0';
+        nx_timestamp_delay_adjust     <= '1';
         nx_timestamp_delay_r          <= "010";
         reset_handler_start_r         <= '0';
         adc_bit_shift                 <= x"0";
@@ -1782,7 +1810,7 @@ begin
         reset_parity_error_ctr        <= '0';
         pll_adc_not_lock_ctr_clear    <= '0';
         reset_handler_start_r         <= '0';
-        
+                
         if (SLV_READ_IN  = '1') then
           case SLV_ADDR_IN is
             when x"0000" =>
@@ -1874,11 +1902,12 @@ begin
 
             when x"0010" =>
               slv_data_out_o(2 downto 0)    <=
-                std_logic_vector(nx_timestamp_delay_r);
-              slv_data_out_o(3)             <= '0';
+                std_logic_vector(nx_timestamp_delay_s);
               slv_data_out_o(5 downto 4)    <= 
                 std_logic_vector(nx_frame_word_delay_r);
-              slv_data_out_o(31 downto 6)   <= (others => '0');
+              slv_data_out_o(14 downto 6)   <= (others => '0');
+              slv_data_out_o(15)            <= nx_timestamp_delay_adjust;
+              slv_data_out_o(31 downto 16)  <= nx_timestamp_delay_actr;
               slv_ack_o                     <= '1';
 
             when x"0011" =>
@@ -1978,10 +2007,9 @@ begin
               slv_ack_o                     <= '1'; 
           
             when x"0010" =>
-              if (unsigned(SLV_DATA_IN(2 downto 0)) < 5) then
-                nx_timestamp_delay_r          <=
-                  unsigned(SLV_DATA_IN(2 downto 0));
-              end if;
+              nx_timestamp_delay_r          <=
+                unsigned(SLV_DATA_IN(2 downto 0));
+              nx_timestamp_delay_adjust     <= SLV_DATA_IN(15);
               slv_ack_o                     <= '1';
 
             when x"0012" =>

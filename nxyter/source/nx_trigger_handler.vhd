@@ -50,6 +50,7 @@ entity nx_trigger_handler is
     TIMESTAMP_TRIGGER_OUT      : out std_logic;
     TRIGGER_TIMING_OUT         : out std_logic;
     TRIGGER_STATUS_OUT         : out std_logic;
+    TRIGGER_CALIBRATION_OUT    : out std_logic;
     FAST_CLEAR_OUT             : out std_logic;
     TRIGGER_BUSY_OUT           : out std_logic;
 
@@ -112,6 +113,8 @@ architecture Behavioral of nx_trigger_handler is
   signal valid_trigger_o            : std_logic;
   signal timing_trigger_o           : std_logic;
   signal status_trigger_o           : std_logic;
+  signal calibration_trigger_o      : std_logic;
+  signal calib_downscale_ctr        : unsigned(15 downto 0);
   signal fast_clear_o               : std_logic;
   signal trigger_busy_o             : std_logic;
   signal fee_data_o                 : std_logic_vector(31 downto 0);
@@ -122,9 +125,16 @@ architecture Behavioral of nx_trigger_handler is
   signal testpulse_trigger          : std_logic;
   
   signal testpulse_enable           : std_logic;
+
+  signal timestamp_calib_trigger_c100 : std_logic;
+  signal timestamp_calib_trigger_f    : std_logic;
+  signal timestamp_calib_trigger_o    : std_logic;
   
   type STATES is (S_IDLE,
-                  S_CTS_TRIGGER,
+                  S_IGNORE_TRIGGER,
+                  S_STATUS_TRIGGER,
+                  S_TIMING_TRIGGER,
+                  S_CALIBRATION_TRIGGER,
                   S_WAIT_TRG_DATA_VALID,
                   S_WAIT_TIMING_TRIGGER_DONE,
                   S_FEE_TRIGGER_RELEASE,
@@ -137,9 +147,9 @@ architecture Behavioral of nx_trigger_handler is
 
   type TRIGGER_TYPES is (T_UNDEF,
                          T_IGNORE,
-                         T_INTERNAL,
                          T_TIMING,
-                         T_SETUP
+                         T_STATUS,
+                         T_CALIBRATION
                          );
   signal TRIGGER_TYPE : TRIGGER_TYPES;
   
@@ -163,7 +173,7 @@ architecture Behavioral of nx_trigger_handler is
   signal wait_timer_end              : unsigned(11 downto 0);
   signal internal_trigger_f          : std_logic;
   signal internal_trigger            : std_logic;
-    
+  
   -- Rate Calculation
   signal start_testpulse_ff          : std_logic;
   signal start_testpulse_f           : std_logic;
@@ -185,9 +195,15 @@ architecture Behavioral of nx_trigger_handler is
   signal accepted_trigger_rate       : unsigned(27 downto 0);
   signal testpulse_rate              : unsigned(27 downto 0);
   signal invalid_t_trigger_ctr_clear : std_logic;
-  signal bypass_ctr_trigger          : std_logic;
+  signal bypass_all_trigger          : std_logic;
+  signal bypass_physics_trigger      : std_logic;
   signal bypass_status_trigger       : std_logic;
-       
+  signal bypass_calibration_trigger  : std_logic;
+  signal calibration_downscale       : unsigned(15 downto 0);
+  signal physics_trigger_type        : std_logic_vector(3 downto 0);
+  signal status_trigger_type         : std_logic_vector(3 downto 0);
+  signal calibration_trigger_type    : std_logic_vector(3 downto 0);
+  
   -- Reset
   signal reset_nx_main_clk_in_ff     : std_logic;
   signal reset_nx_main_clk_in_f      : std_logic;
@@ -208,6 +224,9 @@ architecture Behavioral of nx_trigger_handler is
 
   attribute syn_keep of start_testpulse_ff          : signal is true;
   attribute syn_keep of start_testpulse_f           : signal is true;
+
+  attribute syn_keep of timestamp_calib_trigger_f   : signal is true;
+  attribute syn_keep of timestamp_calib_trigger_o   : signal is true;
   
   attribute syn_preserve : boolean;
   attribute syn_preserve of reset_nx_main_clk_in_ff : signal is true;
@@ -224,6 +243,9 @@ architecture Behavioral of nx_trigger_handler is
 
   attribute syn_preserve of start_testpulse_ff      : signal is true;
   attribute syn_preserve of start_testpulse_f       : signal is true;
+
+  attribute syn_preserve of timestamp_calib_trigger_f  : signal is true;
+  attribute syn_preserve of timestamp_calib_trigger_o  : signal is true;
   
 begin
 
@@ -293,7 +315,7 @@ begin
       LEVEL_IN  => timing_trigger_l,
       PULSE_OUT => timing_trigger
       );
-    
+  
   -- Timer
   timer_static_2: timer_static
     generic map (
@@ -437,25 +459,30 @@ begin
   begin
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
-        valid_trigger_o      <= '0';
-        timing_trigger_o     <= '0';
-        status_trigger_o     <= '0';
-        fee_data_finished_o  <= '0';
-        fee_trg_release_o    <= '0';
-        fee_trg_statusbits_o <= (others => '0');
-        fast_clear_o         <= '0';
-        trigger_busy_o       <= '0';
-        TRIGGER_TYPE         <= T_UNDEF;
-        STATE                <= S_IDLE;
-      else
-        valid_trigger_o      <= '0';
-        timing_trigger_o     <= '0';
-        status_trigger_o     <= '0';
-        fee_data_finished_o  <= '0';
-        fee_trg_release_o    <= '0';
-        fee_trg_statusbits_o <= (others => '0');
-        fast_clear_o         <= '0';
-        trigger_busy_o       <= '1';
+        valid_trigger_o              <= '0';
+        timing_trigger_o             <= '0';
+        status_trigger_o             <= '0';
+        calibration_trigger_o        <= '0';
+        fee_data_finished_o          <= '0';
+        fee_trg_release_o            <= '0';
+        fee_trg_statusbits_o         <= (others => '0');
+        fast_clear_o                 <= '0';
+        trigger_busy_o               <= '0';
+        timestamp_calib_trigger_c100 <= '0';
+        calib_downscale_ctr          <= (others => '0');
+        TRIGGER_TYPE                 <= T_UNDEF;
+        STATE                        <= S_IDLE;
+      else                           
+        valid_trigger_o              <= '0';
+        timing_trigger_o             <= '0';
+        status_trigger_o             <= '0';
+        calibration_trigger_o        <= '0';
+        fee_data_finished_o          <= '0';
+        fee_trg_release_o            <= '0';
+        fee_trg_statusbits_o         <= (others => '0');
+        fast_clear_o                 <= '0';
+        trigger_busy_o               <= '1';
+        timestamp_calib_trigger_c100 <= '0';
         
         if (LVL1_INVALID_TRG_IN = '1') then
           -- There was no valid Timing Trigger at CTS, do a fast clear
@@ -463,88 +490,152 @@ begin
           fee_trg_release_o          <= '1';
           STATE                      <= S_IDLE;
         else
+          
           case STATE is
-            when  S_IDLE =>
-              if (LVL1_VALID_NOTIMING_TRG_IN = '1') then
-                -- Calibration Trigger
-                if (LVL1_TRG_TYPE_IN = x"e" and
-                    bypass_status_trigger = '0') then
-                  -- Status Trigger
-                  TRIGGER_TYPE       <= T_SETUP;
-                  status_trigger_o   <= '1';
-                else
-                  -- Something else, Ignore
-                  TRIGGER_TYPE       <= T_IGNORE;
-                end if;
-                STATE                <= S_WAIT_TRG_DATA_VALID;
-                
-              elsif (LVL1_VALID_TIMING_TRG_IN = '1') then
-                if (NXYTER_OFFLINE_IN = '0' and
-                    bypass_ctr_trigger = '0') then
-                  -- Normal Trigger
-                  TRIGGER_TYPE       <= T_TIMING;
-                  STATE              <= S_CTS_TRIGGER;
-                else
-                  -- Ignore Trigger for nxyter is or pretends to be offline 
-                  TRIGGER_TYPE        <= T_IGNORE;
-                  STATE               <= S_WAIT_TRG_DATA_VALID;
-                end if;
-              else
-                trigger_busy_o       <= '0';
-                TRIGGER_TYPE         <= T_UNDEF;
-                STATE                <= S_IDLE;
-              end if;     
 
-            when S_CTS_TRIGGER =>
-              valid_trigger_o        <= '1';
-              timing_trigger_o       <= '1';
-              STATE                  <= S_WAIT_TRG_DATA_VALID;
-              
-            when S_WAIT_TRG_DATA_VALID =>
-              if (LVL1_TRG_DATA_VALID_IN = '0') then
-                STATE                <= S_WAIT_TRG_DATA_VALID;
+            when  S_IDLE =>
+
+              if (LVL1_VALID_TIMING_TRG_IN = '1') then
+                -- Timing Trigger IN
+                if (NXYTER_OFFLINE_IN          = '1' or
+                    bypass_all_trigger         = '1') then
+
+                  -- Ignore Trigger for nxyter is or pretends to be offline 
+                  TRIGGER_TYPE                     <= T_IGNORE;
+                  STATE                            <= S_IGNORE_TRIGGER;
+                else
+                  -- Check Trigger Type
+                  if (LVL1_TRG_TYPE_IN = physics_trigger_type) then
+                    -- Physiks Trigger
+                    if (bypass_physics_trigger = '1') then
+                      TRIGGER_TYPE                 <= T_IGNORE;
+                      STATE                        <= S_IGNORE_TRIGGER;
+                    else
+                      TRIGGER_TYPE                 <= T_TIMING;
+                      STATE                        <= S_TIMING_TRIGGER;
+                    end if; 
+                  else
+                    -- Unknown Timing Trigger, ignore
+                    TRIGGER_TYPE                 <= T_IGNORE;
+                    STATE                        <= S_IGNORE_TRIGGER;
+                  end if;
+                end if;
+
+              elsif (LVL1_VALID_NOTIMING_TRG_IN = '1') then
+                -- No Timing Trigger IN
+                if (NXYTER_OFFLINE_IN          = '1' or
+                    bypass_all_trigger         = '1') then
+                  
+                  -- Ignore Trigger for nxyter is or pretends to be offline 
+                  TRIGGER_TYPE                     <= T_IGNORE;
+                  STATE                            <= S_IGNORE_TRIGGER;
+                else
+                  -- Check Trigger Type
+                  if (LVL1_TRG_TYPE_IN = calibration_trigger_type) then
+                    -- Calibration Trigger
+                    if (bypass_calibration_trigger = '1') then
+                      TRIGGER_TYPE                 <= T_IGNORE;
+                      STATE                        <= S_IGNORE_TRIGGER;
+                    else
+                      if (calib_downscale_ctr >= calibration_downscale) then
+                        timestamp_calib_trigger_c100 <= '1';
+                        calib_downscale_ctr          <= x"0001";
+                        TRIGGER_TYPE                 <= T_CALIBRATION;
+                        STATE                        <= S_CALIBRATION_TRIGGER;
+                      else
+                        calib_downscale_ctr          <= calib_downscale_ctr + 1;
+                        TRIGGER_TYPE                 <= T_IGNORE;
+                        STATE                        <= S_IGNORE_TRIGGER;
+                      end if;
+                    end if;  
+
+                  elsif (LVL1_TRG_TYPE_IN = status_trigger_type) then
+                    -- Status Trigger
+                    if (bypass_status_trigger = '1') then
+                      TRIGGER_TYPE                 <= T_IGNORE;
+                      STATE                        <= S_IGNORE_TRIGGER;
+                    else
+                      -- Status Trigger  
+                      status_trigger_o               <= '1';
+                      TRIGGER_TYPE                   <= T_STATUS;
+                      STATE                          <= S_STATUS_TRIGGER;
+                    end if;
+
+                  else
+                    -- Some other Trigger, ignore it
+                    TRIGGER_TYPE                     <= T_IGNORE;
+                    STATE                            <= S_IGNORE_TRIGGER;
+                  end if;
+                  
+                end if;
+                
               else
-                STATE                <= S_WAIT_TIMING_TRIGGER_DONE;
+                -- No Trigger IN, Nothing to do, Sleep Well
+                trigger_busy_o        <= '0';
+                TRIGGER_TYPE          <= T_UNDEF;
+                STATE                 <= S_IDLE;
+              end if;
+              
+            when S_TIMING_TRIGGER =>
+              valid_trigger_o         <= '1';
+              timing_trigger_o        <= '1';
+              STATE                   <= S_WAIT_TRG_DATA_VALID;
+
+            when S_CALIBRATION_TRIGGER =>
+              calibration_trigger_o   <= '1';
+              valid_trigger_o         <= '1';
+              timing_trigger_o        <= '1';
+              STATE                   <= S_WAIT_TRG_DATA_VALID;
+              
+            when S_WAIT_TRG_DATA_VALID | S_STATUS_TRIGGER | S_IGNORE_TRIGGER =>
+              if (LVL1_TRG_DATA_VALID_IN = '0') then
+                STATE                 <= S_WAIT_TRG_DATA_VALID;
+              else
+                STATE                 <= S_WAIT_TIMING_TRIGGER_DONE;
               end if;
 
             when S_WAIT_TIMING_TRIGGER_DONE =>
-              if ((TRIGGER_TYPE = T_TIMING and TRIGGER_BUSY_0_IN = '1') or
-                  (TRIGGER_TYPE = T_SETUP  and TRIGGER_BUSY_1_IN = '1')
+              if (((TRIGGER_TYPE = T_TIMING or
+                    TRIGGER_TYPE = T_CALIBRATION)
+                   and TRIGGER_BUSY_0_IN = '1')
+                  or
+                  (TRIGGER_TYPE = T_STATUS  and
+                   TRIGGER_BUSY_1_IN = '1')
                   ) then
-                STATE                <= S_WAIT_TIMING_TRIGGER_DONE;
+                STATE                 <= S_WAIT_TIMING_TRIGGER_DONE;
               else
-                fee_data_finished_o  <= '1';
-                STATE                <= S_FEE_TRIGGER_RELEASE;
+                fee_data_finished_o   <= '1';
+                STATE                 <= S_FEE_TRIGGER_RELEASE;
               end if;
 
             when S_FEE_TRIGGER_RELEASE =>
-              fee_trg_release_o      <= '1';
-              STATE                  <= S_WAIT_FEE_TRIGGER_RELEASE_ACK;
+              fee_trg_release_o       <= '1';
+              STATE                   <= S_WAIT_FEE_TRIGGER_RELEASE_ACK;
               
             when S_WAIT_FEE_TRIGGER_RELEASE_ACK =>
               if (LVL1_TRG_DATA_VALID_IN = '1') then
-                STATE                <= S_WAIT_FEE_TRIGGER_RELEASE_ACK;
+                STATE                 <= S_WAIT_FEE_TRIGGER_RELEASE_ACK;
               else
-                STATE                <= S_IDLE;
+                STATE                 <= S_IDLE;
               end if;
               
               -- Internal Trigger Handler
             when S_INTERNAL_TRIGGER =>
-              valid_trigger_o        <= '1';
-              STATE                  <= S_WAIT_TRIGGER_VALIDATE_ACK;
+              valid_trigger_o         <= '1';
+              STATE                   <= S_WAIT_TRIGGER_VALIDATE_ACK;
 
             when S_WAIT_TRIGGER_VALIDATE_ACK =>
               if (TRIGGER_VALIDATE_BUSY_IN = '0') then
-                STATE                <= S_WAIT_TRIGGER_VALIDATE_ACK;
+                STATE                 <= S_WAIT_TRIGGER_VALIDATE_ACK;
               else
-                STATE                <= S_WAIT_TRIGGER_VALIDATE_DONE;
+                STATE                 <= S_WAIT_TRIGGER_VALIDATE_DONE;
               end if;
               
             when S_WAIT_TRIGGER_VALIDATE_DONE =>
               if (TRIGGER_VALIDATE_BUSY_IN = '1') then
-                STATE                <= S_WAIT_TRIGGER_VALIDATE_DONE;
+                STATE                 <= S_WAIT_TRIGGER_VALIDATE_DONE;
               else
-                STATE                <= S_IDLE;
+                STATE                 <= S_IDLE;
               end if;
               
           end case;
@@ -556,15 +647,15 @@ begin
   PROC_EVENT_DATA_MULTIPLEXER: process(TRIGGER_TYPE)
   begin
     case TRIGGER_TYPE is
-      when  T_UNDEF | T_IGNORE | T_INTERNAL =>
+      when  T_UNDEF | T_IGNORE =>
         fee_data_o                   <= (others => '0');
         fee_data_write_o             <= '0';
         
-      when T_TIMING =>
+      when T_TIMING | T_CALIBRATION =>
         fee_data_o                   <= FEE_DATA_0_IN;
         fee_data_write_o             <= FEE_DATA_WRITE_0_IN;
         
-      when T_SETUP =>
+      when T_STATUS =>
         fee_data_o                   <= FEE_DATA_1_IN;
         fee_data_write_o             <= FEE_DATA_WRITE_1_IN;
 
@@ -586,11 +677,13 @@ begin
   testpulse_delay     <= reg_testpulse_delay when rising_edge(NX_MAIN_CLK_IN);
   testpulse_length    <= reg_testpulse_length when rising_edge(NX_MAIN_CLK_IN);
 
-  internal_trigger_f  <= INTERNAL_TRIGGER_IN when rising_edge(NX_MAIN_CLK_IN);
+  internal_trigger_f  <= INTERNAL_TRIGGER_IN or
+                         calibration_trigger_o when rising_edge(NX_MAIN_CLK_IN);
   internal_trigger    <= internal_trigger_f  when rising_edge(NX_MAIN_CLK_IN);
 
-  start_testpulse     <= testpulse_trigger or internal_trigger;
-  
+  start_testpulse     <= testpulse_trigger or
+                         internal_trigger;
+
   PROC_TESTPULSE_HANDLER: process (NX_MAIN_CLK_IN)
   begin 
     if( rising_edge(NX_MAIN_CLK_IN) ) then
@@ -650,7 +743,7 @@ begin
     end if;
   end process PROC_TESTPULSE_HANDLER; 
 
-  -- Relax Timing 
+-- Relax Timing 
   start_testpulse_ff <= start_testpulse    when rising_edge(NX_MAIN_CLK_IN);
   start_testpulse_f  <= start_testpulse_ff when rising_edge(NX_MAIN_CLK_IN);
 
@@ -666,7 +759,7 @@ begin
       RESET_B_IN  => RESET_IN,
       PULSE_B_OUT => start_testpulse_clk100
       );
-  
+
   PROC_CAL_RATES: process (CLK_IN)
   begin 
     if( rising_edge(CLK_IN) ) then
@@ -697,11 +790,11 @@ begin
       end if;
     end if;
   end process PROC_CAL_RATES;
-  
-  -----------------------------------------------------------------------------
-  -- TRBNet Slave Bus
-  -----------------------------------------------------------------------------
-  
+
+-----------------------------------------------------------------------------
+-- TRBNet Slave Bus
+-----------------------------------------------------------------------------
+
   PROC_SLAVE_BUS: process(CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then
@@ -714,8 +807,14 @@ begin
         reg_testpulse_length           <= x"064";
         reg_testpulse_enable           <= '0';
         invalid_t_trigger_ctr_clear    <= '1';
-        bypass_ctr_trigger             <= '0';
-        bypass_status_trigger          <= '0';
+        bypass_all_trigger             <= '0';
+        bypass_physics_trigger         <= '0';
+        bypass_status_trigger          <= '1';
+        bypass_calibration_trigger     <= '1';
+        calibration_downscale          <= x"0001";
+        physics_trigger_type           <= x"1";
+        calibration_trigger_type       <= x"9";
+        status_trigger_type            <= x"e";
       else                             
         slv_unknown_addr_o             <= '0';
         slv_no_more_data_o             <= '0';
@@ -744,9 +843,30 @@ begin
               slv_ack_o                    <= '1'; 
 
             when x"0006" =>
-              bypass_ctr_trigger           <= SLV_DATA_IN(0);
+              bypass_physics_trigger       <= SLV_DATA_IN(0);
               bypass_status_trigger        <= SLV_DATA_IN(1);
+              bypass_calibration_trigger   <= SLV_DATA_IN(2);
+              bypass_all_trigger           <= SLV_DATA_IN(3);
               slv_ack_o                    <= '1'; 
+
+            when x"0007" =>
+              if (unsigned(SLV_DATA_IN(15 downto 0)) > x"0000") then
+                calibration_downscale      <=
+                  unsigned(SLV_DATA_IN(15 downto 0));
+              end if;
+              slv_ack_o                    <= '1';
+
+            when x"0008" =>
+              physics_trigger_type          <= SLV_DATA_IN(3 downto 0);
+              slv_ack_o                    <= '1';  
+
+            when x"0009" =>
+              status_trigger_type          <= SLV_DATA_IN(3 downto 0);
+              slv_ack_o                    <= '1';  
+
+            when x"000a" =>
+              status_trigger_type          <= SLV_DATA_IN(3 downto 0);
+              slv_ack_o                    <= '1';  
               
             when others =>
               slv_unknown_addr_o           <= '1';
@@ -772,7 +892,7 @@ begin
                 std_logic_vector(reg_testpulse_length);
               slv_data_out_o(31 downto 12) <= (others => '0');
               slv_ack_o                    <= '1';
-            
+              
             when x"0003" =>
               slv_data_out_o(15 downto 0)  <=
                 std_logic_vector(invalid_timing_trigger_ctr);
@@ -792,10 +912,32 @@ begin
               slv_ack_o                    <= '1';  
 
             when x"0006" =>
-              slv_data_out_o(0)            <= bypass_ctr_trigger;
+              slv_data_out_o(0)            <= bypass_physics_trigger;
               slv_data_out_o(1)            <= bypass_status_trigger;
-              slv_data_out_o(31 downto 2)  <= (others => '0');
+              slv_data_out_o(2)            <= bypass_calibration_trigger;
+              slv_data_out_o(3)            <= bypass_all_trigger;
+              slv_data_out_o(31 downto 4)  <= (others => '0');
               slv_ack_o                    <= '1';  
+
+            when x"0007" =>
+              slv_data_out_o(15 downto 0)  <= calibration_downscale;
+              slv_data_out_o(31 downto 16) <= (others => '0');
+              slv_ack_o                    <= '1';
+
+            when x"0008" =>
+              slv_data_out_o(3 downto 0)   <= physics_trigger_type;
+              slv_data_out_o(31 downto 4)  <= (others => '0');
+              slv_ack_o                    <= '1';
+
+            when x"0009" =>
+              slv_data_out_o(3 downto 0)   <= status_trigger_type;
+              slv_data_out_o(31 downto 4)  <= (others => '0');
+              slv_ack_o                    <= '1';
+
+            when x"000a" =>
+              slv_data_out_o(3 downto 0)   <= calibration_trigger_type;
+              slv_data_out_o(31 downto 4)  <= (others => '0');
+              slv_ack_o                    <= '1';
               
             when others =>
               slv_unknown_addr_o           <= '1';
@@ -806,16 +948,23 @@ begin
       end if;
     end if;           
   end process PROC_SLAVE_BUS;
-  
-  -----------------------------------------------------------------------------
-  -- Output Signals
-  -----------------------------------------------------------------------------
 
-  -- Trigger Output
+-----------------------------------------------------------------------------
+-- Output Signals
+-----------------------------------------------------------------------------
+
+  timestamp_calib_trigger_f  <= timestamp_calib_trigger_c100
+                                when rising_edge(NX_MAIN_CLK_IN);
+
+  timestamp_calib_trigger_o  <= timestamp_calib_trigger_f
+                                when rising_edge(NX_MAIN_CLK_IN);
+
+-- Trigger Output
   VALID_TRIGGER_OUT         <= valid_trigger_o;
-  TIMESTAMP_TRIGGER_OUT     <= timestamp_trigger_o;
+  TIMESTAMP_TRIGGER_OUT     <= timestamp_trigger_o or timestamp_calib_trigger_o;
   TRIGGER_TIMING_OUT        <= timing_trigger_o;
   TRIGGER_STATUS_OUT        <= status_trigger_o;
+  TRIGGER_CALIBRATION_OUT   <= calibration_trigger_o;
   FAST_CLEAR_OUT            <= fast_clear_o;
   TRIGGER_BUSY_OUT          <= trigger_busy_o;
 
@@ -827,7 +976,7 @@ begin
 
   NX_TESTPULSE_OUT          <= testpulse_o;
 
-  -- Slave Bus              
+-- Slave Bus              
   SLV_DATA_OUT              <= slv_data_out_o;    
   SLV_NO_MORE_DATA_OUT      <= slv_no_more_data_o; 
   SLV_UNKNOWN_ADDR_OUT      <= slv_unknown_addr_o;

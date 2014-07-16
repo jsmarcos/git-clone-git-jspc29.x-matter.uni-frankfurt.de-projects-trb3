@@ -8,36 +8,37 @@ use work.nxyter_components.all;
 
 entity nx_data_validate is
   port (
-    CLK_IN               : in  std_logic;  
-    RESET_IN             : in  std_logic;
+    CLK_IN                 : in  std_logic;  
+    RESET_IN               : in  std_logic;
+                           
+    -- Inputs              
+    DATA_IN                : in  std_logic_vector(43 downto 0);
+    DATA_CLK_IN            : in  std_logic;
+                           
+    -- Outputs             
+    TIMESTAMP_OUT          : out std_logic_vector(13 downto 0);
+    CHANNEL_OUT            : out std_logic_vector(6 downto 0);
+    TIMESTAMP_STATUS_OUT   : out std_logic_vector(2 downto 0);
+    ADC_DATA_OUT           : out std_logic_vector(11 downto 0);
+    DATA_CLK_OUT           : out std_logic;
+                           
+    NX_TOKEN_RETURN_OUT    : out std_logic;
+    NX_NOMORE_DATA_OUT     : out std_logic;
+                           
+    -- Slave bus           
+    SLV_READ_IN            : in  std_logic;
+    SLV_WRITE_IN           : in  std_logic;
+    SLV_DATA_OUT           : out std_logic_vector(31 downto 0);
+    SLV_DATA_IN            : in std_logic_vector(31 downto 0);
+    SLV_ADDR_IN            : in std_logic_vector(15 downto 0);
+    SLV_ACK_OUT            : out std_logic;
+    SLV_NO_MORE_DATA_OUT   : out std_logic;
+    SLV_UNKNOWN_ADDR_OUT   : out std_logic;
 
-    -- Inputs
-    DATA_IN              : in  std_logic_vector(43 downto 0);
-    DATA_CLK_IN          : in  std_logic;
-
-    -- Outputs
-    TIMESTAMP_OUT        : out std_logic_vector(13 downto 0);
-    CHANNEL_OUT          : out std_logic_vector(6 downto 0);
-    TIMESTAMP_STATUS_OUT : out std_logic_vector(2 downto 0);
-    ADC_DATA_OUT         : out std_logic_vector(11 downto 0);
-    DATA_CLK_OUT         : out std_logic;
-    
-    NX_TOKEN_RETURN_OUT  : out std_logic;
-    NX_NOMORE_DATA_OUT   : out std_logic;
-
-    -- Slave bus         
-    SLV_READ_IN          : in  std_logic;
-    SLV_WRITE_IN         : in  std_logic;
-    SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
-    SLV_DATA_IN          : in std_logic_vector(31 downto 0);
-    SLV_ADDR_IN          : in std_logic_vector(15 downto 0);
-    SLV_ACK_OUT          : out std_logic;
-    SLV_NO_MORE_DATA_OUT : out std_logic;
-    SLV_UNKNOWN_ADDR_OUT : out std_logic;
-
-    DISABLE_ADC_IN       : in std_logic;
-    ERROR_OUT            : out std_logic;
-    DEBUG_OUT            : out std_logic_vector(15 downto 0)
+    ADC_TR_ERROR_OUT       : out std_logic;
+    DISABLE_ADC_IN         : in std_logic;
+    ERROR_OUT              : out std_logic;
+    DEBUG_OUT              : out std_logic_vector(15 downto 0)
     );
 
 end entity;
@@ -93,10 +94,12 @@ architecture Behavioral of nx_data_validate is
   signal adc_average_ctr      : unsigned(15 downto 0);
   signal adc_average_sum      : unsigned(31 downto 0);
   signal adc_average          : unsigned(11 downto 0);
+  
   signal adc_data_last        : std_logic_vector(11 downto 0);
 
   -- Token Return Average
-  signal nx_token_return_pipe   : std_logic_vector(4 downto 0);
+  signal nx_token_return_pipe   : std_logic_vector(8 downto 0);
+  signal adc_tr_value_tmp       : std_logic_vector(11 downto 0);
   signal adc_tr_value           : std_logic_vector(11 downto 0);
   signal adc_tr_data_p          : unsigned(11 downto 0);
   signal adc_tr_data_c          : unsigned(11 downto 0);
@@ -106,6 +109,13 @@ architecture Behavioral of nx_data_validate is
   signal adc_tr_error           : std_logic;
   signal adc_tr_error_status    : std_logic_vector(1 downto 0);
   signal adc_tr_debug_mode      : std_logic;
+  signal adc_tr_error_o         : std_logic;
+  
+  type TR_STATES is (S_IDLE,
+                     S_START,
+                     S_END
+                     );
+  signal TR_STATE : TR_STATES;
   
   -- Config
   signal readout_type         : std_logic_vector(1 downto 0);
@@ -129,9 +139,9 @@ architecture Behavioral of nx_data_validate is
 
   signal adc_tr_debug_p       : std_logic;
   signal adc_tr_debug_c       : std_logic;
-
-  signal lower_limit_r        : std_logic_vector(11 downto 0);
-
+  signal adc_tr_value_update  : std_logic;
+  signal state_debug          : std_logic_vector(1 downto 0);
+  
 begin
 
   -- Debug Line
@@ -142,14 +152,14 @@ begin
   DEBUG_OUT(4)             <= data_clk_o;
   DEBUG_OUT(5)             <= new_timestamp;
   DEBUG_OUT(6)             <= self_trigger_o;
-  DEBUG_OUT(7)             <= invalid_adc;
-  DEBUG_OUT(8)             <= adc_tr_data_clk;
-  DEBUG_OUT(9)             <= adc_tr_error;
-  DEBUG_OUT(11 downto 10)  <= adc_tr_error_status; 
-  DEBUG_OUT(12)            <= adc_tr_debug_p;
-  DEBUG_OUT(13)            <= adc_tr_debug_c;
-  DEBUG_OUT(14)            <= '0';
-  DEBUG_OUT(15)            <= parity_error;
+--  DEBUG_OUT(7)             <= invalid_adc;
+  DEBUG_OUT(7)             <= adc_tr_data_clk;
+  DEBUG_OUT(8)             <= adc_tr_error;
+  DEBUG_OUT(10 downto 9)   <= adc_tr_error_status; 
+  DEBUG_OUT(11)            <= adc_tr_debug_p;
+  DEBUG_OUT(12)            <= adc_tr_debug_c;
+  DEBUG_OUT(13)            <= adc_tr_value_update;
+  DEBUG_OUT(15 downto 14)  <= state_debug;
 
 
   -----------------------------------------------------------------------------
@@ -264,7 +274,12 @@ begin
         adc_tr_data_p        <= (others => '0');
         adc_tr_data_c        <= (others => '0');
         adc_tr_data_clk      <= '0';
+        nx_token_return_pipe <= (others => '0');
         adc_data_last        <= (others => '0');
+        adc_tr_value_tmp     <= (others => '0');
+        adc_tr_value_update  <= '0';
+        TR_STATE             <= S_IDLE;
+        state_debug          <= "00";
       else
         timestamp_o          <= (others => '0');
         channel_o            <= (others => '0');
@@ -277,10 +292,12 @@ begin
         overflow_rate_inc    <= '0';
         invalid_adc          <= '0';
         adc_tr_data_clk      <= '0';
-        
+        adc_tr_value_update  <= '0';
+
         if (new_timestamp = '1') then
 
           adc_data_last                      <= adc_data;
+          
           if (parity_error = '1') then
             parity_error_ctr <= parity_error_ctr + 1;
           end if;
@@ -321,8 +338,9 @@ begin
               nx_nomore_data_o               <= '0';
               trigger_rate_inc               <= '1';
               
-              if (nx_token_return_o = '1') then
-                -- First Data Word after empty Frame
+              if (nx_token_return_o = '1' and
+                  nx_token_return_pipe(4 downto 0) = "11111") then
+                -- First Data Word after 5 empty Frames
                 adc_tr_data_p                <= unsigned(adc_data_last);
                 adc_tr_data_c                <= unsigned(adc_data);
                 adc_tr_data_clk              <= '1';
@@ -345,21 +363,48 @@ begin
 
           frame_rate_inc                     <= '1';
 
-          -- Token Return Pipeline
-          nx_token_return_pipe(0)            <= nx_token_return_o;
-          for I in 1 to 4 loop
-            nx_token_return_pipe(I)          <= nx_token_return_pipe(I - 1);
-          end loop;
+          -- Token Return Check Handler
+          case TR_STATE is
+            when S_IDLE =>
+              if (nx_token_return_pipe(4 downto 0) = "11111") then
+                adc_tr_value_tmp             <= adc_data_last;
+                TR_STATE                     <= S_START;
+              else
+                TR_STATE                     <= S_IDLE;
+              end if;
+              state_debug                    <= "01";
+              
+            when S_START =>
+              if (nx_token_return_pipe = "111111111") then
+                TR_STATE                     <= S_END;
+              elsif (nx_token_return_pipe(5 downto 0) = "111111" or
+                     nx_token_return_pipe(6 downto 0) = "1111111" or
+                     nx_token_return_pipe(7 downto 0) = "11111111") then
+                TR_STATE                     <= S_START;
+              else
+                TR_STATE                     <= S_IDLE;
+              end if;
+              state_debug                    <= "10";
 
-          -- Store ADC Value after 5 consecutive empty Frames
-          if (nx_token_return_pipe = "11111") then
-            adc_tr_value                     <= adc_data_last;
+            when S_END =>
+              adc_tr_value                   <= adc_tr_value_tmp;
+              adc_tr_value_update            <= '1';
+              TR_STATE                       <= S_IDLE;
+              state_debug                    <= "11";
+              
+          end case;
+
+          -- Token Return Pipeline
+          if (TR_STATE /= S_END) then
+            nx_token_return_pipe(0)          <= nx_token_return_o;
+            for I in 1 to 8 loop
+              nx_token_return_pipe(I)        <= nx_token_return_pipe(I - 1);
+            end loop;
+          else
+            nx_token_return_pipe             <= (others => '0');
           end if;
-          
-        else
-          nx_token_return_o                  <= nx_token_return_o;
-          nx_nomore_data_o                   <= nx_nomore_data_o;
-        end if;  
+        
+        end if;
 
         -- Reset Counters
         if (clear_counters = '1') then
@@ -381,6 +426,8 @@ begin
         nx_rate_timer        <= (others => '0');
         nx_hit_rate          <= (others => '0');
         nx_frame_rate        <= (others => '0');
+        adc_tr_error_ctr_t   <= (others => '0');
+        adc_tr_error_ctr     <= (others => '0');
         adc_tr_error_rate    <= (others => '0');
       else
         if (nx_rate_timer < x"5f5e100") then
@@ -399,6 +446,7 @@ begin
           end if;                          
           if (adc_tr_error = '1') then     
             adc_tr_error_ctr_t             <= adc_tr_error_ctr_t + 1;
+            adc_tr_error_ctr               <= adc_tr_error_ctr + 1;
           end if;                          
           nx_rate_timer                    <= nx_rate_timer + 1;
         else                               
@@ -462,7 +510,6 @@ begin
   begin
     if (rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
-        adc_tr_error_ctr      <= (others => '0');
         adc_tr_error          <= '0';
         adc_tr_debug_p        <= '0';
         adc_tr_debug_c        <= '0';
@@ -471,17 +518,15 @@ begin
         lower_limit            := unsigned(adc_tr_value) - adc_tr_limit;
         adc_tr_error           <= '0';
 
-        lower_limit_r          <= lower_limit;
-        
         if (adc_tr_data_clk = '1') then
 
-          if (adc_tr_data_p    < x"92e") then  -- 2350
+          if (adc_tr_data_p    > lower_limit) then 
             adc_tr_debug_p     <= '1';
           else
             adc_tr_debug_p     <= '0';
           end if;
 
-          if (adc_tr_data_c    < x"92e") then
+          if (adc_tr_data_c    > lower_limit) then
             adc_tr_debug_c     <= '1';
           else
             adc_tr_debug_c     <= '0';
@@ -496,15 +541,8 @@ begin
                  adc_tr_data_c > lower_limit) then
             adc_tr_error_status  <= "01";
             adc_tr_error         <= '1';
-            
-          elsif (adc_tr_data_p < lower_limit and
-                 adc_tr_data_c < lower_limit) then
+          else
             adc_tr_error_status  <= "10";
-            adc_tr_error         <= '1';
-            
-          elsif (adc_tr_data_p < lower_limit and
-                 adc_tr_data_c > lower_limit) then
-            adc_tr_error_status  <= "11";
             adc_tr_error         <= '1';
           end if;
         end if;
@@ -512,7 +550,7 @@ begin
       end if;
     end if;
   end process PROC_ADC_TOKEN_RETURN;
-
+  
   PROC_ADC_TOKEN_RETURN_ERROR: process(CLK_IN)
   begin
     if (rising_edge(CLK_IN) ) then
@@ -545,7 +583,7 @@ begin
         clear_counters         <= '0';
         adc_average_divisor    <= x"3";
 
-        adc_tr_limit           <= x"014";  -- 20
+        adc_tr_limit           <= x"064";  -- 100
         adc_tr_debug_mode      <= '0';
       else
         slv_data_out_o         <= (others => '0');
@@ -691,20 +729,23 @@ begin
   -- Output Signals
   -----------------------------------------------------------------------------
 
-  TIMESTAMP_OUT         <= timestamp_o;
-  CHANNEL_OUT           <= channel_o;
-  TIMESTAMP_STATUS_OUT  <= timestamp_status_o;
-  ADC_DATA_OUT          <= adc_data_o;
-  DATA_CLK_OUT          <= data_clk_o;
-  NX_TOKEN_RETURN_OUT   <= nx_token_return_o;
-  NX_NOMORE_DATA_OUT    <= nx_nomore_data_o;
+  adc_tr_error_o         <= adc_tr_error;
+  
+  TIMESTAMP_OUT          <= timestamp_o;
+  CHANNEL_OUT            <= channel_o;
+  TIMESTAMP_STATUS_OUT   <= timestamp_status_o;
+  ADC_DATA_OUT           <= adc_data_o;
+  DATA_CLK_OUT           <= data_clk_o;
+  NX_TOKEN_RETURN_OUT    <= nx_token_return_o;
+  NX_NOMORE_DATA_OUT     <= nx_nomore_data_o;
 
-  ERROR_OUT             <= error_o;
+  ADC_TR_ERROR_OUT       <= adc_tr_error_o;
+  ERROR_OUT              <= error_o;
 
   -- Slave 
-  SLV_DATA_OUT          <= slv_data_out_o;    
-  SLV_NO_MORE_DATA_OUT  <= slv_no_more_data_o; 
-  SLV_UNKNOWN_ADDR_OUT  <= slv_unknown_addr_o;
-  SLV_ACK_OUT           <= slv_ack_o;
+  SLV_DATA_OUT           <= slv_data_out_o;    
+  SLV_NO_MORE_DATA_OUT   <= slv_no_more_data_o; 
+  SLV_UNKNOWN_ADDR_OUT   <= slv_unknown_addr_o;
+  SLV_ACK_OUT            <= slv_ack_o;
 
 end Behavioral;
