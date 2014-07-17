@@ -6,12 +6,8 @@ use work.trb_net_std.all;
 
 package trb3_components is
 
-  type std_logic_vector_array_36 is array (integer range <>) of std_logic_vector(35 downto 0);
-  type std_logic_vector_array_32 is array (integer range <>) of std_logic_vector(31 downto 0);
-  type std_logic_vector_array_24 is array (integer range <>) of std_logic_vector(23 downto 0);
-  type std_logic_vector_array_11 is array (integer range <>) of std_logic_vector(10 downto 0);
-  type std_logic_vector_array_8 is array (integer range <>) of std_logic_vector(7 downto 0);
-  type unsigned_array_8 is array (integer range <>) of unsigned(7 downto 0);
+  type unsigned_array_8          is array (integer range <>) of unsigned(7 downto 0);
+  type unsigned_array_5          is array (integer range <>) of unsigned(4 downto 0);
 
   component oddr is
     port (
