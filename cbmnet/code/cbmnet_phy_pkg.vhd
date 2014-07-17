@@ -10,7 +10,8 @@ package cbmnet_phy_pkg is
       generic(
          IS_SYNC_SLAVE   : integer := c_NO;       --select slave mode
          IS_SIMULATED    : integer := c_NO;
-         INCL_DEBUG_AIDS : integer := c_YES
+         INCL_DEBUG_AIDS : integer;
+         DETERMINISTIC_LATENCY : integer := c_YES -- if selected proper alignment of barrel shifter and word alignment is enforced (link may come up slower)
       );
       port(
          CLK                : in  std_logic; -- *internal* 125 MHz reference clock
@@ -181,7 +182,18 @@ package cbmnet_phy_pkg is
 
       );
    end component;   
+   
+   function EBTB_D_ENCODE(
+      constant x : integer range 0 to 31;
+      constant y : integer range 0 to 7
+   ) return std_logic_vector;
+   
 end package cbmnet_phy_pkg;
 
 package body cbmnet_phy_pkg is
+   function EBTB_D_ENCODE(constant x : integer range 0 to 31; constant y : integer range 0 to 7) return std_logic_vector
+   is begin
+      return STD_LOGIC_VECTOR(TO_UNSIGNED(x, 5)) & STD_LOGIC_VECTOR(TO_UNSIGNED(y, 3));
+   end EBTB_D_ENCODE;
+   
 end package body;

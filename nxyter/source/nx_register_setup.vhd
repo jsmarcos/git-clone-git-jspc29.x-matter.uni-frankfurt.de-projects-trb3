@@ -30,6 +30,7 @@ entity nx_register_setup is
     INT_ADDR_IN          : in  std_logic_vector(15 downto 0);
     INT_ACK_OUT          : out std_logic;
     INT_DATA_OUT         : out std_logic_vector(31 downto 0);
+    NX_CLOCK_ON_OUT      : out std_logic;
     
     -- Slave bus         
     SLV_READ_IN          : in  std_logic;
@@ -209,6 +210,9 @@ architecture Behavioral of nx_register_setup is
   -- Internal Register Read
   signal int_data_o              : std_logic_vector(31 downto 0);
   signal int_ack_o               : std_logic;
+
+  -- Status
+  signal nx_clock_on_o           : std_logic;
   
   -- TRBNet Slave Bus
   signal slv_data_out_o          : std_logic_vector(31 downto 0);
@@ -1271,7 +1275,7 @@ begin
           else
             case SLV_ADDR_IN is
               when x"0050" =>
-                -- Nxyter Clock
+                -- Nxyter Clock ON
                 if (i2c_disable_memory = '0') then
                   slv_data_out_o(0)           <= i2c_ram(33)(3);
                   slv_data_out_o(31 downto 1) <= (others => '0');
@@ -1378,6 +1382,7 @@ begin
                 -- ReadToken
                 slv_data_out_o                <= i2c_read_token(31 downto 0);
                 slv_ack_o                     <= '1';
+
               when x"0073" =>
                 -- ReadToken
                 slv_data_out_o(13 downto 0)   <= i2c_read_token(45 downto 32);
@@ -1445,6 +1450,7 @@ begin
   -----------------------------------------------------------------------------
   -- Output Signals
   -----------------------------------------------------------------------------
+  nx_clock_on_o           <= i2c_ram(33)(3) when rising_edge(CLK_IN);
   
   I2C_COMMAND_OUT         <= i2c_command_o;
   I2C_LOCK_OUT            <= i2c_command_busy_o;
@@ -1456,6 +1462,8 @@ begin
   INT_ACK_OUT             <= int_ack_o;
   INT_DATA_OUT            <= int_data_o;
 
+  NX_CLOCK_ON_OUT         <= nx_clock_on_o;
+  
   -- Slave Bus            
   SLV_DATA_OUT            <= slv_data_out_o;    
   SLV_NO_MORE_DATA_OUT    <= slv_no_more_data_o; 

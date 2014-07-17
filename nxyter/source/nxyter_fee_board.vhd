@@ -130,6 +130,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal spi_command            : std_logic_vector(31 downto 0);
   signal spi_command_busy       : std_logic;
   signal spi_data               : std_logic_vector(31 downto 0);
+  signal nxyter_clock_on        : std_logic;
 
   -- SPI Interface ADC          
   signal spi_sdi                : std_logic;
@@ -152,7 +153,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal timestamp_status       : std_logic_vector(2 downto 0);
   signal adc_data               : std_logic_vector(11 downto 0);
   signal data_clk               : std_logic;
-                                
+  signal adc_tr_error           : std_logic;
   signal nx_token_return        : std_logic;
   signal nx_nomore_data         : std_logic;
                                 
@@ -198,6 +199,7 @@ architecture Behavioral of nXyter_FEE_board is
   signal timestamp_trigger      : std_logic;
   signal trigger_timing         : std_logic;
   signal trigger_status         : std_logic;
+  signal trigger_calibration    : std_logic;
   signal trigger_busy           : std_logic;
   signal fast_clear             : std_logic;
   signal fee_trg_release_o      : std_logic;
@@ -349,7 +351,7 @@ begin
       I2C_DATA_IN          => i2c_data,
       I2C_DATA_BYTES_IN    => i2c_data_bytes,
       I2C_LOCK_OUT         => i2c_lock,
-      I2C_REG_RESET_IN     => not i2c_reg_reset_o,
+      I2C_REG_RESET_IN     => i2c_reg_reset_o,
       SPI_COMMAND_OUT      => spi_command,
       SPI_COMMAND_BUSY_IN  => spi_command_busy,
       SPI_DATA_IN          => spi_data,
@@ -358,6 +360,7 @@ begin
       INT_ADDR_IN          => int_addr,
       INT_ACK_OUT          => int_ack,
       INT_DATA_OUT         => int_data,
+      NX_CLOCK_ON_OUT      => nxyter_clock_on,
       SLV_READ_IN          => slv_read(9),
       SLV_WRITE_IN         => slv_write(9),
       SLV_DATA_OUT         => slv_data_rd(9*32+31 downto 9*32),
@@ -497,6 +500,7 @@ begin
       TIMESTAMP_TRIGGER_OUT      => timestamp_trigger,
       TRIGGER_TIMING_OUT         => trigger_timing,
       TRIGGER_STATUS_OUT         => trigger_status,
+      TRIGGER_CALIBRATION_OUT    => trigger_calibration,
       FAST_CLEAR_OUT             => fast_clear,
       TRIGGER_BUSY_OUT           => trigger_busy,
 
@@ -553,9 +557,10 @@ begin
     port map (
       CLK_IN                 => CLK_IN,
       RESET_IN               => RESET_IN,
-      TRIGGER_IN             => trigger_timing,
+      TRIGGER_IN             => trigger_timing,  -- for debugging only
       NX_ONLINE_IN           => nxyter_online,
-
+      NX_CLOCK_ON_IN         => nxyter_clock_on,
+      
       NX_TIMESTAMP_CLK_IN    => NX_DATA_CLK_IN,
       NX_TIMESTAMP_IN        => NX_TIMESTAMP_IN,
       NX_TIMESTAMP_RESET_OUT => nx_timestamp_reset,
@@ -581,6 +586,8 @@ begin
       SLV_ACK_OUT            => slv_ack(2),                       
       SLV_NO_MORE_DATA_OUT   => slv_no_more_data(2),              
       SLV_UNKNOWN_ADDR_OUT   => slv_unknown_addr(2),
+
+      ADC_TR_ERROR_IN        => adc_tr_error,
       DISABLE_ADC_OUT        => disable_adc_receiver,
       ERROR_OUT              => error_data_receiver,
       DEBUG_OUT              => debug_line(7)
@@ -620,33 +627,34 @@ begin
 
   nx_data_validate_1: nx_data_validate
     port map (
-      CLK_IN                => CLK_IN,
-      RESET_IN              => RESET_IN,
-      
-      DATA_IN               => data_delayed,
-      DATA_CLK_IN           => data_clk_delayed,
+      CLK_IN                 => CLK_IN,
+      RESET_IN               => RESET_IN,
+                             
+      DATA_IN                => data_delayed,
+      DATA_CLK_IN            => data_clk_delayed,
+                             
+      TIMESTAMP_OUT          => timestamp,
+      CHANNEL_OUT            => timestamp_channel_id,
+      TIMESTAMP_STATUS_OUT   => timestamp_status,
+      ADC_DATA_OUT           => adc_data,
+      DATA_CLK_OUT           => data_clk,
+                             
+      NX_TOKEN_RETURN_OUT    => nx_token_return,
+      NX_NOMORE_DATA_OUT     => nx_nomore_data,
+                             
+      SLV_READ_IN            => slv_read(6),
+      SLV_WRITE_IN           => slv_write(6),
+      SLV_DATA_OUT           => slv_data_rd(6*32+31 downto 6*32),
+      SLV_DATA_IN            => slv_data_wr(6*32+31 downto 6*32),
+      SLV_ADDR_IN            => slv_addr(6*16+15 downto 6*16),
+      SLV_ACK_OUT            => slv_ack(6),
+      SLV_NO_MORE_DATA_OUT   => slv_no_more_data(6),
+      SLV_UNKNOWN_ADDR_OUT   => slv_unknown_addr(6),
 
-      TIMESTAMP_OUT         => timestamp,
-      CHANNEL_OUT           => timestamp_channel_id,
-      TIMESTAMP_STATUS_OUT  => timestamp_status,
-      ADC_DATA_OUT          => adc_data,
-      DATA_CLK_OUT          => data_clk,
-      
-      NX_TOKEN_RETURN_OUT   => nx_token_return,
-      NX_NOMORE_DATA_OUT    => nx_nomore_data,
-      
-      SLV_READ_IN           => slv_read(6),
-      SLV_WRITE_IN          => slv_write(6),
-      SLV_DATA_OUT          => slv_data_rd(6*32+31 downto 6*32),
-      SLV_DATA_IN           => slv_data_wr(6*32+31 downto 6*32),
-      SLV_ADDR_IN           => slv_addr(6*16+15 downto 6*16),
-      SLV_ACK_OUT           => slv_ack(6),
-      SLV_NO_MORE_DATA_OUT  => slv_no_more_data(6),
-      SLV_UNKNOWN_ADDR_OUT  => slv_unknown_addr(6),
-
-      DISABLE_ADC_IN        => disable_adc_receiver,
-      ERROR_OUT             => error_data_validate,
-      DEBUG_OUT             => debug_line(9)
+      ADC_TR_ERROR_OUT       => adc_tr_error,
+      DISABLE_ADC_IN         => disable_adc_receiver,
+      ERROR_OUT              => error_data_validate,
+      DEBUG_OUT              => debug_line(9)
       );
 
 -------------------------------------------------------------------------------
@@ -671,6 +679,7 @@ begin
       NX_NOMORE_DATA_IN        => nx_nomore_data,
                                
       TRIGGER_IN               => trigger,
+      TRIGGER_CALIBRATION_IN   => trigger_calibration,
       TRIGGER_BUSY_IN          => trigger_busy,
       FAST_CLEAR_IN            => fast_clear,
       TRIGGER_BUSY_OUT         => trigger_validate_busy,
@@ -793,13 +802,13 @@ begin
 -------------------------------------------------------------------------------
 -- nXyter Signals
 -------------------------------------------------------------------------------
-  NX_RESET_OUT          <= not nx_timestamp_reset_o;
+  NX_RESET_OUT         <= not nx_timestamp_reset_o;
 
 -------------------------------------------------------------------------------
 -- I2C Signals
 -------------------------------------------------------------------------------
 
-  I2C_REG_RESET_OUT   <= i2c_reg_reset_o;
+  I2C_REG_RESET_OUT    <= not i2c_reg_reset_o;
 
 -------------------------------------------------------------------------------
 -- Others

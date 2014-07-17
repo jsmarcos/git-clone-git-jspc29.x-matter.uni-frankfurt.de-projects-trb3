@@ -58,6 +58,17 @@ LOCATE UGROUP "THE_SPI_MEMORY/SPI_group" REGION "REGION_SPI" ;
 MULTICYCLE TO CELL "gen_mbs_vulom_as_etm_THE_MBS/trg_sync" 20 ns;
 MULTICYCLE TO CELL "gen_mbs_vulom_as_etm_THE_MBS/error_reg" 20 ns;
 
+# CBMNet
+FREQUENCY NET "gen_cbmnet_THE_CBM_PHY/clk_tx_full_i" 250 MHz ;
+FREQUENCY NET "gen_cbmnet_THE_CBM_PHY/THE_RX_GEAR/clk_125_i_i" 125 MHz ;
+FREQUENCY NET "cbm_clk_i" 125 MHz ;
+
+DEFINE BUS "cbm_rx_data" NET "gen_cbmnet_THE_CBM_PHY/rx_data_from_serdes_i[0]"  NET "gen_cbmnet_THE_CBM_PHY/rx_data_from_serdes_i[1]"  NET "gen_cbmnet_THE_CBM_PHY/rx_data_from_serdes_i[2]"  NET "gen_cbmnet_THE_CBM_PHY/rx_data_from_serdes_i[3]"  NET "gen_cbmnet_THE_CBM_PHY/rx_data_from_serdes_i[4]"  NET "gen_cbmnet_THE_CBM_PHY/rx_data_from_serdes_i[5]"  NET "gen_cbmnet_THE_CBM_PHY/rx_data_from_serdes_i[6]"  NET "gen_cbmnet_THE_CBM_PHY/rx_data_from_serdes_i[7]"  NET "gen_cbmnet_THE_CBM_PHY/rx_data_from_serdes_i[8]";
+DEFINE BUS "cbm_tx_data" NET "gen_cbmnet_THE_CBM_PHY/tx_data_to_serdes_i[0]"  NET "gen_cbmnet_THE_CBM_PHY/tx_data_to_serdes_i[1]"  NET "gen_cbmnet_THE_CBM_PHY/tx_data_to_serdes_i[2]"  NET "gen_cbmnet_THE_CBM_PHY/tx_data_to_serdes_i[3]"  NET "gen_cbmnet_THE_CBM_PHY/tx_data_to_serdes_i[4]"  NET "gen_cbmnet_THE_CBM_PHY/tx_data_to_serdes_i[5]"  NET "gen_cbmnet_THE_CBM_PHY/tx_data_to_serdes_i[6]"  NET "gen_cbmnet_THE_CBM_PHY/tx_data_to_serdes_i[7]"  NET "gen_cbmnet_THE_CBM_PHY/tx_data_to_serdes_i[8]";
+
+PRIORITIZE BUS "cbm_rx_data" 91;
+PRIORITIZE BUS "cbm_tx_data" 90;
+
 #TrbNet Hub 
 REGION "REGION_IOBUF" "R40C40D" 55 75 DEVSIZE;
 LOCATE UGROUP "THE_HUB/THE_HUB/gen_muxes_0_MPLEX/MUX_group" REGION "REGION_IOBUF" ;

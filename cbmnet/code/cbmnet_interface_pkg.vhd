@@ -1,4 +1,4 @@
--- Hardware Independent CBMNet components (merely an interface definition for the Verilog modules)
+-- Hardware Independent CBMNet components 
 
 library ieee;
    use ieee.std_logic_1164.all;
@@ -302,6 +302,148 @@ package cbmnet_interface_pkg is
          ctrl_rec_end : in std_logic;
          ctrl_rec : in std_logic_vector(15 downto 0);
          ctrl_rec_stop : out std_logic
+      );
+   end component;
+   
+   component CBMNET_READOUT_FIFO is
+      generic (
+         ADDR_WIDTH : positive := 10;
+         WATERMARK  : positive := 2
+      );
+
+      port (
+         -- write port
+         WCLK_IN   : in std_logic; -- not faster than rclk_in
+         WRESET_IN : in std_logic;
+         
+         WADDR_STORE_IN   : in std_logic;
+         WADDR_RESTORE_IN : in std_logic;
+         
+         WDATA_IN    : in std_logic_vector(17 downto 0);
+         WENQUEUE_IN : in std_logic;
+         WPACKET_COMPLETE_IN : in std_logic;
+         
+         WALMOST_FULL_OUT : out std_logic;
+         WFULL_OUT        : out std_logic;
+         
+         -- read port
+         RCLK_IN   : in std_logic;
+         RRESET_IN : in std_logic;  -- has to active at least two clocks AFTER (or while) write port was (is being) initialised
+         
+         RDATA_OUT   : out std_logic_vector(17 downto 0);
+         RDEQUEUE_IN : in std_logic;
+         
+         RPACKET_COMPLETE_OUT : out std_logic;   -- atleast one packet is completed in fifo
+         RPACKET_COMPLETE_ACK_IN : in std_logic -- mark one event as dealt with (effectively decrease number of completed packets by one)
+      );
+   end component;
+   
+  
+   component CBMNET_READOUT_TX_FSM is
+      port (
+         CLK_IN   : in std_logic;
+         RESET_IN : in std_logic; 
+
+         -- fifo 
+         FIFO_DATA_IN   : in std_logic_vector(15 downto 0);
+         FIFO_DEQUEUE_OUT : out std_logic;
+         FIFO_PACKET_COMPLETE_IN : in std_logic;  
+         FIFO_PACKET_COMPLETE_ACK_OUT : out std_logic;
+
+         -- cbmnet
+         CBMNET_STOP_IN   : in std_logic;
+         CBMNET_START_OUT : out std_logic;
+         CBMNET_END_OUT   : out std_logic;
+         CBMNET_DATA_OUT  : out std_logic_vector(15 downto 0)
+      );
+   end component;
+   
+   component CBMNET_READOUT_FIFO is
+      generic (
+         ADDR_WIDTH : positive := 10;
+         WATERMARK  : positive := 2
+      );
+
+      port (
+         -- write port
+         WCLK_IN   : in std_logic; -- not faster than rclk_in
+         WRESET_IN : in std_logic;
+         
+         WADDR_STORE_IN   : in std_logic;
+         WADDR_RESTORE_IN : in std_logic;
+         
+         WDATA_IN    : in std_logic_vector(17 downto 0);
+         WENQUEUE_IN : in std_logic;
+         WPACKET_COMPLETE_IN : in std_logic;
+         
+         WALMOST_FULL_OUT : out std_logic;
+         WFULL_OUT        : out std_logic;
+         
+         -- read port
+         RCLK_IN   : in std_logic;
+         RRESET_IN : in std_logic;  -- has to active at least two clocks AFTER (or while) write port was (is being) initialised
+         
+         RDATA_OUT   : out std_logic_vector(17 downto 0);
+         RDEQUEUE_IN : in std_logic;
+         
+         RPACKET_COMPLETE_OUT : out std_logic;   -- atleast one packet is completed in fifo
+         RPACKET_COMPLETE_ACK_IN : in std_logic -- mark one event as dealt with (effectively decrease number of completed packets by one)
+      );
+   end component;
+
+   component CBMNET_READOUT is
+      port (
+      -- TrbNet
+         CLK_IN   : in std_logic;
+         RESET_IN : in std_logic;
+
+         -- connect to hub
+         HUB_CTS_NUMBER_IN              : in  std_logic_vector (15 downto 0);
+         HUB_CTS_CODE_IN                : in  std_logic_vector (7  downto 0);
+         HUB_CTS_INFORMATION_IN         : in  std_logic_vector (7  downto 0);
+         HUB_CTS_READOUT_TYPE_IN        : in  std_logic_vector (3  downto 0);
+         HUB_CTS_START_READOUT_IN       : in  std_logic;
+         HUB_CTS_READOUT_FINISHED_OUT   : out std_logic;  --no more data, end transfer, send TRM
+         HUB_CTS_STATUS_BITS_OUT        : out std_logic_vector (31 downto 0);
+         HUB_FEE_DATA_IN                : in  std_logic_vector (15 downto 0);
+         HUB_FEE_DATAREADY_IN           : in  std_logic;
+         HUB_FEE_READ_OUT               : out std_logic;  --must be high when idle, otherwise you will never get a dataready
+         HUB_FEE_STATUS_BITS_IN         : in  std_logic_vector (31 downto 0);
+         HUB_FEE_BUSY_IN                : in  std_logic;   
+
+         -- connect to GbE
+         GBE_CTS_NUMBER_OUT             : out std_logic_vector (15 downto 0);
+         GBE_CTS_CODE_OUT               : out std_logic_vector (7  downto 0);
+         GBE_CTS_INFORMATION_OUT        : out std_logic_vector (7  downto 0);
+         GBE_CTS_READOUT_TYPE_OUT       : out std_logic_vector (3  downto 0);
+         GBE_CTS_START_READOUT_OUT      : out std_logic;
+         GBE_CTS_READOUT_FINISHED_IN    : in  std_logic;      --no more data, end transfer, send TRM
+         GBE_CTS_STATUS_BITS_IN         : in  std_logic_vector (31 downto 0);
+         GBE_FEE_DATA_OUT               : out std_logic_vector (15 downto 0);
+         GBE_FEE_DATAREADY_OUT          : out std_logic;
+         GBE_FEE_READ_IN                : in  std_logic;  --must be high when idle, otherwise you will never get a dataready
+         GBE_FEE_STATUS_BITS_OUT        : out std_logic_vector (31 downto 0);
+         GBE_FEE_BUSY_OUT               : out std_logic;
+
+         -- reg io
+         REGIO_ADDR_IN                  : in  std_logic_vector(15 downto 0);
+         REGIO_DATA_IN                  : in  std_logic_vector(31 downto 0);
+         REGIO_READ_ENABLE_IN           : in  std_logic;
+         REGIO_WRITE_ENABLE_IN          : in  std_logic;
+         REGIO_DATA_OUT                 : out std_logic_vector(31 downto 0);
+         REGIO_DATAREADY_OUT            : out std_logic;
+         REGIO_WRITE_ACK_OUT            : out std_logic;
+         REGIO_UNKNOWN_ADDR_OUT         : out std_logic;
+
+      -- CBMNet
+         CBMNET_CLK_IN     : in std_logic;
+         CBMNET_RESET_IN   : in std_logic;
+         CBMNET_LINK_ACTIVE_IN : in std_logic;         
+
+         CBMNET_DATA2SEND_STOP_IN   : in std_logic;
+         CBMNET_DATA2SEND_START_OUT : out std_logic;
+         CBMNET_DATA2SEND_END_OUT   : out std_logic;
+         CBMNET_DATA2SEND_DATA_OUT  : out std_logic_vector(15 downto 0)
       );
    end component;
 end package cbmnet_interface_pkg;

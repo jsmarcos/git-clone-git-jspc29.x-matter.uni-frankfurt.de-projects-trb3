@@ -1,3 +1,5 @@
+# load configuration derived from config.vhd by compile_constraints.pl
+source trb3_central_prjconfig.tcl  
 
 # implementation: "workdir"
 impl -add workdir -type fpga
@@ -55,6 +57,7 @@ impl -active "workdir"
 #add_file options
 
 add_file -vhdl -lib work "../../trbnet/trb_net_std.vhd"
+add_file -vhdl -lib "work" "tdc_release/tdc_version.vhd"
 add_file -vhdl -lib work "version.vhd"
 add_file -vhdl -lib work "config.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_components.vhd"
@@ -240,47 +243,136 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.v
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4_onboard.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4.vhd"
 
+
 add_file -vhdl -lib work "../base/cores/pll_in200_out100.vhd"
 add_file -vhdl -lib work "../base/cores/pll_in125_out20.vhd"
 add_file -vhdl -lib work "../../trbnet/optical_link/f_divider.vhd"
+
 add_file -vhdl -lib work "source/cts_pkg.vhd"
-add_file -vhdl -lib work "source/cts_fifo.vhd"
-add_file -vhdl -lib work "source/cts_trg_input.vhd"
-add_file -vhdl -lib work "source/cts_trg_coin.vhd"
-add_file -vhdl -lib work "source/cts_trg_pseudorand_pulser.vhd"
-add_file -vhdl -lib work "source/cts_trigger.vhd"
-add_file -vhdl -lib work "source/cts.vhd"
+add_file -vhdl -lib work "source/cbmnet_dlm_etm.vhd"
+if {$INCLUDE_CTS == 1} {
+   add_file -vhdl -lib work "source/cts_fifo.vhd"
+   add_file -vhdl -lib work "source/cts_trg_input.vhd"
+   add_file -vhdl -lib work "source/cts_trg_coin.vhd"
+   add_file -vhdl -lib work "source/cts_trg_pseudorand_pulser.vhd"
+   add_file -vhdl -lib work "source/cts_trigger.vhd"
+   add_file -vhdl -lib work "source/cts.vhd"
+}
 
-###############
-#Change path to tdc release also in compile script!
-###############
-# don't use vhd but link Adder_304.ngo to workdir!
-#add_file -vhdl -lib "work" "tdc_release/Adder_304.vhd"
-#add_file -vhdl -lib "work" "tdc_release/fallingEdgeDetect.vhd"
-#add_file -vhdl -lib "work" "tdc_release/bit_sync.vhd"
-#add_file -vhdl -lib "work" "tdc_release/BusHandler.vhd"
-#add_file -vhdl -lib "work" "tdc_release/Channel_200.vhd"
-#add_file -vhdl -lib "work" "tdc_release/Channel.vhd"
-#add_file -vhdl -lib "work" "tdc_release/hit_mux.vhd"
-#add_file -vhdl -lib "work" "tdc_release/Encoder_304_Bit.vhd"
-#add_file -vhdl -lib "work" "tdc_release/FIFO_32x32_OutReg.vhd"
-#add_file -vhdl -lib "work" "tdc_release/LogicAnalyser.vhd"
-#add_file -vhdl -lib "work" "tdc_release/Readout.vhd"
-#add_file -vhdl -lib "work" "tdc_release/Reference_Channel_200.vhd"
-#add_file -vhdl -lib "work" "tdc_release/Reference_Channel.vhd"
-#add_file -vhdl -lib "work" "tdc_release/ROM_encoder_3.vhd"
-##add_file -vhdl -lib "work" "tdc_release/ROM_FIFO.vhd"
-#add_file -vhdl -lib "work" "tdc_release/ShiftRegisterSISO.vhd"
-#add_file -vhdl -lib "work" "tdc_release/TDC.vhd"
-#add_file -vhdl -lib "work" "tdc_release/up_counter.vhd"
-#add_file -vhdl -lib "work" "tdc_release/FIFO_36x128_OutReg_Counter.vhd"
-#add_file -vhdl -lib "work" "tdc_release/risingEdgeDetect.vhd"
-#add_file -vhdl -lib "work" "tdc_release/ROM4_Encoder.vhd"
-#add_file -vhdl -lib "work" "../base/cores/FIFO_36x128_OutReg.vhd"
-#add_file -vhdl -lib "work" "../base/cores/FIFO_DC_36x128_OutReg.vhd"
-#add_file -vhdl -lib "work" "../base/cores/FIFO_DC_36x64_OutReg.vhd"
-#add_file -vhdl -lib "work" "tdc_release/TriggerHandler.vhd"
+if {$INCLUDE_TDC == 1} {
+   ###############
+   #Change path to tdc release also in compile script!
+   ###############
+   # don't use vhd but link Adder_304.ngo to workdir!
+   #add_file -vhdl -lib "work" "tdc_release/Adder_304.vhd"
+   add_file -vhdl -lib "work" "tdc_release/fallingEdgeDetect.vhd"
+   add_file -vhdl -lib "work" "tdc_release/bit_sync.vhd"
+   add_file -vhdl -lib "work" "tdc_release/BusHandler.vhd"
+   add_file -vhdl -lib "work" "tdc_release/Channel_200.vhd"
+   add_file -vhdl -lib "work" "tdc_release/Channel.vhd"
+   add_file -vhdl -lib "work" "tdc_release/hit_mux.vhd"
+   add_file -vhdl -lib "work" "tdc_release/Encoder_304_Bit.vhd"
+   #add_file -vhdl -lib "work" "tdc_release/FIFO_32x32_OutReg.vhd"
+   add_file -vhdl -lib "work" "tdc_release/LogicAnalyser.vhd"
+   add_file -vhdl -lib "work" "tdc_release/Readout.vhd"
+   #add_file -vhdl -lib "work" "tdc_release/Reference_Channel_200.vhd"
+   #add_file -vhdl -lib "work" "tdc_release/Reference_Channel.vhd"
+   add_file -vhdl -lib "work" "tdc_release/ROM_encoder_3.vhd"
+   #add_file -vhdl -lib "work" "tdc_release/ROM_FIFO.vhd"
+   add_file -vhdl -lib "work" "tdc_release/ShiftRegisterSISO.vhd"
+   add_file -vhdl -lib "work" "tdc_release/TDC.vhd"
+   add_file -vhdl -lib "work" "tdc_release/up_counter.vhd"
+   add_file -vhdl -lib "work" "tdc_release/FIFO_36x128_OutReg_Counter.vhd"
+   add_file -vhdl -lib "work" "tdc_release/risingEdgeDetect.vhd"
+   add_file -vhdl -lib "work" "tdc_release/ROM4_Encoder.vhd"
+   add_file -vhdl -lib "work" "../base/cores/FIFO_36x128_OutReg.vhd"
+   add_file -vhdl -lib "work" "../base/cores/FIFO_DC_36x128_OutReg.vhd"
+   add_file -vhdl -lib "work" "../base/cores/FIFO_DC_36x64_OutReg.vhd"
+   add_file -vhdl -lib "work" "tdc_release/TriggerHandler.vhd"
+}
 
+add_file -vhdl -lib work "../cbmnet/code/cbmnet_interface_pkg.vhd"
+add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_pkg.vhd"
+if {$INCLUDE_CBMNET == 1} {
+   set_option -include_path {../cbmnet/cbmnet/cores/CBMnet/includes/}
+
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/rams/ram_1w1r_1c.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/rams/ram_1w1r_2c.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/rams/ram_1w2r_1c.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/rams/ram_2rw_1c.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/rams/ram_2rw_2c.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/rams/ram_1w1r_1c_enable.v"
+
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/fast_fifo/fast_fifo.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/fast_fifo/fifo_ram.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/fast_fifo/fifo_reg.v"
+
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/fwft_fifo_spec/spec_fwft_fifo.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/fwft_fifo_spec/spec_standard_fifo.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/fwft_fifo_spec/empty_logic_spec_so.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/fwft_fifo_spec/empty_logic_wo_spec.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/fwft_fifo_spec/full_logic_spec_si.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/fwft_fifo_spec/full_logic_wo_spec.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/fwft_fifo_spec/full_logic_spec_si_all.v"
+
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/async_fifo/async_fifo.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/async_fifo/async_standard_fifo.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/async_fifo/sync_r2w.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/async_fifo/sync_w2r.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/async_fifo/sync_w2r_hs.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/async_fifo/empty_logic.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/async_fifo/full_logic.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/async_fifo/empty_logic_spec_shift_out.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/async_fifo/empty_logic_spec_shift_out_1_inc.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/async_fifo/full_logic_spec_shift_in.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/cores_fpga/common/async_fifo/full_logic_spec_shift_in_1_inc.v"
+
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/pcs_init/cn_barrel_shifter.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/pcs_init/cn_rx_pcs_init_fsm.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/pcs_init/cn_rx_pcs_wrapper.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/pcs_init/cn_tx_pcs_init_fsm.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/pcs_init/cn_tx_pcs_wrapper.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/pcs_init/cn_async_input_sync.v"
+
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/dlm_reflect.v"
+
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_top.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_arbiter_fsm.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_crc_generator.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_dlm_in.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_dlm_out.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_in_decode.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_init_fsm.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_init.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_in.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_out.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_packet_gen.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_receive_buffer.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_receive_fsm.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_service_ctrl.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_service.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_rx_slave_top.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_rx_top.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_send_buffer_fsm.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_send_buffer.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_send_fsm.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_tx_slave_top.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_tx_top.v"
+
+   add_file -vhdl -lib work "../base/cores/cbmnet_sfp1.vhd"
+   add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/med_sync_define.vhd"
+   add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_ecp3_rx_reset_fsm.vhd"
+   add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_ecp3_tx_reset_fsm.vhd"
+   add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_rx_gear.vhd"
+   add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_tx_gear.vhd"
+   add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_ecp3.vhd"
+   
+   add_file -vhdl -lib work "../cbmnet/code/cbmnet_readout_fifo.vhd"
+   add_file -vhdl -lib work "../cbmnet/code/cbmnet_readout_tx_fsm.vhd"
+   add_file -vhdl -lib work "../cbmnet/code/cbmnet_readout.vhd"
+
+
+}
 
 add_file -vhdl -lib work "./trb3_central.vhd"
 #add_file -fpga_constraint "./cts.fdc"

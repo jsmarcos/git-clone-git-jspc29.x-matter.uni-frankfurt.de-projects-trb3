@@ -28,6 +28,7 @@ unless(-e $workdir) {
 chdir($workdir);
 system ("$back/../../base/linkdesignfiles.sh '$back'");
 symlink "$back/../cores/cbmnet_sfp1.txt", 'cbmnet_sfp1.txt';
+symlink "$back/../cores/cbmnet_sfp1_slow.txt", 'cbmnet_sfp1_slow.txt';
 
 chdir($script_dir);
 

@@ -22,7 +22,7 @@ entity trb3_central is
     CLK_GPLL_RIGHT                 : in  std_logic;  --Clock Manager 1/9, 125 MHz  <-- for GbE
     CLK_PCLK_LEFT                  : in  std_logic;  --Clock Fan-out, 200/400 MHz 
     CLK_PCLK_RIGHT                 : in  std_logic;  --Clock Fan-out, 200/400 MHz 
-    CLK_TEST_OUT                   : out std_logic_vector(2 downto 0);
+    CLKRJ                          : inout std_logic_vector(3 downto 0);  --single-ended on clock rj45
 
     --Trigger
     TRIGGER_LEFT                   : in  std_logic;  --left side trigger input from fan-out
@@ -278,6 +278,18 @@ signal stat_read  : std_logic := '0';
 signal stat_ack   : std_logic := '0';
 signal stat_nack  : std_logic := '0';
 signal stat_addr  : std_logic_vector(15 downto 0) := (others => '0');  
+
+signal uart_din   : std_logic_vector(31 downto 0);
+signal uart_dout  : std_logic_vector(31 downto 0);
+signal uart_write : std_logic := '0';
+signal uart_read  : std_logic := '0';
+signal uart_ack   : std_logic := '0';
+signal uart_nack  : std_logic := '0';
+signal uart_empty : std_logic := '0';
+signal uart_addr  : std_logic_vector(15 downto 0) := (others => '0');  
+signal uart_tx    : std_logic_vector(4 downto 0);
+signal uart_rx    : std_logic_vector(4 downto 0);
+
 
 signal debug : std_logic_vector(63 downto 0);
 
@@ -764,9 +776,9 @@ end generate;
 ---------------------------------------------------------------------------
 THE_BUS_HANDLER : trb_net16_regio_bus_handler
   generic map(
-    PORT_NUMBER    => 8,
-    PORT_ADDRESSES => (0 => x"d000", 1 => x"8100", 2 => x"8300", 3 => x"b000", 4 => x"b200", 5 => x"d300", 6 => x"cf00", 7 => x"cf80", others => x"0000"),
-    PORT_ADDR_MASK => (0 => 9,       1 => 8,       2 => 8,       3 => 9,       4 => 9,       5 => 0,       6 => 7,       7 => 7,       others => 0)
+    PORT_NUMBER    => 9,
+    PORT_ADDRESSES => (0 => x"d000", 1 => x"8100", 2 => x"8300", 3 => x"b000", 4 => x"b200", 5 => x"d300", 6 => x"cf00", 7 => x"cf80", 8 => x"d600", others => x"0000"),
+    PORT_ADDR_MASK => (0 => 9,       1 => 8,       2 => 8,       3 => 9,       4 => 9,       5 => 0,       6 => 7,       7 => 7,       8 => 2,       others => 0)
     )
   port map(
     CLK                   => clk_sys_i,
@@ -883,6 +895,17 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
     BUS_NO_MORE_DATA_IN(7)              => '0',
     BUS_UNKNOWN_ADDR_IN(7)              => stat_nack,      
     
+    --Uart
+    BUS_READ_ENABLE_OUT(8)              => uart_read,
+    BUS_WRITE_ENABLE_OUT(8)             => uart_write,
+    BUS_DATA_OUT(8*32+31 downto 8*32)   => uart_din,
+    BUS_ADDR_OUT(8*16+15 downto 8*16)   => uart_addr,
+    BUS_TIMEOUT_OUT(8)                  => open,
+    BUS_DATA_IN(8*32+31 downto 8*32)    => uart_dout,
+    BUS_DATAREADY_IN(8)                 => uart_ack,
+    BUS_WRITE_ACK_IN(8)                 => uart_ack,
+    BUS_NO_MORE_DATA_IN(8)              => uart_empty,
+    BUS_UNKNOWN_ADDR_IN(8)              => uart_nack,          
     STAT_DEBUG  => open
     );
 
@@ -971,6 +994,40 @@ end generate;
 monitor_inputs_i(15 downto 0)  <= trig_inputs;
 monitor_inputs_i(19 downto 16) <= trig_outputs(3 downto 0);
 
+gen_uart : if INCLUDE_UART = 1 generate
+  THE_UART : entity work.uart
+    generic map(
+      OUTPUTS => 5
+      )
+    port map(
+      CLK       => clk_sys_i,
+      RESET     => reset_i,
+      UART_RX   => uart_rx,
+      UART_TX   => uart_tx, 
+      DATA_OUT  => uart_dout,
+      DATA_IN   => uart_din,
+      ADDR_IN   => uart_addr,
+      WRITE_IN  => uart_write,
+      READ_IN   => uart_read,
+      ACK_OUT   => uart_ack,
+      EMPTY_OUT => uart_empty,
+      UNKWN_OUT => uart_nack 
+      );
+      
+  uart_rx(0) <= CLKRJ(0);  
+  uart_rx(1) <= FPGA1_TTL(0);
+  uart_rx(2) <= FPGA2_TTL(0);
+  uart_rx(3) <= FPGA3_TTL(0);
+  uart_rx(4) <= FPGA4_TTL(0);
+  
+  CLKRJ(2)     <= uart_tx(0);
+  FPGA1_TTL(1) <= uart_tx(1);
+  FPGA2_TTL(1) <= uart_tx(2);
+  FPGA3_TTL(1) <= uart_tx(3);
+  FPGA4_TTL(1) <= uart_tx(4);
+end generate;
+
+
 ---------------------------------------------------------------------------
 -- Clock and Trigger Configuration
 ---------------------------------------------------------------------------
@@ -1001,10 +1058,10 @@ end process;
 -- FPGA communication
 ---------------------------------------------------------------------------
 
-  FPGA1_TTL <= (others => 'Z');
-  FPGA2_TTL <= (others => 'Z');
-  FPGA3_TTL <= (others => 'Z');
-  FPGA4_TTL <= (others => 'Z');
+--   FPGA1_TTL <= (others => 'Z');
+--   FPGA2_TTL <= (others => 'Z');
+--   FPGA3_TTL <= (others => 'Z');
+--   FPGA4_TTL <= (others => 'Z');
 
   FPGA1_CONNECTOR <= (others => 'Z');
   FPGA2_CONNECTOR <= (others => 'Z');
@@ -1047,9 +1104,10 @@ end process;
   
   TEST_LINE(31 downto 10) <= (others => '0');
 
-  CLK_TEST_OUT <= clk_med_i & '0' & clk_sys_i;
+--   CLK_TEST_OUT <= clk_med_i & '0' & clk_sys_i;
   
-  
+  CLKRJ(1) <= 'Z';
+  CLKRJ(3) <= 'Z';
 
 
 

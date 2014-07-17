@@ -225,7 +225,7 @@ begin
     port map(
       CLEAR_IN      => '0',              -- reset input (high active, async)
       CLEAR_N_IN    => '1',              -- reset input (low active, async)
-      CLK_IN        => clk_200_i,        -- raw master clock, NOT from PLL/DLL!
+      CLK_IN        => CLK_PCLK_RIGHT,   -- raw master clock, NOT from PLL/DLL!
       SYSCLK_IN     => clk_100_i,        -- PLL/DLL remastered clock
       PLL_LOCKED_IN => pll_lock,         -- master PLL lock signal (async)
       RESET_IN      => '0',              -- general reset signal (SYSCLK)
@@ -241,7 +241,8 @@ begin
 ---------------------------------------------------------------------------
   THE_MAIN_PLL : pll_in200_out100
     port map(
-      CLK   => CLK_PCLK_LEFT,
+      CLK   => CLK_PCLK_RIGHT,
+      RESET => '0',
       CLKOP => clk_100_i,
       CLKOK => clk_200_i,
       LOCK  => pll_lock
@@ -262,7 +263,7 @@ begin
       USE_CTC     => c_NO
       )
     port map(
-      CLK                => clk_200_i,
+	    CLK                => CLK_PCLK_RIGHT,
       SYSCLK             => clk_100_i,
       RESET              => reset_i,
       CLEAR              => clear_i,
@@ -584,13 +585,13 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
   FPGA_SDI(0) <= spi_SDO     when spi_CS(2 downto 0) /= b"111" else '0';
   spi_SDI     <= FPGA_SDO(0) when spi_CS(2 downto 0) /= b"111" else '0';
   
-  SPI_ADC_SCK         <= spi_SCK when spi_CS(3) = '0' else '1';
+  SPI_ADC_SCK         <= spi_SCK when spi_CS(3) = '0' else '0';
   SPI_ADC_SDIO        <= spi_SDO when spi_CS(3) = '0' else '0';
   
   LMK_CLK             <= spi_SCK when spi_CS(5 downto 4) /= b"11" else '1' ;
   LMK_DATA            <= spi_SDO when spi_CS(5 downto 4) /= b"11" else '0' ;
-  LMK_LE_1            <= spi_CS(3); -- active low
-  LMK_LE_2            <= spi_CS(4); -- active low
+  LMK_LE_1            <= spi_CS(4); -- active low
+  LMK_LE_2            <= spi_CS(5); -- active low
   
 
 ---------------------------------------------------------------------------

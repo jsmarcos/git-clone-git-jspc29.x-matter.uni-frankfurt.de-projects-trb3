@@ -488,7 +488,7 @@ begin
 
   PLL_RESET_OUT         <= pll_reset_o;
   I2C_SM_RESET_OUT      <= '0' when i2c_sm_reset_o = '1' else 'Z';
-  I2C_REG_RESET_OUT     <= not i2c_reg_reset_o;
+  I2C_REG_RESET_OUT     <= i2c_reg_reset_o;
   NX_ONLINE_OUT         <= online_o;
   
 end Behavioral;

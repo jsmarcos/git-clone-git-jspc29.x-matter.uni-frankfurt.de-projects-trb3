@@ -48,9 +48,18 @@
 0x8160 :  r/w  Enable Testpulse Signal (default: off)
 0x8161 :  r/w  Delay Testpulse Signal after Trigger (12 Bit, in 10ns)
 0x8162 :  r/w  Length of Trigger TestPulse (12 Bit, in 4ns)
-0x8163 :  r    Accepted Trigger Rate (28 Bit, in Hz)
-0x8164 :  r/w  r: Invalid Timing Trigger Counter
+0x8163 :  r/w  r: Invalid Timing Trigger Counter (16 Bit)
                w: Clear Counter
+0x8164 :  r/w  Clear Countercceptred Trigger Rate (1/s)
+0x8165 :  r/w  Testpulse Rate (1/s)
+0x8166 :  r/w  Bit0: Bypass Timing Trigger
+               Bit1: Bypass Status Trigger
+               Bit2: Bypass Calibration Trigger
+               Bit3: Bypass All Trigger
+0x8167 : r/w   Calibration Trigger Downscale (16 Bit) 
+0x8168 : r/w   Timing Trigger Type (4 Bit) 
+0x8169 : r/w   Status Trigger Type (4 Bit) 
+0x816a : r/w   Calibration Trigger Type (4 Bit) 
 
 -- NX Data Receiver
 0x8500 :  r    current Timestamp FIFO value

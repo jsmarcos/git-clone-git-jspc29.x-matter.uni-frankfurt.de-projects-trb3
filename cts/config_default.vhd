@@ -4,20 +4,24 @@ use ieee.numeric_std.all;
 use work.trb_net_std.all;
 
 package config is
-
-
 ------------------------------------------------------------------------------
 --Begin of configuration
 ------------------------------------------------------------------------------
 
+   constant INCLUDE_CTS : integer range c_NO to c_YES := c_YES;
+   constant INCLUDE_CBMNET : integer range c_NO to c_YES := c_NO;
+
 --include TDC for all four trigger input lines
     constant INCLUDE_TDC : integer range c_NO to c_YES := c_NO;
     constant TDC_CHANNEL_NUMBER : integer := 5;
+
 --Use 64 word ringbuffer instead of 128 word ringbuffer in TDC channels
     constant USE_64_FIFO : integer := c_YES;
 
+--Define ringbuffer size for TDC channels: 32-64-128
+    constant RING_BUFFER_SIZE : integer range 32 to 128 := 32;
     
---use all four SFP (1-4) as downlink to other boards.     
+--use all four SFP (1-4) as downlink to other boards (only w/o CBMNET)
     constant USE_4_SFP   : integer range c_NO to c_YES := c_NO;
 
     
@@ -29,7 +33,7 @@ package config is
     
     
 --Which external trigger module (ETM) to use?
-    type ETM_CHOICE_type is (ETM_CHOICE_MBS_VULOM, ETM_CHOICE_MAINZ_A2);
+    type ETM_CHOICE_type is (ETM_CHOICE_MBS_VULOM, ETM_CHOICE_MAINZ_A2, ETM_CHOICE_CBMNET);
     constant ETM_CHOICE : ETM_CHOICE_type := ETM_CHOICE_MBS_VULOM;
     
 ------------------------------------------------------------------------------

@@ -302,7 +302,7 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    
    signal dummy : std_logic;
    
-   type SEND_FSM_T is (START, SEND_HEADER, SEND_LENGTH, SEND_DATA, SEND_FOOTER, AFTER_SEND_WAIT);
+   type SEND_FSM_T is (START, SEND_HEADER, SEND_PACK_NUM, SEND_LENGTH, SEND_DATA, SEND_FOOTER, AFTER_SEND_WAIT);
    signal send_fsm_i : SEND_FSM_T;
    signal send_length_i : unsigned(4 downto 0);
    signal send_num_pack_counter_i : unsigned(15 downto 0); 
@@ -521,7 +521,7 @@ begin
       
       
    );
-   cbm_res_n <= not rreset_i;
+   cbm_res_n <= not rreset_i when rising_edge(rclk_125_i);
 
    cbm_crc_error_cntr_clr_0     <= reset_i;
    cbm_retrans_cntr_clr_0       <= reset_i;
@@ -565,12 +565,16 @@ begin
                if cbm_link_active='1' and cbm_data2send_stop = "0" then
                   send_fsm_i <= SEND_HEADER;
                   send_num_pack_counter_i <= send_num_pack_counter_i + 1;
-                  send_length_i <= "1" & send_num_pack_counter_i(3 downto 0);
+                  send_length_i <= "0" & send_num_pack_counter_i(3 downto 0);
                end if;
             
             when SEND_HEADER =>
                cbm_data2send <= x"f123";
                cbm_data2send_start <= "1";
+               send_fsm_i <= SEND_PACK_NUM;
+               
+            when SEND_PACK_NUM =>
+               cbm_data2send <= send_num_pack_counter_i;
                send_fsm_i <= SEND_LENGTH;
             
             when SEND_LENGTH =>
@@ -595,7 +599,7 @@ begin
 
             when AFTER_SEND_WAIT =>
                send_wait_counter_i <= STD_LOGIC_VECTOR( UNSIGNED(send_wait_counter_i) + 1 );
-               if send_wait_counter_i = send_wait_threshold_i then
+               if send_wait_counter_i >= send_wait_threshold_i then
                   send_fsm_i <= START;
                end if;
                
@@ -666,7 +670,7 @@ begin
          
          
          when 16#10# => debug_data_out <= send_wait_threshold_i;
-         when 16#11# => debug_data_out(20 downto 0) <= cbm_res_n & "00" & cbm_data_from_link;
+         when 16#11# => debug_data_out(20 downto 0) <= "000" & cbm_data_from_link;
          
          when 16#12# => debug_data_out <= STD_LOGIC_VECTOR(dlm_counter_i);
          when 16#13# => debug_data_out <= STD_LOGIC_VECTOR(dlm_glob_counter_i);

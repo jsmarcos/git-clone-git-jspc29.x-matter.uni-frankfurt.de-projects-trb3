@@ -61,17 +61,27 @@ architecture Behavioral of nx_status_event is
 
   signal E_STATE  : E_STATES;
 
-  constant NUM_REGS : integer      := 3;
+ -- constant NUM_REGS : integer      := 3;
+ -- type reg_addr_t is array(0 to NUM_REGS - 1) of std_logic_vector(15 downto 0);
+ -- constant reg_addr_start          : reg_addr_t :=
+ --   (x"0000",
+ --    x"0100",
+ --    x"0080"
+ --    );
+ -- constant reg_addr_end            : reg_addr_t :=
+ --   (x"002d",
+ --    x"0180",
+ --    x"0083"
+ --    );        
+
+  -- For the moment just the 4 I2C ADC Values, event must be small
+  constant NUM_REGS : integer      := 1;
   type reg_addr_t is array(0 to NUM_REGS - 1) of std_logic_vector(15 downto 0);
   constant reg_addr_start          : reg_addr_t :=
-    (x"0000",
-     x"0100",
-     x"0080"
+    (x"0080"
      );
   constant reg_addr_end            : reg_addr_t :=
-    (x"002d",
-     x"0180",
-     x"0083"
+    (x"0083"
      );        
 
   signal index_ctr                 : unsigned(3 downto 0);

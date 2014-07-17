@@ -24,6 +24,7 @@ entity nx_trigger_validate is
     NX_NOMORE_DATA_IN      : in  std_logic;
     
     TRIGGER_IN             : in  std_logic;
+    TRIGGER_CALIBRATION_IN : in std_logic;
     TRIGGER_BUSY_IN        : in  std_logic;
     FAST_CLEAR_IN          : in  std_logic;
     TRIGGER_BUSY_OUT       : out std_logic;
@@ -134,7 +135,8 @@ architecture Behavioral of nx_trigger_validate is
   signal wait_for_data_time_r  : std_logic_vector(19 downto 0);
   signal min_validation_time_r : std_logic_vector(19 downto 0);
   signal skip_wait_for_data    : std_logic;
-  
+  signal trigger_calibration   : std_logic;
+    
   type STATES is (S_TEST_SELF_TRIGGER,
                   S_IDLE,
                   S_TRIGGER,
@@ -210,7 +212,7 @@ architecture Behavioral of nx_trigger_validate is
   signal readout_time_max      : unsigned(11 downto 0);
   signal fpga_timestamp_offset : unsigned(11 downto 0);
 
-  signal      state_d          : std_logic_vector(1 downto 0);
+  signal state_d               : std_logic_vector(1 downto 0);
 
   attribute syn_keep : boolean;
   attribute syn_keep of timestamp_fpga_ff     : signal is true;
@@ -273,6 +275,7 @@ begin
   -----------------------------------------------------------------------------
 
   PROC_FILTER_TIMESTAMPS: process (CLK_IN)
+    variable cts_trigger_delay_tmp     : unsigned(11 downto 0);
     variable ts_window_offset_unsigned : unsigned(11 downto 0);
     variable window_lower_thr          : unsigned(11 downto 0);
     variable window_upper_thr          : unsigned(11 downto 0);
@@ -318,17 +321,23 @@ begin
         -----------------------------------------------------------------------
         -- Calculate Thresholds and values for FIFO Delay
         -----------------------------------------------------------------------
+
+        if (trigger_calibration = '0') then
+          cts_trigger_delay_tmp  := cts_trigger_delay;
+        else
+          cts_trigger_delay_tmp  := (others => '0');
+        end if;
         
         if (ts_window_offset(11) = '1') then
           -- Offset is negative
           ts_window_offset_unsigned :=
             (unsigned(ts_window_offset) xor x"fff") + 1;
           window_lower_thr       :=
-            cts_trigger_delay + ts_window_offset_unsigned;
+            cts_trigger_delay_tmp + ts_window_offset_unsigned;
         else
           -- Offset is positive
           window_lower_thr       :=
-            cts_trigger_delay - unsigned(ts_window_offset);
+            cts_trigger_delay_tmp - unsigned(ts_window_offset);
         end if;
 
         -- Calculate FIFO Delay 
@@ -628,6 +637,7 @@ begin
         evt_buffer_clear_o          <= '0';
         wait_for_data_time_r        <= (others => '0');
         min_validation_time_r       <= (others => '0');
+        trigger_calibration         <= '0';
         STATE                       <= S_TEST_SELF_TRIGGER;
       else
         store_to_fifo               <= '0';
@@ -697,8 +707,10 @@ begin
 
             if (TRIGGER_IN = '1') then
               busy_time_ctr               <= (others => '0');
+              trigger_calibration         <= TRIGGER_CALIBRATION_IN;
               STATE                       <= S_TRIGGER;
             else
+              trigger_calibration         <= '0';
               trigger_busy_o              <= '0';
               min_val_time_expired        <= '0';
               if (self_trigger_mode = '1') then
@@ -1222,7 +1234,8 @@ begin
               
             when x"0021" =>
               histogram_ts_range              <= SLV_DATA_IN(2 downto 0); 
-
+              slv_ack_o                       <= '1';
+              
             when others  =>                   
               slv_unknown_addr_o              <= '1';
               slv_ack_o                       <= '0';
