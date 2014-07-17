@@ -1,0 +1,210 @@
+library ieee;
+   use ieee.std_logic_1164.all;
+   use ieee.numeric_std.all;
+   
+-- receives data stream from hub and extracts header information
+-- payload is then stored in an 16 word fifo, which gives the event packer roughly 8 cycles grace time
+-- (8 words are required for the header structure expected from the event builders)
+
+-- DEC_ACTIVE_OUT is asserted as soon as DEC_EVT_INFO_OUT, DEC_LENGTH_OUT and DEC_SOURCE_OUT are valid
+-- Once DEC_ERROR_OUT is asserted at least one word was lost and no gurantees for correct operations 
+-- are given. In this case, discarding of the event and reset of the decoder are recommended
+entity CBMNET_READOUT_TRBNET_DECODER is
+   port (
+   -- TrbNet
+      CLK_IN   : in std_logic;
+      RESET_IN : in std_logic;
+
+      -- connect to hub
+      HUB_CTS_START_READOUT_IN       : in  std_logic;
+      HUB_CTS_READOUT_FINISHED_OUT   : out std_logic;  --no more data, end transfer, send TRM
+      HUB_FEE_DATA_IN                : in  std_logic_vector (15 downto 0);
+      HUB_FEE_DATAREADY_IN           : in  std_logic;
+      GBE_FEE_READ_IN                : in std_logic;
+      
+      -- Decode
+      DEC_EVT_INFO_OUT               : out std_logic_vector(31 downto 0);
+      DEC_LENGTH_OUT                 : out std_logic_vector(15 downto 0);
+      DEC_SOURCE_OUT                 : out std_logic_vector(15 downto 0);
+      DEC_DATA_OUT                   : out std_logic_vector(15 downto 0);
+      DEC_DATA_READY_OUT             : out std_logic;
+      DEC_DATA_READ_IN               : in  std_logic;
+      
+      DEC_ACTIVE_OUT                 : out std_logic;
+      DEC_ERROR_OUT                  : out std_logic;
+      
+      DEBUG_OUT                      : out std_logic_vector(31 downto 0)
+   );
+end entity;
+
+architecture cbmnet_readout_trbnet_decoder_arch of CBMNET_READOUT_TRBNET_DECODER is
+   component lattice_ecp3_fifo_16x16_dualport is
+      port (
+         Data: in  std_logic_vector(15 downto 0); 
+         WrClock: in  std_logic; 
+         RdClock: in  std_logic; 
+         WrEn: in  std_logic; 
+         RdEn: in  std_logic; 
+         Reset: in  std_logic; 
+         RPReset: in  std_logic; 
+         Q: out  std_logic_vector(15 downto 0); 
+         Empty: out  std_logic; 
+         Full: out  std_logic; 
+         AlmostFull: out  std_logic
+      );
+   end component;
+   
+   type FSM_STATES_T is (WAIT_FOR_IDLE, IDLE, RECV_EVT_INFO_H, RECV_EVT_INFO_L, RECV_EVT_LENGTH, RECV_EVT_SOURCE, RECV_PAYLOAD, ERROR_COND);
+   signal fsm_i : FSM_STATES_T;
+   
+   signal data_i : std_logic_vector(15 downto 0);
+   signal dec_evt_info_i : std_logic_vector(31 downto 0);
+   signal dec_length_i   : std_logic_vector(15 downto 0);
+   signal dec_source_i   : std_logic_vector(15 downto 0);
+   signal dec_error_i    : std_logic;
+   
+   signal word_counter_i : unsigned(15 downto 0);
+   signal word_counter_set_i : std_logic;
+   signal word_counter_done_i : std_logic;
+   
+   signal read_word_i    : std_logic;
+   
+   signal fifo_active_i  : std_logic;
+   signal fifo_enqueue_i : std_logic;
+   signal fifo_full_i : std_logic;
+   signal fifo_empty_i : std_logic;
+   
+   signal fifo_data_i : std_logic_vector(15 downto 0);
+begin
+   data_i <= HUB_FEE_DATA_IN;
+   
+   THE_FSM: process is
+   begin
+      wait until rising_edge(CLK_IN);
+      
+      fifo_active_i <= '0';
+      DEC_ACTIVE_OUT <= '0';
+      word_counter_set_i <= '0';
+      dec_error_i <= dec_error_i or not HUB_CTS_START_READOUT_IN;
+      
+      if RESET_IN = '1' then
+         fsm_i <= WAIT_FOR_IDLE;
+         dec_error_i <= '0';
+      
+      else
+         case(fsm_i) is
+            when WAIT_FOR_IDLE =>
+               DEBUG_OUT(3 downto 0) <= x"0";
+               if HUB_CTS_START_READOUT_IN = '0' then 
+                  fsm_i <= IDLE;
+               end if;
+         
+            when IDLE =>
+               DEBUG_OUT(3 downto 0) <= x"1";
+               dec_error_i <= '0';
+               if HUB_CTS_START_READOUT_IN = '1' then
+                  fsm_i <= RECV_EVT_INFO_H;
+               end if;
+            
+            when RECV_EVT_INFO_H =>
+               DEBUG_OUT(3 downto 0) <= x"2";
+               if read_word_i = '1' then
+                  dec_evt_info_i(31 downto 16) <= data_i;
+                  fsm_i <= RECV_EVT_INFO_L;
+               end if;
+         
+            when RECV_EVT_INFO_L =>
+               DEBUG_OUT(3 downto 0) <= x"3";
+               if read_word_i = '1' then
+                  dec_evt_info_i(15 downto  0) <= data_i;
+                  fsm_i <= RECV_EVT_LENGTH;
+               end if;
+         
+            when RECV_EVT_LENGTH =>
+               DEBUG_OUT(3 downto 0) <= x"4";
+               word_counter_set_i <= '1';
+               if read_word_i = '1' then
+                  dec_length_i <= data_i;
+                  fsm_i <= RECV_EVT_SOURCE;
+               end if;
+         
+            when RECV_EVT_SOURCE =>
+               DEBUG_OUT(3 downto 0) <= x"5";
+               if read_word_i = '1' then
+                  dec_source_i <= data_i;
+                  fsm_i <= RECV_PAYLOAD;
+                  fifo_active_i <= '1';
+               end if;
+         
+            when RECV_PAYLOAD =>
+               DEBUG_OUT(3 downto 0) <= x"6";
+               fifo_active_i <= '1';
+               DEC_ACTIVE_OUT <= '1';
+               
+               if fifo_full_i = '1' and read_word_i = '1' then
+                  fsm_i <= ERROR_COND;
+               end if;
+               
+               if fifo_empty_i = '1' and word_counter_done_i = '1' then
+                  fsm_i <= WAIT_FOR_IDLE;
+               end if;
+               
+            when others => -- error cond
+               DEBUG_OUT(3 downto 0) <= x"7";
+               dec_error_i <= '1';
+               
+         end case;
+      end if;
+      
+      DEBUG_OUT(3 downto 0) <= x"0";
+   end process;
+   
+   
+   THE_COUNTER: process is
+   begin
+      wait until rising_edge(CLK_IN);
+      
+      if word_counter_set_i = '1' then
+         word_counter_i <= UNSIGNED("0" & dec_length_i(15 downto 1));
+         
+      elsif word_counter_done_i = '0' and read_word_i = '1' then
+         word_counter_i <= word_counter_i - 1;
+         
+      end if;
+      
+      DEBUG_OUT(31 downto 16) <= STD_LOGIC_VECTOR(word_counter_i);
+   end process;
+   
+   word_counter_done_i <= '1' when word_counter_i = x"0002" else '0';
+   
+   THE_FIFO: lattice_ecp3_fifo_16x16_dualport
+   port map (
+      WrClock    => CLK_IN, --  in  std_logic; 
+      RdClock    => CLK_IN, --  in  std_logic; 
+      Reset      => RESET_IN, --  in  std_logic; 
+      RPReset    => RESET_IN, --  in  std_logic; 
+
+      Data       => HUB_FEE_DATA_IN, --  in  std_logic_vector(17 downto 0); 
+      WrEn       => fifo_enqueue_i, --  in  std_logic; 
+
+      RdEn       => DEC_DATA_READ_IN, --  in  std_logic; 
+      Q          => fifo_data_i, --  out  std_logic_vector(17 downto 0); 
+      
+      Empty      => fifo_empty_i, --  out  std_logic; 
+      Full       => fifo_full_i, --  out  std_logic; 
+      AlmostFull => open --  out  std_logic   
+   );
+
+   read_word_i <= HUB_FEE_DATAREADY_IN and GBE_FEE_READ_IN;
+   fifo_enqueue_i <= fifo_active_i and read_word_i;
+   
+   DEC_ERROR_OUT <= dec_error_i;
+   DEC_LENGTH_OUT <= dec_length_i;
+   DEC_EVT_INFO_OUT <= dec_evt_info_i;
+   DEC_SOURCE_OUT <= dec_source_i;
+   DEC_DATA_READY_OUT <= not fifo_empty_i;
+   
+   DEC_DATA_OUT <= x"aaaa" when fifo_empty_i = '1' else fifo_data_i;
+   
+end architecture;
+
