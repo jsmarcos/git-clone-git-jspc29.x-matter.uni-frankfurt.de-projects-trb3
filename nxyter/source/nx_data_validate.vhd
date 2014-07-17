@@ -98,7 +98,8 @@ architecture Behavioral of nx_data_validate is
   signal adc_data_last        : std_logic_vector(11 downto 0);
 
   -- Token Return Average
-  signal nx_token_return_pipe   : std_logic_vector(8 downto 0);
+  signal nx_token_return_pipec  : std_logic_vector(4 downto 0);
+  signal nx_token_return_pipev  : std_logic_vector(8 downto 0);
   signal adc_tr_value_tmp       : std_logic_vector(11 downto 0);
   signal adc_tr_value           : std_logic_vector(11 downto 0);
   signal adc_tr_data_p          : unsigned(11 downto 0);
@@ -255,44 +256,45 @@ begin
   begin 
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
-        timestamp_o          <= (others => '0');
-        channel_o            <= (others => '0');
-        timestamp_status_o   <= (others => '0');
-        adc_data_o           <= (others => '0');
-        data_clk_o           <= '0';
-        nx_token_return_o    <= '0';
-        nx_nomore_data_o     <= '0';
-        trigger_rate_inc     <= '0';
-        frame_rate_inc       <= '0';
-        pileup_rate_inc      <= '0';
-        overflow_rate_inc    <= '0';
-        parity_error_ctr     <= (others => '0');
-        invalid_frame_ctr    <= (others => '0');
-        overflow_ctr         <= (others => '0');
-        pileup_ctr           <= (others => '0');
-        invalid_adc          <= '0';
-        adc_tr_data_p        <= (others => '0');
-        adc_tr_data_c        <= (others => '0');
-        adc_tr_data_clk      <= '0';
-        nx_token_return_pipe <= (others => '0');
-        adc_data_last        <= (others => '0');
-        adc_tr_value_tmp     <= (others => '0');
-        adc_tr_value_update  <= '0';
-        TR_STATE             <= S_IDLE;
-        state_debug          <= "00";
-      else
-        timestamp_o          <= (others => '0');
-        channel_o            <= (others => '0');
-        timestamp_status_o   <= (others => '0');
-        adc_data_o           <= (others => '0');
-        data_clk_o           <= '0';
-        trigger_rate_inc     <= '0';
-        frame_rate_inc       <= '0';
-        pileup_rate_inc      <= '0';
-        overflow_rate_inc    <= '0';
-        invalid_adc          <= '0';
-        adc_tr_data_clk      <= '0';
-        adc_tr_value_update  <= '0';
+        timestamp_o           <= (others => '0');
+        channel_o             <= (others => '0');
+        timestamp_status_o    <= (others => '0');
+        adc_data_o            <= (others => '0');
+        data_clk_o            <= '0';
+        nx_token_return_o     <= '0';
+        nx_nomore_data_o      <= '0';
+        trigger_rate_inc      <= '0';
+        frame_rate_inc        <= '0';
+        pileup_rate_inc       <= '0';
+        overflow_rate_inc     <= '0';
+        parity_error_ctr      <= (others => '0');
+        invalid_frame_ctr     <= (others => '0');
+        overflow_ctr          <= (others => '0');
+        pileup_ctr            <= (others => '0');
+        invalid_adc           <= '0';
+        adc_tr_data_p         <= (others => '0');
+        adc_tr_data_c         <= (others => '0');
+        adc_tr_data_clk       <= '0';
+        nx_token_return_pipec <= (others => '0');
+        nx_token_return_pipev <= (others => '0');
+        adc_data_last         <= (others => '0');
+        adc_tr_value_tmp      <= (others => '0');
+        adc_tr_value_update   <= '0';
+        TR_STATE              <= S_IDLE;
+        state_debug           <= "00";
+      else                    
+        timestamp_o           <= (others => '0');
+        channel_o             <= (others => '0');
+        timestamp_status_o    <= (others => '0');
+        adc_data_o            <= (others => '0');
+        data_clk_o            <= '0';
+        trigger_rate_inc      <= '0';
+        frame_rate_inc        <= '0';
+        pileup_rate_inc       <= '0';
+        overflow_rate_inc     <= '0';
+        invalid_adc           <= '0';
+        adc_tr_data_clk       <= '0';
+        adc_tr_value_update   <= '0';
 
         if (new_timestamp = '1') then
 
@@ -339,7 +341,7 @@ begin
               trigger_rate_inc               <= '1';
               
               if (nx_token_return_o = '1' and
-                  nx_token_return_pipe(4 downto 0) = "11111") then
+                  nx_token_return_pipec = "11111") then
                 -- First Data Word after 5 empty Frames
                 adc_tr_data_p                <= unsigned(adc_data_last);
                 adc_tr_data_c                <= unsigned(adc_data);
@@ -366,7 +368,7 @@ begin
           -- Token Return Check Handler
           case TR_STATE is
             when S_IDLE =>
-              if (nx_token_return_pipe(4 downto 0) = "11111") then
+              if (nx_token_return_pipev(4 downto 0) = "11111") then
                 adc_tr_value_tmp             <= adc_data_last;
                 TR_STATE                     <= S_START;
               else
@@ -375,11 +377,11 @@ begin
               state_debug                    <= "01";
               
             when S_START =>
-              if (nx_token_return_pipe = "111111111") then
+              if (nx_token_return_pipev = "111111111") then
                 TR_STATE                     <= S_END;
-              elsif (nx_token_return_pipe(5 downto 0) = "111111" or
-                     nx_token_return_pipe(6 downto 0) = "1111111" or
-                     nx_token_return_pipe(7 downto 0) = "11111111") then
+              elsif (nx_token_return_pipev(5 downto 0) = "111111" or
+                     nx_token_return_pipev(6 downto 0) = "1111111" or
+                     nx_token_return_pipev(7 downto 0) = "11111111") then
                 TR_STATE                     <= S_START;
               else
                 TR_STATE                     <= S_IDLE;
@@ -395,13 +397,18 @@ begin
           end case;
 
           -- Token Return Pipeline
+          nx_token_return_pipec(0)           <= nx_token_return_o;
+          for I in 1 to 4 loop
+            nx_token_return_pipec(I)         <= nx_token_return_pipec(I - 1);
+          end loop;
+
           if (TR_STATE /= S_END) then
-            nx_token_return_pipe(0)          <= nx_token_return_o;
+            nx_token_return_pipev(0)         <= nx_token_return_o;
             for I in 1 to 8 loop
-              nx_token_return_pipe(I)        <= nx_token_return_pipe(I - 1);
+              nx_token_return_pipev(I)       <= nx_token_return_pipev(I - 1);
             end loop;
           else
-            nx_token_return_pipe             <= (others => '0');
+            nx_token_return_pipev            <= (others => '0');
           end if;
         
         end if;
