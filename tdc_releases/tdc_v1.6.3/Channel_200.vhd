@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2014-05-07
+-- Last update: 2014-07-16
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -281,7 +281,7 @@ begin  -- Channel_200
       BINARY_CODE_OUT => encoder_data_out_i,
       ENCODER_DEBUG   => encoder_debug_i);
 
-  RingBuffer_128 : if RING_BUFFER_SIZE = 128 generate
+  RingBuffer_128 : if RING_BUFFER_SIZE = 3 generate
     FIFO : FIFO_DC_36x128_OutReg
       port map (
         Data       => ringBuffer_data_in_i,
@@ -297,7 +297,7 @@ begin  -- Channel_200
         AlmostFull => ringBuffer_almost_full_i);
   end generate RingBuffer_128;
 
-  RingBuffer_64 : if RING_BUFFER_SIZE = 64 generate
+  RingBuffer_64 : if RING_BUFFER_SIZE = 1 generate
     FIFO : FIFO_DC_36x64_OutReg
       port map (
         Data       => ringBuffer_data_in_i,
@@ -313,7 +313,7 @@ begin  -- Channel_200
         AlmostFull => ringBuffer_almost_full_i);
   end generate RingBuffer_64;
 
-  RingBuffer_32 : if RING_BUFFER_SIZE = 32 generate
+  RingBuffer_32 : if RING_BUFFER_SIZE = 0 generate
     FIFO : FIFO_DC_36x32_OutReg
       port map (
         Data       => ringBuffer_data_in_i,
@@ -328,22 +328,6 @@ begin  -- Channel_200
         Full       => ringBuffer_full_i,
         AlmostFull => ringBuffer_almost_full_i);
   end generate RingBuffer_32;
-
-  RingBuffer_16 : if RING_BUFFER_SIZE = 16 generate
-    FIFO : FIFO_DC_36x16_OutReg
-      port map (
-        Data       => ringBuffer_data_in_i,
-        WrClock    => CLK_200,
-        RdClock    => CLK_100,
-        WrEn       => ringBuffer_wr_en_i,
-        RdEn       => ringBuffer_rd_en_i,
-        Reset      => RESET_100,
-        RPReset    => RESET_100,
-        Q          => ringBuffer_data_out_i,
-        Empty      => ringBuffer_empty_i,
-        Full       => ringBuffer_full_i,
-        AlmostFull => ringBuffer_almost_full_i);
-  end generate RingBuffer_16;
 
   ringBuffer_almost_full_sync <= ringBuffer_almost_full_i                            when rising_edge(CLK_100);
   ringBuffer_rd_en_i          <= ringBuffer_rd_data_i or ringBuffer_almost_full_sync when rising_edge(CLK_100);

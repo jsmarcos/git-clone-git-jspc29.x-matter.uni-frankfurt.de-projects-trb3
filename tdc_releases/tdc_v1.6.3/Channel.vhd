@@ -155,7 +155,7 @@ begin
       FIFO_WRITE_OUT        => fifo_write_i,
       CHANNEL_200_DEBUG     => channel_200_debug_i);
 
-  Buffer_128 : if RING_BUFFER_SIZE = 128 generate
+  Buffer_128 : if RING_BUFFER_SIZE = 3 generate
     The_Buffer : FIFO_36x128_OutReg
       port map (
         Data        => ch_data_i,
@@ -168,7 +168,7 @@ begin
         Full        => buf_full_i);
   end generate Buffer_128;
 
-  Buffer_64 : if RING_BUFFER_SIZE = 64 generate
+  Buffer_64 : if RING_BUFFER_SIZE = 1 generate
     The_Buffer : FIFO_36x64_OutReg
       port map (
         Data        => ch_data_i,
@@ -181,7 +181,7 @@ begin
         Full        => buf_full_i);
   end generate Buffer_64;
 
-  Buffer_32 : if RING_BUFFER_SIZE = 32 generate
+  Buffer_32 : if RING_BUFFER_SIZE = 0 generate
     The_Buffer : FIFO_36x32_OutReg
       port map (
         Data        => ch_data_i,
@@ -193,19 +193,6 @@ begin
         Empty       => buf_empty_i,
         Full        => buf_full_i);
   end generate Buffer_32;
-
-  Buffer_16 : if RING_BUFFER_SIZE = 16 generate
-    The_Buffer : FIFO_36x16_OutReg
-      port map (
-        Data        => ch_data_i,
-        Clock       => CLK_100,
-        WrEn        => ch_data_valid_i,
-        RdEn        => READ_EN_IN,
-        Reset       => RESET_100,
-        Q           => buf_data_i,
-        Empty       => buf_empty_i,
-        Full        => buf_full_i);
-  end generate Buffer_16;
 
   FIFO_DATA_OUT         <= buf_data_i;
   FIFO_DATA_VALID_OUT   <= buf_data_valid_i;

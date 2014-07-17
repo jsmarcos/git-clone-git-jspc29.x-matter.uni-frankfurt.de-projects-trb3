@@ -18,10 +18,8 @@ MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/Channel200/RingBuffer*FIFO/FF*" T
 MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter*" TO CELL "THE_TDC/GEN_Channels*Channels/epoch_cntr_reg*" 3 X;
 MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter*" TO CELL "THE_TDC/ReferenceChannel/epoch_cntr_reg*" 3 X;
 
-MULTICYCLE TO CELL "THE_TDC/TheFirstReadout/TW_pre*" 4 x;
-MULTICYCLE TO CELL "THE_TDC/TheFirstReadout/TW_post*" 4 x;
-MULTICYCLE TO CELL "THE_TDC/Gen_Readout*Module*TheReadout/TW_pre*" 4 x;
-MULTICYCLE TO CELL "THE_TDC/Gen_Readout*Module*TheReadout/TW_post*" 4 x;
+MULTICYCLE TO CELL "THE_TDC/TheReadout/TW_pre*" 4 x;
+MULTICYCLE TO CELL "THE_TDC/TheReadout/TW_post*" 4 x;
 
 
 
@@ -33,8 +31,7 @@ MAXDELAY NET "THE_TDC/hit_in_i*" 0.600000 nS; #DATAPATH_ONLY ;
 
 ## Maybe effective
 
-# MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/The_Buffer/*" TO CELL "THE_TDC/TheFirstReadout/rd_en*" 2 X;
-# MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/The_Buffer/*" TO CELL "THE_TDC/Gen_Readout*Module*TheReadout/rd_en*" 2 X;
+# MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/The_Buffer/*" TO CELL "THE_TDC/TheReadout/rd_en*" 2 X;
 
 
 
