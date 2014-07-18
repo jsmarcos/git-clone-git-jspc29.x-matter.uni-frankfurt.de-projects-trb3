@@ -1,6 +1,7 @@
 library ieee;
    use ieee.std_logic_1164.all;
    use ieee.numeric_std.all;
+   use work.cbmnet_interface_pkg.all;
 
 entity CBMNET_READOUT is
    port (
@@ -82,12 +83,6 @@ architecture cbmnet_readout_arch of CBMNET_READOUT is
    signal dec_error_i      : std_logic;
    signal dec_actice_i     : std_logic;
    signal dec_data_ready_i : std_logic;
-
-   
-   signal         : std_logic;
-   signal         : std_logic;
-   signal         : std_logic;
-   
    
 begin
    GBE_CTS_NUMBER_OUT              <= HUB_CTS_NUMBER_IN;
@@ -143,7 +138,7 @@ begin
       HUB_CTS_CODE_IN                => HUB_CTS_CODE_IN,         -- in  std_logic_vector (7  downto 0);
       HUB_CTS_INFORMATION_IN         => HUB_CTS_INFORMATION_IN,  -- in  std_logic_vector (7  downto 0);
       HUB_CTS_READOUT_TYPE_IN        => HUB_CTS_READOUT_TYPE_IN, -- in  std_logic_vector (3  downto 0);
-      HUB_FEE_STATUS_BITS_IN         => HUB_FEE_STATUS_BITS_IN,  -- in  std_logic_vector (31 downto 0);
+      GBE_CTS_STATUS_BITS_IN         => GBE_CTS_STATUS_BITS_IN,  -- in  std_logic_vector (31 downto 0);
       
       
       -- connect to decoder
@@ -199,7 +194,7 @@ begin
       RPACKET_COMPLETE_ACK_IN => fifo_rpacket_complete_ack_i -- in std_logic -- mark one event as dealt with (effectively decrease number of completed packets by one)
    );
    
-   THE_TX_FSM: CBMNET_READOUT_TX_FSM is
+   THE_TX_FSM: CBMNET_READOUT_TX_FSM
    port map (
       CLK_IN   => CBMNET_CLK_IN,   -- in std_logic;
       RESET_IN => CBMNET_RESET_IN, -- in std_logic; 

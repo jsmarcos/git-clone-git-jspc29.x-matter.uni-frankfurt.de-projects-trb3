@@ -437,7 +437,7 @@ package cbmnet_interface_pkg is
       DEC_ACTIVE_OUT                 : out std_logic;
       DEC_ERROR_OUT                  : out std_logic;
       
-      DEBUG_OUT                      : out std_logic_vector(31 downto 0);
+      DEBUG_OUT                      : out std_logic_vector(31 downto 0)
    );
    end component;
    
@@ -452,7 +452,7 @@ package cbmnet_interface_pkg is
       HUB_CTS_CODE_IN                : in  std_logic_vector (7  downto 0);
       HUB_CTS_INFORMATION_IN         : in  std_logic_vector (7  downto 0);
       HUB_CTS_READOUT_TYPE_IN        : in  std_logic_vector (3  downto 0);
-      HUB_FEE_STATUS_BITS_IN         : in  std_logic_vector (31 downto 0);
+      GBE_CTS_STATUS_BITS_IN         : in  std_logic_vector (31 downto 0);
       
       
       -- connect to decoder
@@ -473,7 +473,6 @@ package cbmnet_interface_pkg is
       WDATA_OUT        : out std_logic_vector(17 downto 0);
       WENQUEUE_OUT     : out std_logic;
       WPACKET_COMPLETE_OUT: out std_logic;
-      WALMOST_FULL_IN  : in  std_logic;
       WFULL_IN         : in  std_logic;
       
       DEBUG_OUT                      : out std_logic_vector(31 downto 0)

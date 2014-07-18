@@ -24,7 +24,7 @@ entity CBMNET_READOUT_TRBNET_DECODER is
       
       -- Decode
       DEC_EVT_INFO_OUT               : out std_logic_vector(31 downto 0);
-      DEC_LENGTH_OUT                 : out std_logic_vector(15 downto 0);
+      DEC_LENGTH_OUT                 : out std_logic_vector(15 downto 0);  -- bytes of payload 
       DEC_SOURCE_OUT                 : out std_logic_vector(15 downto 0);
       DEC_DATA_OUT                   : out std_logic_vector(15 downto 0);
       DEC_DATA_READY_OUT             : out std_logic;
@@ -54,7 +54,7 @@ architecture cbmnet_readout_trbnet_decoder_arch of CBMNET_READOUT_TRBNET_DECODER
       );
    end component;
    
-   type FSM_STATES_T is (WAIT_FOR_IDLE, IDLE, RECV_EVT_INFO_H, RECV_EVT_INFO_L, RECV_EVT_LENGTH, RECV_EVT_SOURCE, RECV_PAYLOAD, ERROR_COND);
+   type FSM_STATES_T is (WAIT_FOR_IDLE, IDLE, RECV_EVT_INFO_H, RECV_EVT_INFO_L, RECV_EVT_LENGTH, RECV_EVT_SOURCE, RECV_PAYLOAD, LAST_WORD, ERROR_COND);
    signal fsm_i : FSM_STATES_T;
    
    signal data_i : std_logic_vector(15 downto 0);
@@ -85,7 +85,7 @@ begin
       fifo_active_i <= '0';
       DEC_ACTIVE_OUT <= '0';
       word_counter_set_i <= '0';
-      dec_error_i <= dec_error_i or not HUB_CTS_START_READOUT_IN;
+      dec_error_i <= dec_error_i or (not HUB_CTS_START_READOUT_IN and not word_counter_done_i);
       
       if RESET_IN = '1' then
          fsm_i <= WAIT_FOR_IDLE;
@@ -124,7 +124,7 @@ begin
                DEBUG_OUT(3 downto 0) <= x"4";
                word_counter_set_i <= '1';
                if read_word_i = '1' then
-                  dec_length_i <= data_i;
+                  dec_length_i <= data_i(13 downto 0) & "00";
                   fsm_i <= RECV_EVT_SOURCE;
                end if;
          
@@ -146,6 +146,12 @@ begin
                end if;
                
                if fifo_empty_i = '1' and word_counter_done_i = '1' then
+                  fsm_i <= LAST_WORD;
+               end if;
+               
+            when LAST_WORD =>
+               DEC_ACTIVE_OUT <= '1';
+               if DEC_DATA_READ_IN = '1' then
                   fsm_i <= WAIT_FOR_IDLE;
                end if;
                
@@ -167,7 +173,7 @@ begin
       if word_counter_set_i = '1' then
          word_counter_i <= UNSIGNED("0" & dec_length_i(15 downto 1));
          
-      elsif word_counter_done_i = '0' and read_word_i = '1' then
+      elsif word_counter_done_i = '0' and fifo_enqueue_i = '1' then
          word_counter_i <= word_counter_i - 1;
          
       end if;
@@ -175,7 +181,7 @@ begin
       DEBUG_OUT(31 downto 16) <= STD_LOGIC_VECTOR(word_counter_i);
    end process;
    
-   word_counter_done_i <= '1' when word_counter_i = x"0002" else '0';
+   word_counter_done_i <= '1' when word_counter_i = x"0000" else '0';
    
    THE_FIFO: lattice_ecp3_fifo_16x16_dualport
    port map (
@@ -202,9 +208,9 @@ begin
    DEC_LENGTH_OUT <= dec_length_i;
    DEC_EVT_INFO_OUT <= dec_evt_info_i;
    DEC_SOURCE_OUT <= dec_source_i;
-   DEC_DATA_READY_OUT <= not fifo_empty_i;
+   DEC_DATA_READY_OUT <= '1' when fifo_empty_i = '0' or fsm_i = LAST_WORD else '0';
    
-   DEC_DATA_OUT <= x"aaaa" when fifo_empty_i = '1' else fifo_data_i;
+   DEC_DATA_OUT <= fifo_data_i;
    
 end architecture;
 
