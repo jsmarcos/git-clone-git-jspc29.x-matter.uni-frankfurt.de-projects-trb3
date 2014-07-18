@@ -304,40 +304,6 @@ package cbmnet_interface_pkg is
          ctrl_rec_stop : out std_logic
       );
    end component;
-   
-   component CBMNET_READOUT_FIFO is
-      generic (
-         ADDR_WIDTH : positive := 10;
-         WATERMARK  : positive := 2
-      );
-
-      port (
-         -- write port
-         WCLK_IN   : in std_logic; -- not faster than rclk_in
-         WRESET_IN : in std_logic;
-         
-         WADDR_STORE_IN   : in std_logic;
-         WADDR_RESTORE_IN : in std_logic;
-         
-         WDATA_IN    : in std_logic_vector(17 downto 0);
-         WENQUEUE_IN : in std_logic;
-         WPACKET_COMPLETE_IN : in std_logic;
-         
-         WALMOST_FULL_OUT : out std_logic;
-         WFULL_OUT        : out std_logic;
-         
-         -- read port
-         RCLK_IN   : in std_logic;
-         RRESET_IN : in std_logic;  -- has to active at least two clocks AFTER (or while) write port was (is being) initialised
-         
-         RDATA_OUT   : out std_logic_vector(17 downto 0);
-         RDEQUEUE_IN : in std_logic;
-         
-         RPACKET_COMPLETE_OUT : out std_logic;   -- atleast one packet is completed in fifo
-         RPACKET_COMPLETE_ACK_IN : in std_logic -- mark one event as dealt with (effectively decrease number of completed packets by one)
-      );
-   end component;
-   
   
    component CBMNET_READOUT_TX_FSM is
       port (
@@ -445,6 +411,73 @@ package cbmnet_interface_pkg is
          CBMNET_DATA2SEND_END_OUT   : out std_logic;
          CBMNET_DATA2SEND_DATA_OUT  : out std_logic_vector(15 downto 0)
       );
+   end component;
+   
+   component CBMNET_READOUT_TRBNET_DECODER is
+   port (
+   -- TrbNet
+      CLK_IN   : in std_logic;
+      RESET_IN : in std_logic;
+
+      -- connect to hub
+      HUB_CTS_START_READOUT_IN       : in  std_logic;
+      HUB_CTS_READOUT_FINISHED_OUT   : out std_logic;  --no more data, end transfer, send TRM
+      HUB_FEE_DATA_IN                : in  std_logic_vector (15 downto 0);
+      HUB_FEE_DATAREADY_IN           : in  std_logic;
+      GBE_FEE_READ_IN                : in std_logic;
+      
+      -- Decode
+      DEC_EVT_INFO_OUT               : out std_logic_vector(31 downto 0);
+      DEC_LENGTH_OUT                 : out std_logic_vector(15 downto 0);
+      DEC_SOURCE_OUT                 : out std_logic_vector(15 downto 0);
+      DEC_DATA_OUT                   : out std_logic_vector(15 downto 0);
+      DEC_DATA_READY_OUT             : out std_logic;
+      DEC_DATA_READ_IN               : in  std_logic;
+      
+      DEC_ACTIVE_OUT                 : out std_logic;
+      DEC_ERROR_OUT                  : out std_logic;
+      
+      DEBUG_OUT                      : out std_logic_vector(31 downto 0);
+   );
+   end component;
+   
+   component CBMNET_READOUT_EVENT_PACKER is
+   port (
+   -- TrbNet
+      CLK_IN   : in std_logic;
+      RESET_IN : in std_logic;
+
+      -- connect to hub
+      HUB_CTS_NUMBER_IN              : in  std_logic_vector (15 downto 0);
+      HUB_CTS_CODE_IN                : in  std_logic_vector (7  downto 0);
+      HUB_CTS_INFORMATION_IN         : in  std_logic_vector (7  downto 0);
+      HUB_CTS_READOUT_TYPE_IN        : in  std_logic_vector (3  downto 0);
+      HUB_FEE_STATUS_BITS_IN         : in  std_logic_vector (31 downto 0);
+      
+      
+      -- connect to decoder
+      DEC_EVT_INFO_IN                : in  std_logic_vector(31 downto 0);
+      DEC_LENGTH_IN                  : in  std_logic_vector(15 downto 0);
+      DEC_SOURCE_IN                  : in  std_logic_vector(15 downto 0);
+      DEC_DATA_IN                    : in  std_logic_vector(15 downto 0);
+      DEC_DATA_READY_IN              : in  std_logic;
+      DEC_ACTIVE_IN                  : in  std_logic;
+      DEC_ERROR_IN                   : in  std_logic;
+      
+      DEC_DATA_READ_OUT              : out std_logic;
+      DEC_RESET_OUT                  : out std_logic;
+
+      -- connect to fifo
+      WADDR_STORE_OUT  : out std_logic;
+      WADDR_RESTORE_OUT: out std_logic;
+      WDATA_OUT        : out std_logic_vector(17 downto 0);
+      WENQUEUE_OUT     : out std_logic;
+      WPACKET_COMPLETE_OUT: out std_logic;
+      WALMOST_FULL_IN  : in  std_logic;
+      WFULL_IN         : in  std_logic;
+      
+      DEBUG_OUT                      : out std_logic_vector(31 downto 0)
+   );
    end component;
 end package cbmnet_interface_pkg;
 

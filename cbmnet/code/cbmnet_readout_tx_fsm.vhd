@@ -70,7 +70,7 @@ begin
             
             when SEND_HEADER =>
                if CBMNET_STOP_IN = '0' then
-                  CBMNET_DATA_OUT(10 downto 0) <= STD_LOGIC_VECTOR(pack_num_i);
+                  CBMNET_DATA_OUT( 5 downto 0) <= STD_LOGIC_VECTOR(pack_num_i);
                   CBMNET_DATA_OUT(14) <= pack_start_i;
                   CBMNET_DATA_OUT(15) <= pack_stop_i;
                   CBMNET_START_OUT <= '1';

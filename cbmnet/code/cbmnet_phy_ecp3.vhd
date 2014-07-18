@@ -706,10 +706,13 @@ begin
 
 	   DEBUG_OUT(315 downto 244) <= rx_data_sp_i3(17 downto 0) & rx_data_sp_i2(17 downto 0) & rx_data_sp_i1(17 downto 0) & rx_data_sp_i0(17 downto 0);
 	   DEBUG_OUT(331 downto 316) <= dlm_counter_i(15 downto 0);
---	   DEBUG_OUT(333 downto 316) <= PHY_TXDATA_K_IN(1 downto 0) & PHY_TXDATA_IN(15 downto 0);
 	   
 
-	   DEBUG_OUT(511 downto 332) <= tx_data_sp_i3(17 downto 0) & tx_data_sp_i2(17 downto 0) & tx_data_sp_i1(17 downto 0) & tx_data_sp_i0(17 downto 0) & tx_data_sp_i7(17 downto 0) & tx_data_sp_i6(17 downto 0) & tx_data_sp_i5(17 downto 0) & tx_data_sp_i4(17 downto 0) &         tx_data_sp_i8(17 downto 0) & tx_data_sp_i9(17 downto 0);
+	   DEBUG_OUT(403 downto 332) <= tx_data_sp_i3(17 downto 0) & tx_data_sp_i2(17 downto 0) & tx_data_sp_i1(17 downto 0) & tx_data_sp_i0(17 downto 0);
+      DEBUG_OUT(421 downto 404) <= PHY_TXDATA_K_IN(1 downto 0) & PHY_TXDATA_IN(15 downto 0);
+	   
+	   
+	   --  & tx_data_sp_i7(17 downto 0) & tx_data_sp_i6(17 downto 0) & tx_data_sp_i5(17 downto 0) & tx_data_sp_i4(17 downto 0) &         tx_data_sp_i8(17 downto 0) & tx_data_sp_i9(17 downto 0);
 	   
 	   --DEBUG_OUT(341 downto 334) <= stat_sync_dlm_inv_counter_i(7 downto 0) when rising_edge(rclk_125_i);
       --DEBUG_OUT(349 downto 342) <= stat_sync_dlm_counter_i(7 downto 0) when rising_edge(rclk_125_i); 
@@ -776,8 +779,17 @@ begin
          end if;
          
          detect_dlm_125_i <= detect_dlm_250_i;
+         
+         
+         STAT_OP(0)<= '0';
+         if rx_data_i = "10" & K277 & EBTB_D_ENCODE(14,6) then
+            STAT_OP(0) <= '1';
+         end if;
+         
       end process;
       
+      STAT_OP(2 downto 1) <= detect_dlm_125_i & detect_dlm_250_i;
+         
       
       --PROC_SEE_FAST_DLM: process is
          --variable saw_lb_v, saw_hb_v : std_logic;
