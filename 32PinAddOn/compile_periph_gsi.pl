@@ -100,6 +100,7 @@ system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");
 system("cp ../base/$TOPNAME.lpf $WORKDIR/$TOPNAME.lpf");
 system("cat currentRelease/trbnet_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
 system("cat currentRelease/tdc_constraints_64.lpf >> $WORKDIR/$TOPNAME.lpf");
+system("cat currentRelease/unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
 system("cat unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
 
 
@@ -252,10 +253,10 @@ if($timing==1 || $all==1){
     execute($c);
 
     # TWR Timing Report
-    $c=qq|trce -c -v 15 -o "$TOPNAME.twr.setup" "$TOPNAME.ncd" "$TOPNAME.prf"|;
+    $c=qq|trce -c -v 65 -o "$TOPNAME.twr.setup" "$TOPNAME.ncd" "$TOPNAME.prf"|;
     execute($c);
     
-    $c=qq|trce -hld -c -v 5 -o "$TOPNAME.twr.hold" "$TOPNAME.ncd" "$TOPNAME.prf"|;
+    $c=qq|trce -hld -c -v 65 -o "$TOPNAME.twr.hold" "$TOPNAME.ncd" "$TOPNAME.prf"|;
     execute($c);
     
     $c=qq|ltxt2ptxt $TOPNAME.ncd|;

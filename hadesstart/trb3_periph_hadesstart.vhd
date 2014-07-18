@@ -822,8 +822,8 @@ begin
 -- Test Connector - Logic Analyser
 ---------------------------------------------------------------------------
 
---   TEST_LINE <= logic_analyser_i;
-  TEST_LINE(15 downto 12) <= (others => '0');
+--  TEST_LINE <= logic_analyser_i;
+  TEST_LINE <= (others => '0');
 
 -------------------------------------------------------------------------------
 -- TDC
