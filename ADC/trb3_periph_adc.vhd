@@ -56,6 +56,7 @@ entity trb3_periph_adc is
     LMK_LE_2             : out std_logic;
     
     P_CLOCK              : out std_logic;
+    POWER_ENABLE         : out std_logic;
     
     FPGA_CS              : out std_logic_vector(1 downto 0);
     FPGA_SCK             : out std_logic_vector(1 downto 0);
@@ -210,7 +211,12 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   signal adc_restart_i     : std_logic;
 
   signal adc_data : std_logic_vector(479 downto 0);
-
+  signal adc_fco  : std_logic_vector(119 downto 0);
+  signal adc_data_valid : std_logic_vector(11 downto 0);
+  
+  signal busadc_rx  : CTRLBUS_RX;
+  signal busadc_tx  : CTRLBUS_TX;
+  
 begin
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -446,21 +452,39 @@ THE_ADC : entity work.adc_ad9219
     ADC_DCO    => ADC_DCO,
     
     DATA_OUT       => adc_data,
-    FCO_OUT        => open,
-    DATA_VALID_OUT => open,
+    FCO_OUT        => adc_fco,
+    DATA_VALID_OUT => adc_data_valid,
     DEBUG          => debug_adc
     );
 
-adc_restart_i <= '0';
+
+THE_ADC_DATA_BUFFER : entity work.adc_data_buffer
+  generic map(
+    RESOLUTION => 10,
+    CHANNELS   => 4,
+    DEVICES    => 12
+    )
+  port map(
+    CLK => clk_100_i,
+    ADC_DATA_IN => adc_data,
+    ADC_FCO_IN  => adc_fco,
+    ADC_DATA_VALID => adc_data_valid,
+    
+    ADC_RESET_OUT  => adc_restart_i,
+    
+    BUS_RX    => busadc_rx,
+    BUS_TX    => busadc_tx
+    
+    );
 
 ---------------------------------------------------------------------------
 -- Bus Handler
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 2,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d400",  others => x"0000"),
-      PORT_ADDR_MASK => (0 => 9,       1 => 5,        others => 0)
+      PORT_NUMBER    => 3,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d400", 2 => x"e000", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 9,       1 => 5,       2 => 8,       others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -502,6 +526,17 @@ adc_restart_i <= '0';
       BUS_NO_MORE_DATA_IN(1)              => spifpga_busy,
       BUS_UNKNOWN_ADDR_IN(1)              => '0',
 
+      BUS_READ_ENABLE_OUT(2)              => busadc_rx.read,
+      BUS_WRITE_ENABLE_OUT(2)             => busadc_rx.write,
+      BUS_DATA_OUT(2*32+31 downto 2*32)   => busadc_rx.data,
+      BUS_ADDR_OUT(2*16+15 downto 2*16)   => busadc_rx.addr,
+      BUS_TIMEOUT_OUT(2)                  => busadc_rx.timeout,
+      BUS_DATA_IN(2*32+31 downto 2*32)    => busadc_tx.data,
+      BUS_DATAREADY_IN(2)                 => busadc_tx.ack,
+      BUS_WRITE_ACK_IN(2)                 => busadc_tx.ack,
+      BUS_NO_MORE_DATA_IN(2)              => busadc_tx.nack,
+      BUS_UNKNOWN_ADDR_IN(2)              => busadc_tx.unknown,
+      
       STAT_DEBUG => open
       );
 
@@ -593,6 +628,7 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
   LMK_LE_1            <= spi_CS(4); -- active low
   LMK_LE_2            <= spi_CS(5); -- active low
   
+  POWER_ENABLE        <= '1';
 
 ---------------------------------------------------------------------------
 -- LED

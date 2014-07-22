@@ -46,6 +46,23 @@ signal clk_adcfast_i : std_logic_vector(1 downto 0); --200MHz
 signal clk_data      : std_logic_vector(1 downto 0); --100MHz
 signal restart_i  : std_logic_vector(1 downto 0);
 
+type state_t is (S1,S2,S3,S4,S5);
+type states_t is array(0 to 11) of state_t;
+signal state : states_t;
+
+type value_it is array(0 to 4) of std_logic_vector(9 downto 0);
+type value_t is array(0 to 11) of value_it;
+signal value : value_t;
+signal fifo_input : value_t;
+
+type fifo_t is array(0 to 11) of std_logic_vector(49 downto 0);
+signal fifo_output: fifo_t;
+
+signal fifo_write      : std_logic_vector(11 downto 0);
+signal fifo_empty      : std_logic_vector(11 downto 0);
+signal fifo_last_empty : std_logic_vector(11 downto 0);
+
+
 begin
 
   THE_ADC_REF : entity work.pll_in200_out40
@@ -137,22 +154,99 @@ THE_RIGHT : entity work.dqsinput_5x5
         
         
 gen_chips_left : for i in 0 to DEVICES_LEFT+DEVICES_RIGHT-1 generate
-  THE_FIFO : fifo_cdt_200
+
+  proc_collect_data : process begin
+    wait until rising_edge(clk_data(fpgaside(i)));
+    fifo_write(i) <= '0';
+    case state(i) is
+      when S1 =>
+        if q(i)(19 downto 16) = x"0011" then
+          state(i) <= S2;
+          value(i)(0)(9 downto 8) <= q(i)(1  downto 0 );
+          value(i)(1)(9 downto 8) <= q(i)(5  downto 4 );
+          value(i)(2)(9 downto 8) <= q(i)(9  downto 8 );
+          value(i)(3)(9 downto 8) <= q(i)(13 downto 12);
+          value(i)(4)(9 downto 8) <= q(i)(17 downto 16);
+          
+          fifo_input(i) <= value(i);
+          fifo_input(i)(0)(1 downto 0) <= q(i)(3  downto 2 );
+          fifo_input(i)(1)(1 downto 0) <= q(i)(7  downto 6 );
+          fifo_input(i)(2)(1 downto 0) <= q(i)(11 downto 10);
+          fifo_input(i)(3)(1 downto 0) <= q(i)(15 downto 14);
+          fifo_input(i)(4)(1 downto 0) <= q(i)(19 downto 18);
+          fifo_write(i) <= '1';
+        end if;
+      when S2 =>  
+          state(i) <= S3;
+          value(i)(0)(7 downto 4) <= q(i)(3  downto 0 );
+          value(i)(1)(7 downto 4) <= q(i)(7  downto 4 );
+          value(i)(2)(7 downto 4) <= q(i)(11 downto 8 );
+          value(i)(3)(7 downto 4) <= q(i)(15 downto 12);
+          value(i)(4)(7 downto 4) <= q(i)(19 downto 16);
+      when S3 =>  
+          state(i) <= S4;
+          fifo_input(i) <= value(i);
+          fifo_input(i)(0)(3 downto 0) <= q(i)(3  downto 0 );
+          fifo_input(i)(1)(3 downto 0) <= q(i)(7  downto 4 );
+          fifo_input(i)(2)(3 downto 0) <= q(i)(11 downto 8 );
+          fifo_input(i)(3)(3 downto 0) <= q(i)(15 downto 12);
+          fifo_input(i)(4)(3 downto 0) <= q(i)(19 downto 16);
+          fifo_write(i) <= '1';
+      when S4 =>
+          state(i) <= S5;
+          value(i)(0)(9 downto 6) <= q(i)(3  downto 0 );
+          value(i)(1)(9 downto 6) <= q(i)(7  downto 4 );
+          value(i)(2)(9 downto 6) <= q(i)(11 downto 8 );
+          value(i)(3)(9 downto 6) <= q(i)(15 downto 12);
+          value(i)(4)(9 downto 6) <= q(i)(19 downto 16);
+      when S5 =>    
+          state(i) <= S1;
+          value(i)(0)(5 downto 2) <= q(i)(3  downto 0 );
+          value(i)(1)(5 downto 2) <= q(i)(7  downto 4 );
+          value(i)(2)(5 downto 2) <= q(i)(11 downto 8 );
+          value(i)(3)(5 downto 2) <= q(i)(15 downto 12);
+          value(i)(4)(5 downto 2) <= q(i)(19 downto 16);
+    end case;
+    if restart_i(fpgaside(i)) = '1' then
+      state(i) <= S1;
+    end if;
+  end process;
+
+  THE_FIFO : fifo_cdt_200   --60*16
     port map(
-      Data(19 downto 0)  => q(i),
+      Data(9 downto   0)  => fifo_input(i)(0),
+      Data(19 downto 10)  => fifo_input(i)(1),
+      Data(29 downto 20)  => fifo_input(i)(2),
+      Data(39 downto 30)  => fifo_input(i)(3),
+      Data(49 downto 40)  => fifo_input(i)(4),
       WrClock  => clk_data(fpgaside(i)),
       RdClock  => CLK,
-      WrEn     => '1',
+      WrEn     => fifo_write(i),
       RdEn     => '1',
-      Reset    => '0',
-      RPReset  => restart_i(fpgaside(i)),
-      Q(19 downto 0)        => tmp(i),
-      Empty    => open,
+      Reset    => restart_i(fpgaside(i)),
+      RPReset  => RESTART_IN,
+      Q(49 downto 0)        => fifo_output(i),
+      Empty    => fifo_empty(i),
       Full     => open
       );
   DEBUG(i) <= or_all(tmp(i));    
+  
+  proc_output : process begin
+    wait until rising_edge(CLK);
+    if fifo_last_empty(i) = '0' then
+      DATA_OUT(i*40+39 downto i*40+0) <= fifo_output(i)(39 downto 0);
+      FCO_OUT (i*10+9  downto i*10+0) <= fifo_output(i)(49 downto 40);
+      DATA_VALID_OUT(i)               <= '1';
+    else
+      DATA_VALID_OUT(i)               <= '0';
+    end if;
+  end process;
+  
 end generate;    
 
 
 
 end architecture;
+
+
+
