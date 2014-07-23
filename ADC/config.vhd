@@ -14,6 +14,7 @@ package config is
     
 --Run wih 125 MHz instead of 100 MHz     
     constant USE_125_MHZ            : integer := c_NO;  --not implemented yet!  
+    constant USE_EXTERNALCLOCK      : integer := c_NO;  --not implemented yet!  
     
 --Use sync mode, RX clock for all parts of the FPGA
     constant USE_RXCLOCK            : integer := c_NO;  --not implemented yet!
@@ -33,7 +34,7 @@ package config is
 ------------------------------------------------------------------------------
     type intlist_t is array(0 to 7) of integer;
     type hw_info_t is array(0 to 7) of unsigned(31 downto 0);
-    constant HW_INFO_BASE            : unsigned(31 downto 0) := x"91009480";
+    constant HW_INFO_BASE            : unsigned(31 downto 0) := x"91009000";
     
     constant CLOCK_FREQUENCY_ARR  : intlist_t := (100,125, others => 0);
     constant MEDIA_FREQUENCY_ARR  : intlist_t := (200,125, others => 0);
@@ -42,7 +43,9 @@ package config is
     constant HARDWARE_INFO        : std_logic_vector(31 downto 0);
     constant CLOCK_FREQUENCY      : integer;
     constant MEDIA_FREQUENCY      : integer;
-
+    constant INCLUDED_FEATURES      : std_logic_vector(63 downto 0);
+    
+    
 end;
 
 package body config is
@@ -52,5 +55,26 @@ package body config is
                                       HW_INFO_BASE );
   constant CLOCK_FREQUENCY      : integer := CLOCK_FREQUENCY_ARR(USE_125_MHZ);
   constant MEDIA_FREQUENCY      : integer := MEDIA_FREQUENCY_ARR(USE_125_MHZ);
+
+  
+  
+function generateIncludedFeatures return std_logic_vector is
+  variable t : std_logic_vector(63 downto 0);
+begin
+  t               := (others => '0');
+  t(63 downto 56) := std_logic_vector(to_unsigned(2,8)); --table version 2
+  t(7 downto 0)   := x"00"; --std_logic_vector(to_unsigned(USE_HPTDC_FASTMODE_PINOUT*3,8));
+  t(11 downto 8)  := x"0"; --std_logic_vector(to_unsigned(USE_DOUBLE_EDGE*2,4));
+  t(15)           := '0'; --TDC
+  t(42 downto 42) := "1"; --std_logic_vector(to_unsigned(INCLUDE_SPI,1));
+  t(44 downto 44) := "0"; --std_logic_vector(to_unsigned(INCLUDE_STATISTICS,1));
+  t(51 downto 48) := x"0";--std_logic_vector(to_unsigned(INCLUDE_TRIGGER_LOGIC,4));
+  t(52 downto 52) := std_logic_vector(to_unsigned(USE_125_MHZ,1));
+  t(53 downto 53) := std_logic_vector(to_unsigned(USE_RXCLOCK,1));
+  t(54 downto 54) := std_logic_vector(to_unsigned(USE_EXTERNALCLOCK,1));
+  return t;
+end function;  
+
+  constant INCLUDED_FEATURES : std_logic_vector := generateIncludedFeatures;    
   
 end package body;

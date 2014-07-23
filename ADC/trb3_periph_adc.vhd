@@ -205,7 +205,6 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   signal spi_cs        					   : std_logic_vector(15 downto 0);
   signal spi_sdi, spi_sdo, spi_sck : std_logic;
   
-  signal clk_adcfast_i     : std_logic;
   signal clk_adcref_i      : std_logic;
   signal debug_adc         : std_logic_vector(31 downto 0);
   signal adc_restart_i     : std_logic;
@@ -316,6 +315,7 @@ begin
       REGIO_HARDWARE_VERSION    => HARDWARE_INFO,
       REGIO_INIT_ADDRESS        => INIT_ADDRESS,
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
+      REGIO_INCLUDED_FEATURES   => INCLUDED_FEATURES,
       CLOCK_FREQUENCY           => CLOCK_FREQUENCY,
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
@@ -431,8 +431,6 @@ THE_ADC : entity work.adc_ad9219
   port map(
     CLK        => clk_100_i,
     CLK_ADCRAW => CLK_PCLK_RIGHT,
-    CLK_ADCREF => clk_adcref_i,
-    CLK_ADCDAT => clk_adcfast_i,
     RESTART_IN => adc_restart_i,
     ADCCLK_OUT => P_CLOCK,
     
@@ -469,6 +467,7 @@ THE_ADC_DATA_BUFFER : entity work.adc_data_buffer
     ADC_DATA_IN => adc_data,
     ADC_FCO_IN  => adc_fco,
     ADC_DATA_VALID => adc_data_valid,
+    ADC_STATUS_IN  => debug_adc,
     
     ADC_RESET_OUT  => adc_restart_i,
     
@@ -635,7 +634,7 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
 ---------------------------------------------------------------------------
 LED_GREEN  <= not med_stat_op(9);
 LED_ORANGE <= not med_stat_op(10);
-LED_RED    <= not or_all(debug_adc) when rising_edge(clk_100_i);
+LED_RED    <= '1';
 LED_YELLOW <= not med_stat_op(11);
 
 ---------------------------------------------------------------------------

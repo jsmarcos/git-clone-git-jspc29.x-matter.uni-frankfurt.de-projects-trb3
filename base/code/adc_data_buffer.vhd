@@ -18,6 +18,7 @@ entity adc_data_buffer is
     ADC_DATA_IN    : in std_logic_vector(DEVICES*CHANNELS*RESOLUTION-1 downto 0);
     ADC_FCO_IN     : in std_logic_vector(DEVICES*RESOLUTION-1 downto 0);
     ADC_DATA_VALID : in std_logic_vector(DEVICES-1 downto 0);
+    ADC_STATUS_IN  : in std_logic_vector(31 downto 0);
     
     ADC_RESET_OUT  : out std_logic;
     
@@ -33,7 +34,9 @@ architecture adc_data_buffer_arch of adc_data_buffer is
 signal fifo_read      : std_logic_vector(DEVICES*CHANNELS-1 downto 0);
 signal fifo_empty     : std_logic_vector(DEVICES*CHANNELS-1 downto 0);
 signal fifo_full      : std_logic_vector(DEVICES*CHANNELS-1 downto 0);
+signal fifo_write     : std_logic_vector(DEVICES*CHANNELS-1 downto 0);
 signal fifo_reset     : std_logic;
+signal fifo_stop      : std_logic;
 
 type dout_t is array(0 to DEVICES*CHANNELS-1) of std_logic_vector(17 downto 0);
 signal fifo_dout : dout_t;
@@ -44,7 +47,7 @@ signal fifo_count : fifo_count_t;
 signal ctrl_reg  : std_logic_vector(31 downto 0);
 
 signal saved_addr : integer range 0 to DEVICES*CHANNELS-1;
-signal fifo_wait_1, fifo_wait_2 : std_logic;
+signal fifo_wait_0, fifo_wait_1, fifo_wait_2 : std_logic;
 
 begin
  
@@ -53,9 +56,10 @@ gen_data_fifo : for i in 0 to DEVICES*CHANNELS-1 generate
   THE_FIFO : entity work.fifo_18x1k_oreg
     port map (
       Data(9 downto 0)   => ADC_DATA_IN(10*i+9 downto 10*i),
-      Data(17 downto 10) => ADC_FCO_IN (10*(i/CHANNELS)+7 downto 10*(i/CHANNELS)),
+--       Data(17 downto 10) => ADC_FCO_IN (10*(i/CHANNELS)+7 downto 10*(i/CHANNELS)),
+      Data(15 downto 12) => ADC_FCO_IN (10*(i/CHANNELS)+3 downto 10*(i/CHANNELS)),
       Clock              => CLK, 
-      WrEn               => ADC_DATA_VALID(i / CHANNELS),
+      WrEn               => fifo_write(i),
       RdEn               => fifo_read(i),
       Reset              => fifo_reset,
       AmFullThresh       => "1111110000",
@@ -65,9 +69,10 @@ gen_data_fifo : for i in 0 to DEVICES*CHANNELS-1 generate
       Full               => open,
       AlmostFull         => fifo_full(i)
       );
+  fifo_write(i) <= ADC_DATA_VALID(i / CHANNELS) and not fifo_stop;
 end generate;    
 
-fifo_wait_1 <= or_all(fifo_read) when rising_edge(CLK);
+fifo_wait_1 <= fifo_wait_0       when rising_edge(CLK);
 fifo_wait_2 <= fifo_wait_1       when rising_edge(CLK);
 
 
@@ -78,14 +83,23 @@ PROC_BUS : process begin
   BUS_TX.unknown <= '0';
   ADC_RESET_OUT  <= '0';
   fifo_read      <= fifo_full;
+  fifo_wait_0    <= '0';
   
   if BUS_RX.read = '1' then
     if BUS_RX.addr(7 downto 0) = x"80" then
       BUS_TX.data  <= ctrl_reg;
       BUS_TX.ack   <= '1';
+    elsif BUS_RX.addr(7 downto 0) = x"82" then
+      BUS_TX.data  <= ADC_STATUS_IN(31 downto 0);
+      BUS_TX.ack   <= '1';
+    elsif BUS_RX.addr(7 downto 0) = x"83" then
+      BUS_TX.data  <= (others => '0');
+      BUS_TX.data(10 downto 0) <= fifo_count(0);
+      BUS_TX.ack   <= '1';
     elsif BUS_RX.addr(7 downto 0) < std_logic_vector(to_unsigned(DEVICES*CHANNELS,8)) then
       saved_addr   <= to_integer(unsigned(BUS_RX.addr(6 downto 0)));
       fifo_read(to_integer(unsigned(BUS_RX.addr(6 downto 0)))) <= '1';
+      fifo_wait_0 <= '1';
     else
       BUS_TX.unknown <= '1';
     end if;
@@ -95,7 +109,8 @@ PROC_BUS : process begin
       ctrl_reg       <= BUS_RX.data;
       BUS_TX.ack     <= '1';
     elsif BUS_RX.addr(7 downto 0) = x"81" then
-      ADC_RESET_OUT  <= '1';
+      ADC_RESET_OUT  <= BUS_RX.data(0);
+      fifo_stop      <= BUS_RX.data(1);
       BUS_TX.ack     <= '1';
     else
       BUS_TX.unknown <= '1';
