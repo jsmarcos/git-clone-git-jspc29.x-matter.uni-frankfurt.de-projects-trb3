@@ -212,6 +212,7 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   signal adc_data : std_logic_vector(479 downto 0);
   signal adc_fco  : std_logic_vector(119 downto 0);
   signal adc_data_valid : std_logic_vector(11 downto 0);
+  signal adc_ctrl : std_logic_vector(31 downto 0);
   
   signal busadc_rx  : CTRLBUS_RX;
   signal busadc_tx  : CTRLBUS_TX;
@@ -468,6 +469,7 @@ THE_ADC_DATA_BUFFER : entity work.adc_data_buffer
     ADC_FCO_IN  => adc_fco,
     ADC_DATA_VALID => adc_data_valid,
     ADC_STATUS_IN  => debug_adc,
+    ADC_CONTROL_OUT => adc_ctrl,
     
     ADC_RESET_OUT  => adc_restart_i,
     
@@ -619,16 +621,16 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
   FPGA_SDI(0) <= spi_SDO     when spi_CS(2 downto 0) /= b"111" else '0';
   spi_SDI     <= FPGA_SDO(0) when spi_CS(2 downto 0) /= b"111" else '0';
   
-  SPI_ADC_SCK         <= spi_SCK when spi_CS(3) = '0' else '0';
-  SPI_ADC_SDIO        <= spi_SDO when spi_CS(3) = '0' else '0';
+  SPI_ADC_SCK         <= spi_SCK when spi_CS(3) = '0' else adc_ctrl(4);
+  SPI_ADC_SDIO        <= spi_SDO when spi_CS(3) = '0' else adc_ctrl(5);
+  FPGA_SCK(1)         <= '0'     when spi_CS(3) = '0' else adc_ctrl(6); --CSB
   
   LMK_CLK             <= spi_SCK when spi_CS(5 downto 4) /= b"11" else '1' ;
   LMK_DATA            <= spi_SDO when spi_CS(5 downto 4) /= b"11" else '0' ;
   LMK_LE_1            <= spi_CS(4); -- active low
   LMK_LE_2            <= spi_CS(5); -- active low
   
-  POWER_ENABLE        <= '1';
-
+  POWER_ENABLE        <= adc_ctrl(0);
 ---------------------------------------------------------------------------
 -- LED
 ---------------------------------------------------------------------------

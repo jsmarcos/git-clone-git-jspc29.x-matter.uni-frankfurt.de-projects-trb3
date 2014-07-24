@@ -19,7 +19,7 @@ entity adc_data_buffer is
     ADC_FCO_IN     : in std_logic_vector(DEVICES*RESOLUTION-1 downto 0);
     ADC_DATA_VALID : in std_logic_vector(DEVICES-1 downto 0);
     ADC_STATUS_IN  : in std_logic_vector(31 downto 0);
-    
+    ADC_CONTROL_OUT: out std_logic_vector(31 downto 0);
     ADC_RESET_OUT  : out std_logic;
     
     BUS_RX   : in  CTRLBUS_RX;
@@ -75,6 +75,8 @@ end generate;
 fifo_wait_1 <= fifo_wait_0       when rising_edge(CLK);
 fifo_wait_2 <= fifo_wait_1       when rising_edge(CLK);
 
+ADC_CONTROL_OUT <= ctrl_reg;
+
 
 PROC_BUS : process begin
   wait until rising_edge(CLK);
@@ -84,6 +86,7 @@ PROC_BUS : process begin
   ADC_RESET_OUT  <= '0';
   fifo_read      <= fifo_full;
   fifo_wait_0    <= '0';
+  fifo_reset     <= '0';
   
   if BUS_RX.read = '1' then
     if BUS_RX.addr(7 downto 0) = x"80" then
@@ -111,6 +114,7 @@ PROC_BUS : process begin
     elsif BUS_RX.addr(7 downto 0) = x"81" then
       ADC_RESET_OUT  <= BUS_RX.data(0);
       fifo_stop      <= BUS_RX.data(1);
+      fifo_reset     <= BUS_RX.data(2);
       BUS_TX.ack     <= '1';
     else
       BUS_TX.unknown <= '1';

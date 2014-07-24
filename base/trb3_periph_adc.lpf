@@ -196,7 +196,7 @@ LOCATE COMP  "FPGA_SDI_1"            SITE "G1";
 LOCATE COMP  "FPGA_SDO_0"            SITE "T25";
 LOCATE COMP  "FPGA_SDO_1"            SITE "T24";
 DEFINE PORT GROUP "FPGA_group" "FPGA_*" ;
-IOBUF GROUP "FPGA_group" IO_TYPE=LVCMOS25 PULLMODE=DOWN;
+IOBUF GROUP "FPGA_group" IO_TYPE=LVCMOS25 PULLMODE=UP;
 
 
 #################################################################
