@@ -206,7 +206,7 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   signal spi_sdi, spi_sdo, spi_sck : std_logic;
   
   signal clk_adcref_i      : std_logic;
-  signal debug_adc         : std_logic_vector(31 downto 0);
+  signal debug_adc         : std_logic_vector(48*32-1 downto 0);
   signal adc_restart_i     : std_logic;
 
   signal adc_data : std_logic_vector(479 downto 0);

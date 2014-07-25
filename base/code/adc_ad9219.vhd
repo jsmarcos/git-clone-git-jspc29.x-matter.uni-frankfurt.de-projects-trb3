@@ -25,7 +25,7 @@ entity adc_ad9219 is
     DATA_OUT       : out std_logic_vector((DEVICES_LEFT+DEVICES_RIGHT)*CHANNELS*RESOLUTION-1 downto 0);
     FCO_OUT        : out std_logic_vector((DEVICES_LEFT+DEVICES_RIGHT)*RESOLUTION-1 downto 0);
     DATA_VALID_OUT : out std_logic_vector((DEVICES_LEFT+DEVICES_RIGHT)-1 downto 0);
-    DEBUG          : out std_logic_vector(31 downto 0)
+    DEBUG          : out std_logic_vector((DEVICES_LEFT+DEVICES_RIGHT)*CHANNELS*32-1 downto 0)
     );
 end entity;
 
@@ -37,19 +37,19 @@ type s_t is array(0 to 11) of integer range 0 to 1;
 constant fpgaside : s_t := (0,0,0,0,0,0,1,0,1,1,1,1);
 
 type q_t is array(0 to 11) of std_logic_vector(19 downto 0);
-signal q,qq,qqq : q_t;
+signal q,qq,qqq,q_q : q_t;
 
 signal clk_adcfast_i : std_logic_vector(1 downto 0); --200MHz
 signal clk_data      : std_logic_vector(1 downto 0); --100MHz
 signal clk_data_half : std_logic_vector(1 downto 0);
 signal restart_i     : std_logic_vector(1 downto 0);
-signal q0_q, q0 : std_logic_vector(19 downto 0);
+
 
 
 type state_t is (S1,S2,S3,S4,S5);
 type states_t is array(0 to 11) of state_t;
 signal state    : states_t;
-signal state_q  : state_t; 
+signal state_q  : states_t; 
 
 type value_it is array(0 to 4) of std_logic_vector(9 downto 0);
 type value_t is array(0 to 11) of value_it;
@@ -92,8 +92,6 @@ begin
   restart_i(0) <= RESTART_IN when rising_edge(clk_data(0));
   restart_i(1) <= RESTART_IN when rising_edge(clk_data(1));
   
-  clk_data_half(0) <= not clk_data_half(0) when rising_edge(clk_data(0));
-  clk_data_half(1) <= not clk_data_half(1) when rising_edge(clk_data(1));
 
 THE_LEFT : entity work.dqsinput_7x5
     port map(
@@ -260,29 +258,29 @@ gen_chips_left : for i in 0 to DEVICES_LEFT+DEVICES_RIGHT-1 generate
       DATA_VALID_OUT(i)               <= '0';
     end if;
   end process;
+
+  
+  proc_debug : process begin
+    wait until rising_edge(CLK);
+    DEBUG(i*32+31 downto i*32)       <= (others => '0');
+    DEBUG(i*32+3  downto  i*32+0) <= q_q(i)(3 downto 0);
+    DEBUG(i*32+7  downto  i*32+4) <= q_q(i)(19 downto 16);
+    case state_q(i) is
+      when S1 =>     DEBUG(i*32+11 downto  i*32+8) <= x"1";
+      when S2 =>     DEBUG(i*32+11 downto  i*32+8) <= x"2";
+      when S3 =>     DEBUG(i*32+11 downto  i*32+8) <= x"3";
+      when S4 =>     DEBUG(i*32+11 downto  i*32+8) <= x"4";
+      when S5 =>     DEBUG(i*32+11 downto  i*32+8) <= x"5";
+      when others => DEBUG(i*32+11 downto  i*32+8) <= x"0";
+    end case;
+  end process;  
   
 end generate;    
 
-q0   <= q(0) when rising_edge(clk_data(0));
-q0_q <= q0   when rising_edge(CLK);
+q_q     <= qqq   when rising_edge(CLK);
+state_q <= state when rising_edge(CLK);
 
-proc_debug : process begin
-  wait until rising_edge(CLK);
-  state_q <= state(0);
-  DEBUG               <= (others => '0');
-  DEBUG(3  downto  0) <= q0_q(3 downto 0);
-  DEBUG(7  downto  4) <= q0_q(19 downto 16);
-  case state_q is
-    when S1 =>     DEBUG(11 downto  8) <= x"1";
-    when S2 =>     DEBUG(11 downto  8) <= x"2";
-    when S3 =>     DEBUG(11 downto  8) <= x"3";
-    when S4 =>     DEBUG(11 downto  8) <= x"4";
-    when S5 =>     DEBUG(11 downto  8) <= x"5";
-    when others => DEBUG(11 downto  8) <= x"0";
-  end case;
-  DEBUG(14 downto 12) <= lock;
-  DEBUG(17 downto 16) <= clk_data_half;
-end process;
+
 
 
 

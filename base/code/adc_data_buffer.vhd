@@ -18,7 +18,7 @@ entity adc_data_buffer is
     ADC_DATA_IN    : in std_logic_vector(DEVICES*CHANNELS*RESOLUTION-1 downto 0);
     ADC_FCO_IN     : in std_logic_vector(DEVICES*RESOLUTION-1 downto 0);
     ADC_DATA_VALID : in std_logic_vector(DEVICES-1 downto 0);
-    ADC_STATUS_IN  : in std_logic_vector(31 downto 0);
+    ADC_STATUS_IN  : in std_logic_vector(DEVICES*CHANNELS*32-1 downto 0);
     ADC_CONTROL_OUT: out std_logic_vector(31 downto 0);
     ADC_RESET_OUT  : out std_logic;
     
@@ -57,7 +57,7 @@ gen_data_fifo : for i in 0 to DEVICES*CHANNELS-1 generate
     port map (
       Data(9 downto 0)   => ADC_DATA_IN(10*i+9 downto 10*i),
 --       Data(17 downto 10) => ADC_FCO_IN (10*(i/CHANNELS)+7 downto 10*(i/CHANNELS)),
-      Data(15 downto 12) => ADC_FCO_IN (10*(i/CHANNELS)+3 downto 10*(i/CHANNELS)),
+      Data(17 downto 12) => ADC_FCO_IN (10*(i/CHANNELS)+6 downto 10*(i/CHANNELS)+1),
       Clock              => CLK, 
       WrEn               => fifo_write(i),
       RdEn               => fifo_read(i),
@@ -92,8 +92,9 @@ PROC_BUS : process begin
     if BUS_RX.addr(7 downto 0) = x"80" then
       BUS_TX.data  <= ctrl_reg;
       BUS_TX.ack   <= '1';
-    elsif BUS_RX.addr(7 downto 0) = x"82" then
-      BUS_TX.data  <= ADC_STATUS_IN(31 downto 0);
+    elsif BUS_RX.addr(7 downto 0) >= x"40" and BUS_RX.addr(7 downto 0) < x"80" 
+           and BUS_RX.addr(5 downto 0) < std_logic_vector(to_unsigned(DEVICES*CHANNELS,6)) then
+      BUS_TX.data  <= ADC_STATUS_IN(to_integer(unsigned(BUS_RX.addr(5 downto 0)))*32+31 downto to_integer(unsigned(BUS_RX.addr(5 downto 0)))*32);
       BUS_TX.ack   <= '1';
     elsif BUS_RX.addr(7 downto 0) = x"83" then
       BUS_TX.data  <= (others => '0');
@@ -125,7 +126,7 @@ PROC_BUS : process begin
     BUS_TX.ack <= '1';
     BUS_TX.data(17 downto 0)  <= fifo_dout(saved_addr);
     BUS_TX.data(30 downto 18) <= (others => '0');
-    BUS_TX.data(31)           <= fifo_empty(saved_addr / CHANNELS);
+    BUS_TX.data(31)           <= fifo_empty(saved_addr);
   end if;
 end process;
 
