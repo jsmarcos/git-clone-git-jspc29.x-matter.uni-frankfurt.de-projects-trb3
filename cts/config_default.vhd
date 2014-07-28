@@ -9,7 +9,7 @@ package config is
 ------------------------------------------------------------------------------
 
    constant INCLUDE_CTS : integer range c_NO to c_YES := c_YES;
-   constant INCLUDE_CBMNET : integer range c_NO to c_YES := c_NO;
+   constant INCLUDE_CBMNET : integer range c_NO to c_YES := c_YES;
 
 --include TDC for all four trigger input lines
     constant INCLUDE_TDC : integer range c_NO to c_YES := c_NO;
@@ -34,7 +34,7 @@ package config is
     
 --Which external trigger module (ETM) to use?
     type ETM_CHOICE_type is (ETM_CHOICE_MBS_VULOM, ETM_CHOICE_MAINZ_A2, ETM_CHOICE_CBMNET);
-    constant ETM_CHOICE : ETM_CHOICE_type := ETM_CHOICE_MBS_VULOM;
+    constant ETM_CHOICE : ETM_CHOICE_type := ETM_CHOICE_CBMNET;
     
 ------------------------------------------------------------------------------
 --End of configuration
@@ -61,10 +61,12 @@ package config is
 ------------------------------------------------------------------------------
 --Hub configuration 
 ------------------------------------------------------------------------------
-    type hub_mii_t is array(0 to 1) of integer;    
+    
+    
+    type hub_mii_t is array(0 to 2) of integer;    
     type hub_ct    is array(0 to 16) of integer;
-    type hub_cfg_t is array(0 to 1) of hub_ct;    
-    type hw_info_t is array(0 to 1) of std_logic_vector(31 downto 0);
+    type hub_cfg_t is array(0 to 2) of hub_ct;    
+    type hw_info_t is array(0 to 2) of std_logic_vector(31 downto 0);
     
   --this is used to select the proper configuration in the main code    
     constant CFG_MODE : integer;
@@ -72,15 +74,18 @@ package config is
     
   --first entry is normal CTS with one optical output, second one is with four optical outputs
   --slow-control is accepted on SFP1 only, triggers are sent to all used SFP
-    constant INTERNAL_NUM_ARR     : hub_mii_t := (5,5);
-    constant INTERFACE_NUM_ARR    : hub_mii_t := (5,8);
+    constant INTERNAL_NUM_ARR     : hub_mii_t := (5,5,5);
+    constant INTERFACE_NUM_ARR    : hub_mii_t := (5,8,5);
     constant IS_UPLINK_ARR        : hub_cfg_t := ((0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0),
-                                                  (0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0));
+                                                  (0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0),
+                                                  (0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0));
     constant IS_DOWNLINK_ARR      : hub_cfg_t := ((1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0),
-                                                  (1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0));
+                                                  (1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0),
+                                                  (1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0));
     constant IS_UPLINK_ONLY_ARR   : hub_cfg_t := ((0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0),
-                                                  (0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0)); 
-    constant HARDWARE_INFO_ARR    : hw_info_t := (x"9000CEE0",x"9000CEE2");
+                                                  (0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0),
+                                                  (0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0)); 
+    constant HARDWARE_INFO_ARR    : hw_info_t := (x"9000CEE0", x"9000CEE2", x"9000CEE0"); -- TODO: Adopt for CBMNet
                           
     constant INTERNAL_NUM         : integer;
     constant INTERFACE_NUM        : integer;
@@ -119,11 +124,11 @@ end;
 
 package body config is
 --compute correct configuration mode
-  constant CFG_MODE : integer := USE_4_SFP;
+  constant CFG_MODE : integer := 2*INCLUDE_CBMNET+USE_4_SFP;
   constant cts_rdo_additional_ports : integer := 1 + INCLUDE_TDC;
 
   constant HARDWARE_INFO        : std_logic_vector (31 downto 0) := HARDWARE_INFO_ARR(INCLUDE_TDC);
-  constant INTERNAL_NUM         : integer := INTERNAL_NUM_ARR(CFG_MODE);
+  constant INTERNAL_NUM         : integer := INTERNAL_NUM_ARR(CFG_MODE);   -- TODO: what's that ?
   constant INTERFACE_NUM        : integer := INTERFACE_NUM_ARR(CFG_MODE);
   constant IS_UPLINK            : hub_ct  := IS_UPLINK_ARR(CFG_MODE);
   constant IS_DOWNLINK          : hub_ct  := IS_DOWNLINK_ARR(CFG_MODE);
