@@ -320,7 +320,10 @@ package cbmnet_interface_pkg is
          CBMNET_STOP_IN   : in std_logic;
          CBMNET_START_OUT : out std_logic;
          CBMNET_END_OUT   : out std_logic;
-         CBMNET_DATA_OUT  : out std_logic_vector(15 downto 0)
+         CBMNET_DATA_OUT  : out std_logic_vector(15 downto 0);
+      
+         -- debug
+         DEBUG_OUT : out std_logic_vector(31 downto 0)
       );
    end component;
    
@@ -418,10 +421,10 @@ package cbmnet_interface_pkg is
    -- TrbNet
       CLK_IN   : in std_logic;
       RESET_IN : in std_logic;
+      ENABLED_IN : in std_logic;
 
       -- connect to hub
       HUB_CTS_START_READOUT_IN       : in  std_logic;
-      HUB_CTS_READOUT_FINISHED_OUT   : out std_logic;  --no more data, end transfer, send TRM
       HUB_FEE_DATA_IN                : in  std_logic_vector (15 downto 0);
       HUB_FEE_DATAREADY_IN           : in  std_logic;
       GBE_FEE_READ_IN                : in std_logic;

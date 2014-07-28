@@ -14,10 +14,10 @@ entity CBMNET_READOUT_TRBNET_DECODER is
    -- TrbNet
       CLK_IN   : in std_logic;
       RESET_IN : in std_logic;
+      ENABLED_IN : in std_logic;
 
       -- connect to hub
       HUB_CTS_START_READOUT_IN       : in  std_logic;
-      HUB_CTS_READOUT_FINISHED_OUT   : out std_logic;  --no more data, end transfer, send TRM
       HUB_FEE_DATA_IN                : in  std_logic_vector (15 downto 0);
       HUB_FEE_DATAREADY_IN           : in  std_logic;
       GBE_FEE_READ_IN                : in std_logic;
@@ -95,7 +95,7 @@ begin
          case(fsm_i) is
             when WAIT_FOR_IDLE =>
                DEBUG_OUT(3 downto 0) <= x"0";
-               if HUB_CTS_START_READOUT_IN = '0' then 
+               if HUB_CTS_START_READOUT_IN = '0' and ENABLED_IN = '1' then 
                   fsm_i <= IDLE;
                end if;
          
