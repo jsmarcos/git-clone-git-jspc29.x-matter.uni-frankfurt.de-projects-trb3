@@ -6,6 +6,7 @@ library work;
 use work.trb_net_std.all;
 use work.trb_net_components.all;
 use work.trb3_components.all;
+use work.tdc_components.all;
 use work.config.all;
 use work.tdc_version.all;
 use work.version.all;
@@ -140,12 +141,14 @@ architecture trb3_periph_32PinAddOn_arch of trb3_periph_32PinAddOn is
   signal trg_spike_detected_i   : std_logic;
 
   --Data channel
-  signal fee_trg_release_i    : std_logic;
-  signal fee_trg_statusbits_i : std_logic_vector(31 downto 0);
-  signal fee_data_i           : std_logic_vector(31 downto 0);
-  signal fee_data_write_i     : std_logic;
-  signal fee_data_finished_i  : std_logic;
-  signal fee_almost_full_i    : std_logic;
+  signal fee_trg_release_i    : std_logic_vector(NUM_TDC_MODULES-1 downto 0);
+  signal fee_trg_statusbits_i : std_logic_vector_array_32(0 to NUM_TDC_MODULES-1);
+  signal fee_data_i           : std_logic_vector_array_32(0 to NUM_TDC_MODULES-1);
+  signal fee_data_write_i     : std_logic_vector(NUM_TDC_MODULES-1 downto 0);
+  signal fee_data_finished_i  : std_logic_vector(NUM_TDC_MODULES-1 downto 0);
+  signal fee_almost_full_i    : std_logic_vector(NUM_TDC_MODULES-1 downto 0);
+  signal fee_trg_statusbits   : std_logic_vector(NUM_TDC_MODULES*32-1 downto 0);
+  signal fee_data             : std_logic_vector(NUM_TDC_MODULES*32-1 downto 0);
 
   --Slow Control channel
   signal common_stat_reg        : std_logic_vector(std_COMSTATREG*32-1 downto 0);
@@ -388,15 +391,16 @@ begin
       BROADCAST_SPECIAL_ADDR    => BROADCAST_SPECIAL_ADDR,
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
       REGIO_HARDWARE_VERSION    => HARDWARE_INFO,
+      REGIO_INCLUDED_FEATURES   => INCLUDED_FEATURES,
       REGIO_INIT_ADDRESS        => INIT_ADDRESS,
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
       CLOCK_FREQUENCY           => CLOCK_FREQUENCY,
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
-      DATA_INTERFACE_NUMBER     => 1,
-      DATA_BUFFER_DEPTH         => 13,         --13
+      DATA_INTERFACE_NUMBER     => NUM_TDC_MODULES,  --1,
+      DATA_BUFFER_DEPTH         => 12,               --13,
       DATA_BUFFER_WIDTH         => 32,
-      DATA_BUFFER_FULL_THRESH   => 2**13-800,  --2**13-(maximal 2**12) 
+      DATA_BUFFER_FULL_THRESH   => 2**12-400,        --2**13-800,
       TRG_RELEASE_AFTER_DATA    => c_YES,
       HEADER_BUFFER_DEPTH       => 9,
       HEADER_BUFFER_FULL_THRESH => 2**9-16
@@ -438,12 +442,13 @@ begin
       TRG_SPIKE_DETECTED_OUT   => trg_spike_detected_i,
 
       --Response from FEE
-      FEE_TRG_RELEASE_IN(0)       => fee_trg_release_i,
-      FEE_TRG_STATUSBITS_IN       => fee_trg_statusbits_i,
-      FEE_DATA_IN                 => fee_data_i,
-      FEE_DATA_WRITE_IN(0)        => fee_data_write_i,
-      FEE_DATA_FINISHED_IN(0)     => fee_data_finished_i,
-      FEE_DATA_ALMOST_FULL_OUT(0) => fee_almost_full_i,
+      FEE_TRG_RELEASE_IN(NUM_TDC_MODULES-1 downto 0)       => fee_trg_release_i,
+      FEE_TRG_STATUSBITS_IN                                => fee_trg_statusbits,
+      FEE_DATA_IN                                          => fee_data,
+      FEE_DATA_WRITE_IN(NUM_TDC_MODULES-1 downto 0)        => fee_data_write_i,
+      FEE_DATA_FINISHED_IN(NUM_TDC_MODULES-1 downto 0)     => fee_data_finished_i,
+      FEE_DATA_ALMOST_FULL_OUT(NUM_TDC_MODULES-1 downto 0) => fee_almost_full_i,
+
 
       -- Slow Control Data Port
       REGIO_COMMON_STAT_REG_IN           => common_stat_reg,  --0x00
@@ -492,6 +497,11 @@ begin
   common_stat_reg       <= (others => '0');
   stat_reg              <= (others => '0');
 
+  Allign_Bits : for i in 0 to NUM_TDC_MODULES-1 generate
+    fee_trg_statusbits((i+1)*32-1 downto i*32) <= fee_trg_statusbits_i(i)(31 downto 0);
+    fee_data((i+1)*32-1 downto i*32)           <= fee_data_i(i)(31 downto 0);
+  end generate Allign_Bits;
+
 ---------------------------------------------------------------------------
 -- AddOn
 ---------------------------------------------------------------------------
@@ -502,11 +512,11 @@ begin
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
       PORT_NUMBER    => 10,
-      PORT_ADDRESSES => (0  => x"d000", 1  => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100",
-                         5  => x"c800", 6  => x"cf00", 7 => x"cf80", 8 => x"d500", 9 => x"c200", --c300 c400
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100",
+                         5 => x"c800", 6 => x"cf00", 7 => x"cf80", 8 => x"d500", 9 => x"c200",  --c300 c400
                          others => x"0000"),
-      PORT_ADDR_MASK => (0  => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5,
-                         5  => 3, 6 => 6, 7 => 7, 8 => 4, 9 => 7,
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5,
+                         5 => 3, 6 => 6, 7 => 7, 8 => 4, 9 => 7,
                          others => 0)
       )
     port map(
@@ -788,13 +798,13 @@ begin
   gen_TRIGGER_LOGIC : if INCLUDE_TRIGGER_LOGIC = 1 generate
     THE_TRIG_LOGIC : input_to_trigger_logic
       generic map(
-        INPUTS  => 32,
+        INPUTS  => PHYSICAL_INPUTS,
         OUTPUTS => 4
         )
       port map(
         CLK => clk_100_i,
 
-        INPUT  => INP(32 downto 1),
+        INPUT  => INP(PHYSICAL_INPUTS-1 downto 0),
         OUTPUT => trig_out,
 
         DATA_IN  => trig_din,
@@ -888,7 +898,8 @@ begin
 
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => NUM_TDC_CHANNELS,   -- Number of TDC channels
+      MODULE_NUMBER  => NUM_TDC_MODULES,    -- Number of TDC modules
+      CHANNEL_NUMBER => NUM_TDC_CHANNELS,   -- Number of channels per module
       STATUS_REG_NR  => 21,             -- Number of status regs
       CONTROL_REG_NR => 6,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
       TDC_VERSION    => TDC_VERSION,    -- TDC version number
@@ -899,7 +910,7 @@ begin
       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
       REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
-      HIT_IN                => hit_in_i(NUM_TDC_CHANNELS-1 downto 1),  -- Channel start signals
+      HIT_IN                => hit_in_i(NUM_TDC_MODULES*NUM_TDC_CHANNELS downto 1),  -- Channel start signals
       HIT_CALIBRATION       => osc_int,     -- Hits for calibrating the TDC
       TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
       TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
@@ -972,7 +983,7 @@ begin
       LOGIC_ANALYSER_OUT    => logic_analyser_i,
       CONTROL_REG_IN        => tdc_ctrl_reg);
 
-  -- For single edge measurements
+-- For single edge measurements
   gen_single : if USE_DOUBLE_EDGE = 0 generate
     hit_in_i <= INP;
   end generate;
