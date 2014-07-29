@@ -8,10 +8,6 @@ use work.trb3_components.all;
 
 
 entity cbmnet_dlm_etm is
-  generic (
-    DLM_NUM : integer range 1 to 15 := 10
-  );
-
   port(
     CLK        : in std_logic;  -- e.g. 100 MHz
     RESET_IN   : in std_logic;  -- could be used after busy_release to make sure entity is in correct state
@@ -34,7 +30,7 @@ entity cbmnet_dlm_etm is
     CONTROL_REG_IN : in  std_logic_vector(31 downto 0);
     STATUS_REG_OUT : out std_logic_vector(31 downto 0) := (others => '0');
     HEADER_REG_OUT : out std_logic_vector(1 downto 0);
-    DEBUG          : out std_logic_vector(31 downto 0)    
+    DEBUG_OUT      : out std_logic_vector(31 downto 0)    
     );
 end entity;
 
@@ -44,6 +40,7 @@ architecture cbmnet_dlm_etm_arch of cbmnet_dlm_etm is
    signal cbm_dlm_counter_i             : unsigned(31 downto 0);
    signal cbm_filtered_dlm_counter_i    : unsigned(31 downto 0);
    signal cbm_ignore_resets_threshold_i : unsigned(31 downto 0);
+   signal cbm_listing_dlm_num_i         : std_logic_vector(3 downto 0);
    
    signal trb_fine_grain_counter_i      : unsigned(31 downto 0);
    signal trb_dlm_counter_i             : unsigned(31 downto 0);
@@ -58,6 +55,7 @@ architecture cbmnet_dlm_etm_arch of cbmnet_dlm_etm is
    signal rdo_index_i : integer range 0 to 3;
    
    signal rdo_disable_i : std_logic;
+   
 begin
 -- TrbNet sync
    trb_fine_grain_counter_i <= cbm_fine_grain_counter_i when rising_edge(CLK);
@@ -65,12 +63,14 @@ begin
    trb_dlm_counter_i <= cbm_dlm_counter_i when rising_edge(CLK);
    
    trb_ignore_resets_threshold_i <= UNSIGNED(x"00" & CONTROL_REG_IN(23 downto 0)) when rising_edge(CLK);
-   STATUS_REG_OUT <= x"00" & trb_fine_grain_counter_i(31 downto 24) & trb_filtered_dlm_counter_i(15 downto 0) when rising_edge(CLK);
+   STATUS_REG_OUT <= x"00" & STD_LOGIC_VECTOR(trb_fine_grain_counter_i(31 downto 24)) & STD_LOGIC_VECTOR(trb_filtered_dlm_counter_i(15 downto 0)) when rising_edge(CLK);
 
+   TRG_SYNC_OUT <= '1' when trb_fine_grain_counter_i < 4 else '0';
+   
 -- TrbNet readout
    rdo_disable_i <= CONTROL_REG_IN(0);
    HEADER_REG_OUT <= "10"; -- send four data words (3 not supported w/o header)
-   DATA_OUT <= rdo_buffer_i(rdo_index_i);
+--   DATA_OUT <= rdo_buffer_i(rdo_index_i);
    
    PROC_RDO: process is
    begin
@@ -119,7 +119,7 @@ begin
    begin
       wait until rising_edge(CBMNET_CLK_IN);
       
-      if CBMNET_DLM_REC_IN = STD_LOGIC_VECTOR(TO_UNSIGNED(DLM_NUM, 4)) and CBMNET_DLM_REC_VALID_IN = '1' then
+      if CBMNET_DLM_REC_IN = cbm_listing_dlm_num_i and CBMNET_DLM_REC_VALID_IN = '1' then
          if cbm_fine_grain_counter_i >= cbm_ignore_resets_threshold_i then
             cbm_fine_grain_counter_i <= (others => '0');
             cbm_filtered_dlm_counter_i <= cbm_filtered_dlm_counter_i + 1;
@@ -128,4 +128,6 @@ begin
          cbm_dlm_counter_i <= cbm_dlm_counter_i + 1;
       end if;
    end process;
+   
+   cbm_listing_dlm_num_i <= CONTROL_REG_IN(7 downto 4) when rising_edge(CBMNET_CLK_IN);
 end architecture;

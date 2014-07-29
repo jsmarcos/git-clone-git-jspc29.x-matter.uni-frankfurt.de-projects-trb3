@@ -49,13 +49,14 @@ unless(-e $workdir) {
 
 chdir($workdir);
 system ("$back/../../base/linkdesignfiles.sh '$back'");
+symlink "$back/../../base/cores/cbmnet_sfp1.txt", 'cbmnet_sfp1.txt';
 
 chdir($script_dir);
 
 system ("ln -sfT $back/../tdc_release/Adder_304.ngo $workdir/Adder_304.ngo");
 
 system("cp ../base/trb3_central_cts.lpf $workdir/$TOPNAME.lpf");
-system("cat tdc_release/tdc_constraints_4.lpf >> $workdir/$TOPNAME.lpf");
+# system("cat tdc_release/tdc_constraints_4.lpf >> $workdir/$TOPNAME.lpf");
 system("cat ".$TOPNAME."_constraints.lpf >> $workdir/$TOPNAME.lpf");
 system("sed -i 's#THE_TDC/#gen_TDC_THE_TDC/#g' $workdir/$TOPNAME.lpf");
 

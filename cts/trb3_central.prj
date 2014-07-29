@@ -17,12 +17,20 @@ set_option -symbolic_fsm_compiler 1
 set_option -top_module "trb3_central"
 set_option -resource_sharing true
 
+
+
+# Lattice XP
+set_option -maxfan 100
+set_option -fix_gated_and_generated_clocks 1
+#set_option -RWCheckOnRam 1
+#set_option -update_models_cp 0
+set_option -syn_edif_array_rename 1
+
+
 # map options
 set_option -frequency 200
 set_option -fanout_limit 100
 set_option -disable_io_insertion 0
-set_option -retiming 0
-set_option -pipe 0
 set_option -force_gsr false
 set_option -fixgatedclocks 3
 set_option -fixgeneratedclocks 3
@@ -38,7 +46,7 @@ set_option -write_verilog 0
 set_option -write_vhdl 1
 
 # automatic place and route (vendor) options
-set_option -write_apr_constraint 0
+set_option -write_apr_constraint 1
 
 # set result format/file last
 project -result_format "edif"
@@ -51,6 +59,8 @@ set_option -project_relative_includes 1
 impl -active "workdir"
 
 ####################
+
+add_file -fpga_constraint "./trb3_central_syn.fdc"
 
 
 
@@ -359,17 +369,19 @@ if {$INCLUDE_CBMNET == 1} {
    add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_tx_slave_top.v"
    add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_tx_top.v"
 
-   add_file -vhdl -lib work "../base/cores/cbmnet_sfp1.vhd"
-   add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/med_sync_define.vhd"
-   add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_ecp3_rx_reset_fsm.vhd"
-   add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_ecp3_tx_reset_fsm.vhd"
-   add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_rx_gear.vhd"
-   add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_tx_gear.vhd"
-   add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_ecp3.vhd"
-   
-   add_file -vhdl -lib work "../cbmnet/code/cbmnet_readout_fifo.vhd"
-   add_file -vhdl -lib work "../cbmnet/code/cbmnet_readout_tx_fsm.vhd"
-   add_file -vhdl -lib work "../cbmnet/code/cbmnet_readout.vhd"
+add_file -vhdl -lib work "../base/cores/cbmnet_sfp1.vhd"
+add_file -vhdl -lib work "../cbmnet/cores/lattice_ecp3_fifo_16x16_dualport.vhd"
+add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/med_sync_define.vhd"
+add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_ecp3_rx_reset_fsm.vhd"
+add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_ecp3_tx_reset_fsm.vhd"
+add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_rx_gear.vhd"
+add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_tx_gear.vhd"
+add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_ecp3.vhd"
+add_file -vhdl -lib work "../cbmnet/code/cbmnet_readout_trbnet_decoder.vhd"
+add_file -vhdl -lib work "../cbmnet/code/cbmnet_readout_event_packer.vhd"
+add_file -vhdl -lib work "../cbmnet/code/cbmnet_readout_fifo.vhd"
+add_file -vhdl -lib work "../cbmnet/code/cbmnet_readout_tx_fsm.vhd"
+add_file -vhdl -lib work "../cbmnet/code/cbmnet_readout.vhd"
 
 
 }

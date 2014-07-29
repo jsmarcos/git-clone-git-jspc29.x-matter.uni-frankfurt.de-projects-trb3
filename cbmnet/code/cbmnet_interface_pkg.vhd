@@ -320,7 +320,10 @@ package cbmnet_interface_pkg is
          CBMNET_STOP_IN   : in std_logic;
          CBMNET_START_OUT : out std_logic;
          CBMNET_END_OUT   : out std_logic;
-         CBMNET_DATA_OUT  : out std_logic_vector(15 downto 0)
+         CBMNET_DATA_OUT  : out std_logic_vector(15 downto 0);
+      
+         -- debug
+         DEBUG_OUT : out std_logic_vector(31 downto 0)
       );
    end component;
    
@@ -418,10 +421,10 @@ package cbmnet_interface_pkg is
    -- TrbNet
       CLK_IN   : in std_logic;
       RESET_IN : in std_logic;
+      ENABLED_IN : in std_logic;
 
       -- connect to hub
       HUB_CTS_START_READOUT_IN       : in  std_logic;
-      HUB_CTS_READOUT_FINISHED_OUT   : out std_logic;  --no more data, end transfer, send TRM
       HUB_FEE_DATA_IN                : in  std_logic_vector (15 downto 0);
       HUB_FEE_DATAREADY_IN           : in  std_logic;
       GBE_FEE_READ_IN                : in std_logic;
@@ -437,7 +440,7 @@ package cbmnet_interface_pkg is
       DEC_ACTIVE_OUT                 : out std_logic;
       DEC_ERROR_OUT                  : out std_logic;
       
-      DEBUG_OUT                      : out std_logic_vector(31 downto 0);
+      DEBUG_OUT                      : out std_logic_vector(31 downto 0)
    );
    end component;
    
@@ -452,7 +455,7 @@ package cbmnet_interface_pkg is
       HUB_CTS_CODE_IN                : in  std_logic_vector (7  downto 0);
       HUB_CTS_INFORMATION_IN         : in  std_logic_vector (7  downto 0);
       HUB_CTS_READOUT_TYPE_IN        : in  std_logic_vector (3  downto 0);
-      HUB_FEE_STATUS_BITS_IN         : in  std_logic_vector (31 downto 0);
+      GBE_CTS_STATUS_BITS_IN         : in  std_logic_vector (31 downto 0);
       
       
       -- connect to decoder
@@ -473,7 +476,6 @@ package cbmnet_interface_pkg is
       WDATA_OUT        : out std_logic_vector(17 downto 0);
       WENQUEUE_OUT     : out std_logic;
       WPACKET_COMPLETE_OUT: out std_logic;
-      WALMOST_FULL_IN  : in  std_logic;
       WFULL_IN         : in  std_logic;
       
       DEBUG_OUT                      : out std_logic_vector(31 downto 0)

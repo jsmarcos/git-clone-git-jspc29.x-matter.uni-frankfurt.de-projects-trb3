@@ -36,7 +36,7 @@ architecture CBMNET_PHY_RX_GEAR_ARCH of CBMNET_PHY_RX_GEAR is
    attribute HGROUP of CBMNET_PHY_RX_GEAR_ARCH : architecture  is "cbmnet_phy_rx_gear";
 
 
-   type FSM_STATES_T is (FSM_START, FSM_WAIT_FOR_LOCK, FSM_RESET, FSM_LOCKED);
+   type FSM_STATES_T is (FSM_START, FSM_WAIT_FOR_LOCK, FSM_LOCK_WAIT1, FSM_LOCK_WAIT2, FSM_LOCK_WAIT3, FSM_RESET, FSM_LOCKED);
    signal fsm_i : FSM_STATES_T;
    signal fsm_state_i : std_logic_vector(3 downto 0);
    
@@ -94,13 +94,25 @@ begin
                elsif indi_misalignment_i = '1' then
                   -- we're off by one word. just wait a single frame
                   delay_clock_i <= '1';
-   --               fsm_i <= FSM_LOCKED;
+                  fsm_i <= FSM_LOCK_WAIT1;   -- ensure we only have a single delay clock cycle
                
                elsif timeout_i = '1' then
                   fsm_i <= FSM_RESET;
                   
                end if;
+               
+            when FSM_LOCK_WAIT1 =>
+               fsm_state_i <= x"7";
+               fsm_i <= FSM_LOCK_WAIT2;
 
+            when FSM_LOCK_WAIT2 =>
+               fsm_state_i <= x"7";
+               fsm_i <= FSM_LOCK_WAIT3;
+
+            when FSM_LOCK_WAIT3 =>
+               fsm_state_i <= x"7";
+               fsm_i <= FSM_WAIT_FOR_LOCK;
+               
             when FSM_LOCKED =>
                fsm_state_i <= x"2";
                RESET_OUT <= '0';

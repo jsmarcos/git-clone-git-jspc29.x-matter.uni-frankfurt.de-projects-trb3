@@ -35,7 +35,6 @@ entity cbmnet_phy_ecp3 is
       CLK_RX_FULL_OUT    : out std_logic := '0';  -- recovered 250 MHz
       CLK_RX_RESET_OUT   : out std_logic := '1';
 
-      LINK_ACTIVE_OUT    : out std_logic; -- link is active and can send and receive data
       SERDES_ready       : out std_logic;
 
       --SFP Connection
@@ -612,7 +611,9 @@ begin
          
       end if;
    end process;
-
+   
+   LED_RX_OUT <= '0' when rx_data_i /= "10" & x"fcc3" and  rx_data_i /= "00" & x"0000" else '1';
+   LED_TX_OUT <= '0' when tx_data_i /= "10" & x"fcc3" and  tx_data_i /= "00" & x"0000" else '1';
    
    GEN_DEBUG: if INCL_DEBUG_AIDS = c_YES generate
       proc_stat: process is
@@ -710,16 +711,7 @@ begin
 
 	   DEBUG_OUT(403 downto 332) <= tx_data_sp_i3(17 downto 0) & tx_data_sp_i2(17 downto 0) & tx_data_sp_i1(17 downto 0) & tx_data_sp_i0(17 downto 0);
       DEBUG_OUT(421 downto 404) <= PHY_TXDATA_K_IN(1 downto 0) & PHY_TXDATA_IN(15 downto 0);
-	   
-	   
-	   --  & tx_data_sp_i7(17 downto 0) & tx_data_sp_i6(17 downto 0) & tx_data_sp_i5(17 downto 0) & tx_data_sp_i4(17 downto 0) &         tx_data_sp_i8(17 downto 0) & tx_data_sp_i9(17 downto 0);
-	   
-	   --DEBUG_OUT(341 downto 334) <= stat_sync_dlm_inv_counter_i(7 downto 0) when rising_edge(rclk_125_i);
-      --DEBUG_OUT(349 downto 342) <= stat_sync_dlm_counter_i(7 downto 0) when rising_edge(rclk_125_i); 
-	   
 
-	   
-	   --DEBUG_OUT(255 downto 170) <= (others => '0');
       
 -- DEBUG_OUT_END
    
@@ -755,30 +747,30 @@ begin
       end process;
       
       
-      process is 
-         variable detect_first_v : std_logic := '0';
-      begin
-         wait until rising_edge(rclk_250_i);
-         
-         if rx_data_from_serdes_i = "1" & K277 and detect_first_v = '1' then
-            detect_dlm_250_i <= not detect_dlm_250_i;
-         end if;
-         
-         detect_first_v := '0';
-         if rx_data_from_serdes_i = "0" & EBTB_D_ENCODE(14, 6) then
-            detect_first_v := '1';
-         end if;
-      end process;
+--       process is 
+--          variable detect_first_v : std_logic := '0';
+--       begin
+--          wait until rising_edge(rclk_250_i);
+--          
+--          if rx_data_from_serdes_i = "1" & K277 and detect_first_v = '1' then
+--             detect_dlm_250_i <= not detect_dlm_250_i;
+--          end if;
+--          
+--          detect_first_v := '0';
+--          if rx_data_from_serdes_i = "0" & EBTB_D_ENCODE(14, 6) then
+--             detect_first_v := '1';
+--          end if;
+--       end process;
       
       process is 
       begin
          wait until rising_edge(rclk_125_i);
          
-         if detect_dlm_250_i /= detect_dlm_125_i then
-            dlm_counter_i <= dlm_counter_i + 1;
-         end if;
-         
-         detect_dlm_125_i <= detect_dlm_250_i;
+--          if detect_dlm_250_i /= detect_dlm_125_i then
+--             dlm_counter_i <= dlm_counter_i + 1;
+--          end if;
+--          
+--          detect_dlm_125_i <= detect_dlm_250_i;
          
          
          STAT_OP(0)<= '0';
@@ -788,7 +780,7 @@ begin
          
       end process;
       
-      STAT_OP(2 downto 1) <= detect_dlm_125_i & detect_dlm_250_i;
+--      STAT_OP(2 downto 1) <= detect_dlm_125_i;
          
       
       --PROC_SEE_FAST_DLM: process is
@@ -850,7 +842,5 @@ begin
        --see_dlm_lb_i(15)<= '1' when rx_data_from_serdes_i = '0' & EBTB_D_ENCODE( 5, 3) else '0';
 
       --see_dlm_lb_buf_i <= see_dlm_lb_i when rising_edge(rclk_250_i);
-      
-      
    end generate;
 end architecture;

@@ -516,7 +516,25 @@ architecture trb3_central_arch of trb3_central is
   signal cbm_rdo_regio_dataready_i    : std_logic;
   signal cbm_rdo_regio_write_ack_i    : std_logic;
   signal cbm_rdo_regio_unknown_addr_i : std_logic;
+  
+  signal cbm_phy_regio_addr_i         : std_logic_vector(15 downto 0);
+  signal cbm_phy_regio_data_status_i  : std_logic_vector(31 downto 0);
+  signal cbm_phy_regio_read_enable_i  : std_logic;
+  signal cbm_phy_regio_write_enable_i : std_logic;
+  signal cbm_phy_regio_data_ctrl_i    : std_logic_vector(31 downto 0);
+  signal cbm_phy_regio_dataready_i    : std_logic;
+  signal cbm_phy_regio_write_ack_i    : std_logic;
+  signal cbm_phy_regio_unknown_addr_i : std_logic;  
+  
+  signal reset_fifo_i : std_logic_vector(3 downto 0) := (others => '0');
+  
+  signal cbm_phy_debug : std_logic_vector(511 downto 0);
+  
 begin
+  assert not(USE_4_SFP = c_YES and INCLUDE_CBMNET = c_YES)  report "CBMNET uses SFPs 1-4 and hence does not support USE_4_SFP" severity failure;
+  assert not(INCLUDE_CBMNET = c_YES and INCLUDE_CTS = c_NO) report "CBMNET is supported only with CTS included" severity failure;
+
+
 -- MBS Module
   gen_mbs_vulom_as_etm : if ETM_CHOICE = ETM_CHOICE_MBS_VULOM and INCLUDE_CTS = c_YES generate
    THE_MBS: entity work.mbs_vulom_recv
@@ -570,10 +588,10 @@ begin
   end generate;
 
 -- CBMNet ETM
-   gen_cbmnet_etm: if (ETM_CHOICE_CBMNET = ETM_CHOICE_CBMNET and INCLUDE_CTS = c_YES) generate
-      assert(INCLUDE_CBMNET = c_YES) report "CBMNET DLM ETM requires the CBMNET stack (INCLUDE_CBMNET = c_YES)" severity failure;
+   gen_cbmnet_etm: if (ETM_CHOICE = ETM_CHOICE_CBMNET and INCLUDE_CTS = c_YES) generate
+      --assert(INCLUDE_CBMNET = c_YES or not( ETM_CHOICE = ETM_CHOICE_CBMNET and INCLUDE_CTS = c_YES)) report "CBMNET DLM ETM requires the CBMNET stack (INCLUDE_CBMNET = c_YES)" severity failure;
       THE_CBMNET_ETM: entity work.cbmnet_dlm_etm
-      generic map (DLM_NUM => 10)
+--      generic map (DLM_NUM => 10)
       port map (
          CLK        => clk_100_i,
          RESET_IN   => reset_i,
@@ -595,9 +613,9 @@ begin
             --Registers / Debug    
          CONTROL_REG_IN => cts_ext_control,
          STATUS_REG_OUT => cts_ext_status,
-         HEADER_REG_OUT => cts_ext_header,
+         HEADER_REG_OUT => cts_ext_header
          
-         DEBUG => cts_ext_debug
+--         DEBUG => cts_ext_debug
       );
    end generate;
   
@@ -712,7 +730,7 @@ begin
                               & FPGA1_COMM(10 downto 6);
 
       JOUT1    <= cts_output_multiplexers_i(3 downto 0);
-      JOUT2    <= cts_output_multiplexers_i(7 downto 4);
+      --JOUT2    <= cts_output_multiplexers_i(7 downto 4);
       JOUTLVDS <= cts_output_multiplexers_i(7 downto 0);
       --LED_BANK <= cts_output_multiplexers_i(7 downto 0);
    end generate;
@@ -773,8 +791,19 @@ begin
          -- Status and control port
          STAT_OP            => open,
          CTRL_OP            => open,
-         DEBUG_OUT          => open
+         DEBUG_OUT          => cbm_phy_debug
       );
+      
+      proc_debug_regio: process is 
+         variable addr : integer range 0 to 15;
+      begin
+         wait until rising_edge(clk_100_i);
+         addr := to_integer(unsigned(cbm_phy_regio_addr_i(3 downto 0)));
+         cbm_phy_regio_data_status_i <= cbm_phy_debug(addr*32+31 downto addr*32);
+         cbm_phy_regio_dataready_i <= cbm_phy_regio_read_enable_i;
+         cbm_phy_regio_unknown_addr_i <= '0';
+         cbm_phy_regio_write_ack_i <= '0';
+      end process;
       
       THE_CBM_ENDPOINT: lp_top 
          generic map (
@@ -808,8 +837,8 @@ begin
             dlm2send_va => cbm_dlm2send_va_i,
             dlm2send => cbm_dlm2send_i,
             
-            dlm_rec_type => cbm_dlm_rec_type_i,
-            dlm_rec_va => cbm_dlm_rec_va_i,
+            dlm_rec_type => cbm_dlm_ref_rec_type_i,
+            dlm_rec_va => cbm_dlm_ref_rec_va_i,
 
             data_rec => cbm_data_rec_i,
             data_rec_start => cbm_data_rec_start_i,
@@ -870,7 +899,6 @@ begin
          cbm_crc_error_cntr_clr_i     <= cbm_reset_i;
          cbm_retrans_cntr_clr_i       <= cbm_reset_i;
          cbm_retrans_error_cntr_clr_i <= cbm_reset_i;
-
          
          THE_DLM_REFLECT: dlm_reflect
          port map (
@@ -889,6 +917,9 @@ begin
             dlm2send_va    => cbm_dlm2send_va_i,  -- out std_logic;
             dlm2send       => cbm_dlm2send_i      -- out std_logic_vector(3 downto 0)
          );
+         
+         -- TODO: just borrowed from CTS ... !
+         JOUT2 <= "0" & clk_100_i & cbm_dlm2send_va_i & cbm_clk_i;
          
          THE_CBMNET_READOUT: cbmnet_readout 
          port map(
@@ -944,6 +975,20 @@ begin
             CBMNET_DATA2SEND_END_OUT   => cbm_data2send_end_i(0),   -- out std_logic;
             CBMNET_DATA2SEND_DATA_OUT  => cbm_data2send_i        -- out std_logic_vector(15 downto 0)         
          );
+
+         trb_reset_in <= reset_via_gbe; -- or MED_STAT_OP(4*16+13); --_delayed(2)
+         LED_TRIGGER_GREEN              <= not cbm_link_active_i;
+         LED_TRIGGER_RED                <= not cbm_dlm_rec_va_i;
+         
+         --Internal Connection
+         med_read_in(4) <= '0';
+         med_data_in(79 downto 64) <= (others => '0');
+         med_packet_num_in(14 downto 12) <= (others => '0');
+         med_dataready_in(4) <= '0';
+         med_stat_op(79 downto 64) <= (others => '0');
+         med_stat_debug(4*64+63 downto 4*64) <= (others => '0');
+
+         SFP_TXDIS(7 downto 2) <= (others => '1');         
    end generate;
    
    GEN_NO_CBMNET: if INCLUDE_CBMNET = c_NO generate
@@ -960,6 +1005,10 @@ begin
       hub_cts_status_bits      <= gbe_cts_status_bits;
       hub_cts_readout_finished <= gbe_cts_readout_finished;
       hub_fee_read             <= gbe_fee_read;
+      
+      trb_reset_in <= reset_via_gbe or MED_STAT_OP(4*16+13); --_delayed(2)
+      LED_TRIGGER_GREEN              <= not med_stat_op(4*16+9);
+      LED_TRIGGER_RED                <= not (med_stat_op(4*16+11) or med_stat_op(4*16+10));
    end generate;
    
    
@@ -986,8 +1035,10 @@ THE_RESET_HANDLER : trb_net_reset_handler
     DEBUG_OUT       => open
   );
 
-trb_reset_in <= reset_via_gbe or MED_STAT_OP(4*16+13); --_delayed(2)
-reset_i <= reset_i_temp; -- or trb_reset_in;
+
+reset_fifo_i <= reset_i_temp & reset_fifo_i(reset_fifo_i'high downto 1) when rising_edge(clk_100_i);
+reset_i <= reset_fifo_i(0) when rising_edge(clk_100_i);
+-- reset_i <= reset_i_temp; -- or trb_reset_in;
 
 process begin
   wait until rising_edge(clk_100_i);
@@ -1309,7 +1360,6 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
     STAT_DEBUG              => open,
     CTRL_DEBUG              => (others => '0')
   );
-
   
   ---------------------------------------------------------------------
   -- The GbE machine for blasting out data from TRBnet
@@ -1419,9 +1469,9 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
 ---------------------------------------------------------------------------
 THE_BUS_HANDLER : trb_net16_regio_bus_handler
   generic map(
-    PORT_NUMBER    => 11,
-    PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"8100", 3 => x"8300", 4 => x"a000", 5 => x"d300", 6 => x"c000", 7 => x"c100", 8 => x"c200", 9 => x"c300", 10 => x"c800", others => x"0000"),
-    PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 8,       3 => 8,       4 => 9,       5 => 0,       6 => 7,       7 => 5,       8 => 7,       9 => 7,       10 => 3,       others => 0)
+    PORT_NUMBER    => 13,
+    PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"8100", 3 => x"8300", 4 => x"a000", 5 => x"d300", 6 => x"c000", 7 => x"c100", 8 => x"c200", 9 => x"c300", 10 => x"c800", 11 => x"a800", 12 => x"a880", others => x"0000"),
+    PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 8,       3 => 8,       4 => 11,      5 => 0,       6 => 7,       7 => 5,       8 => 7,       9 => 7,       10 => 3,       11 => 7,       12 => 7,       others => 0)
     )
   port map(
     CLK                   => clk_100_i,
@@ -1450,6 +1500,7 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
     BUS_WRITE_ACK_IN(0)                 => spictrl_ack,
     BUS_NO_MORE_DATA_IN(0)              => spictrl_busy,
     BUS_UNKNOWN_ADDR_IN(0)              => '0',
+    
   --Bus Handler (SPI Memory)
     BUS_READ_ENABLE_OUT(1)              => spimem_read_en,
     BUS_WRITE_ENABLE_OUT(1)             => spimem_write_en,
@@ -1572,22 +1623,36 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
     BUS_WRITE_ACK_IN(10)                 => tdc_ctrl_write,
     BUS_NO_MORE_DATA_IN(10)              => '0',
     BUS_UNKNOWN_ADDR_IN(10)              => '0',
-  
+
+    --CBMNet (read-out)
+    BUS_READ_ENABLE_OUT(11)              => cbm_rdo_regio_read_enable_i,
+    BUS_WRITE_ENABLE_OUT(11)             => cbm_rdo_regio_write_enable_i,
+    BUS_DATA_OUT(11*32+31 downto 11*32)  => cbm_rdo_regio_data_ctrl_i,
+    BUS_ADDR_OUT(11*16+15 downto 11*16)  => cbm_rdo_regio_addr_i,
+    BUS_TIMEOUT_OUT(11)                  => open,
+    BUS_DATA_IN(11*32+31 downto 11*32)   => cbm_rdo_regio_data_status_i,
+    BUS_DATAREADY_IN(11)                 => cbm_rdo_regio_dataready_i,
+    BUS_WRITE_ACK_IN(11)                 => cbm_rdo_regio_write_ack_i,
+    BUS_NO_MORE_DATA_IN(11)              => '0',
+    BUS_UNKNOWN_ADDR_IN(11)              => cbm_rdo_regio_unknown_addr_i,  
+
+    --CBMNet (phy)
+    BUS_READ_ENABLE_OUT(12)              => cbm_phy_regio_read_enable_i,
+    BUS_WRITE_ENABLE_OUT(12)             => cbm_phy_regio_write_enable_i,
+    BUS_DATA_OUT(12*32+31 downto 12*32)  => cbm_phy_regio_data_ctrl_i,
+    BUS_ADDR_OUT(12*16+15 downto 12*16)  => cbm_phy_regio_addr_i,
+    BUS_TIMEOUT_OUT(12)                  => open,
+    BUS_DATA_IN(12*32+31 downto 12*32)   => cbm_phy_regio_data_status_i,
+    BUS_DATAREADY_IN(12)                 => cbm_phy_regio_dataready_i,
+    BUS_WRITE_ACK_IN(12)                 => cbm_phy_regio_write_ack_i,
+    BUS_NO_MORE_DATA_IN(12)              => '0',
+    BUS_UNKNOWN_ADDR_IN(12)              => cbm_phy_regio_unknown_addr_i,  
+    
     STAT_DEBUG  => open
     );
 
 
-PROC_TDC_CTRL_REG : process 
-  variable pos : integer;
-begin
-  wait until rising_edge(clk_100_i);
-  pos := to_integer(unsigned(tdc_ctrl_addr))*32;
-  tdc_ctrl_data_out <= tdc_ctrl_reg(pos+31 downto pos);
-  last_tdc_ctrl_read <= tdc_ctrl_read;
-  if tdc_ctrl_write = '1' then
-    tdc_ctrl_reg(pos+31 downto pos) <= tdc_ctrl_data_in;
-  end if;
-end process;
+
     
 ---------------------------------------------------------------------------
 -- SPI / Flash
@@ -1734,6 +1799,18 @@ gen_TDC : if INCLUDE_TDC = c_YES generate
       LOGIC_ANALYSER_OUT    => tdc_debug,
       CONTROL_REG_IN        => tdc_ctrl_reg
       );
+      
+      PROC_TDC_CTRL_REG : process 
+         variable pos : integer;
+      begin
+         wait until rising_edge(clk_100_i);
+         pos := to_integer(unsigned(tdc_ctrl_addr))*32;
+         tdc_ctrl_data_out <= tdc_ctrl_reg(pos+31 downto pos);
+         last_tdc_ctrl_read <= tdc_ctrl_read;
+         if tdc_ctrl_write = '1' then
+            tdc_ctrl_reg(pos+31 downto pos) <= tdc_ctrl_data_in;
+         end if;
+      end process;
 end generate;    
 
 gen_no_TDC : if INCLUDE_TDC = c_NO generate
@@ -1846,8 +1923,6 @@ end process;
 --   LED_YELLOW                     <= not med_stat_op(10);
 --   LED_ORANGE                     <= not med_stat_op(11); 
 --   LED_RED                        <= '1';
-  LED_TRIGGER_GREEN              <= not med_stat_op(4*16+9);
-  LED_TRIGGER_RED                <= not (med_stat_op(4*16+11) or med_stat_op(4*16+10));
 
 
 LED_GREEN <= debug(0);
