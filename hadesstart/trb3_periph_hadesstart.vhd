@@ -37,26 +37,26 @@ entity trb3_periph_hadesstart is
     OUT_L_SCK            : out   std_logic;
     OUT_L_SDO            : out   std_logic;
     OUT_L_CS             : out   std_logic;
-    IN_L_SDI             : out   std_logic;
+    IN_L_SDI             : in    std_logic;
     OUT_H_SCK            : out   std_logic;
     OUT_H_SDO            : out   std_logic;
     OUT_H_CS             : out   std_logic;
-    IN_H_SDI             : out   std_logic;
+    IN_H_SDI             : in    std_logic;
 
     --Flash ROM & Reboot
     FLASH_CLK  : out   std_logic;
     FLASH_CS   : out   std_logic;
     FLASH_DIN  : out   std_logic;
     FLASH_DOUT : in    std_logic;
-    PROGRAMN   : out   std_logic;       --reboot FPGA
+    PROGRAMN   : out   std_logic;  --reboot FPGA
     --Misc
-    TEMPSENS   : inout std_logic;       --Temperature Sensor
+    TEMPSENS   : inout std_logic;  --Temperature Sensor
     CODE_LINE  : in    std_logic_vector(1 downto 0);
     LED_GREEN  : out   std_logic;
     LED_ORANGE : out   std_logic;
     LED_RED    : out   std_logic;
     LED_YELLOW : out   std_logic;
-    SUPPL      : in    std_logic;       --terminated diff pair, PCLK, Pads
+    SUPPL      : in    std_logic;  --terminated diff pair, PCLK, Pads
     --Test Connectors
     TEST_LINE  : out   std_logic_vector(15 downto 0)
     );

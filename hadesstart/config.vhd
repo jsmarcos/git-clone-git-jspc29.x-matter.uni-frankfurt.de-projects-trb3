@@ -11,7 +11,7 @@ package config is
 ------------------------------------------------------------------------------
 
 --TDC settings
-  constant NUM_TDC_CHANNELS        : integer range 1 to 65   := 33;
+  constant NUM_TDC_CHANNELS        : integer range 1 to 65   := 5;
   constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6    := 5;  --the nearest power of two, for convenience reasons 
   constant USE_DOUBLE_EDGE         : integer                 := c_YES;
   constant RING_BUFFER_SIZE        : integer range 32 to 128 := 32; --ring buffer size: 32,64,128
