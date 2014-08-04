@@ -135,28 +135,6 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
 
   --LVL1 channel
   signal timing_trg_received_i  : std_logic;
-  signal trg_data_valid_i       : std_logic;
-  signal trg_timing_valid_i     : std_logic;
-  signal trg_notiming_valid_i   : std_logic;
-  signal trg_invalid_i          : std_logic;
-  signal trg_type_i             : std_logic_vector(3 downto 0);
-  signal trg_number_i           : std_logic_vector(15 downto 0);
-  signal trg_code_i             : std_logic_vector(7 downto 0);
-  signal trg_information_i      : std_logic_vector(23 downto 0);
-  signal trg_int_number_i       : std_logic_vector(15 downto 0);
-  signal trg_multiple_trg_i     : std_logic;
-  signal trg_timeout_detected_i : std_logic;
-  signal trg_spurious_trg_i     : std_logic;
-  signal trg_missing_tmg_trg_i  : std_logic;
-  signal trg_spike_detected_i   : std_logic;
-
-  --Data channel
-  signal fee_trg_release_i    : std_logic;
-  signal fee_trg_statusbits_i : std_logic_vector(31 downto 0);
-  signal fee_data_i           : std_logic_vector(31 downto 0);
-  signal fee_data_write_i     : std_logic;
-  signal fee_data_finished_i  : std_logic;
-  signal fee_almost_full_i    : std_logic;
 
   --Slow Control channel
   signal common_stat_reg        : std_logic_vector(std_COMSTATREG*32-1 downto 0);
@@ -182,40 +160,19 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   signal time_since_last_trg : std_logic_vector(31 downto 0);
   signal timer_ticks         : std_logic_vector(1 downto 0);
 
-  --Flash
-  signal spimem_read_en          : std_logic;
-  signal spimem_write_en         : std_logic;
-  signal spimem_data_in          : std_logic_vector(31 downto 0);
-  signal spimem_addr             : std_logic_vector(8 downto 0);
-  signal spimem_data_out         : std_logic_vector(31 downto 0);
-  signal spimem_dataready_out    : std_logic;
-  signal spimem_no_more_data_out : std_logic;
-  signal spimem_unknown_addr_out : std_logic;
-  signal spimem_write_ack_out    : std_logic;
-
   --SPI to MachXO FPGA (and LMK01010, and ADC SPI) 
-  signal spifpga_read_en   : std_logic;
-  signal spifpga_write_en  : std_logic;
-  signal spifpga_data_in   : std_logic_vector(31 downto 0);
-  signal spifpga_addr      : std_logic_vector(4 downto 0);
-  signal spifpga_data_out  : std_logic_vector(31 downto 0);
-  signal spifpga_ack       : std_logic;
-  signal spifpga_busy      : std_logic;
-
-  signal spi_cs        					   : std_logic_vector(15 downto 0);
+  signal spi_cs                    : std_logic_vector(15 downto 0);
   signal spi_sdi, spi_sdo, spi_sck : std_logic;
-  
-  signal clk_adcref_i      : std_logic;
-  signal debug_adc         : std_logic_vector(48*32-1 downto 0);
-  signal adc_restart_i     : std_logic;
-
-  signal adc_data : std_logic_vector(479 downto 0);
-  signal adc_fco  : std_logic_vector(119 downto 0);
-  signal adc_data_valid : std_logic_vector(11 downto 0);
-  signal adc_ctrl : std_logic_vector(31 downto 0);
+  signal adcspi_ctrl               : std_logic_vector(7 downto 0);
   
   signal busadc_rx  : CTRLBUS_RX;
   signal busadc_tx  : CTRLBUS_TX;
+  signal busspi_rx  : CTRLBUS_RX;
+  signal busspi_tx  : CTRLBUS_TX;
+  signal busmem_rx  : CTRLBUS_RX;
+  signal busmem_tx  : CTRLBUS_TX;
+  signal readout_rx : READOUT_RX;
+  signal readout_tx : readout_tx_array_t(0 to 11);
   
 begin
 ---------------------------------------------------------------------------
@@ -310,7 +267,7 @@ begin
       REGIO_NUM_STAT_REGS       => 0,
       REGIO_NUM_CTRL_REGS       => 0,
       ADDRESS_MASK              => x"FFFF",
-      BROADCAST_BITMASK         => x"48",
+      BROADCAST_BITMASK         => x"ff",
       BROADCAST_SPECIAL_ADDR    => BROADCAST_SPECIAL_ADDR,
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
       REGIO_HARDWARE_VERSION    => HARDWARE_INFO,
@@ -320,10 +277,10 @@ begin
       CLOCK_FREQUENCY           => CLOCK_FREQUENCY,
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
-      DATA_INTERFACE_NUMBER     => 1,
-      DATA_BUFFER_DEPTH         => 13,           --13
+      DATA_INTERFACE_NUMBER     => 12,
+      DATA_BUFFER_DEPTH         => 10,
       DATA_BUFFER_WIDTH         => 32,
-      DATA_BUFFER_FULL_THRESH   => 2**13-800,    --2**13-(maximal 2**12) 
+      DATA_BUFFER_FULL_THRESH   => 2**10-511,
       TRG_RELEASE_AFTER_DATA    => c_YES,
       HEADER_BUFFER_DEPTH       => 9,
       HEADER_BUFFER_FULL_THRESH => 2**9-16
@@ -332,46 +289,46 @@ begin
       CLK                => clk_100_i,
       RESET              => reset_i,
       CLK_EN             => '1',
-      MED_DATAREADY_OUT  => med_dataready_out,  -- open,  --
-      MED_DATA_OUT       => med_data_out,  -- open,  --
-      MED_PACKET_NUM_OUT => med_packet_num_out,  -- open,  --
+      MED_DATAREADY_OUT  => med_dataready_out,
+      MED_DATA_OUT       => med_data_out,
+      MED_PACKET_NUM_OUT => med_packet_num_out,
       MED_READ_IN        => med_read_in,
       MED_DATAREADY_IN   => med_dataready_in,
       MED_DATA_IN        => med_data_in,
       MED_PACKET_NUM_IN  => med_packet_num_in,
-      MED_READ_OUT       => med_read_out,  -- open,  --
+      MED_READ_OUT       => med_read_out,
       MED_STAT_OP_IN     => med_stat_op,
       MED_CTRL_OP_OUT    => med_ctrl_op,
-
+      
       --Timing trigger in
       TRG_TIMING_TRG_RECEIVED_IN  => timing_trg_received_i,
       --LVL1 trigger to FEE
-      LVL1_TRG_DATA_VALID_OUT     => trg_data_valid_i,
-      LVL1_VALID_TIMING_TRG_OUT   => trg_timing_valid_i,
-      LVL1_VALID_NOTIMING_TRG_OUT => trg_notiming_valid_i,
-      LVL1_INVALID_TRG_OUT        => trg_invalid_i,
+      LVL1_TRG_DATA_VALID_OUT     => readout_rx.data_valid,
+      LVL1_VALID_TIMING_TRG_OUT   => readout_rx.valid_timing_trg,
+      LVL1_VALID_NOTIMING_TRG_OUT => readout_rx.valid_notiming_trg,
+      LVL1_INVALID_TRG_OUT        => readout_rx.invalid_trg,
 
-      LVL1_TRG_TYPE_OUT        => trg_type_i,
-      LVL1_TRG_NUMBER_OUT      => trg_number_i,
-      LVL1_TRG_CODE_OUT        => trg_code_i,
-      LVL1_TRG_INFORMATION_OUT => trg_information_i,
-      LVL1_INT_TRG_NUMBER_OUT  => trg_int_number_i,
+      LVL1_TRG_TYPE_OUT        => readout_rx.trg_type,
+      LVL1_TRG_NUMBER_OUT      => readout_rx.trg_number,
+      LVL1_TRG_CODE_OUT        => readout_rx.trg_code,
+      LVL1_TRG_INFORMATION_OUT => readout_rx.trg_information,
+      LVL1_INT_TRG_NUMBER_OUT  => readout_rx.trg_int_number,
 
       --Information about trigger handler errors
-      TRG_MULTIPLE_TRG_OUT     => trg_multiple_trg_i,
-      TRG_TIMEOUT_DETECTED_OUT => trg_timeout_detected_i,
-      TRG_SPURIOUS_TRG_OUT     => trg_spurious_trg_i,
-      TRG_MISSING_TMG_TRG_OUT  => trg_missing_tmg_trg_i,
-      TRG_SPIKE_DETECTED_OUT   => trg_spike_detected_i,
+      TRG_MULTIPLE_TRG_OUT     => readout_rx.trg_multiple,
+      TRG_TIMEOUT_DETECTED_OUT => readout_rx.trg_timeout,
+      TRG_SPURIOUS_TRG_OUT     => readout_rx.trg_spurious,
+      TRG_MISSING_TMG_TRG_OUT  => readout_rx.trg_missing,
+      TRG_SPIKE_DETECTED_OUT   => readout_rx.trg_spike,
 
       --Response from FEE
-      FEE_TRG_RELEASE_IN(0)       => fee_trg_release_i,
-      FEE_TRG_STATUSBITS_IN       => fee_trg_statusbits_i,
-      FEE_DATA_IN                 => fee_data_i,
-      FEE_DATA_WRITE_IN(0)        => fee_data_write_i,
-      FEE_DATA_FINISHED_IN(0)     => fee_data_finished_i,
-      FEE_DATA_ALMOST_FULL_OUT(0) => fee_almost_full_i,
-
+      FEE_TRG_RELEASE_IN(0)              => readout_tx(0).busy_release,
+      FEE_TRG_STATUSBITS_IN(31 downto 0) => readout_tx(0).statusbits,
+      FEE_DATA_IN(31 downto 0)           => readout_tx(0).data,
+      FEE_DATA_WRITE_IN(0)               => readout_tx(0).data_write,
+      FEE_DATA_FINISHED_IN(0)            => readout_tx(0).data_finished,
+      FEE_DATA_ALMOST_FULL_OUT(0)        => readout_rx.buffer_almost_full,
+      
       -- Slow Control Data Port
       REGIO_COMMON_STAT_REG_IN           => common_stat_reg,  --0x00
       REGIO_COMMON_CTRL_REG_OUT          => common_ctrl_reg,  --0x20
@@ -422,70 +379,75 @@ begin
 ---------------------------------------------------------------------------
 -- AddOn
 ---------------------------------------------------------------------------
-THE_ADC : entity work.adc_ad9219
-  generic map(
-    CHANNELS      => 4,
-    DEVICES_LEFT  => 7,
-    DEVICES_RIGHT => 5,
-    RESOLUTION    => 10
-    )
-  port map(
-    CLK        => clk_100_i,
-    CLK_ADCRAW => CLK_PCLK_RIGHT,
-    RESTART_IN => adc_restart_i,
-    ADCCLK_OUT => P_CLOCK,
-    
-    ADC_DATA( 4 downto  0)   => ADC1_CH,
-    ADC_DATA( 9 downto  5)   => ADC2_CH,
-    ADC_DATA(14 downto 10)   => ADC3_CH,
-    ADC_DATA(19 downto 15)   => ADC4_CH,
-    ADC_DATA(24 downto 20)   => ADC5_CH,
-    ADC_DATA(29 downto 25)   => ADC6_CH,
-    ADC_DATA(34 downto 30)   => ADC7_CH,
-    ADC_DATA(39 downto 35)   => ADC8_CH,
-    ADC_DATA(44 downto 40)   => ADC9_CH,
-    ADC_DATA(49 downto 45)   => ADC10_CH,
-    ADC_DATA(54 downto 50)   => ADC11_CH,
-    ADC_DATA(59 downto 55)   => ADC12_CH,
-    
-    ADC_DCO    => ADC_DCO,
-    
-    DATA_OUT       => adc_data,
-    FCO_OUT        => adc_fco,
-    DATA_VALID_OUT => adc_data_valid,
-    DEBUG          => debug_adc
-    );
+gen_reallogic : if USE_DUMMY_READOUT = 0 generate
+  THE_ADC : entity work.adc_handler
+    port map(
+      CLK        => clk_100_i,
+      CLK_ADCRAW => CLK_PCLK_RIGHT,
 
+      ADCCLK_OUT => P_CLOCK, 
+      ADC_DATA( 4 downto  0)   => ADC1_CH,
+      ADC_DATA( 9 downto  5)   => ADC2_CH,
+      ADC_DATA(14 downto 10)   => ADC3_CH,
+      ADC_DATA(19 downto 15)   => ADC4_CH,
+      ADC_DATA(24 downto 20)   => ADC5_CH,
+      ADC_DATA(29 downto 25)   => ADC6_CH,
+      ADC_DATA(34 downto 30)   => ADC7_CH,
+      ADC_DATA(39 downto 35)   => ADC8_CH,
+      ADC_DATA(44 downto 40)   => ADC9_CH,
+      ADC_DATA(49 downto 45)   => ADC10_CH,
+      ADC_DATA(54 downto 50)   => ADC11_CH,
+      ADC_DATA(59 downto 55)   => ADC12_CH,
+      ADC_DCO     => ADC_DCO,
 
-THE_ADC_DATA_BUFFER : entity work.adc_data_buffer
-  generic map(
-    RESOLUTION => 10,
-    CHANNELS   => 4,
-    DEVICES    => 12
-    )
-  port map(
-    CLK => clk_100_i,
-    ADC_DATA_IN => adc_data,
-    ADC_FCO_IN  => adc_fco,
-    ADC_DATA_VALID => adc_data_valid,
-    ADC_STATUS_IN  => debug_adc,
-    ADC_CONTROL_OUT => adc_ctrl,
+      TRIGGER_IN  => TRIGGER_LEFT,
+      READOUT_RX  => readout_rx,
+      READOUT_TX  => readout_tx,
+      BUS_RX      => busadc_rx,
+      BUS_TX      => busadc_tx,
+      
+      ADCSPI_CTRL => adcspi_ctrl
+      );    
+end generate;
     
-    ADC_RESET_OUT  => adc_restart_i,
+gen_dummyreadout : if USE_DUMMY_READOUT = 1 generate
+  THE_ADC : entity work.adc_slowcontrol_data_buffer
+    port map(
+      CLK        => clk_100_i,
+      CLK_ADCRAW => CLK_PCLK_RIGHT,
+      
+      ADCCLK_OUT => P_CLOCK,
+      ADC_DATA( 4 downto  0)   => ADC1_CH,
+      ADC_DATA( 9 downto  5)   => ADC2_CH,
+      ADC_DATA(14 downto 10)   => ADC3_CH,
+      ADC_DATA(19 downto 15)   => ADC4_CH,
+      ADC_DATA(24 downto 20)   => ADC5_CH,
+      ADC_DATA(29 downto 25)   => ADC6_CH,
+      ADC_DATA(34 downto 30)   => ADC7_CH,
+      ADC_DATA(39 downto 35)   => ADC8_CH,
+      ADC_DATA(44 downto 40)   => ADC9_CH,
+      ADC_DATA(49 downto 45)   => ADC10_CH,
+      ADC_DATA(54 downto 50)   => ADC11_CH,
+      ADC_DATA(59 downto 55)   => ADC12_CH,
+      ADC_DCO     => ADC_DCO,
+      
+      ADC_CONTROL_OUT => adcspi_ctrl,
+      
+      BUS_RX      => busadc_rx,
+      BUS_TX      => busadc_tx
+      );
+end generate;
     
-    BUS_RX    => busadc_rx,
-    BUS_TX    => busadc_tx
-    
-    );
 
 ---------------------------------------------------------------------------
 -- Bus Handler
 ---------------------------------------------------------------------------
-  THE_BUS_HANDLER : trb_net16_regio_bus_handler
+  THE_BUS_HANDLER : entity work.trb_net16_regio_bus_handler_record
     generic map(
-      PORT_NUMBER    => 3,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d400", 2 => x"e000", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 9,       1 => 5,       2 => 8,       others => 0)
+      PORT_NUMBER      => 3,
+      PORT_ADDRESSES   => (0 => x"d000", 1 => x"d400", 2 => x"a000", others => x"0000"),
+      PORT_ADDR_MASK   => (0 => 9,       1 => 5,       2 => 12,      others => 0),
+      PORT_MASK_ENABLE => 1
       )
     port map(
       CLK   => clk_100_i,
@@ -502,41 +464,12 @@ THE_ADC_DATA_BUFFER : entity work.adc_data_buffer
       DAT_NO_MORE_DATA_OUT => regio_no_more_data_in,
       DAT_UNKNOWN_ADDR_OUT => regio_unknown_addr_in,
 
-    --Bus Handler (SPI Flash control)
-      BUS_READ_ENABLE_OUT(0)              => spimem_read_en,
-      BUS_WRITE_ENABLE_OUT(0)             => spimem_write_en,
-      BUS_DATA_OUT(0*32+31 downto 0*32)   => spimem_data_in,
-      BUS_ADDR_OUT(0*16+8 downto 0*16)    => spimem_addr,
-      BUS_ADDR_OUT(0*16+15 downto 0*16+9) => open,
-      BUS_TIMEOUT_OUT(0)                  => open,
-      BUS_DATA_IN(0*32+31 downto 0*32)    => spimem_data_out,
-      BUS_DATAREADY_IN(0)                 => spimem_dataready_out,
-      BUS_WRITE_ACK_IN(0)                 => spimem_write_ack_out,
-      BUS_NO_MORE_DATA_IN(0)              => spimem_no_more_data_out,
-      BUS_UNKNOWN_ADDR_IN(0)              => spimem_unknown_addr_out,
-      --Bus Handler (SPI to FPGA)
-      BUS_READ_ENABLE_OUT(1)              => spifpga_read_en,
-      BUS_WRITE_ENABLE_OUT(1)             => spifpga_write_en,
-      BUS_DATA_OUT(1*32+31 downto 1*32)   => spifpga_data_in,
-      BUS_ADDR_OUT(1*16+4 downto 1*16)    => spifpga_addr,
-      BUS_ADDR_OUT(1*16+15 downto 1*16+5) => open,
-      BUS_TIMEOUT_OUT(1)                  => open,
-      BUS_DATA_IN(1*32+31 downto 1*32)    => spifpga_data_out,
-      BUS_DATAREADY_IN(1)                 => spifpga_ack,
-      BUS_WRITE_ACK_IN(1)                 => spifpga_ack,
-      BUS_NO_MORE_DATA_IN(1)              => spifpga_busy,
-      BUS_UNKNOWN_ADDR_IN(1)              => '0',
-
-      BUS_READ_ENABLE_OUT(2)              => busadc_rx.read,
-      BUS_WRITE_ENABLE_OUT(2)             => busadc_rx.write,
-      BUS_DATA_OUT(2*32+31 downto 2*32)   => busadc_rx.data,
-      BUS_ADDR_OUT(2*16+15 downto 2*16)   => busadc_rx.addr,
-      BUS_TIMEOUT_OUT(2)                  => busadc_rx.timeout,
-      BUS_DATA_IN(2*32+31 downto 2*32)    => busadc_tx.data,
-      BUS_DATAREADY_IN(2)                 => busadc_tx.ack,
-      BUS_WRITE_ACK_IN(2)                 => busadc_tx.ack,
-      BUS_NO_MORE_DATA_IN(2)              => busadc_tx.nack,
-      BUS_UNKNOWN_ADDR_IN(2)              => busadc_tx.unknown,
+      BUS_RX(0) => busmem_rx, --Flash
+      BUS_TX(0) => busmem_tx,
+      BUS_RX(1) => busspi_rx, --SPI
+      BUS_TX(1) => busspi_tx,
+      BUS_RX(2) => busadc_rx, --ADC
+      BUS_TX(2) => busadc_tx,
       
       STAT_DEBUG => open
       );
@@ -551,15 +484,15 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
     CLK_IN               => clk_100_i,
     RESET_IN             => reset_i,
     
-    BUS_ADDR_IN          => spimem_addr,
-    BUS_READ_IN          => spimem_read_en,
-    BUS_WRITE_IN         => spimem_write_en,
-    BUS_DATAREADY_OUT    => spimem_dataready_out,
-    BUS_WRITE_ACK_OUT    => spimem_write_ack_out,
-    BUS_UNKNOWN_ADDR_OUT => spimem_unknown_addr_out,
-    BUS_NO_MORE_DATA_OUT => spimem_no_more_data_out,
-    BUS_DATA_IN          => spimem_data_in,
-    BUS_DATA_OUT         => spimem_data_out,
+    BUS_ADDR_IN          => busmem_rx.addr(8 downto 0),
+    BUS_READ_IN          => busmem_rx.read,
+    BUS_WRITE_IN         => busmem_rx.write,
+    BUS_DATAREADY_OUT    => busmem_tx.rack,
+    BUS_WRITE_ACK_OUT    => busmem_tx.wack,
+    BUS_UNKNOWN_ADDR_OUT => busmem_tx.unknown,
+    BUS_NO_MORE_DATA_OUT => busmem_tx.nack,
+    BUS_DATA_IN          => busmem_rx.data,
+    BUS_DATA_OUT         => busmem_tx.data,
     
     DO_REBOOT_IN         => common_ctrl_reg(15),     
     PROGRAMN             => PROGRAMN,
@@ -582,13 +515,13 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
 		  CLK_IN         => clk_100_i,
 		  RESET_IN       => reset_i,
 		  -- Slave bus
-		  BUS_READ_IN    => spifpga_read_en,
-		  BUS_WRITE_IN   => spifpga_write_en,
-		  BUS_BUSY_OUT   => spifpga_busy,
-		  BUS_ACK_OUT    => spifpga_ack,
-		  BUS_ADDR_IN    => spifpga_addr,
-		  BUS_DATA_IN    => spifpga_data_in,
-		  BUS_DATA_OUT   => spifpga_data_out,
+		  BUS_READ_IN    => busspi_rx.read,
+		  BUS_WRITE_IN   => busspi_rx.write,
+		  BUS_BUSY_OUT   => busspi_tx.nack,
+		  BUS_ACK_OUT    => busspi_tx.ack,
+		  BUS_ADDR_IN    => busspi_rx.addr(4 downto 0),
+		  BUS_DATA_IN    => busspi_rx.data,
+		  BUS_DATA_OUT   => busspi_tx.data,
 		  -- SPI connections
 		  SPI_CS_OUT  => spi_CS,
 		  SPI_SDI_IN  => spi_SDI,
@@ -621,16 +554,16 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
   FPGA_SDI(0) <= spi_SDO     when spi_CS(2 downto 0) /= b"111" else '0';
   spi_SDI     <= FPGA_SDO(0) when spi_CS(2 downto 0) /= b"111" else '0';
   
-  SPI_ADC_SCK         <= spi_SCK when spi_CS(3) = '0' else adc_ctrl(4);
-  SPI_ADC_SDIO        <= spi_SDO when spi_CS(3) = '0' else adc_ctrl(5);
-  FPGA_SCK(1)         <= '0'     when spi_CS(3) = '0' else adc_ctrl(6); --CSB
+  SPI_ADC_SCK         <= spi_SCK when spi_CS(3) = '0' else adcspi_ctrl(4);
+  SPI_ADC_SDIO        <= spi_SDO when spi_CS(3) = '0' else adcspi_ctrl(5);
+  FPGA_SCK(1)         <= '0'     when spi_CS(3) = '0' else adcspi_ctrl(6); --CSB
   
   LMK_CLK             <= spi_SCK when spi_CS(5 downto 4) /= b"11" else '1' ;
   LMK_DATA            <= spi_SDO when spi_CS(5 downto 4) /= b"11" else '0' ;
   LMK_LE_1            <= spi_CS(4); -- active low
   LMK_LE_2            <= spi_CS(5); -- active low
   
-  POWER_ENABLE        <= adc_ctrl(0);
+  POWER_ENABLE        <= adcspi_ctrl(0);
 ---------------------------------------------------------------------------
 -- LED
 ---------------------------------------------------------------------------
