@@ -252,14 +252,25 @@ architecture trb3_periph_arch of trb3_periph is
   signal spi_bram_we   : std_logic;
 
   --FPGA Test
+
   signal time_counter : unsigned(31 downto 0);
 
+  -- SED Detection
+  signal sed_error  : std_logic;
+  signal sed_din    : std_logic_vector(31 downto 0);
+  signal sed_dout   : std_logic_vector(31 downto 0);
+  signal sed_write  : std_logic := '0';
+  signal sed_read   : std_logic := '0';
+  signal sed_ack    : std_logic := '0';
+  signal sed_nack   : std_logic := '0';
+  signal sed_addr   : std_logic_vector(15 downto 0) := (others => '0');
+  
   -- nXyter-FEB-Board Clocks
   signal nx_main_clk                : std_logic;
   signal nx_pll_clk_lock            : std_logic;
   signal nx_pll_reset               : std_logic;
   
-  signal nx_clk_adc_dat            : std_logic;
+  signal NX_CLK_ADC_DAT            : std_logic;
   signal nx_pll_adc_clk_lock       : std_logic;
   signal nx1_adc_sample_clk         : std_logic;
 
@@ -279,7 +290,7 @@ architecture trb3_periph_arch of trb3_periph is
   
   -- Internal Trigger
   signal fee1_trigger                : std_logic;
-  
+
 begin
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -489,14 +500,16 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 3,
+      PORT_NUMBER    => 4,
       PORT_ADDRESSES => (0 => x"d000",
                          1 => x"d100",
                          2 => x"8000",
+                         3 => x"d500",
                          others => x"0000"),
       PORT_ADDR_MASK => (0 => 1,
                          1 => 6,
                          2 => 12,
+                         3 => 4,
                          others => 0)
       )
     port map(
@@ -553,6 +566,17 @@ begin
       BUS_NO_MORE_DATA_IN(2)               => nx1_regio_no_more_data_out,
       BUS_UNKNOWN_ADDR_IN(2)               => nx1_regio_unknown_addr_out,
 
+      BUS_READ_ENABLE_OUT(3)              => sed_read,
+      BUS_WRITE_ENABLE_OUT(3)             => sed_write,
+      BUS_DATA_OUT(3*32+31 downto 3*32)   => sed_din,
+      BUS_ADDR_OUT(3*16+15 downto 3*16)   => sed_addr,
+      BUS_TIMEOUT_OUT(3)                  => open,
+      BUS_DATA_IN(3*32+31 downto 3*32)    => sed_dout,
+      BUS_DATAREADY_IN(3)                 => sed_ack,
+      BUS_WRITE_ACK_IN(3)                 => sed_ack,
+      BUS_NO_MORE_DATA_IN(3)              => '0',
+      BUS_UNKNOWN_ADDR_IN(3)              => sed_nack,
+      
       STAT_DEBUG => open
       );
 
@@ -638,7 +662,7 @@ begin
       CLK_IN                     => clk_100_i,
       RESET_IN                   => reset_i,
       CLK_NX_MAIN_IN             => nx_main_clk,
-      CLK_ADC_IN                 => nx_clk_adc_dat,
+      CLK_ADC_IN                 => NX_CLK_ADC_DAT,
       PLL_NX_CLK_LOCK_IN         => nx_pll_clk_lock,
       PLL_ADC_DCLK_LOCK_IN       => nx_pll_adc_clk_lock,
       PLL_RESET_OUT              => nx_pll_reset,
@@ -712,7 +736,25 @@ begin
   NX1_DEBUG_LINE                <= nx1_debug_line_o;
 
   FPGA5_COMM(10)                <= fee1_trigger;
+
+  ---------------------------------------------------------------------------
+  -- SED Detection
+  ---------------------------------------------------------------------------
+
+  THE_SED : entity work.sedcheck
+    port map(
+      CLK        => clk_100_i,
+      ERROR_OUT  => sed_error,
     
+      DATA_IN    => sed_din,
+      DATA_OUT   => sed_dout, 
+      WRITE_IN   => sed_write,
+      READ_IN    => sed_read,
+      ACK_OUT    => sed_ack,  
+      NACK_OUT   => sed_nack, 
+      ADDR_IN    => sed_addr
+      );
+  
   -----------------------------------------------------------------------------
   -- nXyter Main and ADC Clocks
   -----------------------------------------------------------------------------
@@ -743,7 +785,7 @@ begin
     port map (
       CLK   => CLK_PCLK_RIGHT,
       RESET => nx_pll_reset,
-      CLKOP => nx_clk_adc_dat,
+      CLKOP => NX_CLK_ADC_DAT,
       LOCK  => nx_pll_adc_clk_lock
       );
 

@@ -19,7 +19,7 @@ entity nx_data_receiver is
     NX_CLOCK_ON_IN         : in  std_logic;
     
     -- nXyter Ports        
-    NX_TIMESTAMP_CLK_IN    : in  std_logic;
+    NX_DATA_CLK_IN         : in  std_logic;
     NX_TIMESTAMP_IN        : in  std_logic_vector (7 downto 0);
     NX_TIMESTAMP_RESET_OUT : out std_logic;
     
@@ -178,10 +178,12 @@ architecture Behavioral of nx_data_receiver is
   
   -- Error
   signal adc_error_i                 : std_logic;
+  signal adc_error_undef_i           : std_logic;
   signal error_o                     : std_logic;
   signal error_status_bits           : std_logic_vector(15 downto 0);
   signal adc_notlock_counter         : unsigned(27 downto 0);
   signal adc_error_counter           : unsigned(27 downto 0);
+  signal adc_error_undef_counter     : unsigned(27 downto 0);
   
   -- Rate Errors
   signal nx_frame_rate_offline_last  : std_logic;
@@ -266,6 +268,7 @@ architecture Behavioral of nx_data_receiver is
   signal nx_online_ii                : std_logic;
   signal nx_online_i                 : std_logic;
   signal adc_error                   : std_logic;
+  signal adc_error_undef             : std_logic;
   signal startup_reset               : std_logic;
   signal rs_wait_timer_start         : std_logic;
   signal rs_wait_timer_done          : std_logic;
@@ -321,7 +324,7 @@ architecture Behavioral of nx_data_receiver is
   -- Reset Domain Transfers
   signal reset_nx_timestamp_clk_in_ff : std_logic;
   signal reset_nx_timestamp_clk_in_f  : std_logic;
-  signal RESET_NX_TIMESTAMP_CLK_IN    : std_logic;
+  signal RESET_NX_DATA_CLK_IN    : std_logic;
 
   signal debug_state                  : std_logic_vector(3 downto 0);
   signal debug_frame_on               : std_logic;
@@ -348,9 +351,14 @@ architecture Behavioral of nx_data_receiver is
   attribute syn_keep of adc_debug_type_f                  : signal is true;
   attribute syn_keep of adc_debug_type                    : signal is true;
 
+  attribute syn_keep of nx_frame_word_delay_f             : signal is true;
+  attribute syn_keep of nx_frame_word_delay               : signal is true;
+
+  attribute syn_keep of nx_frame_word_f                   : signal is true;
+
   attribute syn_keep of nx_frame_word_delay_rr            : signal is true;
   attribute syn_keep of nx_frame_word_delay_r             : signal is true;
-
+  
   attribute syn_preserve : boolean;
   attribute syn_preserve of reset_nx_timestamp_clk_in_ff  : signal is true;
   attribute syn_preserve of reset_nx_timestamp_clk_in_f   : signal is true;
@@ -370,9 +378,14 @@ architecture Behavioral of nx_data_receiver is
   attribute syn_preserve of adc_debug_type_f              : signal is true;
   attribute syn_preserve of adc_debug_type                : signal is true;
 
+  attribute syn_preserve of nx_frame_word_delay_f         : signal is true;
+  attribute syn_preserve of nx_frame_word_delay           : signal is true;
+
+  attribute syn_preserve of nx_frame_word_f               : signal is true;
+
   attribute syn_preserve of nx_frame_word_delay_rr        : signal is true;
   attribute syn_preserve of nx_frame_word_delay_r         : signal is true;
-  
+
 begin
 
   DFALSE: if (DEBUG_ENABLE = false) generate
@@ -459,7 +472,7 @@ begin
 
         when "101" =>
           -- AD9228 Handler Debug output
-          DEBUG_OUT(0)            <= NX_TIMESTAMP_CLK_IN;
+          DEBUG_OUT(0)            <= NX_DATA_CLK_IN;
           DEBUG_OUT(1)            <= '0';
           DEBUG_OUT(2)            <= nx_frame_clk;
           DEBUG_OUT(3)            <= '0';
@@ -473,7 +486,7 @@ begin
           DEBUG_OUT(15 downto 12) <= adc_data_clk_last;
 
         when "110" =>
-          DEBUG_OUT(0)            <= NX_TIMESTAMP_CLK_IN;
+          DEBUG_OUT(0)            <= NX_DATA_CLK_IN;
           DEBUG_OUT(1)            <= '0';
           DEBUG_OUT(2)            <= '0';
           DEBUG_OUT(3)            <= '0';
@@ -519,11 +532,11 @@ begin
   -- Reset Domain Transfer
   -----------------------------------------------------------------------------
   reset_nx_timestamp_clk_in_ff  <= RESET_IN
-                                   when rising_edge(NX_TIMESTAMP_CLK_IN);
+                                   when rising_edge(NX_DATA_CLK_IN);
   reset_nx_timestamp_clk_in_f   <= reset_nx_timestamp_clk_in_ff
-                                   when rising_edge(NX_TIMESTAMP_CLK_IN); 
-  RESET_NX_TIMESTAMP_CLK_IN     <= reset_nx_timestamp_clk_in_f
-                                   when rising_edge(NX_TIMESTAMP_CLK_IN);
+                                   when rising_edge(NX_DATA_CLK_IN); 
+  RESET_NX_DATA_CLK_IN     <= reset_nx_timestamp_clk_in_f
+                                   when rising_edge(NX_DATA_CLK_IN);
   
   -----------------------------------------------------------------------------
   -- PLL Handler
@@ -587,8 +600,8 @@ begin
       CLK_RATIO => 2
       )
     port map (
-      CLK_A_IN    => NX_TIMESTAMP_CLK_IN,
-      RESET_A_IN  => RESET_NX_TIMESTAMP_CLK_IN,
+      CLK_A_IN    => NX_DATA_CLK_IN,
+      RESET_A_IN  => RESET_NX_DATA_CLK_IN,
       PULSE_A_IN  => adc_data_clk,
       CLK_B_IN    => CLK_IN,
       RESET_B_IN  => RESET_IN,
@@ -600,8 +613,8 @@ begin
       CLK_RATIO => 2
       )
     port map (
-      CLK_A_IN    => NX_TIMESTAMP_CLK_IN,
-      RESET_A_IN  => RESET_NX_TIMESTAMP_CLK_IN,
+      CLK_A_IN    => NX_DATA_CLK_IN,
+      RESET_A_IN  => RESET_NX_DATA_CLK_IN,
       PULSE_A_IN  => nx_frame_clk,
       CLK_B_IN    => CLK_IN,
       RESET_B_IN  => RESET_IN,
@@ -613,8 +626,8 @@ begin
       CLK_RATIO => 2
       )
     port map (
-      CLK_A_IN    => NX_TIMESTAMP_CLK_IN,
-      RESET_A_IN  => RESET_NX_TIMESTAMP_CLK_IN,
+      CLK_A_IN    => NX_DATA_CLK_IN,
+      RESET_A_IN  => RESET_NX_DATA_CLK_IN,
       PULSE_A_IN  => parity_error,
       CLK_B_IN    => CLK_IN,
       RESET_B_IN  => RESET_IN,
@@ -650,8 +663,8 @@ begin
       CLK_RATIO => 4
       )
     port map (
-      CLK_A_IN    => NX_TIMESTAMP_CLK_IN,
-      RESET_A_IN  => RESET_NX_TIMESTAMP_CLK_IN,
+      CLK_A_IN    => NX_DATA_CLK_IN,
+      RESET_A_IN  => RESET_NX_DATA_CLK_IN,
       PULSE_A_IN  => adc_reset_sync_s,
       CLK_B_IN    => CLK_IN,
       RESET_B_IN  => RESET_IN,
@@ -666,9 +679,9 @@ begin
       );
   
   -- ADC Sampling Clock Generator using a Johnson Counter
-  PROC_ADC_SAMPLING_CLK_GENERATOR: process(NX_TIMESTAMP_CLK_IN)
+  PROC_ADC_SAMPLING_CLK_GENERATOR: process(NX_DATA_CLK_IN)
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
+    if (rising_edge(NX_DATA_CLK_IN)) then
       if (adc_sclk_skip = '0') then
         johnson_ff_0     <= not johnson_ff_1;
         johnson_ff_1     <= johnson_ff_0;
@@ -679,10 +692,10 @@ begin
 
   -- Adjust johnson_counter_sync to show optimal value at 0
   
-  PROC_ADC_SAMPLING_CLK_SYNC: process(NX_TIMESTAMP_CLK_IN)
+  PROC_ADC_SAMPLING_CLK_SYNC: process(NX_DATA_CLK_IN)
     variable adc_sclk_state : std_logic_vector(1 downto 0);
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
+    if (rising_edge(NX_DATA_CLK_IN)) then
       johnson_counter_sync <= std_logic_vector(johnson_counter_sync_r);
       adc_sclk_state        := johnson_ff_1 & johnson_ff_0;
       adc_sclk_skip         <= '0';
@@ -697,10 +710,10 @@ begin
     end if;
   end process PROC_ADC_SAMPLING_CLK_SYNC;
   
-  PROC_ADC_RESET: process(NX_TIMESTAMP_CLK_IN)
+  PROC_ADC_RESET: process(NX_DATA_CLK_IN)
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
-      if (RESET_NX_TIMESTAMP_CLK_IN = '1') then
+    if (rising_edge(NX_DATA_CLK_IN)) then
+      if (RESET_NX_DATA_CLK_IN = '1') then
         adc_sclk_ok_last    <= '0';
         adc_reset_sync_s    <= '0';
       else
@@ -731,26 +744,26 @@ begin
   -----------------------------------------------------------------------------
 
   -- First use two FFs for NX_TIMESTAMP_IN
-  nx_frame_word_ff  <= NX_TIMESTAMP_IN   when rising_edge(NX_TIMESTAMP_CLK_IN);
-  nx_frame_word_f   <= nx_frame_word_ff  when rising_edge(NX_TIMESTAMP_CLK_IN);
+  nx_frame_word_ff  <= NX_TIMESTAMP_IN   when rising_edge(NX_DATA_CLK_IN);
+  nx_frame_word_f   <= nx_frame_word_ff  when rising_edge(NX_DATA_CLK_IN);
     
   -- Second delay NX_TIMESTAMP_IN relatively to ADC Clock
   dynamic_shift_register8x64_1: dynamic_shift_register8x64
     port map (
       Din     => nx_frame_word_f,
       Addr    => nx_shift_register_delay,
-      Clock   => NX_TIMESTAMP_CLK_IN,
+      Clock   => NX_DATA_CLK_IN,
       ClockEn => '1',
-      Reset   => RESET_NX_TIMESTAMP_CLK_IN,
+      Reset   => RESET_NX_DATA_CLK_IN,
       Q       => nx_frame_word_s
       );
 
   -- Timestamp Input Delay relative to ADC
-  PROC_NX_SHIFT_REGISTER_DELAY: process(NX_TIMESTAMP_CLK_IN)
+  PROC_NX_SHIFT_REGISTER_DELAY: process(NX_DATA_CLK_IN)
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
+    if (rising_edge(NX_DATA_CLK_IN)) then
       nx_timestamp_delay_f            <= nx_timestamp_delay_s;
-      if( RESET_NX_TIMESTAMP_CLK_IN = '1' ) then
+      if( RESET_NX_DATA_CLK_IN = '1' ) then
         nx_timestamp_delay            <= "010";
         nx_shift_register_delay       <= "011011"; -- 27
       else
@@ -779,9 +792,9 @@ begin
   end process PROC_NX_SHIFT_REGISTER_DELAY;
 
   -- Merge TS Data 8bit to 32Bit Timestamp Frame
-  PROC_8_TO_32_BIT: process(NX_TIMESTAMP_CLK_IN)
+  PROC_8_TO_32_BIT: process(NX_DATA_CLK_IN)
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
+    if (rising_edge(NX_DATA_CLK_IN)) then
       case frame_byte_pos is
         when "11" => nx_frame_word_t(31 downto 24) <= nx_frame_word_s;
                      nx_frame_clk_t                <= '0';
@@ -808,10 +821,10 @@ begin
   end process PROC_8_TO_32_BIT;
   
   -- TS Frame Sync process
-  PROC_SYNC_TO_NX_FRAME: process(NX_TIMESTAMP_CLK_IN)
+  PROC_SYNC_TO_NX_FRAME: process(NX_DATA_CLK_IN)
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
-      if( RESET_NX_TIMESTAMP_CLK_IN = '1' ) then
+    if (rising_edge(NX_DATA_CLK_IN)) then
+      if( RESET_NX_DATA_CLK_IN = '1' ) then
         frame_byte_pos    <= "11";
         rs_sync_set       <= '0';
         rs_sync_reset     <= '0';
@@ -847,10 +860,10 @@ begin
   end process PROC_SYNC_TO_NX_FRAME;
 
   -- RS FlipFlop to hold Sync Status
-  PROC_RS_FRAME_SYNCED: process(NX_TIMESTAMP_CLK_IN)
+  PROC_RS_FRAME_SYNCED: process(NX_DATA_CLK_IN)
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
-      if (RESET_NX_TIMESTAMP_CLK_IN = '1') then
+    if (rising_edge(NX_DATA_CLK_IN)) then
+      if (RESET_NX_DATA_CLK_IN = '1') then
         nx_frame_synced     <= '0';
       else
         if (rs_sync_reset = '1') then
@@ -863,12 +876,12 @@ begin
   end process PROC_RS_FRAME_SYNCED;
   
   -- Check Parity Bit
-  PROC_PARITY_CHECKER: process(NX_TIMESTAMP_CLK_IN)
+  PROC_PARITY_CHECKER: process(NX_DATA_CLK_IN)
     variable parity_bits : std_logic_vector(22 downto 0);
     variable parity      : std_logic;
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
-      if (RESET_NX_TIMESTAMP_CLK_IN = '1') then
+    if (rising_edge(NX_DATA_CLK_IN)) then
+      if (RESET_NX_DATA_CLK_IN = '1') then
         parity_error       <= '0';
       else
         if (nx_frame_clk = '1') then
@@ -895,9 +908,9 @@ begin
   -----------------------------------------------------------------------------
   -- Delay NX Timestamp relative to ADC Frames
   -----------------------------------------------------------------------------
-  PROC_NX_TIMESTAMP_FRAME_DELAY: process(NX_TIMESTAMP_CLK_IN)
+  PROC_NX_TIMESTAMP_FRAME_DELAY: process(NX_DATA_CLK_IN)
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
+    if (rising_edge(NX_DATA_CLK_IN)) then
       nx_frame_word_delayed_t(0)      <= nx_frame_word;
       nx_frame_clk_delayed_t(0)       <= nx_frame_clk;
 
@@ -915,13 +928,13 @@ begin
     end if;
   end process PROC_NX_TIMESTAMP_FRAME_DELAY;
   
-  PROC_NX_FRAME_WORD_DELAY_AUTO_SETUP: process(NX_TIMESTAMP_CLK_IN)
+  PROC_NX_FRAME_WORD_DELAY_AUTO_SETUP: process(NX_DATA_CLK_IN)
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
+    if (rising_edge(NX_DATA_CLK_IN)) then
       nx_frame_word_delay             <= nx_frame_word_delay_f;
       adc_data_clk_last(0)            <= adc_data_s_clk;
       
-      if (RESET_NX_TIMESTAMP_CLK_IN = '1') then
+      if (RESET_NX_DATA_CLK_IN = '1') then
         nx_frame_word_delay_f         <= "10";
         adc_data_clk_last(3 downto 1) <= (others => '0');
         frame_word_delay_change       <= '0';
@@ -970,27 +983,27 @@ begin
   -----------------------------------------------------------------------------
 
   adc_reset_handler_cnx_ff <= adc_reset_handler
-                            when rising_edge(NX_TIMESTAMP_CLK_IN);
+                            when rising_edge(NX_DATA_CLK_IN);
   adc_reset_handler_cnx_f  <= adc_reset_handler_cnx_ff
-                            when rising_edge(NX_TIMESTAMP_CLK_IN);
+                            when rising_edge(NX_DATA_CLK_IN);
   adc_reset_handler_cnx    <= adc_reset_handler_cnx_f
-                            when rising_edge(NX_TIMESTAMP_CLK_IN);
+                            when rising_edge(NX_DATA_CLK_IN);
 
-  ADC_RESET_AD9228         <= RESET_NX_TIMESTAMP_CLK_IN or
+  ADC_RESET_AD9228         <= RESET_NX_DATA_CLK_IN or
                               adc_reset_handler_cnx;
                               
 
   adc_debug_type_f         <= adc_debug_type_r
-                              when rising_edge(NX_TIMESTAMP_CLK_IN);
+                              when rising_edge(NX_DATA_CLK_IN);
   adc_debug_type           <= adc_debug_type_f
-                              when rising_edge(NX_TIMESTAMP_CLK_IN);
+                              when rising_edge(NX_DATA_CLK_IN);
 
   adc_ad9228_1: adc_ad9228
     generic map (
       DEBUG_ENABLE => false
       )
     port map (
-      CLK_IN               => NX_TIMESTAMP_CLK_IN,
+      CLK_IN               => NX_DATA_CLK_IN,
       RESET_IN             => ADC_RESET_AD9228,
       CLK_ADCDAT_IN        => ADC_CLK_DAT_IN,
 
@@ -1029,14 +1042,18 @@ begin
 
       ERROR_ADC0_OUT       => adc_error_i,
       ERROR_ADC1_OUT       => open,
+
+      ERROR_UNDEF_ADC0_OUT => adc_error_undef_i,
+      ERROR_UNDEF_ADC1_OUT => open,
+      
       DEBUG_IN             => adc_debug_type,
       DEBUG_OUT            => ADC_DEBUG
       );
 
-  PROC_ADC_DATA_BIT_SHIFT: process(NX_TIMESTAMP_CLK_IN)
+  PROC_ADC_DATA_BIT_SHIFT: process(NX_DATA_CLK_IN)
     variable adcval : unsigned(11 downto 0) := (others => '0');
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
+    if (rising_edge(NX_DATA_CLK_IN)) then
       if (adc_bit_shift(3) = '1') then
         adcval             := unsigned(adc_data) rol
                               to_integer(adc_bit_shift(2 downto 0));
@@ -1059,16 +1076,16 @@ begin
   -- Merge Data Streams Timestamps and ADC Value
   -----------------------------------------------------------------------------
   merge_handler_reset_i <= output_handler_reset
-                           when rising_edge(NX_TIMESTAMP_CLK_IN);
+                           when rising_edge(NX_DATA_CLK_IN);
   merge_handler_reset   <= merge_handler_reset_i
-                           when rising_edge(NX_TIMESTAMP_CLK_IN);
-  disable_adc_f         <= disable_adc_r  when rising_edge(NX_TIMESTAMP_CLK_IN);
-  disable_adc           <= disable_adc_f  when rising_edge(NX_TIMESTAMP_CLK_IN);
+                           when rising_edge(NX_DATA_CLK_IN);
+  disable_adc_f         <= disable_adc_r  when rising_edge(NX_DATA_CLK_IN);
+  disable_adc           <= disable_adc_f  when rising_edge(NX_DATA_CLK_IN);
   
-  PROC_DATA_MERGE_HANDLER: process(NX_TIMESTAMP_CLK_IN)
+  PROC_DATA_MERGE_HANDLER: process(NX_DATA_CLK_IN)
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
-      if (RESET_NX_TIMESTAMP_CLK_IN = '1' or merge_handler_reset = '1') then
+    if (rising_edge(NX_DATA_CLK_IN)) then
+      if (RESET_NX_DATA_CLK_IN = '1' or merge_handler_reset = '1') then
         merge_timeout_ctr      <= (others => '0');
         merge_timeout_error    <= '0';
         merge_error_ctr        <= (others => '0');
@@ -1108,7 +1125,7 @@ begin
   fifo_data_stream_44to44_dc_1: fifo_data_stream_44to44_dc
     port map (
       Data    => data_frame,
-      WrClock => NX_TIMESTAMP_CLK_IN,
+      WrClock => NX_DATA_CLK_IN,
       RdClock => CLK_IN,
       WrEn    => fifo_write_enable,
       RdEn    => fifo_read_enable,
@@ -1165,8 +1182,8 @@ begin
       CLK_RATIO => 3
       )
     port map (
-      CLK_A_IN    => NX_TIMESTAMP_CLK_IN,
-      RESET_A_IN  => RESET_NX_TIMESTAMP_CLK_IN,
+      CLK_A_IN    => NX_DATA_CLK_IN,
+      RESET_A_IN  => RESET_NX_DATA_CLK_IN,
       PULSE_A_IN  => rs_sync_reset,
       CLK_B_IN    => CLK_IN,
       RESET_B_IN  => RESET_IN,
@@ -1325,8 +1342,8 @@ begin
       CLK_RATIO => 2
       )
     port map (
-      CLK_A_IN    => NX_TIMESTAMP_CLK_IN,
-      RESET_A_IN  => RESET_NX_TIMESTAMP_CLK_IN,
+      CLK_A_IN    => NX_DATA_CLK_IN,
+      RESET_A_IN  => RESET_NX_DATA_CLK_IN,
       PULSE_A_IN  => adc_dt_error_p,
       CLK_B_IN    => CLK_IN,
       RESET_B_IN  => RESET_IN,
@@ -1338,8 +1355,8 @@ begin
       CLK_RATIO => 2
       )
     port map (
-      CLK_A_IN    => NX_TIMESTAMP_CLK_IN,
-      RESET_A_IN  => RESET_NX_TIMESTAMP_CLK_IN,
+      CLK_A_IN    => NX_DATA_CLK_IN,
+      RESET_A_IN  => RESET_NX_DATA_CLK_IN,
       PULSE_A_IN  => timestamp_dt_error_p,
       CLK_B_IN    => CLK_IN,
       RESET_B_IN  => RESET_IN,
@@ -1372,10 +1389,10 @@ begin
     end if;
   end process PROC_EVENT_ERRORS_PER_SECOND;
     
-  PROC_DATA_STREAM_DELTA_T: process(NX_TIMESTAMP_CLK_IN)
+  PROC_DATA_STREAM_DELTA_T: process(NX_DATA_CLK_IN)
   begin
-    if (rising_edge(NX_TIMESTAMP_CLK_IN)) then
-      if (RESET_NX_TIMESTAMP_CLK_IN = '1') then
+    if (rising_edge(NX_DATA_CLK_IN)) then
+      if (RESET_NX_DATA_CLK_IN = '1') then
         new_adc_dt_ctr              <= (others => '0');
         new_timestamp_dt_ctr        <= (others => '0');
         new_adc_dt_error_ctr        <= (others => '0');
@@ -1660,12 +1677,25 @@ begin
       CLK_RATIO => 2
       )
     port map (
-      CLK_A_IN    => NX_TIMESTAMP_CLK_IN,
-      RESET_A_IN  => RESET_NX_TIMESTAMP_CLK_IN,
+      CLK_A_IN    => NX_DATA_CLK_IN,
+      RESET_A_IN  => RESET_NX_DATA_CLK_IN,
       PULSE_A_IN  => adc_error_i,
       CLK_B_IN    => CLK_IN,
       RESET_B_IN  => RESET_IN,
       PULSE_B_OUT => adc_error
+      );
+  
+  pulse_dtrans_ADC_ERROR_UNDEF: pulse_dtrans
+    generic map (
+      CLK_RATIO => 2
+      )
+    port map (
+      CLK_A_IN    => NX_DATA_CLK_IN,
+      RESET_A_IN  => RESET_NX_DATA_CLK_IN,
+      PULSE_A_IN  => adc_error_undef_i,
+      CLK_B_IN    => CLK_IN,
+      RESET_B_IN  => RESET_IN,
+      PULSE_B_OUT => adc_error_undef
       );
   
 
@@ -1673,13 +1703,14 @@ begin
     variable error_mask : std_logic_vector(15 downto 0);
   begin
     if (rising_edge(CLK_IN)) then
-      adc_sclk_ok_f            <= adc_sclk_ok;
+      adc_sclk_ok_f              <= adc_sclk_ok;
       if (RESET_IN = '1') then
-        adc_sclk_ok_c100       <= '0';
-        error_status_bits      <= (others => '0');
-        error_o                <= '0';
-        adc_notlock_counter    <= (others => '0');
-        adc_error_counter      <= (others => '0');        
+        adc_sclk_ok_c100         <= '0';
+        error_status_bits        <= (others => '0');
+        error_o                  <= '0';
+        adc_notlock_counter      <= (others => '0');
+        adc_error_counter        <= (others => '0');
+        adc_error_undef_counter  <= (others => '0');        
       else
         adc_sclk_ok_c100                 <= adc_sclk_ok_f;
         
@@ -1716,6 +1747,10 @@ begin
 
         if (adc_error  = '1') then
          adc_error_counter               <= adc_error_counter + 1;
+        end if;
+
+        if (adc_error_undef  = '1') then
+         adc_error_undef_counter         <= adc_error_undef_counter + 1;
         end if;
 
       end if;
@@ -1758,6 +1793,8 @@ begin
       fifo_full_rr                      <= fifo_full;
       fifo_empty_rr                     <= fifo_empty;
       nx_frame_synced_rr                <= nx_frame_synced;
+      nx_frame_word_delay_rr            <= nx_frame_word_delay_f;
+      
       if (RESET_IN = '1') then
         fifo_full_r                     <= '0';
         fifo_empty_r                    <= '0';
@@ -1766,6 +1803,7 @@ begin
         new_timestamp_dt_error_ctr_r    <= (others => '0');
         adc_notlock_ctr_r               <= (others => '0');
         merge_error_ctr_r               <= (others => '0');
+        nx_frame_word_delay_r           <= (others => '0');
       else
         fifo_full_r                     <= fifo_full_rr;
         fifo_empty_r                    <= fifo_empty_rr;
@@ -1774,6 +1812,7 @@ begin
         new_timestamp_dt_error_ctr_r    <= new_timestamp_dt_error_ctr;
         adc_notlock_ctr_r               <= adc_notlock_ctr;
         merge_error_ctr_r               <= merge_error_ctr;
+        nx_frame_word_delay_r           <= nx_frame_word_delay_rr;
       end if;
     end if;
   end process PROC_SLAVE_BUS_BUFFER;
@@ -1903,6 +1942,7 @@ begin
             when x"0010" =>
               slv_data_out_o(2 downto 0)    <=
                 std_logic_vector(nx_timestamp_delay_s);
+              slv_data_out_o(3)             <= '0';
               slv_data_out_o(5 downto 4)    <= 
                 std_logic_vector(nx_frame_word_delay_r);
               slv_data_out_o(14 downto 6)   <= (others => '0');
@@ -1950,6 +1990,12 @@ begin
             when x"0017" =>
               slv_data_out_o(27 downto 0)   <=
                 std_logic_vector(adc_error_counter);
+              slv_data_out_o(31 downto 28)  <= (others => '0');
+              slv_ack_o                     <= '1';
+
+            when x"0018" =>
+              slv_data_out_o(27 downto 0)   <=
+                std_logic_vector(adc_error_undef_counter);
               slv_data_out_o(31 downto 28)  <= (others => '0');
               slv_ack_o                     <= '1';
 

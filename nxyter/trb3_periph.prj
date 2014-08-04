@@ -157,6 +157,7 @@ add_file -vhdl -lib "work" "cores/fifo_adc_48to48_dc.vhd"
 add_file -vhdl -lib "work" "cores/fifo_32_data.vhd"
 add_file -vhdl -lib "work" "cores/dynamic_shift_register8x64.vhd"
 
+add_file -vhdl -lib "work" "../base/code/sedcheck.vhd"
 add_file -vhdl -lib "work" "trb3_periph.vhd"
 
 add_file -vhdl -lib "work" "source/nxyter_components.vhd"

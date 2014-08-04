@@ -1,3 +1,6 @@
+#######################################################################
+
+
 BLOCK RESETPATHS ;
 BLOCK ASYNCPATHS ;
 BLOCK RD_DURING_WR_PATHS ;
@@ -32,14 +35,10 @@ BLOCK RD_DURING_WR_PATHS ;
 
   FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
   FREQUENCY PORT NX1_DATA_CLK_IN 125 MHz;
-  #FREQUENCY PORT NX2_DATA_CLK_IN 125 MHz;
-             
 
   USE PRIMARY NET "nx_main_clk_c"; 
   USE PRIMARY NET "clk_100_i_c";
   USE PRIMARY NET "CLK_PCLK_RIGHT_c";
-
-#  USE PRIMARY2EDGE NET "nx_clk_adc_dat";
   
 #################################################################
 # Reset Nets
@@ -136,11 +135,11 @@ LOCATE UGROUP "THE_SPI_MEMORY/SPI_group" REGION "REGION_SPI" ;
 # DDR Generic PLL Setup, very important, do never remove!
 LOCATE COMP "pll_adc_clk_1/PLLInst_0" SITE "PLL_R61C5" ;
 
-PROHIBIT PRIMARY   NET "NX1_DATA_CLK_*";
-PROHIBIT SECONDARY NET "NX1_DATA_CLK_*";
+PROHIBIT PRIMARY   NET "NX1_DATA_CLK_IN_c";
+PROHIBIT SECONDARY NET "NX1_DATA_CLK_IN_c";
 
 DEFINE PORT GROUP    "NX1_IN" "NX1_TIMESTAMP_*";
-INPUT_SETUP GROUP    "NX1_IN" 1.5 ns HOLD 1.5 ns CLKPORT="NX1_DATA_CLK_IN"; 
+INPUT_SETUP GROUP    "NX1_IN" 0.5 ns HOLD 0.5 ns CLKPORT="NX1_DATA_CLK_IN"; 
 
 UGROUP NXYTER1 BBOX 100 70
  BLKNAME nXyter_FEE_board_0;

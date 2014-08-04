@@ -49,6 +49,8 @@ entity adc_ad9228 is
 
     ERROR_ADC0_OUT       : out std_logic;
     ERROR_ADC1_OUT       : out std_logic;
+    ERROR_UNDEF_ADC0_OUT : out std_logic;
+    ERROR_UNDEF_ADC1_OUT : out std_logic;
     DEBUG_IN             : in  std_logic_vector(3 downto 0);
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
@@ -70,6 +72,7 @@ architecture Behavioral of  adc_ad9228 is
   type adc_data_t       is array(0 to 3) of std_logic_vector(11 downto 0);
 
   type BYTE_STATUS is (B_UNDEF,
+                       B_BITSHIFTED,
                        B_ALIGNED,
                        B_SHIFTED
                        );
@@ -86,6 +89,7 @@ architecture Behavioral of  adc_ad9228 is
   signal adc0_frame_clk_ok_hist : std_logic_vector(15 downto 0);
   signal adc0_frame_locked      : std_logic;
   signal adc0_error             : std_logic;
+  signal adc0_error_undef       : std_logic;
 
   -- ADC0
   signal adc1_data_shift        : adc_data_s;
@@ -100,7 +104,8 @@ architecture Behavioral of  adc_ad9228 is
   signal adc1_frame_clk_ok_hist : std_logic_vector(15 downto 0);
   signal adc1_frame_locked      : std_logic;
   signal adc1_error             : std_logic;
-     
+  signal adc1_error_undef       : std_logic;
+
   -- Clock Transfer             
   signal adc0_fifo_empty        :  std_logic;
   signal adc0_fifo_full         :  std_logic;
@@ -125,6 +130,8 @@ architecture Behavioral of  adc_ad9228 is
   -- Error
   signal error_adc0_o           : std_logic;
   signal error_adc1_o           : std_logic;
+  signal error_undef_adc0_o     : std_logic;
+  signal error_undef_adc1_o     : std_logic;
 
   -- Output
   signal adc0_data_clk_o        : std_logic;
@@ -196,23 +203,23 @@ begin
   -----------------------------------------------------------------------------
 
   DFALSE: if (DEBUG_ENABLE = false) generate
-    
-    DEBUG_OUT(0)            <= CLK_IN;
-    DEBUG_OUT(1)            <= DDR_DATA_CLK;
-    DEBUG_OUT(2)            <= adc0_write_enable;
-    DEBUG_OUT(3)            <= adc0_fifo_full;
-    DEBUG_OUT(4)            <= adc0_fifo_empty;
-    DEBUG_OUT(5)            <= adc0_data_clk_m;
-    DEBUG_OUT(6)            <= adc0_read_enable;
-    DEBUG_OUT(7)            <= adc0_read_enable_t;
-    DEBUG_OUT(8)            <= adc0_read_enable_tt;
-    DEBUG_OUT(9)            <= adc0_data_clk_o;
-    DEBUG_OUT(10)           <= adc0_error;
-    DEBUG_OUT(11)           <= adc0_frame_locked;
-    DEBUG_OUT(12)           <= adc0_frame_clk_ok;
-    DEBUG_OUT(13)           <= wait_timer_done;
-    DEBUG_OUT(14)           <= RESET_CLKDIV;
-    DEBUG_OUT(15)           <= RESET_ADC0;
+    DEBUG_OUT               <= (others => '0');
+    --DEBUG_OUT(0)            <= CLK_IN;
+    --DEBUG_OUT(1)            <= DDR_DATA_CLK;
+    --DEBUG_OUT(2)            <= adc0_write_enable;
+    --DEBUG_OUT(3)            <= adc0_fifo_full;
+    --DEBUG_OUT(4)            <= adc0_fifo_empty;
+    --DEBUG_OUT(5)            <= adc0_data_clk_m;
+    --DEBUG_OUT(6)            <= adc0_read_enable;
+    --DEBUG_OUT(7)            <= adc0_read_enable_t;
+    --DEBUG_OUT(8)            <= adc0_read_enable_tt;
+    --DEBUG_OUT(9)            <= adc0_data_clk_o;
+    --DEBUG_OUT(10)           <= adc0_error;
+    --DEBUG_OUT(11)           <= adc0_frame_locked;
+    --DEBUG_OUT(12)           <= adc0_frame_clk_ok;
+    --DEBUG_OUT(13)           <= wait_timer_done;
+    --DEBUG_OUT(14)           <= RESET_CLKDIV;
+    --DEBUG_OUT(15)           <= RESET_ADC0;
   end generate DFALSE;
 
   DTRUE: if (DEBUG_ENABLE = true) generate
@@ -408,6 +415,7 @@ begin
         adc0_frame_clk_ok_hist     <= (others => '0');
         adc0_frame_locked          <= '0';
         adc0_error                 <= '0';
+        adc0_error_undef           <= '0';
       else
         -- Store new incoming Data in Shift Registers
         for I in 0 to 4 loop
@@ -444,13 +452,23 @@ begin
             adc0_data_clk_m             <= '0';
             adc0_frame_clk_ok           <= '1';
             adc0_byte_status            <= B_ALIGNED;
-            
+
           when "000000111111" | "001111110000" =>
             -- Input Data is correct
             adc0_data_clk_m             <= '0';
             adc0_frame_clk_ok           <= '1';
             adc0_byte_status            <= B_SHIFTED;
-            
+
+          when "000001111110" |
+               "000111111000" |
+               "011111100000" |
+               "111110000001" |
+               "111000000111" |
+               "100000011111" =>
+            adc0_data_clk_m             <= '0';
+            adc0_frame_clk_ok           <= '0';
+            adc0_byte_status            <= B_BITSHIFTED;
+                        
           when others =>
             -- Input Data is invalid, Fatal Error of DDR Data, needs reset.
             adc0_data_clk_m             <= '0';
@@ -472,12 +490,21 @@ begin
         
         -- Error Status
         adc0_byte_status_last           <= adc0_byte_status;
-        if ( adc0_byte_status  /= adc0_byte_status_last or
-             adc0_byte_status = B_UNDEF) then
+        --if (adc0_byte_status  /= adc0_byte_status_last and
+        --    adc0_byte_status  /= B_UNDEF and
+        --    adc0_byte_status_last /= B_UNDEF) then
+        if (adc0_byte_status = B_BITSHIFTED) then
           adc0_error                    <= '1';
         else
           adc0_error                    <= '0';
         end if;
+
+        if (adc0_byte_status = B_UNDEF) then
+          adc0_error_undef              <= '1';
+        else
+          adc0_error_undef              <= '0';
+        end if;
+
       end if;
 
     end if;
@@ -570,12 +597,17 @@ begin
         
         -- Error Status
         adc1_byte_status_last           <= adc1_byte_status;
-        if (adc1_byte_status  /= adc1_byte_status_last or
-            adc1_byte_status = B_UNDEF) then
+        if (adc1_byte_status  /= adc1_byte_status_last) then
           adc1_error                    <= '1';
         else
           adc1_error                    <= '0';
         end if;
+
+        if (adc1_byte_status = B_UNDEF) then
+          adc1_error_undef              <= '1';
+        else
+          adc1_error_undef              <= '0';
+        end if; 
 
       end if;
     end if;
@@ -723,6 +755,32 @@ begin
       RESET_B_IN  => '0',
       PULSE_B_OUT => error_adc1_o
       );
+
+  pulse_dtrans_ADC0_ERROR_UNDEF: pulse_dtrans
+    generic map (
+      CLK_RATIO => 2
+      )
+    port map (
+      CLK_A_IN    => DDR_DATA_CLK,
+      RESET_A_IN  => '0',
+      PULSE_A_IN  => adc0_error_undef,
+      CLK_B_IN    => CLK_IN,
+      RESET_B_IN  => '0',
+      PULSE_B_OUT => error_undef_adc0_o
+      );
+
+  pulse_dtrans_ADC1_ERROR_UNDEF: pulse_dtrans
+    generic map (
+      CLK_RATIO => 2
+      )
+    port map (
+      CLK_A_IN    => DDR_DATA_CLK,
+      RESET_A_IN  => '0',
+      PULSE_A_IN  => adc1_error_undef,
+      CLK_B_IN    => CLK_IN,
+      RESET_B_IN  => '0',
+      PULSE_B_OUT => error_undef_adc1_o
+      );
   
   -- Output
   ADC0_SCLK_OUT        <= ADC0_SCLK_IN;
@@ -745,5 +803,8 @@ begin
 
   ERROR_ADC0_OUT       <= error_adc0_o;
   ERROR_ADC1_OUT       <= error_adc1_o;
+
+  ERROR_UNDEF_ADC0_OUT <= error_undef_adc0_o;
+  ERROR_UNDEF_ADC1_OUT <= error_undef_adc1_o;
   
 end Behavioral;

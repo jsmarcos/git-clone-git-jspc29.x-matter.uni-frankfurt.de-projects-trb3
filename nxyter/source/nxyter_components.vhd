@@ -214,13 +214,11 @@ end component;
 
 component adc_ad9228
   generic (
-    DEBUG_ENABLE : boolean
-    );
+    DEBUG_ENABLE : boolean);
   port (
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
     CLK_ADCDAT_IN        : in  std_logic;
-
     ADC0_SCLK_IN         : in  std_logic;
     ADC0_SCLK_OUT        : out std_logic;
     ADC0_DATA_A_IN       : in  std_logic;
@@ -229,7 +227,6 @@ component adc_ad9228
     ADC0_DATA_D_IN       : in  std_logic;
     ADC0_DCLK_IN         : in  std_logic;
     ADC0_FCLK_IN         : in  std_logic;
-
     ADC1_SCLK_IN         : in  std_logic;
     ADC1_SCLK_OUT        : out std_logic;
     ADC1_DATA_A_IN       : in  std_logic;
@@ -238,25 +235,23 @@ component adc_ad9228
     ADC1_DATA_D_IN       : in  std_logic;
     ADC1_DCLK_IN         : in  std_logic;
     ADC1_FCLK_IN         : in  std_logic;
-
     ADC0_DATA_A_OUT      : out std_logic_vector(11 downto 0);
     ADC0_DATA_B_OUT      : out std_logic_vector(11 downto 0);
     ADC0_DATA_C_OUT      : out std_logic_vector(11 downto 0);
     ADC0_DATA_D_OUT      : out std_logic_vector(11 downto 0);
     ADC0_DATA_CLK_OUT    : out std_logic;
-
     ADC1_DATA_A_OUT      : out std_logic_vector(11 downto 0);
     ADC1_DATA_B_OUT      : out std_logic_vector(11 downto 0);
     ADC1_DATA_C_OUT      : out std_logic_vector(11 downto 0);
     ADC1_DATA_D_OUT      : out std_logic_vector(11 downto 0);
     ADC1_DATA_CLK_OUT    : out std_logic;
-
     ADC0_LOCKED_OUT      : out std_logic;
     ADC1_LOCKED_OUT      : out std_logic;
     ERROR_ADC0_OUT       : out std_logic;
     ERROR_ADC1_OUT       : out std_logic;
-
-    DEBUG_IN             : in std_logic_vector(3 downto 0);
+    ERROR_UNDEF_ADC0_OUT : out std_logic;
+    ERROR_UNDEF_ADC1_OUT : out std_logic;
+    DEBUG_IN             : in  std_logic_vector(3 downto 0);
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
 end component;
@@ -454,7 +449,7 @@ component nx_data_receiver
     TRIGGER_IN             : in  std_logic;
     NX_ONLINE_IN           : in  std_logic;
     NX_CLOCK_ON_IN         : in  std_logic;
-    NX_TIMESTAMP_CLK_IN    : in  std_logic;
+    NX_DATA_CLK_IN         : in  std_logic;
     NX_TIMESTAMP_IN        : in  std_logic_vector (7 downto 0);
     NX_TIMESTAMP_RESET_OUT : out std_logic;
     ADC_CLK_DAT_IN         : in  std_logic;

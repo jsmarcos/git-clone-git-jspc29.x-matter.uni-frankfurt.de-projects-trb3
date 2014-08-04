@@ -561,7 +561,7 @@ begin
       NX_ONLINE_IN           => nxyter_online,
       NX_CLOCK_ON_IN         => nxyter_clock_on,
       
-      NX_TIMESTAMP_CLK_IN    => NX_DATA_CLK_IN,
+      NX_DATA_CLK_IN         => NX_DATA_CLK_IN,
       NX_TIMESTAMP_IN        => NX_TIMESTAMP_IN,
       NX_TIMESTAMP_RESET_OUT => nx_timestamp_reset,
       
