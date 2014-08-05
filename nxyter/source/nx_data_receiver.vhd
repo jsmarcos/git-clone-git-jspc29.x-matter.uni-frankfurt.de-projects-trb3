@@ -14,12 +14,13 @@ entity nx_data_receiver is
   port(
     CLK_IN                 : in  std_logic;
     RESET_IN               : in  std_logic;
+    NX_DATA_CLK_IN         : in  std_logic;
     TRIGGER_IN             : in  std_logic;
     NX_ONLINE_IN           : in  std_logic;
     NX_CLOCK_ON_IN         : in  std_logic;
-    
+
     -- nXyter Ports        
-    NX_DATA_CLK_IN         : in  std_logic;
+    NX_TIMESTAMP_CLK_IN    : in  std_logic;
     NX_TIMESTAMP_IN        : in  std_logic_vector (7 downto 0);
     NX_TIMESTAMP_RESET_OUT : out std_logic;
     
@@ -62,9 +63,16 @@ architecture Behavioral of nx_data_receiver is
   -----------------------------------------------------------------------------
 
   -- NX_TIMESTAMP_IN Process         
+  signal fifo_fw_reset_i             : std_logic;
+  signal fifo_fw_write_enable        : std_logic;
+  signal fifo_fw_read_enable         : std_logic;
+  signal fifo_fw_empty               : std_logic;
+  signal fifo_fw_full                : std_logic;
+
   signal nx_timestamp_delay_f        : unsigned(2 downto 0);
   signal nx_timestamp_delay          : unsigned(2 downto 0);
   signal nx_shift_register_delay     : std_logic_vector(5 downto 0);
+  signal nx_frame_word_fff           : std_logic_vector(7 downto 0);
   signal nx_frame_word_ff            : std_logic_vector(7 downto 0);
   signal nx_frame_word_f             : std_logic_vector(7 downto 0);
   signal nx_frame_word_s             : std_logic_vector(7 downto 0);
@@ -324,7 +332,7 @@ architecture Behavioral of nx_data_receiver is
   -- Reset Domain Transfers
   signal reset_nx_timestamp_clk_in_ff : std_logic;
   signal reset_nx_timestamp_clk_in_f  : std_logic;
-  signal RESET_NX_DATA_CLK_IN    : std_logic;
+  signal RESET_NX_DATA_CLK_IN         : std_logic;
 
   signal debug_state                  : std_logic_vector(3 downto 0);
   signal debug_frame_on               : std_logic;
@@ -354,10 +362,10 @@ architecture Behavioral of nx_data_receiver is
   attribute syn_keep of nx_frame_word_delay_f             : signal is true;
   attribute syn_keep of nx_frame_word_delay               : signal is true;
 
-  attribute syn_keep of nx_frame_word_f                   : signal is true;
+  attribute syn_keep of nx_frame_word_ff                  : signal is true;
 
-  attribute syn_keep of nx_frame_word_delay_rr            : signal is true;
-  attribute syn_keep of nx_frame_word_delay_r             : signal is true;
+  --attribute syn_keep of nx_frame_word_delay_rr            : signal is true;
+  --attribute syn_keep of nx_frame_word_delay_r             : signal is true;
   
   attribute syn_preserve : boolean;
   attribute syn_preserve of reset_nx_timestamp_clk_in_ff  : signal is true;
@@ -381,10 +389,10 @@ architecture Behavioral of nx_data_receiver is
   attribute syn_preserve of nx_frame_word_delay_f         : signal is true;
   attribute syn_preserve of nx_frame_word_delay           : signal is true;
 
-  attribute syn_preserve of nx_frame_word_f               : signal is true;
+  attribute syn_preserve of nx_frame_word_ff              : signal is true;
 
-  attribute syn_preserve of nx_frame_word_delay_rr        : signal is true;
-  attribute syn_preserve of nx_frame_word_delay_r         : signal is true;
+  --attribute syn_preserve of nx_frame_word_delay_rr        : signal is true;
+  --attribute syn_preserve of nx_frame_word_delay_r         : signal is true;
 
 begin
 
@@ -535,7 +543,7 @@ begin
                                    when rising_edge(NX_DATA_CLK_IN);
   reset_nx_timestamp_clk_in_f   <= reset_nx_timestamp_clk_in_ff
                                    when rising_edge(NX_DATA_CLK_IN); 
-  RESET_NX_DATA_CLK_IN     <= reset_nx_timestamp_clk_in_f
+  RESET_NX_DATA_CLK_IN             <= reset_nx_timestamp_clk_in_f
                                    when rising_edge(NX_DATA_CLK_IN);
   
   -----------------------------------------------------------------------------
@@ -553,7 +561,7 @@ begin
     end if;
   end process  PROC_PLL_PHASE_SETUP;
   
-  pll_adc_sampling_clk_2: pll_adc_sampling_clk
+  pll_adc_sampling_clk_2: entity work.pll_adc_sampling_clk
     port map (
       CLK       => adc_sampling_clk,
       
@@ -677,8 +685,11 @@ begin
       SIGNAL_A_IN => adc_locked,
       SIGNAL_OUT  => adc_locked_c100
       );
-  
+
+  -----------------------------------------------------------------------------
   -- ADC Sampling Clock Generator using a Johnson Counter
+  -----------------------------------------------------------------------------
+
   PROC_ADC_SAMPLING_CLK_GENERATOR: process(NX_DATA_CLK_IN)
   begin
     if (rising_edge(NX_DATA_CLK_IN)) then
@@ -743,12 +754,30 @@ begin
   -- NX Timestamp Handler 
   -----------------------------------------------------------------------------
 
-  -- First use two FFs for NX_TIMESTAMP_IN
-  nx_frame_word_ff  <= NX_TIMESTAMP_IN   when rising_edge(NX_DATA_CLK_IN);
-  nx_frame_word_f   <= nx_frame_word_ff  when rising_edge(NX_DATA_CLK_IN);
-    
-  -- Second delay NX_TIMESTAMP_IN relatively to ADC Clock
-  dynamic_shift_register8x64_1: dynamic_shift_register8x64
+  -- First: use two FFs for NX_TIMESTAMP_IN
+  nx_frame_word_fff <= NX_TIMESTAMP_IN    when rising_edge(NX_TIMESTAMP_CLK_IN);
+  nx_frame_word_ff  <= nx_frame_word_fff  when rising_edge(NX_TIMESTAMP_CLK_IN);
+
+  -- Second: Clock Domain Transfer to NX_DATA_CLK_IN 
+  fifo_nx_frame_8to8_dc_1: entity work.fifo_nx_frame_8to8_dc
+    port map (
+      Data    => nx_frame_word_ff,
+      WrClock => NX_TIMESTAMP_CLK_IN,
+      RdClock => NX_DATA_CLK_IN,
+      WrEn    => fifo_fw_write_enable,
+      RdEn    => fifo_fw_read_enable,
+      Reset   => fifo_fw_reset_i,
+      RPReset => fifo_fw_reset_i,
+      Q       => nx_frame_word_f,
+      Empty   => fifo_fw_empty,
+      Full    => fifo_fw_full 
+      );
+  fifo_fw_reset_i         <= '0'; --RESET_IN or RESET_NX_DATA_CLK_IN;
+  fifo_fw_write_enable    <= not fifo_fw_full;
+  fifo_fw_read_enable     <= not fifo_fw_empty;
+
+  -- Third: delay NX_TIMESTAMP_IN relatively to ADC Clock
+  dynamic_shift_register8x64_1: entity work.dynamic_shift_register8x64
     port map (
       Din     => nx_frame_word_f,
       Addr    => nx_shift_register_delay,
@@ -1793,7 +1822,7 @@ begin
       fifo_full_rr                      <= fifo_full;
       fifo_empty_rr                     <= fifo_empty;
       nx_frame_synced_rr                <= nx_frame_synced;
-      nx_frame_word_delay_rr            <= nx_frame_word_delay_f;
+      --nx_frame_word_delay_rr            <= nx_frame_word_delay_f;
       
       if (RESET_IN = '1') then
         fifo_full_r                     <= '0';
@@ -1812,7 +1841,7 @@ begin
         new_timestamp_dt_error_ctr_r    <= new_timestamp_dt_error_ctr;
         adc_notlock_ctr_r               <= adc_notlock_ctr;
         merge_error_ctr_r               <= merge_error_ctr;
-        nx_frame_word_delay_r           <= nx_frame_word_delay_rr;
+        --nx_frame_word_delay_r           <= nx_frame_word_delay_rr;
       end if;
     end if;
   end process PROC_SLAVE_BUS_BUFFER;
@@ -1944,7 +1973,8 @@ begin
                 std_logic_vector(nx_timestamp_delay_s);
               slv_data_out_o(3)             <= '0';
               slv_data_out_o(5 downto 4)    <= 
-                std_logic_vector(nx_frame_word_delay_r);
+                (others => '0');
+              --  std_logic_vector(nx_frame_word_delay_r);
               slv_data_out_o(14 downto 6)   <= (others => '0');
               slv_data_out_o(15)            <= nx_timestamp_delay_adjust;
               slv_data_out_o(31 downto 16)  <= nx_timestamp_delay_actr;

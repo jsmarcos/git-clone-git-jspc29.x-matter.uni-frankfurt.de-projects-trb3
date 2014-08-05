@@ -66,7 +66,7 @@ begin
   
   -----------------------------------------------------------------------------
   
-  ram_fifo_delay_256x44_1: ram_fifo_delay_256x44
+  ram_fifo_delay_256x44_1: entity work.ram_fifo_delay_256x44
     port map (
       WrAddress => write_address,
       RdAddress => read_address, 
