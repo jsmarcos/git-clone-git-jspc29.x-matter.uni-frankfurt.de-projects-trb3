@@ -205,7 +205,7 @@ begin
 
    THE_READOUT_FIFO: CBMNET_READOUT_FIFO 
    generic map (
-      ADDR_WIDTH => 10, 
+      ADDR_WIDTH => 12, -- 8kb ..
       WATERMARK  => 2
    ) port map (
       -- write port
@@ -326,13 +326,13 @@ begin
          when 16#0# => regio_data_status_i(0) <= cfg_enabled_i;
          when 16#1# => regio_data_status_i(16 downto 0) <= cfg_source_override_i & cfg_source_i;
          
-         when 16#2# => regio_data_status_i <= stat_connections_i;
-         when 16#3# => regio_data_status_i <= stat_clks_dead_i;
-         when 16#4# => regio_data_status_i <= stat_num_send_completed_i;
-         when 16#5# => regio_data_status_i <= stat_num_packets_i;
-         when 16#6# => regio_data_status_i <= stat_num_recv_completed_i;
-         when 16#7# => regio_data_status_i <= stat_link_inactive_i;
-         when 16#8# => regio_data_status_i <= stat_num_packets_aborted_i;
+         when 16#2# => regio_data_status_i <= std_logic_vector(stat_connections_i);
+         when 16#3# => regio_data_status_i <= std_logic_vector(stat_clks_dead_i);
+         when 16#4# => regio_data_status_i <= std_logic_vector(stat_num_send_completed_i);
+         when 16#5# => regio_data_status_i <= std_logic_vector(stat_num_packets_i);
+         when 16#6# => regio_data_status_i <= std_logic_vector(stat_num_recv_completed_i);
+         when 16#7# => regio_data_status_i <= std_logic_vector(stat_link_inactive_i);
+         when 16#8# => regio_data_status_i <= std_logic_vector(stat_num_packets_aborted_i);
          
          -- debug only ports
          when 16#9# => regio_data_status_i <= debug_decorder_i;

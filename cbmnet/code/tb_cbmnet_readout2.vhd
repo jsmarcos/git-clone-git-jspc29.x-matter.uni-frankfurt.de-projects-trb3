@@ -3,10 +3,27 @@ library ieee;
    use ieee.numeric_std.all;
    use work.cbmnet_interface_pkg.all;
 
-entity tb_cbmnet_readout is
-end tb_cbmnet_readout;
+entity tb_cbmnet_readout2 is
+end tb_cbmnet_readout2;
 
-architecture TB of tb_cbmnet_readout is
+architecture TB of tb_cbmnet_readout2 is
+   component TB_CBMNET_LOGGER is
+      generic (
+         log_file : string
+      );
+      port (
+         CLK_IN : in std_logic;
+         RESET_IN : in std_logic;
+         LINK_ACTIVE_IN : in std_logic;
+
+         DATA2SEND_IN : std_logic_vector(15 downto 0);
+         DATA2SEND_STOP_IN : std_logic;
+         DATA2SEND_START_IN : std_logic;
+         DATA2SEND_END_IN : std_logic
+      );
+   end component;
+
+
    signal CLK_IN   : std_logic := '0';
    signal RESET_IN : std_logic := '0';
 
@@ -57,7 +74,25 @@ architecture TB of tb_cbmnet_readout is
    signal CBMNET_DATA2SEND_START_OUT :  std_logic := '0';
    signal CBMNET_DATA2SEND_END_OUT   :  std_logic := '0';
    signal CBMNET_DATA2SEND_DATA_OUT  :  std_logic_vector(15 downto 0) := (others => '0');
+
+   signal send_wait_counter_i : unsigned(31 downto 0);
+   signal send_wait_threshold_i : unsigned(31 downto 0) := x"0000_0010";
+
+   signal event_id : unsigned(15 downto 0) := x"0000";
+   signal send_length_i : unsigned(15 downto 0) := x"0010";
+   signal send_counter_i : unsigned(15 downto 0);
+
+   signal send_enabled_i : std_logic := '0';
+   
+   
+   type TRB_FSM_T is (IDLE, START_READOUT, START_READOUT_WAIT, FEE_BUSY, SEND_EINF_H, SEND_EINF_L, SEND_LENGTH, SEND_SOURCE, SEND_SOURCE_WAIT, SEND_PAYLOAD_H, SEND_PAYLOAD_L, COMPL_WAIT, COMPL_NOT_BUSY_WAIT, EVT_WAIT);
+   signal trb_fsm_i : TRB_FSM_T;
+   
 begin
+   REGIO_ADDR_IN <= (others => '0');
+   REGIO_DATA_IN <= x"0000_0001";
+   REGIO_WRITE_ENABLE_IN <= '1';
+
    CLK_IN <= not CLK_IN after 5 ns;
    RESET_IN <= '1', '0' after 30 ns;
    
@@ -65,82 +100,149 @@ begin
    CBMNET_RESET_IN <= '1', '0' after 20 ns;
    CBMNET_LINK_ACTIVE_IN <= '1';
    
-   PROC_TRBNET: process is 
-      variable evt_num : integer := 16#1234#;
-      variable trg_code : std_logic_vector(7 downto 0) := x"ab";
-      variable trg_type : std_logic_vector(3 downto 0) := x"e";
-      variable trg_conf : std_logic_vector(3 downto 0) := x"0";
+   gbe_fee_read_in <= '1';
+   gbe_cts_status_bits_in <= x"beafc0de";
+   
+   send_enabled_i <= '0', '1' after 100 ns;
+   
+   process is
+      variable wait_cnt_v : integer range 0 to 15 := 0;
    begin
-      wait for 100 ns;
+      wait until rising_edge(CLK_IN);
       
       HUB_CTS_START_READOUT_IN <= '1';
-      HUB_CTS_NUMBER_IN <= STD_LOGIC_VECTOR(TO_UNSIGNED(evt_num, 16));
-      evt_num := evt_num + 1;
-      HUB_CTS_READOUT_TYPE_IN <= x"e";
-      GBE_CTS_STATUS_BITS_IN <= x"12345678";
-      
-00:00:00:70:00:03:00:62:00:00:00:64:00:02:00:11:00:00:f3:c0:00:09:45:f7:
-00:12:f3:c0:20:06:f3:53:cf:0f:3c:7c:00:00:00:61:cf:0f:3c:7c:05:06:ac:6e:cf:0f:3c:7c:00:00:00:00:00:00:00:00:00:00:00:00:cf:0f:3c:7c:00:00:00:61:cf:0f:3c:7c:05:06:ac:6e:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:
-00:01:55:55:00:00:00:01:
-      wait until rising_edge(CLK_IN);
-      wait until rising_edge(CLK_IN);
-      wait until rising_edge(CLK_IN);
-      wait until rising_edge(CLK_IN);
       HUB_FEE_BUSY_IN <= '1';
-      wait until rising_edge(CLK_IN);
-      wait until rising_edge(CLK_IN);
-      wait until rising_edge(CLK_IN);
-      wait until rising_edge(CLK_IN);
-
-      for i in 0 to 103 loop
-         case i is
-            when 0 => HUB_FEE_DATA_IN <= trg_conf & trg_type & trg_code;
-            when 1 => HUB_FEE_DATA_IN <= HUB_CTS_NUMBER_IN;
-            when 2 => HUB_FEE_DATA_IN <= STD_LOGIC_VECTOR(TO_UNSIGNED(50, 16));
-            when 3 => HUB_FEE_DATA_IN <= x"affe";
-            when others => HUB_FEE_DATA_IN <= STD_LOGIC_VECTOR(TO_UNSIGNED(i-3, 16));
-         end case;
-         
-         HUB_FEE_DATAREADY_IN <= '1';
-         
-         wait until rising_edge(CLK_IN);
-         
-         while GBE_FEE_READ_IN = '0' loop
-            wait until rising_edge(CLK_IN);
-         end loop;
-      end loop;
-      
       HUB_FEE_DATAREADY_IN <= '0';
-
-      wait until rising_edge(CLK_IN);
-      wait until rising_edge(CLK_IN);
-
-      HUB_FEE_BUSY_IN <= '0';
-
-      wait until rising_edge(CLK_IN);
-      wait until rising_edge(CLK_IN);
-      wait until rising_edge(CLK_IN);
-      wait until rising_edge(CLK_IN);
       
-      HUB_CTS_START_READOUT_IN <= '0';
-      
-      wait until rising_edge(CLK_IN);
-      wait until rising_edge(CLK_IN);      
-      
+      case(trb_fsm_i) is
+         when IDLE =>
+            HUB_CTS_START_READOUT_IN <= '0';
+            HUB_FEE_BUSY_IN <= '0';
+            if send_enabled_i = '1' then
+               trb_fsm_i <= START_READOUT;
+            end if;
+            
+         when START_READOUT => 
+            trb_fsm_i <= START_READOUT_WAIT;
+            wait_cnt_v := 10;
+            HUB_FEE_BUSY_IN <= '0';
+            event_id <= event_id + 1;
+            
+         when START_READOUT_WAIT => 
+            if wait_cnt_v = 0 then
+               trb_fsm_i <= FEE_BUSY;
+               wait_cnt_v := 5;
+            else
+               wait_cnt_v := wait_cnt_v - 1;
+            end if;
+            
+            HUB_FEE_BUSY_IN <= '0';
+         
+         when FEE_BUSY =>
+            if wait_cnt_v = 0 then
+               trb_fsm_i <= SEND_EINF_H;
+            else
+               wait_cnt_v := wait_cnt_v - 1;
+            end if;
+            
+            HUB_FEE_BUSY_IN <= '1';
+            
+         when SEND_EINF_H =>
+            HUB_FEE_DATA_IN <= x"8765";
+            HUB_FEE_DATAREADY_IN <= '1';
+            trb_fsm_i <= SEND_EINF_L;
+         when SEND_EINF_L =>
+            HUB_FEE_DATA_IN <= std_logic_vector(event_id);
+            HUB_FEE_DATAREADY_IN <= '1';
+            trb_fsm_i <= SEND_LENGTH;
+            
+         when SEND_LENGTH =>
+            HUB_FEE_DATA_IN <= std_logic_vector(send_length_i);
+            send_counter_i <= send_length_i;
+            HUB_FEE_DATAREADY_IN <= '1';
+            trb_fsm_i <= SEND_SOURCE;
+         when SEND_SOURCE =>
+            HUB_FEE_DATA_IN <= x"affe";
+            HUB_FEE_DATAREADY_IN <= '1';
+            trb_fsm_i <= SEND_SOURCE_WAIT;
+
+         when SEND_SOURCE_WAIT =>
+            trb_fsm_i <= SEND_PAYLOAD_H;
+            
+         when SEND_PAYLOAD_H =>
+            HUB_FEE_DATA_IN <= x"bb" & std_logic_vector(event_id(7 downto 0));
+            HUB_FEE_DATAREADY_IN <= '1';
+            trb_fsm_i <= SEND_PAYLOAD_L;
+            
+         when SEND_PAYLOAD_L =>
+            HUB_FEE_DATA_IN <= x"c" & std_logic_vector(send_counter_i(11 downto 0));
+            HUB_FEE_DATAREADY_IN <= '1';
+            trb_fsm_i <= SEND_PAYLOAD_H;
+            send_counter_i <= send_counter_i - 1;
+            
+            if send_counter_i = 1 then
+               trb_fsm_i <= COMPL_WAIT;
+               wait_cnt_v := 5;
+            end if;
+            
+         when COMPL_WAIT =>
+            if wait_cnt_v = 0 then
+               wait_cnt_v := 5;
+               trb_fsm_i <= COMPL_NOT_BUSY_WAIT;
+            else
+               wait_cnt_v := wait_cnt_v - 1;
+            end if;
+            
+            HUB_FEE_BUSY_IN <= '1';
+
+         
+         when COMPL_NOT_BUSY_WAIT => 
+            HUB_CTS_START_READOUT_IN <= '0';
+            if wait_cnt_v = 0 then
+               trb_fsm_i <= EVT_WAIT;
+               wait_cnt_v := 5;
+            else
+               wait_cnt_v := wait_cnt_v - 1;
+            end if;
+            
+            HUB_FEE_BUSY_IN <= '0';
+            send_wait_counter_i <= (others => '0');
+            
+            
+         when EVT_WAIT =>
+            HUB_CTS_START_READOUT_IN <= '0';
+            HUB_FEE_BUSY_IN <= '0';
+
+            send_wait_counter_i <= send_wait_counter_i + 1;
+            if send_wait_counter_i >= UNSIGNED(send_wait_threshold_i) then
+               send_length_i(9 downto 0) <= send_length_i(9 downto 0) + 1;
+               if send_length_i = x"0000" then
+                  send_length_i <= x"0001";
+               end if;
+               trb_fsm_i <= IDLE;
+            end if;
+            
+      end case;
    end process;
+      
    
    PROC_CBMNET: process is
+      variable wait_dur : integer range 0 to 10000 := 250;
    begin
       CBMNET_DATA2SEND_STOP_IN <= '0';
       wait until falling_edge(CBMNET_DATA2SEND_END_OUT);
       CBMNET_DATA2SEND_STOP_IN <= '1';
       wait until rising_edge(CBMNET_CLK_IN);
-      wait until rising_edge(CBMNET_CLK_IN);
-      wait until rising_edge(CBMNET_CLK_IN);
-      wait until rising_edge(CBMNET_CLK_IN);
+      wait for wait_dur * 8 ns;
+      
+      if wait_dur = 10000 then
+         wait_dur := 0;
+      else
+         wait_dur := wait_dur + 1;
+      end if;
    end process;
 
-   GBE_FEE_READ_IN <= HUB_FEE_DATAREADY_IN;
+   --GBE_FEE_READ_IN <= HUB_FEE_DATAREADY_IN;
 
    DUT: cbmnet_readout
    port map (
@@ -194,6 +296,19 @@ begin
       CBMNET_DATA2SEND_START_OUT => CBMNET_DATA2SEND_START_OUT,  -- out std_logic;
       CBMNET_DATA2SEND_END_OUT   => CBMNET_DATA2SEND_END_OUT,    -- out std_logic;
       CBMNET_DATA2SEND_DATA_OUT  =>CBMNET_DATA2SEND_DATA_OUT     -- out std_logic_vector(15 downto 0)
+   );
+   
+   THE_LOGGER : TB_CBMNET_LOGGER 
+   generic map (log_file => "frames2.txt")
+   port map (
+      CLK_IN => CBMNET_CLK_IN, --  in std_logic;
+      RESET_IN => CBMNET_RESET_IN, --  in std_logic;
+      LINK_ACTIVE_IN => CBMNET_LINK_ACTIVE_IN, --  in std_logic;
+
+      DATA2SEND_IN => CBMNET_DATA2SEND_DATA_OUT, --  std_logic_vector(15 downto 0);
+      DATA2SEND_STOP_IN => CBMNET_DATA2SEND_STOP_IN, --  std_logic;
+      DATA2SEND_START_IN => CBMNET_DATA2SEND_START_OUT, --  std_logic;
+      DATA2SEND_END_IN => CBMNET_DATA2SEND_END_OUT --  std_logic
    );
 
 end architecture;

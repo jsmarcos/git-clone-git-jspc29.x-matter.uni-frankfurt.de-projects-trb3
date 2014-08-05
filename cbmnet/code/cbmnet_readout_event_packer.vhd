@@ -42,20 +42,22 @@ end entity;
 
 architecture cbmnet_readout_event_packer_arch of CBMNET_READOUT_EVENT_PACKER is
    type FSM_STATES_T is (
-      IDLE, 
+      WAIT_FOR_IDLE, IDLE, 
       HDR_SIZE_H, HDR_SIZE_L, 
       HDR_DECODING_H, HDR_DECODING_L,
       HDR_ID_H, HDR_ID_L,
       HDR_NUMBER_H, HDR_NUMBER_L,
       PAYLOAD,
-      FTR_TRAILER_H, FTR_TRAILER_L,
-      FTR_STATUS_H, FTR_STATUS_L
+      TRL_TRAILER_H, TRL_TRAILER_L,
+      TRL_STATUS_H, TRL_STATUS_L
    );
    
    signal fsm_i : FSM_STATES_T;
    signal header_data_i : std_logic_vector(15 downto 0);
    signal header_enqueue_i : std_logic;
    signal copy_payload_i : std_logic;
+   
+   signal data_read_i, data_read_delayed_i : std_logic;
 begin
    THE_PACKER: process is
    begin
@@ -70,15 +72,20 @@ begin
       WPACKET_COMPLETE_OUT <= '0';
       
       if RESET_IN='1' then
-         fsm_i <= IDLE;
+         fsm_i <= WAIT_FOR_IDLE;
        
       elsif fsm_i /= IDLE and (DEC_ERROR_IN = '1' or WFULL_IN = '1') then
          WADDR_RESTORE_OUT <= '1';
          DEC_RESET_OUT <= '1';
-         fsm_i <= IDLE;
+         fsm_i <= WAIT_FOR_IDLE;
          
       else
          case(fsm_i) is
+            when WAIT_FOR_IDLE =>
+               if DEC_ACTIVE_IN='0' then
+                  fsm_i <= IDLE;
+               end if;
+         
             when IDLE =>
                if DEC_ACTIVE_IN='1' then
                   WADDR_STORE_OUT <= '1';
@@ -123,25 +130,25 @@ begin
 
             when PAYLOAD =>
                if DEC_ACTIVE_IN = '0' then
-                  fsm_i <= FTR_TRAILER_H;
+                  fsm_i <= TRL_TRAILER_H;
                else
                   copy_payload_i <= '1';
                end if;
                
-            when FTR_TRAILER_H =>
+            when TRL_TRAILER_H =>
                header_data_i <= x"0001";
                header_enqueue_i <= '1';
-               fsm_i <= FTR_TRAILER_L;
-            when FTR_TRAILER_L =>
+               fsm_i <= TRL_TRAILER_L;
+            when TRL_TRAILER_L =>
                header_data_i <= x"5555";
                header_enqueue_i <= '1';
-               fsm_i <= FTR_STATUS_H;            
+               fsm_i <= TRL_STATUS_H;            
 
-            when FTR_STATUS_H =>
+            when TRL_STATUS_H =>
                header_data_i <= GBE_CTS_STATUS_BITS_IN(31 downto 16);
                header_enqueue_i <= '1';
-               fsm_i <= FTR_STATUS_L;
-            when FTR_STATUS_L =>
+               fsm_i <= TRL_STATUS_L;
+            when TRL_STATUS_L =>
                header_data_i <= GBE_CTS_STATUS_BITS_IN(15 downto  0);
                header_enqueue_i <= '1';
                WPACKET_COMPLETE_OUT <= '1';
@@ -153,6 +160,9 @@ begin
    
    WDATA_OUT(15 downto 0) <= DEC_DATA_IN when copy_payload_i='1' else header_data_i;
    WDATA_OUT(17 downto 16) <= "00";
-   WENQUEUE_OUT <= header_enqueue_i or DEC_DATA_READY_IN;
-   DEC_DATA_READ_OUT <= copy_payload_i and DEC_DATA_READY_IN;
+   WENQUEUE_OUT <= header_enqueue_i or data_read_i;
+   
+   data_read_i <= copy_payload_i and DEC_DATA_READY_IN;
+   DEC_DATA_READ_OUT <= data_read_i;
+   data_read_delayed_i <= data_read_i when rising_edge(CLK_IN);
 end architecture;

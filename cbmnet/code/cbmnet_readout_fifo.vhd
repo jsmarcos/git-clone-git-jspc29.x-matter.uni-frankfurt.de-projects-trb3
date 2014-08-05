@@ -43,7 +43,7 @@ architecture cbmnet_readout_fifo_arch of CBMNET_READOUT_FIFO is
    
    signal raddr_i, raddr_stored_i, rwrite_pointer_i, rpacket_counter_i : unsigned(ADDR_WIDTH-1 downto 0) := (others => '0');
    signal rpacket_complete_xchange_i : std_logic := '0'; 
-
+   
    type FIFO_MEM_T is array(0 to 2**ADDR_WIDTH-1) of std_logic_vector(17 downto 0);
    signal mem_i : FIFO_MEM_T;
 begin
@@ -100,7 +100,7 @@ begin
       if RRESET_IN = '1' then
          next_addr_v := raddr_stored_i;
       else
-         if RDEQUEUE_IN = '1' and raddr_i + 1 /= rwrite_pointer_i then
+         if RDEQUEUE_IN = '1' then -- and raddr_i + 1 /= rwrite_pointer_i then
             next_addr_v := next_addr_v + 1;
          end if;
       end if;
