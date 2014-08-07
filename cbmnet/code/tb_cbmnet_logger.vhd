@@ -33,7 +33,7 @@ begin
       variable frame_line_v  : line;
    begin
       wait until rising_edge(CLK_IN);
-      
+     
       if RESET_IN = '0' and LINK_ACTIVE_IN = '1' then
          case (fsm_i) is
             when IDLE =>
@@ -50,7 +50,7 @@ begin
                write(frame_line_v, " " & hstr(DATA2SEND_IN));
                word_count_i <= word_count_i + 1;
             
-               if DATA2SEND_STOP_IN = '1' then
+               if DATA2SEND_END_IN = '1' then
                   writeline(l_file, frame_line_v);
                   --println ("DATA(" & str(word_count_i*2) & ") :" & frame_str_i);
                   fsm_i <= IDLE;
@@ -63,4 +63,6 @@ begin
       end if;
    end process;
 
+   assert word_count_i <= 32 report "CBMNet frame must not be longer than 64 bytes" severity warning;
+   
 end architecture;

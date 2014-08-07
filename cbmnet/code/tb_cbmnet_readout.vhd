@@ -79,9 +79,6 @@ begin
       HUB_CTS_READOUT_TYPE_IN <= x"e";
       GBE_CTS_STATUS_BITS_IN <= x"12345678";
       
-00:00:00:70:00:03:00:62:00:00:00:64:00:02:00:11:00:00:f3:c0:00:09:45:f7:
-00:12:f3:c0:20:06:f3:53:cf:0f:3c:7c:00:00:00:61:cf:0f:3c:7c:05:06:ac:6e:cf:0f:3c:7c:00:00:00:00:00:00:00:00:00:00:00:00:cf:0f:3c:7c:00:00:00:61:cf:0f:3c:7c:05:06:ac:6e:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:
-00:01:55:55:00:00:00:01:
       wait until rising_edge(CLK_IN);
       wait until rising_edge(CLK_IN);
       wait until rising_edge(CLK_IN);

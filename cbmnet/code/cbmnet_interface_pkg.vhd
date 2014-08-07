@@ -304,61 +304,6 @@ package cbmnet_interface_pkg is
          ctrl_rec_stop : out std_logic
       );
    end component;
-  
-   component CBMNET_READOUT_TX_FSM is
-      port (
-         CLK_IN   : in std_logic;
-         RESET_IN : in std_logic; 
-
-         -- fifo 
-         FIFO_DATA_IN   : in std_logic_vector(15 downto 0);
-         FIFO_DEQUEUE_OUT : out std_logic;
-         FIFO_PACKET_COMPLETE_IN : in std_logic;  
-         FIFO_PACKET_COMPLETE_ACK_OUT : out std_logic;
-
-         -- cbmnet
-         CBMNET_STOP_IN   : in std_logic;
-         CBMNET_START_OUT : out std_logic;
-         CBMNET_END_OUT   : out std_logic;
-         CBMNET_DATA_OUT  : out std_logic_vector(15 downto 0);
-      
-         -- debug
-         DEBUG_OUT : out std_logic_vector(31 downto 0)
-      );
-   end component;
-   
-   component CBMNET_READOUT_FIFO is
-      generic (
-         ADDR_WIDTH : positive := 10;
-         WATERMARK  : positive := 2
-      );
-
-      port (
-         -- write port
-         WCLK_IN   : in std_logic; -- not faster than rclk_in
-         WRESET_IN : in std_logic;
-         
-         WADDR_STORE_IN   : in std_logic;
-         WADDR_RESTORE_IN : in std_logic;
-         
-         WDATA_IN    : in std_logic_vector(17 downto 0);
-         WENQUEUE_IN : in std_logic;
-         WPACKET_COMPLETE_IN : in std_logic;
-         
-         WALMOST_FULL_OUT : out std_logic;
-         WFULL_OUT        : out std_logic;
-         
-         -- read port
-         RCLK_IN   : in std_logic;
-         RRESET_IN : in std_logic;  -- has to active at least two clocks AFTER (or while) write port was (is being) initialised
-         
-         RDATA_OUT   : out std_logic_vector(17 downto 0);
-         RDEQUEUE_IN : in std_logic;
-         
-         RPACKET_COMPLETE_OUT : out std_logic;   -- atleast one packet is completed in fifo
-         RPACKET_COMPLETE_ACK_IN : in std_logic -- mark one event as dealt with (effectively decrease number of completed packets by one)
-      );
-   end component;
 
    component CBMNET_READOUT is
       port (
@@ -481,6 +426,103 @@ package cbmnet_interface_pkg is
       DEBUG_OUT                      : out std_logic_vector(31 downto 0)
    );
    end component;
+   
+   component CBMNET_READOUT_FIFO is
+      generic (
+         ADDR_WIDTH : positive := 10;
+         WATERMARK  : positive := 2
+      );
+
+      port (
+         -- write port
+         WCLK_IN   : in std_logic; -- not faster than rclk_in
+         WRESET_IN : in std_logic;
+         
+         WADDR_STORE_IN   : in std_logic;
+         WADDR_RESTORE_IN : in std_logic;
+         
+         WDATA_IN    : in std_logic_vector(17 downto 0);
+         WENQUEUE_IN : in std_logic;
+         WPACKET_COMPLETE_IN : in std_logic;
+         
+         WALMOST_FULL_OUT : out std_logic;
+         WFULL_OUT        : out std_logic;
+         
+         -- read port
+         RCLK_IN   : in std_logic;
+         RRESET_IN : in std_logic;  -- has to active at least two clocks AFTER (or while) write port was (is being) initialised
+         
+         RDATA_OUT   : out std_logic_vector(17 downto 0);
+         RDEQUEUE_IN : in std_logic;
+         
+         RPACKET_COMPLETE_OUT : out std_logic;   -- atleast one packet is completed in fifo
+         RPACKET_COMPLETE_ACK_IN : in std_logic; -- mark one event as dealt with (effectively decrease number of completed packets by one)
+         
+         DEBUG_OUT  : out std_logic_vector(31 downto 0)
+      );
+   end component;
+   
+   component CBMNET_READOUT_FRAME_PACKER is
+      port (
+         CLK_IN   : in std_logic;
+         RESET_IN : in std_logic; 
+
+         -- fifo 
+         FIFO_DATA_IN   : in std_logic_vector(15 downto 0);
+         FIFO_DEQUEUE_OUT : out std_logic;
+         FIFO_PACKET_COMPLETE_IN : in std_logic;  
+         FIFO_PACKET_COMPLETE_ACK_OUT : out std_logic;
+
+         -- cbmnet
+         CBMNET_STOP_IN   : in std_logic;
+         CBMNET_START_OUT : out std_logic;
+         CBMNET_END_OUT   : out std_logic;
+         CBMNET_DATA_OUT  : out std_logic_vector(15 downto 0);
+      
+         -- debug
+         DEBUG_OUT : out std_logic_vector(31 downto 0)
+      );
+   end component;   
+   
+   component CBMNET_READOUT_OBUF is
+      port(
+         CLK_IN : std_logic;
+         RESET_IN : std_logic;
+
+         -- packer
+         PACKER_STOP_OUT  : out std_logic;
+         PACKER_START_IN  : in  std_logic;
+         PACKER_END_IN    : in  std_logic;
+         PACKER_DATA_IN   : in  std_logic_vector(15 downto 0);
+
+         -- cbmnet
+         CBMNET_STOP_IN   : in std_logic;
+         CBMNET_START_OUT : out std_logic;
+         CBMNET_END_OUT   : out std_logic;
+         CBMNET_DATA_OUT  : out std_logic_vector(15 downto 0);
+         
+         DEBUG_OUT : out std_logic_vector(31 downto 0)
+      );
+   end component;
+   
+   component cbmnet_readout_tx_fifo is
+      port (
+         CLK_IN : in std_logic;
+         RESET_IN : in std_logic;
+         EMPTY_IN : in std_logic;   -- identical to reset_in
+         
+         DATA_IN  : in  std_logic_vector(15 downto 0);
+         DATA_OUT : out std_logic_vector(15 downto 0);
+         
+         ENQUEUE_IN : in std_logic;
+         DEQUEUE_IN : in std_logic;
+         
+         LAST_OUT : out std_logic;
+         
+         FILLED_IN : in std_logic;
+         FILLED_OUT : out std_logic
+      );
+   end component;   
 end package cbmnet_interface_pkg;
 
 package body cbmnet_interface_pkg is

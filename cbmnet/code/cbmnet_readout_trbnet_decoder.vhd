@@ -38,22 +38,6 @@ entity CBMNET_READOUT_TRBNET_DECODER is
 end entity;
 
 architecture cbmnet_readout_trbnet_decoder_arch of CBMNET_READOUT_TRBNET_DECODER is
---    component lattice_ecp3_fifo_16x16_dualport is
---       port (
---          Data: in  std_logic_vector(15 downto 0); 
---          WrClock: in  std_logic; 
---          RdClock: in  std_logic; 
---          WrEn: in  std_logic; 
---          RdEn: in  std_logic; 
---          Reset: in  std_logic; 
---          RPReset: in  std_logic; 
---          Q: out  std_logic_vector(15 downto 0); 
---          Empty: out  std_logic; 
---          Full: out  std_logic; 
---          AlmostFull: out  std_logic
---       );
---    end component;
--- 
    constant FIFO_LENGTH_C : integer := 4;
    type FIFO_MEM_T is array(0 to 2**FIFO_LENGTH_C-1) of std_logic_vector(15 downto 0);
    signal fifo_mem_i : FIFO_MEM_T;
@@ -133,6 +117,9 @@ begin
                word_counter_set_i <= '1';
                if read_word_i = '1' then
                   dec_length_i <= data_i(13 downto 0) & "00";
+-- synopsys translate_off
+   assert data_i(13 downto 0) & "00" /= x"0000" report "TrbNet packet must not be of length 0" severity warning;
+-- synopsys translate_on
                   fsm_i <= RECV_EVT_SOURCE;
                end if;
          

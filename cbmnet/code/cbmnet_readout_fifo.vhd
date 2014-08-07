@@ -6,7 +6,7 @@ library ieee;
 entity CBMNET_READOUT_FIFO is
    generic (
       ADDR_WIDTH : positive := 10;
-      WATERMARK  : positive := 2
+      WATERMARK  : positive := 4
    );
 
    port (
@@ -32,7 +32,9 @@ entity CBMNET_READOUT_FIFO is
       RDEQUEUE_IN : in std_logic;
       
       RPACKET_COMPLETE_OUT : out std_logic;   -- atleast one packet is completed in fifo
-      RPACKET_COMPLETE_ACK_IN : in std_logic -- mark one event as dealt with (effectively decrease number of completed packets by one)
+      RPACKET_COMPLETE_ACK_IN : in std_logic; -- mark one event as dealt with (effectively decrease number of completed packets by one)
+      
+      DEBUG_OUT : out std_logic_vector(31 downto 0)
    );
 end CBMNET_READOUT_FIFO;
 
@@ -52,11 +54,13 @@ begin
       variable last_full_v : std_logic := '1';
    begin
       wait until rising_edge(WCLK_IN);
-      if (wfull_i = '0' or last_full_v = '0') and WENQUEUE_IN = '1' then
+      if (wfull_i = '0' ) and WENQUEUE_IN = '1' then
          mem_i(to_integer(waddr_i)) <= WDATA_IN;
       end if;
       
-      last_full_v := wfull_i;
+      if WENQUEUE_IN='1' then
+         last_full_v := wfull_i;
+      end if;
    end process;
 
 -- Read Port
@@ -82,9 +86,11 @@ begin
             delta_v := delta_v + TO_UNSIGNED(1, delta_v'length);
          end if;
          
-         rpacket_counter_i <= rpacket_counter_i + delta_v -  TO_UNSIGNED(1, 1);
+         if rpacket_counter_i /= 0 or delta_v /= 0 then
+            rpacket_counter_i <= rpacket_counter_i + delta_v -  TO_UNSIGNED(1, 1);
+         end if;
          
-         if rpacket_counter_i /= 0 or delta_v = 2 then
+         if (rpacket_counter_i /= 0 or delta_v = 2) then
             RPACKET_COMPLETE_OUT <= '1';
          end if;
       end if;
@@ -107,7 +113,7 @@ begin
       
       raddr_i <= next_addr_v;
    end process;
-   RDATA_OUT <= mem_i(to_integer(raddr_i));
+   RDATA_OUT <= mem_i(to_integer(raddr_i)) when rising_edge(RCLK_IN);
 
 -- Write Port
    wread_pointer_i <= raddr_i when rising_edge(WCLK_IN);
@@ -116,10 +122,14 @@ begin
       wait until rising_edge(WCLK_IN);
       if WADDR_RESTORE_IN = '1' then
          waddr_i <= waddr_stored_i;
-      elsif wfull_i = '0' and WENQUEUE_IN = '1' then
+      elsif WENQUEUE_IN = '1' and wfull_i = '0' then
          waddr_i <= waddr_i + 1;
       end if;
    end process;
+   
+-- synopsys translate_off
+   assert not(WENQUEUE_IN='1' and wfull_i='1' and rising_edge(WCLK_IN)) report "Enqueued into full fifo" severity warning;
+-- synopsys translate_on
 
    WPROC_STORE_ADDR: process is
    begin
@@ -157,4 +167,12 @@ begin
    
    WALMOST_FULL_OUT <= walmost_full_i;
    WFULL_OUT <= wfull_i;
+   
+   WPROC_DEBUG: process is
+   begin
+      wait until rising_edge(WCLK_IN);
+      DEBUG_OUT <= (others => '0');
+      DEBUG_OUT(wwords_remaining_i'range) <= STD_LOGIC_VECTOR(wwords_remaining_i);
+      DEBUG_OUT(16+rpacket_counter_i'high downto 16) <= STD_LOGIC_VECTOR(rpacket_counter_i);
+   end process;
 end architecture;

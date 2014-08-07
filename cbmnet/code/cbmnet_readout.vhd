@@ -60,6 +60,9 @@ entity CBMNET_READOUT is
 end entity;
 
 architecture cbmnet_readout_arch of CBMNET_READOUT is
+   signal reset_combined_i : std_logic;
+   signal reset_combined_125_i : std_logic;
+
 -- signals of readout chain (DECODER -> PACKER -> FIFO -> TX)
    signal fifo_rdata_i                : std_logic_vector(17 downto 0);
    signal fifo_rdequeue_i             : std_logic;
@@ -72,6 +75,7 @@ architecture cbmnet_readout_arch of CBMNET_READOUT is
    signal fifo_wenqueue_i         : std_logic;
    signal fifo_wpacket_complete_i : std_logic;
    signal fifo_wfull_i            : std_logic;
+   signal debug_fifo_i            : std_logic_vector(31 downto 0);
    
    signal dec_evt_info_i   : std_logic_vector(31 downto 0);
    signal dec_length_i     : std_logic_vector(15 downto 0);
@@ -88,9 +92,11 @@ architecture cbmnet_readout_arch of CBMNET_READOUT is
    signal pack_source_i    : std_logic_vector(15 downto 0);
 
 -- cbm strobe buffers
-   signal cbmnet_data2send_start_i : std_logic;
-   signal cbmnet_data2send_end_i   : std_logic;
-   signal cbmnet_data2send_data_i  : std_logic_vector(15 downto 0);
+   signal frame_packer_start_i : std_logic;
+   signal frame_packer_end_i   : std_logic;
+   signal frame_packer_data_i  : std_logic_vector(15 downto 0);
+   signal obuf_stop_i : std_logic;
+   
    signal cbmnet_link_active_in_buf_i : std_logic;
    
 -- stats and monitoring   
@@ -137,6 +143,25 @@ begin
    HUB_CTS_READOUT_FINISHED_OUT   <= GBE_CTS_READOUT_FINISHED_IN;
    HUB_CTS_STATUS_BITS_OUT        <= GBE_CTS_STATUS_BITS_IN;
    
+   proc_reset: process is
+      variable counter_v : integer range 0 to 15 := 0;
+   begin
+      wait until rising_edge(CBMNET_CLK_IN);
+      
+      if RESET_IN='1' or CBMNET_RESET_IN='1' or CBMNET_LINK_ACTIVE_IN='0' then
+         counter_v := 0;
+      elsif counter_v /= 15 then
+         counter_v := counter_v + 1;
+      end if;
+      
+      reset_combined_125_i <= '1';
+      if counter_v = 15 then
+         reset_combined_125_i <= '0';
+      end if;
+   end process;
+   reset_combined_i <= reset_combined_125_i when rising_edge(CLK_IN);
+   
+   
    THE_DECODER: CBMNET_READOUT_TRBNET_DECODER
    port map (
    -- TrbNet
@@ -163,13 +188,13 @@ begin
       
       DEBUG_OUT                      => debug_decorder_i -- out std_logic_vector(31 downto 0);
    );
-   dec_reset_i <= RESET_IN or dec_issue_reset_i;
+   dec_reset_i <= reset_combined_i or dec_issue_reset_i;
    
    THE_PACKER: CBMNET_READOUT_EVENT_PACKER
    port map (
    -- TrbNet
       CLK_IN   => CLK_IN, -- in std_logic;
-      RESET_IN => RESET_IN, -- in std_logic;
+      RESET_IN => reset_combined_i, -- in std_logic;
 
       -- connect to hub
       HUB_CTS_NUMBER_IN              => HUB_CTS_NUMBER_IN,       -- in  std_logic_vector (15 downto 0);
@@ -206,11 +231,11 @@ begin
    THE_READOUT_FIFO: CBMNET_READOUT_FIFO 
    generic map (
       ADDR_WIDTH => 12, -- 8kb ..
-      WATERMARK  => 2
+      WATERMARK  => 8
    ) port map (
       -- write port
       WCLK_IN   => CLK_IN,   -- in std_logic; -- not faster than rclk_in
-      WRESET_IN => RESET_IN, -- in std_logic;
+      WRESET_IN => reset_combined_i, -- in std_logic;
       
       WADDR_STORE_IN   => fifo_waddr_store_i,   -- in std_logic;
       WADDR_RESTORE_IN => fifo_waddr_restore_i, -- in std_logic;
@@ -219,24 +244,26 @@ begin
       WENQUEUE_IN => fifo_wenqueue_i, -- in std_logic;
       WPACKET_COMPLETE_IN => fifo_wpacket_complete_i, -- in std_logic;
       
-      WALMOST_FULL_OUT => open,         -- out std_logic;
-      WFULL_OUT        => fifo_wfull_i, -- out std_logic;
+      WALMOST_FULL_OUT => fifo_wfull_i,         -- out std_logic;
+      WFULL_OUT        => open, -- out std_logic;
       
       -- read port
       RCLK_IN   => CBMNET_CLK_IN,   -- in std_logic;
-      RRESET_IN => CBMNET_RESET_IN, -- in std_logic;  -- has to active at least two clocks AFTER (or while) write port was (is being) initialised
+      RRESET_IN => reset_combined_125_i, -- in std_logic;  -- has to active at least two clocks AFTER (or while) write port was (is being) initialised
       
       RDATA_OUT   => fifo_rdata_i,    -- out std_logic_vector(17 downto 0);
       RDEQUEUE_IN => fifo_rdequeue_i, -- in std_logic;
       
       RPACKET_COMPLETE_OUT    => fifo_rpacket_complete_i,    -- out std_logic;   -- atleast one packet is completed in fifo
-      RPACKET_COMPLETE_ACK_IN => fifo_rpacket_complete_ack_i -- in std_logic -- mark one event as dealt with (effectively decrease number of completed packets by one)
+      RPACKET_COMPLETE_ACK_IN => fifo_rpacket_complete_ack_i, -- in std_logic -- mark one event as dealt with (effectively decrease number of completed packets by one)
+      
+      DEBUG_OUT => debug_fifo_i
    );
    
-   THE_TX_FSM: CBMNET_READOUT_TX_FSM
+   THE_FRAME_PACKER: CBMNET_READOUT_FRAME_PACKER
    port map (
       CLK_IN   => CBMNET_CLK_IN,   -- in std_logic;
-      RESET_IN => CBMNET_RESET_IN, -- in std_logic; 
+      RESET_IN => reset_combined_i, -- in std_logic; 
 
       -- fifo 
       FIFO_DATA_IN                 => fifo_rdata_i(15 downto 0), -- in std_logic_vector(15 downto 0);
@@ -245,17 +272,33 @@ begin
       FIFO_PACKET_COMPLETE_ACK_OUT => fifo_rpacket_complete_ack_i, -- out std_logic;
 
       -- cbmnet
-      CBMNET_STOP_IN   => CBMNET_DATA2SEND_STOP_IN,   -- in std_logic;
-      CBMNET_START_OUT => cbmnet_data2send_start_i, -- out std_logic;
-      CBMNET_END_OUT   => cbmnet_data2send_end_i,   -- out std_logic;
-      CBMNET_DATA_OUT  => cbmnet_data2send_data_i,   -- out std_logic_vector(15 downto 0)
+      CBMNET_STOP_IN   => obuf_stop_i,   -- in std_logic;
+      CBMNET_START_OUT => frame_packer_start_i, -- out std_logic;
+      CBMNET_END_OUT   => frame_packer_end_i,   -- out std_logic;
+      CBMNET_DATA_OUT  => frame_packer_data_i,   -- out std_logic_vector(15 downto 0)
       
       DEBUG_OUT => debug_tx_fsm_i
    );
    
-   CBMNET_DATA2SEND_DATA_OUT  <= cbmnet_data2send_data_i;
-   CBMNET_DATA2SEND_START_OUT <= cbmnet_data2send_start_i;
-   CBMNET_DATA2SEND_END_OUT   <= cbmnet_data2send_end_i;
+   THE_OBUF: CBMNET_READOUT_OBUF 
+   port map (
+      CLK_IN => CBMNET_CLK_IN, -- std_logic;
+      RESET_IN => reset_combined_125_i, -- std_logic;
+
+      -- packer
+      PACKER_STOP_OUT  => obuf_stop_i, -- out std_logic;
+      PACKER_START_IN  => frame_packer_start_i, -- in  std_logic;
+      PACKER_END_IN    => frame_packer_end_i, -- in  std_logic;
+      PACKER_DATA_IN   => frame_packer_data_i, -- in  std_logic_vector(15 downto 0);
+
+      -- cbmnet
+      CBMNET_STOP_IN   => CBMNET_DATA2SEND_STOP_IN, -- in std_logic;
+      CBMNET_START_OUT => CBMNET_DATA2SEND_START_OUT, -- out std_logic;
+      CBMNET_END_OUT   => CBMNET_DATA2SEND_END_OUT, -- out std_logic;
+      CBMNET_DATA_OUT  => CBMNET_DATA2SEND_DATA_OUT, -- out std_logic_vector(15 downto 0);
+      
+      DEBUG_OUT => open -- out std_logic_vector(31 downto 0)
+   );
    
 ----------------------------------------
 -- Slow control and monitoring
@@ -270,7 +313,7 @@ begin
          cbm_stat_connections_i <= cbm_stat_connections_i + 1;
       end if;
       
-      if cbmnet_data2send_end_i = '1' and last_end_v = '0' then
+      if frame_packer_end_i = '1' and last_end_v = '0' then
          cbm_stat_num_packets_i <= cbm_stat_num_packets_i + 1;
       end if;
          
@@ -283,7 +326,7 @@ begin
       end if;
    
       last_link_active_v := CBMNET_LINK_ACTIVE_IN;
-      last_end_v := cbmnet_data2send_end_i;
+      last_end_v := frame_packer_end_i;
    end process;
    
    -- and cross over to TrbNet clock domain
@@ -323,25 +366,27 @@ begin
       
    -- read
       case addr is
-         when 16#0# => regio_data_status_i(0) <= cfg_enabled_i;
-         when 16#1# => regio_data_status_i(16 downto 0) <= cfg_source_override_i & cfg_source_i;
+         when 16#00# => regio_data_status_i(0) <= cfg_enabled_i;
+         when 16#01# => regio_data_status_i(16 downto 0) <= cfg_source_override_i & cfg_source_i;
          
-         when 16#2# => regio_data_status_i <= std_logic_vector(stat_connections_i);
-         when 16#3# => regio_data_status_i <= std_logic_vector(stat_clks_dead_i);
-         when 16#4# => regio_data_status_i <= std_logic_vector(stat_num_send_completed_i);
-         when 16#5# => regio_data_status_i <= std_logic_vector(stat_num_packets_i);
-         when 16#6# => regio_data_status_i <= std_logic_vector(stat_num_recv_completed_i);
-         when 16#7# => regio_data_status_i <= std_logic_vector(stat_link_inactive_i);
-         when 16#8# => regio_data_status_i <= std_logic_vector(stat_num_packets_aborted_i);
+         when 16#02# => regio_data_status_i <= std_logic_vector(stat_connections_i);
+         when 16#03# => regio_data_status_i <= std_logic_vector(stat_clks_dead_i);
+         when 16#04# => regio_data_status_i <= std_logic_vector(stat_num_send_completed_i);
+         when 16#05# => regio_data_status_i <= std_logic_vector(stat_num_packets_i);
+         when 16#06# => regio_data_status_i <= std_logic_vector(stat_num_recv_completed_i);
+         when 16#07# => regio_data_status_i <= std_logic_vector(stat_link_inactive_i);
+         when 16#08# => regio_data_status_i <= std_logic_vector(stat_num_packets_aborted_i);
          
          -- debug only ports
-         when 16#9# => regio_data_status_i <= debug_decorder_i;
-         when 16#a# => regio_data_status_i <= debug_packer_i;
-         when 16#b# => regio_data_status_i <= debug_tx_fsm_i;
-         when 16#c# => regio_data_status_i(1 downto 0) <= fifo_wfull_i & fifo_rpacket_complete_i;
-         when 16#d# => regio_data_status_i <= HUB_CTS_INFORMATION_IN & HUB_CTS_CODE_IN & HUB_CTS_NUMBER_IN;
-         when 16#e# => regio_data_status_i <= dec_evt_info_i;
-         when 16#f# => regio_data_status_i <= dec_source_i & dec_length_i;
+         when 16#09# => regio_data_status_i <= debug_decorder_i;
+         when 16#0a# => regio_data_status_i <= debug_packer_i;
+         when 16#0b# => regio_data_status_i <= debug_tx_fsm_i;
+         when 16#0c# => regio_data_status_i(1 downto 0) <= fifo_wfull_i & fifo_rpacket_complete_i;
+         when 16#0d# => regio_data_status_i <= HUB_CTS_INFORMATION_IN & HUB_CTS_CODE_IN & HUB_CTS_NUMBER_IN;
+         when 16#0e# => regio_data_status_i <= dec_evt_info_i;
+         when 16#0f# => regio_data_status_i <= dec_source_i & dec_length_i;
+         
+         when 16#10# => regio_data_status_i <= debug_fifo_i;
          
          when others => regio_unkown_address_i <= REGIO_READ_ENABLE_IN;
       end case;
