@@ -42,6 +42,8 @@ architecture cbmnet_readout_trbnet_decoder_arch of CBMNET_READOUT_TRBNET_DECODER
    type FIFO_MEM_T is array(0 to 2**FIFO_LENGTH_C-1) of std_logic_vector(15 downto 0);
    signal fifo_mem_i : FIFO_MEM_T;
 
+   attribute syn_ramstyle : string;
+   attribute syn_ramstyle of fifo_mem_i : signal is "block_ram";
 
    type FSM_STATES_T is (WAIT_FOR_IDLE, IDLE, RECV_EVT_INFO_H, RECV_EVT_INFO_L, RECV_EVT_LENGTH, RECV_EVT_SOURCE, RECV_PAYLOAD, LAST_WORD, ERROR_COND);
    signal fsm_i : FSM_STATES_T;

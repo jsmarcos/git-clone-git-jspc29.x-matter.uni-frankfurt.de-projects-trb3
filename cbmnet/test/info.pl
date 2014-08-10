@@ -9,6 +9,7 @@ use POSIX qw/ceil/;
 use Term::ANSIColor;
 use bigint;
 
+my $singleRun = ($ARGV[0] =~ m/s/);
 
 sub readFile {
    open FILE, "<", shift;
@@ -60,7 +61,7 @@ sub interpretLine {
 sub readRegs {
    my $endpoint = shift;
    my $length = shift;
-   my $firstReg = 0xa020;
+   my $firstReg = shift;
    my $res = `trbcmd rm $endpoint $firstReg $length 0`;
    
    my $reg = 0;
@@ -162,11 +163,15 @@ sub cbmnet_definitions {
 
 my @old_results;
 my $first_one = 1;
+my @endpoints = (
+[0x8001, 0xa020]
+#[0xf3c0, 0xa8a0]
+);
 while (1) {
    my @results = ();
 
-   for my $i (1 .. 1) {
-      my $reg = readRegs 0x8000 + $i, 0x10;
+   for my $i (0 .. $#endpoints) {
+      my $reg = readRegs $endpoints[$i]->[0], 0x10, $endpoints[$i]->[1];
       my @slices = ();
       for my $def (@defs) {
          my $idx = $def->[1];
@@ -201,7 +206,10 @@ while (1) {
    
    @old_results = @results;
 
-print `trbcmd rm 0x8001 0xa010 7 0`;   
+print `trbcmd rm 0x8001 0xa00f 8 0`;
+#print `trbcmd rm 0x9001 0xa00f 8 0`;    
+
+last if $singleRun;
 sleep 1;
 print $first_one ? `clear` : chr(27) . "[1;1H";
 $first_one = 0;

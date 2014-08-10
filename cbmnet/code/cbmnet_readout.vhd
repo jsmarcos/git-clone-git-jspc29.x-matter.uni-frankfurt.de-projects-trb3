@@ -75,7 +75,6 @@ architecture cbmnet_readout_arch of CBMNET_READOUT is
    signal fifo_wenqueue_i         : std_logic;
    signal fifo_wpacket_complete_i : std_logic;
    signal fifo_wfull_i            : std_logic;
-   signal debug_fifo_i            : std_logic_vector(31 downto 0);
    
    signal dec_evt_info_i   : std_logic_vector(31 downto 0);
    signal dec_length_i     : std_logic_vector(15 downto 0);
@@ -116,9 +115,11 @@ architecture cbmnet_readout_arch of CBMNET_READOUT is
    signal stat_link_inactive_i      : unsigned(31 downto 0);   
 
 -- debug
-   signal debug_decorder_i : std_logic_vector(31 downto 0);
-   signal debug_packer_i : std_logic_vector(31 downto 0);
-   signal debug_tx_fsm_i : std_logic_vector(31 downto 0);
+   signal debug_decorder_i     : std_logic_vector(31 downto 0);
+   signal debug_packer_i       : std_logic_vector(31 downto 0);
+   signal debug_frame_packer_i : std_logic_vector(31 downto 0);
+   signal debug_fifo_i         : std_logic_vector(31 downto 0);
+   signal debug_obuf_i         : std_logic_vector(31 downto 0);
 
 -- slow control and configuration   
    signal regio_data_status_i : std_logic_vector(31 downto 0);
@@ -229,10 +230,7 @@ begin
    
 
    THE_READOUT_FIFO: CBMNET_READOUT_FIFO 
-   generic map (
-      ADDR_WIDTH => 12, -- 8kb ..
-      WATERMARK  => 8
-   ) port map (
+   port map (
       -- write port
       WCLK_IN   => CLK_IN,   -- in std_logic; -- not faster than rclk_in
       WRESET_IN => reset_combined_i, -- in std_logic;
@@ -266,7 +264,7 @@ begin
       RESET_IN => reset_combined_i, -- in std_logic; 
 
       -- fifo 
-      FIFO_DATA_IN                 => fifo_rdata_i(15 downto 0), -- in std_logic_vector(15 downto 0);
+      FIFO_DATA_IN                 => fifo_rdata_i, -- in std_logic_vector(15 downto 0);
       FIFO_DEQUEUE_OUT             => fifo_rdequeue_i, -- out std_logic;
       FIFO_PACKET_COMPLETE_IN      => fifo_rpacket_complete_i, -- in std_logic;  
       FIFO_PACKET_COMPLETE_ACK_OUT => fifo_rpacket_complete_ack_i, -- out std_logic;
@@ -277,7 +275,7 @@ begin
       CBMNET_END_OUT   => frame_packer_end_i,   -- out std_logic;
       CBMNET_DATA_OUT  => frame_packer_data_i,   -- out std_logic_vector(15 downto 0)
       
-      DEBUG_OUT => debug_tx_fsm_i
+      DEBUG_OUT => debug_frame_packer_i
    );
    
    THE_OBUF: CBMNET_READOUT_OBUF 
@@ -297,7 +295,7 @@ begin
       CBMNET_END_OUT   => CBMNET_DATA2SEND_END_OUT, -- out std_logic;
       CBMNET_DATA_OUT  => CBMNET_DATA2SEND_DATA_OUT, -- out std_logic_vector(15 downto 0);
       
-      DEBUG_OUT => open -- out std_logic_vector(31 downto 0)
+      DEBUG_OUT => debug_obuf_i -- out std_logic_vector(31 downto 0)
    );
    
 ----------------------------------------
@@ -380,13 +378,14 @@ begin
          -- debug only ports
          when 16#09# => regio_data_status_i <= debug_decorder_i;
          when 16#0a# => regio_data_status_i <= debug_packer_i;
-         when 16#0b# => regio_data_status_i <= debug_tx_fsm_i;
+         when 16#0b# => regio_data_status_i <= debug_frame_packer_i;
          when 16#0c# => regio_data_status_i(1 downto 0) <= fifo_wfull_i & fifo_rpacket_complete_i;
          when 16#0d# => regio_data_status_i <= HUB_CTS_INFORMATION_IN & HUB_CTS_CODE_IN & HUB_CTS_NUMBER_IN;
          when 16#0e# => regio_data_status_i <= dec_evt_info_i;
          when 16#0f# => regio_data_status_i <= dec_source_i & dec_length_i;
          
          when 16#10# => regio_data_status_i <= debug_fifo_i;
+         when 16#11# => regio_data_status_i <= debug_obuf_i;
          
          when others => regio_unkown_address_i <= REGIO_READ_ENABLE_IN;
       end case;

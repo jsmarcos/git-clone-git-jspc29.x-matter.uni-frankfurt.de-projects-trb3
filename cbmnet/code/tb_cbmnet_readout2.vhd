@@ -236,7 +236,7 @@ begin
                --end if;
                
                uniform(seed1, seed2, rand);
-               int_rand := 4+integer(trunc(rand*500.0));
+               int_rand := 2+integer(trunc(rand*990.0));
                --int_rand := 2;
                send_length_i(9 downto 0) <= TO_UNSIGNED(int_rand, 10);
                

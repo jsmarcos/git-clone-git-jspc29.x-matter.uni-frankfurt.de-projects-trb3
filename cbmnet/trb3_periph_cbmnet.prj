@@ -170,11 +170,17 @@ add_file -vhdl -lib work "./code/cbmnet_phy_ecp3.vhd"
 add_file -vhdl -lib work "./trb3_periph_cbmnet.vhd"
 
 
+add_file -vhdl -lib work "./cores/cbmnet_fifo_18x2k_dp.vhd"
 add_file -vhdl -lib work "./code/cbmnet_readout_trbnet_decoder.vhd"
 add_file -vhdl -lib work "./code/cbmnet_readout_event_packer.vhd"
-add_file -vhdl -lib work "./code/cbmnet_readout_fifo.vhd"
-add_file -vhdl -lib work "./code/cbmnet_readout_tx_fsm.vhd"
+add_file -vhdl -lib work "./code/cbmnet_readout_fifo_ecp3.vhd"
+add_file -vhdl -lib work "./code/cbmnet_readout_frame_packer.vhd"
+add_file -vhdl -lib work "./code/cbmnet_readout_tx_fifo.vhd"
+add_file -vhdl -lib work "./code/cbmnet_readout_obuf.vhd"
 add_file -vhdl -lib work "./code/cbmnet_readout.vhd"
+
+add_file -fpga_constraint "./project/trb3_periph_cbmnet_syn.fdc"
+
 
 #implementation: "workdir"
 impl -add workdir -type fpga

@@ -468,7 +468,7 @@ package cbmnet_interface_pkg is
          RESET_IN : in std_logic; 
 
          -- fifo 
-         FIFO_DATA_IN   : in std_logic_vector(15 downto 0);
+         FIFO_DATA_IN   : in std_logic_vector(17 downto 0);
          FIFO_DEQUEUE_OUT : out std_logic;
          FIFO_PACKET_COMPLETE_IN : in std_logic;  
          FIFO_PACKET_COMPLETE_ACK_OUT : out std_logic;

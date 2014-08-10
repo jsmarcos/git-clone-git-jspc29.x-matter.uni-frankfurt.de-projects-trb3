@@ -253,6 +253,15 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    signal cbm_data2send_end     :  std_logic_vector(NUM_LANES-1 downto 0) := (others => '0');
    signal cbm_data2send         :  std_logic_vector((16*NUM_LANES)-1 downto 0) := (others => '0');
 
+   signal cbm_data2send_start1   :  std_logic_vector(NUM_LANES-1 downto 0) := (others => '0');
+   signal cbm_data2send_end1     :  std_logic_vector(NUM_LANES-1 downto 0) := (others => '0');
+   signal cbm_data2send1         :  std_logic_vector((16*NUM_LANES)-1 downto 0) := (others => '0');
+
+   signal cbm_data2send_start2   :  std_logic_vector(NUM_LANES-1 downto 0) := (others => '0');
+   signal cbm_data2send_end2     :  std_logic_vector(NUM_LANES-1 downto 0) := (others => '0');
+   signal cbm_data2send2         :  std_logic_vector((16*NUM_LANES)-1 downto 0) := (others => '0');
+
+   
    signal cbm_dlm2send_va       :  std_logic := '0';                      -- send dlm interface
    signal cbm_dlm2send          :  std_logic_vector(3 downto 0) := (others => '0');
 
@@ -283,6 +292,7 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    signal phy_debug_i : std_logic_vector (511 downto 0) := (others => '0');
    signal phy_debug_i_buf : std_logic_vector (511 downto 0);
    
+   signal tp_mux_i : std_logic;
 
 -- Link Tester
    signal link_tester_ctrl_en   :std_logic;
@@ -308,7 +318,8 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    signal send_num_pack_counter_i : unsigned(15 downto 0); 
    signal send_enabled_i : std_logic := '0';
    
-   signal send_wait_counter_i : unsigned(31 downto 0);
+   signal send_wait_counter_i1 : unsigned(31 downto 0);
+   signal send_wait_counter_i2 : unsigned(31 downto 0);
    signal send_wait_threshold_i : unsigned(31 downto 0);
    signal send_burst_threshold_i : unsigned(31 downto 0);
    signal send_burst_counter_i : unsigned(31 downto 0);   
@@ -402,11 +413,29 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
   signal cbm_rdo_regio_write_ack_i    : std_logic;
   signal cbm_rdo_regio_unknown_addr_i : std_logic;  
   
-  signal event_id : unsigned(15 downto 0);
-  signal send_length_i : unsigned(15 downto 0);
+  signal event_id : unsigned(31 downto 0);
+  signal send_length_i1 : unsigned(15 downto 0);
+  signal send_length_i2 : unsigned(15 downto 0);
   signal send_counter_i : unsigned(15 downto 0);
   
-  type TRB_FSM_T is (IDLE, START_READOUT, START_READOUT_WAIT1, START_READOUT_WAIT2, START_READOUT_WAIT3, FEE_BUSY, FEE_BUSY_WAIT1, FEE_BUSY_WAIT2, FEE_BUSY_WAIT3, SEND_EINF_H, SEND_EINF_L, SEND_LENGTH, SEND_SOURCE, SEND_SOURCE_WAIT, SEND_PAYLOAD_H, SEND_PAYLOAD_L, COMPL_WAIT1, COMPL_WAIT2, COMPL_WAIT3, COMPL_WAIT4, COMPL_NOT_BUSY_WAIT1, COMPL_NOT_BUSY_WAIT2, COMPL_NOT_BUSY_WAIT3, COMPL_NOT_BUSY_WAIT4, EVT_WAIT);
+  
+  signal send_length_min_i  : unsigned(15 downto 0);
+  signal send_length_max_i  : unsigned(15 downto 0);
+  signal send_length_step_i : unsigned(15 downto 0);
+  signal send_length_cnt_i  : unsigned(15 downto 0);
+
+  signal send_real_time_i : unsigned(31 downto 0);
+  signal send_real_time_buf_i : unsigned(31 downto 0);
+  
+  signal send_real_time125_i : unsigned(31 downto 0);
+  signal send_real_time125_xfer_i : unsigned(31 downto 0);
+  signal send_real_time125_buf_i : unsigned(31 downto 0);
+
+  signal event_gap_i : unsigned(31 downto 0);
+  signal event_gap_cnt_i : unsigned(31 downto 0);
+  
+  
+  type TRB_FSM_T is (IDLE, START_READOUT, START_READOUT_WAIT, FEE_BUSY, SEND_EINF_H, SEND_EINF_L, SEND_LENGTH, SEND_SOURCE, SEND_SOURCE_WAIT, SEND_PAYLOAD_H, SEND_PAYLOAD_L, SEND_PAYLOAD_RT_H, SEND_PAYLOAD_RT_L, COMPL_WAIT, COMPL_NOT_BUSY_WAIT, EVT_WAIT);
   signal trb_fsm_i : TRB_FSM_T;
    
 begin
@@ -462,7 +491,23 @@ begin
 
 --   TEST_LINE(7 downto 0) <= cbm_data2send_stop & cbm_data2send_start & cbm_data2send_end & cbm_dlm_rec_va & cbm_dlm_rec_type;
 --   TEST_LINE(15 downto 8) <= phy_stat_debug(7 downto 0);
+  
+   PROC_TESTLINE: process is
+      variable pattern_v : std_logic_vector(15 downto 0) := x"0001";
+   begin
+      wait until rising_edge(rclk_125_i);
       
+      pattern_v := pattern_v(14 downto 0) & pattern_v(15);
+      
+      if send_enabled_i = '0' then
+         TEST_LINE <= pattern_v;
+      else
+         pattern_v := x"0001";
+         TEST_LINE(15 downto 11) <= cbm_data2send_stop & cbm_data2send_start & cbm_data2send_end  & cbm_data2send(15 downto 14);
+         TEST_LINE(10 downto 0) <= cbm_data2send(10 downto 0);
+      end if;
+   end process;
+  
    
    SFP_RATESEL   <= (others => '0');
    
@@ -647,139 +692,195 @@ begin
       CBMNET_LINK_ACTIVE_IN => cbm_link_active, -- in std_logic;
 
       CBMNET_DATA2SEND_STOP_IN   => cbm_data2send_stop(0), -- in std_logic;
-      CBMNET_DATA2SEND_START_OUT => cbm_data2send_start(0), -- out std_logic;
-      CBMNET_DATA2SEND_END_OUT   => cbm_data2send_end(0), -- out std_logic;
-      CBMNET_DATA2SEND_DATA_OUT  => cbm_data2send -- out std_logic_vector(15 downto 0)   
+      CBMNET_DATA2SEND_START_OUT => cbm_data2send_start1(0), -- out std_logic;
+      CBMNET_DATA2SEND_END_OUT   => cbm_data2send_end1(0), -- out std_logic;
+      CBMNET_DATA2SEND_DATA_OUT  => cbm_data2send1 -- out std_logic_vector(15 downto 0)   
    );
    
    gbe_fee_read <= '1';
    gbe_cts_status_bits <= x"beafc0de";
    
    process is
+      variable wait_cnt_v : integer range 0 to 15 := 0;
    begin
       wait until rising_edge(clk_100_i);
       
       hub_cts_start_readout <= '1';
-      hub_fee_busy <= '1';
-      hub_fee_dataready <= '0';
+      HUB_FEE_BUSY <= '1';
+      HUB_FEE_DATAREADY <= '0';
       
-      if reset_i = '1' then
+      if reset_i='1' then
          trb_fsm_i <= IDLE;
-         event_id <= 0;
-         
-         hub_cts_start_readout <= '0';
-         hub_fee_busy <= '0';
-         hub_fee_dataready <= '0';
-         
       else
          case(trb_fsm_i) is
             when IDLE =>
                hub_cts_start_readout <= '0';
-               hub_fee_busy <= '0';
+               HUB_FEE_BUSY <= '0';
                if send_enabled_i = '1' then
                   trb_fsm_i <= START_READOUT;
                end if;
                
-            when START_READOUT => 
-               trb_fsm_i <= START_READOUT_WAIT1;
-               hub_fee_busy <= '0';
-               event_id <= event_id + 1;
+               if send_length_cnt_i < send_length_min_i then
+                  send_length_cnt_i <= send_length_min_i;
+               else
+                  send_length_cnt_i <= send_length_cnt_i + 1;
+               end if;
                
-            when START_READOUT_WAIT1 => 
-               trb_fsm_i <= START_READOUT_WAIT2;
-               hub_fee_busy <= '0';
-            when START_READOUT_WAIT2 => 
-               trb_fsm_i <= START_READOUT_WAIT3;
-               hub_fee_busy <= '0';
-            when START_READOUT_WAIT3 => 
-               trb_fsm_i <= FEE_BUSY;
-               hub_fee_busy <= '0';
+            when START_READOUT => 
+               if send_length_cnt_i < send_length_min_i or send_length_cnt_i > send_length_max_i then
+                  send_length_cnt_i <= send_length_min_i;
+               end if;
+
+               trb_fsm_i <= START_READOUT_WAIT;
+               wait_cnt_v := 10;
+               HUB_FEE_BUSY <= '0';
+               event_id <= event_id + 1;
+               send_real_time_buf_i <= send_real_time_i;
+               
+            when START_READOUT_WAIT => 
+               if wait_cnt_v = 0 then
+                  trb_fsm_i <= FEE_BUSY;
+                  wait_cnt_v := 5;
+               else
+                  wait_cnt_v := wait_cnt_v - 1;
+               end if;
+               
+               HUB_FEE_BUSY <= '0';
             
             when FEE_BUSY =>
-               trb_fsm_i <= FEE_BUSY_WAIT1;
-            when FEE_BUSY_WAIT1 =>
-               trb_fsm_i <= FEE_BUSY_WAIT2;
-            when FEE_BUSY_WAIT2 =>
-               trb_fsm_i <= FEE_BUSY_WAIT3;
-            when FEE_BUSY_WAIT3 =>
-               trb_fsm_i <= SEND_EINF_H;
+               if wait_cnt_v = 0 then
+                  trb_fsm_i <= SEND_EINF_H;
+               else
+                  wait_cnt_v := wait_cnt_v - 1;
+               end if;
+               
+               HUB_FEE_BUSY <= '1';
                
             when SEND_EINF_H =>
-               hub_fee_data <= x"8765";
-               hub_fee_dataready <= '1';
+               HUB_FEE_DATA <= x"0e" & STD_LOGIC_VECTOR(event_id(23 downto 16));
+               HUB_FEE_DATAREADY <= '1';
                trb_fsm_i <= SEND_EINF_L;
             when SEND_EINF_L =>
-               hub_fee_data <= event_id;
-               hub_fee_dataready <= '1';
+               HUB_FEE_DATA <= std_logic_vector(event_id(15 downto 0));
+               HUB_FEE_DATAREADY <= '1';
                trb_fsm_i <= SEND_LENGTH;
                
             when SEND_LENGTH =>
-               hub_fee_data <= send_length_i;
-               send_counter_i <= send_length_i;
-               hub_fee_dataready <= '1';
+               HUB_FEE_DATA <= std_logic_vector(send_length_cnt_i);
+               send_counter_i <= send_length_cnt_i;
+               HUB_FEE_DATAREADY <= '1';
                trb_fsm_i <= SEND_SOURCE;
             when SEND_SOURCE =>
-               hub_fee_data <= x"affe";
-               hub_fee_dataready <= '1';
+               HUB_FEE_DATA <= x"affe";
+               HUB_FEE_DATAREADY <= '1';
                trb_fsm_i <= SEND_SOURCE_WAIT;
 
             when SEND_SOURCE_WAIT =>
                trb_fsm_i <= SEND_PAYLOAD_H;
+
+            when SEND_PAYLOAD_RT_H =>
+               HUB_FEE_DATA <= std_logic_vector(send_real_time_buf_i(31 downto 16));
+               HUB_FEE_DATAREADY <= '1';
+               trb_fsm_i <= SEND_PAYLOAD_RT_L;
                
-            when SEND_PAYLOAD_H =>
-               hub_fee_data <= x"bb" & std_logic_vector(event_id(7 downto 0));
-               hub_fee_dataready <= '1';
-               trb_fsm_i <= SEND_PAYLOAD_L;
-               
-            when SEND_PAYLOAD_L =>
-               hub_fee_data <= x"c" & std_logic_vector(send_counter_i(11 downto 0));
-               hub_fee_dataready <= '1';
+            when SEND_PAYLOAD_RT_L =>
+               HUB_FEE_DATA <= std_logic_vector(send_real_time_buf_i(15 downto 0));
+               HUB_FEE_DATAREADY <= '1';
                trb_fsm_i <= SEND_PAYLOAD_H;
                send_counter_i <= send_counter_i - 1;
                
                if send_counter_i = 1 then
-                  trb_fsm_i <= COMPL_WAIT1;
+                  trb_fsm_i <= COMPL_WAIT;
+                  wait_cnt_v := 5;
                end if;
                
-            when COMPL_WAIT1 => trb_fsm_i <= COMPL_WAIT2;
-            when COMPL_WAIT2 => trb_fsm_i <= COMPL_WAIT3;
-            when COMPL_WAIT3 => trb_fsm_i <= COMPL_WAIT4;
-            when COMPL_WAIT4 => trb_fsm_i <= COMPL_NOT_BUSY_WAIT1;
+            when SEND_PAYLOAD_H =>
+               HUB_FEE_DATA <= x"bb" & std_logic_vector(event_id(7 downto 0));
+               HUB_FEE_DATAREADY <= '1';
+               trb_fsm_i <= SEND_PAYLOAD_L;
+               
+            when SEND_PAYLOAD_L =>
+               HUB_FEE_DATA <= x"c" & std_logic_vector(send_counter_i(11 downto 0));
+               HUB_FEE_DATAREADY <= '1';
+               trb_fsm_i <= SEND_PAYLOAD_H;
+               send_counter_i <= send_counter_i - 1;
+               
+               if send_counter_i = 1 then
+                  trb_fsm_i <= COMPL_WAIT;
+                  wait_cnt_v := 5;
+               end if;
+               
+            when COMPL_WAIT =>
+               if wait_cnt_v = 0 then
+                  wait_cnt_v := 5;
+                  trb_fsm_i <= COMPL_NOT_BUSY_WAIT;
+               else
+                  wait_cnt_v := wait_cnt_v - 1;
+               end if;
+               
+               HUB_FEE_BUSY <= '1';
+
             
-            when COMPL_NOT_BUSY_WAIT1 => trb_fsm_i <= COMPL_NOT_BUSY_WAIT2; hub_fee_busy <= '0';
-            when COMPL_NOT_BUSY_WAIT2 => trb_fsm_i <= COMPL_NOT_BUSY_WAIT3; hub_fee_busy <= '0';
-            when COMPL_NOT_BUSY_WAIT3 => trb_fsm_i <= COMPL_NOT_BUSY_WAIT4; hub_fee_busy <= '0';
-            when COMPL_NOT_BUSY_WAIT4 => 
-               trb_fsm_i <= EVT_WAIT;
-               hub_fee_busy <= '0';
+            when COMPL_NOT_BUSY_WAIT => 
                hub_cts_start_readout <= '0';
-               send_wait_counter_i <= 0;
+               if wait_cnt_v = 0 then
+                  trb_fsm_i <= EVT_WAIT;
+                  wait_cnt_v := 5;
+               else
+                  wait_cnt_v := wait_cnt_v - 1;
+               end if;
+               
+               HUB_FEE_BUSY <= '0';
+               event_gap_cnt_i <= (others => '0');
                
                
             when EVT_WAIT =>
                hub_cts_start_readout <= '0';
-               hub_fee_busy <= '0';
-
-               send_wait_counter_i <= send_wait_counter_i + 1;
-               if send_wait_counter_i >= UNSIGNED(send_wait_threshold_i) then
+               HUB_FEE_BUSY <= '0';
+               
+               event_gap_cnt_i <= event_gap_cnt_i + 1;
+               
+               if event_gap_cnt_i >= UNSIGNED(event_gap_i) then
                   trb_fsm_i <= IDLE;
                end if;
                
          end case;
-      
       end if;
-   
    end process;
+   
+   proc_real_time: process is
+   begin
+      wait until rising_edge(clk_100_i);
       
-   
-   
+      if reset_i='1' then
+         send_real_time_i <= (others => '0');
+      else
+         send_real_time_i <= send_real_time_i + 1;
+      end if;
+   end process;
+  
+   proc_real_time125: process is
+   begin
+      wait until rising_edge(rclk_125_i);
+      
+      if rreset_i='1' then
+         send_real_time125_i <= (others => '0');
+      else
+         send_real_time125_i <= send_real_time125_i +1;
+      end if;
+   end process;
+   send_real_time125_xfer_i <= send_real_time125_i when rising_edge(clk_100_i);
+  
+   cbm_data2send <= cbm_data2send1; -- when tp_mux_i = '0' else cbm_data2send2;
+   cbm_data2send_start <= cbm_data2send_start1; -- when tp_mux_i = '0' else cbm_data2send_start2;
+   cbm_data2send_end <= cbm_data2send_end1; -- when tp_mux_i = '0' else cbm_data2send_end2;   
    
 --    proc_data_send: process begin
 --       wait until rising_edge(rclk_125_i);
 --       
---       cbm_data2send <= (others => '0');
---       cbm_data2send_start <= "0";
---       cbm_data2send_end <= "0";
+--       cbm_data2send2 <= (others => '0');
+--       cbm_data2send_start2 <= "0";
+--       cbm_data2send_end2 <= "0";
 -- 
 --       if reset_i = '1' or send_enabled_i = '0' then
 --          send_fsm_i <= start;
@@ -791,7 +892,7 @@ begin
 --                if cbm_link_active='1' and cbm_data2send_stop = "0" then
 --                   send_fsm_i <= send_header;
 --                   send_num_pack_counter_i <= send_num_pack_counter_i + 1;
---                   send_length_i(4 downto 0) <= unsigned("0" & send_num_pack_counter_i(3 downto 0)) + 1;
+--                   send_length_i2(4 downto 0) <= unsigned("0" & send_num_pack_counter_i(3 downto 0)) + 1;
 --                   
 --                   if send_burst_counter_i = to_unsigned(0, send_burst_counter_i'length) then
 --                      send_burst_counter_i <= send_burst_threshold_i;
@@ -801,37 +902,37 @@ begin
 --                end if;
 --             
 --             when send_header =>
---                cbm_data2send <= x"f123";
---                cbm_data2send_start <= "1";
+--                cbm_data2send2 <= x"f123";
+--                cbm_data2send_start2 <= "1";
 --                send_fsm_i <= send_pack_num;
 --                
 --             when send_pack_num =>
---                cbm_data2send <= send_num_pack_counter_i;
+--                cbm_data2send2 <= send_num_pack_counter_i;
 --                send_fsm_i <= send_length;
 --             
 --             when send_length =>
---                cbm_data2send(send_length_i'range) <= send_length_i;
+--                cbm_data2send2(send_length_i2'range) <= send_length_i2;
 --                send_fsm_i <= send_data;
 --                
 --             when send_data =>
---                send_length_i <= send_length_i - 1;
---                cbm_data2send(15 downto 8) <= "0" & std_logic_vector(send_length_i(2 downto 0)) & std_logic_vector(send_length_i(3 downto 0));
---                cbm_data2send(send_length_i'high + 0 downto 0) <= send_length_i;
+--                send_length_i2 <= send_length_i2 - 1;
+--                cbm_data2send2(15 downto 8) <= "0" & std_logic_vector(send_length_i2(2 downto 0)) & std_logic_vector(send_length_i2(3 downto 0));
+--                cbm_data2send2(send_length_i2'high + 0 downto 0) <= send_length_i2;
 --                
---                if send_length_i = to_unsigned(1, send_length_i'length) then
+--                if send_length_i2 = to_unsigned(1, send_length_i2'length) then
 --                   send_fsm_i <= send_footer;
 --                end if;
 --                
 --             when send_footer =>
---                cbm_data2send <= x"f321";
---                cbm_data2send_end <= "1";
+--                cbm_data2send2 <= x"f321";
+--                cbm_data2send_end2 <= "1";
 --                
---                send_wait_counter_i <= (others => '0');
+--                send_wait_counter_i2 <= (others => '0');
 --                send_fsm_i <= after_send_wait;
 -- 
 --             when after_send_wait =>
---                send_wait_counter_i <= std_logic_vector( unsigned(send_wait_counter_i) + 1 );
---                if send_wait_counter_i(4 downto 0) >= send_wait_threshold_i or send_burst_counter_i /= to_unsigned(0, send_burst_counter_i'length) then
+--                send_wait_counter_i2 <= std_logic_vector( unsigned(send_wait_counter_i2) + 1 );
+--                if send_wait_counter_i2(4 downto 0) >= send_wait_threshold_i or send_burst_counter_i /= to_unsigned(0, send_burst_counter_i'length) then
 --                   send_fsm_i <= start;
 --                end if;
 --                
@@ -883,6 +984,27 @@ begin
          when 16#5# => debug_data_out <= phy_ctrl_debug(63 downto 32);
          when 16#6# => debug_data_out <= STD_LOGIC_VECTOR(TO_UNSIGNED(CBM_FEE_MODE, 32));
          
+         when 16#0f# => debug_data_out(15 downto 0) <= send_length_i1;
+         when 16#10# => debug_data_out <= event_gap_i;
+         when 16#11# => debug_data_out <= event_id;
+         
+         when 16#12# => debug_data_out <= STD_LOGIC_VECTOR(dlm_counter_i);
+         when 16#13# => debug_data_out <= STD_LOGIC_VECTOR(dlm_glob_counter_i);
+         when 16#14# =>
+			debug_data_out(21 downto 20) <= cbm_debug_overrides_i;
+            debug_data_out(19 downto 16) <= tp_mux_i & send_enabled_i & cbm_data2send_stop & cbm_link_active;
+            debug_data_out(15 downto 0) <= STD_LOGIC_VECTOR(send_num_pack_counter_i);
+            
+            
+         when 16#15# => debug_data_out(15 downto 0) <= cbm_crc_error_cntr_0;
+         when 16#16# => debug_data_out <= cbm_retrans_error_cntr_0 & cbm_retrans_cntr_0;
+         when 16#17# => debug_data_out(15 downto 0) <= cbm_crc_error_cntr_1;
+         when 16#18# => debug_data_out <= cbm_retrans_error_cntr_1 & cbm_retrans_cntr_1;
+         when 16#19# => debug_data_out(15 downto 0) <= cbm_crc_error_cntr_2;
+         when 16#1a# => debug_data_out <= cbm_retrans_error_cntr_2 & cbm_retrans_cntr_2;
+         when 16#1b# => debug_data_out(15 downto 0) <= cbm_crc_error_cntr_3;
+         when 16#1c# => debug_data_out <= cbm_retrans_error_cntr_3 & cbm_retrans_cntr_3;
+
          when 16#20# => debug_data_out <= phy_debug_i_buf(31+32*0 downto 32*0);
          when 16#21# => debug_data_out <= phy_debug_i_buf(31+32*1 downto 32*1);
          when 16#22# => debug_data_out <= phy_debug_i_buf(31+32*2 downto 32*2);
@@ -900,27 +1022,12 @@ begin
          when 16#2e# => debug_data_out <= phy_debug_i_buf(31+32*14 downto 32*14);
          when 16#2f# => debug_data_out <= phy_debug_i_buf(31+32*15 downto 32*15);  
          
-         
-         when 16#0f# => debug_data_out(15 downto 0) <= send_length_i;
-         when 16#10# => debug_data_out <= send_wait_threshold_i;
-         when 16#11# => null;---debug_data_out(20 downto 0) <= "000" & cbm_data_from_link;
-         
-         when 16#12# => debug_data_out <= STD_LOGIC_VECTOR(dlm_counter_i);
-         when 16#13# => debug_data_out <= STD_LOGIC_VECTOR(dlm_glob_counter_i);
-         when 16#14# =>
-			debug_data_out(21 downto 20) <= cbm_debug_overrides_i;
-            debug_data_out(19 downto 16) <= "0" & send_enabled_i & cbm_data2send_stop & cbm_link_active;
-            debug_data_out(15 downto 0) <= STD_LOGIC_VECTOR(send_num_pack_counter_i);
-            
-            
-         when 16#15# => debug_data_out(15 downto 0) <= cbm_crc_error_cntr_0;
-         when 16#16# => debug_data_out <= cbm_retrans_error_cntr_0 & cbm_retrans_cntr_0;
-         when 16#17# => debug_data_out(15 downto 0) <= cbm_crc_error_cntr_1;
-         when 16#18# => debug_data_out <= cbm_retrans_error_cntr_1 & cbm_retrans_cntr_1;
-         when 16#19# => debug_data_out(15 downto 0) <= cbm_crc_error_cntr_2;
-         when 16#1a# => debug_data_out <= cbm_retrans_error_cntr_2 & cbm_retrans_cntr_2;
-         when 16#1b# => debug_data_out(15 downto 0) <= cbm_crc_error_cntr_3;
-         when 16#1c# => debug_data_out <= cbm_retrans_error_cntr_3 & cbm_retrans_cntr_3;
+         when 16#30# => debug_data_out <= x"0000" & STD_LOGIC_VECTOR( send_length_min_i );
+         when 16#31# => debug_data_out <= x"0000" & STD_LOGIC_VECTOR(send_length_max_i );
+         when 16#32# => debug_data_out <= x"0000" & STD_LOGIC_VECTOR(send_length_step_i );
+         when 16#33# => debug_data_out <= send_real_time_i;
+                        send_real_time125_buf_i <= send_real_time125_xfer_i;
+         when 16#34# => debug_data_out <= send_real_time125_buf_i;
          
          when others => debug_ack <= '0';
       end case;
@@ -930,21 +1037,35 @@ begin
             when 16#01# => phy_ctrl_op <= debug_data_in(15 downto 0);
             when 16#04# => phy_ctrl_debug(31 downto  0) <= debug_data_in;
             when 16#05# => phy_ctrl_debug(63 downto 32) <= debug_data_in;
-            when 16#0f# => --send_burst_threshold_i <= debug_data_in; 
-                  send_length_i <= debug_data_in(15 downto 0);
-            when 16#10# => send_wait_threshold_i <= debug_data_in;
+            when 16#0f# => 
+                  send_burst_threshold_i <= debug_data_in; 
+                  send_length_i1 <= debug_data_in(15 downto 0);
+            when 16#10# => event_gap_i <= debug_data_in;
             when 16#14# => 
 				send_enabled_i <= debug_data_in(18);
+				tp_mux_i <= debug_data_in(19);
 				--cbm_debug_overrides_i <= debug_data_in(21 downto 20);
             
+            when 16#30# => 
+               if UNSIGNED(debug_data_in(15 downto 0)) /= 0 then
+                  send_length_min_i <= UNSIGNED(debug_data_in(15 downto 0));
+               end if;
+            when 16#31# =>
+               if UNSIGNED(debug_data_in(15 downto 0)) < 1019 then
+                  send_length_max_i <= UNSIGNED(debug_data_in(15 downto 0));
+               end if;
+               
+            when 16#32# => 
+               send_length_step_i <= UNSIGNED(debug_data_in(15 downto 0));
 
             when others => debug_ack <= '0';
          end case;
       end if;
       
-      if cbm_res_n = '0' then
-         send_burst_threshold_i<= x"00000010";
-         send_wait_threshold_i <= x"00010000";
+      if reset_i='1' then
+         send_length_step_i <= TO_UNSIGNED(  1, 16);
+         send_length_min_i  <= TO_UNSIGNED(  1, 16);
+         send_length_max_i  <= TO_UNSIGNED(200, 16);
       end if;
    end process;
    

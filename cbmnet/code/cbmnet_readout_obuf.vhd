@@ -23,7 +23,7 @@ entity CBMNET_READOUT_OBUF is
       CBMNET_END_OUT   : out std_logic;
       CBMNET_DATA_OUT  : out std_logic_vector(15 downto 0);
       
-      DEBUG_OUT : out std_logic_vector(31 downto 0)
+      DEBUG_OUT : out std_logic_vector(31 downto 0) := (others => '0')
    );
 end entity;
 
@@ -41,12 +41,16 @@ architecture cbmnet_readout_obuf_arch of CBMNET_READOUT_OBUF is
    signal fifo_write_data_i : std_logic_vector(15 downto 0);
    
    signal fifo_deq_i : std_logic;
-
+   
    type WFSM_T is (OBTAIN_FREE_BUFFER, WAIT_FOR_START, WAIT_FOR_END, COMPLETE);
+   type WFSM_DEC_T is array(WFSM_T) of std_logic_vector(3 downto 0);
    signal wfsm_i : WFSM_T;
+   constant wfsm_dec_c : WFSM_DEC_T := (OBTAIN_FREE_BUFFER => x"1", WAIT_FOR_START => x"2", WAIT_FOR_END => x"3", COMPLETE => x"4");
    
    type RFSM_T is (OBTAIN_FULL_BUFFER, WAIT_WHILE_STOP, COPY, COMPLETE);
+   type RFSM_DEC_T is array(RFSM_T) of std_logic_vector(3 downto 0);
    signal rfsm_i, rfsm_next_i : RFSM_T;
+   constant rfsm_dec_c : RFSM_DEC_T := (OBTAIN_FULL_BUFFER => x"1", WAIT_WHILE_STOP => x"2", COPY => x"3", COMPLETE => x"4");
 begin
    WPROC: process is
    begin
@@ -187,4 +191,12 @@ begin
    );
    
    fifo_write_data_i <= PACKER_DATA_IN when rising_edge(CLK_IN);
+   
+   DEBUG_OUT( 3 downto  0) <= STD_LOGIC_VECTOR(TO_UNSIGNED(write_fifo_i, 4));
+   DEBUG_OUT( 7 downto  4) <= STD_LOGIC_VECTOR(TO_UNSIGNED(read_fifo_i,  4));
+   DEBUG_OUT(11 downto  8) <= wfsm_dec_c(wfsm_i);
+   DEBUG_OUT(15 downto 12) <= rfsm_dec_c(rfsm_i);
+   DEBUG_OUT(19 downto 16) <= fifo_get_filled_i(0) & fifo_last_i(0) & fifo_enqueue_i(0) & fifo_dequeue_i(0);
+   DEBUG_OUT(23 downto 20) <= fifo_get_filled_i(1) & fifo_last_i(1) & fifo_enqueue_i(1) & fifo_dequeue_i(1);
+
 end architecture;

@@ -9,7 +9,7 @@ entity CBMNET_READOUT_FRAME_PACKER is
       RESET_IN : in std_logic; 
 
       -- fifo 
-      FIFO_DATA_IN   : in std_logic_vector(15 downto 0);
+      FIFO_DATA_IN   : in std_logic_vector(17 downto 0);
       FIFO_DEQUEUE_OUT : out std_logic;
       FIFO_PACKET_COMPLETE_IN : in std_logic;  
       FIFO_PACKET_COMPLETE_ACK_OUT : out std_logic;
@@ -58,7 +58,13 @@ architecture cbmnet_readout_frame_packer_arch of CBMNET_READOUT_FRAME_PACKER is
    
    signal buf_length_h_i : std_logic_vector(15 downto 0);
    
+   signal fifo_data_i : std_logic_vector(15 downto 0);
+   signal fifo_token_i : std_logic_vector(1 downto 0);
+   
 begin
+   fifo_data_i <= FIFO_DATA_IN(15 downto 0);
+   fifo_token_i <= FIFO_DATA_IN(17 downto 16);
+
 
    PROC_TX_CNTL: process is 
       variable dequeue_forced_v : std_logic;
@@ -68,7 +74,7 @@ begin
       
       CBMNET_START_OUT <= '0';
       CBMNET_END_OUT <= '0';
-      CBMNET_DATA_OUT <= FIFO_DATA_IN;
+      CBMNET_DATA_OUT <= fifo_data_i;
       
       dequeue_if_allowed_v := '0';
       dequeue_forced_v := '0';
@@ -96,17 +102,19 @@ begin
                fsm_i <= SETUP_TRANSACTION_FETCH_LENGTH_H;
             
             when SETUP_TRANSACTION_FETCH_LENGTH_H =>
-               buf_length_h_i <= FIFO_DATA_IN;
-               assert(FIFO_DATA_IN = x"0000");
+               buf_length_h_i <= fifo_data_i;
+               assert(fifo_token_i = "01") report "Invalid LENGHT_H token" severity failure;
+               assert(fifo_data_i = x"0000") report "TrbNet length high-byte /= 0 and hence to long. This is not supported by this module" severity failure;
                fsm_i <= SETUP_TRANSACTION_FETCH_LENGTH_L;
             
             when SETUP_TRANSACTION_FETCH_LENGTH_L =>
                remaining_words_in_transaction_i <= (others =>'0');
-               remaining_words_in_transaction_i(14 downto 0) <= UNSIGNED(FIFO_DATA_IN(15 downto 1));
+               remaining_words_in_transaction_i(14 downto 0) <= UNSIGNED(fifo_data_i(15 downto 1));
                remaining_words_to_dequeue_i <= (others =>'0');
-               remaining_words_to_dequeue_i(14 downto 0) <= UNSIGNED(FIFO_DATA_IN(15 downto 1)) - TO_UNSIGNED(1, 15);
-               assert(to_integer(UNSIGNED(FIFO_DATA_IN)) >= 24) report "TrbNet packet too short. Expect minimal length of 24 bytes.";
-               assert(to_integer(UNSIGNED(FIFO_DATA_IN)) < 4096) report "TrbNet packet too long. This module should support sending of transactions with upto 32kb data, but only 4kb transactions have been specified and tested";
+               remaining_words_to_dequeue_i(14 downto 0) <= UNSIGNED(fifo_data_i(15 downto 1)) - TO_UNSIGNED(1, 15);
+               assert(fifo_token_i = "10") report "Invalid LENGTH_L token"  severity failure;
+               assert(to_integer(UNSIGNED(fifo_data_i)) >= 24) report "TrbNet packet too short. Expect minimal length of 24 bytes." severity failure;
+               assert(to_integer(UNSIGNED(fifo_data_i)) < 4096) report "TrbNet packet too long. This module should support sending of transactions with upto 32kb data, but only 4kb transactions have been specified and tested" severity failure;
                fsm_i <= FIRST_FRAME_SEND_HDR;
             
             when FIRST_FRAME_SEND_HDR =>
@@ -189,6 +197,8 @@ begin
                if remaining_words_in_frame_i = 2 then
                   fsm_i <= SEND_STOP_WORD;
                end if;
+               
+               assert(fifo_token_i = "00" or fifo_token_i = "10" or (fifo_token_i = "11" and remaining_words_in_transaction_i < 2)) report "Invalid LENGHT_L / DATA / END token";
                   
             when SEND_STOP_WORD =>
                if remaining_words_in_transaction_i = 0 then
@@ -203,8 +213,10 @@ begin
                if remaining_words_in_transaction_i = 1 or remaining_words_in_transaction_i = 0 then
                   fsm_i <= COMPLETE_TRANSACTION;
                   FIFO_PACKET_COMPLETE_ACK_OUT <= '1';
+                  assert(fifo_token_i = "11") report "Invalid data token";
                else
                   fsm_i <= BEGIN_FRAME_PRE_WAIT0;
+                  assert(fifo_token_i = "00") report "Invalid data token";
                end if;
             
             
