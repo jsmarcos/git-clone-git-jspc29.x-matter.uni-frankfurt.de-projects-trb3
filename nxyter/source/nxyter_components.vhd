@@ -14,7 +14,6 @@ package nxyter_components is
       CLK_IN                     : in    std_logic;
       RESET_IN                   : in    std_logic;
       CLK_NX_MAIN_IN             : in    std_logic;
-      NX_DATA_CLK_IN             : in    std_logic;
       CLK_ADC_IN                 : in    std_logic;
       PLL_NX_CLK_LOCK_IN         : in    std_logic;
       PLL_ADC_DCLK_LOCK_IN       : in    std_logic;
@@ -351,7 +350,6 @@ component nx_data_receiver
   port (
     CLK_IN                 : in  std_logic;
     RESET_IN               : in  std_logic;
-    NX_DATA_CLK_IN         : in  std_logic;
     TRIGGER_IN             : in  std_logic;
     NX_ONLINE_IN           : in  std_logic;
     NX_CLOCK_ON_IN         : in  std_logic;

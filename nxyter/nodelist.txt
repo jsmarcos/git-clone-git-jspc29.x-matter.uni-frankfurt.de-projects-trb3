@@ -1,3 +1,18 @@
+[c2]
+system = linux
+corenum = 4
+env = /usr/local/opt/lattice_diamond/diamond/2.1/bin/lin64/diamond_env
+workdir = /home/rich/TRB/nXyter/trb3/nxyter/workdir/
+[c3]
+system = linux
+corenum = 4
+env = /usr/local/opt/lattice_diamond/diamond/2.1/bin/lin64/diamond_env
+workdir = /home/rich/TRB/nXyter/trb3/nxyter/workdir/
+[c4]
+system = linux
+corenum = 4
+env = /usr/local/opt/lattice_diamond/diamond/2.1/bin/lin64/diamond_env
+workdir = /home/rich/TRB/nXyter/trb3/nxyter/workdir/
 [c5]
 system = linux
 corenum = 4
