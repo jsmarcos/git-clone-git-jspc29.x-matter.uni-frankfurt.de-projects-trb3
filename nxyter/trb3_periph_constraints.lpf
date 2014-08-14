@@ -1,6 +1,4 @@
-        #######################################################################
-
-
+#################################################################
 BLOCK RESETPATHS ;
 BLOCK ASYNCPATHS ;
 BLOCK RD_DURING_WR_PATHS ;
@@ -63,11 +61,11 @@ LOCATE UGROUP        "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLI
 # Relax some of the timing constraints
 #################################################################
 
-#################################################
+#################################################################
 # Muelleimer:
 # #LOCATE COMP "pll_adc_clk_1/PLLInst_0" SITE "PLL_R43C5" ;
 #
-#################################################
+#################################################################
 
 
 MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset*"                                                      50 ns;
@@ -142,3 +140,4 @@ INPUT_SETUP GROUP    "NX1_IN" 1.5 ns HOLD 1.5 ns CLKPORT="NX1_DATA_CLK_IN";
 #UGROUP NXYTER1 BBOX 100 70
 # BLKNAME nXyter_FEE_board_0
 #LOCATE UGROUP NXYTER1 SITE "R2C2D";
+
