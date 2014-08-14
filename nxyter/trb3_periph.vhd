@@ -267,7 +267,6 @@ architecture trb3_periph_arch of trb3_periph is
   
   -- nXyter-FEB-Board Clocks
   signal nx_main_clk                : std_logic;
-  signal nx_data_clk                : std_logic;
   signal nx_pll_clk_lock            : std_logic;
   signal nx_pll_reset               : std_logic;
   
@@ -663,7 +662,6 @@ begin
       CLK_IN                     => clk_100_i,
       RESET_IN                   => reset_i,
       CLK_NX_MAIN_IN             => nx_main_clk,
-      NX_DATA_CLK_IN             => nx_data_clk,
       CLK_ADC_IN                 => NX_CLK_ADC_DAT,
       PLL_NX_CLK_LOCK_IN         => nx_pll_clk_lock,
       PLL_ADC_DCLK_LOCK_IN       => nx_pll_adc_clk_lock,
@@ -767,7 +765,6 @@ begin
       CLK   => CLK_PCLK_RIGHT,
       RESET => nx_pll_reset,
       CLKOP => nx_main_clk,
-      CLKOK => nx_data_clk,
       LOCK  => nx_pll_clk_lock
       );
   

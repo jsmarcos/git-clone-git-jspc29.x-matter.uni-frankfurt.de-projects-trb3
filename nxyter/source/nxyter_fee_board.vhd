@@ -21,7 +21,6 @@ entity nXyter_FEE_board is
     CLK_IN                     : in  std_logic;  
     RESET_IN                   : in  std_logic;
     CLK_NX_MAIN_IN             : in  std_logic;
-    NX_DATA_CLK_IN             : in  std_logic;
     CLK_ADC_IN                 : in  std_logic;
     PLL_NX_CLK_LOCK_IN         : in  std_logic;
     PLL_ADC_DCLK_LOCK_IN       : in  std_logic;
@@ -558,7 +557,6 @@ begin
     port map (
       CLK_IN                 => CLK_IN,
       RESET_IN               => RESET_IN,
-      NX_DATA_CLK_IN         => NX_DATA_CLK_IN,
       TRIGGER_IN             => trigger_timing,  -- for debugging only
       NX_ONLINE_IN           => nxyter_online,
       NX_CLOCK_ON_IN         => nxyter_clock_on,
