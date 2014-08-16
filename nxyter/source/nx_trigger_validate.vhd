@@ -205,15 +205,18 @@ architecture Behavioral of nx_trigger_validate is
   signal reset_hists_o         : std_logic;
   
   -- Timestamp Trigger Window Settings
-  signal nxyter_cv_time        : unsigned(11 downto 0);
-  signal cts_trigger_delay     : unsigned(11 downto 0);
-  signal ts_window_offset      : signed(11 downto 0);
-  signal ts_window_width       : unsigned(9 downto 0);
-  signal readout_time_max      : unsigned(11 downto 0);
-  signal fpga_timestamp_offset : unsigned(11 downto 0);
+  signal nxyter_cv_time            : unsigned(11 downto 0);
+  signal cts_trigger_delay         : unsigned(11 downto 0);
+  signal trigger_calibration_delay : unsigned(11 downto 0);
+  signal ts_window_offset          : signed(11 downto 0);
+  signal ts_window_width           : unsigned(9 downto 0);
+  signal readout_time_max          : unsigned(11 downto 0);
+  signal fpga_timestamp_offset     : unsigned(11 downto 0);
+  
+  signal state_d                   : std_logic_vector(1 downto 0);
 
-  signal state_d               : std_logic_vector(1 downto 0);
-
+  -----------------------------------------------------------------------------
+  
   attribute syn_keep : boolean;
   attribute syn_keep of timestamp_fpga_ff     : signal is true;
   attribute syn_keep of timestamp_fpga_f      : signal is true;
@@ -322,12 +325,8 @@ begin
         -- Calculate Thresholds and values for FIFO Delay
         -----------------------------------------------------------------------
 
-        if (trigger_calibration = '0') then
-          cts_trigger_delay_tmp  := cts_trigger_delay;
-        else
-          cts_trigger_delay_tmp  := (others => '0');
-        end if;
-        
+        cts_trigger_delay_tmp  := cts_trigger_delay;
+                
         if (ts_window_offset(11) = '1') then
           -- Offset is negative
           ts_window_offset_unsigned :=
@@ -349,12 +348,12 @@ begin
 
         -- Final lower Threshold value relative to TS Reference TS
         window_lower_thr         := timestamp_fpga - window_lower_thr;  
-        
         window_upper_thr         :=
           window_lower_thr + resize(ts_window_width, 12);
+          
         ts_window_check_value    :=
           unsigned(TIMESTAMP_IN(13 downto 2)) - window_lower_thr;
-
+        
         -- Timestamp to be stored
         deltaTStore(13 downto 2) := ts_window_check_value;
         deltaTStore( 1 downto 0) := unsigned(TIMESTAMP_IN(1 downto 0));
@@ -662,6 +661,12 @@ begin
             min_validation_time + wait_for_data_time;  
           wait_for_data_time        := x"00001";
         end if;
+
+        if (trigger_calibration = '1') then
+          min_validation_time       :=
+            min_validation_time + resize(trigger_calibration_delay, 20);
+        end if;
+
         min_validation_time_r       <= min_validation_time;
         wait_for_data_time_r        <= wait_for_data_time;
         
@@ -743,6 +748,11 @@ begin
               else
                 timestamp_fpga            <=
                   timestamp_fpga_f + fpga_timestamp_offset;
+              end if;
+
+              if (trigger_calibration = '1') then
+                timestamp_fpga            <=
+                  timestamp_fpga_f + trigger_calibration_delay;
               end if;
               STATE                       <= S_WRITE_HEADER;
             end if;
@@ -959,6 +969,7 @@ begin
         histogram_limits              <= '0';
         histogram_trig_filter         <= '0';
         histogram_ts_range            <= "100";
+        trigger_calibration_delay     <= x"190";       -- 400ns
       else
         slv_data_out_o                   <= (others => '0');
         slv_unknown_addr_o               <= '0';
@@ -995,7 +1006,10 @@ begin
             when x"0003" =>
               slv_data_out_o(9 downto  0)     <=
                 std_logic_vector(cts_trigger_delay(9 downto 0));
-              slv_data_out_o(31 downto 10)    <= (others => '0');
+              slv_data_out_o(15 downto 10)    <= (others => '0');
+              slv_data_out_o(27 downto 16)    <=
+                std_logic_vector(trigger_calibration_delay);
+              slv_data_out_o(31 downto 28)    <= (others => '0');
               slv_ack_o                       <= '1'; 
               
             when x"0004" =>
@@ -1122,9 +1136,9 @@ begin
             when x"001a" =>
               slv_data_out_o(11 downto 0)     <=
                 std_logic_vector(nxyter_cv_time);
-              slv_data_out_o(31 downto  12)   <= (others => '0');
+              slv_data_out_o(31 downto 12)    <= (others => '0');
               slv_ack_o                       <= '1';
-
+                
             when x"001b" =>
               slv_data_out_o(19 downto 0)     <=
                 std_logic_vector(min_validation_time_r);
@@ -1197,6 +1211,8 @@ begin
             when x"0003" =>
               cts_trigger_delay(9 downto 0)   <=
                 unsigned(SLV_DATA_IN(9 downto 0));
+              trigger_calibration_delay       <=
+                unsigned(SLV_DATA_IN(27 downto 16));
               slv_ack_o                       <= '1';
 
             when x"0004" =>
@@ -1227,12 +1243,13 @@ begin
             when x"0020" =>
               histogram_lower_limit           <= SLV_DATA_IN(13 downto 0);
               histogram_upper_limit           <= SLV_DATA_IN(28 downto 15);
-              reset_hists                     <= SLV_DATA_IN(29);
               histogram_limits                <= SLV_DATA_IN(30);
               histogram_trig_filter           <= SLV_DATA_IN(31);
+              reset_hists                     <= '1';
               slv_ack_o                       <= '1';
               
             when x"0021" =>
+              reset_hists                     <= '1';
               histogram_ts_range              <= SLV_DATA_IN(2 downto 0); 
               slv_ack_o                       <= '1';
               

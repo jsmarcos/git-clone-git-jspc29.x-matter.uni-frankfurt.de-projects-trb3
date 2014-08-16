@@ -865,7 +865,7 @@ begin
               slv_ack_o                    <= '1';  
 
             when x"000a" =>
-              status_trigger_type          <= SLV_DATA_IN(3 downto 0);
+              calibration_trigger_type     <= SLV_DATA_IN(3 downto 0);
               slv_ack_o                    <= '1';  
               
             when others =>

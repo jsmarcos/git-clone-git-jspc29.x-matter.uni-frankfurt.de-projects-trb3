@@ -40,8 +40,8 @@ USE PRIMARY   NET "CLK_PCLK_RIGHT_c";
 USE EDGE2EDGE NET "NX_CLK_ADC_DAT";
 USE PRIMARY   NET "nXyter_FEE_board_0/nx_data_receiver_1/adc_ad9228_1/DDR_DATA_CLK_c";
 
-PRIORITIZE NET "NX1_DATA_CLK_IN_c" 40;
-PRIORITIZE NET "nXyter_FEE_board_0/nx_data_receiver_1/adc_ad9228_1/DDR_DATA_CLK_c" 50;
+#PRIORITIZE NET "NX1_DATA_CLK_IN_c" 40;
+#PRIORITIZE NET "nXyter_FEE_board_0/nx_data_receiver_1/adc_ad9228_1/DDR_DATA_CLK_c" 50;
 
 #################################################################
 # Reset Nets
@@ -110,7 +110,7 @@ MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/fpga_timestamp_of
 
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_event_buffer_*/fifo_almost_full_thr_*"                        100 ns;
 
-MULTICYCLE FROM CELL "nXyter_FEE_board_*/debug_multiplexer_*/port_select_*"                               100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/debug_multiplexer_*/port_select_*"                               500 ns;
 
 MULTICYCLE TO GROUP "TEST_LINE_group"          500.000000 ns ;
 MULTICYCLE TO GROUP "NX1_DEBUG_LINE_group"     500.000000 ns ;
