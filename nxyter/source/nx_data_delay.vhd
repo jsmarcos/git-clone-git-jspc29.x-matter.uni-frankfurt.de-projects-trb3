@@ -63,6 +63,26 @@ architecture Behavioral of nx_data_delay is
   -- Fifo Delay
   signal fifo_delay            : std_logic_vector(7 downto 0);
   signal fifo_delay_reset      : std_logic;
+
+  -- Frame Rate Counter
+  signal rate_timer            : unsigned(27 downto 0);
+  signal frame_rate_in_ctr_t   : unsigned(27 downto 0);
+  signal frame_rate_out_ctr_t  : unsigned(27 downto 0);
+  signal frame_rate_input      : unsigned(27 downto 0);
+  signal frame_rate_output     : unsigned(27 downto 0);
+
+  -- Error Status
+  signal data_clk_shift         : std_logic_vector(3 downto 0);
+  signal frame_dt_error         : std_logic;
+  signal frame_dt_error_ctr     : unsigned(15 downto 0);
+  signal frame_rate_error       : std_logic;
+
+  signal data_clk_out_shift     : std_logic_vector(3 downto 0);
+  signal frame_dt_out_error     : std_logic;
+  signal frame_dt_out_error_ctr : unsigned(15 downto 0);
+  signal frame_rate_out_error   : std_logic;
+  
+  signal error_o                : std_logic;
   
   -- Slave Bus                 
   signal slv_data_o            : std_logic_vector(31 downto 0);
@@ -179,6 +199,81 @@ begin
       end if;
     end if;
   end process PROC_FIFO_DELAY;
+
+  PROC_CAL_RATES: process (CLK_IN)
+  begin 
+    if( rising_edge(CLK_IN) ) then
+      if (RESET_IN = '1') then
+        rate_timer           <= (others => '0');
+        frame_rate_input     <= (others => '0');
+        frame_rate_output    <= (others => '0');
+        frame_rate_in_ctr_t  <= (others => '0');
+        frame_rate_out_ctr_t <= (others => '0');
+      else
+        if (rate_timer < x"5f5e100") then
+          if (DATA_CLK_IN = '1') then
+            frame_rate_in_ctr_t             <= frame_rate_in_ctr_t + 1;
+          end if;
+          if (data_clk_o = '1') then
+            frame_rate_out_ctr_t            <= frame_rate_out_ctr_t + 1;
+          end if;
+          rate_timer                        <= rate_timer + 1;
+        else
+          frame_rate_input                  <= frame_rate_in_ctr_t;
+          frame_rate_in_ctr_t(27 downto 1)  <= (others => '0');
+          frame_rate_in_ctr_t(0)            <= DATA_CLK_IN;
+
+          frame_rate_output                 <= frame_rate_out_ctr_t;
+          frame_rate_out_ctr_t(27 downto 1) <= (others => '0');
+          frame_rate_out_ctr_t(0)           <= data_clk_o;
+
+          rate_timer                        <= (others => '0');
+        end if;
+      end if;
+    end if;
+  end process PROC_CAL_RATES;
+  
+  PROC_DATA_STREAM_DELTA_T: process(CLK_IN)
+  begin
+    if (rising_edge(CLK_IN)) then
+      if (RESET_IN = '1') then
+        data_clk_shift          <= (others => '0');
+        frame_dt_error_ctr      <= (others => '0');
+        frame_dt_error          <= '0';
+        data_clk_out_shift      <= (others => '0');
+        frame_dt_out_error_ctr  <= (others => '0');
+        frame_dt_out_error      <= '0';
+      else
+        -- Frame
+        data_clk_shift(0)               <= DATA_CLK_IN;
+        data_clk_shift(3 downto 1)      <= data_clk_shift(2 downto 0);
+
+        data_clk_out_shift(0)           <= data_clk_o;
+        data_clk_out_shift(3 downto 1)  <= data_clk_out_shift(2 downto 0);
+        
+        case data_clk_shift is
+          when "1100" | "1110" | "1111" | "0000" =>
+            frame_dt_error_ctr          <= frame_dt_error_ctr + 1;
+            frame_dt_error              <= '1';
+
+          when others =>
+            frame_dt_error              <= '0';
+
+        end case;
+
+        case data_clk_out_shift is
+          when "1100" | "1110" | "1111" | "0000" =>
+            frame_dt_out_error_ctr      <= frame_dt_out_error_ctr + 1;
+            frame_dt_out_error          <= '1';
+
+          when others =>
+            frame_dt_out_error          <= '0';
+
+        end case;
+        
+      end if;
+    end if;
+  end process PROC_DATA_STREAM_DELTA_T;
   
   -----------------------------------------------------------------------------
   -- TRBNet Slave Bus
@@ -209,6 +304,26 @@ begin
               slv_ack_o                <= '1';
 
             when x"0001" =>
+              slv_data_o(27 downto 0)  <= frame_rate_input;
+              slv_data_o(31 downto 28) <= (others => '0');
+              slv_ack_o                <= '1';
+
+            when x"0002" =>
+              slv_data_o(27 downto 0)  <= frame_rate_output;
+              slv_data_o(31 downto 28) <= (others => '0');
+              slv_ack_o                <= '1';
+
+            when x"0003" =>
+              slv_data_o(15 downto 0)  <= frame_dt_error_ctr;
+              slv_data_o(31 downto 16) <= (others => '0');
+              slv_ack_o                <= '1';
+
+            when x"0004" =>
+              slv_data_o(15 downto 0)  <= frame_dt_out_error_ctr;
+              slv_data_o(31 downto 16) <= (others => '0');
+              slv_ack_o                <= '1';
+
+            when x"0005" =>
               slv_data_o(0)            <= debug_r;
               slv_data_o(31 downto 1)  <= (others => '0');
               slv_ack_o                <= '1';
@@ -224,7 +339,7 @@ begin
               fifo_reset_r             <= '1';
               slv_ack_o                <= '1';
 
-            when x"0001" =>
+            when x"0005" =>
               debug_r                  <= SLV_DATA_IN(0);
               slv_ack_o                <= '1';
 
