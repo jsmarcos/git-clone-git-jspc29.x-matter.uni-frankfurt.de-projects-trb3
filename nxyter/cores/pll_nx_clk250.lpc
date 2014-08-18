@@ -12,12 +12,12 @@ VendorName=Lattice Semiconductor Corporation
 CoreType=LPM
 CoreStatus=Demo
 CoreName=PLL
-CoreRevision=5.3
+CoreRevision=5.6
 ModuleName=pll_nx_clk250
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=04/08/2014
-Time=23:14:13
+Date=08/13/2014
+Time=20:33:11
 
 [Parameters]
 Verilog=0
@@ -64,3 +64,6 @@ ClkOSBp=0
 EnCLKOK=0
 ClkOKBp=0
 enClkOK2=0
+
+[Command]
+cmd_line= -w -n pll_nx_clk250 -lang vhdl -synth synplify -arch ep5c00 -type pll -fin 200 -phase_cntl STATIC -fclkop 250 -fclkop_tol 0.0 -fb_mode CLOCKTREE -noclkos -noclkok -use_rst -noclkok2 -bw

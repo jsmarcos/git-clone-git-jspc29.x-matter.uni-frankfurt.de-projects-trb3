@@ -145,6 +145,7 @@ add_file -vhdl -lib work "../../trbnet/special/handler_lvl1.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net16_endpoint_hades_full.vhd"
 add_file -vhdl -lib work "../../trbnet/basics/ram_dp_rw.vhd"
 add_file -vhdl -lib work "../../trbnet/lattice/ecp2m/fifo/fifo_var_oreg.vhd"
+add_file -vhdl -lib work "../../trbnet/special/bus_register_handler.vhd"
 add_file -vhdl -lib work "../../trbnet/special/handler_data.vhd"
 add_file -vhdl -lib work "../../trbnet/special/handler_ipu.vhd"
 add_file -vhdl -lib work "../../trbnet/special/handler_trigger_and_data.vhd"
@@ -159,8 +160,7 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4.vhd"
 add_file -vhdl -lib work "./code/cbmnet_interface_pkg.vhd"
 add_file -vhdl -lib work "./code/cbmnet_phy_pkg.vhd"
-add_file -vhdl -lib work "./cores/cbmnet_sfp1.vhd"
-add_file -vhdl -lib work "./cores/cbmnet_sfp1_slow.vhd"
+add_file -vhdl -lib work "../base/cores/cbmnet_sfp1.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/med_sync_define.vhd"
 add_file -vhdl -lib work "./code/cbmnet_phy_ecp3_rx_reset_fsm.vhd"
 add_file -vhdl -lib work "./code/cbmnet_phy_ecp3_tx_reset_fsm.vhd"
@@ -168,6 +168,18 @@ add_file -vhdl -lib work "./code/cbmnet_phy_rx_gear.vhd"
 add_file -vhdl -lib work "./code/cbmnet_phy_tx_gear.vhd"
 add_file -vhdl -lib work "./code/cbmnet_phy_ecp3.vhd"
 add_file -vhdl -lib work "./trb3_periph_cbmnet.vhd"
+
+
+add_file -vhdl -lib work "./cores/cbmnet_fifo_18x2k_dp.vhd"
+add_file -vhdl -lib work "./code/cbmnet_readout_trbnet_decoder.vhd"
+add_file -vhdl -lib work "./code/cbmnet_readout_event_packer.vhd"
+add_file -vhdl -lib work "./code/cbmnet_readout_fifo_ecp3.vhd"
+add_file -vhdl -lib work "./code/cbmnet_readout_frame_packer.vhd"
+add_file -vhdl -lib work "./code/cbmnet_readout_tx_fifo.vhd"
+add_file -vhdl -lib work "./code/cbmnet_readout_obuf.vhd"
+add_file -vhdl -lib work "./code/cbmnet_readout.vhd"
+
+add_file -fpga_constraint "./project/trb3_periph_cbmnet_syn.fdc"
 
 
 #implementation: "workdir"
@@ -191,7 +203,7 @@ set_option -part_companion ""
 set_option -top_module "trb3_periph_cbmnet"
 
 # mapper_options
-set_option -frequency 200
+set_option -frequency 125
 set_option -default_enum_encoding sequential
 set_option -write_verilog 0
 set_option -write_vhdl 1
@@ -216,7 +228,7 @@ set_option -symbolic_fsm_compiler 1
 
 # Compiler Options
 set_option -compiler_compatible 1
-set_option -resource_sharing 1
+set_option -resource_sharing 0
 
 #automatic place and route (vendor) options
 set_option -write_apr_constraint 0

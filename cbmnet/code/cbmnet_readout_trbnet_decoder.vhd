@@ -38,22 +38,13 @@ entity CBMNET_READOUT_TRBNET_DECODER is
 end entity;
 
 architecture cbmnet_readout_trbnet_decoder_arch of CBMNET_READOUT_TRBNET_DECODER is
-   component lattice_ecp3_fifo_16x16_dualport is
-      port (
-         Data: in  std_logic_vector(15 downto 0); 
-         WrClock: in  std_logic; 
-         RdClock: in  std_logic; 
-         WrEn: in  std_logic; 
-         RdEn: in  std_logic; 
-         Reset: in  std_logic; 
-         RPReset: in  std_logic; 
-         Q: out  std_logic_vector(15 downto 0); 
-         Empty: out  std_logic; 
-         Full: out  std_logic; 
-         AlmostFull: out  std_logic
-      );
-   end component;
-   
+   constant FIFO_LENGTH_C : integer := 4;
+   type FIFO_MEM_T is array(0 to 2**FIFO_LENGTH_C-1) of std_logic_vector(15 downto 0);
+   signal fifo_mem_i : FIFO_MEM_T;
+
+   attribute syn_ramstyle : string;
+   attribute syn_ramstyle of fifo_mem_i : signal is "block_ram";
+
    type FSM_STATES_T is (WAIT_FOR_IDLE, IDLE, RECV_EVT_INFO_H, RECV_EVT_INFO_L, RECV_EVT_LENGTH, RECV_EVT_SOURCE, RECV_PAYLOAD, LAST_WORD, ERROR_COND);
    signal fsm_i : FSM_STATES_T;
    
@@ -75,6 +66,9 @@ architecture cbmnet_readout_trbnet_decoder_arch of CBMNET_READOUT_TRBNET_DECODER
    signal fifo_empty_i : std_logic;
    
    signal fifo_data_i : std_logic_vector(15 downto 0);
+   
+   signal fifo_raddr_i : UNSIGNED(FIFO_LENGTH_C-1 downto 0);
+   signal fifo_waddr_i : UNSIGNED(FIFO_LENGTH_C-1 downto 0);
 begin
    data_i <= HUB_FEE_DATA_IN;
    
@@ -125,6 +119,9 @@ begin
                word_counter_set_i <= '1';
                if read_word_i = '1' then
                   dec_length_i <= data_i(13 downto 0) & "00";
+-- synopsys translate_off
+   assert data_i(13 downto 0) & "00" /= x"0000" report "TrbNet packet must not be of length 0" severity warning;
+-- synopsys translate_on
                   fsm_i <= RECV_EVT_SOURCE;
                end if;
          
@@ -133,7 +130,7 @@ begin
                if read_word_i = '1' then
                   dec_source_i <= data_i;
                   fsm_i <= RECV_PAYLOAD;
-                  fifo_active_i <= '1';
+                  --fifo_active_i <= '1';
                end if;
          
             when RECV_PAYLOAD =>
@@ -146,7 +143,7 @@ begin
                end if;
                
                if fifo_empty_i = '1' and word_counter_done_i = '1' then
-                  fsm_i <= LAST_WORD;
+                  fsm_i <= WAIT_FOR_IDLE; --LAST_WORD;
                end if;
                
             when LAST_WORD =>
@@ -171,7 +168,8 @@ begin
       wait until rising_edge(CLK_IN);
       
       if word_counter_set_i = '1' then
-         word_counter_i <= UNSIGNED("0" & dec_length_i(15 downto 1));
+         word_counter_i(15) <= '0';
+         word_counter_i(14 downto 0) <= UNSIGNED(dec_length_i(15 downto 1));
          
       elsif word_counter_done_i = '0' and fifo_enqueue_i = '1' then
          word_counter_i <= word_counter_i - 1;
@@ -183,24 +181,41 @@ begin
    
    word_counter_done_i <= '1' when word_counter_i = x"0000" else '0';
    
-   THE_FIFO: lattice_ecp3_fifo_16x16_dualport
-   port map (
-      WrClock    => CLK_IN, --  in  std_logic; 
-      RdClock    => CLK_IN, --  in  std_logic; 
-      Reset      => RESET_IN, --  in  std_logic; 
-      RPReset    => RESET_IN, --  in  std_logic; 
-
-      Data       => HUB_FEE_DATA_IN, --  in  std_logic_vector(17 downto 0); 
-      WrEn       => fifo_enqueue_i, --  in  std_logic; 
-
-      RdEn       => DEC_DATA_READ_IN, --  in  std_logic; 
-      Q          => fifo_data_i, --  out  std_logic_vector(17 downto 0); 
+   PROC_FIFO: process is
+      variable count_v : integer range 0 to 2**FIFO_LENGTH_C := 0;
+   begin
+      wait until rising_edge(CLK_IN);
       
-      Empty      => fifo_empty_i, --  out  std_logic; 
-      Full       => fifo_full_i, --  out  std_logic; 
-      AlmostFull => open --  out  std_logic   
-   );
-
+      if RESET_IN='1' then
+         count_v := 0;
+         fifo_waddr_i <= (others=>'0');
+         fifo_raddr_i <= (others=>'0');
+      else
+         if fifo_enqueue_i = '1' then
+            count_v := count_v + 1;
+            fifo_waddr_i <= fifo_waddr_i + TO_UNSIGNED(1,1);
+            fifo_mem_i(to_integer(fifo_waddr_i)) <= HUB_FEE_DATA_IN;
+         end if;
+         
+         if DEC_DATA_READ_IN = '1' then
+            count_v := count_v - 1;
+            fifo_raddr_i <= fifo_raddr_i + TO_UNSIGNED(1,1);
+         end if;
+      end if;
+      
+      fifo_empty_i <= '0';
+      fifo_full_i <= '0';
+      
+      if count_v = 0 then
+         fifo_empty_i <= '1';
+      end if;
+      
+      if count_v >= 2**FIFO_LENGTH_C then
+         fifo_full_i <= '1';
+      end if;
+   end process;
+   fifo_data_i <= fifo_mem_i(to_integer(fifo_raddr_i));
+   
    read_word_i <= HUB_FEE_DATAREADY_IN and GBE_FEE_READ_IN;
    fifo_enqueue_i <= fifo_active_i and read_word_i;
    

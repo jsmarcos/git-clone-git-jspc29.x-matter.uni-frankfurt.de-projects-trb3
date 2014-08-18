@@ -39,7 +39,7 @@ entity nXyter_FEE_board is
     SPI_CSB_OUT                : out std_logic;    
                                 
     -- nXyter Timestamp Ports
-    NX_DATA_CLK_IN             : in  std_logic;
+    NX_TIMESTAMP_CLK_IN        : in  std_logic;
     NX_TIMESTAMP_IN            : in  std_logic_vector (7 downto 0);
     NX_RESET_OUT               : out std_logic;
     NX_TESTPULSE_OUT           : out std_logic;
@@ -561,7 +561,7 @@ begin
       NX_ONLINE_IN           => nxyter_online,
       NX_CLOCK_ON_IN         => nxyter_clock_on,
       
-      NX_TIMESTAMP_CLK_IN    => NX_DATA_CLK_IN,
+      NX_TIMESTAMP_CLK_IN    => NX_TIMESTAMP_CLK_IN,
       NX_TIMESTAMP_IN        => NX_TIMESTAMP_IN,
       NX_TIMESTAMP_RESET_OUT => nx_timestamp_reset,
       

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="cbmnet_fifo_18x2k_dp" module="FIFO_DC" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2014 08 08 14:35:44.077" version="5.7" type="Module" synthesis="synplify" source_format="VHDL">
+  <Package>
+		<File name="cbmnet_fifo_18x2k_dp.lpc" type="lpc" modified="2014 08 08 14:35:22.000"/>
+		<File name="cbmnet_fifo_18x2k_dp.vhd" type="top_level_vhdl" modified="2014 08 08 14:35:22.000"/>
+		<File name="cbmnet_fifo_18x2k_dp_tmpl.vhd" type="template_vhdl" modified="2014 08 08 14:35:22.000"/>
+		<File name="tb_cbmnet_fifo_18x2k_dp_tmpl.vhd" type="testbench_vhdl" modified="2014 08 08 14:35:23.000"/>
+  </Package>
+</DiamondModule>

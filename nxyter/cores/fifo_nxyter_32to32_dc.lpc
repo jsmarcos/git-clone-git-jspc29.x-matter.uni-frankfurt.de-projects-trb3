@@ -12,12 +12,12 @@ VendorName=Lattice Semiconductor Corporation
 CoreType=LPM
 CoreStatus=Demo
 CoreName=FIFO_DC
-CoreRevision=5.4
-ModuleName=fifo_data_stream_44to44_dc
+CoreRevision=5.7
+ModuleName=fifo_nxyter_32to32_dc
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=04/15/2014
-Time=22:11:13
+Date=08/08/2014
+Time=15:52:47
 
 [Parameters]
 Verilog=0
@@ -29,9 +29,9 @@ Order=Big Endian [MSB:LSB]
 IO=0
 FIFOImp=EBR Based
 Depth=4
-Width=44
+Width=32
 RDepth=4
-RWidth=44
+RWidth=32
 regout=1
 CtrlByRdEn=0
 EmpFlg=0
@@ -45,3 +45,6 @@ PfDeassert=506
 RDataCount=0
 WDataCount=0
 EnECC=0
+
+[Command]
+cmd_line= -w -n fifo_nxyter_32to32_dc -lang vhdl -synth synplify -bus_exp 7 -bb -arch ep5c00 -type fifodc -addr_width 2 -data_width 32 -num_words 4 -rdata_width 32 -outdata REGISTERED -no_enable -pe -1 -pf -1
