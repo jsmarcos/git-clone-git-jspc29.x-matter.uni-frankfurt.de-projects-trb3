@@ -212,14 +212,13 @@ gen_chips : for i in 0 to NUM_DEVICES-1 generate
     end if;
   end process;
 
-  THE_FIFO : fifo_cdt_200   --60*16
+  THE_FIFO : entity work.fifo_cdt_200_50   --60*16
     port map(
       Data(9 downto   0)  => fifo_input(i)(0),
       Data(19 downto 10)  => fifo_input(i)(1),
       Data(29 downto 20)  => fifo_input(i)(2),
       Data(39 downto 30)  => fifo_input(i)(3),
       Data(49 downto 40)  => fifo_input(i)(4),
-      Data(59 downto 50)  => (others => '0'),
       WrClock  => clk_data,
       RdClock  => CLK,
       WrEn     => fifo_write(i),

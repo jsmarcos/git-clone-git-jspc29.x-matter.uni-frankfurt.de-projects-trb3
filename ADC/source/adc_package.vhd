@@ -22,6 +22,10 @@ type cfg_t is record
   trigger_threshold : std_logic_vector(17 downto 0);
   readout_threshold : std_logic_vector(17 downto 0);
   presum            : std_logic_vector( 7 downto 0);
+  averaging         : std_logic_vector( 3 downto 0);
+  block_avg         : std_logic_vector_array_8(0 to 3);
+  block_sums        : std_logic_vector_array_8(0 to 3);
+  block_scale       : std_logic_vector_array_8(0 to 3);
 end record;
 
 type buffer_data_t    is array(0 to DEVICES-1)          of std_logic_vector(31 downto 0);
@@ -31,3 +35,6 @@ end package;
 
 package body adc_package is
 end package body;
+
+
+

@@ -145,7 +145,7 @@ add_file -vhdl -lib "work" "../base/cores/pll_in200_out40.vhd"
 add_file -vhdl -lib "work" "../base/cores/pll_adc10bit.vhd"
 add_file -vhdl -lib "work" "../base/cores/dqsinput_7x5.vhd"
 add_file -vhdl -lib "work" "../base/cores/dqsinput_5x5.vhd"
-add_file -vhdl -lib "work" "../base/cores/fifo_cdt_200.vhd"
+add_file -vhdl -lib "work" "../base/cores/fifo_cdt_200_50.vhd"
 
 add_file -vhdl -lib "work" "source/adc_package.vhd"
 add_file -vhdl -lib "work" "source/adc_processor.vhd"

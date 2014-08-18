@@ -10,7 +10,7 @@ package config is
 --Begin of design configuration
 ------------------------------------------------------------------------------
 
-    constant USE_DUMMY_READOUT      : integer := c_YES; --use slowcontrol for readout, no trigger logic
+    constant USE_DUMMY_READOUT      : integer := c_NO;  --use slowcontrol for readout, no trigger logic
     
 --Run wih 125 MHz instead of 100 MHz     
     constant USE_125_MHZ            : integer := c_NO;  --not implemented yet!  
@@ -75,6 +75,6 @@ begin
   return t;
 end function;  
 
-  constant INCLUDED_FEATURES : std_logic_vector := generateIncludedFeatures;    
+  constant INCLUDED_FEATURES : std_logic_vector(63 downto 0) := generateIncludedFeatures;    
   
 end package body;
