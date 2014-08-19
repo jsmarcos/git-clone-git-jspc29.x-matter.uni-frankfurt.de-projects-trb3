@@ -247,6 +247,10 @@ component adc_ad9228
     ADC1_DATA_CLK_OUT    : out std_logic;
     ADC0_LOCKED_OUT      : out std_logic;
     ADC1_LOCKED_OUT      : out std_logic;
+    ADC0_SLOPPY_FRAME    : in  std_logic;
+    ADC1_SLOPPY_FRAME    : in  std_logic;
+    ADC0_ERROR_OUT       : out std_logic;
+    ADC1_ERROR_OUT       : out std_logic;
     DEBUG_IN             : in  std_logic_vector(3 downto 0);
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
