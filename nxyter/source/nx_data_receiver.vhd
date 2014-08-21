@@ -138,7 +138,7 @@ architecture Behavioral of nx_data_receiver is
   
   signal adc_data_s                  : std_logic_vector(11 downto 0);
   signal adc_data_s_clk              : std_logic;
-  signal adc_notlock_ctr             : unsigned(11 downto 0);
+  signal adc_notlock_ctr             : unsigned(7 downto 0);
   signal ADC_DEBUG                   : std_logic_vector(15 downto 0);
 
   -- Merge Data Streams
@@ -230,7 +230,7 @@ architecture Behavioral of nx_data_receiver is
   signal nx_frame_word_delay_r         : unsigned(1 downto 0);
   signal adc_dt_error_ctr_r            : unsigned(11 downto 0);
   signal timestamp_dt_error_ctr_r      : unsigned(11 downto 0);
-  signal adc_notlock_ctr_r             : unsigned(11 downto 0);
+  signal adc_notlock_ctr_r             : unsigned(7 downto 0);
   signal merge_error_ctr_r             : unsigned(11 downto 0);
   signal nx_frame_synced_rr            : std_logic;
   signal nx_frame_synced_r             : std_logic;
@@ -249,9 +249,7 @@ architecture Behavioral of nx_data_receiver is
   signal rs_timeout_timer_reset      : std_logic;
   signal nx_timestamp_reset_o        : std_logic;
   signal nx_fifo_reset_handler       : std_logic;
-
-  signal reset_handler_trigger       : std_logic_vector(15 downto 0);
-  
+ 
   type R_STATES is (R_IDLE,
                     R_START,
                     R_WAIT_0,
@@ -1249,13 +1247,14 @@ begin
         adc_dt_shift_reg(3 downto 1) <= adc_dt_shift_reg(2 downto 0);
         
         case adc_dt_shift_reg is
-          when "1100" | "1110" | "1111" | "0000" =>
-            adc_dt_error_ctr         <= adc_dt_error_ctr + 1;
-            adc_dt_error_p           <= '1';
-            
-          when others =>
+          when "1000" | "0100" | "0010" | "0001" |
+               "1001" | "0011" | "0110" | "1100" =>
             adc_dt_error_p           <= '0';
             
+          when others =>
+            adc_dt_error_ctr         <= adc_dt_error_ctr + 1;
+            adc_dt_error_p           <= '1';
+
         end case;
 
         -- TimeStamp
@@ -1264,12 +1263,13 @@ begin
           <= timestamp_dt_shift_reg(2 downto 0);
         
         case timestamp_dt_shift_reg is
-          when "1100" | "1110" | "0000" =>
-            timestamp_dt_error_ctr   <= timestamp_dt_error_ctr + 1;
-            timestamp_dt_error_p     <= '1';
+          when "1000" | "0100" | "0010" | "0001" |
+               "1001" | "0011" | "0110" | "1100" =>
+            timestamp_dt_error_p     <= '0';
 
           when others =>
-            timestamp_dt_error_p     <= '0';
+            timestamp_dt_error_ctr   <= timestamp_dt_error_ctr + 1;
+            timestamp_dt_error_p     <= '1';
 
         end case;
 
@@ -1300,7 +1300,6 @@ begin
         reset_timeout_flag          <= '0';
         startup_reset               <= '1';
         nx_timestamp_reset_o        <= '0';
-        reset_handler_trigger       <= (others => '0');
         R_STATE                     <= R_IDLE;
       else
         frame_rates_reset           <= '0';
@@ -1327,16 +1326,11 @@ begin
           -- Reset by register always wins, start it
           rs_timeout_timer_reset    <= '1';
           reset_timeout_flag        <= '0';
-          reset_handler_trigger(0)  <= '1';
-          reset_handler_trigger(15 downto 1) <= (others => '0');
           R_STATE                   <= R_START;
         elsif (rs_timeout_timer_done = '1') then
           -- Reset Timeout, retry RESET
           rs_timeout_timer_reset    <= '1';
           reset_timeout_flag        <= '1';
-          reset_handler_trigger(0)  <= '0';
-          reset_handler_trigger(1)  <= '1';
-          reset_handler_trigger(15 downto 2) <= (others => '0');
           R_STATE                   <= R_START;
         else
           
@@ -1361,22 +1355,6 @@ begin
                       startup_reset         = '1'
                       )
                     ) then
-
-                  reset_handler_trigger(1 downto 0) <= (others => '0');
-                  reset_handler_trigger( 2) <= startup_reset;
-                  reset_handler_trigger( 3) <= reset_after_offline;
-                  reset_handler_trigger( 4) <= nx_frame_rate_error;
-                  reset_handler_trigger( 5) <= parity_rate_error;
-                  reset_handler_trigger( 6) <= timestamp_dt_error;
-                  reset_handler_trigger( 7) <= nx_frame_rate_error;
-                  reset_handler_trigger( 8) <= not adc_locked;
-                  reset_handler_trigger( 9) <= not adc_sclk_ok_c100;
-                  reset_handler_trigger(10) <= adc_dt_error;
-                  reset_handler_trigger(11) <= adc_frame_rate_error;
-                  reset_handler_trigger(12) <= adc_reset_sync;
-                  reset_handler_trigger(13) <= pll_adc_not_lock;
-                  reset_handler_trigger(15 downto 14) <= (others => '0');
-                  
                   R_STATE                 <= R_START;
                 else 
                   reset_timeout_flag      <= '0';
@@ -1673,8 +1651,7 @@ begin
             when x"0001" =>
               slv_data_out_o(0)             <= reset_handler_busy;
               slv_data_out_o(1)             <= reset_timeout_flag;
-              slv_data_out_o(15 downto 2)   <= (others => '0');
-              slv_data_out_o(31 downto 16)  <= reset_handler_trigger;
+              slv_data_out_o(31 downto 2)   <= (others => '0');
               slv_ack_o                     <= '1';  
                        
             when x"0002" =>
@@ -1719,7 +1696,7 @@ begin
             when x"0008" =>
               slv_data_out_o(15 downto 0)   <=
                 std_logic_vector(reset_handler_counter);
-              slv_data_out_o(31 downto 16)  <= (others => '0');
+              slv_data_out_o(31 downto 6)   <= (others => '0');
               slv_ack_o                     <= '1';
 
             when x"0009" =>
@@ -1729,9 +1706,9 @@ begin
               slv_ack_o                     <= '1';
               
             when x"000a" =>
-              slv_data_out_o(11 downto 0)   <=
+              slv_data_out_o(7 downto 0)    <=
                 std_logic_vector(adc_notlock_ctr_r);
-              slv_data_out_o(31 downto 12)  <= (others => '0');
+              slv_data_out_o(31 downto 8)   <= (others => '0');
               slv_ack_o                     <= '1';  
 
             when x"000b" =>
@@ -1775,7 +1752,8 @@ begin
                 std_logic_vector(adc_notlock_counter);
               slv_data_out_o(31 downto 28)  <= (others => '0');
               slv_ack_o                     <= '1';
-          
+              
+
             when x"001d" =>
               slv_data_out_o(1 downto  0)   <= johnson_counter_sync_r;
               slv_data_out_o(31 downto 2)   <= (others => '0');
@@ -1858,7 +1836,7 @@ begin
 
   -- Output Signals
   data_o                   <= data_m;
-  data_clk_o               <= data_clk_m;
+  data_clk_o               <=data_clk_m;
   
   NX_TIMESTAMP_RESET_OUT   <= nx_timestamp_reset_o;
   DATA_OUT                 <= data_o;

@@ -235,8 +235,7 @@ begin
   error_all(0)          <= error_data_receiver;
   error_all(1)          <= error_data_validate;
   error_all(2)          <= error_event_buffer;
-  error_all(3)          <= not nxyter_online;
-  error_all(7 downto 4) <= (others => '0');
+  error_all(7 downto 3) <= (others => '0');
   
 -------------------------------------------------------------------------------
 -- Port Maps
@@ -274,7 +273,7 @@ begin
                                 9 => 9,          -- NX Register Setup
                                10 => 11,         -- NX Histograms
                                11 => 0,          -- Debug Handler
-                               12 => 3,          -- Data Delay
+                               12 => 1,          -- Data Delay
                                 others => 0
                                 ),
 

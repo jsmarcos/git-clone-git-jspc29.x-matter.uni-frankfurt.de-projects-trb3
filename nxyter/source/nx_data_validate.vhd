@@ -72,6 +72,7 @@ architecture Behavioral of nx_data_validate is
   signal pileup_ctr           : unsigned(15 downto 0);
 
   signal trigger_rate_inc     : std_logic;
+  signal frame_rate_inc       : std_logic;
   signal pileup_rate_inc      : std_logic;
   signal overflow_rate_inc    : std_logic;
 
@@ -81,13 +82,11 @@ architecture Behavioral of nx_data_validate is
   -- Rate Calculation
   signal nx_trigger_ctr_t     : unsigned(27 downto 0);
   signal nx_trigger_ctr_t_nr  : unsigned(31 downto 0);
-  signal frame_ctr_t          : unsigned(27 downto 0);
+  signal nx_frame_ctr_t       : unsigned(27 downto 0);
   signal nx_pileup_ctr_t      : unsigned(27 downto 0);
   signal nx_overflow_ctr_t    : unsigned(27 downto 0);
   signal adc_tr_error_ctr_t   : unsigned(27 downto 0);
-  signal adc_tr_update_ctr_t  : unsigned(27 downto 0);
-  signal adc_tr_data_ctr_t    : unsigned(27 downto 0);
-  
+
   signal nx_rate_timer        : unsigned(27 downto 0);
 
   -- ADC Averages
@@ -99,8 +98,8 @@ architecture Behavioral of nx_data_validate is
   signal adc_data_last        : std_logic_vector(11 downto 0);
 
   -- Token Return Average
-  signal nx_token_return_pipec  : std_logic_vector(9 downto 0);
-  signal nx_token_return_pipev  : std_logic_vector(11 downto 0);
+  signal nx_token_return_pipec  : std_logic_vector(4 downto 0);
+  signal nx_token_return_pipev  : std_logic_vector(8 downto 0);
   signal adc_tr_value_tmp       : std_logic_vector(11 downto 0);
   signal adc_tr_value           : std_logic_vector(11 downto 0);
   signal adc_tr_data_p          : unsigned(11 downto 0);
@@ -123,10 +122,6 @@ architecture Behavioral of nx_data_validate is
   signal readout_type         : std_logic_vector(1 downto 0);
 
   -- Error Status
-  signal new_timestamp_shift  : std_logic_vector(3 downto 0);
-  signal frame_dt_error       : std_logic;
-  signal frame_dt_error_ctr   : unsigned(15 downto 0);
-  signal frame_rate_error     : std_logic;
   signal error_o              : std_logic;
     
   -- Slave Bus                    
@@ -136,12 +131,10 @@ architecture Behavioral of nx_data_validate is
   signal slv_ack_o            : std_logic;
   signal clear_counters       : std_logic;
   signal nx_hit_rate          : unsigned(27 downto 0);
-  signal frame_rate           : unsigned(27 downto 0);
+  signal nx_frame_rate        : unsigned(27 downto 0);
   signal nx_pileup_rate       : unsigned(27 downto 0);
   signal nx_overflow_rate     : unsigned(27 downto 0);
   signal adc_tr_error_rate    : unsigned(27 downto 0);
-  signal adc_tr_update_rate   : unsigned(27 downto 0);
-  signal adc_tr_data_rate     : unsigned(27 downto 0);
   signal invalid_adc          : std_logic;
   signal adc_tr_value_r       : std_logic_vector(11 downto 0);
 
@@ -271,6 +264,7 @@ begin
         nx_token_return_o     <= '0';
         nx_nomore_data_o      <= '0';
         trigger_rate_inc      <= '0';
+        frame_rate_inc        <= '0';
         pileup_rate_inc       <= '0';
         overflow_rate_inc     <= '0';
         parity_error_ctr      <= (others => '0');
@@ -295,6 +289,7 @@ begin
         adc_data_o            <= (others => '0');
         data_clk_o            <= '0';
         trigger_rate_inc      <= '0';
+        frame_rate_inc        <= '0';
         pileup_rate_inc       <= '0';
         overflow_rate_inc     <= '0';
         invalid_adc           <= '0';
@@ -304,7 +299,7 @@ begin
         if (new_timestamp = '1') then
 
           adc_data_last                      <= adc_data;
-
+          
           if (parity_error = '1') then
             parity_error_ctr <= parity_error_ctr + 1;
           end if;
@@ -346,7 +341,7 @@ begin
               trigger_rate_inc               <= '1';
               
               if (nx_token_return_o = '1' and
-                  nx_token_return_pipec = "1111111111") then
+                  nx_token_return_pipec = "11111") then
                 -- First Data Word after 5 empty Frames
                 adc_tr_data_p                <= unsigned(adc_data_last);
                 adc_tr_data_c                <= unsigned(adc_data);
@@ -368,10 +363,12 @@ begin
               
           end case;
 
+          frame_rate_inc                     <= '1';
+
           -- Token Return Check Handler
           case TR_STATE is
             when S_IDLE =>
-              if (nx_token_return_pipev(6 downto 0) = "1111111") then
+              if (nx_token_return_pipev(4 downto 0) = "11111") then
                 adc_tr_value_tmp             <= adc_data_last;
                 TR_STATE                     <= S_START;
               else
@@ -380,13 +377,11 @@ begin
               state_debug                    <= "01";
               
             when S_START =>
-              if (nx_token_return_pipev = "111111111111") then
+              if (nx_token_return_pipev = "111111111") then
                 TR_STATE                     <= S_END;
-              elsif (nx_token_return_pipev( 6 downto 0) = "1111111" or
-                     nx_token_return_pipev( 7 downto 0) = "11111111" or
-                     nx_token_return_pipev( 8 downto 0) = "111111111" or
-                     nx_token_return_pipev( 9 downto 0) = "1111111111" or
-                     nx_token_return_pipev(10 downto 0) = "11111111111") then
+              elsif (nx_token_return_pipev(5 downto 0) = "111111" or
+                     nx_token_return_pipev(6 downto 0) = "1111111" or
+                     nx_token_return_pipev(7 downto 0) = "11111111") then
                 TR_STATE                     <= S_START;
               else
                 TR_STATE                     <= S_IDLE;
@@ -403,13 +398,13 @@ begin
 
           -- Token Return Pipeline
           nx_token_return_pipec(0)           <= nx_token_return_o;
-          for I in 1 to 9 loop
+          for I in 1 to 4 loop
             nx_token_return_pipec(I)         <= nx_token_return_pipec(I - 1);
           end loop;
 
           if (TR_STATE /= S_END) then
             nx_token_return_pipev(0)         <= nx_token_return_o;
-            for I in 1 to 11 loop
+            for I in 1 to 8 loop
               nx_token_return_pipev(I)       <= nx_token_return_pipev(I - 1);
             end loop;
           else
@@ -432,30 +427,23 @@ begin
   begin 
     if( rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
-        nx_rate_timer        <= (others => '0');
-
         nx_trigger_ctr_t     <= (others => '0');
-        frame_ctr_t          <= (others => '0');
-        adc_tr_error_ctr_t   <= (others => '0');
-        adc_tr_update_ctr_t  <= (others => '0');
-        adc_tr_data_ctr_t    <= (others => '0');
-        
-        nx_hit_rate          <= (others => '0');
-        frame_rate           <= (others => '0');
-        adc_tr_error_rate    <= (others => '0');
-        adc_tr_update_rate   <= (others => '0');
-        adc_tr_data_rate     <= (others => '0');
-
         nx_trigger_ctr_t_nr  <= (others => '0');
+        nx_frame_ctr_t       <= (others => '0');
+        nx_rate_timer        <= (others => '0');
+        nx_hit_rate          <= (others => '0');
+        nx_frame_rate        <= (others => '0');
+        adc_tr_error_ctr_t   <= (others => '0');
         adc_tr_error_ctr     <= (others => '0');
+        adc_tr_error_rate    <= (others => '0');
       else
         if (nx_rate_timer < x"5f5e100") then
           if (trigger_rate_inc = '1') then
             nx_trigger_ctr_t               <= nx_trigger_ctr_t + 1;
             nx_trigger_ctr_t_nr            <= nx_trigger_ctr_t_nr + 1;
           end if;
-          if (new_timestamp = '1') then
-            frame_ctr_t                    <= frame_ctr_t + 1;
+          if (frame_rate_inc = '1') then
+            nx_frame_ctr_t                 <= nx_frame_ctr_t + 1;
           end if;
           if (pileup_rate_inc = '1') then
             nx_pileup_ctr_t                <= nx_pileup_ctr_t + 1;
@@ -467,28 +455,19 @@ begin
             adc_tr_error_ctr_t             <= adc_tr_error_ctr_t + 1;
             adc_tr_error_ctr               <= adc_tr_error_ctr + 1;
           end if;                          
-          if (adc_tr_value_update = '1') then
-            adc_tr_update_ctr_t            <= adc_tr_update_ctr_t + 1;
-          end if; 
-          if (adc_tr_data_clk = '1') then
-            adc_tr_data_ctr_t              <= adc_tr_data_ctr_t + 1;
-          end if;
-
           nx_rate_timer                    <= nx_rate_timer + 1;
         else                               
           nx_hit_rate                      <= nx_trigger_ctr_t;
-          frame_rate                       <= frame_ctr_t;
+          nx_frame_rate                    <= nx_frame_ctr_t;
           nx_pileup_rate                   <= nx_pileup_ctr_t;
           nx_overflow_rate                 <= nx_overflow_ctr_t;
           adc_tr_error_rate                <= adc_tr_error_ctr_t;
-          adc_tr_update_rate               <= adc_tr_update_ctr_t;
-          adc_tr_data_rate                 <= adc_tr_data_ctr_t; 
-
+                                           
           nx_trigger_ctr_t(27 downto 1)    <= (others => '0');
           nx_trigger_ctr_t(0)              <= trigger_rate_inc;
                                            
-          frame_ctr_t(27 downto 1)         <= (others => '0');
-          frame_ctr_t(0)                   <= new_timestamp;
+          nx_frame_ctr_t(27 downto 1)      <= (others => '0');
+          nx_frame_ctr_t(0)                <= frame_rate_inc;
                                            
           nx_pileup_ctr_t(27 downto 1)     <= (others => '0');
           nx_pileup_ctr_t(0)               <= pileup_rate_inc;
@@ -498,12 +477,6 @@ begin
 
           adc_tr_error_ctr_t(27 downto 0)  <= (others => '0');
           adc_tr_error_ctr_t(0)            <= adc_tr_error;
-
-          adc_tr_update_ctr_t(27 downto 0)  <= (others => '0');
-          adc_tr_update_ctr_t(0)            <= adc_tr_value_update;
-
-          adc_tr_data_ctr_t(27 downto 0)    <= (others => '0');
-          adc_tr_data_ctr_t(0)              <= adc_tr_data_clk;
           
           nx_rate_timer                    <= (others => '0');
         end if;
@@ -585,55 +558,21 @@ begin
     end if;
   end process PROC_ADC_TOKEN_RETURN;
   
-  PROC_ERROR_HANDLER: process(CLK_IN)
+  PROC_ADC_TOKEN_RETURN_ERROR: process(CLK_IN)
   begin
     if (rising_edge(CLK_IN) ) then
       if (RESET_IN = '1') then
-        frame_rate_error <= '0';
-        error_o          <= '0';
+        error_o       <= '0';
       else
         if (adc_tr_error_rate > x"0000020" and DISABLE_ADC_IN = '0') then
-          error_o               <= '1';
+          error_o     <= '1';
         else
-          error_o               <= '0';
-        end if;
-
-        if ((frame_rate < x"1dc_d64e" or
-             frame_rate > x"1dc_d652")) then
-          frame_rate_error      <= '1';
-        else
-          frame_rate_error      <= '0';
+          error_o     <= '0';
         end if;
       end if;
     end if;
-  end process PROC_ERROR_HANDLER;
-  
-  PROC_DATA_STREAM_DELTA_T: process(CLK_IN)
-  begin
-    if (rising_edge(CLK_IN)) then
-      if (RESET_IN = '1') then
-        new_timestamp_shift     <= (others => '0');
-        frame_dt_error_ctr      <= (others => '0');
-        frame_dt_error          <= '0';
-      else
-        -- Frame
-        new_timestamp_shift(0)          <= new_timestamp;
-        new_timestamp_shift(3 downto 1) <= new_timestamp_shift(2 downto 0);
-        
-        case new_timestamp_shift is
-          when "1100" | "1110" | "1111" | "0000" =>
-            frame_dt_error_ctr          <= frame_dt_error_ctr + 1;            
-            frame_dt_error              <= '1';
-
-          when others =>
-            frame_dt_error              <= '0';
-
-        end case;
-
-      end if;
-    end if;
-  end process PROC_DATA_STREAM_DELTA_T;
-  
+  end process PROC_ADC_TOKEN_RETURN_ERROR;
+ 
   -----------------------------------------------------------------------------
   -- TRBNet Slave Bus
   -----------------------------------------------------------------------------
@@ -670,35 +609,33 @@ begin
 
             when x"0001" =>
               slv_data_out_o(27 downto 0)   <=
-                std_logic_vector(frame_rate);
-              slv_data_out_o(30 downto 28)  <= (others => '0');
-              slv_data_out_o(31)            <= frame_rate_error;
+                std_logic_vector(nx_frame_rate);
+              slv_data_out_o(31 downto 28)  <= (others => '0');
               slv_ack_o                     <= '1';
-
+              
             when x"0002" =>
-              slv_data_out_o(15 downto 0)
-                <= std_logic_vector(parity_error_ctr);
-              slv_data_out_o(31 downto 16)  <= (others => '0');
-              slv_ack_o                     <= '1';
-
-            when x"0003" =>
-              slv_data_out_o(15 downto 0)   <=
-              std_logic_vector(invalid_frame_ctr);
-              slv_data_out_o(31 downto 16)  <= (others => '0');
-              slv_ack_o                     <= '1';
-                           
-            when x"0004" =>
               slv_data_out_o(27 downto 0)   <=
                 std_logic_vector(nx_pileup_rate);
               slv_data_out_o(31 downto 28)  <= (others => '0');
               slv_ack_o                     <= '1'; 
 
-            when x"0005" =>
+            when x"0003" =>
               slv_data_out_o(27 downto 0)   <=
                 std_logic_vector(nx_overflow_rate);
               slv_data_out_o(31 downto 28)  <= (others => '0');
+              slv_ack_o                     <= '1'; 
+
+            when x"0004" =>
+              slv_data_out_o(3 downto 0)    <=
+                std_logic_vector(adc_average_divisor);
+              slv_data_out_o(31 downto 4)   <= (others => '0');
               slv_ack_o                     <= '1';
-              
+
+            when x"0005" =>
+              slv_data_out_o(11 downto 0)   <= std_logic_vector(adc_average);
+              slv_data_out_o(31 downto 12)  <= (others => '0');
+              slv_ack_o                     <= '1';
+            
             when x"0006" =>
               slv_data_out_o(1 downto 0)    <= adc_tr_error_status;
               slv_data_out_o(31 downto 2)   <= (others => '0');
@@ -716,64 +653,48 @@ begin
               slv_ack_o                     <= '1'; 
 
             when x"0009" =>
-              slv_data_out_o(27 downto 0)
-                <= std_logic_vector(adc_tr_update_rate);
-              slv_data_out_o(31 downto 28)  <= (others => '0');
-              slv_ack_o                     <= '1';
+              slv_data_out_o(15 downto 0)
+                <= std_logic_vector(parity_error_ctr);
+              slv_data_out_o(31 downto 16)  <= (others => '0');
+              slv_ack_o                     <= '1'; 
 
             when x"000a" =>
-              slv_data_out_o(27 downto 0)
-                <= std_logic_vector(adc_tr_data_rate);
-              slv_data_out_o(31 downto 28)  <= (others => '0');
-              slv_ack_o                     <= '1';
-              
-            when x"000b" =>
               slv_data_out_o(11 downto 0)
                 <= std_logic_vector(adc_tr_limit);
               slv_data_out_o(31 downto 12)  <= (others => '0');
               slv_ack_o                     <= '1';  
 
-            when x"000c" =>
-              slv_data_out_o(11 downto 0)   <= std_logic_vector(adc_average);
+            when x"000b" =>
+              slv_data_out_o(11 downto 0)
+                <= std_logic_vector(adc_tr_error_ctr);
               slv_data_out_o(31 downto 12)  <= (others => '0');
               slv_ack_o                     <= '1';
-
-            when x"000d" =>
-              slv_data_out_o(3 downto 0)    <=
-                std_logic_vector(adc_average_divisor);
-              slv_data_out_o(31 downto 4)   <= (others => '0');
-              slv_ack_o                     <= '1';
-              
-            when x"000e" =>
+    
+            when x"000c" =>
               slv_data_out_o(15 downto 0)   <=
                 std_logic_vector(pileup_ctr);
               slv_data_out_o(31 downto 16)  <= (others => '0');
               slv_ack_o                     <= '1';
          
-            when x"000f" =>
+            when x"000d" =>
               slv_data_out_o(15 downto 0)   <=
                 std_logic_vector(overflow_ctr);
               slv_data_out_o(31 downto 16)  <= (others => '0');
               slv_ack_o                     <= '1';
 
-            when x"0010" =>
-              slv_data_out_o(11 downto 0)
-                <= std_logic_vector(adc_tr_error_ctr);
-              slv_data_out_o(31 downto 12)  <= (others => '0');
+            when x"000e" =>
+              slv_data_out_o(15 downto 0)   <=
+              std_logic_vector(invalid_frame_ctr);
+              slv_data_out_o(31 downto 16)  <= (others => '0');
               slv_ack_o                     <= '1';
-                      
-            when x"0011" =>
+
+            when x"000f" =>
               slv_data_out_o(0)             <= adc_tr_debug_mode;
               slv_data_out_o(31 downto 1)   <= (others => '0');
               slv_ack_o                     <= '1';
 
-            when x"0012" =>
+            when x"0010" =>
               slv_data_out_o                <= nx_trigger_ctr_t_nr;
-              slv_ack_o                     <= '1';
-
-            when x"0013" =>
-              slv_data_out_o(15 downto 0)   <= frame_dt_error_ctr;
-              slv_data_out_o(31 downto 16)  <= (others => '0');
               slv_ack_o                     <= '1';
 
             when others  =>
@@ -786,17 +707,17 @@ begin
             when x"0000" =>
               clear_counters                <= '1';
               slv_ack_o                     <= '1';
-
-            when x"000b" =>
+           
+            when x"0004" =>
+              adc_average_divisor           <= SLV_DATA_IN(3 downto 0);
+              slv_ack_o                     <= '1';
+            
+            when x"000a" =>
               adc_tr_limit
                 <= unsigned(SLV_DATA_IN(11 downto 0));
               slv_ack_o                     <= '1';  
 
-            when x"000d" =>
-              adc_average_divisor           <= SLV_DATA_IN(3 downto 0);
-              slv_ack_o                     <= '1';
-                  
-            when x"0011" =>
+            when x"000f" =>
               adc_tr_debug_mode             <= SLV_DATA_IN(0);
               slv_ack_o                     <= '1';
   
