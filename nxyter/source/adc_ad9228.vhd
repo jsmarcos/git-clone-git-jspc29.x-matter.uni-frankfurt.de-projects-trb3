@@ -47,6 +47,10 @@ entity adc_ad9228 is
     ADC0_LOCKED_OUT      : out std_logic;
     ADC1_LOCKED_OUT      : out std_logic;
 
+    ERROR_ADC0_OUT       : out std_logic;
+    ERROR_ADC1_OUT       : out std_logic;
+    ERROR_UNDEF_ADC0_OUT : out std_logic;
+    ERROR_UNDEF_ADC1_OUT : out std_logic;
     DEBUG_IN             : in  std_logic_vector(3 downto 0);
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
@@ -77,10 +81,7 @@ architecture Behavioral of  adc_ad9228 is
   
   signal adc0_data_m            : adc_data_t;
   signal adc0_data_clk_m        : std_logic;
-  
-  signal adc0_data_m_f          : adc_data_t;
-  signal adc0_data_clk_m_f      : std_logic;
-  
+
   signal adc0_byte_status       : BYTE_STATUS;
   signal adc0_byte_status_last  : BYTE_STATUS;
 
@@ -115,7 +116,7 @@ architecture Behavioral of  adc_ad9228 is
   signal adc0_locked_ff         : std_logic;
   signal adc0_locked_f          : std_logic;
   signal adc0_locked_o          : std_logic;
-
+  
   signal adc1_fifo_empty        :  std_logic;
   signal adc1_fifo_full         :  std_logic;
   signal adc1_write_enable      :  std_logic;
@@ -127,17 +128,9 @@ architecture Behavioral of  adc_ad9228 is
   signal adc1_locked_o          : std_logic;
   
   -- Error
-  signal error_adc0_ff          : std_logic;
-  signal error_adc0_f           : std_logic;
   signal error_adc0_o           : std_logic;
-  signal error_adc1_ff          : std_logic;
-  signal error_adc1_f           : std_logic;
   signal error_adc1_o           : std_logic;
-  signal error_undef_adc0_ff    : std_logic;
-  signal error_undef_adc0_f     : std_logic;
   signal error_undef_adc0_o     : std_logic;
-  signal error_undef_adc1_ff    : std_logic;
-  signal error_undef_adc1_f     : std_logic;
   signal error_undef_adc1_o     : std_logic;
 
   -- Output
@@ -172,59 +165,32 @@ architecture Behavioral of  adc_ad9228 is
   
   -- 
   attribute syn_keep : boolean;
+  attribute syn_keep of q_0_ff              : signal is true;
+  attribute syn_keep of q_0_f               : signal is true;
+  attribute syn_keep of q_1_ff              : signal is true;
+  attribute syn_keep of q_1_f               : signal is true;
 
-  attribute syn_keep of q_0_ff                : signal is true;
-  attribute syn_keep of q_0_f                 : signal is true;
-  attribute syn_keep of q_1_ff                : signal is true;
-  attribute syn_keep of q_1_f                 : signal is true;
+  attribute syn_keep of adc0_locked_ff      : signal is true;
+  attribute syn_keep of adc0_locked_f       : signal is true;
+  attribute syn_keep of adc1_locked_ff      : signal is true;
+  attribute syn_keep of adc1_locked_f       : signal is true;
 
-  attribute syn_keep of adc0_locked_ff        : signal is true;
-  attribute syn_keep of adc0_locked_f         : signal is true;
-  attribute syn_keep of adc1_locked_ff        : signal is true;
-  attribute syn_keep of adc1_locked_f         : signal is true;
-
-  attribute syn_keep of adc0_data_m_f         : signal is true;
-  attribute syn_keep of adc0_data_clk_m_f     : signal is true;
-  
---  attribute syn_keep of error_adc0_ff       : signal is true;
---  attribute syn_keep of error_adc0_f        : signal is true;
---  attribute syn_keep of error_adc1_ff       : signal is true;
---  attribute syn_keep of error_adc1_f        : signal is true;
---
---  attribute syn_keep of error_undef_adc0_ff : signal is true;
---  attribute syn_keep of error_undef_adc0_f  : signal is true;
---  attribute syn_keep of error_undef_adc1_ff : signal is true;
---  attribute syn_keep of error_undef_adc1_f  : signal is true;
-  
-  attribute syn_keep of RESET_ADC0_CLKD_F     : signal is true;
-  attribute syn_keep of RESET_ADC0_CLKD       : signal is true;
-  attribute syn_keep of RESET_ADC1_CLKD_F     : signal is true;
-  attribute syn_keep of RESET_ADC1_CLKD       : signal is true;
+  attribute syn_keep of RESET_ADC0_CLKD_F   : signal is true;
+  attribute syn_keep of RESET_ADC0_CLKD     : signal is true;
+  attribute syn_keep of RESET_ADC1_CLKD_F   : signal is true;
+  attribute syn_keep of RESET_ADC1_CLKD     : signal is true;
 
   attribute syn_preserve : boolean;
-  attribute syn_preserve of q_0_ff            : signal is true;
-  attribute syn_preserve of q_0_f             : signal is true;
-  attribute syn_preserve of q_1_ff            : signal is true;
-  attribute syn_preserve of q_1_f             : signal is true;
+  attribute syn_preserve of q_0_ff          : signal is true;
+  attribute syn_preserve of q_0_f           : signal is true;
+  attribute syn_preserve of q_1_ff          : signal is true;
+  attribute syn_preserve of q_1_f           : signal is true;
   
-  attribute syn_preserve of adc0_locked_ff    : signal is true;
-  attribute syn_preserve of adc0_locked_f     : signal is true;
-  attribute syn_preserve of adc1_locked_ff    : signal is true;
-  attribute syn_preserve of adc1_locked_f     : signal is true;
+  attribute syn_preserve of adc0_locked_ff  : signal is true;
+  attribute syn_preserve of adc0_locked_f   : signal is true;
+  attribute syn_preserve of adc1_locked_ff  : signal is true;
+  attribute syn_preserve of adc1_locked_f   : signal is true;
 
-  attribute syn_preserve of adc0_data_m_f     : signal is true;
-  attribute syn_preserve of adc0_data_clk_m_f : signal is true;
-
---  attribute syn_preserve of error_adc0_ff       : signal is true;
---  attribute syn_preserve of error_adc0_f        : signal is true;
---  attribute syn_preserve of error_adc1_ff       : signal is true;
---  attribute syn_preserve of error_adc1_f        : signal is true;
---                
---  attribute syn_preserve of error_undef_adc0_ff : signal is true;
---  attribute syn_preserve of error_undef_adc0_f  : signal is true;
---  attribute syn_preserve of error_undef_adc1_ff : signal is true;
---  attribute syn_preserve of error_undef_adc1_f  : signal is true;
-  
   attribute syn_preserve of RESET_ADC0_CLKD_F : signal is true;
   attribute syn_preserve of RESET_ADC0_CLKD   : signal is true;
   attribute syn_preserve of RESET_ADC1_CLKD_F : signal is true;
@@ -651,21 +617,18 @@ begin
   -----------------------------------------------------------------------------
   -- Tansfer to CLK_IN
   -----------------------------------------------------------------------------
-  
-  adc0_data_m_f     <= adc0_data_m     when rising_edge(DDR_DATA_CLK);
-  adc0_data_clk_m_f <= adc0_data_clk_m when rising_edge(DDR_DATA_CLK);
-  
+
   fifo_adc_48to48_dc_1: entity work.fifo_adc_48to48_dc
     port map (
-      Data(11 downto 0)  => adc0_data_m_f(0),
-      Data(23 downto 12) => adc0_data_m_f(1),
-      Data(35 downto 24) => adc0_data_m_f(2),
-      Data(47 downto 36) => adc0_data_m_f(3),
+      Data(11 downto 0)  => adc0_data_m(0),
+      Data(23 downto 12) => adc0_data_m(1),
+      Data(35 downto 24) => adc0_data_m(2),
+      Data(47 downto 36) => adc0_data_m(3),
       WrClock            => DDR_DATA_CLK,
       RdClock            => CLK_IN,
       WrEn               => adc0_write_enable,
       RdEn               => adc0_read_enable,
-      Reset              => RESET_ADC0,
+      Reset              => RESET_ADC0_CLKD,
       RPReset            => RESET_ADC0,
       Q(11 downto 0)     => adc0_data_f(0),
       Q(23 downto 12)    => adc0_data_f(1),
@@ -676,14 +639,14 @@ begin
       );
     
   -- Readout Handler
-  adc0_write_enable    <= adc0_data_clk_m_f and not adc0_fifo_full;
+  adc0_write_enable    <= adc0_data_clk_m and not adc0_fifo_full;
   adc0_read_enable     <= not adc0_fifo_empty;
   
   PROC_ADC0_FIFO_READ: process(CLK_IN)
   begin
     if (rising_edge(CLK_IN)) then
       adc0_read_enable_t     <= adc0_read_enable;
-      if (RESET_IN = '1') then
+      if (RESET_ADC0_CLKD = '1') then
         adc0_read_enable_tt  <= '0';
         for I in 0 to 3 loop
           adc0_data_o(I)     <= (others => '0');
@@ -717,7 +680,7 @@ begin
       RdClock            => CLK_IN,
       WrEn               => adc1_write_enable,
       RdEn               => adc1_read_enable,
-      Reset              => RESET_ADC1,
+      Reset              => RESET_ADC1_CLKD,
       RPReset            => RESET_ADC1,
       Q(11 downto 0)     => adc1_data_f(0),
       Q(23 downto 12)    => adc1_data_f(1),
@@ -734,7 +697,7 @@ begin
   PROC_ADC1_FIFO_READ: process(CLK_IN)
   begin
     if (rising_edge(CLK_IN)) then
-      if (RESET_IN = '1') then
+      if (RESET_ADC1_CLKD = '1') then
         adc1_read_enable_t   <= '0';
         adc1_read_enable_tt  <= '0';
         for I in 0 to 3 loop
@@ -767,22 +730,58 @@ begin
   adc1_locked_f  <= adc1_locked_ff    when rising_edge(CLK_IN);
   adc1_locked_o  <= adc1_locked_f     when rising_edge(CLK_IN);
 
-  --error_adc0_ff  <= adc0_error        when rising_edge(CLK_IN);
-  --error_adc0_f   <= error_adc0_ff     when rising_edge(CLK_IN);
-  --error_adc0_o   <= error_adc0_f      when rising_edge(CLK_IN);
-  --
-  --error_adc1_ff  <= adc1_error        when rising_edge(CLK_IN);
-  --error_adc1_f   <= error_adc1_ff     when rising_edge(CLK_IN);
-  --error_adc1_o   <= error_adc1_f      when rising_edge(CLK_IN);
-  --
-  --error_undef_adc0_ff  <= adc0_error_undef    when rising_edge(CLK_IN);
-  --error_undef_adc0_f   <= error_undef_adc0_ff when rising_edge(CLK_IN);
-  --error_undef_adc0_o   <= error_undef_adc0_f  when rising_edge(CLK_IN);
-  --
-  --error_undef_adc1_ff  <= adc1_error_undef    when rising_edge(CLK_IN);
-  --error_undef_adc1_f   <= error_undef_adc1_ff when rising_edge(CLK_IN);
-  --error_undef_adc1_o   <= error_undef_adc1_f  when rising_edge(CLK_IN);
+  pulse_dtrans_ADC0_ERROR: pulse_dtrans
+    generic map (
+      CLK_RATIO => 2
+      )
+    port map (
+      CLK_A_IN    => DDR_DATA_CLK,
+      RESET_A_IN  => '0',
+      PULSE_A_IN  => adc0_error,
+      CLK_B_IN    => CLK_IN,
+      RESET_B_IN  => '0',
+      PULSE_B_OUT => error_adc0_o
+      );
 
+  pulse_dtrans_ADC1_ERROR: pulse_dtrans
+    generic map (
+      CLK_RATIO => 2
+      )
+    port map (
+      CLK_A_IN    => DDR_DATA_CLK,
+      RESET_A_IN  => '0',
+      PULSE_A_IN  => adc1_error,
+      CLK_B_IN    => CLK_IN,
+      RESET_B_IN  => '0',
+      PULSE_B_OUT => error_adc1_o
+      );
+
+  pulse_dtrans_ADC0_ERROR_UNDEF: pulse_dtrans
+    generic map (
+      CLK_RATIO => 2
+      )
+    port map (
+      CLK_A_IN    => DDR_DATA_CLK,
+      RESET_A_IN  => '0',
+      PULSE_A_IN  => adc0_error_undef,
+      CLK_B_IN    => CLK_IN,
+      RESET_B_IN  => '0',
+      PULSE_B_OUT => error_undef_adc0_o
+      );
+
+  pulse_dtrans_ADC1_ERROR_UNDEF: pulse_dtrans
+    generic map (
+      CLK_RATIO => 2
+      )
+    port map (
+      CLK_A_IN    => DDR_DATA_CLK,
+      RESET_A_IN  => '0',
+      PULSE_A_IN  => adc1_error_undef,
+      CLK_B_IN    => CLK_IN,
+      RESET_B_IN  => '0',
+      PULSE_B_OUT => error_undef_adc1_o
+      );
+  
   -- Output
   ADC0_SCLK_OUT        <= ADC0_SCLK_IN;
   ADC1_SCLK_OUT        <= ADC1_SCLK_IN;
@@ -802,4 +801,10 @@ begin
   ADC0_LOCKED_OUT      <= adc0_locked_o;
   ADC1_LOCKED_OUT      <= adc1_locked_o;
 
+  ERROR_ADC0_OUT       <= error_adc0_o;
+  ERROR_ADC1_OUT       <= error_adc1_o;
+
+  ERROR_UNDEF_ADC0_OUT <= error_undef_adc0_o;
+  ERROR_UNDEF_ADC1_OUT <= error_undef_adc1_o;
+  
 end Behavioral;
