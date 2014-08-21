@@ -14,7 +14,7 @@ entity adc_ad9228 is
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
     CLK_ADCDAT_IN        : in  std_logic;
-    RESET_ADCS           : in  std_logic;    
+    
     ADC0_SCLK_IN         : in  std_logic;  -- Sampling Clock ADC0
     ADC0_SCLK_OUT        : out std_logic;
     ADC0_DATA_A_IN       : in  std_logic;
@@ -105,6 +105,11 @@ architecture Behavioral of  adc_ad9228 is
   signal RESET_CLKDIV           : std_logic;
   signal RESET_ADC0             : std_logic;
   signal RESET_ADC1             : std_logic;
+
+  signal RESET_ADC0_CLKD_F      : std_logic;
+  signal RESET_ADC0_CLKD        : std_logic;
+  signal RESET_ADC1_CLKD_F      : std_logic;
+  signal RESET_ADC1_CLKD        : std_logic;
   
   -- 
   attribute syn_keep : boolean;
@@ -113,6 +118,11 @@ architecture Behavioral of  adc_ad9228 is
   attribute syn_keep of q_0_f                  : signal is true;
   attribute syn_keep of q_1_ff                 : signal is true;
   attribute syn_keep of q_1_f                  : signal is true;
+                                               
+  attribute syn_keep of RESET_ADC0_CLKD_F      : signal is true;
+  attribute syn_keep of RESET_ADC0_CLKD        : signal is true;
+  attribute syn_keep of RESET_ADC1_CLKD_F      : signal is true;
+  attribute syn_keep of RESET_ADC1_CLKD        : signal is true;
                                                
   attribute syn_preserve : boolean;
   
@@ -289,11 +299,12 @@ begin
   begin
     if (rising_edge(CLK_IN)) then
       if (RESET_IN = '1') then
-        RESET_CLKDIV      <= '0';
-        RESET_ADC0        <= '0';
-        RESET_ADC1        <= '0';
+        RESET_CLKDIV      <= '1';
+        RESET_ADC0        <= '1';
+        RESET_ADC1        <= '1';
         wait_timer_start  <= '0';
         timer_reset       <= '1';
+        startup_reset     <= '1';
         R_STATE           <= R_IDLE; 
       else
         RESET_CLKDIV      <= '0';
@@ -301,10 +312,11 @@ begin
         RESET_ADC1        <= '0';
         wait_timer_start  <= '0';
         timer_reset       <= '0';
+        startup_reset     <= '0';
         
         case R_STATE is
           when R_IDLE =>
-            if (RESET_ADCS = '1') then
+            if (startup_reset = '1') then
               -- Start Reset
               RESET_CLKDIV      <= '1';
               RESET_ADC0        <= '1';

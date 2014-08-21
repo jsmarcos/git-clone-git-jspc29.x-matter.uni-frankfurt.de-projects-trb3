@@ -219,7 +219,6 @@ component adc_ad9228
     CLK_IN               : in  std_logic;
     RESET_IN             : in  std_logic;
     CLK_ADCDAT_IN        : in  std_logic;
-    RESET_ADCS           : in  std_logic;
     ADC0_SCLK_IN         : in  std_logic;
     ADC0_SCLK_OUT        : out std_logic;
     ADC0_DATA_A_IN       : in  std_logic;
