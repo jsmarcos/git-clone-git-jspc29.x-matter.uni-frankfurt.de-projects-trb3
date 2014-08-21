@@ -138,12 +138,9 @@ architecture Behavioral of nx_data_receiver is
   
   signal adc_data_s                  : std_logic_vector(11 downto 0);
   signal adc_data_s_clk              : std_logic;
-  signal adc_sloppy_frame            : std_logic;
+  signal adc_notlock_ctr             : unsigned(11 downto 0);
   signal ADC_DEBUG                   : std_logic_vector(15 downto 0);
 
-  signal adc_error                   : std_logic;
-  signal adc_error_p                 : std_logic;
-  
   -- Merge Data Streams
   signal merge_handler_reset         : std_logic;
   signal merge_status                : std_logic_vector(1 downto 0);
@@ -179,7 +176,6 @@ architecture Behavioral of nx_data_receiver is
   signal error_o                     : std_logic;
   signal error_status_bits           : std_logic_vector(15 downto 0);
   signal adc_notlock_counter         : unsigned(27 downto 0);
-  signal adc_error_counter           : unsigned(27 downto 0);
   signal nx_online                   : std_logic;
   signal nx_online_shift             : std_logic_vector(1 downto 0);
   signal reset_after_offline         : std_logic;
@@ -234,6 +230,7 @@ architecture Behavioral of nx_data_receiver is
   signal nx_frame_word_delay_r         : unsigned(1 downto 0);
   signal adc_dt_error_ctr_r            : unsigned(11 downto 0);
   signal timestamp_dt_error_ctr_r      : unsigned(11 downto 0);
+  signal adc_notlock_ctr_r             : unsigned(11 downto 0);
   signal merge_error_ctr_r             : unsigned(11 downto 0);
   signal nx_frame_synced_rr            : std_logic;
   signal nx_frame_synced_r             : std_logic;
@@ -894,12 +891,6 @@ begin
       ADC0_LOCKED_OUT      => adc_locked,
       ADC1_LOCKED_OUT      => open,
 
-      ADC0_SLOPPY_FRAME    => adc_sloppy_frame,
-      ADC1_SLOPPY_FRAME    => '0',
-
-      ADC0_ERROR_OUT       => adc_error,
-      ADC1_ERROR_OUT       => open,
-
       DEBUG_IN             => adc_debug_type_r,
       DEBUG_OUT            => ADC_DEBUG
       );
@@ -1070,14 +1061,6 @@ begin
       RESET_IN  => RESET_IN,
       LEVEL_IN  => not adc_locked,
       PULSE_OUT => adc_notlocked_p
-      );
-
-  level_to_pulse_ADC_ERROR: level_to_pulse
-    port map (
-      CLK_IN    => CLK_IN,
-      RESET_IN  => RESET_IN,
-      LEVEL_IN  => adc_error,
-      PULSE_OUT => adc_error_p
       );
   
   -- Counters
@@ -1551,7 +1534,6 @@ begin
         error_status_bits        <= (others => '0');
         error_o                  <= '0';
         adc_notlock_counter      <= (others => '0');
-        adc_error_counter        <= (others => '0');
       else
         error_status_bits(0)             <= not nx_online;
         error_status_bits(1)             <= frame_rate_error;
@@ -1591,10 +1573,6 @@ begin
 
         if (adc_notlocked_p = '1') then
          adc_notlock_counter             <= adc_notlock_counter + 1;
-        end if;
-
-        if (adc_error_p = '1') then
-         adc_error_counter               <= adc_error_counter + 1;
         end if;
 
       end if;
@@ -1641,11 +1619,13 @@ begin
         nx_frame_synced_r               <= '0';
         adc_dt_error_ctr_r              <= (others => '0');
         timestamp_dt_error_ctr_r        <= (others => '0');
+        adc_notlock_ctr_r               <= (others => '0');
         merge_error_ctr_r               <= (others => '0');
       else
         nx_frame_synced_r               <= nx_frame_synced_rr;
         adc_dt_error_ctr_r              <= adc_dt_error_ctr;
         timestamp_dt_error_ctr_r        <= timestamp_dt_error_ctr;
+        adc_notlock_ctr_r               <= adc_notlock_ctr;
         merge_error_ctr_r               <= merge_error_ctr;
       end if;
     end if;
@@ -1673,7 +1653,6 @@ begin
         adc_debug_type_r              <= (others => '0');
         debug_mode                    <= (others => '0');
         disable_adc_r                 <= '0';
-        adc_sloppy_frame              <= '0';
       else                      
         slv_data_out_o                <= (others => '0');
         slv_ack_o                     <= '0';
@@ -1711,7 +1690,6 @@ begin
             when x"0004" =>
               slv_data_out_o(27 downto 0)   <= std_logic_vector(adc_frame_rate);
               slv_data_out_o(30 downto 28)  <= (others => '0');
-              slv_data_out_o(30)            <= adc_sloppy_frame;
               slv_data_out_o(31)            <= disable_adc_r;
               slv_ack_o                     <= '1';  
 
@@ -1749,13 +1727,13 @@ begin
                 std_logic_vector(adc_reset_ctr);
               slv_data_out_o(31 downto 12)  <= (others => '0');
               slv_ack_o                     <= '1';
-
+              
             when x"000a" =>
-              slv_data_out_o(27 downto 0)   <=
-                std_logic_vector(adc_notlock_counter);
-              slv_data_out_o(31 downto 28)  <= (others => '0');
-              slv_ack_o                     <= '1';
-            
+              slv_data_out_o(11 downto 0)   <=
+                std_logic_vector(adc_notlock_ctr_r);
+              slv_data_out_o(31 downto 12)  <= (others => '0');
+              slv_ack_o                     <= '1';  
+
             when x"000b" =>
               slv_data_out_o(11 downto 0)   <=
                 std_logic_vector(merge_error_ctr_r);
@@ -1794,10 +1772,10 @@ begin
 
             when x"0011" =>
               slv_data_out_o(27 downto 0)   <=
-                std_logic_vector(adc_error_counter);
-              slv_data_out_o(31 downto 15)  <= (others => '0');
+                std_logic_vector(adc_notlock_counter);
+              slv_data_out_o(31 downto 28)  <= (others => '0');
               slv_ack_o                     <= '1';
-              
+          
             when x"001d" =>
               slv_data_out_o(1 downto  0)   <= johnson_counter_sync_r;
               slv_data_out_o(31 downto 2)   <= (others => '0');
@@ -1825,7 +1803,6 @@ begin
 
             when x"0004" =>                   
               disable_adc_r                 <= SLV_DATA_IN(31); 
-              adc_sloppy_frame              <= SLV_DATA_IN(30);
               slv_ack_o                     <= '1';
 
             when x"0006" =>

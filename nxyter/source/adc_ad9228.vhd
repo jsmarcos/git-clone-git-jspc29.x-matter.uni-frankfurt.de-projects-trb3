@@ -48,12 +48,6 @@ entity adc_ad9228 is
     ADC0_LOCKED_OUT      : out std_logic;
     ADC1_LOCKED_OUT      : out std_logic;
 
-    ADC0_SLOPPY_FRAME    : in  std_logic;
-    ADC1_SLOPPY_FRAME    : in  std_logic;
-
-    ADC0_ERROR_OUT       : out std_logic;
-    ADC1_ERROR_OUT       : out std_logic;
-    
     DEBUG_IN             : in  std_logic_vector(3 downto 0);
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
     );
@@ -70,26 +64,19 @@ architecture Behavioral of  adc_ad9228 is
   signal q_1_f                  : std_logic_vector(19 downto 0);
   signal q_1                    : std_logic_vector(19 downto 0);
 
-  -- ADC Data Handler
-  signal adc0_error_status      : std_logic_vector(2 downto 0);
-  signal adc1_error_status      : std_logic_vector(2 downto 0);
-  signal adc0_error_status_sl   : std_logic_vector(2 downto 0);
-  signal adc1_error_status_sl   : std_logic_vector(2 downto 0);
-
   -- Data Types
-  type adc_data_t is array(0 to 3) of std_logic_vector(11 downto 0);
-  
+--  type adc_data_s       is array(0 to 4) of std_logic_vector(13 downto 0);
+  type adc_data_t       is array(0 to 3) of std_logic_vector(11 downto 0);
+
   -- Output
   signal adc0_data_clk_o        : std_logic;
   signal adc0_data_o            : adc_data_t;
   signal adc0_locked_o          : std_logic;
-  signal adc0_error_o           : std_logic;
-  
+
   signal adc1_data_clk_o        : std_logic;
   signal adc1_data_o            : adc_data_t;
   signal adc1_locked_o          : std_logic;
-  signal adc1_error_o           : std_logic;
-  
+
   -- RESET Handler
   type R_STATES is (R_IDLE,
                     R_WAIT_CLKDIV,
@@ -216,20 +203,18 @@ begin
       DEBUG_ENABLE => DEBUG_ENABLE
       )
     port map (
-      CLK_IN              => CLK_IN,
-      RESET_IN            => RESET_ADC0,
-      DDR_DATA_CLK        => DDR_DATA_CLK,
-      DDR_DATA_IN         => q_0,
-      DATA_A_OUT          => adc0_data_o(0), 
-      DATA_B_OUT          => adc0_data_o(1),
-      DATA_C_OUT          => adc0_data_o(2),
-      DATA_D_OUT          => adc0_data_o(3),
-      DATA_CLK_OUT        => adc0_data_clk_o,
-      SLOPPY_FRAME_IN     => ADC0_SLOPPY_FRAME,
-      FRAME_LOCKED_OUT    => adc0_locked_o,
-      ERROR_STATUS_OUT    => adc0_error_status,
-      ERROR_STATUS_SL_OUT => adc0_error_status_sl,
-      DEBUG_OUT           => open
+      CLK_IN           => CLK_IN,
+      RESET_IN         => RESET_ADC0,
+      DDR_DATA_CLK     => DDR_DATA_CLK,
+      DDR_DATA_IN      => q_0,
+      DATA_A_OUT       => adc0_data_o(0), 
+      DATA_B_OUT       => adc0_data_o(1),
+      DATA_C_OUT       => adc0_data_o(2),
+      DATA_D_OUT       => adc0_data_o(3),
+      DATA_CLK_OUT     => adc0_data_clk_o,
+      FRAME_LOCKED_OUT => adc0_locked_o,
+      ERROR_STATUS_OUT => open, --ERROR_STATUS_OUT,
+      DEBUG_OUT        => open
       );
 
   adc_ad9228_data_handler_2: entity work.adc_ad9228_data_handler
@@ -237,48 +222,20 @@ begin
       DEBUG_ENABLE => DEBUG_ENABLE
       )
     port map (
-      CLK_IN              => CLK_IN,
-      RESET_IN            => RESET_ADC1,
-      DDR_DATA_CLK        => DDR_DATA_CLK,
-      DDR_DATA_IN         => q_1,
-      DATA_A_OUT          => adc1_data_o(0), 
-      DATA_B_OUT          => adc1_data_o(1),
-      DATA_C_OUT          => adc1_data_o(2),
-      DATA_D_OUT          => adc1_data_o(3),
-      DATA_CLK_OUT        => adc1_data_clk_o,
-      SLOPPY_FRAME_IN     => ADC1_SLOPPY_FRAME,
-      FRAME_LOCKED_OUT    => adc1_locked_o,
-      ERROR_STATUS_OUT    => open, --ERROR_STATUS_OUT,
-      ERROR_STATUS_SL_OUT => open, --ERROR_STATUS_OUT,
-      DEBUG_OUT           => open
+      CLK_IN           => CLK_IN,
+      RESET_IN         => RESET_ADC1,
+      DDR_DATA_CLK     => DDR_DATA_CLK,
+      DDR_DATA_IN      => q_1,
+      DATA_A_OUT       => adc1_data_o(0), 
+      DATA_B_OUT       => adc1_data_o(1),
+      DATA_C_OUT       => adc1_data_o(2),
+      DATA_D_OUT       => adc1_data_o(3),
+      DATA_CLK_OUT     => adc1_data_clk_o,
+      FRAME_LOCKED_OUT => adc1_locked_o,
+      ERROR_STATUS_OUT => open, --ERROR_STATUS_OUT,
+      DEBUG_OUT        => open
       );
 
-  -----------------------------------------------------------------------------
-  -- Error Status Handler
-  -----------------------------------------------------------------------------
-  PROC_ERROR_STATUS: process(CLK_IN)
-  begin
-    if (rising_edge(CLK_IN)) then 
-      if (RESET_IN = '1') then
-        adc0_error_o       <= '0';
-        adc1_error_o       <= '0';
-      else
-        adc0_error_o       <= '0';
-        adc1_error_o       <= '0';
-        
-        if (adc0_error_status /= "000" or
-            (ADC0_SLOPPY_FRAME = '1' and adc0_error_status_sl /= "000")) then
-          adc0_error_o     <= '1';
-        end if;
-
-        if (adc1_error_status /= "000" or
-            (ADC1_SLOPPY_FRAME = '1' and adc1_error_status_sl /= "000")) then
-          adc1_error_o     <= '1';
-        end if;
-      end if;
-    end if;
-  end process PROC_ERROR_STATUS;
-  
   -----------------------------------------------------------------------------
   -- Reset Handler
   -----------------------------------------------------------------------------
@@ -384,8 +341,5 @@ begin
 
   ADC0_LOCKED_OUT      <= adc0_locked_o;
   ADC1_LOCKED_OUT      <= adc1_locked_o;
-
-  ADC0_ERROR_OUT        <= adc0_error_o;
-  ADC1_ERROR_OUT        <= adc1_error_o; 
 
 end Behavioral;
