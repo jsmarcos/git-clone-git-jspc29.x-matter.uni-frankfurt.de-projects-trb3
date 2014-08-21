@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="dynamic_shift_register8x64" module="RAM_Based_Shift_Register" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2014 04 18 13:07:37.726" version="4.1" type="Module" synthesis="synplify" source_format="VHDL">
+  <Package>
+		<File name="" type="mem" modified="2014 04 18 13:07:37.000"/>
+		<File name="dynamic_shift_register8x64.lpc" type="lpc" modified="2014 04 18 13:07:29.000"/>
+		<File name="dynamic_shift_register8x64.vhd" type="top_level_vhdl" modified="2014 04 18 13:07:29.000"/>
+		<File name="dynamic_shift_register8x64_tmpl.vhd" type="template_vhdl" modified="2014 04 18 13:07:29.000"/>
+		<File name="tb_dynamic_shift_register8x64_tmpl.vhd" type="testbench_vhdl" modified="2014 04 18 13:07:29.000"/>
+  </Package>
+</DiamondModule>
