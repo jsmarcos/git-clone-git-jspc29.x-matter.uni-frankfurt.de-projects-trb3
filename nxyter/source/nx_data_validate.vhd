@@ -552,7 +552,7 @@ begin
         lower_limit            := unsigned(adc_tr_value) - adc_tr_limit;
         adc_tr_error           <= '0';
 
-        if (adc_tr_data_clk = '1') then
+        if (adc_tr_data_clk = '1' and DISABLE_ADC_IN = '0') then
 
           if (adc_tr_data_p    > lower_limit) then 
             adc_tr_debug_p     <= '1';

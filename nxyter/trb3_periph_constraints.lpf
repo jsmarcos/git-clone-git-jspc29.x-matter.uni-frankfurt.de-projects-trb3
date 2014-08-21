@@ -86,11 +86,12 @@ MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_fpga_timestamp_*/timestamp_reset_ff*
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_fpga_timestamp_*/timestamp_hold_o_*"                           30 ns;
 
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/reset_nx_timestamp_clk_in_ff*"                 30 ns;
+#MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/pll_adc_clk_reset*"                           100 ns;
+#MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_reset_sync*"                               100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/johnson_counter_sync_r*"                      100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_timestamp_delay_s*"                        100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/pll_adc_sample_clk_finedelb_r*"               100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/pll_adc_sample_clk_dphase_r*"                 100 ns;
-MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/pll_adc_sampling_clk_reset*"                  100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_timestamp_reset_o*"                        100 ns;
 MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_frame_synced_rr*"                          100 ns;
 
