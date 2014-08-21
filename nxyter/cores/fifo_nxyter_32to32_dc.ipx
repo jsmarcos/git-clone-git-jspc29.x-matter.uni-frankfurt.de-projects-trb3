@@ -1,9 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<DiamondModule name="fifo_nxyter_32to32_dc" module="FIFO_DC" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2014 08 08 15:52:49.751" version="5.7" type="Module" synthesis="" source_format="VHDL">
-  <Package>
-		<File name="fifo_nxyter_32to32_dc.lpc" type="lpc" modified="2014 08 08 15:52:47.000"/>
-		<File name="fifo_nxyter_32to32_dc.vhd" type="top_level_vhdl" modified="2014 08 08 15:52:47.000"/>
-		<File name="fifo_nxyter_32to32_dc_tmpl.vhd" type="template_vhdl" modified="2014 08 08 15:52:47.000"/>
-		<File name="tb_fifo_nxyter_32to32_dc_tmpl.vhd" type="testbench_vhdl" modified="2014 08 08 15:52:47.000"/>
-  </Package>
-</DiamondModule>
