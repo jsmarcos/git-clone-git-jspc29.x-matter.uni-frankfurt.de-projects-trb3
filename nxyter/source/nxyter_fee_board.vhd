@@ -39,7 +39,7 @@ entity nXyter_FEE_board is
     SPI_CSB_OUT                : out std_logic;    
                                 
     -- nXyter Timestamp Ports
-    NX_DATA_CLK_IN             : in  std_logic;
+    NX_TIMESTAMP_CLK_IN        : in  std_logic;
     NX_TIMESTAMP_IN            : in  std_logic_vector (7 downto 0);
     NX_RESET_OUT               : out std_logic;
     NX_TESTPULSE_OUT           : out std_logic;
@@ -235,7 +235,8 @@ begin
   error_all(0)          <= error_data_receiver;
   error_all(1)          <= error_data_validate;
   error_all(2)          <= error_event_buffer;
-  error_all(7 downto 3) <= (others => '0');
+  error_all(3)          <= not nxyter_online;
+  error_all(7 downto 4) <= (others => '0');
   
 -------------------------------------------------------------------------------
 -- Port Maps
@@ -273,7 +274,7 @@ begin
                                 9 => 9,          -- NX Register Setup
                                10 => 11,         -- NX Histograms
                                11 => 0,          -- Debug Handler
-                               12 => 1,          -- Data Delay
+                               12 => 3,          -- Data Delay
                                 others => 0
                                 ),
 
@@ -561,7 +562,7 @@ begin
       NX_ONLINE_IN           => nxyter_online,
       NX_CLOCK_ON_IN         => nxyter_clock_on,
       
-      NX_DATA_CLK_IN         => NX_DATA_CLK_IN,
+      NX_DATA_CLK_IN         => NX_TIMESTAMP_CLK_IN,
       NX_TIMESTAMP_IN        => NX_TIMESTAMP_IN,
       NX_TIMESTAMP_RESET_OUT => nx_timestamp_reset,
       

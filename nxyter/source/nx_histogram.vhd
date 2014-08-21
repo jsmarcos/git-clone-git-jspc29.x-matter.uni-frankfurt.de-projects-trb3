@@ -100,7 +100,7 @@ begin
 
   SMALL: if (BUS_WIDTH = 7) generate
 
-    ram_dp_COUNTER_HIST: ram_dp_128x40
+    ram_dp_COUNTER_HIST: entity work.ram_dp_128x40
       port map (
         WrAddress          => write_address_hist,
         RdAddress          => read_address_hist,
@@ -116,7 +116,7 @@ begin
         Q(39 downto 32)    => read_data_ctr_hist
         );
 
-    ram_dp_RESULT_HIST: ram_dp_128x32
+    ram_dp_RESULT_HIST: entity work.ram_dp_128x32
       port map (
         WrAddress => write_address,
         RdAddress => read_address,
@@ -134,7 +134,7 @@ begin
   
   LARGE: if (BUS_WIDTH = 9) generate
 
-    ram_dp_COUNTER_HIST: ram_dp_512x40
+    ram_dp_COUNTER_HIST: entity work.ram_dp_512x40
       port map (
         WrAddress          => write_address_hist,
         RdAddress          => read_address_hist,
@@ -150,7 +150,7 @@ begin
         Q(39 downto 32)    => read_data_ctr_hist
         );
 
-    ram_dp_RESULT_HIST: ram_dp_512x32
+    ram_dp_RESULT_HIST: entity work.ram_dp_512x32
       port map (
         WrAddress => write_address,
         RdAddress => read_address,

@@ -361,7 +361,7 @@ begin
 
   -----------------------------------------------------------------------------
     
-  adc_ddr_generic_1: adc_ddr_generic
+  adc_ddr_generic_1: entity work.adc_ddr_generic
     port map (
       clk_0          => ADC0_DCLK_IN,
       clk_1          => ADC1_DCLK_IN,
@@ -618,7 +618,7 @@ begin
   -- Tansfer to CLK_IN
   -----------------------------------------------------------------------------
 
-  fifo_adc_48to48_dc_1: fifo_adc_48to48_dc
+  fifo_adc_48to48_dc_1: entity work.fifo_adc_48to48_dc
     port map (
       Data(11 downto 0)  => adc0_data_m(0),
       Data(23 downto 12) => adc0_data_m(1),
@@ -670,7 +670,7 @@ begin
 
   -----------------------------------------------------------------------------
 
-  fifo_adc_48to48_dc_2: fifo_adc_48to48_dc
+  fifo_adc_48to48_dc_2: entity work.fifo_adc_48to48_dc
     port map (
       Data(11 downto 0)  => adc1_data_m(0),
       Data(23 downto 12) => adc1_data_m(1),

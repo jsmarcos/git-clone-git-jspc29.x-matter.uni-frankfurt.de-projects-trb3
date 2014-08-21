@@ -9,36 +9,48 @@ BLOCK RD_DURING_WR_PATHS ;
 # Basic Settings
 #################################################################
 
-  # nXyter FEB Clock Setup:
-  #
-  # CLK_PCLK_RIGHT : real Oszillator 200MHz
-  # CLK_PCLK_RIGHT --> PLL#0 --> clk_100_i     -----> Main Clock all entities
-  #
-  # CLK_PCLK_RIGHT         --> nx_main_clk 1+2 
-  #                            (250 MHz)       -----> nXyter Main Clock 1+2
-  #                                            | 
-  #                                            |----> FPGA Timestamp Entity 1+2
-  #
-  # nx_main_clk 1+2        --> nXyter Data Clk 
-  #                            (1/2 = 125MHz)  -----> FPGA Data Receiver
-  #                                            |
-  #                                            |----> Johnson 1/4 --> ADC SCLK
-  #
-  # CLK_PCLK_RIGHT (PLL#2) --> clk_adc_dat_1
-  #                (nx_main_clk * 3/4 = 187.5) -----> ADC Handler 1
-  #
-  # CLK_PCLK_RIGHT (PLL#3) --> clk_adc_dat_2
-  #                (nx_main_clk * 3/4 = 187.5) -----> ADC Handler 2
+# nXyter FEB Clock Setup:
+#
+# CLK_PCLK_RIGHT : real Oszillator 200MHz
+# CLK_PCLK_RIGHT --> PLL#0 --> clk_100_i     -----> Main Clock all entities
+#
+# CLK_PCLK_RIGHT         --> nx_main_clk 1+2 
+#                            (250 MHz)       -----> nXyter Main Clock 1+2
+#                                            | 
+#                                            |----> FPGA Timestamp Entity 1+2
+#
+# nx_main_clk 1+2        --> nXyter Data Clk 
+#                            (1/2 = 125MHz)  -----> FPGA Data Receiver
+#                                            |
+#                                            |----> Johnson 1/4 --> ADC SCLK
+#
+# CLK_PCLK_RIGHT (PLL#2) --> clk_adc_dat_1
+#                (nx_main_clk * 3/4 = 187.5) -----> ADC Handler 1
+#
+# CLK_PCLK_RIGHT (PLL#3) --> clk_adc_dat_2
+#                (nx_main_clk * 3/4 = 187.5) -----> ADC Handler 2
 
-  # Speed for the configuration Flash access
-  SYSCONFIG MCCLK_FREQ = 20;
+# Speed for the configuration Flash access
+SYSCONFIG MCCLK_FREQ = 20;
 
-  FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
-  FREQUENCY PORT NX1_DATA_CLK_IN 125 MHz;
+FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
+FREQUENCY PORT NX1_DATA_CLK_IN 125 MHz;
 
-  USE PRIMARY NET "nx_main_clk_c"; 
-  USE PRIMARY NET "clk_100_i_c";
-  USE PRIMARY NET "CLK_PCLK_RIGHT_c";
+#USE PRIMARY NET "nx_main_clk_c"; 
+#USE PRIMARY NET "clk_100_i_c";
+#USE PRIMARY NET "CLK_PCLK_RIGHT_c";
+
+FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
+FREQUENCY PORT NX1_DATA_CLK_IN 125 MHz;
+
+USE PRIMARY   NET "nx_main_clk_c"; 
+USE PRIMARY   NET "clk_100_i_c";
+USE PRIMARY   NET "CLK_PCLK_RIGHT_c";
+USE EDGE2EDGE NET "NX_CLK_ADC_DAT";
+USE PRIMARY   NET "nXyter_FEE_board_0/nx_data_receiver_1/adc_ad9228_1/DDR_DATA_CLK_c";
+
+#PRIORITIZE NET "NX1_DATA_CLK_IN_c" 40;
+#PRIORITIZE NET "nXyter_FEE_board_0/nx_data_receiver_1/adc_ad9228_1/DDR_DATA_CLK_c" 50;
   
 #################################################################
 # Reset Nets
@@ -119,7 +131,13 @@ MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/fpga_timestamp_of
 
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_event_buffer_*/fifo_almost_full_thr_*"                        100 ns;
 
-MULTICYCLE FROM CELL "nXyter_FEE_board_*/debug_multiplexer_*/port_select_*"                               100 ns;
+
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/debug_multiplexer_*/port_select_*"                               500 ns;
+
+MULTICYCLE TO GROUP  "TEST_LINE_group"          500.000000 ns ;
+MULTICYCLE TO GROUP  "NX1_DEBUG_LINE_group"     500.000000 ns ;
+MAXDELAY   TO GROUP  "TEST_LINE_group"          500.000000 ns ;
+MAXDELAY   TO GROUP  "NX1_DEBUG_LINE_group"     500.000000 ns ;
 
 #SPI Interface
 REGION "REGION_SPI" "R9C108D" 20 20 DEVSIZE;
@@ -139,8 +157,8 @@ PROHIBIT PRIMARY   NET "NX1_DATA_CLK_IN_c";
 PROHIBIT SECONDARY NET "NX1_DATA_CLK_IN_c";
 
 DEFINE PORT GROUP    "NX1_IN" "NX1_TIMESTAMP_*";
-INPUT_SETUP GROUP    "NX1_IN" 0.5 ns HOLD 0.5 ns CLKPORT="NX1_DATA_CLK_IN"; 
+INPUT_SETUP GROUP    "NX1_IN" 1.5 ns HOLD 1.5 ns CLKPORT="NX1_DATA_CLK_IN"; 
 
-UGROUP NXYTER1 BBOX 100 70
- BLKNAME nXyter_FEE_board_0;
-LOCATE UGROUP NXYTER1 SITE "R2C2D";
+#UGROUP NXYTER1 BBOX 100 70
+ #BLKNAME nXyter_FEE_board_0;
+#LOCATE UGROUP NXYTER1 SITE "R2C2D";

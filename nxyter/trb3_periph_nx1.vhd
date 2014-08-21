@@ -673,7 +673,7 @@ begin
       SPI_SDIO_INOUT             => NX1_SPI_SDIO_INOUT,
       SPI_CSB_OUT                => NX1_SPI_CSB_OUT,
                                  
-      NX_DATA_CLK_IN             => NX1_DATA_CLK_IN,
+      NX_TIMESTAMP_CLK_IN        => NX1_DATA_CLK_IN,
       NX_TIMESTAMP_IN            => NX1_TIMESTAMP_IN,
                                  
       NX_RESET_OUT               => NX1_RESET_OUT,
@@ -769,7 +769,7 @@ begin
   
   -- ADC Receiver Clock (nXyter Main Clock * 3/4 (187.5), must be 
   -- based on same ClockSource as nXyter Main Clock)
-  pll_adc_clk_1: pll_adc_clk
+  pll_adc_clk_1: entity work.pll_adc_clk
     port map (
       CLK   => CLK_PCLK_RIGHT,
       RESET => nx_pll_reset,
