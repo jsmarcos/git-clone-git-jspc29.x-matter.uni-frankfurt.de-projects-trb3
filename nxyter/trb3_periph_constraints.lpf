@@ -100,7 +100,7 @@ MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_reset_handler_cn
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/reset_handler_start_r*"                       100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/johnson_counter_sync_r*"                      100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_timestamp_delay_s*"                        100 ns;
-MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_frame_word_delay_rr*"                      100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_frame_word_delay_reg*"                     100 ns;
 MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/fifo_full_r*"                                 100 ns;
 MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/fifo_empty_r*"                                100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/pll_adc_sample_clk_finedelb_r*"               100 ns;
