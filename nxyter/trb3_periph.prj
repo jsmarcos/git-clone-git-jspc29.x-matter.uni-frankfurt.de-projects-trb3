@@ -197,6 +197,7 @@ add_file -vhdl -lib "work" "source/adc_spi_master.vhd"
 add_file -vhdl -lib "work" "source/adc_spi_sendbyte.vhd"
 add_file -vhdl -lib "work" "source/adc_spi_readbyte.vhd"
 add_file -vhdl -lib "work" "source/adc_ad9228.vhd"
+add_file -vhdl -lib "work" "source/adc_ad9228_data_handler.vhd"
 
 add_file -vhdl -lib "work" "source/nx_fpga_timestamp.vhd"
 add_file -vhdl -lib "work" "source/nx_trigger_generator.vhd"
