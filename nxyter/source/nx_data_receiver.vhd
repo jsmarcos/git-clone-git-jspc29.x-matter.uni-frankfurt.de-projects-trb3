@@ -1997,7 +1997,8 @@ begin
           case SLV_ADDR_IN is
             when x"0001" =>
               reset_handler_start_r         <= SLV_DATA_IN(0);
-              disable_resets                <= SLV_DATA_IN(2);
+              disable_adc_resets            <= SLV_DATA_IN(2);
+              disable_resets                <= SLV_DATA_IN(3);
               slv_ack_o                     <= '1';
 
             when x"0004" =>                   
