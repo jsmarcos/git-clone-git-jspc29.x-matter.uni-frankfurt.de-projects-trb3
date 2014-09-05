@@ -47,8 +47,7 @@ unless(-d $WORKDIR) {
 
 
 # create full lpf file
-system("cp ../base/$TOPNAME.lpf $WORKDIR/$TOPNAME.lpf");
-system("cat ".$TOPNAME."_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+system ("./compile_constraints.pl");
 
 
 # generate timestamp

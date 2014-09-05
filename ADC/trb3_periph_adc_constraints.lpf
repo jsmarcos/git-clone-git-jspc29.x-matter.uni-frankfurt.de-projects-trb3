@@ -9,9 +9,9 @@ BLOCK RD_DURING_WR_PATHS ;
 SYSCONFIG MCCLK_FREQ = 20;
 
 FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
-FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;
-FREQUENCY PORT CLK_GPLL_RIGHT 200 MHz;
-FREQUENCY PORT CLK_GPLL_LEFT  125 MHz;
+#FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;
+#FREQUENCY PORT CLK_GPLL_RIGHT 200 MHz;
+#FREQUENCY PORT CLK_GPLL_LEFT  125 MHz;
   
 #################################################################
 # Reset Nets
@@ -28,12 +28,46 @@ LOCATE COMP          "THE_MEDIA_UPLINK/gen_serdes_1_200_THE_SERDES/PCSD_INST" SI
 REGION               "MEDIA_UPLINK" "R102C95D" 13 25;
 LOCATE UGROUP        "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLINK" ;
 
+MULTICYCLE TO CELL  "THE_SPI_RELOAD_THE_SPI_MASTER_THE_SPI_SLIM_tx_sreg_oregio*" 20 ns;
+
+
+#################################################################
+# ADC Processor
+#################################################################  
+
+# UGROUP "Proc_0" BBOX 60 60 
+#   BLKNAME gen_reallogic_THE_ADC/gen_processors_0_THE_ADC_PROC;
+# UGROUP "Proc_1" BBOX 60 60 
+#   BLKNAME gen_reallogic_THE_ADC/gen_processors_1_THE_ADC_PROC;
+# UGROUP "Proc_2" BBOX 60 60 
+#   BLKNAME gen_reallogic_THE_ADC/gen_processors_2_THE_ADC_PROC;
+# UGROUP "Proc_3" BBOX 60 60 
+#   BLKNAME gen_reallogic_THE_ADC/gen_processors_3_THE_ADC_PROC;
+# UGROUP "Proc_4" BBOX 60 60 
+#   BLKNAME gen_reallogic_THE_ADC/gen_processors_4_THE_ADC_PROC;
+# UGROUP "Proc_5" BBOX 60 60 
+#   BLKNAME gen_reallogic_THE_ADC/gen_processors_5_THE_ADC_PROC;
+# UGROUP "Proc_6" BBOX 60 60 
+#   BLKNAME gen_reallogic_THE_ADC/gen_processors_6_THE_ADC_PROC;
+# UGROUP "Proc_7" BBOX 60 60 
+#   BLKNAME gen_reallogic_THE_ADC/gen_processors_7_THE_ADC_PROC;
+# UGROUP "Proc_8" BBOX 60 60 
+#   BLKNAME gen_reallogic_THE_ADC/gen_processors_8_THE_ADC_PROC;
+# UGROUP "Proc_9" BBOX 60 60 
+#   BLKNAME gen_reallogic_THE_ADC/gen_processors_9_THE_ADC_PROC;
+# UGROUP "Proc_10" BBOX 60 60 
+#   BLKNAME gen_reallogic_THE_ADC/gen_processors_10_THE_ADC_PROC;
+# UGROUP "Proc_11" BBOX 60 60 
+#   BLKNAME gen_reallogic_THE_ADC/gen_processors_11_THE_ADC_PROC;
+
+  
 
 #################################################################
 # Clocks
 #################################################################  
-USE PRIMARY NET "CLK_GPLL_RIGHT_c";
-USE PRIMARY NET "CLK_PCLK_LEFT_c";
+#USE PRIMARY NET "CLK_GPLL_RIGHT_c";
+#USE PRIMARY NET "CLK_PCLK_LEFT_c";
+
 USE PRIMARY NET "CLK_PCLK_RIGHT_c";
 
 #USE PRIMARY2EDGE NET "THE_ADC/clk_adcfast_i_0";

@@ -26,3 +26,9 @@ padiwa/project*
 ADC/test*
 */project/
 */project2/
+modelsim.ini
+*.mti
+*.bak
+work
+*.wlf
+*stacktrace.txt

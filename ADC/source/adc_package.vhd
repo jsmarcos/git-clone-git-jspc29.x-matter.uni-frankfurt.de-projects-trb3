@@ -14,21 +14,31 @@ constant CHANNELS   : integer := 4;
 constant RESOLUTION : integer := 10;
 
 
+type buffer_data_t    is array(0 to DEVICES-1)          of std_logic_vector(31 downto 0);
+
+type std_logic_vector_array_18 is array (integer range <>) of std_logic_vector(17 downto 0);
+type std_logic_vector_array_10 is array (integer range <>) of std_logic_vector( 9 downto 0);
+
+type unsigned_array_18 is array (integer range <>) of unsigned(17 downto 0);
+type unsigned_array_10 is array (integer range <>) of unsigned( 9 downto 0);
+type unsigned_array_8  is array (integer range <>) of unsigned( 7 downto 0);
+
 
 type cfg_t is record
-  buffer_depth      : std_logic_vector(10 downto 0);
-  samples_after     : std_logic_vector(10 downto 0);
-  block_count       : std_logic_vector( 1 downto 0);
-  trigger_threshold : std_logic_vector(17 downto 0);
-  readout_threshold : std_logic_vector(17 downto 0);
-  presum            : std_logic_vector( 7 downto 0);
-  averaging         : std_logic_vector( 3 downto 0);
-  block_avg         : std_logic_vector_array_8(0 to 3);
-  block_sums        : std_logic_vector_array_8(0 to 3);
-  block_scale       : std_logic_vector_array_8(0 to 3);
+  buffer_depth      : unsigned(10 downto 0);
+  samples_after     : unsigned(10 downto 0);
+  block_count       : unsigned( 1 downto 0);
+  trigger_threshold : unsigned(17 downto 0);
+  readout_threshold : unsigned(17 downto 0);
+  presum            : unsigned( 7 downto 0);
+  averaging         : unsigned( 3 downto 0);
+  trigger_enable    : std_logic_vector(47 downto 0);
+  baseline_always_on: std_logic;
+  baseline_reset_value : unsigned(31 downto 0);
+  block_avg         : unsigned_array_8(0 to 3);
+  block_sums        : unsigned_array_8(0 to 3);
+  block_scale       : unsigned_array_8(0 to 3);
 end record;
-
-type buffer_data_t    is array(0 to DEVICES-1)          of std_logic_vector(31 downto 0);
 
 end package;
 

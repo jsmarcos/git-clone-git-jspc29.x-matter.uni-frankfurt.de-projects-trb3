@@ -154,4 +154,4 @@ add_file -vhdl -lib "work" "source/adc_handler.vhd"
 add_file -vhdl -lib "work" "source/adc_slowcontrol_data_buffer.vhd"
 
 add_file -vhdl -lib "work" "trb3_periph_adc.vhd"
-
+add_file -constraint "trb3_periph_adc.sdc"

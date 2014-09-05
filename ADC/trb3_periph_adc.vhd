@@ -142,18 +142,6 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   signal common_stat_reg_strobe : std_logic_vector(std_COMSTATREG-1 downto 0);
   signal common_ctrl_reg_strobe : std_logic_vector(std_COMCTRLREG-1 downto 0);
 
-  --RegIO
-  signal regio_addr_out         : std_logic_vector (15 downto 0);
-  signal regio_read_enable_out  : std_logic;
-  signal regio_write_enable_out : std_logic;
-  signal regio_data_out         : std_logic_vector (31 downto 0);
-  signal regio_data_in          : std_logic_vector (31 downto 0);
-  signal regio_dataready_in     : std_logic;
-  signal regio_no_more_data_in  : std_logic;
-  signal regio_write_ack_in     : std_logic;
-  signal regio_unknown_addr_in  : std_logic;
-  signal regio_timeout_out      : std_logic;
-
   --Timer
   signal global_time         : std_logic_vector(31 downto 0);
   signal local_time          : std_logic_vector(7 downto 0);
@@ -164,13 +152,9 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   signal spi_cs                    : std_logic_vector(15 downto 0);
   signal spi_sdi, spi_sdo, spi_sck : std_logic;
   signal adcspi_ctrl               : std_logic_vector(7 downto 0);
-  
-  signal busadc_rx  : CTRLBUS_RX;
-  signal busadc_tx  : CTRLBUS_TX;
-  signal busspi_rx  : CTRLBUS_RX;
-  signal busspi_tx  : CTRLBUS_TX;
-  signal busmem_rx  : CTRLBUS_RX;
-  signal busmem_tx  : CTRLBUS_TX;
+
+  signal regio_rx, busadc_rx, busspi_rx, busmem_rx : CTRLBUS_RX;
+  signal regio_tx, busadc_tx, busspi_tx, busmem_tx : CTRLBUS_TX;
   signal readout_rx : READOUT_RX;
   signal readout_tx : readout_tx_array_t(0 to 11);
   
@@ -341,16 +325,16 @@ begin
       REGIO_VAR_ENDPOINT_ID(1 downto 0)  => CODE_LINE,
       REGIO_VAR_ENDPOINT_ID(15 downto 2) => (others => '0'),
 
-      BUS_ADDR_OUT         => regio_addr_out,
-      BUS_READ_ENABLE_OUT  => regio_read_enable_out,
-      BUS_WRITE_ENABLE_OUT => regio_write_enable_out,
-      BUS_DATA_OUT         => regio_data_out,
-      BUS_DATA_IN          => regio_data_in,
-      BUS_DATAREADY_IN     => regio_dataready_in,
-      BUS_NO_MORE_DATA_IN  => regio_no_more_data_in,
-      BUS_WRITE_ACK_IN     => regio_write_ack_in,
-      BUS_UNKNOWN_ADDR_IN  => regio_unknown_addr_in,
-      BUS_TIMEOUT_OUT      => regio_timeout_out,
+      BUS_ADDR_OUT         =>  regio_rx.addr, --regio_addr_out,
+      BUS_READ_ENABLE_OUT  =>  regio_rx.read, --regio_read_enable_out,
+      BUS_WRITE_ENABLE_OUT =>  regio_rx.write, --regio_write_enable_out,
+      BUS_DATA_OUT         =>  regio_rx.data, --regio_data_out,
+      BUS_DATA_IN          =>  regio_tx.data, --regio_data_in,
+      BUS_DATAREADY_IN     =>  regio_tx.ack, --regio_dataready_in,
+      BUS_NO_MORE_DATA_IN  =>  regio_tx.nack, --regio_no_more_data_in,
+      BUS_WRITE_ACK_IN     =>  regio_tx.ack, --regio_write_ack_in,
+      BUS_UNKNOWN_ADDR_IN  =>  regio_tx.unknown, --regio_unknown_addr_in,
+      BUS_TIMEOUT_OUT      =>  regio_rx.timeout, --regio_timeout_out,
       ONEWIRE_INOUT        => TEMPSENS,
       ONEWIRE_MONITOR_OUT  => open,
 
@@ -399,7 +383,8 @@ gen_reallogic : if USE_DUMMY_READOUT = 0 generate
       ADC_DATA(54 downto 50)   => ADC11_CH,
       ADC_DATA(59 downto 55)   => ADC12_CH,
       ADC_DCO     => ADC_DCO,
-
+      TRIGGER_FLAG_OUT => FPGA5_COMM(7),
+      
       TRIGGER_IN  => TRIGGER_LEFT,
       READOUT_RX  => readout_rx,
       READOUT_TX  => readout_tx,
@@ -437,8 +422,8 @@ gen_dummyreadout : if USE_DUMMY_READOUT = 1 generate
       BUS_TX      => busadc_tx
       );
 end generate;
-    
 
+    
 ---------------------------------------------------------------------------
 -- Bus Handler
 ---------------------------------------------------------------------------
@@ -453,22 +438,14 @@ end generate;
       CLK   => clk_100_i,
       RESET => reset_i,
 
-      DAT_ADDR_IN          => regio_addr_out,
-      DAT_DATA_IN          => regio_data_out,
-      DAT_DATA_OUT         => regio_data_in,
-      DAT_READ_ENABLE_IN   => regio_read_enable_out,
-      DAT_WRITE_ENABLE_IN  => regio_write_enable_out,
-      DAT_TIMEOUT_IN       => regio_timeout_out,
-      DAT_DATAREADY_OUT    => regio_dataready_in,
-      DAT_WRITE_ACK_OUT    => regio_write_ack_in,
-      DAT_NO_MORE_DATA_OUT => regio_no_more_data_in,
-      DAT_UNKNOWN_ADDR_OUT => regio_unknown_addr_in,
-
+      REGIO_RX  => regio_rx,
+      REGIO_TX  => regio_tx,
+      
       BUS_RX(0) => busmem_rx, --Flash
-      BUS_TX(0) => busmem_tx,
       BUS_RX(1) => busspi_rx, --SPI
-      BUS_TX(1) => busspi_tx,
       BUS_RX(2) => busadc_rx, --ADC
+      BUS_TX(0) => busmem_tx,
+      BUS_TX(1) => busspi_tx,
       BUS_TX(2) => busadc_tx,
       
       STAT_DEBUG => open
