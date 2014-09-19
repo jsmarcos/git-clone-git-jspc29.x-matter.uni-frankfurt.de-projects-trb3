@@ -257,13 +257,8 @@ architecture trb3_periph_arch of trb3_periph is
 
   -- SED Detection
   signal sed_error  : std_logic;
-  signal sed_din    : std_logic_vector(31 downto 0);
-  signal sed_dout   : std_logic_vector(31 downto 0);
-  signal sed_write  : std_logic := '0';
-  signal sed_read   : std_logic := '0';
-  signal sed_ack    : std_logic := '0';
-  signal sed_nack   : std_logic := '0';
-  signal sed_addr   : std_logic_vector(15 downto 0) := (others => '0');
+  signal bussed_rx : CTRLBUS_RX;
+  signal bussed_tx : CTRLBUS_TX;
   
   -- nXyter-FEB-Board Clocks
   signal nx_main_clk                : std_logic;
@@ -566,16 +561,16 @@ begin
       BUS_NO_MORE_DATA_IN(2)               => nx1_regio_no_more_data_out,
       BUS_UNKNOWN_ADDR_IN(2)               => nx1_regio_unknown_addr_out,
 
-      BUS_READ_ENABLE_OUT(3)              => sed_read,
-      BUS_WRITE_ENABLE_OUT(3)             => sed_write,
-      BUS_DATA_OUT(3*32+31 downto 3*32)   => sed_din,
-      BUS_ADDR_OUT(3*16+15 downto 3*16)   => sed_addr,
-      BUS_TIMEOUT_OUT(3)                  => open,
-      BUS_DATA_IN(3*32+31 downto 3*32)    => sed_dout,
-      BUS_DATAREADY_IN(3)                 => sed_ack,
-      BUS_WRITE_ACK_IN(3)                 => sed_ack,
-      BUS_NO_MORE_DATA_IN(3)              => '0',
-      BUS_UNKNOWN_ADDR_IN(3)              => sed_nack,
+      BUS_READ_ENABLE_OUT(3)              => bussed_rx.read,
+      BUS_WRITE_ENABLE_OUT(3)             => bussed_rx.write,
+      BUS_DATA_OUT(3*32+31 downto 3*32)   => bussed_rx.data,
+      BUS_ADDR_OUT(3*16+15 downto 3*16)   => bussed_rx.addr,
+      BUS_TIMEOUT_OUT(3)                  => bussed_rx.timeout,
+      BUS_DATA_IN(3*32+31 downto 3*32)    => bussed_tx.data,
+      BUS_DATAREADY_IN(3)                 => bussed_tx.ack,
+      BUS_WRITE_ACK_IN(3)                 => bussed_tx.ack,
+      BUS_NO_MORE_DATA_IN(3)              => bussed_tx.nack,
+      BUS_UNKNOWN_ADDR_IN(3)              => bussed_tx.unknown,
       
       STAT_DEBUG => open
       );
@@ -740,19 +735,12 @@ begin
   ---------------------------------------------------------------------------
   -- SED Detection
   ---------------------------------------------------------------------------
-
   THE_SED : entity work.sedcheck
     port map(
-      CLK        => clk_100_i,
-      ERROR_OUT  => sed_error,
-    
-      DATA_IN    => sed_din,
-      DATA_OUT   => sed_dout, 
-      WRITE_IN   => sed_write,
-      READ_IN    => sed_read,
-      ACK_OUT    => sed_ack,  
-      NACK_OUT   => sed_nack, 
-      ADDR_IN    => sed_addr
+      CLK       => clk_100_i,
+      ERROR_OUT => sed_error,
+      BUS_RX    => bussed_rx,
+      BUS_TX    => bussed_tx
       );
   
   -----------------------------------------------------------------------------

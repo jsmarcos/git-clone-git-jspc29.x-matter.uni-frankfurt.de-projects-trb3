@@ -299,13 +299,8 @@ architecture trb3_periph_padiwa_arch of trb3_periph_padiwa is
   signal stat_addr  : std_logic_vector(15 downto 0) := (others => '0');  
 
   signal sed_error  : std_logic;
-  signal sed_din    : std_logic_vector(31 downto 0);
-  signal sed_dout   : std_logic_vector(31 downto 0);
-  signal sed_write  : std_logic := '0';
-  signal sed_read   : std_logic := '0';
-  signal sed_ack    : std_logic := '0';
-  signal sed_nack   : std_logic := '0';
-  signal sed_addr   : std_logic_vector(15 downto 0) := (others => '0');  
+  signal bussed_rx : CTRLBUS_RX;
+  signal bussed_tx : CTRLBUS_TX;
 
   --TDC
   signal hit_in_i : std_logic_vector(64 downto 1);
@@ -698,16 +693,16 @@ begin
       BUS_NO_MORE_DATA_IN(8)             => '0',
       BUS_UNKNOWN_ADDR_IN(8)             => stat_nack,
       --SEU Detection
-      BUS_READ_ENABLE_OUT(9)              => sed_read,
-      BUS_WRITE_ENABLE_OUT(9)             => sed_write,
-      BUS_DATA_OUT(9*32+31 downto 9*32)   => sed_din,
-      BUS_ADDR_OUT(9*16+15 downto 9*16)   => sed_addr,
-      BUS_TIMEOUT_OUT(9)                  => open,
-      BUS_DATA_IN(9*32+31 downto 9*32)    => sed_dout,
-      BUS_DATAREADY_IN(9)                 => sed_ack,
-      BUS_WRITE_ACK_IN(9)                 => sed_ack,
-      BUS_NO_MORE_DATA_IN(9)              => '0',
-      BUS_UNKNOWN_ADDR_IN(9)              => sed_nack,
+      BUS_READ_ENABLE_OUT(9)              => bussed_rx.read,
+      BUS_WRITE_ENABLE_OUT(9)             => bussed_rx.write,
+      BUS_DATA_OUT(9*32+31 downto 9*32)   => bussed_rx.data,
+      BUS_ADDR_OUT(9*16+15 downto 9*16)   => bussed_rx.addr,
+      BUS_TIMEOUT_OUT(9)                  => bussed_rx.timeout,
+      BUS_DATA_IN(9*32+31 downto 9*32)    => bussed_tx.data,
+      BUS_DATAREADY_IN(9)                 => bussed_tx.ack,
+      BUS_WRITE_ACK_IN(9)                 => bussed_tx.ack,
+      BUS_NO_MORE_DATA_IN(9)              => bussed_tx.nack,
+      BUS_UNKNOWN_ADDR_IN(9)              => bussed_tx.unknown,
       --Channel Debug Registers
       BUS_READ_ENABLE_OUT(10)              => cdb_read_en,
       BUS_WRITE_ENABLE_OUT(10)             => cdb_write_en,
@@ -869,27 +864,13 @@ end generate;
 ---------------------------------------------------------------------------
 -- SED Detection
 ---------------------------------------------------------------------------
-THE_SED : entity work.sedcheck
-  port map(
-    CLK        => clk_100_i,
-    ERROR_OUT  => sed_error,
-    
-    DATA_IN    => sed_din,
-    DATA_OUT   => sed_dout, 
-    WRITE_IN   => sed_write,
-    READ_IN    => sed_read,
-    ACK_OUT    => sed_ack,  
-    NACK_OUT   => sed_nack, 
-    ADDR_IN    => sed_addr
-    );
-
--- THE_SED : entity work.sedcheck 
---   port map(
---     CLK        => clk_100_i,
---     ERROR_OUT  => sed_error,
---     i_rst_p    => i_rst_p,
---     STATUS_OUT => TEST_LINE(11 downto 0)
---     ); 
+  THE_SED : entity work.sedcheck
+    port map(
+      CLK       => clk_100_i,
+      ERROR_OUT => sed_error,
+      BUS_RX    => bussed_rx,
+      BUS_TX    => bussed_tx
+      );
 
 ---------------------------------------------------------------------------
 -- Reboot FPGA
