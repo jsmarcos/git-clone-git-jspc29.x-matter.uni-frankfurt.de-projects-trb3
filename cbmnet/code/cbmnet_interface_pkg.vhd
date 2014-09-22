@@ -522,6 +522,64 @@ package cbmnet_interface_pkg is
          FILLED_IN : in std_logic;
          FILLED_OUT : out std_logic
       );
+   end component;
+   
+   component pos_edge_strech_sync is
+      generic (
+         LENGTH : positive := 2
+      );
+      port (
+         IN_CLK_IN : std_logic;
+         DATA_IN : std_logic;
+         OUT_CLK_IN : std_logic;
+         DATA_OUT : std_logic
+      );
+   end component;
+   
+   component cbmnet_sync_module is
+      port(
+      -- TRB
+         TRB_CLK_IN     : in std_logic;  
+         TRB_RESET_IN   : in std_logic;
+         TRB_TRIGGER_OUT: out std_logic;
+
+         --data output for read-out
+         TRB_TRIGGER_IN       : in  std_logic;
+         TRB_RDO_VALID_IN     : in  std_logic;
+         TRB_RDO_DATA_OUT     : out std_logic_vector(31 downto 0);
+         TRB_RDO_WRITE_OUT    : out std_logic;
+         TRB_RDO_STATUSBIT_OUT: out std_logic_vector(31 downto 0);
+         TRB_RDO_FINISHED_OUT : out std_logic;
+
+         -- reg io
+         TRB_REGIO_ADDR_IN                  : in  std_logic_vector(15 downto 0);
+         TRB_REGIO_DATA_IN                  : in  std_logic_vector(31 downto 0);
+         TRB_REGIO_READ_ENABLE_IN           : in  std_logic;
+         TRB_REGIO_WRITE_ENABLE_IN          : in  std_logic;
+         TRB_REGIO_DATA_OUT                 : out std_logic_vector(31 downto 0);
+         TRB_REGIO_DATAREADY_OUT            : out std_logic;
+         TRB_REGIO_WRITE_ACK_OUT            : out std_logic;
+         TRB_REGIO_UNKNOWN_ADDR_OUT         : out std_logic;
+         
+      -- CBMNET
+         CBM_CLK_IN           : in std_logic;
+         CBM_RESET_IN         : in std_logic;
+         CBM_PHY_BARREL_SHIFTER_POS_IN : in std_logic_vector(3 downto 0);
+         
+         -- DLM port
+         CBM_DLM_REC_IN       : in std_logic_vector(3 downto 0);
+         CBM_DLM_REC_VALID_IN : in std_logic;
+         CBM_DLM_SENSE_OUT    : out std_logic;
+         CBM_PULSER_OUT       : out std_logic; -- connect to TDC
+         
+         -- Ctrl port
+         CBM_CTRL_DATA_IN        : in std_logic_vector(15 downto 0);
+         CBM_CTRL_DATA_START_IN  : in std_logic;
+         CBM_CTRL_DATA_END_IN    : in std_logic;
+         CBM_CTRL_DATA_STOP_OUT  : out std_logic;
+         
+         DEBUG_OUT      : out std_logic_vector(31 downto 0)    
+      );
    end component;   
 end package cbmnet_interface_pkg;
 

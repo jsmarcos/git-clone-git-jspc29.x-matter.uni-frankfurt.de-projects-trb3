@@ -56,20 +56,19 @@ entity cbmnet_phy_ecp3 is
       CTRL_OP            : in  std_logic_vector ( 15 downto 0) := (others => '0');
       DEBUG_OUT          : out std_logic_vector (511 downto 0) := (others => '0')
    );
+   
+   attribute BLOCKNET : boolean;
+   attribute BLOCKNET of DEBUG_OUT : signal is true;
 end entity;
 
 architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    -- Placer Directives
-   attribute HGROUP : string;
-   -- for whole architecture
-   attribute HGROUP of cbmnet_phy_ecp3_arch : architecture  is "cbmnet_phy_group";
-   
-   attribute syn_hier: string;
-   attribute syn_hier of cbmnet_phy_ecp3_arch : architecture is "hard"; 
-   
-   
-   attribute syn_sharing : string;
-   attribute syn_sharing of cbmnet_phy_ecp3_arch : architecture is "off";
+--    attribute syn_hier: string;
+--    attribute syn_hier of cbmnet_phy_ecp3_arch : architecture is "hard"; 
+--    
+--    
+--    attribute syn_sharing : string;
+--    attribute syn_sharing of cbmnet_phy_ecp3_arch : architecture is "off";
 
    constant WA_FIXATION : integer := c_YES;
    signal DETERMINISTIC_LATENCY_C : std_logic;

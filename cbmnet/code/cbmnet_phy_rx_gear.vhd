@@ -32,8 +32,8 @@ entity CBMNET_PHY_RX_GEAR is
 end entity;
 
 architecture CBMNET_PHY_RX_GEAR_ARCH of CBMNET_PHY_RX_GEAR is
-   attribute HGROUP : string;
-   attribute HGROUP of CBMNET_PHY_RX_GEAR_ARCH : architecture  is "cbmnet_phy_rx_gear";
+--    attribute HGROUP : string;
+--    attribute HGROUP of CBMNET_PHY_RX_GEAR_ARCH : architecture  is "cbmnet_phy_rx_gear";
 
 
    type FSM_STATES_T is (FSM_START, FSM_WAIT_FOR_LOCK, FSM_LOCK_WAIT1, FSM_LOCK_WAIT2, FSM_LOCK_WAIT3, FSM_RESET, FSM_LOCKED);
@@ -55,7 +55,8 @@ architecture CBMNET_PHY_RX_GEAR_ARCH of CBMNET_PHY_RX_GEAR is
    
    signal data_in_buf_i : std_logic_vector( 8 downto 0); 
    
-   
+      signal delay_clock_x_i : std_logic;
+
    signal delay_clock_buf_i : std_logic;
    signal delay_clock_buf1_i : std_logic;
    signal last_delay_clock_i : std_logic := '0';
@@ -78,6 +79,7 @@ begin
          RESET_OUT <= '1';
          reset_timer_i <= '0';
          delay_clock_i <= '0';
+         delay_clock_x_i <= delay_clock_i;
          
          case (fsm_i) is
             when FSM_START =>
@@ -156,7 +158,7 @@ begin
 
 -- Implement the 2:1 gearing and clock down-sampling
    --delay_clock_buf1_i <= delay_clock_i when rising_edge(CLK_250_IN);
-   delay_clock_buf_i <= delay_clock_i when rising_edge(CLK_250_IN);
+   delay_clock_buf_i <= delay_clock_x_i when rising_edge(CLK_250_IN);
  
 
    proc_ctrl_gear: process
@@ -193,7 +195,7 @@ begin
    CLK_125_OUT <= clk_125_i; -- when rising_edge(CLK_250_IN);
    
    DEBUG_OUT(3 downto 0) <= STD_LOGIC_VECTOR(fsm_state_i);
-   DEBUG_OUT(4) <= delay_clock_i;
+   --DEBUG_OUT(4) <= delay_clock_i;
    DEBUG_OUT(5) <= indi_alignment_i;
    DEBUG_OUT(6) <= indi_misalignment_i;
    

@@ -32,13 +32,14 @@ entity CBMNET_PHY_TX_GEAR is
 end entity;
 
 architecture CBMNET_PHY_TX_GEAR_ARCH of CBMNET_PHY_TX_GEAR is
-   attribute HGROUP : string;
-   attribute HGROUP of CBMNET_PHY_TX_GEAR_ARCH : architecture  is "cbmnet_phy_tx_gear";
+--    attribute HGROUP : string;
+--    attribute HGROUP of CBMNET_PHY_TX_GEAR_ARCH : architecture  is "cbmnet_phy_tx_gear";
 
-   type   FSM_STATES is (FSM_HIGH, FSM_LOW);
+   type   FSM_STATES is (FSM_LOCKING, FSM_HIGH, FSM_LOW);
    signal fsm_i : FSM_STATES;
    
    signal data_in_buf125_i : std_logic_vector(17 downto 0);
+   signal data_in_buf125_0_i : std_logic_vector(17 downto 0);
    signal data_in_buf250_i : std_logic_vector(17 downto 0);
    signal data_in_buf250_0_i : std_logic_vector(17 downto 0);
    
@@ -53,15 +54,11 @@ begin
    process is begin
       wait until rising_edge(CLK_250_IN);
       
-      if RESET_IN='1' then
-         delay_counter_i <= TO_UNSIGNED(0,16);
-      end if;
-      
       data_in_buf250_0_i <= data_in_buf125_i;
       data_in_buf250_i <= data_in_buf250_0_i;
       
       
-      clk_125_xfer_buf_i <= clk_125_xfer_i;
+      clk_125_xfer_buf_i <= CLK_125_IN;
       clk_125_xfer_del_i <= clk_125_xfer_buf_i;
       CLK_125_OUT <= '0';
       
@@ -79,19 +76,27 @@ begin
 --             end if;
 
             
-         when others =>
+         when FSM_LOW =>
             DATA_OUT <= delay_data_i;
             fsm_i <= FSM_HIGH;
+            
+         when others =>
+            if clk_125_xfer_del_i = '0' and clk_125_xfer_buf_i = '1' then
+               fsm_i <= FSM_HIGH;
+            end if;
       end case;
+      
+       if RESET_IN='1' then
+          fsm_i <= FSM_LOCKING;
+       end if;
    end process;
    
    TX_READY_OUT <= not RESET_IN;
    
    process is begin
       wait until rising_edge(CLK_125_IN);
-      
-      data_in_buf125_i <= DATA_IN;
-      clk_125_xfer_i   <= not clk_125_xfer_i;
+      data_in_buf125_0_i <= DATA_IN;
+      data_in_buf125_i <= data_in_buf125_0_i;
    end process;
    
    DEBUG_OUT <= (others => '0'); -- x"0000" & STD_LOGIC_VECTOR( delay_counter_i );
