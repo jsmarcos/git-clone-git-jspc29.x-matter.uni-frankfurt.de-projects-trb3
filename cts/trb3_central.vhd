@@ -27,8 +27,9 @@ library work;
 --   C0 -   CF  Hub control registers
 -- 4000 - 40FF  Hub status registers
 -- 7000 - 72FF  Readout endpoint registers
--- 8100 - 83FF  bGE configuration & status
--- A000 - A1FF  CTS configuration & status
+-- 8100 - 83FF  GbE configuration & status
+-- A000 - A7FF  CTS configuration & status
+-- A800 - A8ff  CBMNet
 -- C000 - CFFF  TDC configuration & status
 -- D000 - D13F  Flash Programming
 
@@ -179,7 +180,103 @@ entity trb3_central is
     attribute syn_useioff of CLOCK_SELECT       : signal is false;
 
     attribute syn_useioff of CLK_EXT            : signal is false;
+    
+    -- no FF for CTS addon ... relax timing
+    attribute syn_useioff of ECL_IN             : signal is false;
+    attribute syn_useioff of NIM_IN             : signal is false;
+    attribute syn_useioff of JIN1               : signal is false;
+    attribute syn_useioff of JIN2               : signal is false;
+    attribute syn_useioff of JINLVDS            : signal is false;
+    attribute syn_useioff of DISCRIMINATOR_IN   : signal is false;
+    attribute syn_useioff of PWM_OUT            : signal is false;
+    attribute syn_useioff of JOUT1              : signal is false;
+    attribute syn_useioff of JOUT2              : signal is false;
+    attribute syn_useioff of JOUTLVDS           : signal is false;
+    attribute syn_useioff of JTTL               : signal is false;
+    attribute syn_useioff of TRG_FANOUT_ADDON   : signal is false;
+    attribute syn_useioff of LED_BANK           : signal is false;
+    attribute syn_useioff of LED_RJ_GREEN       : signal is false;
+    attribute syn_useioff of LED_RJ_RED         : signal is false;
+    attribute syn_useioff of LED_FAN_GREEN      : signal is false;
+    attribute syn_useioff of LED_FAN_ORANGE     : signal is false;
+    attribute syn_useioff of LED_FAN_RED        : signal is false;
+    attribute syn_useioff of LED_FAN_YELLOW     : signal is false;
 
+    attribute syn_keep : boolean;
+    attribute syn_keep of CLK_EXT : signal is true;
+    attribute syn_keep of CLK_GPLL_LEFT : signal is true;
+    attribute syn_keep of CLK_GPLL_RIGHT : signal is true;
+    attribute syn_keep of CLK_PCLK_LEFT : signal is true;
+    attribute syn_keep of CLK_PCLK_RIGHT : signal is true;
+    attribute syn_keep of TRIGGER_LEFT : signal is true;
+    attribute syn_keep of TRIGGER_RIGHT : signal is true;
+    attribute syn_keep of TRIGGER_EXT : signal is true;
+    attribute syn_keep of TRIGGER_OUT : signal is true;
+    attribute syn_keep of TRIGGER_OUT2 : signal is true;
+    attribute syn_keep of CLK_SERDES_INT_LEFT : signal is true;
+    attribute syn_keep of CLK_SERDES_INT_RIGHT : signal is true;
+    attribute syn_keep of SFP_RX_P : signal is true;
+    attribute syn_keep of SFP_RX_N : signal is true;
+    attribute syn_keep of SFP_TX_P : signal is true;
+    attribute syn_keep of SFP_TX_N : signal is true;
+    attribute syn_keep of SFP_TX_FAULT : signal is true;
+    attribute syn_keep of SFP_RATE_SEL : signal is true;
+    attribute syn_keep of SFP_LOS : signal is true;
+    attribute syn_keep of SFP_MOD0 : signal is true;
+    attribute syn_keep of SFP_MOD1 : signal is true;
+    attribute syn_keep of SFP_MOD2 : signal is true;
+    attribute syn_keep of SFP_TXDIS : signal is true;
+    attribute syn_keep of TRIGGER_SELECT : signal is true;
+    attribute syn_keep of CLOCK_SELECT : signal is true;
+    attribute syn_keep of CLK_MNGR1_USER : signal is true;
+    attribute syn_keep of CLK_MNGR2_USER : signal is true;
+    attribute syn_keep of FPGA1_COMM : signal is true;
+    attribute syn_keep of FPGA2_COMM : signal is true;
+    attribute syn_keep of FPGA3_COMM : signal is true;
+    attribute syn_keep of FPGA4_COMM : signal is true;
+    attribute syn_keep of FPGA1_TTL : signal is true;
+    attribute syn_keep of FPGA2_TTL : signal is true;
+    attribute syn_keep of FPGA3_TTL : signal is true;
+    attribute syn_keep of FPGA4_TTL : signal is true;
+    attribute syn_keep of FPGA1_CONNECTOR : signal is true;
+    attribute syn_keep of FPGA2_CONNECTOR : signal is true;
+    attribute syn_keep of FPGA3_CONNECTOR : signal is true;
+    attribute syn_keep of FPGA4_CONNECTOR : signal is true;
+    attribute syn_keep of ECL_IN : signal is true;
+    attribute syn_keep of NIM_IN : signal is true;
+    attribute syn_keep of JIN1 : signal is true;
+    attribute syn_keep of JIN2 : signal is true;
+    attribute syn_keep of JINLVDS : signal is true;
+    attribute syn_keep of DISCRIMINATOR_IN : signal is true;
+    attribute syn_keep of PWM_OUT : signal is true;
+    attribute syn_keep of JOUT1 : signal is true;
+    attribute syn_keep of JOUT2 : signal is true;
+    attribute syn_keep of JOUTLVDS : signal is true;
+    attribute syn_keep of JTTL : signal is true;
+    attribute syn_keep of TRG_FANOUT_ADDON : signal is true;
+    attribute syn_keep of LED_BANK : signal is true;
+    attribute syn_keep of LED_RJ_GREEN : signal is true;
+    attribute syn_keep of LED_RJ_RED : signal is true;
+    attribute syn_keep of LED_FAN_GREEN : signal is true;
+    attribute syn_keep of LED_FAN_ORANGE : signal is true;
+    attribute syn_keep of LED_FAN_RED : signal is true;
+    attribute syn_keep of LED_FAN_YELLOW : signal is true;
+    attribute syn_keep of FLASH_CLK : signal is true;
+    attribute syn_keep of FLASH_CS : signal is true;
+    attribute syn_keep of FLASH_DIN : signal is true;
+    attribute syn_keep of FLASH_DOUT : signal is true;
+    attribute syn_keep of PROGRAMN : signal is true;
+    attribute syn_keep of ENPIRION_CLOCK : signal is true;
+    attribute syn_keep of TEMPSENS : signal is true;
+    attribute syn_keep of LED_CLOCK_GREEN : signal is true;
+    attribute syn_keep of LED_CLOCK_RED : signal is true;
+    attribute syn_keep of LED_GREEN : signal is true;
+    attribute syn_keep of LED_ORANGE : signal is true;
+    attribute syn_keep of LED_RED : signal is true;
+    attribute syn_keep of LED_TRIGGER_GREEN : signal is true;
+    attribute syn_keep of LED_TRIGGER_RED : signal is true;
+    attribute syn_keep of LED_YELLOW : signal is true;
+    attribute syn_keep of TEST_LINE : signal is true;
 end entity;
 
 architecture trb3_central_arch of trb3_central is
@@ -196,8 +293,6 @@ architecture trb3_central_arch of trb3_central is
   signal GSR_N       : std_logic;
   attribute syn_keep of GSR_N : signal is true;
   attribute syn_preserve of GSR_N : signal is true;
-
-  
 
   --FPGA Test
   signal time_counter, time_counter2 : unsigned(31 downto 0);
@@ -337,10 +432,10 @@ architecture trb3_central_arch of trb3_central is
   signal cts_ext_debug               : std_logic_vector(31 downto 0);
   signal cts_ext_header              : std_logic_vector(1 downto 0);
 
-  signal cts_rdo_additional_data            : std_logic_vector(31+INCLUDE_TDC*32 downto 0);
-  signal cts_rdo_additional_write           : std_logic_vector(0+INCLUDE_TDC downto 0) := (others => '0');
-  signal cts_rdo_additional_finished        : std_logic_vector(0+INCLUDE_TDC downto 0) := (others => '0');
-  signal cts_rdo_trg_status_bits_additional : std_logic_vector(31+INCLUDE_TDC*32 downto 0) := (others => '0');
+  signal cts_rdo_additional_data            : std_logic_vector(32*cts_rdo_additional_ports-1 downto 0);
+  signal cts_rdo_additional_write           : std_logic_vector(cts_rdo_additional_ports-1 downto 0) := (others => '0');
+  signal cts_rdo_additional_finished        : std_logic_vector(cts_rdo_additional_ports-1 downto 0) := (others => '1');
+  signal cts_rdo_trg_status_bits_additional : std_logic_vector(32*cts_rdo_additional_ports-1 downto 0) := (others => '0');
   signal cts_rdo_trg_type                   : std_logic_vector(3 downto 0);
   signal cts_rdo_trg_code                   : std_logic_vector(7 downto 0);
   signal cts_rdo_trg_information            : std_logic_vector(23 downto 0);
@@ -526,10 +621,27 @@ architecture trb3_central_arch of trb3_central is
   signal cbm_phy_regio_write_ack_i    : std_logic;
   signal cbm_phy_regio_unknown_addr_i : std_logic;  
   
-  signal reset_fifo_i : std_logic_vector(3 downto 0) := (others => '0');
+  signal cbm_sync_regio_read_en_i     : std_logic;
+  signal cbm_sync_regio_write_en_i    : std_logic;
+  signal cbm_sync_regio_status_data_i : std_logic_vector(31 downto 0);
+  signal cbm_sync_regio_addr_i        : std_logic_vector(3 downto 0);
+  signal cbm_sync_regio_config_data_i : std_logic_vector(31 downto 0);
+  signal cbm_sync_regio_read_ack_i    : std_logic;
+  signal cbm_sync_regio_write_ack_i   : std_logic;
+  signal cbm_sync_regio_unknown_i     : std_logic;  
+  
+  signal cbm_sync_dlm_sensed_i : std_logic;
+  signal cbm_sync_pulser_i : std_logic;
+  
+  signal cbm_dlm_trigger_i : std_logic;
+  
+  --signal reset_fifo_i : std_logic_vector(3 downto 0) := (others => '0');
   
   signal cbm_phy_debug : std_logic_vector(511 downto 0);
   
+  signal do_reboot_i : std_logic;
+  signal cbm_do_reboot_i : std_logic;
+  signal trb_crs_cbm_do_reboot_i : std_logic := '0';  
 begin
   assert not(USE_4_SFP = c_YES and INCLUDE_CBMNET = c_YES)  report "CBMNET uses SFPs 1-4 and hence does not support USE_4_SFP" severity failure;
   assert not(INCLUDE_CBMNET = c_YES and INCLUDE_CTS = c_NO) report "CBMNET is supported only with CTS included" severity failure;
@@ -589,34 +701,7 @@ begin
 
 -- CBMNet ETM
    gen_cbmnet_etm: if (ETM_CHOICE = ETM_CHOICE_CBMNET and INCLUDE_CTS = c_YES) generate
-      --assert(INCLUDE_CBMNET = c_YES or not( ETM_CHOICE = ETM_CHOICE_CBMNET and INCLUDE_CTS = c_YES)) report "CBMNET DLM ETM requires the CBMNET stack (INCLUDE_CBMNET = c_YES)" severity failure;
-      THE_CBMNET_ETM: entity work.cbmnet_dlm_etm
---      generic map (DLM_NUM => 10)
-      port map (
-         CLK        => clk_100_i,
-         RESET_IN   => reset_i,
-
-         TRG_SYNC_OUT   => cts_ext_trigger,
-         
-         -- CBMNET DLM Port
-         CBMNET_CLK_IN     => cbm_clk_i,
-         CBMNET_DLM_REC_IN => cbm_dlm_rec_type_i,
-         CBMNET_DLM_REC_VALID_IN => cbm_dlm_rec_va_i, 
-         
-         --data output for read-out
-         TRIGGER_IN     => cts_rdo_trg_data_valid,
-         DATA_OUT       => cts_rdo_additional_data(31 downto 0),
-         WRITE_OUT      => cts_rdo_additional_write(0),
-         STATUSBIT_OUT  => cts_rdo_trg_status_bits_additional(31 downto 0),
-         FINISHED_OUT   => cts_rdo_additional_finished(0),
-            
-            --Registers / Debug    
-         CONTROL_REG_IN => cts_ext_control,
-         STATUS_REG_OUT => cts_ext_status,
-         HEADER_REG_OUT => cts_ext_header
-         
---         DEBUG => cts_ext_debug
-      );
+      cts_ext_trigger <= cbm_sync_dlm_sensed_i;
    end generate;
   
    GEN_CTS: if INCLUDE_CTS = c_YES generate
@@ -757,7 +842,7 @@ begin
       port map (
          CLK                => clk_125_i,
          RESET              => reset_i,
-         CLEAR              => '0',
+         CLEAR              => clear_i,
             
          --Internal Connection TX
          PHY_TXDATA_IN      => cbm_data2link_i(15 downto  0),
@@ -793,6 +878,7 @@ begin
          CTRL_OP            => open,
          DEBUG_OUT          => cbm_phy_debug
       );
+      SFP_RATE_SEL(1) <= '1'; -- not supported by SFP, but in general, this should be the correct setting
       
       proc_debug_regio: process is 
          variable addr : integer range 0 to 15;
@@ -896,6 +982,7 @@ begin
          );
          cbm_reset_n_i <= not cbm_reset_i when rising_edge(cbm_clk_i);
 
+
          cbm_crc_error_cntr_clr_i     <= cbm_reset_i;
          cbm_retrans_cntr_clr_i       <= cbm_reset_i;
          cbm_retrans_error_cntr_clr_i <= cbm_reset_i;
@@ -919,7 +1006,7 @@ begin
          );
          
          -- TODO: just borrowed from CTS ... !
-         JOUT2 <= "0" & clk_100_i & cbm_dlm2send_va_i & cbm_clk_i;
+         JOUT2 <= "000" & cbm_dlm_ref_rec_va_i;
          
          THE_CBMNET_READOUT: cbmnet_readout 
          port map(
@@ -976,7 +1063,7 @@ begin
             CBMNET_DATA2SEND_DATA_OUT  => cbm_data2send_i        -- out std_logic_vector(15 downto 0)         
          );
 
-         trb_reset_in <= reset_via_gbe; -- or MED_STAT_OP(4*16+13); --_delayed(2)
+--         trb_reset_in <= reset_via_gbe; -- or MED_STAT_OP(4*16+13); --_delayed(2)
          LED_TRIGGER_GREEN              <= not cbm_link_active_i;
          LED_TRIGGER_RED                <= not cbm_dlm_rec_va_i;
          
@@ -988,7 +1075,52 @@ begin
          med_stat_op(79 downto 64) <= (others => '0');
          med_stat_debug(4*64+63 downto 4*64) <= (others => '0');
 
-         SFP_TXDIS(7 downto 2) <= (others => '1');         
+         SFP_TXDIS(7 downto 2) <= (others => '1');
+         
+         THE_SYNC_MODULE: cbmnet_sync_module port map (
+         -- TRB
+            TRB_CLK_IN      => clk_100_i, --  in std_logic;  
+            TRB_RESET_IN    => reset_i, --  in std_logic;
+            TRB_TRIGGER_OUT => cbm_dlm_trigger_i, --  out std_logic;
+
+            --data output for read-out
+            TRB_TRIGGER_IN        => cts_trigger_out, --  in  std_logic; -- TODO: we may want to feed the reference time via an external input
+            TRB_RDO_VALID_IN      => cts_rdo_trg_data_valid,
+            TRB_RDO_DATA_OUT      => cts_rdo_additional_data(32*cts_rdo_additional_ports-1 downto 32*cts_rdo_additional_ports-32), --  out std_logic_vector(31 downto 0);
+            TRB_RDO_WRITE_OUT     => cts_rdo_additional_write(cts_rdo_additional_ports-1), --  out std_logic;
+--            TRB_RDO_STATUSBIT_OUT => cts_rdo_add(32*cts_rdo_additional_ports-1 downto 32*cts_rdo_additional_ports-32), --  out std_logic_vector(31 downto 0);
+            TRB_RDO_FINISHED_OUT  => cts_rdo_additional_finished(cts_rdo_additional_ports-1), --  out std_logic;
+
+            -- reg io
+            TRB_REGIO_ADDR_IN(15 downto 4)      => x"000",
+            TRB_REGIO_ADDR_IN(3 downto 0)       => cbm_sync_regio_addr_i, --  in  std_logic_vector(15 downto 0);
+            TRB_REGIO_DATA_IN                   => cbm_sync_regio_config_data_i, --  in  std_logic_vector(31 downto 0);
+            TRB_REGIO_READ_ENABLE_IN            => cbm_sync_regio_read_en_i, --  in  std_logic;
+            TRB_REGIO_WRITE_ENABLE_IN           => cbm_sync_regio_write_en_i, --  in  std_logic;
+            TRB_REGIO_DATA_OUT                  => cbm_sync_regio_status_data_i, --  out std_logic_vector(31 downto 0);
+            TRB_REGIO_DATAREADY_OUT             => cbm_sync_regio_read_ack_i, --  out std_logic;
+            TRB_REGIO_WRITE_ACK_OUT             => cbm_sync_regio_write_ack_i, --  out std_logic;
+            TRB_REGIO_UNKNOWN_ADDR_OUT          => cbm_sync_regio_unknown_i, --  out std_logic;
+            
+         -- CBMNET
+            CBM_CLK_IN            => cbm_clk_i,     --  in std_logic;
+            CBM_RESET_IN          => cbm_reset_i,   --  in std_logic;
+            CBM_PHY_BARREL_SHIFTER_POS_IN  => x"0", --  in std_logic_vector(3 downto 0);
+            
+            -- DLM port
+            CBM_DLM_REC_IN        => cbm_dlm_rec_type_i,    --  in std_logic_vector(3 downto 0);
+            CBM_DLM_REC_VALID_IN  => cbm_dlm_rec_va_i,      --  in std_logic;
+            CBM_DLM_SENSE_OUT     => cbm_sync_dlm_sensed_i, --  out std_logic;
+            CBM_PULSER_OUT        => cbm_sync_pulser_i,     --  out std_logic; -- connect to TDC
+            
+            -- Ctrl port
+            CBM_CTRL_DATA_IN         => cbm_ctrl_rec_i,       --  in std_logic_vector(15 downto 0);
+            CBM_CTRL_DATA_START_IN   => cbm_ctrl_rec_start_i, --  in std_logic;
+            CBM_CTRL_DATA_END_IN     => cbm_ctrl_rec_end_i,   --  in std_logic;
+            CBM_CTRL_DATA_STOP_OUT   => cbm_ctrl_rec_stop_i,  --  out std_logic;
+            
+            DEBUG_OUT       => open --  out std_logic_vector(31 downto 0)    
+         );
    end generate;
    
    GEN_NO_CBMNET: if INCLUDE_CBMNET = c_NO generate
@@ -1009,6 +1141,16 @@ begin
       trb_reset_in <= reset_via_gbe or MED_STAT_OP(4*16+13); --_delayed(2)
       LED_TRIGGER_GREEN              <= not med_stat_op(4*16+9);
       LED_TRIGGER_RED                <= not (med_stat_op(4*16+11) or med_stat_op(4*16+10));
+      
+      cbm_dlm_trigger_i <= '0';
+      
+      cbm_sync_regio_unknown_i   <= '1';
+      cbm_sync_regio_read_ack_i  <= cbm_sync_regio_read_en_i;
+      cbm_sync_regio_write_ack_i <= cbm_sync_regio_write_en_i;
+      
+      cbm_phy_regio_unknown_addr_i <= '1';
+      cbm_phy_regio_dataready_i <= cbm_phy_regio_read_enable_i;
+      cbm_phy_regio_write_ack_i <= cbm_phy_regio_write_enable_i;
    end generate;
    
    
@@ -1035,19 +1177,18 @@ THE_RESET_HANDLER : trb_net_reset_handler
     DEBUG_OUT       => open
   );
 
+trb_reset_in <= reset_via_gbe or MED_STAT_OP(4*16+13); --_delayed(2)
+reset_i <= reset_i_temp; -- or trb_reset_in;
 
-reset_fifo_i <= reset_i_temp & reset_fifo_i(reset_fifo_i'high downto 1) when rising_edge(clk_100_i);
-reset_i <= reset_fifo_i(0) when rising_edge(clk_100_i);
--- reset_i <= reset_i_temp; -- or trb_reset_in;
-
-process begin
-  wait until rising_edge(clk_100_i);
-    if reset_i = '1' then
-      reset_via_gbe_delayed <= "000";
-    elsif timer_ticks(0) = '1' then
-      reset_via_gbe_delayed <= reset_via_gbe_delayed(1 downto 0) & reset_via_gbe;
-    end if;
-  end process;
+-- 
+-- process begin
+--   wait until rising_edge(clk_100_i);
+--     if reset_i = '1' then
+--       reset_via_gbe_delayed <= "000";
+--     elsif timer_ticks(0) = '1' then
+--       reset_via_gbe_delayed <= reset_via_gbe_delayed(1 downto 0) & reset_via_gbe;
+--     end if;
+--   end process;
 
 
 ---------------------------------------------------------------------------
@@ -1469,9 +1610,9 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4_onboard
 ---------------------------------------------------------------------------
 THE_BUS_HANDLER : trb_net16_regio_bus_handler
   generic map(
-    PORT_NUMBER    => 13,
-    PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"8100", 3 => x"8300", 4 => x"a000", 5 => x"d300", 6 => x"c000", 7 => x"c100", 8 => x"c200", 9 => x"c300", 10 => x"c800", 11 => x"a800", 12 => x"a880", others => x"0000"),
-    PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 8,       3 => 8,       4 => 11,      5 => 0,       6 => 7,       7 => 5,       8 => 7,       9 => 7,       10 => 3,       11 => 7,       12 => 7,       others => 0)
+    PORT_NUMBER    => 14,
+    PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"8100", 3 => x"8300", 4 => x"a000", 5 => x"d300", 6 => x"c000", 7 => x"c100", 8 => x"c200", 9 => x"c300", 10 => x"c800", 11 => x"a800", 12 => x"a880", 13 => x"a900", others => x"0000"),
+    PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 8,       3 => 8,       4 => 11,      5 => 0,       6 => 7,       7 => 5,       8 => 7,       9 => 7,       10 => 3,       11 => 7,       12 => 7,       13 => 4,       others => 0)
     )
   port map(
     CLK                   => clk_100_i,
@@ -1647,6 +1788,20 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
     BUS_WRITE_ACK_IN(12)                 => cbm_phy_regio_write_ack_i,
     BUS_NO_MORE_DATA_IN(12)              => '0',
     BUS_UNKNOWN_ADDR_IN(12)              => cbm_phy_regio_unknown_addr_i,  
+
+    --CBMNet (sync)
+    BUS_READ_ENABLE_OUT(13)              => cbm_sync_regio_read_en_i,
+    BUS_WRITE_ENABLE_OUT(13)             => cbm_sync_regio_write_en_i,
+    BUS_DATA_OUT(13*32+31 downto 13*32)  => cbm_sync_regio_config_data_i,
+    BUS_ADDR_OUT(13*16+3 downto 13*16)   => cbm_sync_regio_addr_i,
+    BUS_ADDR_OUT(13*16+15 downto 13*16+4)=> open,
+    BUS_TIMEOUT_OUT(3)                   => open,
+    BUS_DATA_IN(13*32+31 downto 13*32)   => cbm_sync_regio_status_data_i,
+    BUS_DATAREADY_IN(13)                 => cbm_sync_regio_read_ack_i,
+    BUS_WRITE_ACK_IN(13)                 => cbm_sync_regio_write_ack_i,
+    BUS_NO_MORE_DATA_IN(13)              => '0',
+    BUS_UNKNOWN_ADDR_IN(13)              => cbm_sync_regio_unknown_i,            
+    
     
     STAT_DEBUG  => open
     );
@@ -1712,9 +1867,32 @@ THE_FPGA_REBOOT : fpga_reboot
   port map(
     CLK       => clk_100_i,
     RESET     => reset_i,
-    DO_REBOOT => common_ctrl_regs(15),
+    DO_REBOOT => do_reboot_i,
     PROGRAMN  => PROGRAMN
     );
+
+do_reboot_i <= trb_crs_cbm_do_reboot_i or common_ctrl_regs(15);
+    
+GEN_CBM_REBOOT: if INCLUDE_CBMNET = c_YES generate
+   CBM_REBOOT_PROC: process is
+   begin
+      wait until rising_edge(cbm_clk_i);
+      cbm_do_reboot_i <= '0';
+      if cbm_dlm_rec_type_i = x"f" and cbm_dlm_rec_va_i = '1' then
+         cbm_do_reboot_i <= '1';
+      end if;
+   end process;
+
+   THE_REBOOT_SENSE_SYNC: pos_edge_strech_sync port map (
+      IN_CLK_IN => cbm_clk_i, OUT_CLK_IN => clk_100_i,
+      DATA_IN => cbm_do_reboot_i,
+      DATA_OUT => trb_crs_cbm_do_reboot_i
+   );   
+end generate;
+
+
+
+
 
 
 -------------------------------------------------------------------------------
@@ -1800,6 +1978,8 @@ gen_TDC : if INCLUDE_TDC = c_YES generate
       CONTROL_REG_IN        => tdc_ctrl_reg
       );
       
+      tdc_inputs(1 downto 0) <= cbm_sync_dlm_sensed_i & cbm_sync_pulser_i ;
+      
       PROC_TDC_CTRL_REG : process 
          variable pos : integer;
       begin
@@ -1861,8 +2041,8 @@ process begin
   -- output time reference synchronously to the 200MHz clock
   -- in order to reduce jitter
   wait until rising_edge(clk_200_i);
-  TRIGGER_OUT    <= cts_trigger_out;
-  TRIGGER_OUT2   <= cts_trigger_out;
+  TRIGGER_OUT      <= cts_trigger_out;
+  TRIGGER_OUT2     <= cts_trigger_out;
   TRG_FANOUT_ADDON <= cts_trigger_out;
   
 end process;
@@ -1925,26 +2105,22 @@ end process;
 --   LED_RED                        <= '1';
 
 
-LED_GREEN <= debug(0);
+LED_GREEN <=  debug(0);
 LED_ORANGE <= debug(1);
-LED_RED <= debug(2);
-LED_YELLOW <= link_ok; --debug(3);
+LED_RED    <= debug(2) when INCLUDE_CBMNET=c_NO else cbm_link_active_i;
+LED_YELLOW <= link_ok  when INCLUDE_CBMNET=c_NO else cbm_dlm_ref_rec_va_i;
+
+
+
 
 
 ---------------------------------------------------------------------------
 -- Test Connector
 ---------------------------------------------------------------------------    
 
---   TEST_LINE(7 downto 0)   <= med_data_in(7 downto 0);
---   TEST_LINE(8)            <= med_dataready_in(0);
---   TEST_LINE(9)            <= med_dataready_out(0);
-
   TEST_LINE(15 downto 0)  <= tdc_debug;
- 
   TEST_LINE(16) <= CLK_EXT(3);  --this prevents adding an input register in the CBM MBS input module
-
   TEST_LINE(31 downto 17) <= (others => '0');
---   TEST_LINE(31 downto 0) <= cts_ext_debug;
 
 
 end architecture;

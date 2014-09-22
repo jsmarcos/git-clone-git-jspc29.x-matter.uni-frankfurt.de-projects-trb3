@@ -2,8 +2,8 @@
 
 # Synopsys, Inc. constraint file
 # /d/jspc29/mpenschuck/trb3/cts/trb3_central_syn.fdc
-# Written on Sun Jul 27 13:52:03 2014
-# by Synplify Premier, I-2013.09-SP1  FDC Constraint Editor
+# Written on Wed Sep 17 21:53:44 2014
+# by Synplify Pro, I-2013.09-SP1  FDC Constraint Editor
 
 # Custom constraint commands may be added outside of the SCOPE tab sections bounded with BEGIN/END.
 # These sections are generated from SCOPE spreadsheet tabs.
@@ -14,8 +14,8 @@
 ###==== END Collections
 
 ###==== BEGIN Clocks - (Populated from tab in SCOPE, do not edit)
-create_clock  {n:GEN_CBMNET\.THE_CBM_PHY.THE_RX_GEAR.CLK_125_OUT} -period {8}
-create_clock  {n:THE_MAIN_PLL.CLKOP} -period {10}
+create_clock  -name {rclk125} {n:GEN_CBMNET\.THE_CBM_PHY.THE_RX_GEAR.CLK_125_OUT} -period {8}
+create_clock  -name {clk100} {n:THE_MAIN_PLL.CLKOP} -period {10}
 create_clock  {n:THE_MAIN_PLL.CLKOK} -period {5}
 create_clock  {n:GEN_CBMNET\.THE_CBM_PHY.THE_SERDES.rx_full_clk_ch0} -period {4}
 create_clock  {n:GEN_CBMNET\.THE_CBM_PHY.THE_SERDES.tx_full_clk_ch0} -period {4}
@@ -24,8 +24,8 @@ create_clock  {n:THE_MEDIA_ONBOARD.gen_serdes_200\.THE_SERDES.refclkdiv2_rx_ch1}
 create_clock  {n:THE_MEDIA_ONBOARD.gen_serdes_200\.THE_SERDES.refclkdiv2_rx_ch2} -period {10}
 create_clock  {n:THE_MEDIA_ONBOARD.gen_serdes_200\.THE_SERDES.refclkdiv2_rx_ch3} -period {10}
 create_clock  {n:THE_MEDIA_ONBOARD.gen_serdes_200\.THE_SERDES.refclkdiv2_tx_ch} -period {10}
-create_clock  {n:GEN_CTS\.THE_CTS.TIME_REFERENCE_OUT} -period {10}
-create_clock  {n:GBE.imp_gen\.serdes_intclk_gen\.PCS_SERDES.clk_int\.SERDES_GBE.rx_full_clk_ch3} -period {4}
+create_clock  -name {refTime} {n:GEN_CTS\.THE_CTS.TIME_REFERENCE_OUT} -period {10}
+create_clock  {n:GBE.imp_gen\.serdes_intclk_gen\.PCS_SERDES.clk_int\.SERDES_GBE.rx_full_clk_ch3} -period {8}
 create_clock  {p:CLK_GPLL_RIGHT} -period {8}
 
 ###==== END Clocks
@@ -36,10 +36,9 @@ create_clock  {p:CLK_GPLL_RIGHT} -period {8}
 ###==== BEGIN Inputs/Outputs - (Populated from tab in SCOPE, do not edit)
 ###==== END Inputs/Outputs
 
-###==== BEGIN Registers - (Populated from tab in SCOPE, do not edit)
-###==== END Registers
 
 ###==== BEGIN "Delay Paths" - (Populated from tab in SCOPE, do not edit)
+set_false_path  -disable
 ###==== END "Delay Paths"
 
 ###==== BEGIN Attributes - (Populated from tab in SCOPE, do not edit)
@@ -50,6 +49,10 @@ create_clock  {p:CLK_GPLL_RIGHT} -period {8}
 
 ###==== BEGIN "Compile Points" - (Populated from tab in SCOPE, do not edit)
 ###==== END "Compile Points"
+
+
+
+
 
 
 

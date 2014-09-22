@@ -301,8 +301,8 @@ if {$INCLUDE_TDC == 1} {
    add_file -vhdl -lib "work" "tdc_release/TriggerHandler.vhd"
 }
 
-add_file -vhdl -lib work "../cbmnet/code/cbmnet_interface_pkg.vhd"
-add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_pkg.vhd"
+add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_interface_pkg.vhd"
+add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_phy_pkg.vhd"
 if {$INCLUDE_CBMNET == 1} {
    set_option -include_path {../cbmnet/cbmnet/cores/CBMnet/includes/}
 
@@ -369,21 +369,27 @@ if {$INCLUDE_CBMNET == 1} {
    add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_tx_slave_top.v"
    add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_tx_top.v"
 
-add_file -vhdl -lib work "../base/cores/cbmnet_sfp1.vhd"
-add_file -vhdl -lib work "../cbmnet/cores/lattice_ecp3_fifo_16x16_dualport.vhd"
-add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/med_sync_define.vhd"
-add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_ecp3_rx_reset_fsm.vhd"
-add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_ecp3_tx_reset_fsm.vhd"
-add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_rx_gear.vhd"
-add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_tx_gear.vhd"
-add_file -vhdl -lib work "../cbmnet/code/cbmnet_phy_ecp3.vhd"
-add_file -vhdl -lib work "../cbmnet/code/cbmnet_readout_trbnet_decoder.vhd"
-add_file -vhdl -lib work "../cbmnet/code/cbmnet_readout_event_packer.vhd"
-add_file -vhdl -lib work "../cbmnet/code/cbmnet_readout_fifo.vhd"
-add_file -vhdl -lib work "../cbmnet/code/cbmnet_readout_tx_fsm.vhd"
-add_file -vhdl -lib work "../cbmnet/code/cbmnet_readout.vhd"
+   add_file -vhdl -lib work "../base/cores/cbmnet_sfp1.vhd"
+   add_file -vhdl -lib work "../cbmnet/cores/lattice_ecp3_fifo_16x16_dualport.vhd"
+   add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/med_sync_define.vhd"
 
+   add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_phy_ecp3_rx_reset_fsm.vhd"
+   add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_phy_ecp3_tx_reset_fsm.vhd"
+   add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_phy_rx_gear.vhd"
+   add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_phy_tx_gear.vhd"
+   add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_phy_ecp3.vhd"
 
+   add_file -vhdl -lib work "../cbmnet/cores/cbmnet_fifo_18x2k_dp.vhd"
+   add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_readout_trbnet_decoder.vhd"
+   add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_readout_event_packer.vhd"
+   add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_readout_fifo_ecp3.vhd"
+   add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_readout_frame_packer.vhd"
+   add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_readout_tx_fifo.vhd"
+   add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_readout_obuf.vhd"
+   add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_readout.vhd"
+
+   add_file -vhdl -lib work "./cbmnet_bridge/pos_edge_strech_sync.vhd"
+   add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_sync_module.vhd"
 }
 
 add_file -vhdl -lib work "./trb3_central.vhd"
