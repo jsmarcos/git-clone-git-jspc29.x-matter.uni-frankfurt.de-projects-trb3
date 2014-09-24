@@ -38,7 +38,6 @@ create_clock  {p:CLK_GPLL_RIGHT} -period {8}
 
 
 ###==== BEGIN "Delay Paths" - (Populated from tab in SCOPE, do not edit)
-set_false_path  -disable
 ###==== END "Delay Paths"
 
 ###==== BEGIN Attributes - (Populated from tab in SCOPE, do not edit)

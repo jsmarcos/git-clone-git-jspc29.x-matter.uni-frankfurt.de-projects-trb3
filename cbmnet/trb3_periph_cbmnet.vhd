@@ -136,6 +136,8 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
 
 
    signal rclk_125_i                : std_logic; -- recovered clock 
+   signal rclk_250_i                : std_logic; -- recovered clock 
+   
    signal rreset_i                  : std_logic; -- reset for recovered clock ~ 1us after clock becomes stable
 
 
@@ -228,6 +230,19 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    signal debug_addr      : std_logic_vector(5 downto 0);
    signal debug_data_out  : std_logic_vector(31 downto 0);
    signal debug_ack       : std_logic;
+
+   signal sync_regio_read_en   : std_logic;
+   signal sync_regio_write_en  : std_logic;
+   signal sync_regio_status_data   : std_logic_vector(31 downto 0);
+   signal sync_regio_addr      : std_logic_vector(3 downto 0);
+   signal sync_regio_config_data  : std_logic_vector(31 downto 0);
+   signal sync_regio_read_ack       : std_logic;
+   signal sync_regio_write_ack       : std_logic;
+   signal sync_regio_unknown       : std_logic;
+   
+   signal trb_trigger : std_logic;
+   signal sync_dlm_sense : std_logic;
+   signal sync_pulser : std_logic;
    
    
    signal spi_bram_addr : std_logic_vector(7 downto 0);
@@ -435,10 +450,48 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
   signal event_gap_cnt_i : unsigned(31 downto 0);
   
   
-  type TRB_FSM_T is (IDLE, START_READOUT, START_READOUT_WAIT, FEE_BUSY, SEND_EINF_H, SEND_EINF_L, SEND_LENGTH, SEND_SOURCE, SEND_SOURCE_WAIT, SEND_PAYLOAD_H, SEND_PAYLOAD_L, SEND_PAYLOAD_RT_H, SEND_PAYLOAD_RT_L, COMPL_WAIT, COMPL_NOT_BUSY_WAIT, EVT_WAIT);
+  type TRB_FSM_T is (IDLE, START_READOUT, START_READOUT_WAIT, FEE_BUSY, SEND_EINF_H, SEND_EINF_L, SEND_LENGTH, SEND_SOURCE, SEND_SOURCE_WAIT, 
+  SEND_PAYLOAD_SSEHDR_H, SEND_PAYLOAD_SSEHDR_L,
+  SEND_PAYLOAD_RT_H, SEND_PAYLOAD_RT_L, 
+  SEND_PAYLOAD_H, SEND_PAYLOAD_L, 
+  COMPL_WAIT, COMPL_NOT_BUSY_WAIT, EVT_WAIT);
   signal trb_fsm_i : TRB_FSM_T;
+  
+  signal rdo_send_length_min_i : unsigned(31 downto 0);
+  signal rdo_send_length_max_i : unsigned(31 downto 0);
+  signal rdo_send_length_inc_i : unsigned(31 downto 0);
+  signal rdo_send_length_cur_i : unsigned(31 downto 0);
+  
+  type RDO_FSM_STATES_T is (UPDATE_LENGTH, WAIT_FOR_TRIGGER, SEND_RT_100, SEND_RT_125, SEND_TESTPATTERN, COMPLETE);
+  signal rdo_fsm_i : RDO_FSM_STATES_T;
+  
+  signal do_reboot_i : std_logic;
+  
+  signal cbm_do_reboot_i : std_logic;
+  signal trb_crs_cbm_do_reboot_i : std_logic;
    
 begin
+--    RDO_PROC: process is
+--    begin
+--       wait until rising_edge(clk_100_i);
+--       
+--       if reset_i='1' then
+--          rdo_fsm_i <= WAIT_FOR_TRIGGER;
+--          rdo_send_length_cur_i <= rdo_send_length_min_i;
+--          
+--       else
+--          case(rdo_fsm_i) is
+--             case UPDATE_LENGTH =>
+--             case WAIT_FOR_TRIGGER =>
+--             case SEND_RT_100 =>
+--             case SEND_RT_125 => 
+--             case SEND_TESTPATTERN =>
+--             case COMPLETE =>
+--          end case;
+--       end if;
+--    end process;
+
+
    clk_125_i <= CLK_GPLL_LEFT; 
 
    assert(INCLUDE_TRBNET = c_YES);
@@ -463,7 +516,7 @@ begin
       PHY_RXDATA_K_OUT   => cbm_data_from_link(17 downto 16),
       
       CLK_RX_HALF_OUT    => rclk_125_i,
-      CLK_RX_FULL_OUT    => open,
+      CLK_RX_FULL_OUT    => rclk_250_i,
       CLK_RX_RESET_OUT   => rreset_i,
 
       LINK_ACTIVE_OUT    => open,
@@ -489,25 +542,62 @@ begin
       DEBUG_OUT          => phy_debug_i
    );
 
---   TEST_LINE(7 downto 0) <= cbm_data2send_stop & cbm_data2send_start & cbm_data2send_end & cbm_dlm_rec_va & cbm_dlm_rec_type;
---   TEST_LINE(15 downto 8) <= phy_stat_debug(7 downto 0);
-  
-   PROC_TESTLINE: process is
-      variable pattern_v : std_logic_vector(15 downto 0) := x"0001";
-   begin
-      wait until rising_edge(rclk_125_i);
+   TEST_LINE(2 downto 0) <= sync_pulser & sync_dlm_sense & trb_trigger;
+
+   
+   THE_SYNC_MODULE: cbmnet_sync_module port map (
+   -- TRB
+      TRB_CLK_IN      => clk_100_i, --  in std_logic;  
+      TRB_RESET_IN    => reset_i, --  in std_logic;
+      TRB_TRIGGER_OUT => trb_trigger, --  out std_logic;
+
+      --data output for read-out
+      TRB_TRIGGER_IN        => timing_trg_received_i, --  in  std_logic;
       
-      pattern_v := pattern_v(14 downto 0) & pattern_v(15);
+      TRB_RDO_VALID_DATA_TRG_IN   => trg_data_valid_i,
+      TRB_RDO_VALID_NO_TIMING_IN  => trg_notiming_valid_i,
       
-      if send_enabled_i = '0' then
-         TEST_LINE <= pattern_v;
-      else
-         pattern_v := x"0001";
-         TEST_LINE(15 downto 11) <= cbm_data2send_stop & cbm_data2send_start & cbm_data2send_end  & cbm_data2send(15 downto 14);
-         TEST_LINE(10 downto 0) <= cbm_data2send(10 downto 0);
-      end if;
-   end process;
-  
+      TRB_RDO_DATA_OUT      => fee_data_i, --  out std_logic_vector(31 downto 0);
+      TRB_RDO_WRITE_OUT     => fee_data_write_i, --  out std_logic;
+      TRB_RDO_STATUSBIT_OUT => fee_trg_statusbits_i, --  out std_logic_vector(31 downto 0);
+      TRB_RDO_FINISHED_OUT  => fee_data_finished_i, --  out std_logic;
+
+      -- reg io
+      TRB_REGIO_ADDR_IN(15 downto 4)      => x"000",
+      TRB_REGIO_ADDR_IN(3 downto 0)       => sync_regio_addr, --  in  std_logic_vector(15 downto 0);
+      TRB_REGIO_DATA_IN                   => sync_regio_config_data, --  in  std_logic_vector(31 downto 0);
+      TRB_REGIO_READ_ENABLE_IN            => sync_regio_read_en, --  in  std_logic;
+      TRB_REGIO_WRITE_ENABLE_IN           => sync_regio_write_en, --  in  std_logic;
+      TRB_REGIO_DATA_OUT                  => sync_regio_status_data, --  out std_logic_vector(31 downto 0);
+      TRB_REGIO_DATAREADY_OUT             => sync_regio_read_ack, --  out std_logic;
+      TRB_REGIO_WRITE_ACK_OUT             => sync_regio_write_ack, --  out std_logic;
+      TRB_REGIO_UNKNOWN_ADDR_OUT          => sync_regio_unknown, --  out std_logic;
+      
+   -- CBMNET
+      CBM_CLK_IN            => rclk_125_i, --  in std_logic;
+      CBM_CLK_250_IN        => rclk_250_i,
+      CBM_LINK_ACTIVE_IN    => cbm_link_active,
+      CBM_RESET_IN          => rreset_i, --  in std_logic;
+      CBM_PHY_BARREL_SHIFTER_POS_IN  => x"0", --  in std_logic_vector(3 downto 0);
+      
+      CBM_TIMING_TRIGGER_OUT => open,
+      
+      -- DLM port
+      CBM_DLM_REC_IN        => cbm_dlm_rec_type, --  in std_logic_vector(3 downto 0);
+      CBM_DLM_REC_VALID_IN  => cbm_dlm_rec_va, --  in std_logic;
+      CBM_DLM_SENSE_OUT     => sync_dlm_sense, --  out std_logic;
+      CBM_PULSER_OUT        => sync_pulser, --  out std_logic; -- connect to TDC
+      
+      -- Ctrl port
+      CBM_CTRL_DATA_IN         => cbm_ctrl_rec, --  in std_logic_vector(15 downto 0);
+      CBM_CTRL_DATA_START_IN   => cbm_ctrl_rec_start, --  in std_logic;
+      CBM_CTRL_DATA_END_IN     => cbm_ctrl_rec_end, --  in std_logic;
+      CBM_CTRL_DATA_STOP_OUT   => cbm_ctrl_rec_stop, --  out std_logic;
+      
+      DEBUG_OUT       => open --  out std_logic_vector(31 downto 0)    
+   );
+   
+   fee_trg_release_i <= fee_data_finished_i;
    
    SFP_RATESEL   <= (others => '0');
    
@@ -776,8 +866,21 @@ begin
                trb_fsm_i <= SEND_SOURCE_WAIT;
 
             when SEND_SOURCE_WAIT =>
-               trb_fsm_i <= SEND_PAYLOAD_H;
+               trb_fsm_i <= SEND_PAYLOAD_SSEHDR_H;
 
+            when SEND_PAYLOAD_SSEHDR_H =>
+               HUB_FEE_DATA <= std_logic_vector(send_counter_i - 1);
+               HUB_FEE_DATAREADY <= '1';
+               trb_fsm_i <= SEND_PAYLOAD_SSEHDR_L;
+               
+            when SEND_PAYLOAD_SSEHDR_L =>
+               HUB_FEE_DATA <= x"4444";
+               HUB_FEE_DATAREADY <= '1';
+               trb_fsm_i <= SEND_PAYLOAD_H;
+               send_counter_i <= send_counter_i - 1;
+               
+               trb_fsm_i <= SEND_PAYLOAD_RT_H;
+               
             when SEND_PAYLOAD_RT_H =>
                HUB_FEE_DATA <= std_logic_vector(send_real_time_buf_i(31 downto 16));
                HUB_FEE_DATAREADY <= '1';
@@ -874,74 +977,6 @@ begin
    cbm_data2send <= cbm_data2send1; -- when tp_mux_i = '0' else cbm_data2send2;
    cbm_data2send_start <= cbm_data2send_start1; -- when tp_mux_i = '0' else cbm_data2send_start2;
    cbm_data2send_end <= cbm_data2send_end1; -- when tp_mux_i = '0' else cbm_data2send_end2;   
-   
---    proc_data_send: process begin
---       wait until rising_edge(rclk_125_i);
---       
---       cbm_data2send2 <= (others => '0');
---       cbm_data2send_start2 <= "0";
---       cbm_data2send_end2 <= "0";
--- 
---       if reset_i = '1' or send_enabled_i = '0' then
---          send_fsm_i <= start;
---          send_num_pack_counter_i <= (others => '0');
---          
---       else
---          case(send_fsm_i) is
---             when start =>
---                if cbm_link_active='1' and cbm_data2send_stop = "0" then
---                   send_fsm_i <= send_header;
---                   send_num_pack_counter_i <= send_num_pack_counter_i + 1;
---                   send_length_i2(4 downto 0) <= unsigned("0" & send_num_pack_counter_i(3 downto 0)) + 1;
---                   
---                   if send_burst_counter_i = to_unsigned(0, send_burst_counter_i'length) then
---                      send_burst_counter_i <= send_burst_threshold_i;
---                   else
---                      send_burst_counter_i <= send_burst_counter_i - 1;
---                   end if;
---                end if;
---             
---             when send_header =>
---                cbm_data2send2 <= x"f123";
---                cbm_data2send_start2 <= "1";
---                send_fsm_i <= send_pack_num;
---                
---             when send_pack_num =>
---                cbm_data2send2 <= send_num_pack_counter_i;
---                send_fsm_i <= send_length;
---             
---             when send_length =>
---                cbm_data2send2(send_length_i2'range) <= send_length_i2;
---                send_fsm_i <= send_data;
---                
---             when send_data =>
---                send_length_i2 <= send_length_i2 - 1;
---                cbm_data2send2(15 downto 8) <= "0" & std_logic_vector(send_length_i2(2 downto 0)) & std_logic_vector(send_length_i2(3 downto 0));
---                cbm_data2send2(send_length_i2'high + 0 downto 0) <= send_length_i2;
---                
---                if send_length_i2 = to_unsigned(1, send_length_i2'length) then
---                   send_fsm_i <= send_footer;
---                end if;
---                
---             when send_footer =>
---                cbm_data2send2 <= x"f321";
---                cbm_data2send_end2 <= "1";
---                
---                send_wait_counter_i2 <= (others => '0');
---                send_fsm_i <= after_send_wait;
--- 
---             when after_send_wait =>
---                send_wait_counter_i2 <= std_logic_vector( unsigned(send_wait_counter_i2) + 1 );
---                if send_wait_counter_i2(4 downto 0) >= send_wait_threshold_i or send_burst_counter_i /= to_unsigned(0, send_burst_counter_i'length) then
---                   send_fsm_i <= start;
---                end if;
---                
---             when others =>
---                send_fsm_i <= start;
---                
---          end case;
---       end if;
---    end process;
    
    PROC_DLM_COUNTER: process is
       variable dlm_type_v : integer range 15 downto 0;
@@ -1047,7 +1082,7 @@ begin
 				--cbm_debug_overrides_i <= debug_data_in(21 downto 20);
             
             when 16#30# => 
-               if UNSIGNED(debug_data_in(15 downto 0)) /= 0 then
+               if UNSIGNED(debug_data_in(15 downto 0)) > 1 then
                   send_length_min_i <= UNSIGNED(debug_data_in(15 downto 0));
                end if;
             when 16#31# =>
@@ -1064,7 +1099,7 @@ begin
       
       if reset_i='1' then
          send_length_step_i <= TO_UNSIGNED(  1, 16);
-         send_length_min_i  <= TO_UNSIGNED(  1, 16);
+         send_length_min_i  <= TO_UNSIGNED(  2, 16);
          send_length_max_i  <= TO_UNSIGNED(200, 16);
       end if;
    end process;
@@ -1268,14 +1303,15 @@ begin
       DEBUG_LVL1_HANDLER_OUT      => open
       );
 
+      timing_trg_received_i <= TRIGGER_LEFT;
 ---------------------------------------------------------------------------
 -- Bus Handler
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 4,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"a000", 3=>x"a800", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 6,       3=>6, others => 0)
+      PORT_NUMBER    => 5,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"a000", 3=>x"a800", 4=>x"a900", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 6,       3=>6,       4=>4, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -1342,7 +1378,21 @@ begin
     BUS_WRITE_ACK_IN(3)                 => cbm_rdo_regio_write_ack_i,
     BUS_NO_MORE_DATA_IN(3)              => '0',
     BUS_UNKNOWN_ADDR_IN(3)              => cbm_rdo_regio_unknown_addr_i,        
-      
+
+      --CBMNet (read-out)
+      BUS_READ_ENABLE_OUT(4)              => sync_regio_read_en,
+      BUS_WRITE_ENABLE_OUT(4)             => sync_regio_write_en,
+      BUS_DATA_OUT(4*32+31 downto 4*32)   => sync_regio_config_data,
+      BUS_ADDR_OUT(4*16+3 downto 4*16)    => sync_regio_addr,
+      BUS_ADDR_OUT(4*16+15 downto 4*16+4) => open,
+      BUS_TIMEOUT_OUT(3)                  => open,
+      BUS_DATA_IN(4*32+31 downto 4*32)    => sync_regio_status_data,
+      BUS_DATAREADY_IN(4)                 => sync_regio_read_ack,
+      BUS_WRITE_ACK_IN(4)                 => sync_regio_write_ack,
+      BUS_NO_MORE_DATA_IN(4)              => '0',
+      BUS_UNKNOWN_ADDR_IN(4)              => sync_regio_unknown,        
+    
+    
       STAT_DEBUG => open
       );
 

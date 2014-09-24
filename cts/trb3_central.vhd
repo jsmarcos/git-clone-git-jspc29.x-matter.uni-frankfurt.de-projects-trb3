@@ -547,6 +547,7 @@ architecture trb3_central_arch of trb3_central is
 
 -- cbmnet  
   signal cbm_clk_i             : std_logic;
+  signal cbm_clk250_i          : std_logic;
   signal cbm_reset_i           : std_logic;
   signal cbm_reset_n_i         : std_logic;
 
@@ -632,10 +633,9 @@ architecture trb3_central_arch of trb3_central is
   
   signal cbm_sync_dlm_sensed_i : std_logic;
   signal cbm_sync_pulser_i : std_logic;
+  signal cbm_sync_timing_trigger_i : std_logic;
   
   signal cbm_dlm_trigger_i : std_logic;
-  
-  --signal reset_fifo_i : std_logic_vector(3 downto 0) := (others => '0');
   
   signal cbm_phy_debug : std_logic_vector(511 downto 0);
   
@@ -853,7 +853,7 @@ begin
          PHY_RXDATA_K_OUT   => cbm_data_from_link_i(17 downto 16),
          
          CLK_RX_HALF_OUT    => cbm_clk_i,
-         CLK_RX_FULL_OUT    => open,
+         CLK_RX_FULL_OUT    => cbm_clk250_i,
          CLK_RX_RESET_OUT   => cbm_reset_i,
 
          LINK_ACTIVE_OUT    => open,
@@ -1085,7 +1085,11 @@ begin
 
             --data output for read-out
             TRB_TRIGGER_IN        => cts_trigger_out, --  in  std_logic; -- TODO: we may want to feed the reference time via an external input
-            TRB_RDO_VALID_IN      => cts_rdo_trg_data_valid,
+
+            TRB_RDO_VALID_DATA_TRG_IN   => cts_rdo_trg_data_valid,
+            TRB_RDO_VALID_NO_TIMING_IN  => cts_rdo_valid_notiming_trg,
+            
+            
             TRB_RDO_DATA_OUT      => cts_rdo_additional_data(32*cts_rdo_additional_ports-1 downto 32*cts_rdo_additional_ports-32), --  out std_logic_vector(31 downto 0);
             TRB_RDO_WRITE_OUT     => cts_rdo_additional_write(cts_rdo_additional_ports-1), --  out std_logic;
 --            TRB_RDO_STATUSBIT_OUT => cts_rdo_add(32*cts_rdo_additional_ports-1 downto 32*cts_rdo_additional_ports-32), --  out std_logic_vector(31 downto 0);
@@ -1104,8 +1108,12 @@ begin
             
          -- CBMNET
             CBM_CLK_IN            => cbm_clk_i,     --  in std_logic;
+            CBM_CLK_250_IN        => cbm_clk250_i,
             CBM_RESET_IN          => cbm_reset_i,   --  in std_logic;
+            CBM_LINK_ACTIVE_IN    => cbm_link_active_i,
             CBM_PHY_BARREL_SHIFTER_POS_IN  => x"0", --  in std_logic_vector(3 downto 0);
+            
+            CBM_TIMING_TRIGGER_OUT => cbm_sync_timing_trigger_i,
             
             -- DLM port
             CBM_DLM_REC_IN        => cbm_dlm_rec_type_i,    --  in std_logic_vector(3 downto 0);

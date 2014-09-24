@@ -529,12 +529,24 @@ package cbmnet_interface_pkg is
          LENGTH : positive := 2
       );
       port (
-         IN_CLK_IN : std_logic;
-         DATA_IN : std_logic;
-         OUT_CLK_IN : std_logic;
-         DATA_OUT : std_logic
+         IN_CLK_IN : in std_logic;
+         DATA_IN   : in std_logic;
+         OUT_CLK_IN : in std_logic;
+         DATA_OUT : out std_logic
       );
    end component;
+   
+   component gray_code_sync is
+      generic (
+         WIDTH : positive := 32
+      );
+      port (
+         IN_CLK_IN : in std_logic;
+         DATA_IN   : in std_logic_vector(WIDTH-1 downto 0);
+         OUT_CLK_IN : in std_logic;
+         DATA_OUT : out std_logic_vector(WIDTH-1 downto 0)
+      );
+   end component;   
    
    component cbmnet_sync_module is
       port(
@@ -545,7 +557,8 @@ package cbmnet_interface_pkg is
 
          --data output for read-out
          TRB_TRIGGER_IN       : in  std_logic;
-         TRB_RDO_VALID_IN     : in  std_logic;
+         TRB_RDO_VALID_DATA_TRG_IN  : in  std_logic;
+         TRB_RDO_VALID_NO_TIMING_IN : in  std_logic;
          TRB_RDO_DATA_OUT     : out std_logic_vector(31 downto 0);
          TRB_RDO_WRITE_OUT    : out std_logic;
          TRB_RDO_STATUSBIT_OUT: out std_logic_vector(31 downto 0);
@@ -563,8 +576,12 @@ package cbmnet_interface_pkg is
          
       -- CBMNET
          CBM_CLK_IN           : in std_logic;
+         CBM_CLK_250_IN       : in std_logic;
          CBM_RESET_IN         : in std_logic;
          CBM_PHY_BARREL_SHIFTER_POS_IN : in std_logic_vector(3 downto 0);
+         CBM_LINK_ACTIVE_IN   : in std_logic;
+         
+         CBM_TIMING_TRIGGER_OUT : out std_logic;
          
          -- DLM port
          CBM_DLM_REC_IN       : in std_logic_vector(3 downto 0);
