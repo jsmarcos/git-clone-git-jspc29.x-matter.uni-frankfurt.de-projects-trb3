@@ -34,6 +34,7 @@ package mupix_components is
       spi_ld_to_board            : out std_logic;
       fpga_led_to_board          : out std_logic_vector(3 downto 0);
       fpga_aux_to_board          : out std_logic_vector(9 downto 0);
+      TIMING_TRG_IN              : in  std_logic;
       LVL1_TRG_DATA_VALID_IN     : in  std_logic;
       LVL1_VALID_TIMING_TRG_IN   : in  std_logic;
       LVL1_VALID_NOTIMING_TRG_IN : in  std_logic;
@@ -61,7 +62,7 @@ package mupix_components is
       REGIO_UNKNOWN_ADDR_OUT     : out std_logic);
   end component;
 
-  --Interface to MuPix 3/4
+  --Interface to MuPix 3/4/6
   component mupix_interface
     port (
       rstn                 : in  std_logic;
@@ -181,6 +182,8 @@ package mupix_components is
       FEE_DATA_WRITE_OUT      : out std_logic;
       FEE_DATA_FINISHED_OUT   : out std_logic;
       FEE_DATA_ALMOST_FULL_IN : in  std_logic;
+      valid_trigger_in        : in  std_logic;
+      clear_buffer_in         : in  std_logic;
       SLV_READ_IN             : in  std_logic;
       SLV_WRITE_IN            : in  std_logic;
       SLV_DATA_IN             : in  std_logic_vector(31 downto 0);
@@ -210,5 +213,42 @@ package mupix_components is
       SLV_NO_MORE_DATA_OUT : out std_logic;
       SLV_UNKNOWN_ADDR_OUT : out std_logic);
   end component;
-  
+
+  --Trigger Handler
+  component TriggerHandler is
+    port (
+      CLK_IN                     : in  std_logic;
+      RESET_IN                   : in  std_logic;
+      TIMING_TRIGGER_IN          : in  std_logic;
+      LVL1_TRG_DATA_VALID_IN     : in  std_logic;
+      LVL1_VALID_TIMING_TRG_IN   : in  std_logic;
+      LVL1_VALID_NOTIMING_TRG_IN : in  std_logic;
+      LVL1_INVALID_TRG_IN        : in  std_logic;
+      LVL1_TRG_TYPE_IN           : in  std_logic_vector(3 downto 0);
+      LVL1_TRG_NUMBER_IN         : in  std_logic_vector(15 downto 0);
+      LVL1_TRG_CODE_IN           : in  std_logic_vector(7 downto 0);
+      LVL1_TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0);
+      LVL1_INT_TRG_NUMBER_IN     : in  std_logic_vector(15 downto 0);
+      FEE_DATA_OUT               : out std_logic_vector(31 downto 0);
+      FEE_DATA_WRITE_OUT         : out std_logic;
+      FEE_DATA_FINISHED_OUT      : out std_logic;
+      FEE_TRG_RELEASE_OUT        : out std_logic;
+      FEE_TRG_STATUSBITS_OUT     : out std_logic_vector(31 downto 0);
+      FEE_DATA_0_IN              : in  std_logic_vector(31 downto 0);
+      FEE_DATA_WRITE_0_IN        : in  std_logic;
+      TRIGGER_BUSY_MUPIX_DATA_IN : in  std_logic;
+      VALID_TRIGGER_OUT          : out std_logic;
+      TRIGGER_TIMING_OUT         : out std_logic;
+      TRIGGER_STATUS_OUT         : out std_logic;
+      FAST_CLEAR_OUT             : out std_logic;
+      FLUSH_BUFFER_OUT           : out std_logic;
+      SLV_READ_IN                : in  std_logic;
+      SLV_WRITE_IN               : in  std_logic;
+      SLV_DATA_OUT               : out std_logic_vector(31 downto 0);
+      SLV_DATA_IN                : in  std_logic_vector(31 downto 0);
+      SLV_ADDR_IN                : in  std_logic_vector(15 downto 0);
+      SLV_ACK_OUT                : out std_logic;
+      SLV_NO_MORE_DATA_OUT       : out std_logic;
+      SLV_UNKNOWN_ADDR_OUT       : out std_logic);
+  end component TriggerHandler;
 end mupix_components;

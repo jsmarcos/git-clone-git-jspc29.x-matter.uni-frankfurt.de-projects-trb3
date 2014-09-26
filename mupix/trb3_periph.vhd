@@ -647,7 +647,7 @@ begin
       fpga_led_to_board    => fpga_led_to_board,
       fpga_aux_to_board    => fpga_aux_to_board,
 
-
+      TIMING_TRG_IN              => TRIGGER_RIGHT,
       LVL1_TRG_DATA_VALID_IN     => trg_data_valid_i,
       LVL1_VALID_TIMING_TRG_IN   => trg_timing_valid_i,
       LVL1_VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,

@@ -33,6 +33,9 @@ entity mupix_interface is
     --Readout Indicator
     ro_busy : out std_logic;
 
+    --trigger
+    trigger_ext : in std_logic;
+
     --TRB SlowControl
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
@@ -50,22 +53,19 @@ end mupix_interface;
 architecture RTL of mupix_interface is
   
 
-  type   ro_state_type is (reset, waiting, readman, loadpix, pulld, loadcol, readcol, hitgenerator, hitgeneratorwait);
+  type   ro_state_type is (reset, waiting, readman, loadpix, pulld, loadcol, readcol, hitgenerator, hitgeneratorwait,pause);
   signal state : ro_state_type;
 
 
 
   signal delcounter : unsigned(3 downto 0);
   signal delaycounters : std_logic_vector(31 downto 0);
-
+  signal pauseregister : std_logic_vector(31 downto 0);
+  signal pausecounter : unsigned (31 downto 0);
   signal ro_busy_int : std_logic;
-
   signal graycount : std_logic_vector(7 downto 0);
-
   signal eventcounter : unsigned(31 downto 0);
-
   signal hitcounter : unsigned(10 downto 0);
-
 
   signal triggering            : std_logic;
   signal busy_r                : std_logic := '0';
@@ -86,11 +86,9 @@ architecture RTL of mupix_interface is
   signal gen_hit_time : std_logic_vector(7 downto 0) := (others => '0');
 
   signal testoutro : std_logic_vector (127 downto 0);
-
-
-  signal resetgraycounter : std_logic;
-
+  
   --Control Registers
+  signal resetgraycounter : std_logic;
   signal roregwritten         : std_logic                     := '0';
   signal roregister           : std_logic_vector(31 downto 0) := (others => '0');
   signal rocontrolbits        : std_logic_vector(31 downto 0) := (others => '0');
@@ -107,6 +105,7 @@ begin
   --x0023: Hit Generator
   --x0024: Delay Counters
   --x0025: EventCounter
+  --x0026: Pause Register
   -----------------------------------------------------------------------------
 
   SLV_HANDLER : process(clk)
@@ -138,6 +137,9 @@ begin
           when x"0025" =>
             SLV_DATA_OUT <= std_logic_vector(eventcounter);
             SLV_ACK_OUT  <= '1';
+          when x"0026" =>
+            SLV_DATA_OUT <= pauseregister;
+            SLV_ACK_OUT <= '1';
           when others =>
             SLV_UNKNOWN_ADDR_OUT <= '1';
         end case;
@@ -160,6 +162,9 @@ begin
             SLV_ACK_OUT      <= '1';
           when x"0024" =>
             delaycounters <= SLV_DATA_IN;
+            SLV_ACK_OUT <= '1';
+          when x"0026" =>
+            pauseregister <= SLV_DATA_IN;
             SLV_ACK_OUT <= '1';
           when others =>
             SLV_UNKNOWN_ADDR_OUT <= '1';
@@ -217,7 +222,7 @@ begin
   --testout(15 downto 0)   <= testoutro(15 downto 0);
 
   -----------------------------------------------------------------------------
-  --MuPix 3 Readout Statemachine
+  --MuPix 3/4/6 Readout Statemachine
   -----------------------------------------------------------------------------
 
   ro_statemachine : process(rstn, clk)
@@ -249,8 +254,20 @@ begin
           memwren      <= '0';
           ro_busy_int  <= '0';
           eventcounter <= (others => '0');
-          --timeoutcounter <= (others => '0');
           endofevent   <= '0';
+        when pause =>
+          pausecounter <= pausecounter +1;
+          if(pausecounter = pauseregister) then
+            state        <= waiting;
+            pausecounter <= (others => '0');
+          end if;
+          ldpix       <= '0';
+          ldcol       <= '0';
+          rdcol       <= '0';
+          pulldown    <= '0';
+          memwren     <= '0';
+          endofevent  <= '0';
+          ro_busy_int <= '0';
         when waiting =>
           testoutro(1) <= '1';
           memwren      <= '0';
@@ -267,12 +284,12 @@ begin
           pulldown <= '0';
           if(readmanual = '1') then
             state <= readman;
-          elsif(continousread = '1' or readnow = '1') then
+          elsif(continousread = '1' or readnow = '1' or(triggering = '1' and trigger_ext = '1' and generatetriggeredhits = '0')) then
             state        <= loadpix;
             ldpix        <= '1';
             delcounter   <= unsigned(delaycounters(3 downto 0));
             eventcounter <= eventcounter + 1;
-          elsif(generatetriggeredhits = '1' and busy_r = '0') then
+          elsif(generatetriggeredhits = '1' and trigger_ext = '1') then
             state        <= hitgenerator;
             delcounter   <= "0100";
             eventcounter <= eventcounter + 1;
@@ -310,10 +327,6 @@ begin
           elsif(delcounter = "0011") then  -- write event counter
             memdata <= std_logic_vector(eventcounter);
             memwren <= '1';
-          elsif(delcounter = "0001") then
-            memwren <= '1';
-            memdata <= x"00000000";     --add empty trigger
-                                        --number
           end if;
           if(delcounter = "0000") then
             state      <= pulld;
@@ -324,7 +337,7 @@ begin
         when pulld =>
           testoutro(3) <= '1';
           memwren      <= '0';
-          if unsigned(delaycounters(7 downto 4)) = delcounter + 1 then
+          if unsigned(delaycounters(7 downto 4)) = delcounter then
             pulldown     <= '0';
           end if;
           delcounter   <= delcounter - 1;
@@ -338,22 +351,22 @@ begin
         when loadcol =>
           testoutro(4) <= '1';
           memwren      <= '0';
-          if(delcounter + 1 = unsigned(delaycounters(11 downto 8))) then
+          if(delcounter  = unsigned(delaycounters(11 downto 8))) then
             ldcol <= '0';
           end if;
           delcounter   <= delcounter - 1;
           state        <= loadcol;
           endofevent   <= '0';
-          if(delcounter = "000" and priout = '1') then
+          if(delcounter = "0000" and priout = '1') then
             state      <= readcol;
             rdcol      <= '1';
             delcounter <= unsigned(delaycounters(15 downto 12));
-          elsif(delcounter = "000") then
+          elsif(delcounter = "0000") then
             -- end of event
             memwren    <= '1';
             memdata    <= "10111110111011111011111011101111";  --0xBEEFBEEF
             endofevent <= '1';
-            state      <= waiting;
+            state      <= pause;
           end if;
         when readcol =>
           testoutro(5) <= '1';
@@ -364,17 +377,21 @@ begin
           memwren      <= '0';
           state        <= readcol;
           endofevent   <= '0';
-          if(delcounter = "0010") then
+          if (delcounter = delaycounter(27 downto 24)) then
+            priout_reg <= priout;
+          end if;
+          if(delcounter = delaycounter(31 downto 28)) then
             memdata    <= "111100001111" & hit_col & hit_row & hit_time;  --0xF0F
             memwren    <= '1';
-            hitcounter <= hitcounter + 1;
+            hitcounter <= hitcounter + '1';
             state      <= readcol;
           elsif(delcounter = "0000" and hitcounter = "11111111111") then
-            -- 2048 hits - force end of event 
+            -- 2048 hits - this makes no sense
+            -- force end of event 
             memwren    <= '1';
             memdata    <= "10111110111011111011111011101111";  --0xBEEFBEEF
             endofevent <= '1';
-            state      <= waiting;
+            state      <= pause;
           elsif(delcounter = "0000" and priout = '1') then
             state      <= readcol;
             rdcol      <= '1';

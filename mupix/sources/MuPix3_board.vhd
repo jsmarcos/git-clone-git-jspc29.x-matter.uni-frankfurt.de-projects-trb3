@@ -44,6 +44,7 @@ entity MuPix3_Board is
     fpga_aux_to_board    : out std_logic_vector(9 downto 0);
 
     --TRBv3 connections
+    TIMING_TRG_IN              : in std_logic;
     LVL1_TRG_DATA_VALID_IN     : in std_logic;
     LVL1_VALID_TIMING_TRG_IN   : in std_logic;
     LVL1_VALID_NOTIMING_TRG_IN : in std_logic;
@@ -79,7 +80,7 @@ architecture Behavioral of MuPix3_Board is
 
 --signal declarations
 -- Bus Handler
-  constant NUM_PORTS : integer := 6;
+  constant NUM_PORTS : integer := 7;
 
   signal slv_read         : std_logic_vector(NUM_PORTS-1 downto 0);
   signal slv_write        : std_logic_vector(NUM_PORTS-1 downto 0);
@@ -94,6 +95,17 @@ architecture Behavioral of MuPix3_Board is
   signal memdata : std_logic_vector(31 downto 0);
   signal memwren : std_logic;
   signal ro_busy : std_logic;
+
+  --data from event buffer
+  signal buffer_data : std_logic_vector(31 downto 0);
+  signal buffer_data_valid : std_logic;
+
+  --signals from trigger handler
+  signal valid_trigger_int : std_logic;
+  signal timing_trigger : std_logic;
+  signal status_trigger : std_logic;
+  signal buffer_fast_clear : std_logic;
+  signal flush_buffer : std_logic;
   
 
 begin  -- Behavioral
@@ -113,6 +125,7 @@ begin  -- Behavioral
           3      => x"0080",            -- MuPix DACs
           4      => x"0800",            -- Hitbus Histograms
           5      => x"0300",            -- Event Buffer
+          6      => x"0100",            -- Trigger Handler
           others => x"0000"),
 
       PORT_ADDR_MASK
@@ -122,6 +135,7 @@ begin  -- Behavioral
           3      => 4,                  -- MuPix DACs
           4      => 8,                  -- HitBus Histograms
           5      => 8,                  -- Event Buffer
+          6      => 8,                  -- Trigger Handler
           others => 0)
 
       --PORT_MASK_ENABLE => 1
@@ -262,10 +276,12 @@ begin  -- Behavioral
       MuPixData_in            => memdata,
       MuPixDataWr_in          => memwren,
       MuPixEndOfEvent_in      => ro_busy,
-      FEE_DATA_OUT            => FEE_DATA_OUT,
-      FEE_DATA_WRITE_OUT      => FEE_DATA_WRITE_OUT,
-      FEE_DATA_FINISHED_OUT   => FEE_DATA_FINISHED_OUT,
+      FEE_DATA_OUT            => buffer_data,
+      FEE_DATA_WRITE_OUT      => buffer_data_valid,
+      FEE_DATA_FINISHED_OUT   => open,
       FEE_DATA_ALMOST_FULL_IN => FEE_DATA_ALMOST_FULL_IN,
+      valid_trigger_in        => flush_buffer_int,
+      clear_buffer_in         => buffer_fast_clear;
       SLV_READ_IN             => slv_read(5),
       SLV_WRITE_IN            => slv_write(5),
       SLV_DATA_IN             => slv_data_wr(5*32+31 downto 5*32),
@@ -274,6 +290,43 @@ begin  -- Behavioral
       SLV_ACK_OUT             => slv_ack(5),
       SLV_NO_MORE_DATA_OUT    => slv_no_more_data(5),
       SLV_UNKNOWN_ADDR_OUT    => slv_unknown_addr(5));
+
+  
+  TriggerHandler_1: entity work.TriggerHandler
+    port map (
+      CLK_IN                     => clk,
+      RESET_IN                   => reset,
+      TIMING_TRIGGER_IN          => TIMING_TRG_IN,
+      LVL1_TRG_DATA_VALID_IN     => LVL1_TRG_DATA_VALID_IN,
+      LVL1_VALID_TIMING_TRG_IN   => LVL1_VALID_TIMING_TRG_IN,
+      LVL1_VALID_NOTIMING_TRG_IN => LVL1_VALID_NOTIMING_TRG_IN,
+      LVL1_INVALID_TRG_IN        => LVL1_INVALID_TRG_IN,
+      LVL1_TRG_TYPE_IN           => LVL1_TRG_TYPE_IN,
+      LVL1_TRG_NUMBER_IN         => LVL1_TRG_NUMBER_IN,
+      LVL1_TRG_CODE_IN           => LVL1_TRG_CODE_IN,
+      LVL1_TRG_INFORMATION_IN    => LVL1_TRG_INFORMATION_IN,
+      LVL1_INT_TRG_NUMBER_IN     => LVL1_INT_TRG_NUMBER_IN,
+      FEE_DATA_OUT               => FEE_DATA_OUT,
+      FEE_DATA_WRITE_OUT         => FEE_DATA_WRITE_OUT,
+      FEE_DATA_FINISHED_OUT      => FEE_DATA_FINISHED_OUT,
+      FEE_TRG_RELEASE_OUT        => FEE_TRG_RELEASE_OUT,
+      FEE_TRG_STATUSBITS_OUT     => FEE_TRG_STATUSBITS_OUT,
+      FEE_DATA_0_IN              => buffer_data,
+      FEE_DATA_WRITE_0_IN        => buffer_data_valid,
+      TRIGGER_BUSY_MUPIX_DATA_IN => ro_busy or buffer_data_valid,
+      VALID_TRIGGER_OUT          => valid_trigger_int,
+      TRIGGER_TIMING_OUT         => timing_trigger,
+      TRIGGER_STATUS_OUT         => status_trigger,
+      FAST_CLEAR_OUT             => buffer_fast_clear,
+      FLUSH_BUFFER_OUT           => flush_buffer,
+      SLV_READ_IN                => slv_read(6),
+      SLV_WRITE_IN               => slv_write(6),
+      SLV_DATA_OUT               => slv_data_rd(6*32+31 downto 6*32),
+      SLV_DATA_IN                => slv_data_wr(6*32+31 downto 6*32),
+      SLV_ADDR_IN                => slv_addr(6*32+31 downto 6*32),
+      SLV_ACK_OUT                => slv_ack(6),
+      SLV_NO_MORE_DATA_OUT       => slv_no_more_data(6),
+      SLV_UNKNOWN_ADDR_OUT       => slv_unknown_addr(6);
 
 
 end Behavioral;
