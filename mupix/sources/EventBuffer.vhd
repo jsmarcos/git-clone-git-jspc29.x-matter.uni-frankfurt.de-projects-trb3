@@ -67,6 +67,7 @@ architecture behavioral of eventbuffer is
   signal fifo_read_s_fsm  : fifo_read_s_states := idle;
   signal fifo_start_read  : std_logic := '0';
   signal fifo_read_s      : std_logic := '0';
+  signal fifo_read_wasempty_s : std_logic := '0';
   signal fifo_reading_s   : std_logic := '0';
   signal fifo_read_done_s : std_logic := '0';
   signal fifo_read_busy_s : std_logic := '0';
@@ -164,19 +165,23 @@ begin  -- behavioral
       fifo_read_done_s <= '0';
       fifo_read_s      <= '0';
       fifo_read_busy_s <= '0';
+      fifo_read_wasempty_s <= '0';
       case fifo_read_s_fsm is
         when idle =>
           if fifo_start_read = '1' then
             if fifo_read_busy_f = '1' then
               fifo_read_done_s <= '1';
               fifo_read_s_fsm  <= idle;
-            elsif fifo_empty = '0' then
-              fifo_read_s      <= '1';
-              fifo_read_busy_s <= '1';
-              fifo_read_s_fsm  <= wait1;
             else
-              fifo_read_done_s <= '1';
-              fifo_read_s_fsm  <= idle;
+              if fifo_empty = '0' then
+                fifo_read_s      <= '1';
+                fifo_read_busy_s <= '1';
+                fifo_read_s_fsm  <= wait1;
+              else
+                fifo_read_done_s <= '1';
+                fifo_read_wasempty_s <= '1';
+                fifo_read_s_fsm  <= idle;
+              end if;
             end if;
           end if;
         when wait1 =>
@@ -218,7 +223,7 @@ begin  -- behavioral
         if (fifo_read_done_s = '0') then
           fifo_reading_s <= '1';
         else
-          if (fifo_empty = '0') then
+          if (fifo_read_wasempty_s = '0') then
             slv_data_out <= fifo_data_out;
             slv_ack_out  <= '1';
           else
