@@ -13,7 +13,7 @@ entity CBMNET_READOUT_EVENT_PACKER is
       HUB_CTS_CODE_IN                : in  std_logic_vector (7  downto 0);
       HUB_CTS_INFORMATION_IN         : in  std_logic_vector (7  downto 0);
       HUB_CTS_READOUT_TYPE_IN        : in  std_logic_vector (3  downto 0);
-      GBE_CTS_STATUS_BITS_IN         : in  std_logic_vector (31 downto 0);
+      HUB_FEE_STATUS_BITS_IN         : in  std_logic_vector (31 downto 0);
       
       
       -- connect to decoder
@@ -177,12 +177,12 @@ begin
                fsm_i <= TRL_STATUS_H;            
 
             when TRL_STATUS_H =>
-               header_data_i <= GBE_CTS_STATUS_BITS_IN(31 downto 16);
+               header_data_i <= HUB_FEE_STATUS_BITS_IN(31 downto 16);
                header_enqueue_i <= '1';
                fsm_i <= TRL_STATUS_L;
             when TRL_STATUS_L =>
                header_token_i <= "11";
-               header_data_i <= GBE_CTS_STATUS_BITS_IN(15 downto  0);
+               header_data_i <= HUB_FEE_STATUS_BITS_IN(15 downto  0);
                header_enqueue_i <= '1';
                wpacket_complete_i <= '1';
                fsm_i <= IDLE;                         
