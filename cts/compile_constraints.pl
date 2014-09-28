@@ -12,6 +12,7 @@ $workdir = $ARGV[0] if (@ARGV);
 
 
 # get activated modules
+my %configSettings = ();
 open(CONFIG, 'config.vhd');
 my $config = "#!!! This file was compiled using compile_contraints.pl.\n#!!! DO NOT EDIT AS ALL CHANGES WILL BE OVERRIDEN\n\n";
 print "The following module configuration was derived from config.vhd:\n";
@@ -19,6 +20,7 @@ while(my $line = <CONFIG>) {
    if ($line =~ /(INCLUDE_\S+).*:=.*c_(yes|no)/i) {
       my $mod = uc $1;
       my $ena = (lc $2) eq 'yes' ? 1 : 0;
+      $configSettings{$mod} = $ena;
       
       my $conf = "set $mod $ena\n";
       print ' ' . $conf;
@@ -50,14 +52,13 @@ unless(-e $workdir) {
 chdir($workdir);
 system ("$back/../../base/linkdesignfiles.sh '$back'");
 symlink "$back/../../base/cores/cbmnet_sfp1.txt", 'cbmnet_sfp1.txt';
+symlink "$back/../tdc_release/Adder_304.ngo", "Adder_304.ngo";
 
 chdir($script_dir);
 
-system ("ln -sfT $back/../tdc_release/Adder_304.ngo $workdir/Adder_304.ngo");
-
 system("cp ../base/trb3_central_cts.lpf $workdir/$TOPNAME.lpf");
-# system("cat tdc_release/tdc_constraints_4.lpf >> $workdir/$TOPNAME.lpf");
+system("cat tdc_release/tdc_constraints_4.lpf >> $workdir/$TOPNAME.lpf") if $configSettings{'INCLUDE_TDC'};
 system("cat ".$TOPNAME."_constraints.lpf >> $workdir/$TOPNAME.lpf");
-system("sed -i 's#THE_TDC/#gen_TDC_THE_TDC/#g' $workdir/$TOPNAME.lpf");
+system("sed -i 's#THE_TDC/#gen_TDC.THE_TDC/#g' $workdir/$TOPNAME.lpf");
 
 

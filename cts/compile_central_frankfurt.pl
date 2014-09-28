@@ -5,6 +5,7 @@ use strict;
 use Term::ANSIColor;
 use File::stat;
 use POSIX;
+use Cwd 'abs_path';
 
 
 ###################################################################################
@@ -19,11 +20,14 @@ my $lattice_path                 = '/d/jspc29/lattice/diamond/3.2_x64';
 my $synplify_path                = '/d/jspc29/lattice/synplify/I-2013.09-SP1/';
 ###################################################################################
 
+
 system("./compile_constraints.pl");
 
 symlink($CbmNetPath, '../cbmnet/cbmnet') unless (-e '../cbmnet/cbmnet');
 
 use FileHandle;
+
+my $absBasePath = abs_path($BasePath);
 
 $ENV{'SYNPLIFY'}=$synplify_path;
 $ENV{'SYN_DISABLE_RAINBOW_DONGLE'}=1;
@@ -66,7 +70,6 @@ my $r = "";
 
 my $c="$synplify_path/bin/synplify_premier_dp -batch $TOPNAME.prj";
 $r=execute($c, "do_not_exit" );
-
 chdir "workdir";
 
 $fh = new FileHandle("<$TOPNAME".".srr");
@@ -113,17 +116,18 @@ execute($c);
 $c=qq|$lattice_path/ispfpga/bin/lin/iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
 
-$c=qq|$lattice_path/ispfpga/bin/lin/bitgen  -w "$TOPNAME.ncd" "$TOPNAME.prf"|;
-execute($c);
-
 $c=qq|$lattice_path/ispfpga/bin/lin/ltxt2ptxt $TOPNAME.ncd|;
 execute($c);
 
-# TWR Timing Report
-$c=qq|$lattice_path/ispfpga/bin/lin/trce -c -v 15 -o "$TOPNAME.twr.setup" "$TOPNAME.ncd" "$TOPNAME.prf"|;
+$c=qq|$lattice_path/ispfpga/bin/lin/bitgen  -w "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
 
-$c=qq|$lattice_path/ispfpga/bin/lin/trce -hld -c -v 5 -o "$TOPNAME.twr.hold"  "$TOPNAME.ncd" "$TOPNAME.prf"|;
+
+# TWR Timing Report
+$c=qq|$lattice_path/ispfpga/bin/lin/trce -fullname -c -v 15 -o "$TOPNAME.twr.setup" "$TOPNAME.ncd" "$TOPNAME.prf"|;
+execute($c);
+
+$c=qq|$lattice_path/ispfpga/bin/lin/trce -fullname -hld -c -v 5 -o "$TOPNAME.twr.hold"  "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
 
 
@@ -138,7 +142,7 @@ sub execute {
     print color 'blue bold';
     print "\n\ncommand to execute: $c \n";
     print color 'reset';
-    $r=system($c);
+    $r=system("$c  | $absBasePath/pretty_syn.pl");
     if($r) {
   print "$!";
   if($op ne "do_not_exit") {

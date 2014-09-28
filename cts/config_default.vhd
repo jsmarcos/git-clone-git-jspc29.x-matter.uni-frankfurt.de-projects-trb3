@@ -29,7 +29,7 @@ package config is
     constant USE_125_MHZ : integer range c_NO to c_YES := c_NO;    
 
 --Run external 200 MHz clock source
-    constant USE_EXTERNAL_CLOCK : integer range c_NO to c_YES := c_NO;    
+    constant USE_EXTERNAL_CLOCK : integer range c_NO to c_YES := c_YES;    
     
     
 --Which external trigger module (ETM) to use?

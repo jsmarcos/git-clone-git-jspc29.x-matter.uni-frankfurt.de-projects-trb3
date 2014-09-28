@@ -1006,7 +1006,7 @@ begin
          );
          
          -- TODO: just borrowed from CTS ... !
-         JOUT2 <= "000" & cbm_dlm_ref_rec_va_i;
+         JOUT2 <= cbm_data2send_stop_i & cbm_link_active_i & cbm_clk_i & cbm_dlm_ref_rec_va_i;
          
          THE_CBMNET_READOUT: cbmnet_readout 
          port map(
@@ -2126,9 +2126,8 @@ LED_YELLOW <= link_ok  when INCLUDE_CBMNET=c_NO else cbm_dlm_ref_rec_va_i;
 -- Test Connector
 ---------------------------------------------------------------------------    
 
-  TEST_LINE(15 downto 0)  <= tdc_debug;
-  TEST_LINE(16) <= CLK_EXT(3);  --this prevents adding an input register in the CBM MBS input module
-  TEST_LINE(31 downto 17) <= (others => '0');
+  TEST_LINE(17 downto 0)  <= cbm_data_from_link_i;
+  TEST_LINE(31 downto 18) <= cbm_data2link_i(13 downto 0);
 
 
 end architecture;
