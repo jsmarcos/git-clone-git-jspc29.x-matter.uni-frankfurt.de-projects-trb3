@@ -366,6 +366,15 @@ gen_125 : if USE_125_MHZ = c_YES generate
   pll_lock         <= '1';
 end generate;
 
+gen_power_clock : if USE_POWER_CLOCK = c_YES generate
+  PLL_ENPIRION : entity work.pll_200_4
+    port map(
+      CLK => clk_raw_internal,
+      CLKOP => ENPIRION_CLOCK,
+      LOCK => open
+      );
+end generate;
+
 
 gen_sync_clocks : if USE_RXCLOCK = c_YES generate
   clk_sys_i <= rx_clock_half;

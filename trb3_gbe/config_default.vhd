@@ -44,6 +44,9 @@ package config is
     
 --Include generic UART on clock RJ-45?
     constant INCLUDE_UART           : integer  := c_YES;
+--Run power supply on internal 4 MHz clock source
+    constant USE_POWER_CLOCK        : integer  := c_YES;
+    
 ------------------------------------------------------------------------------
 --End of design configuration
 ------------------------------------------------------------------------------
