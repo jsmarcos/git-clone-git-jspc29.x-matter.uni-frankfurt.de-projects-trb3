@@ -13,6 +13,7 @@ entity timer_static is
     RESET_IN             : in  std_logic;
 
     TIMER_START_IN       : in  std_logic;
+    TIMER_BUSY_OUT       : out std_logic;
     TIMER_DONE_OUT       : out std_logic
     );
 end entity;
@@ -27,6 +28,7 @@ architecture Behavioral of timer_static is
   signal timer_ctr_x     : unsigned(CTR_WIDTH - 1 downto 0);
 
   signal timer_ctr       : unsigned(CTR_WIDTH - 1 downto 0);
+  signal timer_busy_o    : std_logic;
   signal timer_done_o    : std_logic;
 
   type STATES is (S_IDLE,
@@ -60,13 +62,16 @@ begin
         timer_done_o      <= '0';
         if (TIMER_START_IN = '1') then
           timer_ctr_x     <= ctr_limit - 1;
+          timer_busy_o    <= '1';
           NEXT_STATE      <= S_COUNT;
         else
           timer_ctr_x     <= (others => '0');
+          timer_busy_o    <= '0';
           NEXT_STATE      <= S_IDLE;
         end if;
         
       when S_COUNT =>
+        timer_busy_o      <= '1';
         if (timer_ctr > to_unsigned(STEP_SIZE - 1, CTR_WIDTH)) then
           timer_ctr_x     <= timer_ctr - to_unsigned(STEP_SIZE, CTR_WIDTH);
           timer_done_o    <= '0';
@@ -85,6 +90,7 @@ begin
   -- Output Signals
   -----------------------------------------------------------------------------
 
+  TIMER_busy_o   <= timer_busy_o;
   TIMER_DONE_OUT <= timer_done_o;
 
 end Behavioral;

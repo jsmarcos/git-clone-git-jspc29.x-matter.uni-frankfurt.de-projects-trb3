@@ -80,6 +80,7 @@ architecture Behavioral of nx_trigger_generator is
   signal slv_unknown_addr_o        : std_logic;
   signal slv_ack_o                 : std_logic;
   signal pulser_trigger_period_r   : unsigned(27 downto 0);
+  signal ignore_busy               : std_logic;
 
 begin
   -- Debug Line
@@ -193,14 +194,18 @@ begin
       else
         external_trigger             <= '0';
         external_trigger_busy        <= '0';
-
+        
         case S_STATE is
           when S_IDLE =>
             if (TRIGGER_BUSY_IN = '0' and
                 external_trigger_i = '1') then
-              external_trigger_ctr   <= "10100";  -- 20
               external_trigger       <= '1';
-              S_STATE                <= S_BUSY;
+              if (ignore_busy = '0') then 
+                external_trigger_ctr   <= "10100";  -- 20
+                S_STATE                <= S_BUSY;
+              else
+                S_STATE              <= S_IDLE;
+              end if;
             else
               external_trigger_ctr   <= (others => '0');
               S_STATE                <= S_IDLE;
@@ -309,6 +314,7 @@ begin
               self_trigger_on               <= SLV_DATA_IN(0);
               pulser_trigger_on             <= SLV_DATA_IN(1);
               trigger_output_select         <= SLV_DATA_IN(2);
+              ignore_busy                   <= SLV_DATA_IN(15);
               slv_ack_o                     <= '1';
 
             when x"0001" =>
@@ -329,7 +335,9 @@ begin
               slv_data_out_o(0)             <= self_trigger_on;
               slv_data_out_o(1)             <= pulser_trigger_on;
               slv_data_out_o(2)             <= trigger_output_select;
-              slv_data_out_o(31 downto 3)   <= (others => '0');
+              slv_data_out_o(14 downto 3)   <= (others => '0');
+              slv_data_out_o(15)            <= ignore_busy;
+              slv_data_out_o(31 downto 16)  <= (others => '0');
               slv_ack_o                     <= '1';
            
             when x"0001" =>

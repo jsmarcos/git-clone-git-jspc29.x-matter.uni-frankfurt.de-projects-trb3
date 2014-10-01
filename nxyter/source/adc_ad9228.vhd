@@ -71,17 +71,14 @@ architecture Behavioral of  adc_ad9228 is
   signal q_1                    : std_logic_vector(19 downto 0);
 
   -- ADC Data Handler
-  signal adc0_error_status_c    : std_logic_vector(2 downto 0);
-  signal adc1_error_status_c    : std_logic_vector(2 downto 0);
-  signal adc0_error_status_sl   : std_logic_vector(2 downto 0);
-  signal adc1_error_status_sl   : std_logic_vector(2 downto 0);
-  signal adc0_error_status      : std_logic_vector(2 downto 0);
-  signal adc1_error_status      : std_logic_vector(2 downto 0);
+  signal adc0_error_status_o    : std_logic_vector(2 downto 0);
+  signal adc1_error_status_o    : std_logic_vector(2 downto 0);
   
   signal adc0_sloppy_frame_f    : std_logic;
   signal adc0_sloppy_frame_c    : std_logic;
   signal adc1_sloppy_frame_f    : std_logic;
   signal adc1_sloppy_frame_c    : std_logic;
+  signal adc0_debug             : std_logic_vector(15 downto 0);
   
   -- Data Types
   type adc_data_t is array(0 to 3) of std_logic_vector(11 downto 0);
@@ -112,7 +109,9 @@ architecture Behavioral of  adc_ad9228 is
   signal RESET_CLKDIV           : std_logic;
   signal RESET_ADC0             : std_logic;
   signal RESET_ADC1             : std_logic;
-  
+
+  signal debug_state            : std_logic_vector(1 downto 0);
+
   -- 
   attribute syn_keep : boolean;
 
@@ -145,41 +144,32 @@ begin
   -----------------------------------------------------------------------------
 
   DFALSE: if (DEBUG_ENABLE = false) generate
-    DEBUG_OUT(0)            <= CLK_IN;
-    DEBUG_OUT(3 downto 1)   <= adc0_error_status;
-    DEBUG_OUT(4)            <= adc0_data_clk_o;
-    DEBUG_OUT(5)            <= adc0_locked_o;
-    DEBUG_OUT(15 downto 6)  <= (others => '0');
-    --DEBUG_OUT(0)          <= CLK_IN;
-    --DEBUG_OUT(1)            <= DDR_DATA_CLK;
-    --DEBUG_OUT(2)            <= adc0_write_enable;
-    --DEBUG_OUT(3)            <= adc0_fifo_full;
-    --DEBUG_OUT(4)            <= adc0_fifo_empty;
-    --DEBUG_OUT(5)            <= adc0_data_clk_m;
-    --DEBUG_OUT(6)            <= adc0_read_enable;
-    --DEBUG_OUT(7)            <= adc0_read_enable_t;
-    --DEBUG_OUT(8)            <= adc0_read_enable_tt;
-    --DEBUG_OUT(9)            <= adc0_data_clk_o;
-    --DEBUG_OUT(10)           <= adc0_error;
-    --DEBUG_OUT(11)           <= adc0_frame_locked;
-    --DEBUG_OUT(12)           <= adc0_frame_clk_ok;
-    --DEBUG_OUT(13)           <= wait_timer_done;
-    --DEBUG_OUT(14)           <= RESET_CLKDIV;
-    --DEBUG_OUT(15)           <= RESET_ADC0;
+    DEBUG_OUT             <= (others => '0');
+
   end generate DFALSE;
 
   DTRUE: if (DEBUG_ENABLE = true) generate
     
     PROC_DEBUG: process (DEBUG_IN)
     begin
-      DEBUG_OUT(0)                <= CLK_IN;
-      DEBUG_OUT(1)                <= DDR_DATA_CLK;
-
       case DEBUG_IN is
-        
-        when others =>
-          DEBUG_OUT(15 downto 2)  <= (others => '0');
+        when x"1" =>
+          DEBUG_OUT  <=  adc0_debug;
 
+        when others =>
+          DEBUG_OUT(0)  <= CLK_IN;
+          DEBUG_OUT(1)  <= '0';
+          DEBUG_OUT(2)  <= wait_timer_start;
+          DEBUG_OUT(3)  <= '0';
+          DEBUG_OUT(4)  <= wait_timer_done;
+          DEBUG_OUT(5)  <= '0';
+          DEBUG_OUT(6)  <= RESET_CLKDIV;
+          DEBUG_OUT(7)  <= '0';
+          DEBUG_OUT(8)  <= RESET_ADC0;
+          DEBUG_OUT(9)  <= '0';
+          DEBUG_OUT(11 downto 10) <= debug_state;
+          DEBUG_OUT(15 downto 12) <= (others => '0');
+           
       end case;
     end process PROC_DEBUG;       
 
@@ -225,7 +215,7 @@ begin
   adc0_sloppy_frame_f   <= ADC0_SLOPPY_FRAME_IN when rising_edge(CLK_IN);
   adc0_sloppy_frame_c   <= adc0_sloppy_frame_f  when rising_edge(CLK_IN);
   
-  adc_ad9228_data_handler_1: entity work.adc_ad9228_data_handler
+  adc_ad9228_data_handler_adc0: entity work.adc_ad9228_data_handler
     generic map (
       DEBUG_ENABLE => DEBUG_ENABLE
       )
@@ -241,15 +231,15 @@ begin
       DATA_CLK_OUT        => adc0_data_clk_o,
       SLOPPY_FRAME_IN     => adc0_sloppy_frame_c,
       FRAME_LOCKED_OUT    => adc0_locked_o,
-      ERROR_STATUS_OUT    => adc0_error_status,
-      ERROR_STATUS_SL_OUT => adc0_error_status_sl,
-      DEBUG_OUT           => open
+      STATUS_OUT          => adc0_error_status_o,
+      STATUS_CLK_OUT      => open,
+      DEBUG_OUT           => adc0_debug
       );
 
   adc1_sloppy_frame_f   <= ADC1_SLOPPY_FRAME_IN when rising_edge(CLK_IN);
   adc1_sloppy_frame_c   <= adc1_sloppy_frame_f  when rising_edge(CLK_IN);
 
-  adc_ad9228_data_handler_2: entity work.adc_ad9228_data_handler
+  adc_ad9228_data_handler_adc1: entity work.adc_ad9228_data_handler
     generic map (
       DEBUG_ENABLE => DEBUG_ENABLE
       )
@@ -265,8 +255,8 @@ begin
       DATA_CLK_OUT        => adc1_data_clk_o,
       SLOPPY_FRAME_IN     => adc1_sloppy_frame_c,
       FRAME_LOCKED_OUT    => adc1_locked_o,
-      ERROR_STATUS_OUT    => open, --ERROR_STATUS_OUT,
-      ERROR_STATUS_SL_OUT => open, --ERROR_STATUS_OUT,
+      STATUS_OUT          => adc1_error_status_o,
+      STATUS_CLK_OUT      => open,
       DEBUG_OUT           => open
       );
 
@@ -299,7 +289,8 @@ begin
         RESET_ADC1        <= '0';
         wait_timer_start  <= '0';
         timer_reset       <= '1';
-        R_STATE           <= R_IDLE; 
+        R_STATE           <= R_IDLE;
+        debug_state       <= "00";
       else
         RESET_CLKDIV      <= '0';
         RESET_ADC0        <= '0';
@@ -320,6 +311,7 @@ begin
               timer_reset       <= '1';
               R_STATE           <= R_IDLE;
             end if;
+            debug_state         <= "00";
 
           when R_WAIT_CLKDIV =>
             if (wait_timer_done = '0') then
@@ -334,7 +326,8 @@ begin
               wait_timer_start  <= '1';
               R_STATE           <= R_WAIT_RESET_ADC;
             end if;
-
+            debug_state         <= "01";
+            
           when R_WAIT_RESET_ADC =>
             if (wait_timer_done = '0') then
               RESET_ADC0        <= '1';
@@ -345,13 +338,15 @@ begin
               wait_timer_start  <= '1';
               R_STATE           <= R_WAIT_RESET_END;
             end if; 
-
+            debug_state         <= "10";
+            
           when R_WAIT_RESET_END =>
             if (wait_timer_done = '0') then
               R_STATE           <= R_WAIT_RESET_END;
             else
               R_STATE           <= R_IDLE;
-            end if;  
+            end if;
+            debug_state         <= "11";
         end case;
       end if;
     end if;
@@ -378,10 +373,6 @@ begin
   ADC0_LOCKED_OUT        <= adc0_locked_o;
   ADC1_LOCKED_OUT        <= adc1_locked_o;
 
-  ADC0_ERROR_STATUS_OUT  <= adc0_error_status_c
-                            when adc0_sloppy_frame_c = '0'
-                            else adc0_error_status_sl;
-  ADC1_ERROR_STATUS_OUT  <= adc1_error_status_c
-                            when adc1_sloppy_frame_c = '0'
-                            else adc1_error_status_sl;
+  ADC0_ERROR_STATUS_OUT  <= adc0_error_status_o;
+  ADC1_ERROR_STATUS_OUT  <= adc1_error_status_o;
 end Behavioral;

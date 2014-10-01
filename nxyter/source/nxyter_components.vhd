@@ -808,6 +808,7 @@ component timer_static
     CLK_IN         : in  std_logic;
     RESET_IN       : in  std_logic;
     TIMER_START_IN : in  std_logic;
+    TIMER_BUSY_OUT : out std_logic;
     TIMER_DONE_OUT : out std_logic
     );
 end component;
