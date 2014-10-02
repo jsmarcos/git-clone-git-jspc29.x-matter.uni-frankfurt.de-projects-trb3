@@ -80,7 +80,7 @@ architecture Behavioral of MuPix3_Board is
 
 --signal declarations
 -- Bus Handler
-  constant NUM_PORTS : integer := 7;
+  constant NUM_PORTS : integer := 8;
 
   signal slv_read         : std_logic_vector(NUM_PORTS-1 downto 0);
   signal slv_write        : std_logic_vector(NUM_PORTS-1 downto 0);
@@ -106,6 +106,17 @@ architecture Behavioral of MuPix3_Board is
   signal status_trigger : std_logic;
   signal buffer_fast_clear : std_logic;
   signal flush_buffer : std_logic;
+
+  -- synced signals from board interface
+  signal timestamp_from_mupix_sync : std_logic_vector(7 downto 0);
+  signal rowaddr_from_mupix_sync   : std_logic_vector(5 downto 0);
+  signal coladdr_from_mupix_sync   : std_logic_vector(5 downto 0);
+  signal priout_from_mupix_sync    : std_logic;
+  signal sout_c_from_mupix_sync    : std_logic;
+  signal sout_d_from_mupix_sync    : std_logic;
+  signal hbus_form_mupix_sync      : std_logic;
+  signal fpga_aux_from_board_sync  : std_logic_vector(9 downto 0);
+  
   
 
 begin  -- Behavioral
@@ -126,6 +137,7 @@ begin  -- Behavioral
           4      => x"0800",            -- Hitbus Histograms
           5      => x"0300",            -- Event Buffer
           6      => x"0100",            -- Trigger Handler
+          7      => x"0200",            -- Board Interface
           others => x"0000"),
 
       PORT_ADDR_MASK
@@ -136,6 +148,7 @@ begin  -- Behavioral
           4      => 8,                  -- HitBus Histograms
           5      => 8,                  -- Event Buffer
           6      => 8,                  -- Trigger Handler
+          7      => 8,                  -- Board Interface 
           others => 0)
 
       --PORT_MASK_ENABLE => 1
@@ -172,6 +185,34 @@ begin  -- Behavioral
       );
 
 
+  board_interface_1: entity work.board_interface
+    port map (
+      clk_in                    => clk_in,
+      timestamp_from_mupix      => timestamp_from_mupix,
+      rowaddr_from_mupix        => rowaddr_from_mupix,
+      coladdr_from_mupix        => coladdr_from_mupix,
+      priout_from_mupix         => priout_from_mupix,
+      sout_c_from_mupix         => sout_c_from_mupix,
+      sout_d_from_mupix         => sout_d_from_mupix,
+      hbus_form_mupix           => hbus_form_mupix,
+      fpga_aux_from_board       => fpga_aux_from_board,
+      timestamp_from_mupix_sync => timestamp_from_mupix_sync,
+      rowaddr_from_mupix_sync   => rowaddr_from_mupix_sync,
+      coladdr_from_mupix_sync   => coladdr_from_mupix_sync,
+      priout_from_mupix_sync    => priout_from_mupix_sync,
+      sout_c_from_mupix_sync    => sout_c_from_mupix_sync,
+      sout_d_from_mupix_sync    => sout_d_from_mupix_sync,
+      hbus_form_mupix_sync      => hbus_form_mupix_sync,
+      fpga_aux_from_board_sync  => fpga_aux_from_board_sync,
+      SLV_READ_IN               => slv_read(7),
+      SLV_WRITE_IN              => slv_write(7),
+      SLV_DATA_OUT              => slv_data_rd(7*32+31 downto 7*32),
+      SLV_DATA_IN               => slv_data_wr(7*32+31 downto 7*32),
+      SLV_ADDR_IN               => slv_addr(7*16+15 downto 7*16),
+      SLV_ACK_OUT               => slv_ack(7),
+      SLV_NO_MORE_DATA_OUT      => slv_no_more_data(7),
+      SLV_UNKNOWN_ADDR_OUT      => slv_unknown_addr(7));
+
   --Mupix 3 Chip Interface
   mupix_interface_1 : mupix_interface
     port map (
@@ -182,10 +223,10 @@ begin  -- Behavioral
       rdcol                => rdcol_to_mupix,
       pulldown             => pulldown_to_mupix,
       timestamps           => timestamp_to_mupix,
-      priout               => priout_from_mupix,
-      hit_col              => coladdr_from_mupix,
-      hit_row              => rowaddr_from_mupix,
-      hit_time             => timestamp_from_mupix,
+      priout               => priout_from_mupix_sync,
+      hit_col              => coladdr_from_mupix_sync,
+      hit_row              => rowaddr_from_mupix_sync,
+      hit_time             => timestamp_from_mupix_sync,
       memdata              => memdata,
       memwren              => memwren,
       ro_busy              => ro_busy,
@@ -235,8 +276,8 @@ begin  -- Behavioral
   PixCtr_1: PixCtr
     port map (
       clk                  => clk,
-      sout_c_from_mupix    => sout_c_from_mupix,
-      sout_d_from_mupix    => sout_d_from_mupix,
+      sout_c_from_mupix    => sout_c_from_mupix_sync,
+      sout_d_from_mupix    => sout_d_from_mupix_sync,
       ck_d_to_mupix        => ck_d_to_mupix,
       ck_c_to_mupix        => ck_c_to_mupix,
       ld_c_to_mupix        => ld_c_to_mupix,
@@ -257,7 +298,7 @@ begin  -- Behavioral
     port map (
       clk                  => clk,
       trigger              => fpga_aux_to_board(0),
-      hitbus               => hbus_form_mupix,
+      hitbus               => hbus_form_mupix_sync,
       SLV_READ_IN          => slv_read(4),
       SLV_WRITE_IN         => slv_write(4),
       SLV_DATA_OUT         => slv_data_rd(4*32+31 downto 4*32),

@@ -251,4 +251,34 @@ package mupix_components is
       SLV_NO_MORE_DATA_OUT       : out std_logic;
       SLV_UNKNOWN_ADDR_OUT       : out std_logic);
   end component TriggerHandler;
+
+  component board_interface is
+    port (
+      clk_in                    : in  std_logic;
+      timestamp_from_mupix      : in  std_logic_vector(7 downto 0);
+      rowaddr_from_mupix        : in  std_logic_vector(5 downto 0);
+      coladdr_from_mupix        : in  std_logic_vector(5 downto 0);
+      priout_from_mupix         : in  std_logic;
+      sout_c_from_mupix         : in  std_logic;
+      sout_d_from_mupix         : in  std_logic;
+      hbus_form_mupix           : in  std_logic;
+      fpga_aux_from_board       : in  std_logic_vector(9 downto 0);
+      timestamp_from_mupix_sync : out std_logic_vector(7 downto 0);
+      rowaddr_from_mupix_sync   : out std_logic_vector(5 downto 0);
+      coladdr_from_mupix_sync   : out std_logic_vector(5 downto 0);
+      priout_from_mupix_sync    : out std_logic;
+      sout_c_from_mupix_sync    : out std_logic;
+      sout_d_from_mupix_sync    : out std_logic;
+      hbus_form_mupix_sync      : out std_logic;
+      fpga_aux_from_board_sync  : out std_logic_vector(9 downto 0);
+      SLV_READ_IN               : in  std_logic;
+      SLV_WRITE_IN              : in  std_logic;
+      SLV_DATA_OUT              : out std_logic_vector(31 downto 0);
+      SLV_DATA_IN               : in  std_logic_vector(31 downto 0);
+      SLV_ADDR_IN               : in  std_logic_vector(15 downto 0);
+      SLV_ACK_OUT               : out std_logic;
+      SLV_NO_MORE_DATA_OUT      : out std_logic;
+      SLV_UNKNOWN_ADDR_OUT      : out std_logic);
+  end component board_interface;
+  
 end mupix_components;
