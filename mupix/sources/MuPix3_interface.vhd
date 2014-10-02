@@ -94,6 +94,8 @@ architecture RTL of mupix_interface is
   signal rocontrolbits        : std_logic_vector(31 downto 0) := (others => '0');
   signal timestampcontrolbits : std_logic_vector(31 downto 0) := (others => '0');
   signal generatehitswait     : std_logic_vector(31 downto 0) := (others => '0');
+
+  signal priout_reg : std_logic := '0';
   
 begin
 
@@ -257,7 +259,7 @@ begin
           endofevent   <= '0';
         when pause =>
           pausecounter <= pausecounter +1;
-          if(pausecounter = pauseregister) then
+          if(std_logic_vector(pausecounter) = pauseregister) then
             state        <= waiting;
             pausecounter <= (others => '0');
           end if;
@@ -377,13 +379,13 @@ begin
           memwren      <= '0';
           state        <= readcol;
           endofevent   <= '0';
-          if (delcounter = delaycounter(27 downto 24)) then
+          if (std_logic_vector(delcounter) = delaycounters(27 downto 24)) then
             priout_reg <= priout;
           end if;
-          if(delcounter = delaycounter(31 downto 28)) then
+          if(std_logic_vector(delcounter) = delaycounters(31 downto 28)) then
             memdata    <= "111100001111" & hit_col & hit_row & hit_time;  --0xF0F
             memwren    <= '1';
-            hitcounter <= hitcounter + '1';
+            hitcounter <= hitcounter + 1;
             state      <= readcol;
           elsif(delcounter = "0000" and hitcounter = "11111111111") then
             -- 2048 hits - this makes no sense
@@ -392,7 +394,7 @@ begin
             memdata    <= "10111110111011111011111011101111";  --0xBEEFBEEF
             endofevent <= '1';
             state      <= pause;
-          elsif(delcounter = "0000" and priout = '1') then
+          elsif(delcounter = "0000" and (priout = '1' or (delaycounters(27 downto 24) /= "0000" and priout_reg = '1'))) then
             state      <= readcol;
             rdcol      <= '1';
             delcounter <= unsigned(delaycounters(15 downto 12));

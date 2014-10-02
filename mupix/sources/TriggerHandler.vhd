@@ -67,6 +67,7 @@ architecture behavioral of TriggerHandler is
 --trigger 
   signal valid_trigger_int       : std_logic                     := '0';
   signal timing_trigger_int      : std_logic                     := '0';
+  signal timing_trigger_edge     : std_logic_vector(1 downto 0)  := "00";
   signal status_trigger_int      : std_logic                     := '0';
   signal calibration_trigger_int : std_logic                     := '0';
   signal fast_clear_int          : std_logic                     := '0';
@@ -90,7 +91,7 @@ architecture behavioral of TriggerHandler is
   signal trigger_rate_time_counter : unsigned(31 downto 0) := (others => '0');
   signal invalid_trigger_counter : unsigned(31 downto 0);
   signal valid_trigger_counter : unsigned(31 downto 0) := (others => '0');
-  signal invalid_trigger_counter_t : unsigned(31 downto 0);
+  signal invalid_trigger_counter_t : unsigned(31 downto 0)  := (others => '0');
   signal valid_trigger_counter_t : unsigned(31 downto 0) := (others => '0');
   signal trigger_handler_state : std_logic_vector(7 downto 0);
   
@@ -120,12 +121,13 @@ architecture behavioral of TriggerHandler is
   
 begin
   
-  Mupix_Readout_End_Detect: process (CLK_IN) is
+  Signal_Edge_Detect: process (CLK_IN) is
   begin  -- process Mupix_Readout_End_Detect
     if rising_edge(CLK_IN) then
       mupix_readout_end_int <= mupix_readout_end_int(0) & TRIGGER_BUSY_MUPIX_DATA_IN;
+      timing_trigger_edge <= timing_trigger_edge(0) & TIMING_TRIGGER_IN;
     end if;
-  end process Mupix_Readout_End_Detect;
+  end process Signal_Edge_Detect;
 
   ------------------------------------------------------------
   --Handling of LVL1 triggers
@@ -136,6 +138,8 @@ begin
     valid_trigger_int       <= '0';
     timing_trigger_int      <= '0';
     status_trigger_int      <= '0';
+    flush_buffer_int        <= '0';
+    fee_data_write_int      <= '0';
     fee_data_finished_int   <= '0';
     fee_trg_release_int     <= '0';
     fee_trg_statusbit_int   <= (others => '0');
@@ -255,10 +259,11 @@ begin
         trigger_rate_time_counter <= (others => '0');
       end if;
       if trigger_rate_time_counter < x"5f5e100" then--1s at 10ns clock period
+      --if trigger_rate_time_counter < x"000007e" then
         trigger_rate_time_counter <= trigger_rate_time_counter + 1;
         if valid_trigger_int = '1' then
           valid_trigger_counter_t <= valid_trigger_counter_t + 1;
-        elsif LVL1_INVALID_TRG_IN = '1' or (trigger_busy_int = '1' and  TIMING_TRIGGER_IN ='1') then
+        elsif LVL1_INVALID_TRG_IN = '1' or (trigger_busy_int = '1' and  timing_trigger_edge = "01") then
           invalid_trigger_counter_t <= invalid_trigger_counter_t + 1;
         end if;
       else
