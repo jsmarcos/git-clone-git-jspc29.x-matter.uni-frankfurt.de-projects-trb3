@@ -281,7 +281,7 @@ begin  -- Behavioral
       FEE_DATA_FINISHED_OUT   => open,
       FEE_DATA_ALMOST_FULL_IN => FEE_DATA_ALMOST_FULL_IN,
       valid_trigger_in        => flush_buffer_int,
-      clear_buffer_in         => buffer_fast_clear;
+      clear_buffer_in         => buffer_fast_clear,
       SLV_READ_IN             => slv_read(5),
       SLV_WRITE_IN            => slv_write(5),
       SLV_DATA_IN             => slv_data_wr(5*32+31 downto 5*32),
@@ -326,7 +326,7 @@ begin  -- Behavioral
       SLV_ADDR_IN                => slv_addr(6*32+31 downto 6*32),
       SLV_ACK_OUT                => slv_ack(6),
       SLV_NO_MORE_DATA_OUT       => slv_no_more_data(6),
-      SLV_UNKNOWN_ADDR_OUT       => slv_unknown_addr(6);
+      SLV_UNKNOWN_ADDR_OUT       => slv_unknown_addr(6));
 
 
 end Behavioral;
