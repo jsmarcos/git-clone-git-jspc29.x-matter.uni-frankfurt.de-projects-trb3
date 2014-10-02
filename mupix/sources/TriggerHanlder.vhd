@@ -7,9 +7,9 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 library work;
-use work.trb_net_std.all;
-use work.trb_net_components.all;
-use work.trb3_components.all;
+--use work.trb_net_std.all;
+--use work.trb_net_components.all;
+--use work.trb3_components.all;
 
 entity TriggerHandler is
   port (
@@ -92,7 +92,7 @@ architecture behavioral of TriggerHandler is
   signal valid_trigger_counter : unsigned(31 downto 0) := (others => '0');
   signal invalid_trigger_counter_t : unsigned(31 downto 0);
   signal valid_trigger_counter_t : unsigned(31 downto 0) := (others => '0');
-  signal trigger_handler_state : std_logic_vector(31 downto 0);
+  signal trigger_handler_state : std_logic_vector(7 downto 0);
   
 --trigger types
   constant trigger_physics_type : std_logic_vector(3 downto 0) := x"1";
@@ -104,7 +104,7 @@ architecture behavioral of TriggerHandler is
                                 no_timing_trigger,
                                 check_trigger_type,
                                 status_trigger,
-                                write_data_eventbuffer,
+                                write_data_to_eventbuffer,
                                 write_data_to_ipu,
                                 trigger_release,
                                 ignore,
@@ -116,8 +116,10 @@ architecture behavioral of TriggerHandler is
                              t_unknown);
 
   signal trigger_handler_fsm : trigger_handler_type := idle;
-  signal trigger_type        : trigger_type_type    := t_ignore;
-
+  signal trigger_type        : trigger_type_type    := t_unknown;
+  
+begin
+  
   Mupix_Readout_End_Detect: process (CLK_IN) is
   begin  -- process Mupix_Readout_End_Detect
     if rising_edge(CLK_IN) then
@@ -128,7 +130,7 @@ architecture behavioral of TriggerHandler is
   ------------------------------------------------------------
   --Handling of LVL1 triggers
   ------------------------------------------------------------
-  trigger_handler_proc: process (clk_in) is
+  trigger_handler_proc: process is
   begin  -- process trigger_handler_proc
     wait until rising_edge(clk_in);
     valid_trigger_int       <= '0';
@@ -149,16 +151,16 @@ architecture behavioral of TriggerHandler is
       case trigger_handler_fsm is
         when idle =>
           trigger_busy_int        <= '0';
-          trigger_handler_state <= 0x"1";
+          trigger_handler_state <= x"01";
           if LVL1_VALID_TIMING_TRG_IN = '1' then
               trigger_type <= t_timing;
               trigger_handler_fsm <= timing_trigger;
           elsif(LVL1_VALID_NOTIMING_TRG_IN = '1') then
-            trigger_handler_fsm <= chech_trigger_type;
+            trigger_handler_fsm <= check_trigger_type;
           end if;
           
         when check_trigger_type =>
-          trigger_handler_state <= 0x"2";
+          trigger_handler_state <= x"02";
           if(LVL1_TRG_DATA_VALID_IN = '1') then
             if(LVL1_TRG_TYPE_IN = trigger_status_type) then
               trigger_type        <= t_status;
@@ -176,13 +178,13 @@ architecture behavioral of TriggerHandler is
           end if;
           
         when timing_trigger =>--starts mupix readout fsm
-          trigger_handler_state <= 0x"3";
+          trigger_handler_state <= x"03";
           valid_trigger_int <= '1';
           timing_trigger_int <= '1';
-          trigger_handler_fsm <= write_data_eventbuffer;
+          trigger_handler_fsm <= write_data_to_eventbuffer;
 
         when no_timing_trigger =>
-          trigger_handler_state <= 0x"4";
+          trigger_handler_state <= x"04";
           if trigger_type = t_physics then
             trigger_handler_fsm <= timing_trigger;
           elsif trigger_type = t_status then
@@ -192,26 +194,26 @@ architecture behavioral of TriggerHandler is
           end if;
 
         when ignore =>
-          trigger_handler_state <= 0x"5";
+          trigger_handler_state <= x"05";
           trigger_handler_fsm <= trigger_release;
 
         when status_trigger => --dummy implementation
-          trigger_handler_state <= 0x"6";
+          trigger_handler_state <= x"06";
           fee_data_int <= x"deadbeef";
           fee_data_write_int <= '1';
           trigger_handler_fsm <= trigger_release;
           
         when write_data_to_eventbuffer =>
-          trigger_handler_state <= 0x"7";
+          trigger_handler_state <= x"07";
           if mupix_readout_end_int = "10" then
             trigger_handler_fsm <= write_data_to_ipu;
-            flush <= '1';
+            flush_buffer_int <= '1';
           else
             trigger_handler_fsm <= write_data_to_eventbuffer;
           end if;
 
         when write_data_to_ipu =>
-          trigger_handler_state <= 0x"7";
+          trigger_handler_state <= x"0A";
           if mupix_readout_end_int = "10" then
             fee_data_finished_int <= '1';
             trigger_handler_fsm <= trigger_release;
@@ -222,13 +224,13 @@ architecture behavioral of TriggerHandler is
           end if;
 
         when trigger_release =>
-          trigger_handler_state <= 0x"A";
+          trigger_handler_state <= x"0B";
           fee_data_finished_int <= '1';
           fee_trg_release_int <= '1';
           trigger_handler_fsm <= wait_trigger_release_ack;
 
         when wait_trigger_release_ack =>
-          trigger_handler_state <= 0x"B";
+          trigger_handler_state <= x"0C";
           if LVL1_TRG_DATA_VALID_IN = '1' then
             trigger_handler_fsm <= wait_trigger_release_ack;
           else
@@ -247,10 +249,10 @@ architecture behavioral of TriggerHandler is
     if rising_edge(CLK_IN) then
       reset_trigger_counters_edge <= reset_trigger_counters_edge(0) & reset_trigger_counters;
       if reset_trigger_counters_edge = "01" then
-        trigger_rate <= (others => '0');
+        trigger_rate_acc <= (others => '0');
         invalid_trigger_counter_t <= (others => '0');
         valid_trigger_counter_t  <= (others => '0');
-        trigger_rate_time_counter <= others => '0');
+        trigger_rate_time_counter <= (others => '0');
       end if;
       if trigger_rate_time_counter < x"5f5e100" then--1s at 10ns clock period
         trigger_rate_time_counter <= trigger_rate_time_counter + 1;
@@ -281,18 +283,17 @@ architecture behavioral of TriggerHandler is
   --0x104: trigger_handler_state
   --0x105: reset counters
  
-  slv_bus_handler : process(clk)
+  slv_bus_handler : process(CLK_IN)
   begin
-    if rising_edge(clk) then
+    if rising_edge(CLK_IN) then
       slv_data_out         <= (others => '0');
       slv_ack_out          <= '0';
       slv_no_more_data_out <= '0';
       slv_unknown_addr_out <= '0';
-      fifo_start_read      <= '0';
-
+      
       if slv_write_in = '1' then
        case SLV_ADDR_IN is
-         when 0x"105" =>
+         when x"0105" =>
            reset_trigger_counters <= SLV_DATA_IN(0);
          when others =>
            slv_unknown_addr_out <= '1';
@@ -312,7 +313,7 @@ architecture behavioral of TriggerHandler is
             slv_data_out(10 downto 0) <= std_logic_vector(valid_trigger_counter);
             slv_ack_out               <= '1';
           when x"0104" =>
-            slv_data_out(10 downto 0) <= trigger_handler_state;
+            slv_data_out(10 downto 0) <= x"000000" & trigger_handler_state;
             slv_ack_out               <= '1';
           when others =>
             slv_unknown_addr_out <= '1';
@@ -332,6 +333,6 @@ architecture behavioral of TriggerHandler is
   fee_data_write_out    <= fee_data_write_int;
   fee_data_finished_out <= fee_data_finished_int;
   fee_trg_release_out   <= fee_trg_release_int;
-  fee_trg_statusbit_out <= fee_trg_statusbit_int;
+  fee_trg_statusbits_out <= fee_trg_statusbit_int;
 
 end architecture behavioral;
