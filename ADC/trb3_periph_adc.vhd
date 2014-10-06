@@ -8,7 +8,7 @@ use work.trb_net_components.all;
 use work.trb3_components.all;
 use work.config.all;
 use work.version.all;
-
+use work.adc_package.all;
 
 entity trb3_periph_adc is
   port(
@@ -158,6 +158,13 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   signal readout_rx : READOUT_RX;
   signal readout_tx : readout_tx_array_t(0 to 11);
   
+  signal fee_data_finished_in : std_logic_vector(DEVICES-1 downto 0);
+  signal fee_data_write_in    : std_logic_vector(DEVICES-1 downto 0);
+  signal fee_trg_release_in   : std_logic_vector(DEVICES-1 downto 0);
+  signal fee_data_in           : std_logic_vector(32*DEVICES-1 downto 0);
+  signal fee_trg_statusbits_in : std_logic_vector(32*DEVICES-1 downto 0);
+  
+  
 begin
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -210,7 +217,7 @@ begin
       USE_CTC     => c_NO
       )
     port map(
-	    CLK                => CLK_PCLK_RIGHT,
+      CLK                => CLK_PCLK_RIGHT,
       SYSCLK             => clk_100_i,
       RESET              => reset_i,
       CLEAR              => clear_i,
@@ -306,12 +313,12 @@ begin
       TRG_SPIKE_DETECTED_OUT   => readout_rx.trg_spike,
 
       --Response from FEE
-      FEE_TRG_RELEASE_IN(0)              => readout_tx(0).busy_release,
-      FEE_TRG_STATUSBITS_IN(31 downto 0) => readout_tx(0).statusbits,
-      FEE_DATA_IN(31 downto 0)           => readout_tx(0).data,
-      FEE_DATA_WRITE_IN(0)               => readout_tx(0).data_write,
-      FEE_DATA_FINISHED_IN(0)            => readout_tx(0).data_finished,
-      FEE_DATA_ALMOST_FULL_OUT(0)        => readout_rx.buffer_almost_full,
+      FEE_TRG_RELEASE_IN           => fee_trg_release_in,
+      FEE_TRG_STATUSBITS_IN        => fee_trg_statusbits_in,
+      FEE_DATA_IN                  => fee_data_in,
+      FEE_DATA_WRITE_IN            => fee_data_write_in,
+      FEE_DATA_FINISHED_IN         => fee_data_finished_in,
+      FEE_DATA_ALMOST_FULL_OUT(0)  => readout_rx.buffer_almost_full,
       
       -- Slow Control Data Port
       REGIO_COMMON_STAT_REG_IN           => common_stat_reg,  --0x00
@@ -359,6 +366,13 @@ begin
   timing_trg_received_i <= TRIGGER_LEFT;  --TRIGGER_RIGHT;  --
   common_stat_reg       <= (others => '0');
 
+gen_rdo_tx : for i in 0 to DEVICES-1 generate
+      fee_trg_release_in(i)                      <= readout_tx(i).busy_release;
+      fee_trg_statusbits_in(i*32+31 downto i*32) <= readout_tx(i).statusbits;
+      fee_data_in(i*32+31 downto i*32)           <= readout_tx(i).data;
+      fee_data_write_in(i)                       <= readout_tx(i).data_write;
+      fee_data_finished_in(i)                    <= readout_tx(i).data_finished;
+end generate;
 
 ---------------------------------------------------------------------------
 -- AddOn
@@ -485,27 +499,27 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
 -------------------------------------------------------------------------------
 
   FPGA_SPI : spi_ltc2600
-	  generic map (
-		  BITS       => 32,
-		  WAITCYCLES => 15)
-	  port map (
-		  CLK_IN         => clk_100_i,
-		  RESET_IN       => reset_i,
-		  -- Slave bus
-		  BUS_READ_IN    => busspi_rx.read,
-		  BUS_WRITE_IN   => busspi_rx.write,
-		  BUS_BUSY_OUT   => busspi_tx.nack,
-		  BUS_ACK_OUT    => busspi_tx.ack,
-		  BUS_ADDR_IN    => busspi_rx.addr(4 downto 0),
-		  BUS_DATA_IN    => busspi_rx.data,
-		  BUS_DATA_OUT   => busspi_tx.data,
-		  -- SPI connections
-		  SPI_CS_OUT  => spi_CS,
-		  SPI_SDI_IN  => spi_SDI,
-		  SPI_SDO_OUT => spi_SDO,
-		  SPI_SCK_OUT => spi_SCK,
-		  SPI_CLR_OUT => open
-		  );
+    generic map (
+      BITS       => 32,
+      WAITCYCLES => 15)
+    port map (
+      CLK_IN         => clk_100_i,
+      RESET_IN       => reset_i,
+      -- Slave bus
+      BUS_READ_IN    => busspi_rx.read,
+      BUS_WRITE_IN   => busspi_rx.write,
+      BUS_BUSY_OUT   => busspi_tx.nack,
+      BUS_ACK_OUT    => busspi_tx.ack,
+      BUS_ADDR_IN    => busspi_rx.addr(4 downto 0),
+      BUS_DATA_IN    => busspi_rx.data,
+      BUS_DATA_OUT   => busspi_tx.data,
+      -- SPI connections
+      SPI_CS_OUT  => spi_CS,
+      SPI_SDI_IN  => spi_SDI,
+      SPI_SDO_OUT => spi_SDO,
+      SPI_SCK_OUT => spi_SCK,
+      SPI_CLR_OUT => open
+      );
 
   -- the bits spi_CS (chip select) determines which SPI device is to be programmed
   -- it is already inverted, such that spi_CS=0xffff when nothing is to be programmed
@@ -514,18 +528,18 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
   -- when which SPI device should be addressed via software
 
   FPGA_CS_mux: process (spi_CS(2 downto 0)) is
-	begin  -- process FPGA_CS_mux
-		case spi_CS(2 downto 0) is
-			when b"110"  =>
-				FPGA_CS <= b"00";
-			when b"101"  =>
-				FPGA_CS <= b"01";
-			when b"011"  =>
-				FPGA_CS <= b"10";				
-			when others =>
-				FPGA_CS <= b"11";
-		end case;
-	end process FPGA_CS_mux;
+  begin  -- process FPGA_CS_mux
+    case spi_CS(2 downto 0) is
+      when b"110"  =>
+        FPGA_CS <= b"00";
+      when b"101"  =>
+        FPGA_CS <= b"01";
+      when b"011"  =>
+        FPGA_CS <= b"10";        
+      when others =>
+        FPGA_CS <= b"11";
+    end case;
+  end process FPGA_CS_mux;
   
   FPGA_SCK(0) <= spi_SCK     when spi_CS(2 downto 0) /= b"111" else '1';
   FPGA_SDI(0) <= spi_SDO     when spi_CS(2 downto 0) /= b"111" else '0';

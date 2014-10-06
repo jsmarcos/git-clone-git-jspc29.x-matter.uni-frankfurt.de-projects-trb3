@@ -91,6 +91,8 @@ signal after_trg_cnt     : unsigned(11 downto 0) := (others => '1');
 
 type state_t is (IDLE, RELEASE_DIRECT, WAIT_FOR_END, CHECK_STATUS_TRIGGER, START, SEND_STATUS, READOUT, NEXT_BLOCK);
 signal state : state_t;
+signal statebits : std_logic_vector(7 downto 0);
+signal word_counter : unsigned(7 downto 0);
 
 -- 800 - 83f last ADC values              (local 0x0 - 0x3)
 -- 840 - 87f long-term average / baseline (local 0x4 - 0x7)
@@ -146,6 +148,7 @@ begin
                                           std_logic_vector(resize(ram_rd_pointer(0),16));           
         when x"5" => DEBUG_BUFFER_DATA <= std_logic_vector(resize(ram_rd_pointer(3),16)) &  
                                           std_logic_vector(resize(ram_rd_pointer(2),16));   
+        when x"6" => DEBUG_BUFFER_DATA(7 downto 0) <= statebits;
         when others => null;
       end case;
     end if;  
@@ -207,26 +210,18 @@ proc_buffer_enable : process begin
   if READOUT_RX.valid_timing_trg = '1' then
     after_trg_cnt(10 downto 0) <= CONF.samples_after;
     after_trg_cnt(11)          <= '0';
+  elsif state = IDLE then
+    stop_writing_rdo <= '0';
+    after_trg_cnt    <= (others => '1');  
+  elsif or_all(std_logic_vector(after_trg_cnt)) = '0' then
+    stop_writing_rdo <= '1';
+    after_trg_cnt    <= (others => '1');
   elsif after_trg_cnt(11) = '0' then
     after_trg_cnt <= after_trg_cnt - 1;
   end if;
   
-  if or_all(std_logic_vector(after_trg_cnt)) = '0' then
-    stop_writing_rdo <= '1';
-    after_trg_cnt    <= (others => '1');
-  end if;  
-  
-  if finished_readout = '1' then
-    stop_writing_rdo <= '0';
-  end if;  
-  
   stop_writing <= stop_writing_rdo or STOP_IN;
-  
-  if readout_reset = '1' then
-    stop_writing_rdo <= '0';
-    after_trg_cnt    <= (others => '1');
-  end if;
-  
+    
 end process;
 
 
@@ -278,15 +273,15 @@ gen_buffer_reader : for i in 0 to CHANNELS-1 generate
     reg_ram_data_out(i) <= ram_data_out(i);
     
     if ram_reset = '1' then
-      ram_rd_pointer(i) <= (others => '1'); --one behind write pointer
+      ram_rd_pointer(i)  <= (others => '1'); --one behind write pointer
     elsif ram_clear(i) = '1' then
-      ram_rd_pointer(i) <= ram_wr_pointer;
+      ram_rd_pointer(i)  <= ram_wr_pointer;
     elsif ram_read(i) = '1' then
       ram_rd_pointer(i)  <= ram_rd_pointer(i) + 1;
     elsif ram_debug_read(i) = '1' then  
       ram_rd_pointer(i)  <= ram_rd_pointer(i) + 1;
     elsif ram_remove = '1' then
-      ram_rd_pointer(i) <= ram_rd_pointer(i) + 1;
+      ram_rd_pointer(i)  <= ram_rd_pointer(i) + 1;
     end if;
     
   end process;  
@@ -328,8 +323,8 @@ gen_triggers : for i in 0 to CHANNELS-1 generate
       else  
         trigger_gen(i) <= '0';
       end if;   
-    elsif stop_writing = '1' then
-      trigger_gen(i) <= '0';
+--     elsif stop_writing = '1' then
+--       trigger_gen(i) <= '0';
     end if;  
   end process;
 end generate;
@@ -410,6 +405,7 @@ begin
       if READOUT_RX.data_valid = '1' then
         if READOUT_RX.trg_type = x"E" then
           state <= SEND_STATUS;
+          word_counter <= (others => '0');
         else
           state <= RELEASE_DIRECT;
         end if;
@@ -435,13 +431,81 @@ begin
       end if;
       
     when SEND_STATUS =>
-      state <= RELEASE_DIRECT;
-      READOUT_TX.data <= x"DECAFBAD";
-      READOUT_TX.data_write <= '1';      
+      READOUT_TX.data_write <= '1';   
+      READOUT_TX.data <= x"2" & std_logic_vector(word_counter) & x"00000";
+      word_counter <= word_counter + 1;
+      case word_counter is
+        when x"00" =>
+          if DEVICE = 0 then
+            READOUT_TX.data(31 downto 0) <= x"40" & std_logic_vector(to_unsigned(DEVICE,4)) & x"F00" & x"0d" ;
+          else
+            READOUT_TX.data(31 downto 0) <= x"40" & std_logic_vector(to_unsigned(DEVICE,4)) & x"F00" & x"04" ;
+            word_counter <= x"10";
+          end if;
+        when x"01" =>  
+          READOUT_TX.data(10 downto 0) <= std_logic_vector(CONF.buffer_depth);
+        when x"02" =>
+          READOUT_TX.data(10 downto 0) <= std_logic_vector(CONF.samples_after);
+        when x"03" =>
+          READOUT_TX.data(17 downto 0) <= std_logic_vector(CONF.trigger_threshold);
+        when x"04" =>
+          READOUT_TX.data(17 downto 0) <= std_logic_vector(CONF.readout_threshold);
+        when x"05" =>
+          READOUT_TX.data( 7 downto 0)  <= std_logic_vector(CONF.presum);
+          READOUT_TX.data(11 downto 8)  <= std_logic_vector(CONF.averaging);
+          READOUT_TX.data(13 downto 12) <= std_logic_vector(CONF.block_count);
+        when x"06" =>
+          READOUT_TX.data( 7 downto  0) <= std_logic_vector(CONF.block_avg(0));
+          READOUT_TX.data(15 downto  8) <= std_logic_vector(CONF.block_sums(0));
+          READOUT_TX.data(19 downto 16) <= std_logic_vector(CONF.block_scale(0)(3 downto 0));
+        when x"07" =>
+          READOUT_TX.data( 7 downto  0) <= std_logic_vector(CONF.block_avg(1));
+          READOUT_TX.data(15 downto  8) <= std_logic_vector(CONF.block_sums(1));
+          READOUT_TX.data(19 downto 16) <= std_logic_vector(CONF.block_scale(1)(3 downto 0));
+        when x"08" =>
+          READOUT_TX.data( 7 downto  0) <= std_logic_vector(CONF.block_avg(2));
+          READOUT_TX.data(15 downto  8) <= std_logic_vector(CONF.block_sums(2));
+          READOUT_TX.data(19 downto 16) <= std_logic_vector(CONF.block_scale(2)(3 downto 0));
+        when x"09" =>
+          READOUT_TX.data( 7 downto  0) <= std_logic_vector(CONF.block_avg(3));
+          READOUT_TX.data(15 downto  8) <= std_logic_vector(CONF.block_sums(3));
+          READOUT_TX.data(19 downto 16) <= std_logic_vector(CONF.block_scale(3)(3 downto 0));
+          word_counter <= x"10";
+        when x"10" =>
+          READOUT_TX.data(15 downto  0) <= baseline(0);
+        when x"11" =>
+          READOUT_TX.data(15 downto  0) <= baseline(1);
+        when x"12" =>
+          READOUT_TX.data(15 downto  0) <= baseline(2);
+        when x"13" =>
+          READOUT_TX.data(15 downto  0) <= baseline(3);
+          state                 <= RELEASE_DIRECT;
+--         when x"14" =>
+--         when x"15" =>
+--         when x"16" =>
+--         when x"17" =>
+--         when x"18" =>
+      end case;
   end case;
+  
+  if readout_reset = '1' then
+    state <= IDLE;
+  end if;
 end process;
 
+
+statebits <= x"00" when state = IDLE else
+             x"01" when state = RELEASE_DIRECT else
+             x"02" when state = WAIT_FOR_END else
+             x"03" when state = CHECK_STATUS_TRIGGER else
+             x"04" when state = START else
+             x"05" when state = READOUT else
+             x"06" when state = NEXT_BLOCK else
+             x"07" when state = SEND_STATUS else
+             x"FF";
+
 end architecture;
+
 
 --   type READOUT_RX is record 
 --     data_valid         : std_logic;
@@ -493,4 +557,4 @@ end architecture;
 -- VVVVVVVV  -- ADC data  2x 16 bit, only after 0x4 channel header
 -- 1SSSSSSS  -- Status word, MSN=0x1
 -- 4-AC--LL  -- ADC Header, L: number of data words that follow, MSN=0x4
-
+-- 2RRVVVVV  -- Configuration data
