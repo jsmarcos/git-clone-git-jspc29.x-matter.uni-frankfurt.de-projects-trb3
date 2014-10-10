@@ -34,15 +34,27 @@ add wave -noupdate /tb/UUT/READOUT_RX.valid_timing_trg
 add wave -noupdate /tb/UUT/state
 add wave -noupdate /tb/UUT/stop_writing_rdo
 add wave -noupdate -radix hexadecimal /tb/UUT/after_trg_cnt
-add wave -noupdate -divider Config
+add wave -noupdate /tb/UUT/readout_state
+add wave -noupdate /tb/UUT/channelselect
+add wave -noupdate /tb/UUT/prepare_header
+add wave -noupdate /tb/UUT/blockcurrent
+add wave -noupdate -radix hexadecimal /tb/UUT/myavg
+add wave -noupdate -divider {data processor}
+add wave -noupdate /tb/UUT/PROC_DATA_PROCESSOR/cnt
+add wave -noupdate /tb/UUT/ram_valid
+add wave -noupdate /tb/UUT/RDO_write_proc
+add wave -noupdate -radix hexadecimal /tb/UUT/RDO_data_proc
+add wave -noupdate /tb/UUT/READOUT_TX.data_finished
+add wave -noupdate /tb/UUT/READOUT_TX.busy_release
+add wave -noupdate -divider -height 100 Config
 add wave -noupdate -radix hexadecimal -childformat {{/tb/UUT/CONFIG.buffer_depth -radix hexadecimal} {/tb/UUT/CONFIG.samples_after -radix hexadecimal} {/tb/UUT/CONFIG.block_count -radix hexadecimal} {/tb/UUT/CONFIG.trigger_threshold -radix hexadecimal} {/tb/UUT/CONFIG.readout_threshold -radix hexadecimal} {/tb/UUT/CONFIG.presum -radix hexadecimal} {/tb/UUT/CONFIG.averaging -radix hexadecimal} {/tb/UUT/CONFIG.trigger_enable -radix hexadecimal} {/tb/UUT/CONFIG.baseline_always_on -radix hexadecimal} {/tb/UUT/CONFIG.baseline_reset_value -radix hexadecimal} {/tb/UUT/CONFIG.block_avg -radix hexadecimal} {/tb/UUT/CONFIG.block_sums -radix hexadecimal} {/tb/UUT/CONFIG.block_scale -radix hexadecimal}} -subitemconfig {/tb/UUT/CONFIG.buffer_depth {-height 16 -radix hexadecimal} /tb/UUT/CONFIG.samples_after {-height 16 -radix hexadecimal} /tb/UUT/CONFIG.block_count {-height 16 -radix hexadecimal} /tb/UUT/CONFIG.trigger_threshold {-height 16 -radix hexadecimal} /tb/UUT/CONFIG.readout_threshold {-height 16 -radix hexadecimal} /tb/UUT/CONFIG.presum {-height 16 -radix hexadecimal} /tb/UUT/CONFIG.averaging {-height 16 -radix hexadecimal} /tb/UUT/CONFIG.trigger_enable {-height 16 -radix hexadecimal} /tb/UUT/CONFIG.baseline_always_on {-height 16 -radix hexadecimal} /tb/UUT/CONFIG.baseline_reset_value {-height 16 -radix hexadecimal} /tb/UUT/CONFIG.block_avg {-height 16 -radix hexadecimal} /tb/UUT/CONFIG.block_sums {-height 16 -radix hexadecimal} /tb/UUT/CONFIG.block_scale {-height 16 -radix hexadecimal}} /tb/UUT/CONFIG
 add wave -noupdate /tb/UUT/TRIGGER_OUT
 add wave -noupdate -expand /tb/UUT/trigger_gen
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {15136 ns} 0}
+WaveRestoreCursors {{Cursor 1} {16520 ns} 0}
 quietly wave cursor active 1
 configure wave -namecolwidth 150
-configure wave -valuecolwidth 100
+configure wave -valuecolwidth 107
 configure wave -justifyvalue left
 configure wave -signalnamewidth 1
 configure wave -snapdistance 10
@@ -55,4 +67,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {14644 ns} {15626 ns}
+WaveRestoreZoom {16394 ns} {17102 ns}

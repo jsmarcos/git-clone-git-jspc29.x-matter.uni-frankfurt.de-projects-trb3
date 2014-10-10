@@ -67,6 +67,8 @@ signal ram_data_out      : unsigned_array_18(0 to CHANNELS-1) := (others => (oth
 signal reg_ram_data_out  : unsigned_array_18(0 to CHANNELS-1) := (others => (others => '0'));
 signal reg_buffer_addr   : std_logic_vector(4 downto 0);
 signal reg_buffer_read   : std_logic;
+signal last_ramread      : std_logic := '0';
+signal ram_valid         : std_logic := '0';
 
 signal CONF              : cfg_t;
 attribute syn_keep     of CONF : signal is true;
@@ -80,6 +82,11 @@ signal readout_reset     : std_logic := '0';
 attribute syn_keep     of baseline_reset : signal is true;
 attribute syn_preserve of baseline_reset : signal is true;
 
+signal RDO_write_main : std_logic := '0';
+signal RDO_write_proc : std_logic := '0';
+signal RDO_data_main  : std_logic_vector(31 downto 0) := (others => '0');
+signal RDO_data_proc  : std_logic_vector(31 downto 0) := (others => '0');
+
 signal baseline_averages : arr_CHAN_RES_t := (others => (others => '0'));
 signal baseline          : arr_values_t   := (others => (others => '0'));
 signal trigger_gen       : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
@@ -89,10 +96,19 @@ signal readout_flag      : std_logic_vector(CHANNELS-1 downto 0) := (others => '
 
 signal after_trg_cnt     : unsigned(11 downto 0) := (others => '1');
 
-type state_t is (IDLE, RELEASE_DIRECT, WAIT_FOR_END, CHECK_STATUS_TRIGGER, START, SEND_STATUS, READOUT, NEXT_BLOCK);
+type state_t is (IDLE, DO_RELEASE, RELEASE_DIRECT, WAIT_FOR_END, CHECK_STATUS_TRIGGER, START, SEND_STATUS, READOUT);
 signal state : state_t;
 signal statebits : std_logic_vector(7 downto 0);
 signal word_counter : unsigned(7 downto 0);
+
+type rdo_state_t is (RDO_IDLE, READ_CHANNEL, NEXT_BLOCK, NEXT_CHANNEL, RDO_DONE, RDO_FINISH, RDO_WAIT_AFTER);
+signal readout_state : rdo_state_t;
+signal rdostatebits  : std_logic_vector(3 downto 0);
+signal readout_finished : std_logic := '0';
+signal channelselect, last_channelselect, channelselect_valid    : integer range 0 to 3 := 0;
+signal prepare_header, last_prepare_header, prepare_header_valid : std_logic := '0';
+signal blockcurrent, last_blockcurrent                           : integer range 0 to 3 := 0;
+signal myavg : unsigned(7 downto 0);
 
 -- 800 - 83f last ADC values              (local 0x0 - 0x3)
 -- 840 - 87f long-term average / baseline (local 0x4 - 0x7)
@@ -148,7 +164,8 @@ begin
                                           std_logic_vector(resize(ram_rd_pointer(0),16));           
         when x"5" => DEBUG_BUFFER_DATA <= std_logic_vector(resize(ram_rd_pointer(3),16)) &  
                                           std_logic_vector(resize(ram_rd_pointer(2),16));   
-        when x"6" => DEBUG_BUFFER_DATA(7 downto 0) <= statebits;
+        when x"6" => DEBUG_BUFFER_DATA( 7 downto  0) <= statebits;
+                     DEBUG_BUFFER_DATA(11 downto  8) <= rdostatebits;
         when others => null;
       end case;
     end if;  
@@ -231,7 +248,8 @@ gen_buffers : for i in 0 to CHANNELS-1 generate
     if ram_write = '1' then
       ram(i)(to_integer(ram_wr_pointer)) <= ram_data_in(i);
     end if; 
-    ram_data_out(i) <= ram(i)(to_integer(ram_rd_pointer(i)));
+    ram_data_out(i)     <= ram(i)(to_integer(ram_rd_pointer(i)));
+    reg_ram_data_out(i) <= ram_data_out(i);
   end process;  
 end generate;
 
@@ -270,8 +288,6 @@ gen_buffer_reader : for i in 0 to CHANNELS-1 generate
       ram_count(i)        <= ram_wr_pointer - ram_rd_pointer(i) +1;
     end if;
     
-    reg_ram_data_out(i) <= ram_data_out(i);
-    
     if ram_reset = '1' then
       ram_rd_pointer(i)  <= (others => '1'); --one behind write pointer
     elsif ram_clear(i) = '1' then
@@ -297,7 +313,7 @@ gen_baselines : for i in 0 to CHANNELS-1 generate
     wait until rising_edge(CLK);
     if baseline_reset = '1' then
       baseline_averages(i) <= CONF.baseline_reset_value;
-    elsif reg2_ram_remove = '1' and (ram_data_out(i)(17) = '0' or CONF.baseline_always_on = '1') then
+    elsif reg2_ram_remove = '1' and (reg_ram_data_out(i)(17) = '0' or CONF.baseline_always_on = '1') then
       baseline_averages(i) <= baseline_averages(i) 
                               + resize(reg_ram_data_out(i)(15 downto 0),32) 
                               - resize(baseline_averages(i)(to_integer(CONF.averaging)+15 downto to_integer(CONF.averaging)),32);
@@ -366,14 +382,12 @@ end generate;
 -- Readout State Machine
 -------------------------------------------------------------------------------
 proc_readout : process 
-  variable wordcount   : integer range 0 to 1023 := 0;
-  variable blockcount  : integer range 0 to 3    := 0;
-  variable sumcount    : integer range 0 to 1023 := 0;
 begin
   wait until rising_edge(CLK);
   READOUT_TX.busy_release  <= '0';
   READOUT_TX.data_finished <= '0';
-  READOUT_TX.data_write    <= '0';
+  RDO_data_main            <= (others => '0');
+  RDO_write_main           <= '0';
   finished_readout         <= '0';
   
   case state is
@@ -389,6 +403,9 @@ begin
       end if;  
       
     when RELEASE_DIRECT =>
+      state <= DO_RELEASE;
+      
+    when DO_RELEASE =>  
       if READOUT_RX.data_valid = '1' then
         finished_readout         <= '1';
         READOUT_TX.busy_release  <= '1';
@@ -417,74 +434,62 @@ begin
       end if;
     
     when READOUT =>
-      state <= RELEASE_DIRECT;
-      READOUT_TX.data <= x"DEADBEEF";
-      READOUT_TX.data_write <= '1';
-          
-    when NEXT_BLOCK =>
-      if blockcount = CONF.block_count -1 then
-        state      <= RELEASE_DIRECT;
-        blockcount := 0;
-      else  
-        state      <= READOUT;
-        blockcount := blockcount + 1;
+      if readout_finished  = '1' then
+        state <= RELEASE_DIRECT;
       end if;
       
     when SEND_STATUS =>
-      READOUT_TX.data_write <= '1';   
-      READOUT_TX.data <= x"2" & std_logic_vector(word_counter) & x"00000";
+      RDO_write_main <= '1';   
+      RDO_data_main  <= x"2" & std_logic_vector(word_counter) & x"00000";
       word_counter <= word_counter + 1;
       case word_counter is
         when x"00" =>
           if DEVICE = 0 then
-            READOUT_TX.data(31 downto 0) <= x"40" & std_logic_vector(to_unsigned(DEVICE,4)) & x"F00" & x"0d" ;
+            RDO_data_main(31 downto 0) <= x"40" & std_logic_vector(to_unsigned(DEVICE,4)) & x"F00" & x"0d" ;
           else
-            READOUT_TX.data(31 downto 0) <= x"40" & std_logic_vector(to_unsigned(DEVICE,4)) & x"F00" & x"04" ;
+            RDO_data_main(31 downto 0) <= x"40" & std_logic_vector(to_unsigned(DEVICE,4)) & x"F00" & x"04" ;
             word_counter <= x"10";
           end if;
         when x"01" =>  
-          READOUT_TX.data(10 downto 0) <= std_logic_vector(CONF.buffer_depth);
+          RDO_data_main(10 downto 0) <= std_logic_vector(CONF.buffer_depth);
         when x"02" =>
-          READOUT_TX.data(10 downto 0) <= std_logic_vector(CONF.samples_after);
+          RDO_data_main(10 downto 0) <= std_logic_vector(CONF.samples_after);
         when x"03" =>
-          READOUT_TX.data(17 downto 0) <= std_logic_vector(CONF.trigger_threshold);
+          RDO_data_main(17 downto 0) <= std_logic_vector(CONF.trigger_threshold);
         when x"04" =>
-          READOUT_TX.data(17 downto 0) <= std_logic_vector(CONF.readout_threshold);
+          RDO_data_main(17 downto 0) <= std_logic_vector(CONF.readout_threshold);
         when x"05" =>
-          READOUT_TX.data( 7 downto 0)  <= std_logic_vector(CONF.presum);
-          READOUT_TX.data(11 downto 8)  <= std_logic_vector(CONF.averaging);
-          READOUT_TX.data(13 downto 12) <= std_logic_vector(CONF.block_count);
+          RDO_data_main( 7 downto 0)  <= std_logic_vector(CONF.presum);
+          RDO_data_main(11 downto 8)  <= std_logic_vector(CONF.averaging);
+          RDO_data_main(13 downto 12) <= std_logic_vector(CONF.block_count);
         when x"06" =>
-          READOUT_TX.data( 7 downto  0) <= std_logic_vector(CONF.block_avg(0));
-          READOUT_TX.data(15 downto  8) <= std_logic_vector(CONF.block_sums(0));
-          READOUT_TX.data(19 downto 16) <= std_logic_vector(CONF.block_scale(0)(3 downto 0));
+          RDO_data_main( 7 downto  0) <= std_logic_vector(CONF.block_avg(0));
+          RDO_data_main(15 downto  8) <= std_logic_vector(CONF.block_sums(0));
+          RDO_data_main(19 downto 16) <= std_logic_vector(CONF.block_scale(0)(3 downto 0));
         when x"07" =>
-          READOUT_TX.data( 7 downto  0) <= std_logic_vector(CONF.block_avg(1));
-          READOUT_TX.data(15 downto  8) <= std_logic_vector(CONF.block_sums(1));
-          READOUT_TX.data(19 downto 16) <= std_logic_vector(CONF.block_scale(1)(3 downto 0));
+          RDO_data_main( 7 downto  0) <= std_logic_vector(CONF.block_avg(1));
+          RDO_data_main(15 downto  8) <= std_logic_vector(CONF.block_sums(1));
+          RDO_data_main(19 downto 16) <= std_logic_vector(CONF.block_scale(1)(3 downto 0));
         when x"08" =>
-          READOUT_TX.data( 7 downto  0) <= std_logic_vector(CONF.block_avg(2));
-          READOUT_TX.data(15 downto  8) <= std_logic_vector(CONF.block_sums(2));
-          READOUT_TX.data(19 downto 16) <= std_logic_vector(CONF.block_scale(2)(3 downto 0));
+          RDO_data_main( 7 downto  0) <= std_logic_vector(CONF.block_avg(2));
+          RDO_data_main(15 downto  8) <= std_logic_vector(CONF.block_sums(2));
+          RDO_data_main(19 downto 16) <= std_logic_vector(CONF.block_scale(2)(3 downto 0));
         when x"09" =>
-          READOUT_TX.data( 7 downto  0) <= std_logic_vector(CONF.block_avg(3));
-          READOUT_TX.data(15 downto  8) <= std_logic_vector(CONF.block_sums(3));
-          READOUT_TX.data(19 downto 16) <= std_logic_vector(CONF.block_scale(3)(3 downto 0));
+          RDO_data_main( 7 downto  0) <= std_logic_vector(CONF.block_avg(3));
+          RDO_data_main(15 downto  8) <= std_logic_vector(CONF.block_sums(3));
+          RDO_data_main(19 downto 16) <= std_logic_vector(CONF.block_scale(3)(3 downto 0));
           word_counter <= x"10";
         when x"10" =>
-          READOUT_TX.data(15 downto  0) <= baseline(0);
+          RDO_data_main(15 downto  0) <= std_logic_vector(baseline(0));
         when x"11" =>
-          READOUT_TX.data(15 downto  0) <= baseline(1);
+          RDO_data_main(15 downto  0) <= std_logic_vector(baseline(1));
         when x"12" =>
-          READOUT_TX.data(15 downto  0) <= baseline(2);
+          RDO_data_main(15 downto  0) <= std_logic_vector(baseline(2));
         when x"13" =>
-          READOUT_TX.data(15 downto  0) <= baseline(3);
+          RDO_data_main(15 downto  0) <= std_logic_vector(baseline(3));
           state                 <= RELEASE_DIRECT;
---         when x"14" =>
---         when x"15" =>
---         when x"16" =>
---         when x"17" =>
---         when x"18" =>
+        when others =>
+          state <= RELEASE_DIRECT;
       end case;
   end case;
   
@@ -494,16 +499,136 @@ begin
 end process;
 
 
+-------------------------------------------------------------------------------
+-- Data Reading State Machine
+-------------------------------------------------------------------------------
+PROC_RDO_FSM : process 
+  variable readcount     : integer range 0 to 255 := 0;
+begin
+  wait until rising_edge(CLK);
+  readout_finished <= '0';
+  ram_read         <= (others => '0');
+  prepare_header   <= '0';
+  
+  case readout_state is
+    when RDO_IDLE =>
+      if state = READOUT then
+        channelselect <= 0;
+        blockcurrent  <= 0;
+        readcount     := to_integer(CONF.block_sums(0) * CONF.block_avg(0));
+        readout_state <= READ_CHANNEL;
+        prepare_header <= '1';
+      end if;
+    
+    when READ_CHANNEL =>
+      ram_read(channelselect) <= '1';
+      if readcount = 1 then
+        if blockcurrent < to_integer(CONF.block_count)-1 then
+          readout_state <= NEXT_BLOCK;
+        elsif channelselect < 3 then
+          readout_state <= NEXT_CHANNEL;
+        else
+          readout_state <= RDO_DONE;
+        end if;    
+      else
+        readcount := readcount - 1;
+      end if;
+      
+    when NEXT_BLOCK =>
+      channelselect <= channelselect;
+      blockcurrent  <= blockcurrent + 1;
+      readcount     := to_integer(CONF.block_sums(blockcurrent + 1) * CONF.block_avg(blockcurrent + 1));
+      readout_state <= READ_CHANNEL;      
+      
+    when NEXT_CHANNEL =>
+      channelselect  <= channelselect + 1;
+      blockcurrent   <= 0;
+      readcount      := to_integer(CONF.block_sums(0) * CONF.block_avg(0));
+      readout_state  <= READ_CHANNEL;      
+      prepare_header <= '1';
+    
+    when RDO_DONE =>
+      readout_state <= RDO_FINISH;
+    
+    when RDO_FINISH =>
+      readout_finished <= '1';
+      readout_state    <= RDO_WAIT_AFTER;
+      
+    when RDO_WAIT_AFTER =>
+      readout_state    <= RDO_IDLE;
+      
+  end case;  
+    
+
+end process;
+
+last_ramread         <= ram_read(channelselect) when rising_edge(CLK);
+ram_valid            <= last_ramread when rising_edge(CLK);
+last_prepare_header  <= prepare_header when rising_edge(CLK);
+prepare_header_valid <= last_prepare_header when rising_edge(CLK);
+last_channelselect   <= channelselect when rising_edge(CLK);
+channelselect_valid  <= last_channelselect when rising_edge(CLK);
+last_blockcurrent    <= blockcurrent when rising_edge(CLK);
+myavg                <= CONF.block_avg(last_blockcurrent) when rising_edge(CLK);
+
+
+PROC_DATA_PROCESSOR: process 
+  variable cnt      : integer range 0 to 255 := 0; 
+begin
+  wait until rising_edge(CLK);
+  RDO_write_proc <= '0';
+  
+  if prepare_header_valid = '1' or ram_valid = '0' then
+    cnt := 0;
+  end if;  
+  
+  if ram_valid = '1' then
+    if cnt = 0 then
+      RDO_data_proc(15 downto  0) <= std_logic_vector(reg_ram_data_out(channelselect_valid)(15 downto 0));
+      RDO_data_proc(19 downto 16) <= std_logic_vector(to_unsigned(channelselect_valid,4));
+      RDO_data_proc(23 downto 20) <= std_logic_vector(to_unsigned(DEVICE,4)); 
+      RDO_data_proc(31 downto 24) <= (others => '0');
+    else
+      RDO_data_proc(15 downto  0) <= std_logic_vector(unsigned(RDO_data_proc(15 downto 0)) + reg_ram_data_out(channelselect_valid)(15 downto 0));
+    end if;
+    if cnt = to_integer(myavg-1) then
+      cnt := 0;
+      RDO_write_proc <= '1';
+    elsif myavg /= 0 then
+      cnt := cnt + 1;
+    end if;
+  end if;  
+  
+end process;
+
+
+
+READOUT_TX.data_write <= RDO_write_main or RDO_write_proc when rising_edge(CLK);
+READOUT_TX.data       <= RDO_data_main  or RDO_data_proc  when rising_edge(CLK);
+
+
+
+-------------------------------------------------------------------------------
+-- Status Information
+-------------------------------------------------------------------------------
 statebits <= x"00" when state = IDLE else
              x"01" when state = RELEASE_DIRECT else
              x"02" when state = WAIT_FOR_END else
              x"03" when state = CHECK_STATUS_TRIGGER else
              x"04" when state = START else
              x"05" when state = READOUT else
-             x"06" when state = NEXT_BLOCK else
+             x"06" when state = DO_RELEASE else
              x"07" when state = SEND_STATUS else
              x"FF";
 
+rdostatebits <= x"0" when readout_state = RDO_IDLE else
+                x"1" when readout_state = READ_CHANNEL else
+                x"2" when readout_state = NEXT_BLOCK else
+                x"3" when readout_state = NEXT_CHANNEL else
+                x"4" when readout_state = RDO_DONE else
+                x"5" when readout_state = RDO_WAIT_AFTER else
+                x"F";
+             
 end architecture;
 
 

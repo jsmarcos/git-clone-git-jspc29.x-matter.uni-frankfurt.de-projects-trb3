@@ -25,7 +25,7 @@ end entity;
 
 architecture dummyADC_arch of dummyADC is
 
-constant randrange : real := 20.0;
+constant randrange : real := 0.0;
 
 begin
 receive_data: process
