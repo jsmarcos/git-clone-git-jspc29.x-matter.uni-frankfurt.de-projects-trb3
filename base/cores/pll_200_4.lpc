@@ -12,12 +12,12 @@ VendorName=Lattice Semiconductor Corporation
 CoreType=LPM
 CoreStatus=Demo
 CoreName=PLL
-CoreRevision=5.6
+CoreRevision=5.3
 ModuleName=pll_200_4
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=09/30/2014
-Time=15:30:30
+Date=10/07/2014
+Time=15:22:29
 
 [Parameters]
 Verilog=0
@@ -54,7 +54,7 @@ U_KFrq=50
 OK_Tol=0.0
 KFrq=
 ClkRst=0
-PCDR=0
+PCDR=1
 FINDELA=0
 VcoRate=
 Bandwidth=0.856080
@@ -64,6 +64,3 @@ ClkOSBp=0
 EnCLKOK=0
 ClkOKBp=0
 enClkOK2=0
-
-[Command]
-cmd_line= -w -n pll_200_4 -lang vhdl -synth synplify -arch ep5c00 -type pll -fin 200 -phase_cntl STATIC -fclkop 4 -fclkop_tol 0.0 -fb_mode CLOCKTREE -noclkos -noclkok -norst -noclkok2 -bw

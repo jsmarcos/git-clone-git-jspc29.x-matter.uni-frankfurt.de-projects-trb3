@@ -369,9 +369,10 @@ end generate;
 gen_power_clock : if USE_POWER_CLOCK = c_YES generate
   PLL_ENPIRION : entity work.pll_200_4
     port map(
-      CLK => clk_raw_internal,
+      CLK   => clk_raw_internal,
+      RESET => reset_i,
       CLKOP => ENPIRION_CLOCK,
-      LOCK => open
+      LOCK  => open
       );
 end generate;
 
