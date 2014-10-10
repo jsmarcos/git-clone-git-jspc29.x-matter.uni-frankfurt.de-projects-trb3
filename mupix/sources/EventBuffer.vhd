@@ -52,15 +52,15 @@ architecture behavioral of eventbuffer is
   signal fee_data_finished_int : std_logic := '0';
   
   --fifo signals
-  signal fifo_reset       : std_logic;
+  signal fifo_reset       : std_logic := '0';
   signal fifo_full        : std_logic;
   signal fifo_empty       : std_logic;
-  signal fifo_write       : std_logic;
-  signal fifo_status      : std_logic_vector(31 downto 0);
-  signal fifo_write_ctr   : std_logic_vector(10 downto 0);
-  signal fifo_data_in     : std_logic_vector(31 downto 0);
-  signal fifo_data_out    : std_logic_vector(31 downto 0);
-  signal fifo_read_enable : std_logic;
+  signal fifo_write       : std_logic := '0';
+  signal fifo_status      : std_logic_vector(31 downto 0) := (others => '0');
+  signal fifo_write_ctr   : std_logic_vector(10 downto 0) := (others => '0');
+  signal fifo_data_in     : std_logic_vector(31 downto 0) := (others => '0');
+  signal fifo_data_out    : std_logic_vector(31 downto 0) := (others => '0');
+  signal fifo_read_enable : std_logic := '0';
 
   --fifo readout via slv_bus
   type   fifo_read_s_states is (idle, wait1, wait2, done);
@@ -130,9 +130,13 @@ begin  -- behavioral
       when idle =>
         fifo_read_f_fsm <= idle;
         if valid_trigger_in = '1' then
-          fifo_read_f <= '1';
-          fifo_read_busy_f <= '1';
-          fifo_read_f_fsm <= wait_for_data;
+          if fifo_empty = '1' then
+            fifo_read_f_fsm <= done;
+          else
+            fifo_read_f <= '1';
+            fifo_read_busy_f <= '1';
+            fifo_read_f_fsm <= wait_for_data;
+            end if;
         end if;
       when wait_for_data =>
         fifo_read_f      <= '1';

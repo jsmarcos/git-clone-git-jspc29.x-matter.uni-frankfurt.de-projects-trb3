@@ -674,9 +674,9 @@ begin
       REGIO_DATAREADY_OUT    => mu_regio_dataready_out,
       REGIO_WRITE_ACK_OUT    => mu_regio_write_ack_out,
       REGIO_NO_MORE_DATA_OUT => mu_regio_no_more_data_out,
-      REGIO_UNKNOWN_ADDR_OUT => mu_regio_unknown_addr_out,
+      REGIO_UNKNOWN_ADDR_OUT => mu_regio_unknown_addr_out
 
-      DEBUG_LINE_OUT => TEST_LINE
+      --DEBUG_LINE_OUT => TEST_LINE
       --DEBUG_LINE_OUT                => open
       );
 

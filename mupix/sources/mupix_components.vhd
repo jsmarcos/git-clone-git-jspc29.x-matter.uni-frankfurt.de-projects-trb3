@@ -80,6 +80,7 @@ package mupix_components is
       memwren              : out std_logic;
       endofevent           : out std_logic;
       ro_busy              : out std_logic;
+      trigger_ext          : in std_logic;
       SLV_READ_IN          : in  std_logic;
       SLV_WRITE_IN         : in  std_logic;
       SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
@@ -236,7 +237,8 @@ package mupix_components is
       FEE_TRG_STATUSBITS_OUT     : out std_logic_vector(31 downto 0);
       FEE_DATA_0_IN              : in  std_logic_vector(31 downto 0);
       FEE_DATA_WRITE_0_IN        : in  std_logic;
-      TRIGGER_BUSY_MUPIX_DATA_IN : in  std_logic;
+      TRIGGER_BUSY_MUPIX_READ_IN : in  std_logic;
+      TRIGGER_BUSY_FIFO_READ_IN  : in  std_logic;
       VALID_TRIGGER_OUT          : out std_logic;
       TRIGGER_TIMING_OUT         : out std_logic;
       TRIGGER_STATUS_OUT         : out std_logic;

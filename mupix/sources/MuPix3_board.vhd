@@ -94,7 +94,7 @@ architecture Behavioral of MuPix3_Board is
   --data from mupix interface
   signal memdata : std_logic_vector(31 downto 0);
   signal memwren : std_logic;
-  signal ro_busy : std_logic;
+  signal ro_mupix_busy : std_logic;
 
   --data from event buffer
   signal buffer_data : std_logic_vector(31 downto 0);
@@ -106,6 +106,7 @@ architecture Behavioral of MuPix3_Board is
   signal status_trigger : std_logic;
   signal buffer_fast_clear : std_logic;
   signal flush_buffer : std_logic;
+  signal trigger_busy_mupix_data_int : std_logic;
 
   -- synced signals from board interface
   signal timestamp_from_mupix_sync : std_logic_vector(7 downto 0);
@@ -187,7 +188,7 @@ begin  -- Behavioral
 
   board_interface_1: entity work.board_interface
     port map (
-      clk_in                    => clk_in,
+      clk_in                    => clk,
       timestamp_from_mupix      => timestamp_from_mupix,
       rowaddr_from_mupix        => rowaddr_from_mupix,
       coladdr_from_mupix        => coladdr_from_mupix,
@@ -229,7 +230,8 @@ begin  -- Behavioral
       hit_time             => timestamp_from_mupix_sync,
       memdata              => memdata,
       memwren              => memwren,
-      ro_busy              => ro_busy,
+      trigger_ext          => valid_trigger_int,
+      ro_busy              => ro_mupix_busy,
       SLV_READ_IN          => slv_read(0),
       SLV_WRITE_IN         => slv_write(0),
       SLV_DATA_OUT         => slv_data_rd(0*32+31 downto 0*32),
@@ -316,12 +318,12 @@ begin  -- Behavioral
       Reset                   => reset,
       MuPixData_in            => memdata,
       MuPixDataWr_in          => memwren,
-      MuPixEndOfEvent_in      => ro_busy,
+      MuPixEndOfEvent_in      => ro_mupix_busy,
       FEE_DATA_OUT            => buffer_data,
       FEE_DATA_WRITE_OUT      => buffer_data_valid,
       FEE_DATA_FINISHED_OUT   => open,
       FEE_DATA_ALMOST_FULL_IN => FEE_DATA_ALMOST_FULL_IN,
-      valid_trigger_in        => flush_buffer_int,
+      valid_trigger_in        => flush_buffer,
       clear_buffer_in         => buffer_fast_clear,
       SLV_READ_IN             => slv_read(5),
       SLV_WRITE_IN            => slv_write(5),
@@ -354,7 +356,8 @@ begin  -- Behavioral
       FEE_TRG_STATUSBITS_OUT     => FEE_TRG_STATUSBITS_OUT,
       FEE_DATA_0_IN              => buffer_data,
       FEE_DATA_WRITE_0_IN        => buffer_data_valid,
-      TRIGGER_BUSY_MUPIX_DATA_IN => ro_busy or buffer_data_valid,
+      TRIGGER_BUSY_MUPIX_READ_IN => ro_mupix_busy,
+      TRIGGER_BUSY_FIFO_READ_IN  => buffer_data_valid,
       VALID_TRIGGER_OUT          => valid_trigger_int,
       TRIGGER_TIMING_OUT         => timing_trigger,
       TRIGGER_STATUS_OUT         => status_trigger,
@@ -364,7 +367,7 @@ begin  -- Behavioral
       SLV_WRITE_IN               => slv_write(6),
       SLV_DATA_OUT               => slv_data_rd(6*32+31 downto 6*32),
       SLV_DATA_IN                => slv_data_wr(6*32+31 downto 6*32),
-      SLV_ADDR_IN                => slv_addr(6*32+31 downto 6*32),
+      SLV_ADDR_IN                => slv_addr(6*16+15 downto 6*16),
       SLV_ACK_OUT                => slv_ack(6),
       SLV_NO_MORE_DATA_OUT       => slv_no_more_data(6),
       SLV_UNKNOWN_ADDR_OUT       => slv_unknown_addr(6));

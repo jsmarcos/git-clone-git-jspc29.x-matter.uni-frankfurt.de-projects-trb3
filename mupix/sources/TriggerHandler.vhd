@@ -40,7 +40,8 @@ entity TriggerHandler is
     FEE_DATA_WRITE_0_IN        : in  std_logic;
     
     -- Trigger FeedBack
-    TRIGGER_BUSY_MUPIX_DATA_IN  : in  std_logic;
+    TRIGGER_BUSY_MUPIX_READ_IN  : in  std_logic;
+    TRIGGER_BUSY_FIFO_READ_IN   : in  std_logic;
     
     -- OUT
     VALID_TRIGGER_OUT          : out std_logic;
@@ -64,7 +65,9 @@ end entity TriggerHandler;
 
 architecture behavioral of TriggerHandler is
 
---trigger 
+--trigger
+  signal reset_trigger_state     : std_logic                     := '0';
+  signal reset_trigger_state_edge : std_logic_vector(1 downto 0) := "00";
   signal valid_trigger_int       : std_logic                     := '0';
   signal timing_trigger_int      : std_logic                     := '0';
   signal timing_trigger_edge     : std_logic_vector(1 downto 0)  := "00";
@@ -73,10 +76,11 @@ architecture behavioral of TriggerHandler is
   signal fast_clear_int          : std_logic                     := '0';
   signal flush_buffer_int        : std_logic                     := '0';
   signal trigger_busy_int        : std_logic                     := '0';
-  signal mupix_readout_end_int   : std_logic_vector(1 downto 0) := "00";
+  signal mupix_readout_end_int   : std_logic_vector(1 downto 0)  := "00";
+  signal fifo_readout_end_int    : std_logic_vector(1 downto 0)  := "00";
 --fee
   signal fee_data_int            : std_logic_vector(31 downto 0) := (others => '0');
-  signal fee_data_write_int      : std_logic;
+  signal fee_data_write_int      : std_logic                     := '0';
   signal fee_data_finished_int   : std_logic                     := '0';
   signal fee_trg_release_int     : std_logic                     := '0';
   signal fee_trg_statusbit_int   : std_logic_vector(31 downto 0) := (others => '0');
@@ -89,11 +93,11 @@ architecture behavioral of TriggerHandler is
   signal trigger_rate_acc : unsigned(31 downto 0) := (others => '0');
   signal trigger_rate_tot : unsigned(31 downto 0) := (others => '0');
   signal trigger_rate_time_counter : unsigned(31 downto 0) := (others => '0');
-  signal invalid_trigger_counter : unsigned(31 downto 0);
+  signal invalid_trigger_counter : unsigned(31 downto 0) := (others => '0');
   signal valid_trigger_counter : unsigned(31 downto 0) := (others => '0');
   signal invalid_trigger_counter_t : unsigned(31 downto 0)  := (others => '0');
   signal valid_trigger_counter_t : unsigned(31 downto 0) := (others => '0');
-  signal trigger_handler_state : std_logic_vector(7 downto 0);
+  signal trigger_handler_state : std_logic_vector(7 downto 0) := (others => '0');
   
 --trigger types
   constant trigger_physics_type : std_logic_vector(3 downto 0) := x"1";
@@ -124,8 +128,10 @@ begin
   Signal_Edge_Detect: process (CLK_IN) is
   begin  -- process Mupix_Readout_End_Detect
     if rising_edge(CLK_IN) then
-      mupix_readout_end_int <= mupix_readout_end_int(0) & TRIGGER_BUSY_MUPIX_DATA_IN;
+      mupix_readout_end_int <= mupix_readout_end_int(0) & TRIGGER_BUSY_MUPIX_READ_IN;
+      fifo_readout_end_int <= fifo_readout_end_int(0) & TRIGGER_BUSY_FIFO_READ_IN;
       timing_trigger_edge <= timing_trigger_edge(0) & TIMING_TRIGGER_IN;
+      reset_trigger_state_edge <= reset_trigger_state_edge(1) & reset_trigger_state;
     end if;
   end process Signal_Edge_Detect;
 
@@ -147,7 +153,7 @@ begin
     trigger_busy_int        <= '1';
     fast_clear_int          <= '0';
     fee_trg_release_int     <= '0';
-    if LVL1_INVALID_TRG_IN = '1'then
+    if LVL1_INVALID_TRG_IN = '1' or reset_trigger_state_edge = "01" then
       fast_clear_int      <= '1';
       fee_trg_release_int <= '1';
       trigger_handler_fsm <= idle;
@@ -218,8 +224,8 @@ begin
 
         when write_data_to_ipu =>
           trigger_handler_state <= x"0A";
-          if mupix_readout_end_int = "10" then
-            fee_data_finished_int <= '1';
+          if fifo_readout_end_int = "10" then
+            --fee_data_finished_int <= '1';
             trigger_handler_fsm <= trigger_release;
           else
             fee_data_int       <= FEE_DATA_0_IN;
@@ -287,6 +293,7 @@ begin
   --0x103: valid triggers
   --0x104: trigger_handler_state
   --0x105: reset counters
+  --0x106: reset trigger state machine
  
   slv_bus_handler : process(CLK_IN)
   begin
@@ -300,6 +307,10 @@ begin
        case SLV_ADDR_IN is
          when x"0105" =>
            reset_trigger_counters <= SLV_DATA_IN(0);
+           slv_ack_out  <= '1';
+         when x"0106" =>
+           reset_trigger_state <= SLV_DATA_IN(0);
+           slv_ack_out  <= '1';
          when others =>
            slv_unknown_addr_out <= '1';
        end case;
@@ -312,13 +323,13 @@ begin
             slv_data_out <= std_logic_vector(trigger_rate_tot);
             slv_ack_out  <= '1';
           when x"0102" =>
-            slv_data_out(10 downto 0) <= std_logic_vector(invalid_trigger_counter);
+            slv_data_out <= std_logic_vector(invalid_trigger_counter);
             slv_ack_out               <= '1';
            when x"0103" =>
-            slv_data_out(10 downto 0) <= std_logic_vector(valid_trigger_counter);
+            slv_data_out <= std_logic_vector(valid_trigger_counter);
             slv_ack_out               <= '1';
           when x"0104" =>
-            slv_data_out(10 downto 0) <= x"000000" & trigger_handler_state;
+            slv_data_out <= x"000000" & trigger_handler_state;
             slv_ack_out               <= '1';
           when others =>
             slv_unknown_addr_out <= '1';

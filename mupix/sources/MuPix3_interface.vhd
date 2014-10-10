@@ -54,41 +54,41 @@ architecture RTL of mupix_interface is
   
 
   type   ro_state_type is (reset, waiting, readman, loadpix, pulld, loadcol, readcol, hitgenerator, hitgeneratorwait,pause);
-  signal state : ro_state_type;
+  signal state : ro_state_type := waiting;
 
 
 
-  signal delcounter : unsigned(3 downto 0);
-  signal delaycounters : std_logic_vector(31 downto 0);
-  signal pauseregister : std_logic_vector(31 downto 0);
-  signal pausecounter : unsigned (31 downto 0);
-  signal ro_busy_int : std_logic;
-  signal graycount : std_logic_vector(7 downto 0);
-  signal eventcounter : unsigned(31 downto 0);
-  signal hitcounter : unsigned(10 downto 0);
+  signal delcounter : unsigned(3 downto 0) := (others => '0');
+  signal delaycounters : std_logic_vector(31 downto 0) := (others => '0');
+  signal pauseregister : std_logic_vector(31 downto 0) := (others => '0');
+  signal pausecounter : unsigned (31 downto 0) := (others => '0');
+  signal ro_busy_int : std_logic := '0';
+  signal graycount : std_logic_vector(7 downto 0) := (others => '0');
+  signal eventcounter : unsigned(31 downto 0) := (others => '0');
+  signal hitcounter : unsigned(10 downto 0) := (others => '0');
 
-  signal triggering            : std_logic;
+  signal triggering            : std_logic := '0';
   signal busy_r                : std_logic := '0';
-  signal continousread         : std_logic;
-  signal readnow               : std_logic;
-  signal readmanual            : std_logic;
-  signal reseteventcount       : std_logic;
-  signal generatehit           : std_logic;
-  signal generatehits          : std_logic;
-  signal generatetriggeredhits : std_logic;
+  signal continousread         : std_logic := '0';
+  signal readnow               : std_logic := '0';
+  signal readmanual            : std_logic := '0';
+  signal reseteventcount       : std_logic := '0';
+  signal generatehit           : std_logic := '0';
+  signal generatehits          : std_logic := '0';
+  signal generatetriggeredhits : std_logic := '0';
 
-  signal ngeneratehits           : std_logic_vector(15 downto 0);
-  signal ngeneratehitscounter    : unsigned(15 downto 0);
-  signal generatehitswaitcounter : unsigned(31 downto 0);
+  signal ngeneratehits           : std_logic_vector(15 downto 0) := (others => '0');
+  signal ngeneratehitscounter    : unsigned(15 downto 0) := (others => '0');
+  signal generatehitswaitcounter : unsigned(31 downto 0) := (others => '0');
 
   signal gen_hit_col  : std_logic_vector(5 downto 0) := (others => '0');
   signal gen_hit_row  : std_logic_vector(5 downto 0) := (others => '0');
   signal gen_hit_time : std_logic_vector(7 downto 0) := (others => '0');
 
-  signal testoutro : std_logic_vector (127 downto 0);
+  signal testoutro : std_logic_vector (127 downto 0) := (others => '0');
   
   --Control Registers
-  signal resetgraycounter : std_logic;
+  signal resetgraycounter     : std_logic                     := '0';
   signal roregwritten         : std_logic                     := '0';
   signal roregister           : std_logic_vector(31 downto 0) := (others => '0');
   signal rocontrolbits        : std_logic_vector(31 downto 0) := (others => '0');
