@@ -111,9 +111,15 @@ architecture behavioral of TriggerHandler is
                                 status_trigger,
                                 write_data_to_eventbuffer,
                                 write_data_to_ipu,
-                                trigger_release,
+                                wait_for_trg_data_valid_a,
+                                wait_for_trg_data_valid_b,
+                                wait_for_trg_data_valid_c,
+                                trigger_release_a,
+                                trigger_release_b,
+                                trigger_release_c,
                                 ignore,
-                                wait_trigger_release_ack);
+                                wait_trigger_data_valid_a,
+                                wait_trigger_data_valid_b);
   
   type trigger_type_type is (t_timing,
                              t_physics,
@@ -205,13 +211,13 @@ begin
 
         when ignore =>
           trigger_handler_state <= x"05";
-          trigger_handler_fsm <= trigger_release;
+          trigger_handler_fsm <= trigger_release_c;
 
         when status_trigger => --dummy implementation
           trigger_handler_state <= x"06";
           fee_data_int <= x"deadbeef";
           fee_data_write_int <= '1';
-          trigger_handler_fsm <= trigger_release;
+          trigger_handler_fsm <= wait_trigger_data_valid_b;
           
         when write_data_to_eventbuffer =>
           trigger_handler_state <= x"07";
@@ -225,27 +231,38 @@ begin
         when write_data_to_ipu =>
           trigger_handler_state <= x"0A";
           if fifo_readout_end_int = "10" then
-            --fee_data_finished_int <= '1';
-            trigger_handler_fsm <= trigger_release;
+            trigger_handler_fsm <= wait_trigger_data_valid_a;
           else
             fee_data_int       <= FEE_DATA_0_IN;
             fee_data_write_int <= FEE_DATA_WRITE_0_IN;
             trigger_handler_fsm <= write_data_to_ipu;
           end if;
 
-        when trigger_release =>
+        when wait_trigger_data_valid_a =>
           trigger_handler_state <= x"0B";
-          fee_data_finished_int <= '1';
-          fee_trg_release_int <= '1';
-          trigger_handler_fsm <= wait_trigger_release_ack;
-
-        when wait_trigger_release_ack =>
-          trigger_handler_state <= x"0C";
           if LVL1_TRG_DATA_VALID_IN = '1' then
-            trigger_handler_fsm <= wait_trigger_release_ack;
-          else
-            trigger_handler_fsm <= idle;
+            trigger_handler_fsm <= wait_trigger_data_valid_b;
           end if;
+          
+
+        when wait_trigger_data_valid_b =>
+          trigger_handler_state <= x"0C";
+          trigger_handler_fsm <= trigger_release_a;
+          
+        when trigger_release_a =>
+          trigger_handler_state <= x"0D";
+          trigger_handler_fsm <= trigger_release_b;
+
+        when trigger_release_b =>
+          trigger_handler_state <= x"0E";
+          fee_data_finished_int <= '1';
+          trigger_handler_fsm <= trigger_release_c;
+          
+        when trigger_release_c =>
+          trigger_handler_state <= x"0F";
+          fee_trg_release_int <= '1';
+          trigger_handler_fsm <= idle;
+
         when others => null;               
       end case;
     end if;
