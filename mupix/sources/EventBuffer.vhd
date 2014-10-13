@@ -77,25 +77,40 @@ architecture behavioral of eventbuffer is
   signal fifo_read_f_fsm : fifo_read_f_states := idle;
   signal fifo_read_f : std_logic := '0';
   signal fifo_read_busy_f : std_logic := '0';
-  signal fifo_read_done_f : std_logic := '0';
-  
+
+  component fifo is
+    generic (
+      addr_wd : integer;
+      word_wd : integer);
+    port (
+      Din     : in  std_logic_vector (word_wd - 1 downto 0);
+      Wr      : in  std_logic;
+      Dout    : out std_logic_vector (word_wd - 1 downto 0);
+      Rd      : in  std_logic;
+      Empty   : out std_logic;
+      Full    : out std_logic;
+      WrCnt_o : out std_logic_vector(addr_wd - 1 downto 0);
+      Reset   : in  std_logic;
+      CLK     : in  std_logic);
+  end component fifo;
 
 begin  -- behavioral
 
-  -- send data to fifo 
-  fifo_32_data_1 : fifo_32_data
+  fifo_1: entity work.fifo
+    generic map (
+      addr_wd => 11,
+      word_wd => 32)
     port map (
-      data  => fifo_data_in,            --data in
-      clock => clk,
-      wren  => fifo_write,
-      rden  => fifo_read_enable,
-      reset => fifo_reset,
-      q     => fifo_data_out,           --data out
-      wcnt  => fifo_write_ctr,
-      empty => fifo_empty,
-      full  => fifo_full
-      );
-
+      Din     => fifo_data_in,
+      Wr      => fifo_write,
+      Dout    => fifo_data_out,
+      Rd      => fifo_read_enable,
+      Empty   => fifo_empty,
+      Full    => fifo_full,
+      WrCnt_o => fifo_write_ctr,
+      Reset   => fifo_reset,
+      CLK     => clk);
+  
   fifo_read_enable <= fifo_read_s or fifo_read_f;
   fifo_reset <= clear_buffer_in;
 
@@ -119,7 +134,6 @@ begin  -- behavioral
     wait until rising_edge(clk);
     fifo_read_f <= '0';
     fifo_read_busy_f <= '0';
-    fifo_read_done_f <= '0';
     fee_data_int <= (others => '0');
     fee_data_write_int <= '0';
     fee_data_finished_int <= '0';

@@ -128,6 +128,9 @@ architecture behavioral of TriggerHandler is
 
   signal trigger_handler_fsm : trigger_handler_type := idle;
   signal trigger_type        : trigger_type_type    := t_unknown;
+  signal wr_header_int : std_logic := '0';
+  signal wr_data_int : std_logic := '0';
+  signal wr_status_int : std_logic := '0';
   
 begin
   
@@ -151,7 +154,6 @@ begin
     timing_trigger_int      <= '0';
     status_trigger_int      <= '0';
     flush_buffer_int        <= '0';
-    fee_data_write_int      <= '0';
     fee_data_finished_int   <= '0';
     fee_trg_release_int     <= '0';
     fee_trg_statusbit_int   <= (others => '0');
@@ -159,6 +161,9 @@ begin
     trigger_busy_int        <= '1';
     fast_clear_int          <= '0';
     fee_trg_release_int     <= '0';
+    wr_header_int           <= '0';
+    wr_data_int             <= '0';
+    wr_status_int           <= '0';
     if LVL1_INVALID_TRG_IN = '1' or reset_trigger_state_edge = "01" then
       fast_clear_int      <= '1';
       fee_trg_release_int <= '1';
@@ -169,9 +174,11 @@ begin
           trigger_busy_int        <= '0';
           trigger_handler_state <= x"01";
           if LVL1_VALID_TIMING_TRG_IN = '1' then
+              wr_header_int <= '1';
               trigger_type <= t_timing;
               trigger_handler_fsm <= timing_trigger;
           elsif(LVL1_VALID_NOTIMING_TRG_IN = '1') then
+            wr_header_int <= '1';
             trigger_handler_fsm <= check_trigger_type;
           end if;
           
@@ -215,8 +222,7 @@ begin
 
         when status_trigger => --dummy implementation
           trigger_handler_state <= x"06";
-          fee_data_int <= x"deadbeef";
-          fee_data_write_int <= '1';
+          wr_status_int <= '1';
           trigger_handler_fsm <= wait_trigger_data_valid_b;
           
         when write_data_to_eventbuffer =>
@@ -230,11 +236,11 @@ begin
 
         when write_data_to_ipu =>
           trigger_handler_state <= x"0A";
+          wr_data_int <= '1';
           if fifo_readout_end_int = "10" then
+            wr_data_int <= '0';
             trigger_handler_fsm <= wait_trigger_data_valid_a;
           else
-            fee_data_int       <= FEE_DATA_0_IN;
-            fee_data_write_int <= FEE_DATA_WRITE_0_IN;
             trigger_handler_fsm <= write_data_to_ipu;
           end if;
 
@@ -268,6 +274,29 @@ begin
     end if;
   end process trigger_handler_proc;
 
+  ------------------------------------------------------------
+  --Data Output Mux
+  ------------------------------------------------------------
+  Data_Out_Mux: process (clk_in) is
+  begin  -- process Data_Out_Mux
+    if rising_edge(clk_in) then
+      if wr_header_int = '1' then
+        fee_data_write_int <= '1';--header see Hades DAQ user guide
+        fee_data_int <= "001" & "0" & LVL1_TRG_TYPE_IN & LVL1_TRG_CODE_IN & LVL1_TRG_NUMBER_IN;
+      elsif wr_data_int = '1' then
+        fee_data_write_int <= FEE_DATA_WRITE_0_IN;
+        fee_data_int <= FEE_DATA_0_IN;
+      elsif wr_status_int = '1' then
+         fee_data_int <= x"deadbeef";
+         fee_data_write_int <= '1';
+      else
+        fee_data_write_int <= '0';
+        fee_data_int <= (others => '1');
+      end if;
+    end if;
+  end process Data_Out_Mux;
+
+  
   ------------------------------------------------------------
   --Trigger statistics
   ------------------------------------------------------------
