@@ -44,8 +44,8 @@ architecture rtl of spi_if is
   signal ckdiv : unsigned(5 downto 0);
 
   signal injection2_reg : std_logic_vector(15 downto 0) := (others => '0');
-  signal injection1_reg : std_logic_vector(15 downto 0);
-  signal threshold_reg  : std_logic_vector(15 downto 0);
+  signal injection1_reg : std_logic_vector(15 downto 0) := (others => '0');
+  signal threshold_reg  : std_logic_vector(15 downto 0) := (others => '0');
   signal wren           : std_logic;
 
 
@@ -142,7 +142,10 @@ begin
             SLV_DATA_OUT <= x"0000" & threshold_reg;
             SLV_ACK_OUT  <= '1';
           when x"0041" =>
-            SLV_DATA_OUT <= injection2_reg & injection1_reg;
+            SLV_DATA_OUT <=  x"0000" & injection1_reg;
+            SLV_ACK_OUT  <= '1';
+          when x"0042" =>
+            SLV_DATA_OUT <= x"0000" & injection2_reg;
             SLV_ACK_OUT  <= '1';
           when others =>
             SLV_UNKNOWN_ADDR_OUT <= '1';
@@ -156,7 +159,10 @@ begin
             SLV_ACK_OUT   <= '1';
             wren <= '1';
           when x"0041" =>
-            injection2_reg <= SLV_DATA_IN(31 downto 16);
+            injection1_reg <= SLV_DATA_IN(15 downto 0);
+            SLV_ACK_OUT    <= '1';
+            wren <= '1';
+          when x"0042" =>
             injection1_reg <= SLV_DATA_IN(15 downto 0);
             SLV_ACK_OUT    <= '1';
             wren <= '1';
