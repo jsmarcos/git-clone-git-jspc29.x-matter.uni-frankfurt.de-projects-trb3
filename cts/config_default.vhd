@@ -12,14 +12,14 @@ package config is
    constant INCLUDE_CBMNET : integer range c_NO to c_YES := c_YES;
 
 --include TDC for all four trigger input lines
-    constant INCLUDE_TDC : integer range c_NO to c_YES := c_NO;
+    constant INCLUDE_TDC : integer range c_NO to c_YES := c_YES;
     constant TDC_CHANNEL_NUMBER : integer := 5;
 
 --Use 64 word ringbuffer instead of 128 word ringbuffer in TDC channels
     constant USE_64_FIFO : integer := c_YES;
 
 --Define ringbuffer size for TDC channels: 32-64-128
-    constant RING_BUFFER_SIZE : integer range 32 to 128 := 32;
+    constant RING_BUFFER_SIZE : integer range 0 to 128 := 1;
     
 --use all four SFP (1-4) as downlink to other boards (only w/o CBMNET)
     constant USE_4_SFP   : integer range c_NO to c_YES := c_NO;
@@ -29,7 +29,7 @@ package config is
     constant USE_125_MHZ : integer range c_NO to c_YES := c_NO;    
 
 --Run external 200 MHz clock source
-    constant USE_EXTERNAL_CLOCK : integer range c_NO to c_YES := c_YES;    
+    constant USE_EXTERNAL_CLOCK : integer range c_NO to c_YES := c_NO;    
     
     
 --Which external trigger module (ETM) to use?
@@ -39,9 +39,6 @@ package config is
 ------------------------------------------------------------------------------
 --End of configuration
 ------------------------------------------------------------------------------
-
-
-
    
 --Ports:
 --        LVL1/IPU       SCtrl
@@ -53,10 +50,6 @@ package config is
 --  5-7   SFP 2-4
 --  5(8)  CTS read-out   internal         0 1 -   X X O   --downlink only
 --  6(9)  CTS TRG        Sctrl GbE        2 3 4   X X X   --uplink only
-
-
-    
- 
  
 ------------------------------------------------------------------------------
 --Hub configuration 

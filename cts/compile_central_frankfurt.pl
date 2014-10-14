@@ -104,10 +104,13 @@ execute($c);
 
 my $tpmap = $TOPNAME . "_map" ;
 
-$c=qq|$lattice_path/ispfpga/bin/lin/map -hier -retime EFFORT=6  -split_node -a $FAMILYNAME -p $DEVICENAME -t $PACKAGE -s $SPEEDGRADE "$TOPNAME.ngd" -o "$tpmap.ncd" -xref_sig  -mp "$TOPNAME.mrp" -td_pack|;
+system("rm $tpmap.ncd");
+$c=qq|$lattice_path/ispfpga/bin/lin/map -hier -td_pack -retime EFFORT=6  -split_node -a $FAMILYNAME -p $DEVICENAME -t $PACKAGE -s $SPEEDGRADE "$TOPNAME.ngd" -o "$tpmap.ncd" -xref_sig  -mp "$TOPNAME.mrp"|;
 execute($c);
 
 system("rm $TOPNAME.ncd");
+
+system "xterm -geometry 120x40+0+45 -e 'watch head -n 100  $TOPNAME.par' &";
 
 $c=qq|mpartrce -p "../$TOPNAME.p2t" -f "../$TOPNAME.p3t" -tf "$TOPNAME.pt" "|.$TOPNAME.qq|_map.ncd" "$TOPNAME.ncd"|;
 execute($c);
@@ -130,7 +133,7 @@ execute($c);
 $c=qq|$lattice_path/ispfpga/bin/lin/trce -fullname -hld -c -v 5 -o "$TOPNAME.twr.hold"  "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
 
-
+system "kill %1";
 
 chdir "..";
 

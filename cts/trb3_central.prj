@@ -80,6 +80,8 @@ add_file -vhdl -lib work "../../trbnet/basics/signal_sync.vhd"
 add_file -vhdl -lib work "../../trbnet/basics/pulse_sync.vhd"
 add_file -vhdl -lib work "../../trbnet/special/trb_net_reset_handler.vhd"
 
+add_file -vhdl -lib work "../base/code/trigger_clock_manager.vhd"
+
 #gbe files
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net_gbe_protocols.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net_gbe_components.vhd"
@@ -269,36 +271,37 @@ if {$INCLUDE_CTS == 1} {
    add_file -vhdl -lib work "source/cts.vhd"
 }
 
+
+add_file -vhdl -lib "work" "tdc_release/tdc_components.vhd"
 if {$INCLUDE_TDC == 1} {
    ###############
    #Change path to tdc release also in compile script!
    ###############
    # don't use vhd but link Adder_304.ngo to workdir!
-   #add_file -vhdl -lib "work" "tdc_release/Adder_304.vhd"
-   add_file -vhdl -lib "work" "tdc_release/fallingEdgeDetect.vhd"
+   add_file -vhdl -lib "work" "../base/cores/FIFO_DC_36x128_OutReg.vhd"
+   add_file -vhdl -lib "work" "../base/cores/FIFO_DC_36x64_OutReg.vhd"
+   add_file -vhdl -lib "work" "../base/cores/FIFO_DC_36x32_OutReg.vhd"
+   add_file -vhdl -lib "work" "../base/cores/FIFO_36x128_OutReg.vhd"
+   add_file -vhdl -lib "work" "../base/cores/FIFO_36x64_OutReg.vhd"
+   add_file -vhdl -lib "work" "../base/cores/FIFO_36x32_OutReg.vhd"
+
    add_file -vhdl -lib "work" "tdc_release/bit_sync.vhd"
    add_file -vhdl -lib "work" "tdc_release/BusHandler.vhd"
    add_file -vhdl -lib "work" "tdc_release/Channel_200.vhd"
    add_file -vhdl -lib "work" "tdc_release/Channel.vhd"
-   add_file -vhdl -lib "work" "tdc_release/hit_mux.vhd"
    add_file -vhdl -lib "work" "tdc_release/Encoder_304_Bit.vhd"
-   #add_file -vhdl -lib "work" "tdc_release/FIFO_32x32_OutReg.vhd"
+   add_file -vhdl -lib "work" "tdc_release/fallingEdgeDetect.vhd"
+   add_file -vhdl -lib "work" "tdc_release/FIFO_36x128_OutReg_Counter.vhd"
+   add_file -vhdl -lib "work" "tdc_release/hit_mux.vhd"
    add_file -vhdl -lib "work" "tdc_release/LogicAnalyser.vhd"
    add_file -vhdl -lib "work" "tdc_release/Readout.vhd"
-   #add_file -vhdl -lib "work" "tdc_release/Reference_Channel_200.vhd"
-   #add_file -vhdl -lib "work" "tdc_release/Reference_Channel.vhd"
+   add_file -vhdl -lib "work" "tdc_release/risingEdgeDetect.vhd"
    add_file -vhdl -lib "work" "tdc_release/ROM_encoder_3.vhd"
-   #add_file -vhdl -lib "work" "tdc_release/ROM_FIFO.vhd"
    add_file -vhdl -lib "work" "tdc_release/ShiftRegisterSISO.vhd"
    add_file -vhdl -lib "work" "tdc_release/TDC.vhd"
-   add_file -vhdl -lib "work" "tdc_release/up_counter.vhd"
-   add_file -vhdl -lib "work" "tdc_release/FIFO_36x128_OutReg_Counter.vhd"
-   add_file -vhdl -lib "work" "tdc_release/risingEdgeDetect.vhd"
-   add_file -vhdl -lib "work" "tdc_release/ROM4_Encoder.vhd"
-   add_file -vhdl -lib "work" "../base/cores/FIFO_36x128_OutReg.vhd"
-   add_file -vhdl -lib "work" "../base/cores/FIFO_DC_36x128_OutReg.vhd"
-   add_file -vhdl -lib "work" "../base/cores/FIFO_DC_36x64_OutReg.vhd"
    add_file -vhdl -lib "work" "tdc_release/TriggerHandler.vhd"
+   add_file -vhdl -lib "work" "tdc_release/up_counter.vhd"
+
 }
 
 add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_interface_pkg.vhd"
@@ -344,31 +347,32 @@ if {$INCLUDE_CBMNET == 1} {
    add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/pcs_init/cn_tx_pcs_wrapper.v"
    add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/pcs_init/cn_async_input_sync.v"
 
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/dlm_reflect.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/dlm_mixed/dlm_reflect.v"
 
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_top.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_arbiter_fsm.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_crc_generator.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_dlm_in.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_dlm_out.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_in_decode.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_init_fsm.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_init.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_in.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_out.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_packet_gen.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_receive_buffer.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_receive_fsm.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_service_ctrl.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_service.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_rx_slave_top.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_rx_top.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_send_buffer_fsm.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_send_buffer.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_send_fsm.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_tx_slave_top.v"
-   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/LP/lp_tx_top.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_crc_gen.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_init_fsm.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_init.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_rx_buffer_read_fsm.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_rx_buffer_read.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_rx_buffer.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_rx_buffer_write_fsm.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_rx_dlm.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_rx_service.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_rx.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_top.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_tx_buffer_read_fsm.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_tx_buffer.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_tx_buffer_write_fsm.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_tx_dlm.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_tx_out_arbiter_fsm.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_tx_out.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_tx_service.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_tx.v"
 
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_tester/lt_random_stopper.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_tester/lt_send_fsm.v"
+   add_file -verilog "../cbmnet/cbmnet/cores/CBMnet/building_blocks/link_tester/link_tester_fe.v"
+   
    add_file -vhdl -lib work "../base/cores/cbmnet_sfp1.vhd"
    add_file -vhdl -lib work "../cbmnet/cores/lattice_ecp3_fifo_16x16_dualport.vhd"
    add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/med_sync_define.vhd"
@@ -390,6 +394,8 @@ if {$INCLUDE_CBMNET == 1} {
 
    add_file -vhdl -lib work "./cbmnet_bridge/pos_edge_strech_sync.vhd"
    add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_sync_module.vhd"
+
+   add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_bridge.vhd"
 }
 
 add_file -vhdl -lib work "./trb3_central.vhd"
