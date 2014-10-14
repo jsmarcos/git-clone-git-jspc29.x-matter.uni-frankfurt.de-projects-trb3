@@ -102,7 +102,7 @@ begin
       if RESET_IN='1' then
          fsm_i <= WAIT_FOR_IDLE;
        
-      elsif fsm_i /= IDLE and (DEC_ERROR_IN = '1' or WFULL_IN = '1') then
+      elsif fsm_i /= IDLE and (DEC_ERROR_IN = '1' or (DEC_ACTIVE_IN='1' and WFULL_IN = '1')) then
          waddr_restore_i <= '1';
          DEC_RESET_OUT <= '1';
          fsm_i <= WAIT_FOR_IDLE;

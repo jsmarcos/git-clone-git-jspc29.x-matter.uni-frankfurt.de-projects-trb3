@@ -275,7 +275,7 @@ begin
    DEBUG_OUT(11 downto  8) <= wfsm_enc_i(wfsm_i);
    DEBUG_OUT(15 downto 12) <= rfsm_enc_i(rfsm_i);
    DEBUG_OUT(19 downto 16) <= "0" & fifo_full_i(0) & fifo_almost_full_i(0) & fifo_empty_i(0);
-   DEBUG_OUT(23 downto 20) <= "0" & fifo_full_i(0) & fifo_almost_full_i(0) & fifo_empty_i(0);   
+   DEBUG_OUT(23 downto 20) <= "0" & fifo_full_i(1) & fifo_almost_full_i(1) & fifo_empty_i(1);   
    DEBUG_OUT(27 downto 24) <= "00" & wfifo_complete_i;
    DEBUG_OUT(31 downto 28) <= "00" & fifo_wreset_i;
 end architecture;

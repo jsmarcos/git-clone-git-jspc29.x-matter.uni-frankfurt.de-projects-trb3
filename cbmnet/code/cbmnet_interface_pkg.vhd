@@ -1,10 +1,96 @@
--- Hardware Independent CBMNet components 
+-- Hardware Independent CBMNet Bridge components 
 
 library ieee;
    use ieee.std_logic_1164.all;
    use ieee.numeric_std.all;
 
 package cbmnet_interface_pkg is
+   component cbmnet_bridge is
+      port (
+      -- clock and reset
+         CLK125_IN : in std_logic;
+         ASYNC_RESET_IN : in std_logic;         
+         TRB_CLK_IN : in std_logic;
+         TRB_RESET_IN : in std_logic;
+         
+         CBM_CLK_OUT : out std_logic;
+         CBM_RESET_OUT: out std_logic;
+         
+      -- Media Interface
+         SD_RXD_P_IN        : in  std_logic := '0';
+         SD_RXD_N_IN        : in  std_logic := '0';
+         SD_TXD_P_OUT       : out std_logic := '0';
+         SD_TXD_N_OUT       : out std_logic := '0';
+
+         SD_PRSNT_N_IN      : in  std_logic;  -- SFP Present ('0' = SFP in place, '1' = no SFP mounted)
+         SD_LOS_IN          : in  std_logic;  -- SFP Loss Of Signal ('0' = OK, '1' = no signal)
+         SD_TXDIS_OUT       : out  std_logic := '0'; -- SFP disable
+
+         LED_RX_OUT         : out std_logic;
+         LED_TX_OUT         : out std_logic;
+         LED_OK_OUT         : out std_logic;
+         
+      -- Status and strobes   
+         CBM_LINK_ACTIVE_OUT     : out std_logic;
+         CBM_DLM_OUT             : out std_logic;
+         CBM_TIMING_TRIGGER_OUT  : out std_logic;
+         CBM_SYNC_PULSER_OUT     : out std_logic;
+
+      -- TRBNet Terminal
+         --data output for read-out
+         TRB_TRIGGER_IN       : in  std_logic;
+         TRB_RDO_VALID_DATA_TRG_IN  : in  std_logic;
+         TRB_RDO_VALID_NO_TIMING_IN : in  std_logic;
+         TRB_RDO_DATA_OUT     : out std_logic_vector(31 downto 0);
+         TRB_RDO_WRITE_OUT    : out std_logic;
+         TRB_RDO_STATUSBIT_OUT: out std_logic_vector(31 downto 0);
+         TRB_RDO_FINISHED_OUT : out std_logic;
+         
+         TRB_TRIGGER_OUT : out std_logic;
+      
+         -- connect to hub
+         HUB_CTS_NUMBER_IN              : in  std_logic_vector (15 downto 0);
+         HUB_CTS_CODE_IN                : in  std_logic_vector (7  downto 0);
+         HUB_CTS_INFORMATION_IN         : in  std_logic_vector (7  downto 0);
+         HUB_CTS_READOUT_TYPE_IN        : in  std_logic_vector (3  downto 0);
+         HUB_CTS_START_READOUT_IN       : in  std_logic;
+         HUB_CTS_READOUT_FINISHED_OUT   : out std_logic;  --no more data, end transfer, send TRM
+         HUB_CTS_STATUS_BITS_OUT        : out std_logic_vector (31 downto 0);
+         HUB_FEE_DATA_IN                : in  std_logic_vector (15 downto 0);
+         HUB_FEE_DATAREADY_IN           : in  std_logic;
+         HUB_FEE_READ_OUT               : out std_logic;  --must be high when idle, otherwise you will never get a dataready
+         HUB_FEE_STATUS_BITS_IN         : in  std_logic_vector (31 downto 0);
+         HUB_FEE_BUSY_IN                : in  std_logic;   
+
+         -- connect to GbE
+         GBE_CTS_NUMBER_OUT             : out std_logic_vector (15 downto 0);
+         GBE_CTS_CODE_OUT               : out std_logic_vector (7  downto 0);
+         GBE_CTS_INFORMATION_OUT        : out std_logic_vector (7  downto 0);
+         GBE_CTS_READOUT_TYPE_OUT       : out std_logic_vector (3  downto 0);
+         GBE_CTS_START_READOUT_OUT      : out std_logic;
+         GBE_CTS_READOUT_FINISHED_IN    : in  std_logic;      --no more data, end transfer, send TRM
+         GBE_CTS_STATUS_BITS_IN         : in  std_logic_vector (31 downto 0);
+         GBE_FEE_DATA_OUT               : out std_logic_vector (15 downto 0);
+         GBE_FEE_DATAREADY_OUT          : out std_logic;
+         GBE_FEE_READ_IN                : in  std_logic;  --must be high when idle, otherwise you will never get a dataready
+         GBE_FEE_STATUS_BITS_OUT        : out std_logic_vector (31 downto 0);
+         GBE_FEE_BUSY_OUT               : out std_logic;
+
+         -- reg io
+         REGIO_ADDR_IN                  : in  std_logic_vector(15 downto 0);
+         REGIO_DATA_IN                  : in  std_logic_vector(31 downto 0);
+         REGIO_READ_ENABLE_IN           : in  std_logic;
+         REGIO_WRITE_ENABLE_IN          : in  std_logic;
+         REGIO_TIMEOUT_IN               : in  std_logic;
+         REGIO_DATA_OUT                 : out std_logic_vector(31 downto 0);
+         REGIO_DATAREADY_OUT            : out std_logic;
+         REGIO_WRITE_ACK_OUT            : out std_logic;
+         REGIO_NO_MORE_DATA_OUT         : out std_logic;
+         REGIO_UNKNOWN_ADDR_OUT         : out std_logic
+      );
+   end component;
+
+
    constant K280 : std_logic_vector(7 downto 0) := "00011100";
    constant K281 : std_logic_vector(7 downto 0) := "00111100";
    constant K282 : std_logic_vector(7 downto 0) := "01011100";
@@ -21,7 +107,7 @@ package cbmnet_interface_pkg is
    constant CBMNET_READY_CHAR0 : std_logic_vector(7 downto 0) :=  K284;
    constant CBMNET_READY_CHAR1 : std_logic_vector(7 downto 0) :=  K287;
    constant CBMNET_ALIGN_CHAR  : std_logic_vector(7 downto 0) :=  K285;
-         
+   
    component cn_rx_pcs_wrapper is
       generic (
          SIMULATION     : integer range 0 to 1 := 0;
@@ -61,6 +147,8 @@ package cbmnet_interface_pkg is
 
    component cn_tx_pcs_wrapper is
       generic (
+         SIMULATION     : integer range 0 to 1 := 0;
+      
          READY_CHAR0    : std_logic_vector( 7 downto 0) :=  K284;
          READY_CHAR1    : std_logic_vector( 7 downto 0) :=  K287;
          ALIGN_CHAR     : std_logic_vector( 7 downto 0) :=  K285;
@@ -82,6 +170,8 @@ package cbmnet_interface_pkg is
          rxpcs_almost_ready     : in std_logic;
          txdata_in              : in std_logic_vector(17 downto 0);
          
+         rx_bitdelay_done       : in std_logic;
+
          txpcs_ready            : out std_logic;
          link_lost              : out std_logic;
          reset_out              : out std_logic;
@@ -96,6 +186,48 @@ package cbmnet_interface_pkg is
       );
    end component;
 
+   component cn_lp_top is
+      port (
+         clk          : in std_logic; --  Main clock
+         res_n        : in std_logic; --  Active low reset, can be changed by define
+         serdes_ready : in std_logic; --  signalize when PHY ready
+         link_active  : out std_logic; --  link is active and can send and receive data
+
+         -- send
+         data2send_start : in std_logic; --  send data interface
+         data2send_end   : in std_logic; 
+         data2send       : in std_logic_vector(15 downto 0); 
+         data2send_stop  : out std_logic; 
+
+         ctrl2send_start : in std_logic; --  send control interface
+         ctrl2send_end   : in std_logic; 
+         ctrl2send       : in std_logic_vector(15 downto 0); 
+         ctrl2send_stop  : out std_logic; 
+
+         dlm2send    : in std_logic_vector(3 downto 0); -- // send dlm interface
+         dlm2send_va : in std_logic; 
+
+         -- receive
+         data_rec_start : out std_logic; --  receive data interface 
+         data_rec_end   : out std_logic; 
+         data_rec       : out std_logic_vector(15 downto 0); 
+         data_rec_stop  : in std_logic; 
+
+         ctrl_rec_start : out std_logic; --  receive control interface   
+         ctrl_rec_end   : out std_logic; 
+         ctrl_rec       : out std_logic_vector(15 downto 0); 
+         ctrl_rec_stop  : in  std_logic; 
+
+         dlm_rec    : out std_logic_vector(3 downto 0); --receive dlm interface
+         dlm_rec_va : out std_logic; 
+
+         -- link signals   
+         data_from_link : in  std_logic_vector(17 downto 0); -- interface from the PHY
+         data2link      : out std_logic_vector(17 downto 0) -- interface to the PHY   
+      );
+   end component;
+   
+   
    component lp_top is 
       generic (
          NUM_LANES : integer := 1;  -- Number of data lanes
@@ -142,48 +274,15 @@ package cbmnet_interface_pkg is
          SERDES_ready      : in  std_logic; -- signalize when PHY ready
                
          -- diagnostics Lane0
-         crc_error_cntr_flag_0     : out std_logic;
-         retrans_cntr_flag_0       : out std_logic;
-         retrans_error_cntr_flag_0 : out std_logic;
-         crc_error_cntr_0          : out std_logic_vector(15 downto 0);
-         retrans_cntr_0            : out std_logic_vector(15 downto 0);
-         retrans_error_cntr_0      : out std_logic_vector(15 downto 0);
-         crc_error_cntr_clr_0      : in std_logic;
-         retrans_cntr_clr_0        : in std_logic;
-         retrans_error_cntr_clr_0  : in std_logic;
-
-         -- diagnostics Lane1
-         crc_error_cntr_flag_1     : out std_logic;
-         retrans_cntr_flag_1       : out std_logic;
-         retrans_error_cntr_flag_1 : out std_logic;
-         crc_error_cntr_1          : out std_logic_vector(15 downto 0);
-         retrans_cntr_1            : out std_logic_vector(15 downto 0);
-         retrans_error_cntr_1      : out std_logic_vector(15 downto 0);
-         crc_error_cntr_clr_1      : in std_logic;   
-         retrans_cntr_clr_1        : in std_logic;    
-         retrans_error_cntr_clr_1  : in std_logic; 
-
-         -- diagnostics Lane2
-         crc_error_cntr_flag_2     : out std_logic;
-         retrans_cntr_flag_2       : out std_logic;
-         retrans_error_cntr_flag_2 : out std_logic;
-         crc_error_cntr_2          : out std_logic_vector(15 downto 0);
-         retrans_cntr_2            : out std_logic_vector(15 downto 0);
-         retrans_error_cntr_2      : out std_logic_vector(15 downto 0);
-         crc_error_cntr_clr_2      : in std_logic;   
-         retrans_cntr_clr_2        : in std_logic;    
-         retrans_error_cntr_clr_2  : in std_logic; 
-
-         -- diagnostics Lane3
-         crc_error_cntr_flag_3     : out std_logic;
-         retrans_cntr_flag_3       : out std_logic;
-         retrans_error_cntr_flag_3 : out std_logic;
-         crc_error_cntr_3          : out std_logic_vector(15 downto 0);
-         retrans_cntr_3            : out std_logic_vector(15 downto 0);
-         retrans_error_cntr_3      : out std_logic_vector(15 downto 0);
-         crc_error_cntr_clr_3      : in std_logic;   
-         retrans_cntr_clr_3        : in std_logic;    
-         retrans_error_cntr_clr_3  : in std_logic
+         crc_error_cntr_flag     : out std_logic_vector(NUM_LANES-1 downto 0);
+         retrans_cntr_flag       : out std_logic_vector(NUM_LANES-1 downto 0);
+         retrans_error_cntr_flag : out std_logic_vector(NUM_LANES-1 downto 0);
+         crc_error_cntr          : out std_logic_vector(16*NUM_LANES-1 downto 0);
+         retrans_cntr            : out std_logic_vector(16*NUM_LANES-1 downto 0);
+         retrans_error_cntr      : out std_logic_vector(16*NUM_LANES-1 downto 0);
+         crc_error_cntr_clr      : in  std_logic_vector(NUM_LANES-1 downto 0);
+         retrans_cntr_clr        : in  std_logic_vector(NUM_LANES-1 downto 0);
+         retrans_error_cntr_clr  : in  std_logic_vector(NUM_LANES-1 downto 0)
       );
    end component;
 
@@ -266,7 +365,9 @@ package cbmnet_interface_pkg is
          CTRL_PADDING : integer := 16#A5A5#;
          OWN_ADDR : std_logic_vector(15 downto 0) := "1000000000000000";
          DEST_ADDR : std_logic_vector(15 downto 0) := "0000000000000000";
-         PACKET_MODE : integer := 1 --if enabled generates another packet size order to test further corner cases
+         PACKET_MODE : integer := 1; --if enabled generates another packet size order to test further corner cases
+         ROC_USE_CASES : integer := 0 --Enables the ROC command interpreter to write and read an ASIC RF with ROC use cases
+
       );
       port (
          clk : in std_logic;
@@ -301,10 +402,14 @@ package cbmnet_interface_pkg is
          ctrl_rec_start : in std_logic;
          ctrl_rec_end : in std_logic;
          ctrl_rec : in std_logic_vector(15 downto 0);
-         ctrl_rec_stop : out std_logic
+         ctrl_rec_stop : out std_logic;
+
+         ctrl_valid : out std_logic;
+         dlm_valid : out std_logic
       );
    end component;
 
+   
    component CBMNET_READOUT is
       port (
       -- TrbNet
