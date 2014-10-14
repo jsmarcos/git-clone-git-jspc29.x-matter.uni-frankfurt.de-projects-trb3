@@ -62,6 +62,8 @@ begin
       clk_125_xfer_del_i <= clk_125_xfer_buf_i;
       CLK_125_OUT <= '0';
       
+      DATA_OUT <= delay_data_i;
+      
       case fsm_i is
          when FSM_HIGH =>
             CLK_125_OUT <= '1';
@@ -77,7 +79,6 @@ begin
 
             
          when FSM_LOW =>
-            DATA_OUT <= delay_data_i;
             fsm_i <= FSM_HIGH;
             
          when others =>

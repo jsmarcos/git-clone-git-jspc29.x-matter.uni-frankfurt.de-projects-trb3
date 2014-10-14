@@ -62,13 +62,8 @@ entity cbmnet_phy_ecp3 is
 end entity;
 
 architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
-   -- Placer Directives
---    attribute syn_hier: string;
---    attribute syn_hier of cbmnet_phy_ecp3_arch : architecture is "hard"; 
---    
---    
---    attribute syn_sharing : string;
---    attribute syn_sharing of cbmnet_phy_ecp3_arch : architecture is "off";
+   attribute syn_hier : string;
+   attribute syn_hier of cbmnet_phy_ecp3_arch : architecture is "hard";
 
    constant WA_FIXATION : integer := c_YES;
    signal DETERMINISTIC_LATENCY_C : std_logic;
@@ -342,12 +337,10 @@ begin
       RM_RESET_IN => rm_rx_to_gear_reset_i,     -- in std_logic;
       CLK_125_OUT => rclk_125_i,                -- out std_logic;
       RESET_OUT   => gear_to_rm_rst_i,          -- out std_logic;
-      DATA_OUT    => rx_data_from_gear_i,       -- out std_logic_vector(17 downto 0)
+      DATA_OUT    => rx_data_i,       -- out std_logic_vector(17 downto 0)
       
       DEBUG_OUT   => rx_gear_debug_i
    );
-   
-   rx_data_i <= rx_data_from_gear_i when rising_edge(rclk_125_i);
    
    THE_TX_GEAR: CBMNET_PHY_TX_GEAR
    generic map (IS_SYNC_SLAVE => IS_SYNC_SLAVE)
@@ -456,7 +449,7 @@ begin
       INCL_8B10B_DEC => 0
    )
    port map (   
-      rx_clk                  => rclk_125_i,             -- in std_logic;
+      rx_clk                  => rclk_125_i,            -- in std_logic;
       res_n_rx                => gear_to_rm_n_rst_i,    -- in std_logic;
       rxpcs_reinit            => rm_tx_to_rx_reinit_i,  -- in std_logic;                     -- Reinit RXPCS 
       rxdata_in(17 downto 0)  => rx_data_i,
@@ -500,6 +493,8 @@ begin
       rxpcs_almost_ready     => rm_rx_almost_ready_i,    --in std_logic;
       txdata_in(15 downto 0) => PHY_TXDATA_IN,           --in std_logic_vector(17 downto 0);
       txdata_in(17 downto 16)=> PHY_TXDATA_K_IN,
+
+      rx_bitdelay_done        => '1',                    --in std_logic;
       
       txpcs_ready            => rm_tx_ready_i,           --out std_logic;
       link_lost              => rm_tx_link_lost_i,       --out std_logic;
@@ -613,6 +608,7 @@ begin
    
    LED_RX_OUT <= '0' when rx_data_i /= "10" & x"fcc3" and  rx_data_i /= "00" & x"0000" else '1';
    LED_TX_OUT <= '0' when tx_data_i /= "10" & x"fcc3" and  tx_data_i /= "00" & x"0000" else '1';
+   LED_OK_OUT <= serdes_ready_i;
    
    GEN_DEBUG: if INCL_DEBUG_AIDS = c_YES generate
       proc_stat: process is
@@ -639,80 +635,76 @@ begin
          last_rx_serdes_rst_i := rx_serdes_rst_i;
       end process;
       
-      PROC_SENSE_TX_DLM125: process is
+      process is
+         variable rx_v, tx_v : std_logic_vector(17 downto 0);
       begin
          wait until rising_edge(rclk_125_i);
-         
-         low_level_tx_see_dlm0_125 <= '0';
-         if tx_data_i = "10" & x"fb6a" then
-            low_level_tx_see_dlm0_125 <= '1';
+
+         rx_stab_i <= rx_stab_i + 1; 
+         if reset = '1' or rx_v /= rx_data_i then
+            rx_stab_i <= (others => '0');
+         end if;
+
+         tx_stab_i <= tx_stab_i + 1;
+         if reset = '1' or tx_v /= tx_data_i then 
+            tx_stab_i <= (others => '0');
+         end if;                  
+
+         rx_v := rx_data_i;
+         tx_v := tx_data_i;
+      end process;
+      
+      PROC_SENSE_DLMS: process begin
+         wait until rising_edge(rclk_125_i);
+
+         if serdes_ready_i = '0' then
+            stat_dlm_counter_i <= (others => '0');
+         elsif rx_data_i(17) = '1' and rx_data_i(15 downto 8) = K277 then
+            stat_dlm_counter_i <= stat_dlm_counter_i + TO_UNSIGNED(1,1);
          end if;
       end process;
+
+      PROC_DEBUG_SYNC: process begin
+         wait until rising_edge(rclk_125_i);
       
-      process is
-      variable rx_v, tx_v : std_logic_vector(17 downto 0);
-      begin
-      wait until rising_edge(rclk_125_i);
-
-      if reset = '1' or rx_v /= rx_data_i then rx_stab_i <= (others => '0');
-      else                                     rx_stab_i <= rx_stab_i + 1; end if;
-
-      if reset = '1' or tx_v /= tx_data_i then tx_stab_i <= (others => '0');
-      else                                     tx_stab_i <= tx_stab_i + 1; end if;
-
-      rx_v := rx_data_i;
-      tx_v := tx_data_i;
-      end process;
-	   
-	   
-	  PROC_SENSE_DLMS: process begin
-		wait until rising_edge(rclk_125_i);
-		
-		if serdes_ready_i = '0' then
-			stat_dlm_counter_i <= (others => '0');
-		elsif rx_data_i(17) = '1' and rx_data_i(15 downto 8) = K277 then
-			stat_dlm_counter_i <= stat_dlm_counter_i + TO_UNSIGNED(1,1);
-		end if;
-	  end process;
-
 -- DEBUG_OUT_BEGIN      
-      DEBUG_OUT(19 downto  0) <= "00" & tx_data_i(17 downto 0);
-      DEBUG_OUT(23 downto 20) <= "0" & tx_pll_lol_i & rx_los_low_i & rx_cdr_lol_i;
+         DEBUG_OUT(19 downto  0) <= "00" & tx_data_i(17 downto 0);
+         DEBUG_OUT(23 downto 20) <= "0" & tx_pll_lol_i & rx_los_low_i & rx_cdr_lol_i;
 
-      DEBUG_OUT(27 downto 24) <= gear_to_fsm_rst_i & barrel_shifter_misaligned_i & SD_PRSNT_N_IN & SD_LOS_IN;
-      DEBUG_OUT(31 downto 28) <= rst_qd_i & rx_serdes_rst_i & tx_pcs_rst_i & rx_pcs_rst_i;
-      
-      DEBUG_OUT( 51 downto 32) <= "00" & rx_data_i(17 downto 0);
-      DEBUG_OUT( 59 downto 52) <= rx_rst_fsm_state_i(3 downto 0) & tx_rst_fsm_state_i(3 downto 0);
-         
-      DEBUG_OUT( 63 downto 60) <= serdes_ready_i & rm_rx_ready_i &  rm_tx_ready_i & rm_tx_almost_ready_i;
-      
-      DEBUG_OUT( 79 downto 64) <= rx_gear_debug_i(15 downto 0);
-      DEBUG_OUT( 95 downto 80) <= tx_gear_debug_i(15 downto 0);
-      
-      DEBUG_OUT( 99 downto 96) <= rm_rx_almost_ready_i & rm_rx_rxpcs_ready_i & rm_rx_see_reinit & rm_rx_ebtb_detect_i;
-      DEBUG_OUT(103 downto 100) <= wa_position_i(3 downto 0);
-      DEBUG_OUT(107 downto 104) <= word_alignment_to_fsm_i & byte_alignment_to_fsm_i & rm_rx_to_gear_reset_i & gear_to_rm_rst_i;
+         DEBUG_OUT(27 downto 24) <= gear_to_fsm_rst_i & barrel_shifter_misaligned_i & SD_PRSNT_N_IN & SD_LOS_IN;
+         DEBUG_OUT(31 downto 28) <= rst_qd_i & rx_serdes_rst_i & tx_pcs_rst_i & rx_pcs_rst_i;
 
-      DEBUG_OUT(123 downto 108) <= tx_stab_i(15 downto 0);
+         DEBUG_OUT( 51 downto 32) <= "00" & rx_data_i(17 downto 0);
+         DEBUG_OUT( 59 downto 52) <= rx_rst_fsm_state_i(3 downto 0) & tx_rst_fsm_state_i(3 downto 0);
+            
+         DEBUG_OUT( 63 downto 60) <= serdes_ready_i & rm_rx_ready_i &  rm_tx_ready_i & rm_tx_almost_ready_i;
 
-      DEBUG_OUT(139 downto 124) <= rx_stab_i(15 downto 0);
-      DEBUG_OUT(147 downto 140) <= stat_init_ack_counter_i(7 downto 0);
-      DEBUG_OUT(179 downto 148) <= stat_last_reconnect_duration_i(31 downto 0);
+         DEBUG_OUT( 79 downto 64) <= rx_gear_debug_i(15 downto 0);
+         DEBUG_OUT( 95 downto 80) <= tx_gear_debug_i(15 downto 0);
 
-      DEBUG_OUT(195 downto 180) <= stat_reconnect_counter_i(15 downto 0);
-      DEBUG_OUT(211 downto 196) <= stat_dlm_counter_i(15 downto 0);
-	   DEBUG_OUT(243 downto 212) <= rm_rx_ebtb_code_err_cntr_i(15 downto 0) & rm_rx_ebtb_disp_err_cntr_i(15 downto 0);
+         DEBUG_OUT( 99 downto 96) <= rm_rx_almost_ready_i & rm_rx_rxpcs_ready_i & rm_rx_see_reinit & rm_rx_ebtb_detect_i;
+         DEBUG_OUT(103 downto 100) <= wa_position_i(3 downto 0);
+         DEBUG_OUT(107 downto 104) <= word_alignment_to_fsm_i & byte_alignment_to_fsm_i & rm_rx_to_gear_reset_i & gear_to_rm_rst_i;
 
-	   DEBUG_OUT(315 downto 244) <= rx_data_sp_i3(17 downto 0) & rx_data_sp_i2(17 downto 0) & rx_data_sp_i1(17 downto 0) & rx_data_sp_i0(17 downto 0);
-	   DEBUG_OUT(331 downto 316) <= dlm_counter_i(15 downto 0);
-	   
+         DEBUG_OUT(123 downto 108) <= tx_stab_i(15 downto 0);
 
-	   DEBUG_OUT(403 downto 332) <= tx_data_sp_i3(17 downto 0) & tx_data_sp_i2(17 downto 0) & tx_data_sp_i1(17 downto 0) & tx_data_sp_i0(17 downto 0);
-      DEBUG_OUT(421 downto 404) <= PHY_TXDATA_K_IN(1 downto 0) & PHY_TXDATA_IN(15 downto 0);
+         DEBUG_OUT(139 downto 124) <= rx_stab_i(15 downto 0);
+         DEBUG_OUT(147 downto 140) <= stat_init_ack_counter_i(7 downto 0);
+         DEBUG_OUT(179 downto 148) <= stat_last_reconnect_duration_i(31 downto 0);
 
-      
+         DEBUG_OUT(195 downto 180) <= stat_reconnect_counter_i(15 downto 0);
+         DEBUG_OUT(211 downto 196) <= stat_dlm_counter_i(15 downto 0);
+         DEBUG_OUT(243 downto 212) <= rm_rx_ebtb_code_err_cntr_i(15 downto 0) & rm_rx_ebtb_disp_err_cntr_i(15 downto 0);
+
+         DEBUG_OUT(315 downto 244) <= rx_data_sp_i3(17 downto 0) & rx_data_sp_i2(17 downto 0) & rx_data_sp_i1(17 downto 0) & rx_data_sp_i0(17 downto 0);
+         DEBUG_OUT(331 downto 316) <= dlm_counter_i(15 downto 0);
+
+
+         DEBUG_OUT(403 downto 332) <= tx_data_sp_i3(17 downto 0) & tx_data_sp_i2(17 downto 0) & tx_data_sp_i1(17 downto 0) & tx_data_sp_i0(17 downto 0);
+         DEBUG_OUT(421 downto 404) <= PHY_TXDATA_K_IN(1 downto 0) & PHY_TXDATA_IN(15 downto 0);
+         DEBUG_OUT(511 downto 422) <= tx_data_sp_i8(17 downto 0) & tx_data_sp_i7(17 downto 0) & tx_data_sp_i6(17 downto 0) & tx_data_sp_i5(17 downto 0) & tx_data_sp_i4(17 downto 0);
 -- DEBUG_OUT_END
+      end process;
    
       process is
       begin
@@ -744,102 +736,16 @@ begin
             tx_data_sp_i11 <= tx_data_sp_i10;
          end if;
       end process;
-      
-      
---       process is 
---          variable detect_first_v : std_logic := '0';
---       begin
---          wait until rising_edge(rclk_250_i);
---          
---          if rx_data_from_serdes_i = "1" & K277 and detect_first_v = '1' then
---             detect_dlm_250_i <= not detect_dlm_250_i;
---          end if;
---          
---          detect_first_v := '0';
---          if rx_data_from_serdes_i = "0" & EBTB_D_ENCODE(14, 6) then
---             detect_first_v := '1';
---          end if;
---       end process;
+
       
       process is 
       begin
          wait until rising_edge(rclk_125_i);
          
---          if detect_dlm_250_i /= detect_dlm_125_i then
---             dlm_counter_i <= dlm_counter_i + 1;
---          end if;
---          
---          detect_dlm_125_i <= detect_dlm_250_i;
-         
-         
          STAT_OP(0)<= '0';
          if rx_data_i = "10" & K277 & EBTB_D_ENCODE(14,6) then
             STAT_OP(0) <= '1';
          end if;
-         
       end process;
-      
---      STAT_OP(2 downto 1) <= detect_dlm_125_i;
-         
-      
-      --PROC_SEE_FAST_DLM: process is
-         --variable saw_lb_v, saw_hb_v : std_logic;
-      --begin
-         --wait until rising_edge(rclk_250_i);
-         
-         --see_dlm_hb_i <= '0' ;
-         --if rx_data_from_serdes_i = '1' & K277 then
-            --see_dlm_hb_i <= '1';
-         --end if;
-         --see_dlm_hb_buf_i <= see_dlm_hb_i;
-         
-         --see_dlm_lb_aggr_i <= '0';
-         --if rx_data_from_serdes_i = '1' & K277 then
-            --see_dlm_lb_aggr_i <= OR_ALL(see_dlm_lb_buf_i);
-         --end if;
-         
-
-         
-         --if rst_i = '1' then
-            --stat_sync_dlm_counter_i <= (others => '0');
-            --stat_sync_dlm_inv_counter_i <= (others => '0');
-            --saw_lb_v := '0';
-            --saw_hb_v := '0';
-            
-         --else
-            --if see_dlm_hb_buf_i = '1' and saw_lb_v = '1' then
-               --stat_sync_dlm_counter_i <= stat_sync_dlm_counter_i + 1;
-            --end if;
-               
-            --if see_dlm_lb_aggr_i = '1' and saw_hb_v = '1' then
-               --stat_sync_dlm_inv_counter_i <= stat_sync_dlm_inv_counter_i + 1;
-            --end if;
-         
-            --saw_lb_v := see_dlm_lb_aggr_i;
-            --saw_hb_v := see_dlm_hb_buf_i;
-         --end if;
-      --end process;
-      
-       --see_dlm_lb_i(0) <= '1' when rx_data_from_serdes_i = '0' & EBTB_D_ENCODE(10, 3) else '0';
-       --see_dlm_lb_i(1) <= '1' when rx_data_from_serdes_i = '0' & EBTB_D_ENCODE(14, 1) else '0';
-       --see_dlm_lb_i(2) <= '1' when rx_data_from_serdes_i = '0' & EBTB_D_ENCODE(20, 1) else '0';
-       --see_dlm_lb_i(3) <= '1' when rx_data_from_serdes_i = '0' & EBTB_D_ENCODE(20, 6) else '0';
-      
-      --see_dlm_lb_i(4) <= '1' when rx_data_from_serdes_i = '0' & EBTB_D_ENCODE(22, 3) else '0';
-       --see_dlm_lb_i(5) <= '1' when rx_data_from_serdes_i = '0' & EBTB_D_ENCODE(28, 2) else '0';
-       --see_dlm_lb_i(6) <= '1' when rx_data_from_serdes_i = '0' & EBTB_D_ENCODE(28, 5) else '0';
-       --see_dlm_lb_i(7) <= '1' when rx_data_from_serdes_i = '0' & EBTB_D_ENCODE(06, 2) else '0';
- 
-       --see_dlm_lb_i(8) <= '1' when rx_data_from_serdes_i = '0' & EBTB_D_ENCODE(14, 6) else '0';
-       --see_dlm_lb_i(9) <= '1' when rx_data_from_serdes_i = '0' & EBTB_D_ENCODE( 3, 1) else '0';
-       --see_dlm_lb_i(10)<= '1' when rx_data_from_serdes_i = '0' & EBTB_D_ENCODE(11, 2) else '0';
-       --see_dlm_lb_i(11)<= '1' when rx_data_from_serdes_i = '0' & EBTB_D_ENCODE(17, 2) else '0';
-       
-       --see_dlm_lb_i(12)<= '1' when rx_data_from_serdes_i = '0' & EBTB_D_ENCODE(25, 3) else '0';
-       --see_dlm_lb_i(13)<= '1' when rx_data_from_serdes_i = '0' & EBTB_D_ENCODE(17, 5) else '0';
-       --see_dlm_lb_i(14)<= '1' when rx_data_from_serdes_i = '0' & EBTB_D_ENCODE( 3, 6) else '0';
-       --see_dlm_lb_i(15)<= '1' when rx_data_from_serdes_i = '0' & EBTB_D_ENCODE( 5, 3) else '0';
-
-      --see_dlm_lb_buf_i <= see_dlm_lb_i when rising_edge(rclk_250_i);
    end generate;
 end architecture;

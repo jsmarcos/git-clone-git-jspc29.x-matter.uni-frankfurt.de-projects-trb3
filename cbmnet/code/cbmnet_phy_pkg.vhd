@@ -30,7 +30,6 @@ package cbmnet_phy_pkg is
          CLK_RX_FULL_OUT    : out std_logic := '0';  -- recovered 250 MHz
          CLK_RX_RESET_OUT   : out std_logic := '1';  -- set to 0, ~1us after link is recognised to be stable
 
-         LINK_ACTIVE_OUT    : out std_logic; -- link is active and can send and receive data
          SERDES_ready       : out std_logic;
 
          --SFP Connection
