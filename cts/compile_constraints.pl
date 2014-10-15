@@ -66,7 +66,7 @@ open FILE, "<$workdir/$TOPNAME.lpf" or die "Couldnt open file: $!";
 my $lpf = join('', <FILE>); 
 close FILE;
 
-$lpf =~ s#THE_CBM_BRIDGE/#GEN_CBM.THE_CBM_BRIDGE/#g;
+$lpf =~ s#THE_CBM_BRIDGE/#GEN_CBMNET.THE_CBM_BRIDGE/#g;
 
 
 $lpf =~ s#THE_TDC/#GEN_TDC.THE_TDC/#g;
