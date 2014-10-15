@@ -10,6 +10,7 @@ use warnings;
 use Data::Dumper;
 use File::Copy;
 use Term::ANSIColor;
+use Cwd 'abs_path';
 
 sub parsePRJ {
    my $input = shift;
@@ -23,9 +24,11 @@ sub parsePRJ {
          $options->{$1} = $2;
       }
       
-      if ($line =~ m/^\s*add_file -(vhdl|verilog)( -lib "?([^"\s]+)"?|)? "?([^"]+)"?$/g) {
+      if ($line =~ m/^\s*add_file -(vhdl|verilog|fpga_constraint)( -lib "?([^"\s]+)"?|)? "?([^"]+)"?$/g) {
          push @files, [$3, $4];
       }
+      
+
    }
    
    close FH;
@@ -49,13 +52,22 @@ sub generateLDF {
    $prj_title =~ s/trb3_(central|periph)_(.+)/$2/;
 
    my $def_impl = $options->{'top_module'};
+   
+   my $inclPath = $options->{'include_path'};
+   $inclPath = '' if (!$inclPath);
+   $inclPath =~ s/\{(.*)\}$/$1/;
+   #$inclPath = abs_path($inclPath) if ($inclPath);
 
    print FH "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n";
-   print FH "<BaliProject version=\"2.0\" title=\"$prj_title\" device=\"$device\" default_implementation=\"$def_impl\">\n";
+   print FH "<BaliProject version=\"3.2\" title=\"$prj_title\" device=\"$device\" default_implementation=\"$def_impl\">\n";
    print FH "    <Options/>\n";
    print FH "    <Implementation title=\"$def_impl\" dir=\"$def_impl\" description=\"Automatically generated implemenatation\" default_strategy=\"Strategy1\">\n";
-   print FH "        <Options def_top=\"$def_impl\" top=\"$def_impl\"/>\n";
-   
+   print FH "        <Options def_top=\"$def_impl\">\n";
+   print FH "            <Option name=\"include path\" value=\"$path$inclPath\" />\n" if ($inclPath);
+   print FH "            <Option name=\"top\" value=\"$def_impl\" />\n";
+   print FH "        </Options>\n";
+      
+
    my $lpf_included = 0;
    
    for my $filer (@{$files}) {
@@ -71,6 +83,8 @@ sub generateLDF {
       } elsif ("lpf" eq $suffix) {
          print FH "        <Source name=\"$fpath\" type=\"Logic Preference\" type_short=\"LPF\"><Options/></Source>\n";
          $lpf_included = 1;
+      } elsif ("fdc" eq $suffix) {
+         print FH "        <Source name=\"$fpath\" type=\"Synplify Design Constraints File\" type_short=\"SDC\"><Options/></Source>\n";
       } else {
          print "WARNING: Could not determine type of input file $file. Not included!\n";
       }
