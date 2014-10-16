@@ -41,7 +41,7 @@ end CBMNET_READOUT_FIFO;
 architecture cbmnet_readout_fifo_arch of CBMNET_READOUT_FIFO is
    constant FIFO_NUM_C : positive := 2;
    
-   component cbmnet_fifo_18x2k_dp is
+   component cbmnet_fifo_18x32k_dp is
       port (
          Data: in  std_logic_vector(17 downto 0); 
          WrClock: in  std_logic; 
@@ -51,12 +51,12 @@ architecture cbmnet_readout_fifo_arch of CBMNET_READOUT_FIFO is
          Reset: in  std_logic; 
          RPReset: in  std_logic; 
          Q: out  std_logic_vector(17 downto 0); 
-         WCNT: out  std_logic_vector(11 downto 0); 
          Empty: out  std_logic; 
          Full: out  std_logic; 
          AlmostFull: out  std_logic
       );
    end component;
+   
    
    signal rread_fifo_i, wread_fifo_i, rwrite_fifo_i, wwrite_fifo_i : integer range 0 to FIFO_NUM_C-1;
    
@@ -67,7 +67,7 @@ architecture cbmnet_readout_fifo_arch of CBMNET_READOUT_FIFO is
    signal fifo_almost_full_i : std_logic_vector(FIFO_NUM_C-1 downto 0);
    
    signal fifo_data_i   : std_logic_vector(FIFO_NUM_C*18 - 1 downto 0);
-   signal fifo_wcount_i : std_logic_vector(FIFO_NUM_C*12 - 1 downto 0);
+   signal fifo_wcount_i : std_logic_vector(FIFO_NUM_C*16 - 1 downto 0);
 
    signal fifo_reset_i  : std_logic_vector(FIFO_NUM_C - 1 downto 0);
    signal fifo_rreset_i : std_logic_vector(FIFO_NUM_C - 1 downto 0);
@@ -253,7 +253,7 @@ begin
 
 
    GEN_FIFOS: for i in 0 to FIFO_NUM_C-1 generate
-      THE_FIFO: cbmnet_fifo_18x2k_dp
+      THE_FIFO: cbmnet_fifo_18x32k_dp
       port map (
          Data    => WDATA_IN, -- in  std_logic_vector(17 downto 0); 
          WrClock => WCLK_IN, -- in  std_logic; 
@@ -263,7 +263,6 @@ begin
          Reset   => fifo_wreset_i(i), -- in  std_logic; 
          RPReset => fifo_rreset_i(i), -- in  std_logic; 
          Q       => fifo_data_i(17 + 18*i downto 18*i), -- out  std_logic_vector(17 downto 0); 
-         WCNT    => open, -- out  std_logic_vector(11 downto 0); 
          Empty   => fifo_empty_i(i), -- out  std_logic; 
          Full    => fifo_full_i(i), -- out  std_logic; 
          AlmostFull => fifo_almost_full_i(i) -- out  std_logic

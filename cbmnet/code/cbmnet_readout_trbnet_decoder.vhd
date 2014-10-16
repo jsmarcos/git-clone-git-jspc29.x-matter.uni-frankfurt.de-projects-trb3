@@ -50,7 +50,7 @@ architecture cbmnet_readout_trbnet_decoder_arch of CBMNET_READOUT_TRBNET_DECODER
    
    signal data_i : std_logic_vector(15 downto 0);
    signal dec_evt_info_i : std_logic_vector(31 downto 0);
-   signal dec_length_i   : std_logic_vector(15 downto 0);
+   signal dec_length_i   : std_logic_vector(15 downto 0); -- in bytes !
    signal dec_source_i   : std_logic_vector(15 downto 0);
    signal dec_error_i    : std_logic;
    

@@ -114,7 +114,7 @@ begin
                remaining_words_to_dequeue_i(14 downto 0) <= UNSIGNED(fifo_data_i(15 downto 1)) - TO_UNSIGNED(1, 15);
                assert(fifo_token_i = "10") report "Invalid LENGTH_L token"  severity failure;
                assert(to_integer(UNSIGNED(fifo_data_i)) >= 24) report "TrbNet packet too short. Expect minimal length of 24 bytes." severity failure;
-               assert(to_integer(UNSIGNED(fifo_data_i)) < 4096) report "TrbNet packet too long. This module should support sending of transactions with upto 32kb data, but only 4kb transactions have been specified and tested" severity failure;
+               assert(to_integer(UNSIGNED(fifo_data_i)) < 35536) report "TrbNet packet too long." severity failure;
                fsm_i <= FIRST_FRAME_SEND_HDR;
             
             when FIRST_FRAME_SEND_HDR =>

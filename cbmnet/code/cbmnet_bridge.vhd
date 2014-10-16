@@ -412,7 +412,7 @@ begin
 
 
       CTRL_PADDING => 16#A5A5#,
-      OWN_ADDR => "1000000000000000",
+      OWN_ADDR => x"0000",
       DEST_ADDR => "0000000000000000",
       PACKET_MODE => 1 --if enabled generates another packet size order to test further corner cases
    ) port map (
@@ -468,7 +468,8 @@ begin
       TRB_RDO_DATA_OUT      => TRB_RDO_DATA_OUT, --  out std_logic_vector(31 downto 0);
       TRB_RDO_WRITE_OUT     => TRB_RDO_WRITE_OUT, --  out std_logic;
       TRB_RDO_FINISHED_OUT  => TRB_RDO_FINISHED_OUT, --  out std_logic;
-
+      TRB_RDO_STATUSBIT_OUT  => open,
+      
       -- reg io
       TRB_REGIO_ADDR_IN(15 downto 4)      => x"000",
       TRB_REGIO_ADDR_IN(3 downto 0)       => cbm_sync_regio_addr_i, --  in  std_logic_vector(15 downto 0);
@@ -501,6 +502,7 @@ begin
       CBM_CTRL_DATA_END_IN     => cbm_ctrl_rec_end_i,   --  in std_logic;
       CBM_CTRL_DATA_STOP_OUT   => cbm_ctrl_rec_stop_i,  --  out std_logic;
       
+      
       DEBUG_OUT       => open --  out std_logic_vector(31 downto 0)    
    );      
 
@@ -516,6 +518,8 @@ begin
    cbm_lt_data2send_stop_i   <= (not cbm_data_mux_crs_i) or cbm_data2send_stop_i;
    cbm_rdo_data2send_stop_i  <= cbm_data_mux_crs_i or cbm_data2send_stop_i;
    
+   cbm_data_rec_stop_i <= '1';
+   
    THE_BUS_HANDLER : trb_net16_regio_bus_handler
    generic map(
       PORT_NUMBER    => 3,
@@ -526,7 +530,8 @@ begin
       CLK                   => TRB_CLK_IN,
       RESET                 => TRB_RESET_IN,
 
-      DAT_ADDR_IN           => REGIO_ADDR_IN,
+      DAT_ADDR_IN(8 downto 0)  => REGIO_ADDR_IN(8 downto 0),
+      DAT_ADDR_IN(15 downto 9) => (others => '0'),
       DAT_DATA_IN           => REGIO_DATA_IN,
       DAT_DATA_OUT          => REGIO_DATA_OUT,
       DAT_READ_ENABLE_IN    => REGIO_READ_ENABLE_IN,
@@ -572,7 +577,9 @@ begin
       BUS_DATAREADY_IN(2)                 => cbm_sync_regio_read_ack_i,
       BUS_WRITE_ACK_IN(2)                 => cbm_sync_regio_write_ack_i,
       BUS_NO_MORE_DATA_IN(2)              => '0',
-      BUS_UNKNOWN_ADDR_IN(2)              => cbm_sync_regio_unknown_i
+      BUS_UNKNOWN_ADDR_IN(2)              => cbm_sync_regio_unknown_i,
+      
+      stat_debug => open
    );
    
    

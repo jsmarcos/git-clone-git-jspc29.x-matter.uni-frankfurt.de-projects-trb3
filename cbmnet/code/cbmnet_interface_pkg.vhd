@@ -89,6 +89,39 @@ package cbmnet_interface_pkg is
          REGIO_UNKNOWN_ADDR_OUT         : out std_logic
       );
    end component;
+   
+   component trbnet_rdo_pattern_generator is
+      port (
+         CLK_IN : in std_logic;
+         RESET_IN : in std_logic;
+      
+         HUB_CTS_NUMBER_OUT          : out  std_logic_vector (15 downto 0);
+         HUB_CTS_CODE_OUT            : out  std_logic_vector (7  downto 0);
+         HUB_CTS_OUTFORMATION_OUT    : out  std_logic_vector (7  downto 0);
+         HUB_CTS_READOUT_TYPE_OUT    : out  std_logic_vector (3  downto 0);
+         HUB_CTS_START_READOUT_OUT   : out  std_logic;
+         HUB_CTS_READOUT_FINISHED_IN : in std_logic;  --no more data, end transfer, send TRM
+         HUB_CTS_STATUS_BITS_IN      : in std_logic_vector (31 downto 0);
+         HUB_FEE_DATA_OUT            : out  std_logic_vector (15 downto 0);
+         HUB_FEE_DATAREADY_OUT       : out  std_logic;
+         HUB_FEE_READ_IN             : in std_logic;  --must be high when idle, otherwise you will never get a dataready
+         HUB_FEE_STATUS_BITS_OUT     : out  std_logic_vector (31 downto 0);
+         HUB_FEE_BUSY_OUT            : out  std_logic;      
+
+
+         REGIO_READ_ENABLE_IN   : in  std_logic; 
+         REGIO_WRITE_ENABLE_IN  : in  std_logic; 
+         REGIO_DATA_IN          : in  std_logic_vector (31 downto 0);
+         REGIO_ADDR_IN          : in  std_logic_vector (15 downto 0);
+         REGIO_TIMEOUT_IN       : in  std_logic; 
+         REGIO_DATA_OUT         : out  std_logic_vector (31 downto 0);
+         REGIO_DATAREADY_OUT    : out  std_logic; 
+         REGIO_WRITE_ACK_OUT    : out  std_logic; 
+         REGIO_NO_MORE_DATA_OUT : out  std_logic; 
+         REGIO_UNKNOWN_ADDR_OUT : out  std_logic
+      );
+   end component;
+   
 
 
    constant K280 : std_logic_vector(7 downto 0) := "00011100";

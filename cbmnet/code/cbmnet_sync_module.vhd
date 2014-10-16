@@ -241,6 +241,7 @@ begin
    begin
       wait until rising_edge(CBM_CLK_IN);
       
+      CBM_TIMING_TRIGGER_OUT <= '0';
       
       if CBM_RESET_IN='1' or cbm_from_trb_reset_in ='1' then
          cbm_trb_rdo_fsm_i <= IDLE;
@@ -250,7 +251,7 @@ begin
       
       case (cbm_trb_rdo_fsm_i) is
          when IDLE =>
-            if cbm_from_trb_trigger_buf_in = '1' then
+            if cbm_from_trb_trigger_in = '1' then
                CBM_TIMING_TRIGGER_OUT <= '1';
             end if;
          
