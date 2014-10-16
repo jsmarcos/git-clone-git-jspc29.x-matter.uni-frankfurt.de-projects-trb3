@@ -14,11 +14,8 @@
 ###==== END Collections
 
 ###==== BEGIN Clocks - (Populated from tab in SCOPE, do not edit)
-create_clock  -name {rclk125} {n:GEN_CBMNET\.THE_CBM_BRIDGE.THE_CBM_PHY.THE_RX_GEAR.CLK_125_OUT} -period {8}
 create_clock  -name {clk100} {n:THE_MAIN_PLL.CLKOP} -period {10}
 create_clock  {n:THE_MAIN_PLL.CLKOK} -period {5}
-create_clock  {n:GEN_CBMNET\.THE_CBM_BRIDGE.THE_CBM_PHY.THE_SERDES.rx_full_clk_ch0} -period {4}
-create_clock  {n:GEN_CBMNET\.THE_CBM_BRIDGE.THE_CBM_PHY.THE_SERDES.tx_full_clk_ch0} -period {4}
 create_clock  {n:THE_MEDIA_ONBOARD.gen_serdes_200\.THE_SERDES.refclkdiv2_rx_ch0} -period {10}
 create_clock  {n:THE_MEDIA_ONBOARD.gen_serdes_200\.THE_SERDES.refclkdiv2_rx_ch1} -period {10}
 create_clock  {n:THE_MEDIA_ONBOARD.gen_serdes_200\.THE_SERDES.refclkdiv2_rx_ch2} -period {10}
@@ -28,6 +25,10 @@ create_clock  -name {refTime} {n:GEN_CTS\.THE_CTS.TIME_REFERENCE_OUT} -period {1
 create_clock  {n:GBE.imp_gen\.serdes_intclk_gen\.PCS_SERDES.clk_int\.SERDES_GBE.rx_full_clk_ch3} -period {8}
 create_clock  {p:CLK_GPLL_RIGHT} -period {8}
 create_clock  {p:CLK_PCLK_RIGHT} -period {5}
+
+create_clock  -name {rclk125} {n:GEN_CBMNET\.THE_CBM_BRIDGE.THE_CBM_PHY.THE_RX_GEAR.CLK_125_OUT} -period {8}
+create_clock  {n:GEN_CBMNET\.THE_CBM_BRIDGE.THE_CBM_PHY.THE_SERDES.rx_full_clk_ch0} -period {4}
+create_clock  {n:GEN_CBMNET\.THE_CBM_BRIDGE.THE_CBM_PHY.THE_SERDES.tx_full_clk_ch0} -period {4}
 
 ###==== END Clocks
 

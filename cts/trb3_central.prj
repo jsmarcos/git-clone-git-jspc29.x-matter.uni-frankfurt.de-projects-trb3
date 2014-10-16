@@ -383,7 +383,7 @@ if {$INCLUDE_CBMNET == 1} {
    add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_phy_tx_gear.vhd"
    add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_phy_ecp3.vhd"
 
-   add_file -vhdl -lib work "../cbmnet/cores/cbmnet_fifo_18x2k_dp.vhd"
+   add_file -vhdl -lib work "../cbmnet/cores/cbmnet_fifo_18x32k_dp.vhd"
    add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_readout_trbnet_decoder.vhd"
    add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_readout_event_packer.vhd"
    add_file -vhdl -lib work "./cbmnet_bridge/cbmnet_readout_fifo_ecp3.vhd"

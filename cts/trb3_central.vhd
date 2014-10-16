@@ -1659,6 +1659,7 @@ begin
       tdc_inputs(1) <= cbm_sync_pulser_i;
       tdc_inputs(2) <= cbm_sync_dlm_sensed_i;
       tdc_inputs(3) <= cbm_sync_timing_trigger_i;
+      tdc_inputs(4) <= NIM_IN(0);
          
          
       PROC_TDC_CTRL_REG : process 

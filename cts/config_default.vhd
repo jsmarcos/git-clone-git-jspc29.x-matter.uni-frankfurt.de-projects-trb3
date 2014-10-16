@@ -13,7 +13,7 @@ package config is
 
 --include TDC for all four trigger input lines
     constant INCLUDE_TDC : integer range c_NO to c_YES := c_YES;
-    constant TDC_CHANNEL_NUMBER : integer := 5;
+    constant TDC_CHANNEL_NUMBER : integer := 4;
 
 --Use 64 word ringbuffer instead of 128 word ringbuffer in TDC channels
     constant USE_64_FIFO : integer := c_YES;
