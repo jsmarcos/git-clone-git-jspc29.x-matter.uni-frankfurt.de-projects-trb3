@@ -29,7 +29,7 @@ my $SPEEDGRADE="8";
 
 
 #create full lpf file
-system("cp ../base/$TOPNAME"."_nxyter.lpf workdir/$TOPNAME.lpf");
+system("cp ./$TOPNAME"."_nxyter.lpf workdir/$TOPNAME.lpf");
 system("cat ".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
 
 #set -e
