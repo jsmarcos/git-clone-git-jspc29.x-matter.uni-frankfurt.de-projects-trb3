@@ -1,9 +1,9 @@
 ###==== BEGIN Header
 
 # Synopsys, Inc. constraint file
-# /d/jspc29/mpenschuck/trb3/cbmnet/project/trb3_periph_cbmnet_syn.fdc
-# Written on Fri Aug  8 13:40:28 2014
-# by Synplify Pro, I-2013.09-SP1  FDC Constraint Editor
+# /d/jspc29/mpenschuck/trb3/cbmnet/trb3_periph_cbmnet_syn.fdc
+# Written on Wed Oct 15 17:58:27 2014
+# by Synplify Premier with Design Planner, G-2012.09-SP1  FDC Constraint Editor
 
 # Custom constraint commands may be added outside of the SCOPE tab sections bounded with BEGIN/END.
 # These sections are generated from SCOPE spreadsheet tabs.
@@ -21,11 +21,10 @@ create_clock  {n:THE_MEDIA_UPLINK.gen_serdes_1_200\.THE_SERDES.refclkdiv2_rx_ch1
 create_clock  {n:THE_MEDIA_UPLINK.gen_serdes_1_200\.THE_SERDES.refclkdiv2_tx_ch} -period {10}
 create_clock  {p:CLK_GPLL_LEFT} -period {8}
 create_clock  {p:TRIGGER_LEFT} -period {10}
-
-create_clock  -name {rclk125} {n:THE_CBM_BRIDGE.THE_CBM_PHY.THE_RX_GEAR.CLK_125_OUT} -period {8}
+create_clock  -name {rclk125} {n:THE_CBM_BRIDGE.THE_CBM_PHY.THE_RX_GEAR.proc_gear\.clk_125_i} -period {8}
 create_clock  {n:THE_CBM_BRIDGE.THE_CBM_PHY.THE_SERDES.rx_full_clk_ch0} -period {4}
 create_clock  {n:THE_CBM_BRIDGE.THE_CBM_PHY.THE_SERDES.tx_full_clk_ch0} -period {4}
-
+create_clock  -disable
 
 ###==== END Clocks
 
@@ -46,6 +45,7 @@ create_clock  {n:THE_CBM_BRIDGE.THE_CBM_PHY.THE_SERDES.tx_full_clk_ch0} -period 
 
 ###==== BEGIN "Compile Points" - (Populated from tab in SCOPE, do not edit)
 ###==== END "Compile Points"
+
 
 
 

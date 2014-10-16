@@ -116,10 +116,9 @@ entity trb3_periph_cbmnet is
 end entity;
 
 architecture trb3_periph_arch of trb3_periph_cbmnet is
---Constants
+   --Constants
    constant REGIO_NUM_STAT_REGS : integer := 2;
    constant REGIO_NUM_CTRL_REGS : integer := 2;
-
 
    --Clock / Reset
    signal clk_125_i                : std_logic; -- clock reference for CBMNet serdes
@@ -133,13 +132,6 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
 
    attribute syn_keep of GSR_N     : signal is true;
    attribute syn_preserve of GSR_N : signal is true;
-
-
-   signal rclk_125_i                : std_logic; -- recovered clock 
-   signal rclk_250_i                : std_logic; -- recovered clock 
-   
-   signal rreset_i                  : std_logic; -- reset for recovered clock ~ 1us after clock becomes stable
-
 
    --Media Interface
    signal med_stat_op        : std_logic_vector (1*16-1 downto 0) := (others => '0');
@@ -224,27 +216,11 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    signal spimem_data_out  : std_logic_vector(31 downto 0);
    signal spimem_ack       : std_logic;
 
-   signal debug_read_en   : std_logic;
-   signal debug_write_en  : std_logic;
-   signal debug_data_in   : std_logic_vector(31 downto 0);
-   signal debug_addr      : std_logic_vector(5 downto 0);
-   signal debug_data_out  : std_logic_vector(31 downto 0);
-   signal debug_ack       : std_logic;
-
-   signal sync_regio_read_en   : std_logic;
-   signal sync_regio_write_en  : std_logic;
-   signal sync_regio_status_data   : std_logic_vector(31 downto 0);
-   signal sync_regio_addr      : std_logic_vector(3 downto 0);
-   signal sync_regio_config_data  : std_logic_vector(31 downto 0);
-   signal sync_regio_read_ack       : std_logic;
-   signal sync_regio_write_ack       : std_logic;
-   signal sync_regio_unknown       : std_logic;
-   
    signal trb_trigger : std_logic;
    signal sync_dlm_sense : std_logic;
    signal sync_pulser : std_logic;
-   
-   
+
+
    signal spi_bram_addr : std_logic_vector(7 downto 0);
    signal spi_bram_wr_d : std_logic_vector(7 downto 0);
    signal spi_bram_rd_d : std_logic_vector(7 downto 0);
@@ -254,89 +230,40 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    signal time_counter : unsigned(31 downto 0);
 
    -- CBMNet signals
-   signal cbm_res_n             :  std_logic; -- Active low reset; can be changed by define
+
+
+   signal hub_cts_number                   : std_logic_vector(15 downto 0);
+   signal hub_cts_code                     : std_logic_vector(7 downto 0);
+   signal hub_cts_information              : std_logic_vector(7 downto 0);
+   signal hub_cts_start_readout            : std_logic;
+   signal hub_cts_readout_type             : std_logic_vector(3 downto 0);
+   signal hub_cts_readout_finished         : std_logic;
+   signal hub_cts_status_bits              : std_logic_vector(31 downto 0);
+   signal hub_fee_data                     : std_logic_vector(15 downto 0);
+   signal hub_fee_dataready                : std_logic;
+   signal hub_fee_read                     : std_logic;
+   signal hub_fee_status_bits              : std_logic_vector(31 downto 0);
+   signal hub_fee_busy                     : std_logic;
+
+   signal gbe_cts_number                   : std_logic_vector(15 downto 0);
+   signal gbe_cts_code                     : std_logic_vector(7 downto 0);
+   signal gbe_cts_information              : std_logic_vector(7 downto 0);
+   signal gbe_cts_start_readout            : std_logic;
+   signal gbe_cts_readout_type             : std_logic_vector(3 downto 0);
+   signal gbe_cts_readout_finished         : std_logic;
+   signal gbe_cts_status_bits              : std_logic_vector(31 downto 0);
+   signal gbe_fee_data                     : std_logic_vector(15 downto 0);
+   signal gbe_fee_dataready                : std_logic;
+   signal gbe_fee_read                     : std_logic;
+   signal gbe_fee_status_bits              : std_logic_vector(31 downto 0);
+   signal gbe_fee_busy                     : std_logic;  
+
+   signal do_reboot_i : std_logic;
+
+   signal cbm_clk_i : std_logic;
+   signal cbm_reset_i : std_logic;
    signal cbm_link_active       :  std_logic; -- link is active and can send and receive data
-
-   signal phy_stat_op,    phy_ctrl_op    : std_logic_vector(15 downto 0) := (others => '0');
-   signal phy_stat_debug, phy_ctrl_debug : std_logic_vector(63 downto 0) := (others => '0');
-   
-   signal phy_debug_i : std_logic_vector (511 downto 0) := (others => '0');
-   signal phy_debug_i_buf : std_logic_vector (511 downto 0);
-   
-   signal tp_mux_i : std_logic;
-
-   signal dummy : std_logic;
-   
-   signal send_num_pack_counter_i : unsigned(15 downto 0); 
-   signal send_enabled_i : std_logic := '0';
-   
-   signal send_wait_counter_i1 : unsigned(31 downto 0);
-   signal send_wait_counter_i2 : unsigned(31 downto 0);
-   signal send_wait_threshold_i : unsigned(31 downto 0);
-   signal send_burst_threshold_i : unsigned(31 downto 0);
-   signal send_burst_counter_i : unsigned(31 downto 0);   
-   
-   signal dlm_counter_i : unsigned(31 downto 0);
-   signal dlm_glob_counter_i : unsigned(31 downto 0);
-   
    signal etm_trigger_i : std_logic;
-   
-   
-  signal hub_cts_number                   : std_logic_vector(15 downto 0);
-  signal hub_cts_code                     : std_logic_vector(7 downto 0);
-  signal hub_cts_information              : std_logic_vector(7 downto 0);
-  signal hub_cts_start_readout            : std_logic;
-  signal hub_cts_readout_type             : std_logic_vector(3 downto 0);
-  signal hub_cts_readout_finished         : std_logic;
-  signal hub_cts_status_bits              : std_logic_vector(31 downto 0);
-  signal hub_fee_data                     : std_logic_vector(15 downto 0);
-  signal hub_fee_dataready                : std_logic;
-  signal hub_fee_read                     : std_logic;
-  signal hub_fee_status_bits              : std_logic_vector(31 downto 0);
-  signal hub_fee_busy                     : std_logic;
-
-  signal gbe_cts_number                   : std_logic_vector(15 downto 0);
-  signal gbe_cts_code                     : std_logic_vector(7 downto 0);
-  signal gbe_cts_information              : std_logic_vector(7 downto 0);
-  signal gbe_cts_start_readout            : std_logic;
-  signal gbe_cts_readout_type             : std_logic_vector(3 downto 0);
-  signal gbe_cts_readout_finished         : std_logic;
-  signal gbe_cts_status_bits              : std_logic_vector(31 downto 0);
-  signal gbe_fee_data                     : std_logic_vector(15 downto 0);
-  signal gbe_fee_dataready                : std_logic;
-  signal gbe_fee_read                     : std_logic;
-  signal gbe_fee_status_bits              : std_logic_vector(31 downto 0);
-  signal gbe_fee_busy                     : std_logic;  
-  
-  signal send_counter_i : unsigned(15 downto 0);
-  
-  
-
-  
-  
-  type TRB_FSM_T is (IDLE, START_READOUT, START_READOUT_WAIT, FEE_BUSY, SEND_EINF_H, SEND_EINF_L, SEND_LENGTH, SEND_SOURCE, SEND_SOURCE_WAIT, 
-  SEND_PAYLOAD_SSEHDR_H, SEND_PAYLOAD_SSEHDR_L,
-  SEND_PAYLOAD_RT_H, SEND_PAYLOAD_RT_L, 
-  SEND_PAYLOAD_H, SEND_PAYLOAD_L, 
-  COMPL_WAIT, COMPL_NOT_BUSY_WAIT, EVT_WAIT);
-  signal trb_fsm_i : TRB_FSM_T;
-
-signal event_id : unsigned(31 downto 0);
-signal event_gap_i : unsigned(31 downto 0);
-signal event_gap_cnt_i : unsigned(31 downto 0);
-
-signal send_length_min_i  : unsigned(15 downto 0);
-signal send_length_max_i  : unsigned(15 downto 0);
-signal send_length_step_i : unsigned(15 downto 0);
-signal send_length_cnt_i  : unsigned(15 downto 0);
-  
-  
-  
-  signal do_reboot_i : std_logic;
-  
-  signal cbm_clk_i : std_logic;
-  signal cbm_reset_i : std_logic;
- 
    signal cbm_sync_dlm_sensed_i : std_logic;
    signal cbm_sync_pulser_i : std_logic;
    signal cbm_sync_timing_trigger_i : std_logic;
@@ -352,95 +279,20 @@ signal send_length_cnt_i  : unsigned(15 downto 0);
    signal cbm_regio_no_more_data_i        :  std_logic;
    signal cbm_regio_unknown_addr_i        :  std_logic;
 
-   
-   signal cbm_dbg_addr_i                :   std_logic_vector(15 downto 0);
-   signal cbm_dbg_status_data_i         :   std_logic_vector(31 downto 0);
-   signal cbm_dbg_read_enable_i         :   std_logic;
-   signal cbm_dbg_write_enable_i        :   std_logic;
-   signal cbm_dbg_timeout_i             :   std_logic;
-   signal cbm_dbg_control_data_i        :  std_logic_vector(31 downto 0);
-   signal cbm_dbg_dataready_i           :  std_logic;
-   signal cbm_dbg_write_ack_i           :  std_logic;
-   signal cbm_dbg_no_more_data_i        :  std_logic;
-   signal cbm_dbg_unknown_addr_i        :  std_logic;
 
-  
-  
+   signal cbm_pgen_addr_i                :   std_logic_vector(15 downto 0);
+   signal cbm_pgen_status_data_i         :   std_logic_vector(31 downto 0);
+   signal cbm_pgen_read_enable_i         :   std_logic;
+   signal cbm_pgen_write_enable_i        :   std_logic;
+   signal cbm_pgen_timeout_i             :   std_logic;
+   signal cbm_pgen_control_data_i        :  std_logic_vector(31 downto 0);
+   signal cbm_pgen_dataready_i           :  std_logic;
+   signal cbm_pgen_write_ack_i           :  std_logic;
+   signal cbm_pgen_no_more_data_i        :  std_logic;
+   signal cbm_pgen_unknown_addr_i        :  std_logic;
   
 begin
-   PROC_RDO: process is
-      variable address : integer;
-   begin
-      wait until rising_edge(clk_100_i);
-      
-      address := to_integer(UNSIGNED(cbm_dbg_addr_i));
-      
-      cbm_dbg_dataready_i <= cbm_dbg_read_enable_i;
-      cbm_dbg_write_ack_i <= cbm_dbg_write_enable_i;
-      cbm_dbg_unknown_addr_i <= '0';
-      cbm_dbg_no_more_data_i <= '0';
-      cbm_dbg_status_data_i <= (others => '0');
-      
-      if reset_i = '1' then
-         send_length_min_i <= x"0010";
-         send_length_max_i <= x"0800";
-         send_length_step_i <= x"0001";
-         send_enabled_i <= '0';
-         event_gap_i <= x"00001000";
-         
-      else
-         case address is
-            when 0 =>
-               cbm_dbg_status_data_i(0) <= send_enabled_i;
-               cbm_dbg_status_data_i(1) <= cbm_link_active;
-               
-            when 1 =>
-               cbm_dbg_status_data_i(15 downto 0) <= send_length_min_i;
-               
-            when 2 =>
-               cbm_dbg_status_data_i(15 downto 0) <= send_length_max_i;
-               
-            when 3 =>
-               cbm_dbg_status_data_i(15 downto 0) <= send_length_step_i;
-               
-            when 4 =>
-               cbm_dbg_status_data_i <= event_id;
-               
-            when 5 =>
-               cbm_dbg_status_data_i <= event_gap_i;
-               
-            when others => 
-               cbm_dbg_unknown_addr_i <= '1';
-
-         end case;
-         
-         if cbm_dbg_write_enable_i = '1' then
-            case address is
-               when 0 =>
-                  send_enabled_i <= cbm_dbg_status_data_i(0);
-                  
-               when 1 =>
-                  send_length_min_i <= cbm_dbg_status_data_i(15 downto 0);
-                  
-               when 2 =>
-                  send_length_max_i <= cbm_dbg_status_data_i(15 downto 0);
-                  
-               when 3 =>
-                  send_length_step_i <= cbm_dbg_status_data_i(15 downto 0);
-                  
-               when 5 =>
-                  event_gap_i <= cbm_dbg_status_data_i;
-                  
-               when others => 
-                  cbm_dbg_write_ack_i <= '0';
-
-            end case;
-         end if;
-      end if;
-   end process;
-   
    clk_125_i <= CLK_GPLL_LEFT; 
-
    assert(INCLUDE_TRBNET = c_YES);
 
    THE_CBM_BRIDGE: cbmnet_bridge
@@ -532,170 +384,37 @@ begin
    
    SFP_RATESEL   <= (others => '0');
    
+   THE_RDO_PGEN: trbnet_rdo_pattern_generator
+   port map (
+      CLK_IN    => clk_100_i,
+      RESET_IN  => reset_i,
+
+      HUB_CTS_NUMBER_OUT          => hub_cts_number, 
+      HUB_CTS_CODE_OUT            => hub_cts_code,
+      HUB_CTS_OUTFORMATION_OUT    => hub_cts_information,
+      HUB_CTS_READOUT_TYPE_OUT    => hub_cts_readout_type,
+      HUB_CTS_START_READOUT_OUT   => hub_cts_start_readout,
+      HUB_CTS_READOUT_FINISHED_IN => hub_cts_readout_finished,
+      HUB_CTS_STATUS_BITS_IN      => hub_cts_status_bits,
+      HUB_FEE_DATA_OUT            => hub_fee_data,
+      HUB_FEE_DATAREADY_OUT       => hub_fee_dataready,
+      HUB_FEE_READ_IN             => hub_fee_read,
+      HUB_FEE_STATUS_BITS_OUT     => hub_fee_status_bits,
+      HUB_FEE_BUSY_OUT            => hub_fee_busy,
+
+      REGIO_READ_ENABLE_IN      => cbm_pgen_read_enable_i,
+      REGIO_WRITE_ENABLE_IN     => cbm_pgen_write_enable_i,
+      REGIO_DATA_IN             => cbm_pgen_control_data_i,
+      REGIO_ADDR_IN             => cbm_pgen_addr_i,
+      REGIO_TIMEOUT_IN          => cbm_pgen_timeout_i,
+      REGIO_DATA_OUT            => cbm_pgen_status_data_i,
+      REGIO_DATAREADY_OUT       => cbm_pgen_dataready_i,
+      REGIO_WRITE_ACK_OUT       => cbm_pgen_write_ack_i,
+      REGIO_NO_MORE_DATA_OUT    => cbm_pgen_no_more_data_i,
+      REGIO_UNKNOWN_ADDR_OUT    => cbm_pgen_unknown_addr_i
+   );
    gbe_fee_read <= '1';
    gbe_cts_status_bits <= x"beafc0de";
-   
-   PROC_TRB_DATA: process is
-      variable wait_cnt_v : integer range 0 to 15 := 0;
-   begin
-      wait until rising_edge(clk_100_i);
-      
-      hub_cts_start_readout <= '1';
-      HUB_FEE_BUSY <= '1';
-      HUB_FEE_DATAREADY <= '0';
-      
-      if reset_i='1' then
-         trb_fsm_i <= IDLE;
-      else
-         case(trb_fsm_i) is
-            when IDLE =>
-               hub_cts_start_readout <= '0';
-               HUB_FEE_BUSY <= '0';
-               if send_enabled_i = '1' then
-                  trb_fsm_i <= START_READOUT;
-               end if;
-               
-               if send_length_cnt_i < send_length_min_i then
-                  send_length_cnt_i <= send_length_min_i;
-               else
-                  send_length_cnt_i <= send_length_cnt_i + 1;
-               end if;
-               
-            when START_READOUT => 
-               if send_length_cnt_i < send_length_min_i or send_length_cnt_i > send_length_max_i then
-                  send_length_cnt_i <= send_length_min_i;
-               end if;
-
-               trb_fsm_i <= START_READOUT_WAIT;
-               wait_cnt_v := 10;
-               HUB_FEE_BUSY <= '0';
-               event_id <= event_id + 1;
-               
-            when START_READOUT_WAIT => 
-               if wait_cnt_v = 0 then
-                  trb_fsm_i <= FEE_BUSY;
-                  wait_cnt_v := 5;
-               else
-                  wait_cnt_v := wait_cnt_v - 1;
-               end if;
-               
-               HUB_FEE_BUSY <= '0';
-            
-            when FEE_BUSY =>
-               if wait_cnt_v = 0 then
-                  trb_fsm_i <= SEND_EINF_H;
-               else
-                  wait_cnt_v := wait_cnt_v - 1;
-               end if;
-               
-               HUB_FEE_BUSY <= '1';
-               
-            when SEND_EINF_H =>
-               HUB_FEE_DATA <= x"0e" & STD_LOGIC_VECTOR(event_id(23 downto 16));
-               HUB_FEE_DATAREADY <= '1';
-               trb_fsm_i <= SEND_EINF_L;
-            when SEND_EINF_L =>
-               HUB_FEE_DATA <= std_logic_vector(event_id(15 downto 0));
-               HUB_FEE_DATAREADY <= '1';
-               trb_fsm_i <= SEND_LENGTH;
-               
-            when SEND_LENGTH =>
-               HUB_FEE_DATA <= std_logic_vector(send_length_cnt_i);
-               send_counter_i <= send_length_cnt_i;
-               HUB_FEE_DATAREADY <= '1';
-               trb_fsm_i <= SEND_SOURCE;
-            when SEND_SOURCE =>
-               HUB_FEE_DATA <= x"affe";
-               HUB_FEE_DATAREADY <= '1';
-               trb_fsm_i <= SEND_SOURCE_WAIT;
-
-            when SEND_SOURCE_WAIT =>
-               trb_fsm_i <= SEND_PAYLOAD_SSEHDR_H;
-
-            when SEND_PAYLOAD_SSEHDR_H =>
-               HUB_FEE_DATA <= std_logic_vector(send_counter_i - 1);
-               HUB_FEE_DATAREADY <= '1';
-               trb_fsm_i <= SEND_PAYLOAD_SSEHDR_L;
-               
-            when SEND_PAYLOAD_SSEHDR_L =>
-               HUB_FEE_DATA <= x"4444";
-               HUB_FEE_DATAREADY <= '1';
-               trb_fsm_i <= SEND_PAYLOAD_H;
-               send_counter_i <= send_counter_i - 1;
-               
-               trb_fsm_i <= SEND_PAYLOAD_RT_H;
-               
-            when SEND_PAYLOAD_RT_H =>
-               HUB_FEE_DATA <= x"dead";
-               HUB_FEE_DATAREADY <= '1';
-               trb_fsm_i <= SEND_PAYLOAD_RT_L;
-               
-            when SEND_PAYLOAD_RT_L =>
-               HUB_FEE_DATA <= x"c0de";
-               HUB_FEE_DATAREADY <= '1';
-               trb_fsm_i <= SEND_PAYLOAD_H;
-               send_counter_i <= send_counter_i - 1;
-               
-               if send_counter_i = 1 then
-                  trb_fsm_i <= COMPL_WAIT;
-                  wait_cnt_v := 5;
-               end if;
-               
-            when SEND_PAYLOAD_H =>
-               HUB_FEE_DATA <= x"bb" & std_logic_vector(event_id(7 downto 0));
-               HUB_FEE_DATAREADY <= '1';
-               trb_fsm_i <= SEND_PAYLOAD_L;
-               
-            when SEND_PAYLOAD_L =>
-               HUB_FEE_DATA <= x"c" & std_logic_vector(send_counter_i(11 downto 0));
-               HUB_FEE_DATAREADY <= '1';
-               trb_fsm_i <= SEND_PAYLOAD_H;
-               send_counter_i <= send_counter_i - 1;
-               
-               if send_counter_i = 1 then
-                  trb_fsm_i <= COMPL_WAIT;
-                  wait_cnt_v := 5;
-               end if;
-               
-            when COMPL_WAIT =>
-               if wait_cnt_v = 0 then
-                  wait_cnt_v := 5;
-                  trb_fsm_i <= COMPL_NOT_BUSY_WAIT;
-               else
-                  wait_cnt_v := wait_cnt_v - 1;
-               end if;
-               
-               HUB_FEE_BUSY <= '1';
-
-            
-            when COMPL_NOT_BUSY_WAIT => 
-               hub_cts_start_readout <= '0';
-               if wait_cnt_v = 0 then
-                  trb_fsm_i <= EVT_WAIT;
-                  wait_cnt_v := 5;
-               else
-                  wait_cnt_v := wait_cnt_v - 1;
-               end if;
-               
-               HUB_FEE_BUSY <= '0';
-               event_gap_cnt_i <= (others => '0');
-               
-               
-            when EVT_WAIT =>
-               hub_cts_start_readout <= '0';
-               HUB_FEE_BUSY <= '0';
-               
-               event_gap_cnt_i <= event_gap_cnt_i + 1;
-               
-               if event_gap_cnt_i >= UNSIGNED(event_gap_i) then
-                  trb_fsm_i <= IDLE;
-               end if;
-               
-         end case;
-      end if;
-   end process;
-   
-
    
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -902,9 +621,9 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 5,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"a000", 3=>x"a800", 4=>x"aa00", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 6,       3=> 9,       4=>4, others => 0)
+      PORT_NUMBER    => 4,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"a800", 3=>x"aa00", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 9,       3=> 4,      others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -947,43 +666,31 @@ begin
       BUS_NO_MORE_DATA_IN(1)              => '0',
       BUS_UNKNOWN_ADDR_IN(1)              => '0',
 
-      --Bus Handler (SPI CTRL)
-      BUS_READ_ENABLE_OUT(2)              => debug_read_en,
-      BUS_WRITE_ENABLE_OUT(2)             => debug_write_en,
-      BUS_DATA_OUT(2*32+31 downto 2*32)   => debug_data_in,
-      BUS_ADDR_OUT(2*16+5 downto 2*16)    => debug_addr,
-      BUS_ADDR_OUT(2*16+15 downto 2*16+6) => open,
-      BUS_TIMEOUT_OUT(2)                  => open,
-      BUS_DATA_IN(2*32+31 downto 2*32)    => debug_data_out,
-      BUS_DATAREADY_IN(2)                 => debug_ack,
-      BUS_WRITE_ACK_IN(2)                 => debug_ack,
-      BUS_NO_MORE_DATA_IN(2)              => '0',
-      BUS_UNKNOWN_ADDR_IN(2)              => '0',
 
     --CBMNet (read-out)
-      BUS_READ_ENABLE_OUT(3)              => cbm_regio_read_enable_i,
-      BUS_WRITE_ENABLE_OUT(3)             => cbm_regio_write_enable_i,
-      BUS_DATA_OUT(3*32+31 downto 3*32)  => cbm_regio_control_data_i,
-      BUS_ADDR_OUT(3*16+15 downto 3*16)  => cbm_regio_addr_i,
-      BUS_TIMEOUT_OUT(3)                  => cbm_regio_timeout_i,
-      BUS_DATA_IN(3*32+31 downto 3*32)   => cbm_regio_status_data_i,
-      BUS_DATAREADY_IN(3)                 => cbm_regio_dataready_i,
-      BUS_WRITE_ACK_IN(3)                 => cbm_regio_write_ack_i,
-      BUS_NO_MORE_DATA_IN(3)              => cbm_regio_no_more_data_i,
-      BUS_UNKNOWN_ADDR_IN(3)              => cbm_regio_unknown_addr_i,       
+      BUS_READ_ENABLE_OUT(2)              => cbm_regio_read_enable_i,
+      BUS_WRITE_ENABLE_OUT(2)             => cbm_regio_write_enable_i,
+      BUS_DATA_OUT(2*32+31 downto 2*32)   => cbm_regio_control_data_i,
+      BUS_ADDR_OUT(2*16+15 downto 2*16)   => cbm_regio_addr_i,
+      BUS_TIMEOUT_OUT(2)                  => cbm_regio_timeout_i,
+      BUS_DATA_IN(2*32+31 downto 2*32)    => cbm_regio_status_data_i,
+      BUS_DATAREADY_IN(2)                 => cbm_regio_dataready_i,
+      BUS_WRITE_ACK_IN(2)                 => cbm_regio_write_ack_i,
+      BUS_NO_MORE_DATA_IN(2)              => cbm_regio_no_more_data_i,
+      BUS_UNKNOWN_ADDR_IN(2)              => cbm_regio_unknown_addr_i,       
    
 
-      --CBMNet (read-out)
-      BUS_READ_ENABLE_OUT(4)              => cbm_dbg_read_enable_i,
-      BUS_WRITE_ENABLE_OUT(4)             => cbm_dbg_write_enable_i,
-      BUS_DATA_OUT(4*32+31 downto 4*32)  => cbm_dbg_control_data_i,
-      BUS_ADDR_OUT(4*16+15 downto 4*16)  => cbm_dbg_addr_i,
-      BUS_TIMEOUT_OUT(4)                  => cbm_dbg_timeout_i,
-      BUS_DATA_IN(4*32+31 downto 4*32)   => cbm_dbg_status_data_i,
-      BUS_DATAREADY_IN(4)                 => cbm_dbg_dataready_i,
-      BUS_WRITE_ACK_IN(4)                 => cbm_dbg_write_ack_i,
-      BUS_NO_MORE_DATA_IN(4)              => cbm_dbg_no_more_data_i,
-      BUS_UNKNOWN_ADDR_IN(4)              => cbm_dbg_unknown_addr_i,       
+      --TrbNet Pattern Generator
+      BUS_READ_ENABLE_OUT(3)              => cbm_pgen_read_enable_i,
+      BUS_WRITE_ENABLE_OUT(3)             => cbm_pgen_write_enable_i,
+      BUS_DATA_OUT(3*32+31 downto 3*32)   => cbm_pgen_control_data_i,
+      BUS_ADDR_OUT(3*16+15 downto 3*16)   => cbm_pgen_addr_i,
+      BUS_TIMEOUT_OUT(3)                  => cbm_pgen_timeout_i,
+      BUS_DATA_IN(3*32+31 downto 3*32)    => cbm_pgen_status_data_i,
+      BUS_DATAREADY_IN(3)                 => cbm_pgen_dataready_i,
+      BUS_WRITE_ACK_IN(3)                 => cbm_pgen_write_ack_i,
+      BUS_NO_MORE_DATA_IN(3)              => cbm_pgen_no_more_data_i,
+      BUS_UNKNOWN_ADDR_IN(3)              => cbm_pgen_unknown_addr_i,       
 
     
       STAT_DEBUG => open

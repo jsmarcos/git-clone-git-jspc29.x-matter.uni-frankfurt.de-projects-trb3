@@ -170,7 +170,7 @@ add_file -vhdl -lib work "./code/cbmnet_phy_ecp3.vhd"
 add_file -vhdl -lib work "./trb3_periph_cbmnet.vhd"
 
 
-add_file -vhdl -lib work "./cores/cbmnet_fifo_18x2k_dp.vhd"
+add_file -vhdl -lib work "./cores/cbmnet_fifo_18x32k_dp.vhd"
 add_file -vhdl -lib work "./code/cbmnet_readout_trbnet_decoder.vhd"
 add_file -vhdl -lib work "./code/cbmnet_readout_event_packer.vhd"
 add_file -vhdl -lib work "./code/cbmnet_readout_fifo_ecp3.vhd"
@@ -178,6 +178,7 @@ add_file -vhdl -lib work "./code/cbmnet_readout_frame_packer.vhd"
 add_file -vhdl -lib work "./code/cbmnet_readout_tx_fifo.vhd"
 add_file -vhdl -lib work "./code/cbmnet_readout_obuf.vhd"
 add_file -vhdl -lib work "./code/cbmnet_readout.vhd"
+add_file -vhdl -lib work "./code/trbnet_rdo_pattern_generator.vhd"
 
 add_file -vhdl -lib work "./code/pos_edge_strech_sync.vhd"
 add_file -vhdl -lib work "./code/cbmnet_sync_module.vhd"
