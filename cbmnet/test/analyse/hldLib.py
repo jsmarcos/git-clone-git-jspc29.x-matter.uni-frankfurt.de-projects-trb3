@@ -1,5 +1,6 @@
 import struct
 import datetime
+import numpy as np
 
 def eventIterator(f):
    f.seek(0)
@@ -132,4 +133,23 @@ def extractTDC(ssEvtData):
    length = ssEvtData[0]
    assert(length >= len(ssEvtData))
    return (ssEvtData[:length+1], ssEvtData[length:])   
+
+def slopeWithoutAvg(X):
+   slope = X[1:]-X[:-1]
+   return slope - np.average(slope)
+
+def slope(X):
+   return X[1:] - X[:-1]
+
+def tdcTimeData(w):
+   if not (w & 0x80000000):
+      return None
+   
+   return {
+      "coarseTime": (w >> 0) & 0x7ff,
+      "edge": (w >> 11) & 1,
+      "fineTime": (w >> 12) & 0x3ff,
+      "channelNo": (w >> 22) & 0x7f
+   }
+
 
