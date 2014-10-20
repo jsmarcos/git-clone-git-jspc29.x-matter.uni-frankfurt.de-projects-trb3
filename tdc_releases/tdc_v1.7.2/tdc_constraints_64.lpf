@@ -661,7 +661,7 @@ LOCATE UGROUP "ff_en_64" SITE "R113C27D" ;
 ##############################################################################
 ##			     CHANNEL PLACEMENTS                             ##
 ##############################################################################
-UGROUP "EF_ref" BBOX 16 54
+UGROUP "EF_ref" BBOX 16 52
        	BLKNAME THE_TDC/ReferenceChannel/Channel200
 	BLKNAME THE_TDC/GEN_Channels_1_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_2_Channels/Channel200
@@ -670,16 +670,16 @@ UGROUP "EF_ref" BBOX 16 54
 	BLKNAME THE_TDC/GEN_Channels_1_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_2_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_3_Channels/Buffer_64_The_Buffer;
-LOCATE UGROUP "EF_ref" SITE "R8C128D" ;
+LOCATE UGROUP "EF_ref" SITE "R8C130D" ;
 
-UGROUP "EF_4" BBOX 10 54
+UGROUP "EF_4" BBOX 10 52
        	BLKNAME THE_TDC/GEN_Channels_4_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_5_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_4_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_5_Channels/Buffer_64_The_Buffer;
-LOCATE UGROUP "EF_4" SITE "R24C128D" ;
+LOCATE UGROUP "EF_4" SITE "R24C130D" ;
 
-UGROUP "EF_6" BBOX 17 54
+UGROUP "EF_6" BBOX 17 52
 	BLKNAME THE_TDC/GEN_Channels_6_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_7_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_8_Channels/Channel200
@@ -688,9 +688,9 @@ UGROUP "EF_6" BBOX 17 54
 	BLKNAME THE_TDC/GEN_Channels_7_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_8_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_9_Channels/Buffer_64_The_Buffer;
-LOCATE UGROUP "EF_6" SITE "R35C128D" ;
+LOCATE UGROUP "EF_6" SITE "R35C130D" ;
 
-UGROUP "EF_10" BBOX 17 54
+UGROUP "EF_10" BBOX 17 52
 	BLKNAME THE_TDC/GEN_Channels_10_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_11_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_17_Channels/Channel200
@@ -699,9 +699,9 @@ UGROUP "EF_10" BBOX 17 54
 	BLKNAME THE_TDC/GEN_Channels_11_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_17_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_18_Channels/Buffer_64_The_Buffer;
-LOCATE UGROUP "EF_10" SITE "R53C128D" ;
+LOCATE UGROUP "EF_10" SITE "R53C130D" ;
 
-UGROUP "EF_12" BBOX 16 54
+UGROUP "EF_12" BBOX 16 52
 	BLKNAME THE_TDC/GEN_Channels_12_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_13_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_33_Channels/Channel200
@@ -710,16 +710,16 @@ UGROUP "EF_12" BBOX 16 54
 	BLKNAME THE_TDC/GEN_Channels_13_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_33_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_34_Channels/Buffer_64_The_Buffer;
-LOCATE UGROUP "EF_12" SITE "R8C56D" ;
+LOCATE UGROUP "EF_12" SITE "R8C57D" ;
 
-UGROUP "EF_14" BBOX 10 54
+UGROUP "EF_14" BBOX 10 52
 	BLKNAME THE_TDC/GEN_Channels_14_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_35_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_14_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_35_Channels/Buffer_64_The_Buffer;
-LOCATE UGROUP "EF_14" SITE "R24C56D" ;
+LOCATE UGROUP "EF_14" SITE "R24C57D" ;
 
-UGROUP "EF_15" BBOX 17 54
+UGROUP "EF_15" BBOX 17 52
 	BLKNAME THE_TDC/GEN_Channels_15_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_16_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_36_Channels/Channel200
@@ -728,9 +728,9 @@ UGROUP "EF_15" BBOX 17 54
 	BLKNAME THE_TDC/GEN_Channels_16_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_36_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_37_Channels/Buffer_64_The_Buffer;
-LOCATE UGROUP "EF_15" SITE "R35C56D" ;
+LOCATE UGROUP "EF_15" SITE "R35C57D" ;
 
-UGROUP "EF_19" BBOX 17 54
+UGROUP "EF_19" BBOX 17 52
 	BLKNAME THE_TDC/GEN_Channels_19_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_20_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_21_Channels/Channel200
@@ -739,9 +739,9 @@ UGROUP "EF_19" BBOX 17 54
 	BLKNAME THE_TDC/GEN_Channels_20_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_21_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_22_Channels/Buffer_64_The_Buffer;
-LOCATE UGROUP "EF_19" SITE "R71C128D" ;
+LOCATE UGROUP "EF_19" SITE "R71C130D" ;
 
-UGROUP "EF_23" BBOX 16 54
+UGROUP "EF_23" BBOX 16 52
 	BLKNAME THE_TDC/GEN_Channels_23_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_24_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_25_Channels/Channel200
@@ -750,16 +750,16 @@ UGROUP "EF_23" BBOX 16 54
 	BLKNAME THE_TDC/GEN_Channels_24_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_25_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_26_Channels/Buffer_64_The_Buffer;
-LOCATE UGROUP "EF_23" SITE "R89C128D" ;
+LOCATE UGROUP "EF_23" SITE "R89C130D" ;
 
-UGROUP "EF_27" BBOX 10 54
+UGROUP "EF_27" BBOX 10 52
 	BLKNAME THE_TDC/GEN_Channels_27_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_28_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_27_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_28_Channels/Buffer_64_The_Buffer;
-LOCATE UGROUP "EF_27" SITE "R105C128D" ;
+LOCATE UGROUP "EF_27" SITE "R105C130D" ;
 
-UGROUP "EF_29" BBOX 16 54
+UGROUP "EF_29" BBOX 16 52
 	BLKNAME THE_TDC/GEN_Channels_29_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_30_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_50_Channels/Channel200
@@ -768,21 +768,21 @@ UGROUP "EF_29" BBOX 16 54
 	BLKNAME THE_TDC/GEN_Channels_30_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_50_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_51_Channels/Buffer_64_The_Buffer;
-LOCATE UGROUP "EF_29" SITE "R89C56D" ;
+LOCATE UGROUP "EF_29" SITE "R89C57D" ;
 
-UGROUP "EF_31" BBOX 10 54
+UGROUP "EF_31" BBOX 10 52
 	BLKNAME THE_TDC/GEN_Channels_31_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_52_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_31_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_52_Channels/Buffer_64_The_Buffer;
-LOCATE UGROUP "EF_31" SITE "R105C56D" ;
+LOCATE UGROUP "EF_31" SITE "R105C57D" ;
 
 UGROUP "EF_32" BBOX 10 24
 	BLKNAME THE_TDC/GEN_Channels_32_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_32_Channels/Buffer_64_The_Buffer;
 LOCATE UGROUP "EF_32" SITE "R78C71D" ;
 
-UGROUP "EF_38" BBOX 16 54
+UGROUP "EF_38" BBOX 16 52
 	BLKNAME THE_TDC/GEN_Channels_38_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_39_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_40_Channels/Channel200
@@ -793,14 +793,14 @@ UGROUP "EF_38" BBOX 16 54
 	BLKNAME THE_TDC/GEN_Channels_41_Channels/Buffer_64_The_Buffer;
 LOCATE UGROUP "EF_38" SITE "R8C2D" ;
 
-UGROUP "EF_42" BBOX 10 54
+UGROUP "EF_42" BBOX 10 52
 	BLKNAME THE_TDC/GEN_Channels_42_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_43_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_42_Channels/Buffer_64_The_Buffer
 	BLKNAME THE_TDC/GEN_Channels_43_Channels/Buffer_64_The_Buffer;
 LOCATE UGROUP "EF_42" SITE "R24C2D" ;
 
-UGROUP "EF_44" BBOX 17 54
+UGROUP "EF_44" BBOX 17 52
 	BLKNAME THE_TDC/GEN_Channels_44_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_45_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_46_Channels/Channel200
@@ -811,7 +811,7 @@ UGROUP "EF_44" BBOX 17 54
 	BLKNAME THE_TDC/GEN_Channels_47_Channels/Buffer_64_The_Buffer;
 LOCATE UGROUP "EF_44" SITE "R35C2D" ;
 
-UGROUP "EF_48" BBOX 17 54
+UGROUP "EF_48" BBOX 17 52
 	BLKNAME THE_TDC/GEN_Channels_48_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_49_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_53_Channels/Channel200
@@ -822,7 +822,7 @@ UGROUP "EF_48" BBOX 17 54
 	BLKNAME THE_TDC/GEN_Channels_54_Channels/Buffer_64_The_Buffer;
 LOCATE UGROUP "EF_48" SITE "R53C2D" ;
 
-UGROUP "EF_55" BBOX 17 54
+UGROUP "EF_55" BBOX 17 52
 	BLKNAME THE_TDC/GEN_Channels_55_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_56_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_57_Channels/Channel200
@@ -833,7 +833,7 @@ UGROUP "EF_55" BBOX 17 54
 	BLKNAME THE_TDC/GEN_Channels_58_Channels/Buffer_64_The_Buffer;
 LOCATE UGROUP "EF_55" SITE "R71C2D" ;
 
-UGROUP "EF_59" BBOX 16 54
+UGROUP "EF_59" BBOX 16 52
 	BLKNAME THE_TDC/GEN_Channels_59_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_60_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_61_Channels/Channel200
@@ -844,7 +844,7 @@ UGROUP "EF_59" BBOX 16 54
 	BLKNAME THE_TDC/GEN_Channels_62_Channels/Buffer_64_The_Buffer;
 LOCATE UGROUP "EF_59" SITE "R89C2D" ;
 
-UGROUP "EF_63" BBOX 10 54
+UGROUP "EF_63" BBOX 10 52
 	BLKNAME THE_TDC/GEN_Channels_63_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_64_Channels/Channel200
 	BLKNAME THE_TDC/GEN_Channels_63_Channels/Buffer_64_The_Buffer

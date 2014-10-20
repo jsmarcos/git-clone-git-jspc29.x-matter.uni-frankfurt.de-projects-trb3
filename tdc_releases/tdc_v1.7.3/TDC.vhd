@@ -45,11 +45,11 @@ entity TDC is
     TRG_TYPE_IN           : in  std_logic_vector(3 downto 0)  := (others => '0');
 --
     --Response to handler
-    TRG_RELEASE_OUT       : out std_logic_vector(MODULE_NUMBER-1 downto 0);
-    TRG_STATUSBIT_OUT     : out std_logic_vector_array_32(0 to MODULE_NUMBER-1);
-    DATA_OUT              : out std_logic_vector_array_32(0 to MODULE_NUMBER-1);
-    DATA_WRITE_OUT        : out std_logic_vector(MODULE_NUMBER-1 downto 0);
-    DATA_FINISHED_OUT     : out std_logic_vector(MODULE_NUMBER-1 downto 0);     
+    TRG_RELEASE_OUT       : out std_logic_vector(MODULE_NUMBER downto 0);
+    TRG_STATUSBIT_OUT     : out std_logic_vector_array_32(0 to MODULE_NUMBER);
+    DATA_OUT              : out std_logic_vector_array_32(0 to MODULE_NUMBER);
+    DATA_WRITE_OUT        : out std_logic_vector(MODULE_NUMBER downto 0);
+    DATA_FINISHED_OUT     : out std_logic_vector(MODULE_NUMBER downto 0);
 --
     --To Bus Handler
     HCB_READ_EN_IN        : in  std_logic;
@@ -99,7 +99,7 @@ architecture TDC of TDC is
 -------------------------------------------------------------------------------
 -- Signal Declarations
 -------------------------------------------------------------------------------
-  constant total_ch_number : integer range 1 to 64 := MODULE_NUMBER * CHANNEL_NUMBER;
+  constant total_ch_number            : integer range 1 to 64                      := MODULE_NUMBER * CHANNEL_NUMBER;
 -- Reset Signals
   signal reset_rdo                    : std_logic;
   signal reset_rdo_i                  : std_logic;
@@ -120,7 +120,7 @@ architecture TDC of TDC is
   signal reset_coarse_cntr_i          : std_logic;
   signal reset_coarse_cntr_200        : std_logic;
   signal reset_coarse_cntr_edge_200   : std_logic;
-  signal reset_coarse_cntr_flag       : std_logic                                 := '0';
+  signal reset_coarse_cntr_flag       : std_logic                                  := '0';
   signal ch_en_i                      : std_logic_vector(64 downto 1);
   signal data_limit_i                 : unsigned(7 downto 0);
   signal calibration_on               : std_logic;  -- turns on calibration for trig type 0xC
@@ -133,9 +133,9 @@ architecture TDC of TDC is
   signal hit_2reg                     : std_logic_vector(total_ch_number downto 1);
   signal hit_3reg                     : std_logic_vector(total_ch_number downto 1);
 -- Calibration
-  signal hit_calibration_cntr         : unsigned(15 downto 0)                     := (others => '0');
+  signal hit_calibration_cntr         : unsigned(15 downto 0)                      := (others => '0');
   signal hit_calibration_i            : std_logic;
-  signal calibration_freq_select      : unsigned(3 downto 0)                      := (others => '0');
+  signal calibration_freq_select      : unsigned(3 downto 0)                       := (others => '0');
 -- To the channels
   signal rd_en_i                      : std_logic_vector(total_ch_number downto 0);
   signal trig_time_i                  : std_logic_vector(38 downto 0);
@@ -148,7 +148,7 @@ architecture TDC of TDC is
   signal ch_almost_empty_i            : std_logic_vector(total_ch_number downto 0);
   signal trg_time_i                   : std_logic_vector(38 downto 0);
   signal ch_lost_hit_number_i         : std_logic_vector_array_24(0 to total_ch_number);
-  signal ch_hit_detect_number_i       : std_logic_vector_array_24(0 to total_ch_number);
+  signal ch_hit_detect_number_i       : std_logic_vector_array_31(0 to total_ch_number);
   signal ch_encoder_start_number_i    : std_logic_vector_array_24(0 to total_ch_number);
   signal ch_encoder_finished_number_i : std_logic_vector_array_24(0 to total_ch_number);
   signal ch_level_hit_number          : std_logic_vector_array_32(0 to total_ch_number);
@@ -157,26 +157,27 @@ architecture TDC of TDC is
   signal ch_encoder_finished_bus_i    : std_logic_vector_array_32(0 to total_ch_number);
   signal ch_fifo_write_number_i       : std_logic_vector_array_24(0 to total_ch_number);
 -- To the endpoint
-  signal trg_release_out_i            : std_logic_vector(MODULE_NUMBER-1 downto 0);
-  signal trg_statusbit_out_i          : std_logic_vector_array_32(0 to MODULE_NUMBER-1);
-  signal data_out_i                   : std_logic_vector_array_32(0 to MODULE_NUMBER-1);
-  signal data_write_out_i             : std_logic_vector(MODULE_NUMBER-1 downto 0);
-  signal data_finished_out_i          : std_logic_vector(MODULE_NUMBER-1 downto 0);
+  signal trg_release_out_i            : std_logic_vector(MODULE_NUMBER downto 0);
+  signal trg_statusbit_out_i          : std_logic_vector_array_32(0 to MODULE_NUMBER);
+  signal data_out_i                   : std_logic_vector_array_32(0 to MODULE_NUMBER);
+  signal data_write_out_i             : std_logic_vector(MODULE_NUMBER downto 0);
+  signal data_finished_out_i          : std_logic_vector(MODULE_NUMBER downto 0);
 
 -- Epoch counter
-  signal epoch_cntr         : std_logic_vector(27 downto 0);
-  signal epoch_cntr_up_i    : std_logic;
-  signal epoch_cntr_reset_i : std_logic;
+  signal epoch_cntr           : std_logic_vector(27 downto 0);
+  signal epoch_cntr_up_i      : std_logic;
+  signal epoch_cntr_reset_i   : std_logic;
 -- Trigger Handler signals
-  signal trig_in_i          : std_logic;
-  signal trig_rdo_i         : std_logic;
-  signal trig_tdc_i         : std_logic;
-  signal trig_win_en_i      : std_logic;
-  signal trig_win_end_rdo   : std_logic;
-  signal trig_win_end_tdc   : std_logic;
-  signal trig_win_end_tdc_i : std_logic_vector(total_ch_number downto 0);
-  signal valid_trigger_rdo  : std_logic;
-  signal valid_trigger_tdc  : std_logic;
+  signal trig_in_i            : std_logic;
+  signal trig_rdo_i           : std_logic;
+  signal trig_tdc_i           : std_logic;
+  signal trig_win_en_i        : std_logic;
+  signal trig_win_end_rdo     : std_logic;
+  signal trig_win_end_tdc     : std_logic;
+  signal trig_win_end_tdc_i   : std_logic_vector(total_ch_number downto 0);
+  signal trig_win_end_tdc_mod : std_logic_vector(MODULE_NUMBER downto 1);
+  signal valid_trigger_rdo    : std_logic;
+  signal valid_trigger_tdc    : std_logic;
 
 -- Debug signals
   signal ref_debug_i            : std_logic_vector(31 downto 0);
@@ -427,10 +428,28 @@ begin
   GenTriggerWindowEnd : for i in 0 to total_ch_number generate
     trig_win_end_tdc_i(i) <= trig_win_end_tdc when rising_edge(CLK_TDC);
   end generate GenTriggerWindowEnd;
+  GenTriggerWindowEndMod : for i in 1 to MODULE_NUMBER generate
+    trig_win_end_tdc_mod(i) <= trig_win_end_tdc when rising_edge(CLK_TDC);
+  end generate GenTriggerWindowEndMod;
 
 -------------------------------------------------------------------------------
 -- Readout
 -------------------------------------------------------------------------------
+  ReadoutHeader  : entity work.Readout_Header
+    port map (
+      RESET_100             => reset_rdo,
+      CLK_100               => CLK_READOUT,
+      VALID_TIMING_TRG_IN   => VALID_TIMING_TRG_IN,
+      VALID_NOTIMING_TRG_IN => VALID_NOTIMING_TRG_IN,
+      INVALID_TRG_IN        => INVALID_TRG_IN,
+      TRG_CODE_IN           => TRG_CODE_IN,
+      TRG_TYPE_IN           => TRG_TYPE_IN,
+      TRG_RELEASE_OUT       => trg_release_out_i(0),
+      TRG_STATUSBIT_OUT     => trg_statusbit_out_i(0),
+      DATA_OUT              => data_out_i(0),
+      DATA_WRITE_OUT        => data_write_out_i(0),
+      DATA_FINISHED_OUT     => data_finished_out_i(0));
+
   -- First Readout
   TheFirstReadout : Readout
     generic map (
@@ -465,11 +484,11 @@ begin
       TRG_TYPE_IN              => TRG_TYPE_IN,
       DATA_LIMIT_IN            => data_limit_i,
       -- to the endpoint
-      TRG_RELEASE_OUT          => trg_release_out_i(0),
-      TRG_STATUSBIT_OUT        => trg_statusbit_out_i(0),
-      DATA_OUT                 => data_out_i(0),
-      DATA_WRITE_OUT           => data_write_out_i(0),
-      DATA_FINISHED_OUT        => data_finished_out_i(0),
+      TRG_RELEASE_OUT          => trg_release_out_i(1),
+      TRG_STATUSBIT_OUT        => trg_statusbit_out_i(1),
+      DATA_OUT                 => data_out_i(1),
+      DATA_WRITE_OUT           => data_write_out_i(1),
+      DATA_FINISHED_OUT        => data_finished_out_i(1),
       -- to the channels
       READ_EN_OUT              => rd_en_i(CHANNEL_NUMBER downto 0),
       -- trigger window settings
@@ -477,7 +496,7 @@ begin
       TRG_WIN_POST             => TRG_WIN_POST,
       TRIGGER_WIN_EN_IN        => trig_win_en_i,
       -- from the trigger handler
-      TRIG_WIN_END_TDC_IN      => trig_win_end_tdc_i(1),
+      TRIG_WIN_END_TDC_IN      => trig_win_end_tdc_mod(1),
       TRIG_WIN_END_RDO_IN      => trig_win_end_rdo,
       TRIG_TIME_IN             => trig_time_i,
       TRIGGER_TDC_IN           => trig_tdc_i,
@@ -491,7 +510,7 @@ begin
       );
 
   Gen_Readout : if MODULE_NUMBER > 1 generate
-    Module : for i in 1 to MODULE_NUMBER-1 generate
+    Module : for i in 2 to MODULE_NUMBER generate
       -- Readout
       TheReadout : Readout
         generic map (
@@ -506,11 +525,11 @@ begin
           CLK_100                  => CLK_READOUT,
           CLK_200                  => CLK_TDC,
           -- from the channels
-          CH_DATA_IN               => ch_data_i(i*CHANNEL_NUMBER+1 to (i+1)*CHANNEL_NUMBER),
-          CH_DATA_VALID_IN         => ch_data_valid_i((i+1)*CHANNEL_NUMBER downto i*CHANNEL_NUMBER+1),
-          CH_EMPTY_IN              => ch_empty_i((i+1)*CHANNEL_NUMBER downto i*CHANNEL_NUMBER+1),
-          CH_FULL_IN               => ch_full_i((i+1)*CHANNEL_NUMBER downto i*CHANNEL_NUMBER+1),
-          CH_ALMOST_EMPTY_IN       => ch_almost_empty_i((i+1)*CHANNEL_NUMBER downto i*CHANNEL_NUMBER+1),
+          CH_DATA_IN               => ch_data_i((i-1)*CHANNEL_NUMBER+1 to i*CHANNEL_NUMBER),
+          CH_DATA_VALID_IN         => ch_data_valid_i(i*CHANNEL_NUMBER downto (i-1)*CHANNEL_NUMBER+1),
+          CH_EMPTY_IN              => ch_empty_i(i*CHANNEL_NUMBER downto (i-1)*CHANNEL_NUMBER+1),
+          CH_FULL_IN               => ch_full_i(i*CHANNEL_NUMBER downto (i-1)*CHANNEL_NUMBER+1),
+          CH_ALMOST_EMPTY_IN       => ch_almost_empty_i(i*CHANNEL_NUMBER downto (i-1)*CHANNEL_NUMBER+1),
           -- from the endpoint
           TRG_DATA_VALID_IN        => TRG_DATA_VALID_IN,
           VALID_TIMING_TRG_IN      => VALID_TIMING_TRG_IN,
@@ -532,18 +551,18 @@ begin
           DATA_WRITE_OUT           => data_write_out_i(i),
           DATA_FINISHED_OUT        => data_finished_out_i(i),
           -- to the channels
-          READ_EN_OUT              => rd_en_i((i+1)*CHANNEL_NUMBER downto i*CHANNEL_NUMBER+1),
+          READ_EN_OUT              => rd_en_i(i*CHANNEL_NUMBER downto (i-1)*CHANNEL_NUMBER+1),
           -- trigger window settings
           TRG_WIN_PRE              => TRG_WIN_PRE,
           TRG_WIN_POST             => TRG_WIN_POST,
           TRIGGER_WIN_EN_IN        => trig_win_en_i,
           -- from the trigger handler
-          TRIG_WIN_END_TDC_IN      => trig_win_end_tdc_i((i-1)*CHANNEL_NUMBER+1),
+          TRIG_WIN_END_TDC_IN      => trig_win_end_tdc_mod(i),
           TRIG_WIN_END_RDO_IN      => trig_win_end_rdo,
           TRIG_TIME_IN             => trig_time_i,
           TRIGGER_TDC_IN           => trig_tdc_i,
           -- miscellaneous
-          COARSE_COUNTER_IN        => coarse_cntr(i+5),
+          COARSE_COUNTER_IN        => coarse_cntr(i+4),
           EPOCH_COUNTER_IN         => epoch_cntr,
           DEBUG_MODE_EN_IN         => debug_mode_en_i,
           STATUS_REGISTERS_BUS_OUT => open,  --status_registers_bus_i,
@@ -579,7 +598,7 @@ begin
       if reset_tdc = '1' then
         coarse_cntr_reset <= '1';
       elsif run_mode_200 = '0' then
-        coarse_cntr_reset <= trig_win_end_tdc_i(1);
+        coarse_cntr_reset <= trig_win_end_tdc_i(32);
       elsif run_mode_edge_200 = '1' then
         coarse_cntr_reset <= '1';
       elsif reset_coarse_cntr_flag = '1' and valid_trigger_tdc = '1' then
@@ -641,13 +660,11 @@ begin
       DATAREADY_OUT    => HCB_DATAREADY_OUT,
       UNKNOWN_ADDR_OUT => HCB_UNKNOWN_ADDR_OUT);
 
-  ch_level_hit_number(0)(31)           <= REFERENCE_TIME            when rising_edge(CLK_READOUT);
-  ch_level_hit_number(0)(30 downto 24) <= (others => '0');
-  ch_level_hit_number(0)(23 downto 0)  <= ch_hit_detect_number_i(0) when rising_edge(CLK_READOUT);
+  ch_level_hit_number(0)(31)          <= REFERENCE_TIME            when rising_edge(CLK_READOUT);
+  ch_level_hit_number(0)(30 downto 0) <= ch_hit_detect_number_i(0) when rising_edge(CLK_READOUT);
   GenHitDetectNumber : for i in 1 to total_ch_number generate
-    ch_level_hit_number(i)(31)           <= HIT_IN(i) and ch_en_i(i)  when rising_edge(CLK_READOUT);
-    ch_level_hit_number(i)(30 downto 24) <= (others => '0');
-    ch_level_hit_number(i)(23 downto 0)  <= ch_hit_detect_number_i(i) when rising_edge(CLK_READOUT);
+    ch_level_hit_number(i)(31)          <= HIT_IN(i) and ch_en_i(i)  when rising_edge(CLK_READOUT);
+    ch_level_hit_number(i)(30 downto 0) <= ch_hit_detect_number_i(i) when rising_edge(CLK_READOUT);
   end generate GenHitDetectNumber;
 
 -- Status register
