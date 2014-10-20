@@ -76,8 +76,7 @@ package trb3_components is
       Reset       : in  std_logic;
       Q           : out std_logic_vector(35 downto 0);
       Empty       : out std_logic;
-      Full        : out std_logic;
-      AlmostEmpty : out std_logic);
+      Full        : out std_logic);
   end component;
 
   component FIFO_36x32_OutReg is
@@ -101,8 +100,7 @@ package trb3_components is
       Reset       : in  std_logic;
       Q           : out std_logic_vector(35 downto 0);
       Empty       : out std_logic;
-      Full        : out std_logic;
-      AlmostEmpty : out std_logic);
+      Full        : out std_logic);
   end component;  
 
   component FIFO_DC_36x128_OutReg is
