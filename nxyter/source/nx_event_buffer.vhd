@@ -202,7 +202,7 @@ begin
   -----------------------------------------------------------------------------
 
   -- Send data to FIFO
-  fifo_32_data_1: entity work.fifo_32_data
+  fifo_32_data_1: fifo_32_data
     port map (
       Data         => fifo_next_word,
       Clock        => CLK_IN,

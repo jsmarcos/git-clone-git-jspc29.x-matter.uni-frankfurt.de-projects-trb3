@@ -31,49 +31,65 @@ entity adc_handler is
 end entity;
 
 architecture adc_handler_arch of adc_handler is
+attribute syn_keep     : boolean;
+attribute syn_preserve : boolean;
+
 
 signal adc_data_out  : std_logic_vector(DEVICES*CHANNELS*RESOLUTION-1 downto 0);
 signal adc_fco_out   : std_logic_vector(DEVICES*RESOLUTION-1 downto 0);
 signal adc_valid_out : std_logic_vector(DEVICES-1 downto 0);
-signal adc_debug     : std_logic_vector(DEVICES*CHANNELS*32-1 downto 0);
+signal adc_debug     : std_logic_vector(DEVICES*32-1 downto 0);
 
 signal buffer_empty    : std_logic;
 signal buffer_stop_override : std_logic;
 
 signal ctrl_reg        : std_logic_vector(31 downto 0);
+signal strobe_reg      : std_logic_vector(31 downto 0);
+attribute syn_keep of ctrl_reg       : signal is true;
+attribute syn_preserve of ctrl_reg   : signal is true;
+attribute syn_keep of strobe_reg     : signal is true;
+attribute syn_preserve of strobe_reg : signal is true;
+
+signal buffer_ctrl_reg : std_logic_vector(31 downto 0);
 signal adc_restart     : std_logic;
     
 signal adc_trigger     : std_logic_vector(DEVICES-1 downto 0);
 signal adc_stop        : std_logic;
 
 signal config          : cfg_t;
-
-signal buffer_addr     : std_logic_vector(3 downto 0);
+signal buffer_addr     : std_logic_vector(4 downto 0);
 signal buffer_data     : buffer_data_t;
-signal buffer_read     : std_logic_vector(DEVICES-1 downto 0);
+signal buffer_read     : std_logic_vector(15 downto 0);
 signal buffer_ready    : std_logic_vector(DEVICES-1 downto 0);
+signal buffer_device   : integer range 0 to DEVICES-1;
 
+type arr_4_32_t is array (0 to 3) of unsigned(31 downto 0);
+signal baseline_reset_value : arr_4_32_t := (others => (others => '0'));
 
 -- 000 - 0ff configuration
 --       000 reset, buffer clear strobes
+--       001 buffer control reg
+--       002 - 003 trigger generation channel enable
 --       010 buffer depth  (1-1023)
 --       011 number of samples after trigger arrived (0-1023 * 25ns)
 --       012 number of blocks to process (1-4)
 --       013 trigger generation offset (0-1023 from baseline, polarity)
 --       014 read-out threshold (0-1023 from baseline, polarity)
 --       015 number of values to sum before storing
---       016 baseline averaging
+--       016 baseline averaging (2**N)
 --       020 - 023 number of values to sum  (1-255)
 --       024 - 027 number of sums           (1-255)
 --       028 - 02b 2^k scaling factor       (0-8)
 --       02c - 02f 
+--       080 ADC control: SPI, power
 -- 100 - 1ff status
 --       100 clock valid (1 bit per ADC)
 --       101 fco valid (1 bit per ADC)
 --       102 readout state
--- 800 - 87f last ADC values              (local 0x0 - 0x3)
--- 880 - 8ff long-term average / baseline (local 0x4 - 0x7)
--- e00 - e7f fifo access (debugging only) (local 0x8 - 0xb)
+-- 800 - 83f last ADC values              (local 0x0 - 0x3)
+-- 840 - 87f long-term average / baseline (local 0x4 - 0x7)
+-- 880 - 8bf fifo access (debugging only) (local 0x8 - 0xb)
+-- 900 - 9ff processor registers          (local 0x10 - 0x1f)
 
 
 begin
@@ -112,10 +128,10 @@ THE_ADC_LEFT : entity work.adc_ad9219
     DATA_VALID_OUT(5 downto 0) => adc_valid_out(5 downto 0),
     DATA_VALID_OUT(6)          => adc_valid_out(7),
     
-    DEBUG(32*6*CHANNELS-1 downto 0)
-                               => adc_debug(32*6*CHANNELS-1 downto 0),
-    DEBUG(32*7*CHANNELS -1 downto 32*6*CHANNELS)
-                               => adc_debug(32*8*CHANNELS-1 downto 32*7*CHANNELS)
+    DEBUG(32*6-1 downto 0)
+                               => adc_debug(32*6-1 downto 0),
+    DEBUG(32*7 -1 downto 32*6)
+                               => adc_debug(32*8-1 downto 32*7)
     
     );
 
@@ -149,10 +165,10 @@ THE_ADC_RIGHT : entity work.adc_ad9219
     DATA_VALID_OUT(0)          => adc_valid_out(6),
     DATA_VALID_OUT(4 downto 1) => adc_valid_out(11 downto 8),
     
-    DEBUG(32*1*CHANNELS-1 downto 0)
-                               => adc_debug(32*7*CHANNELS-1 downto 32*6*CHANNELS),
-    DEBUG(32*5*CHANNELS -1 downto 32*1*CHANNELS)
-                               => adc_debug(32*12*CHANNELS-1 downto 32*8*CHANNELS)
+    DEBUG(32*1-1 downto 0)
+                               => adc_debug(32*7-1 downto 32*6),
+    DEBUG(32*5 -1 downto 32*1)
+                               => adc_debug(32*12-1 downto 32*8)
     
     );    
 
@@ -171,6 +187,8 @@ gen_processors : for i in 0 to DEVICES-1 generate
       STOP_IN     => adc_stop,
       TRIGGER_OUT => adc_trigger(i),
       
+      CONTROL(31 downto 0)  => strobe_reg,
+      CONTROL(63 downto 32) => buffer_ctrl_reg,
       CONFIG             => config,  --trigger offset, zero sup offset, depth, 
       
       DEBUG_BUFFER_ADDR  => buffer_addr,
@@ -185,83 +203,130 @@ gen_processors : for i in 0 to DEVICES-1 generate
 end generate;      
 
 TRIGGER_FLAG_OUT <= or_all(adc_trigger);
+ADCSPI_CTRL      <= ctrl_reg(7 downto 0);
 
 
+adc_stop <= buffer_ctrl_reg(0);
+config.baseline_always_on <= buffer_ctrl_reg(4);
 
 PROC_BUS : process begin
   wait until rising_edge(CLK);
   BUS_TX.ack     <= '0';
   BUS_TX.nack    <= '0';
   BUS_TX.unknown <= '0';
-  
-  if BUS_RX.read = '1' then
-    if BUS_RX.addr >= x"0010" and BUS_RX.addr <= x"0015" then  --basic config registers
+  buffer_read    <= (others => '0');
+  strobe_reg     <= (others => '0');
+  if or_all(buffer_ready) = '1' then
+     BUS_TX.data <= buffer_data(buffer_device);
+     BUS_TX.ack  <= '1';
+  elsif BUS_RX.read = '1' then
+    if BUS_RX.addr <= x"000f" then
       BUS_TX.ack  <= '1';
-      BUS_TX.data <= (othrs => '0');
-      case BUS_RX.addr(7 downto 0) is
-        when x"10" =>  BUS_TX.data(10 downto 0) <= config.buffer_depth;
-        when x"11" =>  BUS_TX.data(10 downto 0) <= config.samples_after;
-        when x"12" =>  BUS_TX.data( 1 downto 0) <= config.block_count;
-        when x"13" =>  BUS_TX.data(17 downto 0) <= config.trigger_threshold;
-        when x"14" =>  BUS_TX.data(17 downto 0) <= config.readout_threshold;
-        when x"15" =>  BUS_TX.data( 7 downto 0) <= config.presum;
-        
+      case BUS_RX.addr(3 downto 0) is
+        when x"1"   => BUS_TX.data <= buffer_ctrl_reg;
+        when others => BUS_TX.ack <= '0'; BUS_TX.unknown <= '1';
       end case;
+    elsif BUS_RX.addr = x"0080" then
+      BUS_TX.data <= ctrl_reg;
+      BUS_TX.ack  <= '1';
+    elsif BUS_RX.addr >= x"0010" and BUS_RX.addr <= x"001f" then  --basic config registers
+      BUS_TX.ack  <= '1';
+      BUS_TX.data <= (others => '0');
+      case BUS_RX.addr(7 downto 0) is
+        when x"10" =>  BUS_TX.data(10 downto 0) <= std_logic_vector(config.buffer_depth);
+        when x"11" =>  BUS_TX.data(10 downto 0) <= std_logic_vector(config.samples_after);
+        when x"12" =>  BUS_TX.data( 1 downto 0) <= std_logic_vector(config.block_count);
+        when x"13" =>  BUS_TX.data(17 downto 0) <= std_logic_vector(config.trigger_threshold);
+        when x"14" =>  BUS_TX.data(17 downto 0) <= std_logic_vector(config.readout_threshold);
+        when x"15" =>  BUS_TX.data( 7 downto 0) <= std_logic_vector(config.presum);
+        when x"16" =>  BUS_TX.data( 3 downto 0) <= std_logic_vector(config.averaging);
+        when x"17" =>  BUS_TX.data(31 downto 0) <=  config.trigger_enable(31 downto  0);
+        when x"18" =>  BUS_TX.data(15 downto 0) <=  config.trigger_enable(47 downto 32);
+        when others => BUS_TX.ack <= '0'; BUS_TX.unknown <= '1';
+      end case;
+    elsif BUS_RX.addr >= x"0020" and BUS_RX.addr <= x"002f" then      
+      BUS_TX.ack  <= '1';
+      BUS_TX.data <= (others => '0');
+      case BUS_RX.addr(3 downto 2) is
+        when "00" =>   BUS_TX.data( 7 downto 0) <= std_logic_vector(config.block_avg(to_integer(unsigned(BUS_RX.addr(1 downto 0)))));
+        when "01" =>   BUS_TX.data( 7 downto 0) <= std_logic_vector(config.block_sums(to_integer(unsigned(BUS_RX.addr(1 downto 0)))));
+        when "10" =>   BUS_TX.data( 7 downto 0) <= std_logic_vector(config.block_scale(to_integer(unsigned(BUS_RX.addr(1 downto 0)))));
+        when "11" =>   BUS_TX.ack <= '0'; BUS_TX.unknown <= '1';
+      end case;
+    elsif BUS_RX.addr >= x"0030" and BUS_RX.addr <= x"003b" then      
+      BUS_TX.ack  <= '1';
+      BUS_TX.data <= adc_debug(to_integer(unsigned(BUS_RX.addr(3 downto 0)))*32+31 downto to_integer(unsigned(BUS_RX.addr(3 downto 0)))*32);
+      
+    elsif BUS_RX.addr >= x"0800" and BUS_RX.addr <= x"08bf" and BUS_RX.addr(5 downto 0) < std_logic_vector(to_unsigned(DEVICES*CHANNELS,6)) then
+      buffer_device <= to_integer(unsigned(BUS_RX.addr(5 downto 2)));
+      buffer_addr   <= '0' & BUS_RX.addr(7 downto 6) & BUS_RX.addr(1 downto 0);
+      buffer_read(to_integer(unsigned(BUS_RX.addr(5 downto 2))))   <= '1';
+    elsif BUS_RX.addr >= x"0900" and BUS_RX.addr <= x"09ff" then
+      if BUS_RX.addr(3 downto 0) < std_logic_vector(to_unsigned(DEVICES,4)) then
+        buffer_device <= to_integer(unsigned(BUS_RX.addr(3 downto 0)));
+        buffer_addr   <= '1' & BUS_RX.addr(7 downto 4);
+        buffer_read(to_integer(unsigned(BUS_RX.addr(3 downto 0))))   <= '1';      
+      else
+        BUS_TX.data <= (others => '0');
+        BUS_TX.ack  <= '1';
+      end if;
+    else
+      BUS_TX.unknown <= '1';
     end if;
+    
+    
   elsif BUS_RX.write = '1' then
+    if BUS_RX.addr >= x"0010" and BUS_RX.addr <= x"001f" then  --basic config registers
+      BUS_TX.ack  <= '1';
+      case BUS_RX.addr(7 downto 0) is
+        when x"10" =>   config.buffer_depth       <= unsigned(BUS_RX.data(10 downto 0));
+        when x"11" =>   config.samples_after      <= unsigned(BUS_RX.data(10 downto 0));
+        when x"12" =>   config.block_count        <= unsigned(BUS_RX.data( 1 downto 0));
+        when x"13" =>   config.trigger_threshold  <= unsigned(BUS_RX.data(17 downto 0));
+        when x"14" =>   config.readout_threshold  <= unsigned(BUS_RX.data(17 downto 0));
+        when x"15" =>   config.presum             <= unsigned(BUS_RX.data( 7 downto 0));
+        when x"16" =>   config.averaging          <= unsigned(BUS_RX.data( 3 downto 0));
+        when x"17" =>   config.trigger_enable(31 downto  0) <= BUS_RX.data(31 downto 0);
+        when x"18" =>   config.trigger_enable(47 downto 32) <= BUS_RX.data(15 downto 0);
+        when others => BUS_TX.ack <= '0'; BUS_TX.unknown <= '1';        
+      end case;
+    elsif BUS_RX.addr >= x"0020" and BUS_RX.addr <= x"002f" then      
+      BUS_TX.ack  <= '1';
+      BUS_TX.data <= (others => '0');
+      case BUS_RX.addr(3 downto 2) is
+        when "00" =>   config.block_avg(to_integer(unsigned(BUS_RX.addr(1 downto 0))))  <= unsigned(BUS_RX.data( 7 downto 0));  
+        when "01" =>   config.block_sums(to_integer(unsigned(BUS_RX.addr(1 downto 0)))) <= unsigned(BUS_RX.data( 7 downto 0));  
+        when "10" =>   config.block_scale(to_integer(unsigned(BUS_RX.addr(1 downto 0))))<= unsigned(BUS_RX.data( 7 downto 0));
+        when "11" =>   BUS_TX.ack <= '0'; BUS_TX.unknown <= '1';
+      end case;
+    elsif BUS_RX.addr <= x"000f" then
+      BUS_TX.ack  <= '1';
+      case BUS_RX.addr(3 downto 0) is
+        when x"0"   => strobe_reg  <= BUS_RX.data;
+        when x"1"   => buffer_ctrl_reg <= BUS_RX.data;
+        when others => BUS_TX.ack <= '0'; BUS_TX.unknown <= '1';
+      end case;
+    elsif BUS_RX.addr = x"0080" then
+      ctrl_reg    <= BUS_RX.data;
+      BUS_TX.ack  <= '1';      
+    else
+      BUS_TX.unknown <= '1';
+    end if;  
   end if;
 end process;  
   
---       010 buffer depth  (1-1023)
---       011 number of samples after trigger arrived (0-1023 * 25ns)
---       012 number of blocks to process (1-4)
---       013 trigger generation offset (0-1023 from baseline, polarity)
---       014 read-out threshold (0-1023 from baseline, polarity)
---       015 number of values to sum before storing  
+  
+proc_baseline_reset_value : process begin
+  wait until rising_edge(CLK);
+  baseline_reset_value(3) <= (others => '0');
+  baseline_reset_value(3)(to_integer(config.averaging)+RESOLUTION-1 downto to_integer(config.averaging)) <= (others => not config.trigger_threshold(16));
+  baseline_reset_value(2) <= baseline_reset_value(3);
+  baseline_reset_value(1) <= baseline_reset_value(2)(23 downto 0) * resize(config.presum+1,8);
+  baseline_reset_value(0) <= baseline_reset_value(1);
+end process; 
+  config.baseline_reset_value <= baseline_reset_value(0);
   
   
---     if BUS_RX.addr(7 downto 0) = x"80" then
---       BUS_TX.data  <= ctrl_reg;
---       BUS_TX.ack   <= '1';
---     elsif BUS_RX.addr(7 downto 0) >= x"40" and BUS_RX.addr(7 downto 0) < x"80" 
---            and BUS_RX.addr(5 downto 0) < std_logic_vector(to_unsigned(DEVICES*CHANNELS,6)) then
---       BUS_TX.data  <= adc_debug(to_integer(unsigned(BUS_RX.addr(5 downto 0)))*32+31 downto to_integer(unsigned(BUS_RX.addr(5 downto 0)))*32);
---       BUS_TX.ack   <= '1';
---     elsif BUS_RX.addr(7 downto 0) = x"83" then
---       BUS_TX.data  <= (others => '0');
---       --BUS_TX.data(10 downto 0) <= buffer_count(0);
---       BUS_TX.ack   <= '1';
---     elsif BUS_RX.addr(7 downto 0) < std_logic_vector(to_unsigned(DEVICES*CHANNELS,8)) then
---       buffer_addr  <= to_integer(unsigned(BUS_RX.addr(6 downto 0)));
---       buffer_read  <= '1';
---     else
---       BUS_TX.unknown <= '1';
---     end if;
---   
---   elsif BUS_RX.write = '1' then
---     if BUS_RX.addr(7 downto 0) = x"80" then
---       ctrl_reg       <= BUS_RX.data;
---       BUS_TX.ack     <= '1';
---     elsif BUS_RX.addr(7 downto 0) = x"81" then
---       adc_restart          <= BUS_RX.data(0);
---       buffer_stop_override <= BUS_RX.data(1);
---       BUS_TX.ack     <= '1';
---     else
---       BUS_TX.unknown <= '1';
---     end if;
---   end if;
---   
---   if buffer_ready = '1' then
---     BUS_TX.ack <= '1';
---     BUS_TX.data(17 downto 0)  <= buffer_data;
---     BUS_TX.data(30 downto 18) <= (others => '0');
---     BUS_TX.data(31)           <= buffer_empty;
---   end if;
--- end process;
-
-    
-    
-    
 end architecture;
 
 
@@ -282,33 +347,3 @@ end architecture;
 --   end record; 
 -- 
 --   
---   type READOUT_RX is record 
---     data_valid         : std_logic;
---     valid_timing_trg   : std_logic;
---     valid_notiming_trg : std_logic;
---     invalid_trg        : std_logic;
---     --
---     trg_type           : std_logic_vector( 3 downto 0);
---     trg_number         : std_logic_vector(15 downto 0);
---     trg_code           : std_logic_vector( 7 downto 0);
---     trg_information    : std_logic_vector(23 downto 0);
---     trg_int_number     : std_logic_vector(15 downto 0);    
---     --
---     trg_multiple       : std_logic;
---     trg_timeout        : std_logic;
---     trg_spurious       : std_logic;
---     trg_missing        : std_logic;
---     trg_spike          : std_logic;
---     --
---     buffer_almost_full : std_logic;
---   end record; 
---   
---   
---   type READOUT_TX is record
---     busy_release  : std_logic;
---     statusbits    : std_logic_vector(31 downto 0);
---     data          : std_logic_vector(31 downto 0);
---     data_write    : std_logic;
---     data_finished : std_logic;
---   end record;
---  

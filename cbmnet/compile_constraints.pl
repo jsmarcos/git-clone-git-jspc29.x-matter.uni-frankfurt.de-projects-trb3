@@ -32,4 +32,5 @@ symlink "$back/../../base/cores/cbmnet_sfp1.txt", 'cbmnet_sfp1.txt';
 chdir($script_dir);
 
 system("cp ../base/$TOPNAME.lpf $workdir/$TOPNAME.lpf");
+system("cat ./code/cbmnet_bridge.lpf >> $workdir/$TOPNAME.lpf");
 system("cat ".$TOPNAME."_constraints.lpf >> $workdir/$TOPNAME.lpf");

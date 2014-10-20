@@ -26,7 +26,7 @@ package nxyter_components is
       SPI_SCLK_OUT               : out   std_logic;
       SPI_SDIO_INOUT             : inout std_logic;
       SPI_CSB_OUT                : out   std_logic;
-      NX_TIMESTAMP_CLK_IN        : in    std_logic;
+      NX_DATA_CLK_IN             : in    std_logic;
       NX_TIMESTAMP_IN            : in    std_logic_vector (7 downto 0);
       NX_RESET_OUT               : out   std_logic;
       NX_TESTPULSE_OUT           : out   std_logic;
@@ -247,8 +247,55 @@ component adc_ad9228
     ADC1_DATA_CLK_OUT    : out std_logic;
     ADC0_LOCKED_OUT      : out std_logic;
     ADC1_LOCKED_OUT      : out std_logic;
+    ERROR_ADC0_OUT       : out std_logic;
+    ERROR_ADC1_OUT       : out std_logic;
+    ERROR_UNDEF_ADC0_OUT : out std_logic;
+    ERROR_UNDEF_ADC1_OUT : out std_logic;
     DEBUG_IN             : in  std_logic_vector(3 downto 0);
     DEBUG_OUT            : out std_logic_vector(15 downto 0)
+    );
+end component;
+
+component adc_ddr_generic
+  port (
+    clk_0        : in  std_logic;
+    clk_1        : in  std_logic;
+    clkdiv_reset : in  std_logic;
+    eclk         : in  std_logic;
+    reset_0      : in  std_logic;
+    reset_1      : in  std_logic;
+    sclk         : out std_logic;
+    datain_0     : in  std_logic_vector(4 downto 0);
+    datain_1     : in  std_logic_vector(4 downto 0);
+    q_0          : out std_logic_vector(19 downto 0);
+    q_1          : out std_logic_vector(19 downto 0)
+    );
+end component;
+
+component ddr_generic_single
+  port (
+    clk_0        : in  std_logic;
+    clkdiv_reset : in  std_logic;
+    eclk         : in  std_logic;
+    reset_0      : in  std_logic;
+    sclk         : out std_logic;
+    datain_0     : in  std_logic_vector(4 downto 0);
+    q_0          : out std_logic_vector(19 downto 0)
+    );
+end component;
+
+component fifo_adc_48to48_dc
+  port (
+    Data    : in  std_logic_vector(47 downto 0);
+    WrClock : in  std_logic;
+    RdClock : in  std_logic;
+    WrEn    : in  std_logic;
+    RdEn    : in  std_logic;
+    Reset   : in  std_logic;
+    RPReset : in  std_logic;
+    Q       : out std_logic_vector(47 downto 0);
+    Empty   : out std_logic;
+    Full    : out std_logic
     );
 end component;
 
@@ -312,6 +359,14 @@ component nx_status
     );
 end component;
 
+component clock10MHz
+  port (
+    CLK   : in  std_logic;
+    CLKOP : out std_logic;
+    LOCK  : out std_logic
+    );
+end component;
+
 component fifo_data_stream_44to44_dc
   port (
     Data    : in  std_logic_vector(43 downto 0);
@@ -324,6 +379,32 @@ component fifo_data_stream_44to44_dc
     Q       : out std_logic_vector(43 downto 0);
     Empty   : out std_logic;
     Full    : out std_logic
+    );
+end component;
+
+component dynamic_shift_register8x64
+  port (
+    Din     : in  std_logic_vector(7 downto 0);
+    Addr    : in  std_logic_vector(5 downto 0);
+    Clock   : in  std_logic;
+    ClockEn : in  std_logic;
+    Reset   : in  std_logic;
+    Q       : out std_logic_vector(7 downto 0)
+    );
+end component;
+
+component ram_fifo_delay_256x44
+  port (
+    WrAddress : in  std_logic_vector(7 downto 0);
+    RdAddress : in  std_logic_vector(7 downto 0);
+    Data      : in  std_logic_vector(43 downto 0);
+    WE        : in  std_logic;
+    RdClock   : in  std_logic;
+    RdClockEn : in  std_logic;
+    Reset     : in  std_logic;
+    WrClock   : in  std_logic;
+    WrClockEn : in  std_logic;
+    Q         : out std_logic_vector(43 downto 0)
     );
 end component;
 
@@ -343,6 +424,21 @@ component fifo_44_data_delay_my
     );
 end component;
 
+component fifo_32_data
+  port (
+    Data         : in  std_logic_vector(31 downto 0);
+    Clock        : in  std_logic;
+    WrEn         : in  std_logic;
+    RdEn         : in  std_logic;
+    Reset        : in  std_logic;
+    AmFullThresh : in  std_logic_vector(10 downto 0);
+    Q            : out std_logic_vector(31 downto 0);
+    Empty        : out std_logic;
+    Full         : out std_logic;
+    AlmostFull   : out std_logic
+    );
+end component;
+
 component nx_data_receiver
   generic (
     DEBUG_ENABLE : boolean
@@ -353,7 +449,7 @@ component nx_data_receiver
     TRIGGER_IN             : in  std_logic;
     NX_ONLINE_IN           : in  std_logic;
     NX_CLOCK_ON_IN         : in  std_logic;
-    NX_TIMESTAMP_CLK_IN    : in  std_logic;
+    NX_DATA_CLK_IN         : in  std_logic;
     NX_TIMESTAMP_IN        : in  std_logic_vector (7 downto 0);
     NX_TIMESTAMP_RESET_OUT : out std_logic;
     ADC_CLK_DAT_IN         : in  std_logic;
@@ -577,6 +673,66 @@ component nx_histograms
     );
 end component;
 
+component ram_dp_128x40
+  port (
+    WrAddress : in  std_logic_vector(6 downto 0);
+    RdAddress : in  std_logic_vector(6 downto 0);
+    Data      : in  std_logic_vector(39 downto 0);
+    WE        : in  std_logic;
+    RdClock   : in  std_logic;
+    RdClockEn : in  std_logic;
+    Reset     : in  std_logic;
+    WrClock   : in  std_logic;
+    WrClockEn : in  std_logic;
+    Q         : out std_logic_vector(39 downto 0)
+    );
+end component;
+
+component ram_dp_128x32
+  port (
+    WrAddress   : in  std_logic_vector(6 downto 0);
+    RdAddress   : in  std_logic_vector(6 downto 0);
+    Data        : in  std_logic_vector(31 downto 0);
+    WE          : in  std_logic;
+    RdClock     : in  std_logic;
+    RdClockEn   : in  std_logic;
+    Reset       : in  std_logic;
+    WrClock     : in  std_logic;
+    WrClockEn   : in  std_logic;
+    Q           : out std_logic_vector(31 downto 0)
+    );
+end component;
+
+component ram_dp_512x40
+  port (
+    WrAddress : in  std_logic_vector(8 downto 0);
+    RdAddress : in  std_logic_vector(8 downto 0);
+    Data      : in  std_logic_vector(39 downto 0);
+    WE        : in  std_logic;
+    RdClock   : in  std_logic;
+    RdClockEn : in  std_logic;
+    Reset     : in  std_logic;
+    WrClock   : in  std_logic;
+    WrClockEn : in  std_logic;
+    Q         : out std_logic_vector(39 downto 0)
+    );
+end component;
+
+component ram_dp_512x32
+  port (
+    WrAddress : in  std_logic_vector(8 downto 0);
+    RdAddress : in  std_logic_vector(8 downto 0);
+    Data      : in  std_logic_vector(31 downto 0);
+    WE        : in  std_logic;
+    RdClock   : in  std_logic;
+    RdClockEn : in  std_logic;
+    Reset     : in  std_logic;
+    WrClock   : in  std_logic;
+    WrClockEn : in  std_logic;
+    Q         : out std_logic_vector(31 downto 0)
+    );
+end component;
+
 -------------------------------------------------------------------------------
 
 component level_to_pulse
@@ -681,6 +837,46 @@ component pulse_delay
     RESET_IN  : in  std_logic;
     PULSE_IN  : in  std_logic;
     PULSE_OUT : out std_logic
+    );
+end component;
+
+-------------------------------------------------------------------------------
+-- PLLs
+-------------------------------------------------------------------------------
+
+component pll_nx_clk250
+  port (
+    CLK   : in  std_logic;
+    RESET : in  std_logic;
+    CLKOP : out std_logic;
+    LOCK  : out std_logic
+    );
+end component;
+
+component pll_adc_clk
+  port (
+    CLK   : in  std_logic;
+    RESET : in  std_logic;
+    CLKOP : out std_logic;
+    LOCK  : out std_logic
+    );
+end component;
+
+component pll_adc_sampling_clk
+  port (
+    CLK       : in  std_logic;
+    RESET     : in  std_logic;
+    FINEDELB0 : in  std_logic;
+    FINEDELB1 : in  std_logic;
+    FINEDELB2 : in  std_logic;
+    FINEDELB3 : in  std_logic;
+    DPHASE0   : in  std_logic;
+    DPHASE1   : in  std_logic;
+    DPHASE2   : in  std_logic;
+    DPHASE3   : in  std_logic;
+    CLKOP     : out std_logic;
+    CLKOS     : out std_logic;
+    LOCK      : out std_logic
     );
 end component;
 

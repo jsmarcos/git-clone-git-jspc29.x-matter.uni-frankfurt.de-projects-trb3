@@ -32,8 +32,8 @@ entity CBMNET_PHY_RX_GEAR is
 end entity;
 
 architecture CBMNET_PHY_RX_GEAR_ARCH of CBMNET_PHY_RX_GEAR is
-   attribute HGROUP : string;
-   attribute HGROUP of CBMNET_PHY_RX_GEAR_ARCH : architecture  is "cbmnet_phy_rx_gear";
+--    attribute HGROUP : string;
+--    attribute HGROUP of CBMNET_PHY_RX_GEAR_ARCH : architecture  is "cbmnet_phy_rx_gear";
 
 
    type FSM_STATES_T is (FSM_START, FSM_WAIT_FOR_LOCK, FSM_LOCK_WAIT1, FSM_LOCK_WAIT2, FSM_LOCK_WAIT3, FSM_RESET, FSM_LOCKED);
@@ -47,6 +47,7 @@ architecture CBMNET_PHY_RX_GEAR_ARCH of CBMNET_PHY_RX_GEAR is
    
    signal data_delay_i   : std_logic_vector(8 downto 0);
    signal data_out_buf250_i : std_logic_vector(17 downto 0);
+   signal data_out_crs125_i : std_logic_vector(17 downto 0);
    signal data_out_buf125_i : std_logic_vector(17 downto 0);
    signal clk_125_i : std_logic;
    
@@ -55,9 +56,8 @@ architecture CBMNET_PHY_RX_GEAR_ARCH of CBMNET_PHY_RX_GEAR is
    
    signal data_in_buf_i : std_logic_vector( 8 downto 0); 
    
-   
    signal delay_clock_buf_i : std_logic;
-   signal delay_clock_buf1_i : std_logic;
+   signal delay_clock_crs_i : std_logic;
    signal last_delay_clock_i : std_logic := '0';
    signal word_idx_i : std_logic := '0';   
 begin
@@ -65,20 +65,19 @@ begin
 -- FSM sync part
    process is begin
       wait until rising_edge(clk_125_i);
+
+      SERDES_RESET_OUT <= '0';
+      RESET_OUT <= '1';
+      reset_timer_i <= '0';
+      delay_clock_i <= '0';
+         fsm_state_i <= x"0";
+
       
       if PCS_READY_IN = '0' then
          fsm_i <= FSM_START;
-         
-         RESET_OUT <= '1';
          delay_clock_i <= '0';
-         fsm_state_i <= x"0";
          
       else
-         SERDES_RESET_OUT <= '0';
-         RESET_OUT <= '1';
-         reset_timer_i <= '0';
-         delay_clock_i <= '0';
-         
          case (fsm_i) is
             when FSM_START =>
                fsm_state_i <= x"0";
@@ -92,7 +91,7 @@ begin
                   fsm_i <= FSM_LOCKED;
                   
                elsif indi_misalignment_i = '1' then
-                  -- we're off by one word. just wait a single frame
+                  -- we're off by one 8+1 word. just wait a single 250 MHz clock cycle
                   delay_clock_i <= '1';
                   fsm_i <= FSM_LOCK_WAIT1;   -- ensure we only have a single delay clock cycle
                
@@ -155,10 +154,8 @@ begin
    end process;
 
 -- Implement the 2:1 gearing and clock down-sampling
-   --delay_clock_buf1_i <= delay_clock_i when rising_edge(CLK_250_IN);
-   delay_clock_buf_i <= delay_clock_i when rising_edge(CLK_250_IN);
- 
-
+   delay_clock_crs_i <= delay_clock_i when rising_edge(CLK_250_IN);
+   delay_clock_buf_i <= delay_clock_crs_i when rising_edge(CLK_250_IN);
    proc_ctrl_gear: process
    begin
       wait until rising_edge(CLK_250_IN);
@@ -186,14 +183,15 @@ begin
       end if;      
 
    end process;
+
+   -- meta stabilitiy should not be a problem at this point, as the slower clock is direved from the driving faster clock, but be to be sure ...
+   data_out_crs125_i <= data_out_buf250_i when rising_edge(clk_125_i);
+   data_out_buf125_i <= data_out_crs125_i when rising_edge(clk_125_i);
    
-   
-   data_out_buf125_i <= data_out_buf250_i when rising_edge(clk_125_i);
-   DATA_OUT <= data_out_buf125_i;
-   CLK_125_OUT <= clk_125_i; -- when rising_edge(CLK_250_IN);
+   DATA_OUT    <= data_out_buf125_i;
+   CLK_125_OUT <= clk_125_i;
    
    DEBUG_OUT(3 downto 0) <= STD_LOGIC_VECTOR(fsm_state_i);
-   DEBUG_OUT(4) <= delay_clock_i;
    DEBUG_OUT(5) <= indi_alignment_i;
    DEBUG_OUT(6) <= indi_misalignment_i;
    

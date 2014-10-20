@@ -1466,5 +1466,25 @@ component sfp_ctc_0_200_int is
 
 end component;
 
+component trigger_clock_manager is
+   port (
+      TRB_CLK_IN   : in std_logic;
+      INT_CLK_IN   : in std_logic;  -- dont care which clock, but not faster than TRB_CLK_IN
 
+      RESET_IN : in std_logic;
+
+      -- only single register, so no address
+      REGIO_ADDRESS_IN               : in  std_logic_vector( 1 downto 0);
+      REGIO_DATA_IN                  : in  std_logic_vector(31 downto 0);
+      REGIO_READ_ENABLE_IN           : in  std_logic;
+      REGIO_WRITE_ENABLE_IN          : in  std_logic;
+      REGIO_DATA_OUT                 : out std_logic_vector(31 downto 0);
+      REGIO_DATAREADY_OUT            : out std_logic;
+      REGIO_WRITE_ACK_OUT            : out std_logic;
+      REGIO_UNKNOWN_ADDRESS_OUT      : out std_logic;
+      
+      RESET_OUT     : out std_logic;
+      TC_SELECT_OUT : out std_logic_vector(31 downto 0)
+   );
+end component;
 end package;

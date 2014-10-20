@@ -57,7 +57,7 @@ add_file -vhdl -lib work "../../trbnet/trb_net16_hub_func.vhd"
 add_file -vhdl -lib work "../base/trb3_components.vhd"
 add_file -vhdl -lib work "../../trbnet/basics/signal_sync.vhd"
 add_file -vhdl -lib work "../../trbnet/special/trb_net_reset_handler.vhd"
-
+add_file -vhdl -lib work "../base/code/sedcheck.vhd"
 
 add_file -vhdl -lib work "../../trbnet/trb_net_CRC.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_onewire.vhd"

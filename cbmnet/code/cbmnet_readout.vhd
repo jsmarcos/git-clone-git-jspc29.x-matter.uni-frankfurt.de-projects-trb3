@@ -202,7 +202,7 @@ begin
       HUB_CTS_CODE_IN                => HUB_CTS_CODE_IN,         -- in  std_logic_vector (7  downto 0);
       HUB_CTS_INFORMATION_IN         => HUB_CTS_INFORMATION_IN,  -- in  std_logic_vector (7  downto 0);
       HUB_CTS_READOUT_TYPE_IN        => HUB_CTS_READOUT_TYPE_IN, -- in  std_logic_vector (3  downto 0);
-      GBE_CTS_STATUS_BITS_IN         => GBE_CTS_STATUS_BITS_IN,  -- in  std_logic_vector (31 downto 0);
+      HUB_FEE_STATUS_BITS_IN         => HUB_FEE_STATUS_BITS_IN,  -- in  std_logic_vector (31 downto 0);
       
       -- connect to decoder
       DEC_EVT_INFO_IN                => dec_evt_info_i,    -- in  std_logic_vector(31 downto 0);

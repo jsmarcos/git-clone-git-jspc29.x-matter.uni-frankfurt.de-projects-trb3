@@ -2,19 +2,16 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
+library work;
+use work.trb_net_std.all;
 
 entity sedcheck is
   port(
     CLK        : in std_logic;
     ERROR_OUT  : out std_logic;
     
-    DATA_IN    : in  std_logic_vector(31 downto 0) := (others => '0');
-    DATA_OUT   : out std_logic_vector(31 downto 0);
-    WRITE_IN   : in  std_logic := '0';
-    READ_IN    : in  std_logic := '0';
-    ACK_OUT    : out std_logic;
-    NACK_OUT   : out std_logic;
-    ADDR_IN    : in  std_logic_vector(15 downto 0) := (others => '0')    
+    BUS_RX     : in  CTRLBUS_RX;
+    BUS_TX     : out CTRLBUS_TX
     );
 end entity;
 
@@ -82,20 +79,22 @@ sed_error_q      <= sed_error when rising_edge(CLK);
 ---------------------------------------------------------------------------
 proc_reg : process begin
   wait until rising_edge(CLK);
-  ACK_OUT  <= '0';
-  NACK_OUT <= '0';
-  if WRITE_IN = '1' then
-    ACK_OUT <= '1';
-    case ADDR_IN(1 downto 0) is
-      when "00"   => control_i <= DATA_IN;
-      when others => ACK_OUT <= '0'; NACK_OUT <= '1';
+  BUS_TX.ack     <= '0';
+  BUS_TX.nack    <= '0';
+  BUS_TX.unknown <= '0';
+  
+  if BUS_RX.write = '1' then
+    BUS_TX.ack <= '1';
+    case BUS_RX.addr(1 downto 0) is
+      when "00"   => control_i <= BUS_RX.data;
+      when others => BUS_TX.ack <= '0'; BUS_TX.unknown <= '1';
     end case;
-  elsif READ_IN = '1' then
-    ACK_OUT <= '1';
-    case ADDR_IN(1 downto 0) is
-      when "00"   => DATA_OUT <= control_i;
-      when "01"   => DATA_OUT <= status_i;
-      when others => ACK_OUT <= '0'; NACK_OUT <= '1';
+  elsif BUS_RX.read = '1' then
+    BUS_TX.ack <= '1';
+    case BUS_RX.addr(1 downto 0) is
+      when "00"   => BUS_TX.data <= control_i;
+      when "01"   => BUS_TX.data <= status_i;
+      when others => BUS_TX.ack <= '0'; BUS_TX.unknown <= '1';
     end case;
   end if;
 end process;

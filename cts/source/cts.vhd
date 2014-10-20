@@ -444,9 +444,7 @@ begin
                         FEE_DATA_OUT(24 downto 20) <= num_of_itc_used_i;
                      end if;
                      
-                     FEE_DATA_OUT(25) <= ro_configuration_buf_i(2);
-                     FEE_DATA_OUT(26) <= ro_configuration_buf_i(3);
-                     
+                     FEE_DATA_OUT(27 downto 25) <= ro_configuration_buf_i(4 downto 2);
                      FEE_DATA_OUT(29 downto 28) <= EXT_HEADER_BITS_IN;
                      
                      FEE_DATA_WRITE_OUT <= '1';

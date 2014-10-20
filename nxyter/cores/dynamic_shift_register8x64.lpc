@@ -12,12 +12,12 @@ VendorName=Lattice Semiconductor Corporation
 CoreType=LPM
 CoreStatus=Demo
 CoreName=RAM_Based_Shift_Register
-CoreRevision=5.1
-ModuleName=dynamic_shift_register33x64
+CoreRevision=4.1
+ModuleName=dynamic_shift_register8x64
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=08/09/2014
-Time=14:16:23
+Date=04/18/2014
+Time=13:07:29
 
 [Parameters]
 Verilog=0
@@ -27,7 +27,7 @@ Destination=Synplicity
 Expression=BusA(0 to 7)
 Order=Big Endian [MSB:LSB]
 IO=0
-DataWidth=33
+DataWidth=8
 Type=VarLossless
 NoOfShifts=16
 MaxLossyShifts=16
@@ -35,10 +35,7 @@ MaxLosslessShifts=64
 EOR=1
 MemFile=
 MemFormat=orca
-RamType=bram
+RamType=dram
 
 [FilesGenerated]
 =mem
-
-[Command]
-cmd_line= -w -n dynamic_shift_register33x64 -lang vhdl -synth synplify -bus_exp 7 -bb -arch ep5c00 -type shiftreg -width 33 -depth 64 -mode 10 -pipe_final_output

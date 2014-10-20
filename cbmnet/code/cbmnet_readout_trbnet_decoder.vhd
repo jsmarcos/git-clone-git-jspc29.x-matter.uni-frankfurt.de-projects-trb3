@@ -45,12 +45,12 @@ architecture cbmnet_readout_trbnet_decoder_arch of CBMNET_READOUT_TRBNET_DECODER
    attribute syn_ramstyle : string;
    attribute syn_ramstyle of fifo_mem_i : signal is "block_ram";
 
-   type FSM_STATES_T is (WAIT_FOR_IDLE, IDLE, RECV_EVT_INFO_H, RECV_EVT_INFO_L, RECV_EVT_LENGTH, RECV_EVT_SOURCE, RECV_PAYLOAD, LAST_WORD, ERROR_COND);
+   type FSM_STATES_T is (WAIT_FOR_IDLE, IDLE, RECV_EVT_INFO_H, RECV_EVT_INFO_L, RECV_EVT_LENGTH, RECV_EVT_SOURCE, RECV_PAYLOAD, ERROR_COND);
    signal fsm_i : FSM_STATES_T;
    
    signal data_i : std_logic_vector(15 downto 0);
    signal dec_evt_info_i : std_logic_vector(31 downto 0);
-   signal dec_length_i   : std_logic_vector(15 downto 0);
+   signal dec_length_i   : std_logic_vector(15 downto 0); -- in bytes !
    signal dec_source_i   : std_logic_vector(15 downto 0);
    signal dec_error_i    : std_logic;
    
@@ -146,11 +146,11 @@ begin
                   fsm_i <= WAIT_FOR_IDLE; --LAST_WORD;
                end if;
                
-            when LAST_WORD =>
-               DEC_ACTIVE_OUT <= '1';
-               if DEC_DATA_READ_IN = '1' then
-                  fsm_i <= WAIT_FOR_IDLE;
-               end if;
+--             when LAST_WORD =>
+--                DEC_ACTIVE_OUT <= '1';
+--                if DEC_DATA_READ_IN = '1' then
+--                   fsm_i <= WAIT_FOR_IDLE;
+--                end if;
                
             when others => -- error cond
                DEBUG_OUT(3 downto 0) <= x"7";
@@ -223,7 +223,7 @@ begin
    DEC_LENGTH_OUT <= dec_length_i;
    DEC_EVT_INFO_OUT <= dec_evt_info_i;
    DEC_SOURCE_OUT <= dec_source_i;
-   DEC_DATA_READY_OUT <= '1' when fifo_empty_i = '0' or fsm_i = LAST_WORD else '0';
+   DEC_DATA_READY_OUT <= not fifo_empty_i;
    
    DEC_DATA_OUT <= fifo_data_i;
    

@@ -41,31 +41,31 @@ add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/pcs_init/cn_tx_pcs_init
 add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/pcs_init/cn_tx_pcs_wrapper.v"
 add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/pcs_init/cn_async_input_sync.v"
 
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/dlm_reflect.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/dlm_mixed/dlm_reflect.v"
 
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_crc_gen.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_init_fsm.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_init.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_rx_buffer_read_fsm.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_rx_buffer_read.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_rx_buffer.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_rx_buffer_write_fsm.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_rx_dlm.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_rx_service.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_rx.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_top.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_tx_buffer_read_fsm.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_tx_buffer.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_tx_buffer_write_fsm.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_tx_dlm.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_tx_out_arbiter_fsm.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_tx_out.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_tx_service.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_port_v3/cn_lp_tx.v"
 
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_top.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_arbiter_fsm.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_crc_generator.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_dlm_in.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_dlm_out.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_in_decode.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_init_fsm.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_init.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_in.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_out.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_packet_gen.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_receive_buffer.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_receive_fsm.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_service_ctrl.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_service.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_rx_slave_top.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_rx_top.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_send_buffer_fsm.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_send_buffer.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_send_fsm.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_tx_slave_top.v"
-add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/LP/lp_tx_top.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_tester/lt_random_stopper.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_tester/lt_send_fsm.v"
+add_file -verilog "./cbmnet/cores/CBMnet/building_blocks/link_tester/link_tester_fe.v"
 
 add_file -vhdl -lib work "./version.vhd"
 
@@ -170,7 +170,7 @@ add_file -vhdl -lib work "./code/cbmnet_phy_ecp3.vhd"
 add_file -vhdl -lib work "./trb3_periph_cbmnet.vhd"
 
 
-add_file -vhdl -lib work "./cores/cbmnet_fifo_18x2k_dp.vhd"
+add_file -vhdl -lib work "./cores/cbmnet_fifo_18x32k_dp.vhd"
 add_file -vhdl -lib work "./code/cbmnet_readout_trbnet_decoder.vhd"
 add_file -vhdl -lib work "./code/cbmnet_readout_event_packer.vhd"
 add_file -vhdl -lib work "./code/cbmnet_readout_fifo_ecp3.vhd"
@@ -178,8 +178,14 @@ add_file -vhdl -lib work "./code/cbmnet_readout_frame_packer.vhd"
 add_file -vhdl -lib work "./code/cbmnet_readout_tx_fifo.vhd"
 add_file -vhdl -lib work "./code/cbmnet_readout_obuf.vhd"
 add_file -vhdl -lib work "./code/cbmnet_readout.vhd"
+add_file -vhdl -lib work "./code/trbnet_rdo_pattern_generator.vhd"
 
-add_file -fpga_constraint "./project/trb3_periph_cbmnet_syn.fdc"
+add_file -vhdl -lib work "./code/pos_edge_strech_sync.vhd"
+add_file -vhdl -lib work "./code/cbmnet_sync_module.vhd"
+add_file -vhdl -lib work "./code/cbmnet_bridge.vhd"
+
+
+add_file -fpga_constraint "./trb3_periph_cbmnet_syn.fdc"
 
 
 #implementation: "workdir"
@@ -209,10 +215,10 @@ set_option -write_verilog 0
 set_option -write_vhdl 1
 
 # Lattice XP
-set_option -maxfan 100
+set_option -maxfan 500
 set_option -disable_io_insertion 0
-set_option -retiming 0
-set_option -pipe 0
+set_option -retiming 1
+set_option -pipe 1
 set_option -forcegsr false
 set_option -fixgatedclocks 0
 set_option -fixgeneratedclocks 0
@@ -220,7 +226,7 @@ set_option -update_models_cp 0
 
 # NFilter
 set_option -popfeed 0
-set_option -constprop 0
+set_option -constprop 1
 set_option -createhierarchy 0
 
 # sequential_optimization_options
@@ -231,7 +237,7 @@ set_option -compiler_compatible 1
 set_option -resource_sharing 0
 
 #automatic place and route (vendor) options
-set_option -write_apr_constraint 0
+set_option -write_apr_constraint 1
 
 #set result format/file last
 project -result_file "./workdir/trb3_periph_cbmnet.edf"

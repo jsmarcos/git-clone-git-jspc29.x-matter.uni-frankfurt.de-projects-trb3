@@ -216,6 +216,10 @@ architecture trb3_periph_hub_arch of trb3_periph_hub is
   signal i2c_addr     : std_logic_vector(7  downto 0);  
   signal buf_SFP_MOD2_IN : std_logic_vector(6 downto 1);
   signal buf_SFP_MOD2 : std_logic_vector(6 downto 1);
+
+  signal sed_error : std_logic;
+  signal bussed_rx : CTRLBUS_RX;
+  signal bussed_tx : CTRLBUS_TX;  
   
   --FPGA Test
   signal time_counter : unsigned(31 downto 0);
@@ -621,9 +625,9 @@ THE_HUB : trb_net16_hub_base
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 5,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"b000", 3 => x"b200", 4 => x"d500", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 9,       3 => 9,       4 => 8,       others => 0)
+      PORT_NUMBER    => 6,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"b000", 3 => x"b200", 4 => x"d600", 5 => x"d500", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 9,       3 => 9,       4 => 8,       5 => 4,       others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -701,7 +705,19 @@ THE_HUB : trb_net16_hub_base
       BUS_DATAREADY_IN(4)                 => i2c_ack,
       BUS_WRITE_ACK_IN(4)                 => i2c_ack,
       BUS_NO_MORE_DATA_IN(4)              => '0',
-      BUS_UNKNOWN_ADDR_IN(4)              => i2c_nack,      
+      BUS_UNKNOWN_ADDR_IN(4)              => i2c_nack,   
+      --SEU Detection
+      BUS_READ_ENABLE_OUT(5)              => bussed_rx.read,
+      BUS_WRITE_ENABLE_OUT(5)             => bussed_rx.write,
+      BUS_DATA_OUT(5*32+31 downto 5*32)   => bussed_rx.data,
+      BUS_ADDR_OUT(5*16+15 downto 5*16)   => bussed_rx.addr,
+      BUS_TIMEOUT_OUT(5)                  => bussed_rx.timeout,
+      BUS_DATA_IN(5*32+31 downto 5*32)    => bussed_tx.data,
+      BUS_DATAREADY_IN(5)                 => bussed_tx.ack,
+      BUS_WRITE_ACK_IN(5)                 => bussed_tx.ack,
+      BUS_NO_MORE_DATA_IN(5)              => bussed_tx.nack,
+      BUS_UNKNOWN_ADDR_IN(5)              => bussed_tx.unknown,      
+      
       STAT_DEBUG => open
       );
 
@@ -767,7 +783,17 @@ THE_HUB : trb_net16_hub_base
       PROGRAMN  => PROGRAMN
       );
 
-
+---------------------------------------------------------------------------
+-- SED Detection
+---------------------------------------------------------------------------
+  THE_SED : entity work.sedcheck
+    port map(
+      CLK       => clk_100_i,
+      ERROR_OUT => sed_error,
+      BUS_RX    => bussed_rx,
+      BUS_TX    => bussed_tx
+      );  
+  
 
 ---------------------------------------------------------------------------
 -- LED
@@ -784,8 +810,7 @@ THE_HUB : trb_net16_hub_base
     LED_TX(i)     <= not med_stat_op(i*16+11);
   end generate;
   
-  
-  
+
 ---------------------------------------------------------------------------
 -- Test Connector
 ---------------------------------------------------------------------------    

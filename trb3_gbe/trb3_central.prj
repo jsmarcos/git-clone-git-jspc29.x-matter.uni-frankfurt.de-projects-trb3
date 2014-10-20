@@ -230,6 +230,7 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4
 add_file -vhdl -lib work "../base/code/input_to_trigger_logic.vhd"
 add_file -vhdl -lib work "../base/code/input_statistics.vhd"
 add_file -vhdl -lib work "../base/cores/pll_in200_out100.vhd"
+add_file -vhdl -lib work "../base/cores/pll_200_4.vhd"
 add_file -vhdl -lib work "./trb3_central.vhd"
 
 

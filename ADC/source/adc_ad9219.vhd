@@ -23,7 +23,7 @@ entity adc_ad9219 is
     DATA_OUT       : out std_logic_vector(NUM_DEVICES*CHANNELS*RESOLUTION-1 downto 0);
     FCO_OUT        : out std_logic_vector(NUM_DEVICES*RESOLUTION-1 downto 0);
     DATA_VALID_OUT : out std_logic_vector(NUM_DEVICES-1 downto 0);
-    DEBUG          : out std_logic_vector(NUM_DEVICES*CHANNELS*32-1 downto 0)
+    DEBUG          : out std_logic_vector(NUM_DEVICES*32-1 downto 0)
     );
 end entity;
 
@@ -39,7 +39,8 @@ signal clk_data      : std_logic; --100MHz
 signal clk_data_half : std_logic;
 signal restart_i     : std_logic;
 
-
+type cnt_t is array(0 to NUM_DEVICES-1) of unsigned(27 downto 0);
+signal counter : cnt_t;
 
 type state_t is (S1,S2,S3,S4,S5);
 type states_t is array(0 to NUM_DEVICES-1) of state_t;
@@ -212,14 +213,13 @@ gen_chips : for i in 0 to NUM_DEVICES-1 generate
     end if;
   end process;
 
-  THE_FIFO : fifo_cdt_200   --60*16
+  THE_FIFO : entity work.fifo_cdt_200_50   --50*16
     port map(
       Data(9 downto   0)  => fifo_input(i)(0),
       Data(19 downto 10)  => fifo_input(i)(1),
       Data(29 downto 20)  => fifo_input(i)(2),
       Data(39 downto 30)  => fifo_input(i)(3),
       Data(49 downto 40)  => fifo_input(i)(4),
-      Data(59 downto 50)  => (others => '0'),
       WrClock  => clk_data,
       RdClock  => CLK,
       WrEn     => fifo_write(i),
@@ -239,24 +239,23 @@ gen_chips : for i in 0 to NUM_DEVICES-1 generate
       DATA_OUT(i*40+39 downto i*40+0) <= fifo_output(i)(39 downto 0);
       FCO_OUT (i*10+9  downto i*10+0) <= fifo_output(i)(49 downto 40);
       DATA_VALID_OUT(i)               <= '1';
+      counter(i) <= counter(i) + 1;
     else
       DATA_VALID_OUT(i)               <= '0';
     end if;
   end process;
 
-  
+
   proc_debug : process begin
     wait until rising_edge(CLK);
-    DEBUG(i*32+31 downto i*32)       <= (others => '0');
-    DEBUG(i*32+3  downto  i*32+0) <= q_q(i)(3 downto 0);
-    DEBUG(i*32+7  downto  i*32+4) <= q_q(i)(19 downto 16);
+    DEBUG(i*32+31 downto i*32+4) <= counter(i);
     case state_q(i) is
-      when S1 =>     DEBUG(i*32+11 downto  i*32+8) <= x"1";
-      when S2 =>     DEBUG(i*32+11 downto  i*32+8) <= x"2";
-      when S3 =>     DEBUG(i*32+11 downto  i*32+8) <= x"3";
-      when S4 =>     DEBUG(i*32+11 downto  i*32+8) <= x"4";
-      when S5 =>     DEBUG(i*32+11 downto  i*32+8) <= x"5";
-      when others => DEBUG(i*32+11 downto  i*32+8) <= x"0";
+      when S1 =>     DEBUG(i*32+3 downto  i*32+0) <= x"1";
+      when S2 =>     DEBUG(i*32+3 downto  i*32+0) <= x"2";
+      when S3 =>     DEBUG(i*32+3 downto  i*32+0) <= x"3";
+      when S4 =>     DEBUG(i*32+3 downto  i*32+0) <= x"4";
+      when S5 =>     DEBUG(i*32+3 downto  i*32+0) <= x"5";
+      when others => DEBUG(i*32+3 downto  i*32+0) <= x"f";
     end case;
   end process;  
   

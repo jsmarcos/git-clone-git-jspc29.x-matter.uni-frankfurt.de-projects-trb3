@@ -254,7 +254,7 @@ signal gbe_stp_reg_read             : std_logic;
 signal gbe_stp_reg_write            : std_logic;
 signal gbe_stp_reg_data_rd          : std_logic_vector(31 downto 0);
 
-signal select_tc                   : std_logic_vector(31 downto 0);
+signal select_tc                   : std_logic_vector(31 downto 0) := (8 => USE_EXTERNAL_CLOCK_std, others => '0');
 signal select_tc_data_in           : std_logic_vector(31 downto 0);
 signal select_tc_write             : std_logic;
 signal select_tc_read              : std_logic;
@@ -364,6 +364,16 @@ gen_125 : if USE_125_MHZ = c_YES generate
   clk_raw_internal <= CLK_GPLL_RIGHT;
   clk_gbe_internal <= CLK_GPLL_RIGHT;
   pll_lock         <= '1';
+end generate;
+
+gen_power_clock : if USE_POWER_CLOCK = c_YES generate
+  PLL_ENPIRION : entity work.pll_200_4
+    port map(
+      CLK   => clk_raw_internal,
+      RESET => reset_i,
+      CLKOP => ENPIRION_CLOCK,
+      LOCK  => open
+      );
 end generate;
 
 
@@ -1034,12 +1044,7 @@ end generate;
 
 process begin
   wait until rising_edge(clk_sys_i);
-  if reset_i = '1' then
-    select_tc <= x"00000000"; --always external trigger source, external clock
-    if USE_EXTERNAL_CLOCK = c_YES then
-      select_tc(8) <= '1';
-    end if;      
-  elsif select_tc_write = '1' then
+  if select_tc_write = '1' then
     select_tc <= select_tc_data_in;
   end if;
   select_tc_ack <= select_tc_read or select_tc_write;

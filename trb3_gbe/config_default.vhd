@@ -29,7 +29,7 @@ package config is
     constant USE_RXCLOCK            : integer := c_NO;
 
 --Run external 200 MHz clock source
-    constant USE_EXTERNAL_CLOCK : integer range c_NO to c_YES := c_NO;        
+    constant USE_EXTERNAL_CLOCK : integer range c_NO to c_YES := c_NO;
    
 --Address settings   
     constant INIT_ENDPOINT_ID       : std_logic_vector := x"0005";
@@ -44,6 +44,9 @@ package config is
     
 --Include generic UART on clock RJ-45?
     constant INCLUDE_UART           : integer  := c_YES;
+--Run power supply on internal 4 MHz clock source
+    constant USE_POWER_CLOCK        : integer  := c_YES;
+    
 ------------------------------------------------------------------------------
 --End of design configuration
 ------------------------------------------------------------------------------
@@ -113,7 +116,7 @@ function generateIncludedFeatures return std_logic_vector;
     constant MEDIA_FREQUENCY      : integer;
     constant INCLUDED_FEATURES    : std_logic_vector(63 downto 0);
 
-
+    constant USE_EXTERNAL_CLOCK_std : std_logic;
 end;
 
 package body config is
@@ -149,4 +152,7 @@ package body config is
   constant CLOCK_FREQUENCY      : integer := CLOCK_FREQUENCY_ARR(USE_125_MHZ);
   constant MEDIA_FREQUENCY      : integer := MEDIA_FREQUENCY_ARR(USE_125_MHZ);
   constant INCLUDED_FEATURES    : std_logic_vector := generateIncludedFeatures;
+  
+  constant USE_EXTERNAL_CLOCK_std : std_logic := std_logic_vector(to_unsigned(USE_EXTERNAL_CLOCK,1))(0);
+  
 end package body;
