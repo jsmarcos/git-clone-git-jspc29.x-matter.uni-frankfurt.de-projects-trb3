@@ -34,9 +34,9 @@ entity trb3_periph is
     SPARE_LINE           : inout std_logic_vector(3 downto 0);  --inputs only
     INP                  : in    std_logic_vector(63 downto 0);
     --DAC_SDO              : in    std_logic;
-    --DAC_SDI              : out   std_logic;
-    --DAC_SCK              : out   std_logic;
-    --DAC_CS               : out   std_logic_vector(3 downto 0);
+    DAC_SDI              : out   std_logic;
+    DAC_SCK              : out   std_logic;
+    DAC_CS               : out   std_logic_vector(4 downto 1);
     --Flash ROM & Reboot
     FLASH_CLK            : out   std_logic;
     FLASH_CS             : out   std_logic;
@@ -71,13 +71,13 @@ entity trb3_periph is
   attribute syn_useioff of FLASH_DIN     : signal is true;
   attribute syn_useioff of FLASH_DOUT    : signal is true;
   attribute syn_useioff of FPGA5_COMM    : signal is true;
-  attribute syn_useioff of TEST_LINE     : signal is false;     --true;
+  attribute syn_useioff of TEST_LINE     : signal is true;
   attribute syn_useioff of INP           : signal is false;
   attribute syn_useioff of SPARE_LINE    : signal is true;
   --attribute syn_useioff of DAC_SDO       : signal is true;
-  --attribute syn_useioff of DAC_SDI       : signal is true;
-  --attribute syn_useioff of DAC_SCK       : signal is true;
-  --attribute syn_useioff of DAC_CS        : signal is true;
+  attribute syn_useioff of DAC_SDI       : signal is true;
+  attribute syn_useioff of DAC_SCK       : signal is true;
+  attribute syn_useioff of DAC_CS        : signal is true;
 
 end entity;
 
@@ -93,6 +93,8 @@ architecture trb3_periph_arch of trb3_periph is
   --Clock / Reset
   signal clk_100_i                : std_logic;  --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i                : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
+  signal clk_125_i                : std_logic;  -- 125 MHz, via Clock Manager and bypassed PLL
+  signal clk_20_i                 : std_logic;  -- clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
   signal pll_lock                 : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
   signal clear_i                  : std_logic;
   signal reset_i                  : std_logic;
@@ -220,20 +222,25 @@ architecture trb3_periph_arch of trb3_periph is
   signal esb_data_ready : std_logic;
   signal esb_invalid    : std_logic;
 
-  signal fwb_read_en    : std_logic;
-  signal fwb_write_en   : std_logic;
-  signal fwb_addr       : std_logic_vector(6 downto 0);
-  signal fwb_data_out   : std_logic_vector(31 downto 0);
-  signal fwb_data_ready : std_logic;
-  signal fwb_invalid    : std_logic;
+  signal efb_read_en    : std_logic;
+  signal efb_write_en   : std_logic;
+  signal efb_addr       : std_logic_vector(6 downto 0);
+  signal efb_data_out   : std_logic_vector(31 downto 0);
+  signal efb_data_ready : std_logic;
+  signal efb_invalid    : std_logic;
+
+  signal tdc_ctrl_read      : std_logic;
+  signal last_tdc_ctrl_read : std_logic;
+  signal tdc_ctrl_write     : std_logic;
+  signal tdc_ctrl_addr      : std_logic_vector(2 downto 0);
+  signal tdc_ctrl_data_in   : std_logic_vector(31 downto 0);
+  signal tdc_ctrl_data_out  : std_logic_vector(31 downto 0);
+  signal tdc_ctrl_reg       : std_logic_vector(5*32-1 downto 0);
 
   signal spi_bram_addr : std_logic_vector(7 downto 0);
   signal spi_bram_wr_d : std_logic_vector(7 downto 0);
   signal spi_bram_rd_d : std_logic_vector(7 downto 0);
   signal spi_bram_we   : std_logic;
-
-  --FPGA Test
--- signal time_counter : unsigned(31 downto 0);
 
   --TDC
   signal hit_in_i         : std_logic_vector(64 downto 1);
@@ -275,6 +282,13 @@ begin
       LOCK  => pll_lock
       );
 
+  -- generates hits for calibration uncorrelated with tdc clk
+  THE_CALIBRATION_PLL : pll_in125_out20
+    port map (
+      CLK   => CLK_GPLL_LEFT,
+      CLKOP => clk_20_i,
+      CLKOK => clk_125_i,
+      LOCK  => open);
 
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (to other FPGA)
@@ -323,6 +337,19 @@ begin
 ---------------------------------------------------------------------------
 -- Endpoint
 ---------------------------------------------------------------------------
+  --regio_hardware_version_i <= x"9100" & addOn_type_i & edge_type_i & tdc_channel_no_i & x"0";
+
+  --addOn_type_i     <= x"0";             -- x"0" - ADA AddOn version 1
+  --                                      -- x"1" - ADA AddOn version 2
+  --                                      -- x"2" - multi purpose test AddOn
+  --                                      -- x"3" - SFP hub AddOn
+  --                                      -- x"4" - Wasa AddOn
+  --edge_type_i      <= x"0";             -- x"0" - single edge
+  --                                      -- x"1" - double edge
+  --                                      -- x"4" - has spi interface
+  --                                      -- x"8" - double edge on consecutive channels
+  --tdc_channel_no_i <= x"6";             -- 2^n channels
+  
   THE_ENDPOINT : trb_net16_endpoint_hades_full_handler
     generic map(
       REGIO_NUM_STAT_REGS       => REGIO_NUM_STAT_REGS,  --4,  --16 stat reg
@@ -331,20 +358,16 @@ begin
       BROADCAST_BITMASK         => x"FF",
       BROADCAST_SPECIAL_ADDR    => x"48",
       REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
-      REGIO_HARDWARE_VERSION    => x"91000000",  --regio_hardware_version_i(31 downto 16) <= x"9100";
-                                                 --regio_hardware_version_i(15 downto 12) <= x"0";  --addOn_type_i;
-                                                 --regio_hardware_version_i(11 downto 8)  <= x"0";  --edge_type_i;
-                                                 --regio_hardware_version_i(7 downto 4)   <= x"6";  --tdc_channel_no_i;
-                                                 --regio_hardware_version_i(3 downto 0)   <= x"0";
+      REGIO_HARDWARE_VERSION    => x"91000460",  -- regio_hardware_version_i,
       REGIO_INIT_ADDRESS        => x"f305",
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
-      CLOCK_FREQUENCY           => 125,
+      CLOCK_FREQUENCY           => 100,
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
       DATA_INTERFACE_NUMBER     => 1,
-      DATA_BUFFER_DEPTH         => 13,  --13
+      DATA_BUFFER_DEPTH         => 13,           --13
       DATA_BUFFER_WIDTH         => 32,
-      DATA_BUFFER_FULL_THRESH   => 2**13-800,    --2**13-1024
+      DATA_BUFFER_FULL_THRESH   => 2**13-800,    --2**13-(maximal 2**12) 
       TRG_RELEASE_AFTER_DATA    => c_YES,
       HEADER_BUFFER_DEPTH       => 9,
       HEADER_BUFFER_FULL_THRESH => 2**9-16
@@ -436,8 +459,9 @@ begin
       DEBUG_LVL1_HANDLER_OUT      => open
       );
 
-  timing_trg_received_i <= TRIGGER_LEFT;
+  timing_trg_received_i <= TRIGGER_LEFT;  --TRIGGER_RIGHT;  --
   common_stat_reg       <= (others => '0');
+  stat_reg              <= (others => '0');
 
 ---------------------------------------------------------------------------
 -- AddOn
@@ -448,9 +472,9 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 8,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"c400", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 7, others => 0)
+      PORT_NUMBER    => 9,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100", 5 => x"c200", 6 => x"c300", 7 => x"c400", 8 => x"c800", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5, 5 => 7, 6 => 7, 7 => 7, 8 => 3, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -540,17 +564,17 @@ begin
       BUS_NO_MORE_DATA_IN(5)              => '0',
       BUS_UNKNOWN_ADDR_IN(5)              => esb_invalid,
       --Fifo Write Registers
-      BUS_READ_ENABLE_OUT(6)              => fwb_read_en,
-      BUS_WRITE_ENABLE_OUT(6)             => fwb_write_en,
+      BUS_READ_ENABLE_OUT(6)              => efb_read_en,
+      BUS_WRITE_ENABLE_OUT(6)             => efb_write_en,
       BUS_DATA_OUT(6*32+31 downto 6*32)   => open,
-      BUS_ADDR_OUT(6*16+6 downto 6*16)    => fwb_addr,
+      BUS_ADDR_OUT(6*16+6 downto 6*16)    => efb_addr,
       BUS_ADDR_OUT(6*16+15 downto 6*16+7) => open,
       BUS_TIMEOUT_OUT(6)                  => open,
-      BUS_DATA_IN(6*32+31 downto 6*32)    => fwb_data_out,
-      BUS_DATAREADY_IN(6)                 => fwb_data_ready,
+      BUS_DATA_IN(6*32+31 downto 6*32)    => efb_data_out,
+      BUS_DATAREADY_IN(6)                 => efb_data_ready,
       BUS_WRITE_ACK_IN(6)                 => '0',
       BUS_NO_MORE_DATA_IN(6)              => '0',
-      BUS_UNKNOWN_ADDR_IN(6)              => fwb_invalid,
+      BUS_UNKNOWN_ADDR_IN(6)              => efb_invalid,
       --Lost Hit Registers
       BUS_READ_ENABLE_OUT(7)              => lhb_read_en,
       BUS_WRITE_ENABLE_OUT(7)             => lhb_write_en,
@@ -563,10 +587,33 @@ begin
       BUS_WRITE_ACK_IN(7)                 => '0',
       BUS_NO_MORE_DATA_IN(7)              => '0',
       BUS_UNKNOWN_ADDR_IN(7)              => lhb_invalid,
-
+      --TDC config registers
+      BUS_READ_ENABLE_OUT(8)              => tdc_ctrl_read,
+      BUS_WRITE_ENABLE_OUT(8)             => tdc_ctrl_write,
+      BUS_DATA_OUT(8*32+31 downto 8*32)   => tdc_ctrl_data_in,
+      BUS_ADDR_OUT(8*16+2 downto 8*16)    => tdc_ctrl_addr,
+      BUS_ADDR_OUT(8*16+15 downto 8*16+3) => open,
+      BUS_TIMEOUT_OUT(8)                  => open,
+      BUS_DATA_IN(8*32+31 downto 8*32)    => tdc_ctrl_data_out,
+      BUS_DATAREADY_IN(8)                 => last_tdc_ctrl_read,
+      BUS_WRITE_ACK_IN(8)                 => tdc_ctrl_write,
+      BUS_NO_MORE_DATA_IN(8)              => '0',
+      BUS_UNKNOWN_ADDR_IN(8)              => '0',
 
       STAT_DEBUG => open
       );
+
+  PROC_TDC_CTRL_REG : process
+    variable pos : integer;
+  begin
+    wait until rising_edge(clk_100_i);
+    pos                := to_integer(unsigned(tdc_ctrl_addr))*32;
+    tdc_ctrl_data_out  <= tdc_ctrl_reg(pos+31 downto pos);
+    last_tdc_ctrl_read <= tdc_ctrl_read;
+    if tdc_ctrl_write = '1' then
+      tdc_ctrl_reg(pos+31 downto pos) <= tdc_ctrl_data_in;
+    end if;
+  end process;
 
 ---------------------------------------------------------------------------
 -- SPI / Flash
@@ -635,13 +682,13 @@ begin
       -- SPI connections
       SPI_CS_OUT(15 downto 4) => open,
       SPI_CS_OUT(3 downto 0)  => dac_cs_i,
-      SPI_SDI_IN              => open,
+      SPI_SDI_IN              => '0',
       SPI_SDO_OUT             => dac_sdi_i,
       SPI_SCK_OUT             => dac_sck_i);
 
-  --DAC_CS  <= open; --dac_cs_i;
-  --DAC_SDI <= open; --dac_sdi_i;
-  --DAC_SCK <= open; --dac_sck_i;
+  DAC_CS  <= dac_cs_i;
+  DAC_SDI <= dac_sdi_i;
+  DAC_SCK <= dac_sck_i;
 
 ---------------------------------------------------------------------------
 -- Reboot FPGA
@@ -659,14 +706,14 @@ begin
 ---------------------------------------------------------------------------
   LED_GREEN  <= not med_stat_op(9);
   LED_ORANGE <= not med_stat_op(10);
-  LED_RED    <= not TRIGGER_LEFT;
+  LED_RED    <= not INP(0);
   LED_YELLOW <= not med_stat_op(11);
 
 ---------------------------------------------------------------------------
 -- Test Connector - Logic Analyser
 ---------------------------------------------------------------------------
 
---  TEST_LINE <= logic_analyser_i;
+  TEST_LINE <= logic_analyser_i;
 
 -------------------------------------------------------------------------------
 -- TDC
@@ -674,17 +721,18 @@ begin
 
   THE_TDC : TDC
     generic map (
-      CHANNEL_NUMBER => 4,              -- Number of TDC channels
-      STATUS_REG_NR  => REGIO_NUM_STAT_REGS,
-      CONTROL_REG_NR => REGIO_NUM_CTRL_REGS)
+      CHANNEL_NUMBER => 65,             -- Number of TDC channels
+      CONTROL_REG_NR => 5,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
+      TDC_VERSION    => "001" & x"51")  -- TDC version number
     port map (
       RESET                 => reset_i,
       CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
       CLK_READOUT           => clk_100_i,   -- Clock for the readout
-      REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
-      HIT_IN                => hit_in_i(3 downto 1),  -- Channel start signals
-      TRG_WIN_PRE           => ctrl_reg(42 downto 32),  -- Pre-Trigger window width
-      TRG_WIN_POST          => ctrl_reg(58 downto 48),  -- Post-Trigger window width
+      REFERENCE_TIME        => timing_trg_received_i,  -- Reference time input
+      HIT_IN                => hit_in_i(64 downto 1),  -- Channel start signals
+      HIT_CALIBRATION       => clk_20_i,    -- Hits for calibrating the TDC
+      TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
+      TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
       --
       -- Trigger signals from handler
       TRG_DATA_VALID_IN     => trg_data_valid_i,  -- trig data valid signal from trbnet
@@ -730,12 +778,12 @@ begin
       ESB_DATAREADY_OUT     => esb_data_ready,    -- bus data ready strobe
       ESB_UNKNOWN_ADDR_OUT  => esb_invalid,   -- bus invalid addr
       --Fifo Write Registers Bus
-      FWB_READ_EN_IN        => fwb_read_en,   -- bus read en strobe
-      FWB_WRITE_EN_IN       => fwb_write_en,  -- bus write en strobe
-      FWB_ADDR_IN           => fwb_addr,    -- bus address
-      FWB_DATA_OUT          => fwb_data_out,  -- bus data
-      FWB_DATAREADY_OUT     => fwb_data_ready,    -- bus data ready strobe
-      FWB_UNKNOWN_ADDR_OUT  => fwb_invalid,   -- bus invalid addr
+      EFB_READ_EN_IN        => efb_read_en,   -- bus read en strobe
+      EFB_WRITE_EN_IN       => efb_write_en,  -- bus write en strobe
+      EFB_ADDR_IN           => efb_addr,    -- bus address
+      EFB_DATA_OUT          => efb_data_out,  -- bus data
+      EFB_DATAREADY_OUT     => efb_data_ready,    -- bus data ready strobe
+      EFB_UNKNOWN_ADDR_OUT  => efb_invalid,   -- bus invalid addr
       --Lost Hit Registers Bus
       LHB_READ_EN_IN        => lhb_read_en,   -- bus read en strobe
       LHB_WRITE_EN_IN       => lhb_write_en,  -- bus write en strobe
@@ -744,40 +792,18 @@ begin
       LHB_DATAREADY_OUT     => lhb_data_ready,    -- bus data ready strobe
       LHB_UNKNOWN_ADDR_OUT  => lhb_invalid,   -- bus invalid addr
       --
-      SLOW_CONTROL_REG_OUT  => stat_reg,
       LOGIC_ANALYSER_OUT    => logic_analyser_i,
-      CONTROL_REG_IN        => ctrl_reg);
+      CONTROL_REG_IN        => tdc_ctrl_reg);
 
-  ---- For single edge measurements
-
-  
-  hit_in_i <= INP;
-
-  Stretcher_1 : Stretcher
-    port map (
-      PULSE_IN  => hit_in_i(1),
-      PULSE_OUT => TEST_LINE(0));
-
-  Stretcher_2 : Stretcher
-    port map (
-      PULSE_IN  => hit_in_i(2),
-      PULSE_OUT => TEST_LINE(1));
-
-  Stretcher_3 : Stretcher
-    port map (
-      PULSE_IN  => hit_in_i(3),
-      PULSE_OUT => TEST_LINE(2));
-
-  Stretcher_4 : Stretcher
-    port map (
-      PULSE_IN  => hit_in_i(4),
-      PULSE_OUT => TEST_LINE(3));
+  -- For single edge measurements
+  hit_in_i <= INP;    
+  --hit_in_i <= (others => timing_trg_received_i);
 
   ---- For ToT Measurements
-  --hit_in_i(1) <= not timing_trg_received_i;
-  --Gen_Hit_In_Signals : for i in 1 to 16 generate
-  --  hit_in_i(i*2)   <= INP(i-1);
-  --  hit_in_i(i*2+1) <= not INP(i-1);
+  --Gen_Hit_In_Signals : for i in 1 to 32 generate
+  --  hit_in_i(i*2-1) <= INP(i-1);
+  --  hit_in_i(i*2)   <= not INP(i-1);
   --end generate Gen_Hit_In_Signals;
 
+-- !!!!! IMPORTANT !!!!! Don't forget to set the REGIO_HARDWARE_VERSION !!!!!
 end architecture;

@@ -5,7 +5,7 @@
 -- File       : Register.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-10-02
--- Last update: 2012-10-04
+-- Last update: 2013-03-06
 -------------------------------------------------------------------------------
 -- Description: Used to register signals n levels.
 -------------------------------------------------------------------------------
@@ -23,7 +23,6 @@ entity ShiftRegisterSISO is
 
   port (
     CLK   : in  std_logic;                            -- register clock
-    RESET : in  std_logic;                            -- register reset
     D_IN  : in  std_logic_vector(WIDTH-1 downto 0);   -- register input
     D_OUT : out std_logic_vector(WIDTH-1 downto 0));  -- register out
 
@@ -42,14 +41,10 @@ begin  -- RTL
   reg(0) <= D_IN;
 
   GEN_Registers : for i in 1 to DEPTH generate
-    Registers : process (CLK, RESET)
+    Registers : process (CLK)
     begin
       if rising_edge(CLK) then
-        if RESET = '1' then
-          reg(i) <= (others => '0');
-        else
-          reg(i) <= reg(i-1);
-        end if;
+        reg(i) <= reg(i-1);
       end if;
     end process Registers;
   end generate GEN_Registers;

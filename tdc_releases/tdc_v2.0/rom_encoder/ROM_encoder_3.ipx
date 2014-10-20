@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="ROM_encoder_3" module="ROM" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2014 05 09 15:03:02.046" version="5.1" type="Module" synthesis="" source_format="VHDL">
+  <Package>
+		<File name="ROM_encoder_3.lpc" type="lpc" modified="2014 05 09 15:03:00.000"/>
+		<File name="ROM_encoder_3.vhd" type="top_level_vhdl" modified="2014 05 09 15:03:00.000"/>
+		<File name="ROM_encoder_3_tmpl.vhd" type="template_vhdl" modified="2014 05 09 15:03:00.000"/>
+		<File name="rom_encoder.mem" type="mem" modified="2012 04 16 15:08:17.000"/>
+		<File name="tb_ROM_encoder_3_tmpl.vhd" type="testbench_vhdl" modified="2014 05 09 15:03:00.000"/>
+  </Package>
+</DiamondModule>
