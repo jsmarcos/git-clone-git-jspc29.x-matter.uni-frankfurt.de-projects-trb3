@@ -10,21 +10,26 @@ package config is
 ------------------------------------------------------------------------------
 
 --TDC settings
-  constant NUM_TDC_MODULES         : integer range 1 to 4    := 4;  -- number of tdc modules to implement
-  constant NUM_TDC_CHANNELS        : integer range 1 to 65   := 16; -- number of tdc channels per module
-  constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6    := 6;  --the nearest power of two, for convenience reasons 
-  constant USE_DOUBLE_EDGE         : integer                 := c_YES;
-  constant RING_BUFFER_SIZE        : integer range 0 to 7    := 0;  --ring buffer size:  0, 1, 2,  3
-                                                                    --ring buffer size: 32,64,96,128
+  constant NUM_TDC_MODULES         : integer range 1 to 4  := 1;  -- number of tdc modules to implement
+  constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 33;  -- number of tdc channels per module
+  constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6  := 5;  --the nearest power of two, for convenience reasons 
+  constant DOUBLE_EDGE_TYPE        : integer range 0 to 3  := 2;  --double edge type:  0, 1, 2,  3
+  -- 0: single edge only,
+  -- 1: same channel,
+  -- 2: alternating channels,
+  -- 3: same channel with stretcher
+  constant RING_BUFFER_SIZE        : integer range 0 to 7  := 3;  --ring buffer size:  0, 1, 2,  3
+                                                                  --ring buffer size: 32,64,96,128
 
 --Include SPI on AddOn connector
   constant INCLUDE_SPI : integer := c_YES;
 
 --Add logic to generate configurable trigger signal from input signals.
-  constant INCLUDE_TRIGGER_LOGIC     : integer    := c_YES;
-  constant INCLUDE_STATISTICS        : integer    := c_YES; --Do histos of all inputs
-  constant PHYSICAL_INPUTS           : integer    := 8;    --number of inputs connected
-
+  constant INCLUDE_TRIGGER_LOGIC : integer := c_YES;
+  constant INCLUDE_STATISTICS    : integer := c_YES;  --Do histos of all inputs
+  constant PHYSICAL_INPUTS       : integer := 16;  --number of inputs connected
+  constant USE_SINGLE_FIFO       : integer := c_YES;  -- single fifo for statistics
+  
 --Run wih 125 MHz instead of 100 MHz, use received clock from serdes or external clock input
   constant USE_125_MHZ               : integer    := c_NO;  --not implemented yet!  
   constant USE_RXCLOCK               : integer    := c_NO;  --not implemented yet!
@@ -70,7 +75,7 @@ begin
   t               := (others => '0');
   t(63 downto 56) := std_logic_vector(to_unsigned(2,8)); --table version 2
   t(7 downto 0)   := std_logic_vector(to_unsigned(1,8));
-  t(11 downto 8)  := std_logic_vector(to_unsigned(USE_DOUBLE_EDGE*2,4));
+  t(11 downto 8)  := std_logic_vector(to_unsigned(DOUBLE_EDGE_TYPE,4));
   t(14 downto 12) := std_logic_vector(to_unsigned(RING_BUFFER_SIZE,3));
   t(15)           := '1'; --TDC
   t(17 downto 16) := std_logic_vector(to_unsigned(NUM_TDC_MODULES-1,2));
