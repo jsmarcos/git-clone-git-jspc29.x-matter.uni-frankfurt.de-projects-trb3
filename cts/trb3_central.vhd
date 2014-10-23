@@ -436,6 +436,9 @@ architecture trb3_central_arch of trb3_central is
    signal cts_rdo_additional_write           : std_logic_vector(cts_rdo_additional_ports-1 downto 0) := (others => '0');
    signal cts_rdo_additional_finished        : std_logic_vector(cts_rdo_additional_ports-1 downto 0) := (others => '1');
    signal cts_rdo_trg_status_bits_additional : std_logic_vector(32*cts_rdo_additional_ports-1 downto 0) := (others => '0');
+   
+   signal cts_rdo_additional : readout_tx_array_t(0 to cts_rdo_additional_ports-1);
+      
    signal cts_rdo_trg_type                   : std_logic_vector(3 downto 0);
    signal cts_rdo_trg_code                   : std_logic_vector(7 downto 0);
    signal cts_rdo_trg_information            : std_logic_vector(23 downto 0);
@@ -587,10 +590,10 @@ begin
          TRG_SYNC_OUT => cts_ext_trigger,
 
          TRIGGER_IN     => cts_rdo_trg_data_valid,
-         DATA_OUT       => cts_rdo_additional_data(31 downto 0),
-         WRITE_OUT      => cts_rdo_additional_write(0),
-         STATUSBIT_OUT  => cts_rdo_trg_status_bits_additional(31 downto 0),
-         FINISHED_OUT   => cts_rdo_additional_finished(0),
+         DATA_OUT       => cts_rdo_additional(0).data, 
+         WRITE_OUT      => cts_rdo_additional(0).data_write, 
+         FINISHED_OUT   => cts_rdo_additional(0).data_finished,
+         STATUSBIT_OUT  => cts_rdo_additional(0).statusbits,
 
          CONTROL_REG_IN => cts_ext_control,
          STATUS_REG_OUT => cts_ext_status,
@@ -611,10 +614,11 @@ begin
          EXT_TRG_IN     => CLK_EXT(4),
          TRG_SYNC_OUT   => cts_ext_trigger,
          TRIGGER_IN     => cts_rdo_trg_data_valid,
-         DATA_OUT       => cts_rdo_additional_data(31 downto 0),
-         WRITE_OUT      => cts_rdo_additional_write(0),
-         STATUSBIT_OUT  => cts_rdo_trg_status_bits_additional(31 downto 0),
-         FINISHED_OUT   => cts_rdo_additional_finished(0),
+         
+         DATA_OUT       => cts_rdo_additional(0).data, 
+         WRITE_OUT      => cts_rdo_additional(0).data_write, 
+         FINISHED_OUT   => cts_rdo_additional(0).data_finished,
+         STATUSBIT_OUT  => cts_rdo_additional(0).statusbits,
 
          CONTROL_REG_IN => cts_ext_control,
          STATUS_REG_OUT => cts_ext_status,
@@ -627,7 +631,7 @@ begin
 -- CBMNet ETM
    gen_cbmnet_etm: if (ETM_CHOICE = ETM_CHOICE_CBMNET and INCLUDE_CTS = c_YES) generate
       cts_ext_trigger <= cbm_etm_trigger_i;
-      cts_rdo_additional_finished(0) <= '1';
+      cts_rdo_additional(0).data_finished <= '1';
    end generate;
 
    GEN_CTS: if INCLUDE_CTS = c_YES generate
@@ -795,9 +799,9 @@ begin
          TRB_TRIGGER_IN => cts_trigger_out,
          TRB_RDO_VALID_DATA_TRG_IN   => cts_rdo_trg_data_valid, -- in  std_logic;
          TRB_RDO_VALID_NO_TIMING_IN  => cts_rdo_valid_notiming_trg, -- in  std_logic;
-         TRB_RDO_DATA_OUT            => cts_rdo_additional_data(63 downto 32), --  out std_logic_vector(31 downto 0);
-         TRB_RDO_WRITE_OUT           => cts_rdo_additional_write(1), --  out std_logic;
-         TRB_RDO_FINISHED_OUT        => cts_rdo_additional_finished(1), --  out std_logic;
+         TRB_RDO_DATA_OUT            => cts_rdo_additional(1).data, --  out std_logic_vector(31 downto 0);
+         TRB_RDO_WRITE_OUT           => cts_rdo_additional(1).data_write, --  out std_logic;
+         TRB_RDO_FINISHED_OUT        => cts_rdo_additional(1).data_finished, --  out std_logic;
          
          TRB_TRIGGER_OUT            => cbm_etm_trigger_i,
       
@@ -1220,6 +1224,13 @@ begin
       STAT_DEBUG              => open,
       CTRL_DEBUG              => (others => '0')
    );
+   
+   gen_addition_ports: for i in 0 to cts_rdo_additional_ports-1 generate
+      cts_rdo_additional_data(31 + i*32 downto 32*i) <= cts_rdo_additional(i).data;
+      cts_rdo_trg_status_bits_additional(31 + i*32 downto 32*i) <= cts_rdo_additional(i).statusbits;
+      cts_rdo_additional_write(i) <= cts_rdo_additional(i).data_write;
+      cts_rdo_additional_finished(i) <= cts_rdo_additional(i).data_finished;
+   end generate;
 
 ---------------------------------------------------------------------
 -- The GbE machine for blasting out data from TRBnet
@@ -1604,11 +1615,15 @@ begin
          TRG_TYPE_IN           => cts_rdo_trg_type,  -- LVL1 trigger information package
          --Response to handler
          --       TRG_RELEASE_OUT       => fee_trg_release_i,   -- trigger release signal
-         TRG_STATUSBIT_OUT(0)  => cts_rdo_trg_status_bits_additional(cts_rdo_additional_ports*32-1 downto cts_rdo_additional_ports*32-32),  -- status information of the tdc
-         DATA_OUT(0)           => cts_rdo_additional_data(cts_rdo_additional_ports*32-1 downto cts_rdo_additional_ports*32-32),  -- tdc data
-         DATA_WRITE_OUT(0)     => cts_rdo_additional_write(cts_rdo_additional_ports-1),  -- data valid signal
-         DATA_FINISHED_OUT(0)  => cts_rdo_additional_finished(cts_rdo_additional_ports-1),  -- readout finished signal
-         --
+         TRG_RELEASE_OUT       => open,
+         TRG_STATUSBIT_OUT(0)  => cts_rdo_additional(2).statusbits,
+         TRG_STATUSBIT_OUT(1)  => cts_rdo_additional(3).statusbits,
+         DATA_OUT(0)           => cts_rdo_additional(2).data,
+         DATA_OUT(1)           => cts_rdo_additional(3).data,
+         DATA_WRITE_OUT(0)     => cts_rdo_additional(2).data_write,
+         DATA_WRITE_OUT(1)     => cts_rdo_additional(3).data_write,
+         DATA_FINISHED_OUT(0)  => cts_rdo_additional(2).data_finished,
+         DATA_FINISHED_OUT(1)  => cts_rdo_additional(3).data_finished,
          --Hit Counter Bus
          HCB_READ_EN_IN        => hitreg_read_en,    -- bus read en strobe
          HCB_WRITE_EN_IN       => hitreg_write_en,   -- bus write en strobe
@@ -1659,7 +1674,8 @@ begin
       tdc_inputs(1) <= cbm_sync_pulser_i;
       tdc_inputs(2) <= cbm_sync_dlm_sensed_i;
       tdc_inputs(3) <= cbm_sync_timing_trigger_i;
-      tdc_inputs(4) <= NIM_IN(0);
+      tdc_inputs(4) <= JINLVDS(0); --NIM_IN(0);
+      JTTL(0 downto 15) <= (0 => JINLVDS(0), 7 => cbm_sync_dlm_sensed_i, 15 => cbm_sync_dlm_sensed_i, 11 => cbm_clk_i, others => '0');
          
          
       PROC_TDC_CTRL_REG : process 
@@ -1717,8 +1733,8 @@ begin
       TC_SELECT_OUT           => select_tc_i --  out std_logic_vector(31 downto 0)
    );
 
-   TRIGGER_SELECT <= select_tc_i(0);
-   CLOCK_SELECT   <= select_tc_i(8); --use on-board oscillator
+   TRIGGER_SELECT <= '1';
+   CLOCK_SELECT   <='1'; --use on-board oscillator
    CLK_MNGR1_USER <= select_tc_i(19 downto 16);
    CLK_MNGR2_USER <= select_tc_i(27 downto 24); 
 
@@ -1773,7 +1789,7 @@ begin
    --  JOUT1                          <= x"0";
    --  JOUT2                          <= x"0";
    --  JOUTLVDS                       <= x"00";
-   JTTL                           <= x"0000";
+   --JTTL                           <= x"0000";
       
    LED_BANK(5 downto 0)           <= (others => '0');
    LED_FAN_GREEN                  <= led_time_ref_i;
