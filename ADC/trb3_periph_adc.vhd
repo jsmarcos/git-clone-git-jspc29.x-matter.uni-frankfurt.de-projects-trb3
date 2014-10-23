@@ -153,8 +153,8 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   signal spi_sdi, spi_sdo, spi_sck : std_logic;
   signal adcspi_ctrl               : std_logic_vector(7 downto 0);
 
-  signal regio_rx, busadc_rx, busspi_rx, busmem_rx : CTRLBUS_RX;
-  signal regio_tx, busadc_tx, busspi_tx, busmem_tx : CTRLBUS_TX;
+  signal regio_rx, busadc_rx, busspi_rx, busmem_rx, bussed_rx : CTRLBUS_RX;
+  signal regio_tx, busadc_tx, busspi_tx, busmem_tx, bussed_tx : CTRLBUS_TX;
   signal readout_rx : READOUT_RX;
   signal readout_tx : readout_tx_array_t(0 to 11);
   
@@ -164,6 +164,7 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   signal fee_data_in           : std_logic_vector(32*DEVICES-1 downto 0);
   signal fee_trg_statusbits_in : std_logic_vector(32*DEVICES-1 downto 0);
   
+  signal sed_debug : std_logic_vector(31 downto 0);
   
 begin
 ---------------------------------------------------------------------------
@@ -443,9 +444,9 @@ end generate;
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : entity work.trb_net16_regio_bus_handler_record
     generic map(
-      PORT_NUMBER      => 3,
-      PORT_ADDRESSES   => (0 => x"d000", 1 => x"d400", 2 => x"a000", others => x"0000"),
-      PORT_ADDR_MASK   => (0 => 9,       1 => 5,       2 => 12,      others => 0),
+      PORT_NUMBER      => 4,
+      PORT_ADDRESSES   => (0 => x"d000", 1 => x"d400", 2 => x"a000", 3 => x"d500", others => x"0000"),
+      PORT_ADDR_MASK   => (0 => 9,       1 => 5,       2 => 12,      3 => 2,       others => 0),
       PORT_MASK_ENABLE => 1
       )
     port map(
@@ -458,9 +459,11 @@ end generate;
       BUS_RX(0) => busmem_rx, --Flash
       BUS_RX(1) => busspi_rx, --SPI
       BUS_RX(2) => busadc_rx, --ADC
+      BUS_RX(3) => bussed_rx,
       BUS_TX(0) => busmem_tx,
       BUS_TX(1) => busspi_tx,
       BUS_TX(2) => busadc_tx,
+      BUS_TX(3) => bussed_tx,
       
       STAT_DEBUG => open
       );
@@ -494,6 +497,18 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
     SPI_SDI_IN           => FLASH_DOUT
     );
 
+---------------------------------------------------------------------------
+-- SED Detection
+---------------------------------------------------------------------------
+  THE_SED : entity work.sedcheck
+    port map(
+      CLK       => clk_100_i,
+      ERROR_OUT => open,
+      BUS_RX    => bussed_rx,
+      BUS_TX    => bussed_tx,
+      DEBUG     => sed_debug
+      );    
+    
 -------------------------------------------------------------------------------
 -- SPI
 -------------------------------------------------------------------------------
@@ -567,6 +582,6 @@ LED_YELLOW <= not med_stat_op(11);
 -- Test Connector - Logic Analyser
 ---------------------------------------------------------------------------
 
-  TEST_LINE <= (others => '0');
+  TEST_LINE <= sed_debug(28 downto 24) & sed_debug(10 downto 0);
 
 end architecture;

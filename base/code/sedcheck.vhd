@@ -11,7 +11,8 @@ entity sedcheck is
     ERROR_OUT  : out std_logic;
     
     BUS_RX     : in  CTRLBUS_RX;
-    BUS_TX     : out CTRLBUS_TX
+    BUS_TX     : out CTRLBUS_TX;
+    DEBUG      : out std_logic_vector(31 downto 0)
     );
 end entity;
 
@@ -195,7 +196,7 @@ status_i(23 downto 16) <= std_logic_vector(run_counter)(7 downto 0);
 status_i(31 downto 24) <= std_logic_vector(error_counter)(7 downto 0);
               
 ERROR_OUT <= sed_error;              
-
+DEBUG     <= status_i when rising_edge(CLK);
 
 ---------------------------------------------------------------------------
 -- SED
