@@ -16,6 +16,7 @@ entity CBMNET_PHY_TX_GEAR is
    port (
    -- SERDES PORT
       CLK_250_IN  : in std_logic;
+      CLK_TX_FULL_IN : in std_logic;
       CLK_125_IN  : in std_logic;
       CLK_125_OUT : out std_logic;
       
@@ -38,10 +39,9 @@ architecture CBMNET_PHY_TX_GEAR_ARCH of CBMNET_PHY_TX_GEAR is
    type   FSM_STATES is (FSM_LOCKING, FSM_HIGH, FSM_LOW);
    signal fsm_i : FSM_STATES;
    
-   signal data_in_buf125_i : std_logic_vector(17 downto 0);
-   signal data_in_buf125_0_i : std_logic_vector(17 downto 0);
+   signal reset_i, reset_delay_i : std_logic;
+   
    signal data_in_buf250_i : std_logic_vector(17 downto 0);
-   signal data_in_buf250_0_i : std_logic_vector(17 downto 0);
    
    signal delay_data_i : std_logic_vector(8 downto 0);
    
@@ -76,19 +76,15 @@ begin
             end if;
       end case;
       
-       if RESET_IN='1' then
-          fsm_i <= FSM_LOCKING;
-       end if;
+      reset_delay_i <= reset_i;
+      
+      if reset_i = '1' and reset_delay_i='1' then
+         fsm_i <= FSM_LOCKING;
+      end if;
    end process;
    
    TX_READY_OUT <= not RESET_IN;
-   
-   process is begin
-      wait until rising_edge(CLK_125_IN);
-      data_in_buf125_0_i <= DATA_IN;
-      data_in_buf125_i <= data_in_buf125_0_i;
-   end process;
-   
+
    THE_DATA_SYNC: signal_sync 
    generic map (WIDTH => 18, DEPTH => 3)
    port map (
@@ -107,6 +103,16 @@ begin
       CLK1 => CLK_250_IN,
       D_IN(0) => CLK_125_IN,
       D_OUT(0) => clk_125_xfer_buf_i
+   );
+   
+   THE_RESET_SYNC: signal_sync 
+   generic map (WIDTH => 1, DEPTH => 3)
+   port map (
+      RESET => RESET_IN,
+      CLK0 => CLK_125_IN,
+      CLK1 => CLK_250_IN,
+      D_IN(0) => RESET_IN,
+      D_OUT(0) => reset_i
    );
    
    DEBUG_OUT <= (others => '0'); -- x"0000" & STD_LOGIC_VECTOR( delay_counter_i );
