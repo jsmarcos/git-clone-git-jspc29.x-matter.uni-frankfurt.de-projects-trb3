@@ -83,16 +83,8 @@ entity cbmnet_bridge is
       GBE_FEE_BUSY_OUT               : out std_logic;
 
       -- reg io
-      REGIO_ADDR_IN                  : in  std_logic_vector(15 downto 0);
-      REGIO_DATA_IN                  : in  std_logic_vector(31 downto 0);
-      REGIO_READ_ENABLE_IN           : in  std_logic;
-      REGIO_WRITE_ENABLE_IN          : in  std_logic;
-      REGIO_TIMEOUT_IN               : in  std_logic;
-      REGIO_DATA_OUT                 : out std_logic_vector(31 downto 0);
-      REGIO_DATAREADY_OUT            : out std_logic;
-      REGIO_WRITE_ACK_OUT            : out std_logic;
-      REGIO_NO_MORE_DATA_OUT         : out std_logic;
-      REGIO_UNKNOWN_ADDR_OUT         : out std_logic
+      REGIO_IN  : in  CTRLBUS_RX;
+      REGIO_OUT : out CTRLBUS_TX
    );
 end entity;
 
@@ -170,33 +162,12 @@ architecture cbmnet_bridge_arch of cbmnet_bridge is
    signal cbm_rdo_data2send_i : std_logic_vector(15 downto 0);
 
 -- regio
-   signal cbm_rdo_regio_addr_i         : std_logic_vector(15 downto 0);
-   signal cbm_rdo_regio_data_status_i  : std_logic_vector(31 downto 0);
-   signal cbm_rdo_regio_read_enable_i  : std_logic;
-   signal cbm_rdo_regio_write_enable_i : std_logic;
-   signal cbm_rdo_regio_data_ctrl_i    : std_logic_vector(31 downto 0);
-   signal cbm_rdo_regio_dataready_i    : std_logic;
-   signal cbm_rdo_regio_write_ack_i    : std_logic;
-   signal cbm_rdo_regio_unknown_addr_i : std_logic;
+   signal regio_masked_addr_i, rdo_regio_rx, phy_regio_rx, sync_regio_rx : CTRLBUS_RX;
+   signal rdo_regio_tx, phy_regio_tx, sync_regio_tx : CTRLBUS_TX := (nack => '0', unknown => '0', ack => '0', wack => '0', rack => '0', data => (others => '0'));
 
-   signal cbm_phy_regio_addr_i         : std_logic_vector(15 downto 0);
-   signal cbm_phy_regio_data_status_i  : std_logic_vector(31 downto 0);
-   signal cbm_phy_regio_read_enable_i  : std_logic;
-   signal cbm_phy_regio_write_enable_i : std_logic;
-   signal cbm_phy_regio_data_ctrl_i    : std_logic_vector(31 downto 0);
-   signal cbm_phy_regio_dataready_i    : std_logic;
-   signal cbm_phy_regio_write_ack_i    : std_logic;
-   signal cbm_phy_regio_unknown_addr_i : std_logic;  
-
-   signal cbm_sync_regio_read_en_i     : std_logic;
-   signal cbm_sync_regio_write_en_i    : std_logic;
-   signal cbm_sync_regio_status_data_i : std_logic_vector(31 downto 0);
-   signal cbm_sync_regio_addr_i        : std_logic_vector(3 downto 0);
-   signal cbm_sync_regio_config_data_i : std_logic_vector(31 downto 0);
-   signal cbm_sync_regio_read_ack_i    : std_logic;
-   signal cbm_sync_regio_write_ack_i   : std_logic;
-   signal cbm_sync_regio_unknown_i     : std_logic;
-
+   signal cbm_serdes_ready_counter_i : unsigned(31 downto 0) := (others => '0');
+   signal cbm_serdes_ready_delay_i : std_logic;
+   
 begin
    THE_CBM_PHY: cbmnet_phy_ecp3
    generic map (
@@ -238,43 +209,55 @@ begin
       
       -- Status and control port
       STAT_OP            => open,
-      CTRL_OP            => open,
+      CTRL_OP            => (others => '0'),
       DEBUG_OUT          => cbm_phy_debug
    );
    CBM_CLK_OUT <= cbm_clk_i;
    CBM_RESET_OUT <= cbm_reset_i;
    
+   proc_serdes_counter: process is
+   begin
+      wait until rising_edge(cbm_clk_i);
+      cbm_serdes_ready_delay_i <= cbm_serdes_ready_i;
+      if cbm_serdes_ready_delay_i = '0' and cbm_serdes_ready_i = '1' then
+         cbm_serdes_ready_counter_i <= cbm_serdes_ready_counter_i + 1;
+      end if;
+   end process;
+   
    proc_debug_regio: process is 
       variable addr : integer range 0 to 31;
    begin
       wait until rising_edge(TRB_CLK_IN);
-      addr := to_integer(unsigned(cbm_phy_regio_addr_i(4 downto 0)));
+      addr := to_integer(unsigned(phy_regio_rx.addr(4 downto 0)));
       
-      cbm_phy_regio_dataready_i <= cbm_phy_regio_read_enable_i;
-      cbm_phy_regio_unknown_addr_i <= '0';
-      cbm_phy_regio_write_ack_i <= '0';
+      phy_regio_tx.rack <= phy_regio_rx.read;
+      phy_regio_tx.unknown <= '0';
+      phy_regio_tx.wack <= '0';
       
-      cbm_phy_regio_data_status_i <= (others => '0');
+      phy_regio_tx.data <= (others => '0');
       
       if addr < 16 then
-         cbm_phy_regio_data_status_i <= cbm_phy_debug(addr*32+31 downto addr*32);
+         phy_regio_tx.data <= cbm_phy_debug(addr*32+31 downto addr*32);
          
       elsif addr = 16 then
-         cbm_phy_regio_data_status_i(11 downto 8) <= "0" & cbm_data2send_stop_i &  cbm_serdes_ready_i & cbm_link_active_i;
-         cbm_phy_regio_data_status_i(7 downto 4) <= "00" & cbm_lt_dlm_valid_i & cbm_lt_ctrl_valid_i;
-         cbm_phy_regio_data_status_i(3 downto 0) <= cbm_data_mux_i & cbm_lt_data_enable_i & cbm_lt_ctrl_enable_i & cbm_lt_force_stop_i;
+         phy_regio_tx.data(11 downto 8) <= "0" & cbm_data2send_stop_i &  cbm_serdes_ready_i & cbm_link_active_i;
+         phy_regio_tx.data(7 downto 4) <= "00" & cbm_lt_dlm_valid_i & cbm_lt_ctrl_valid_i;
+         phy_regio_tx.data(3 downto 0) <= cbm_data_mux_i & cbm_lt_data_enable_i & cbm_lt_ctrl_enable_i & cbm_lt_force_stop_i;
       
-         if cbm_phy_regio_write_enable_i='1' then
-            cbm_data_mux_i       <= cbm_phy_regio_data_ctrl_i(3);
-            cbm_lt_data_enable_i <= cbm_phy_regio_data_ctrl_i(2);
-            cbm_lt_ctrl_enable_i <= cbm_phy_regio_data_ctrl_i(1);
-            cbm_lt_force_stop_i  <= cbm_phy_regio_data_ctrl_i(0);
+         if phy_regio_rx.write='1' then
+            cbm_data_mux_i       <= phy_regio_rx.data(3);
+            cbm_lt_data_enable_i <= phy_regio_rx.data(2);
+            cbm_lt_ctrl_enable_i <= phy_regio_rx.data(1);
+            cbm_lt_force_stop_i  <= phy_regio_rx.data(0);
             
-            cbm_phy_regio_write_ack_i <= '1';
+            phy_regio_tx.wack <= '1';
          end if;
-         
+      
+      elsif addr = 17 then
+         phy_regio_tx.data <= cbm_serdes_ready_counter_i;
+      
       else
-         cbm_phy_regio_unknown_addr_i <= cbm_phy_regio_write_enable_i or cbm_phy_regio_read_enable_i;
+         phy_regio_tx.unknown <= phy_regio_rx.write or phy_regio_rx.read;
       
       end if;
       
@@ -381,14 +364,8 @@ begin
       GBE_FEE_BUSY_OUT               => GBE_FEE_BUSY_OUT,
 
       -- reg io
-      REGIO_ADDR_IN                  => cbm_rdo_regio_addr_i, -- in  std_logic_vector(15 downto 0);
-      REGIO_DATA_IN                  => cbm_rdo_regio_data_ctrl_i, -- in  std_logic_vector(31 downto 0);
-      REGIO_READ_ENABLE_IN           => cbm_rdo_regio_read_enable_i, -- in  std_logic;
-      REGIO_WRITE_ENABLE_IN          => cbm_rdo_regio_write_enable_i, -- in  std_logic;
-      REGIO_DATA_OUT                 => cbm_rdo_regio_data_status_i, -- out std_logic_vector(31 downto 0);
-      REGIO_DATAREADY_OUT            => cbm_rdo_regio_dataready_i, -- out std_logic;
-      REGIO_WRITE_ACK_OUT            => cbm_rdo_regio_write_ack_i, -- out std_logic;
-      REGIO_UNKNOWN_ADDR_OUT         => cbm_rdo_regio_unknown_addr_i, -- out std_logic;
+      REGIO_IN                       => rdo_regio_rx,
+      REGIO_OUT                      => rdo_regio_tx,
 
    -- CBMNet
       CBMNET_CLK_IN         => cbm_clk_i, -- in std_logic;
@@ -415,7 +392,8 @@ begin
       OWN_ADDR => x"0000",
       DEST_ADDR => "0000000000000000",
       PACKET_MODE => 1 --if enabled generates another packet size order to test further corner cases
-   ) port map (
+   )
+   port map (
       clk => cbm_clk_i , -- in std_logic;
       res_n => cbm_reset_n_i, -- in std_logic;
       link_active => cbm_link_active_i, -- in std_logic;
@@ -471,15 +449,8 @@ begin
       TRB_RDO_STATUSBIT_OUT  => open,
       
       -- reg io
-      TRB_REGIO_ADDR_IN(15 downto 4)      => x"000",
-      TRB_REGIO_ADDR_IN(3 downto 0)       => cbm_sync_regio_addr_i, --  in  std_logic_vector(15 downto 0);
-      TRB_REGIO_DATA_IN                   => cbm_sync_regio_config_data_i, --  in  std_logic_vector(31 downto 0);
-      TRB_REGIO_READ_ENABLE_IN            => cbm_sync_regio_read_en_i, --  in  std_logic;
-      TRB_REGIO_WRITE_ENABLE_IN           => cbm_sync_regio_write_en_i, --  in  std_logic;
-      TRB_REGIO_DATA_OUT                  => cbm_sync_regio_status_data_i, --  out std_logic_vector(31 downto 0);
-      TRB_REGIO_DATAREADY_OUT             => cbm_sync_regio_read_ack_i, --  out std_logic;
-      TRB_REGIO_WRITE_ACK_OUT             => cbm_sync_regio_write_ack_i, --  out std_logic;
-      TRB_REGIO_UNKNOWN_ADDR_OUT          => cbm_sync_regio_unknown_i, --  out std_logic;
+      TRB_REGIO_IN  => sync_regio_rx,
+      TRB_REGIO_OUT => sync_regio_tx,
       
    -- CBMNET
       CBM_CLK_IN            => cbm_clk_i,     --  in std_logic;
@@ -520,7 +491,7 @@ begin
    
    cbm_data_rec_stop_i <= '1';
    
-   THE_BUS_HANDLER : trb_net16_regio_bus_handler
+   THE_BUS_HANDLER : entity work.trb_net16_regio_bus_handler_record
    generic map(
       PORT_NUMBER    => 3,
       PORT_ADDRESSES => (0 => x"0000", 1 => x"0080", 2 => x"0100",  others => x"0000"),
@@ -530,57 +501,17 @@ begin
       CLK                   => TRB_CLK_IN,
       RESET                 => TRB_RESET_IN,
 
-      DAT_ADDR_IN(8 downto 0)  => REGIO_ADDR_IN(8 downto 0),
-      DAT_ADDR_IN(15 downto 9) => (others => '0'),
-      DAT_DATA_IN           => REGIO_DATA_IN,
-      DAT_DATA_OUT          => REGIO_DATA_OUT,
-      DAT_READ_ENABLE_IN    => REGIO_READ_ENABLE_IN,
-      DAT_WRITE_ENABLE_IN   => REGIO_WRITE_ENABLE_IN,
-      DAT_TIMEOUT_IN        => REGIO_TIMEOUT_IN,
-      DAT_DATAREADY_OUT     => REGIO_DATAREADY_OUT,
-      DAT_WRITE_ACK_OUT     => REGIO_WRITE_ACK_OUT,
-      DAT_NO_MORE_DATA_OUT  => REGIO_NO_MORE_DATA_OUT,
-      DAT_UNKNOWN_ADDR_OUT  => REGIO_UNKNOWN_ADDR_OUT,
-      
-      --CBMNet (read-out)
-      BUS_READ_ENABLE_OUT(0)              => cbm_rdo_regio_read_enable_i,
-      BUS_WRITE_ENABLE_OUT(0)             => cbm_rdo_regio_write_enable_i,
-      BUS_DATA_OUT(0*32+31 downto 0*32)  => cbm_rdo_regio_data_ctrl_i,
-      BUS_ADDR_OUT(0*16+15 downto 0*16)  => cbm_rdo_regio_addr_i,
-      BUS_TIMEOUT_OUT(0)                  => open,
-      BUS_DATA_IN(0*32+31 downto 0*32)   => cbm_rdo_regio_data_status_i,
-      BUS_DATAREADY_IN(0)                 => cbm_rdo_regio_dataready_i,
-      BUS_WRITE_ACK_IN(0)                 => cbm_rdo_regio_write_ack_i,
-      BUS_NO_MORE_DATA_IN(0)              => '0',
-      BUS_UNKNOWN_ADDR_IN(0)              => cbm_rdo_regio_unknown_addr_i,  
+      REGIO_RX  => regio_masked_addr_i,
+      REGIO_TX  => REGIO_OUT,
 
-      --CBMNet (phy)
-      BUS_READ_ENABLE_OUT(1)              => cbm_phy_regio_read_enable_i,
-      BUS_WRITE_ENABLE_OUT(1)             => cbm_phy_regio_write_enable_i,
-      BUS_DATA_OUT(1*32+31 downto 1*32)  => cbm_phy_regio_data_ctrl_i,
-      BUS_ADDR_OUT(1*16+15 downto 1*16)  => cbm_phy_regio_addr_i,
-      BUS_TIMEOUT_OUT(1)                  => open,
-      BUS_DATA_IN(1*32+31 downto 1*32)   => cbm_phy_regio_data_status_i,
-      BUS_DATAREADY_IN(1)                 => cbm_phy_regio_dataready_i,
-      BUS_WRITE_ACK_IN(1)                 => cbm_phy_regio_write_ack_i,
-      BUS_NO_MORE_DATA_IN(1)              => '0',
-      BUS_UNKNOWN_ADDR_IN(1)              => cbm_phy_regio_unknown_addr_i,  
+      BUS_RX(0) => rdo_regio_rx,
+      BUS_RX(1) => phy_regio_rx,
+      BUS_RX(2) => sync_regio_rx,
+      BUS_TX(0) => rdo_regio_tx,
+      BUS_TX(1) => phy_regio_tx,
+      BUS_TX(2) => sync_regio_tx,
 
-      --CBMNet (sync)
-      BUS_READ_ENABLE_OUT(2)              => cbm_sync_regio_read_en_i,
-      BUS_WRITE_ENABLE_OUT(2)             => cbm_sync_regio_write_en_i,
-      BUS_DATA_OUT(2*32+31 downto 2*32)   => cbm_sync_regio_config_data_i,
-      BUS_ADDR_OUT(2*16+3 downto 2*16)    => cbm_sync_regio_addr_i,
-      BUS_ADDR_OUT(2*16+15 downto 2*16+4) => open,
-      BUS_TIMEOUT_OUT(2)                  => open,
-      BUS_DATA_IN(2*32+31 downto 2*32)    => cbm_sync_regio_status_data_i,
-      BUS_DATAREADY_IN(2)                 => cbm_sync_regio_read_ack_i,
-      BUS_WRITE_ACK_IN(2)                 => cbm_sync_regio_write_ack_i,
-      BUS_NO_MORE_DATA_IN(2)              => '0',
-      BUS_UNKNOWN_ADDR_IN(2)              => cbm_sync_regio_unknown_i,
-      
-      stat_debug => open
+      STAT_DEBUG => open
    );
-   
-   
+   regio_masked_addr_i <= CTRLBUS_MASK_ADDR(REGIO_IN, 9);
 end architecture;

@@ -125,6 +125,8 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
 -- RESET FSM   
    signal rx_rst_fsm_state_i     : std_logic_vector(3 downto 0);
    signal tx_rst_fsm_state_i     : std_logic_vector(3 downto 0);
+   signal rx_rst_fsm_state_sync_i     : std_logic_vector(3 downto 0);
+   signal tx_rst_fsm_state_sync_i     : std_logic_vector(3 downto 0);
    signal tx_rst_fsm_ready_i     : std_logic;
    signal tx_rst_fsm_ready_buf_i : std_logic;
    
@@ -132,6 +134,7 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    signal word_alignment_to_fsm_i : std_logic;
 
    signal rx_rst_fsm_ready_i : std_logic;
+   signal rx_rst_fsm_ready_local_i : std_logic;
    
    signal serdes_ready_i : std_logic;
    
@@ -176,6 +179,7 @@ architecture cbmnet_phy_ecp3_arch of cbmnet_phy_ecp3 is
    signal rm_tx_almost_ready_i : std_logic;
    
    signal rm_rx_to_gear_reset_i : std_logic;
+   signal rx_gear_reset_i : std_logic;
    
    signal rm_rx_data_buf_i : std_logic_vector(17 downto 0);
    
@@ -291,9 +295,15 @@ begin
    -- TX DATA PORT    
       txdata_ch0           => tx_data_to_serdes_i(7 downto 0),
       tx_k_ch0             => tx_data_to_serdes_i(8),
-
       tx_force_disp_ch0    => '0',
       tx_disp_sel_ch0      => '0',
+
+--       txdata_ch0           => tx_data_i(15 downto 0),
+--       tx_k_ch0             => tx_data_i(17 downto 16),
+--       tx_force_disp_ch0    => "00",
+--       tx_disp_sel_ch0      => "00",
+
+
       tx_div2_mode_ch0_c   => '0',
       
    -- RX DATA PORT
@@ -334,13 +344,14 @@ begin
       DATA_IN         => rx_data_from_serdes_i,               -- in  std_logic_vector( 8 downto 0);
 
    -- RM PORT
-      RM_RESET_IN => rm_rx_to_gear_reset_i,     -- in std_logic;
+      RM_RESET_IN => rx_gear_reset_i,     -- in std_logic;
       CLK_125_OUT => rclk_125_i,                -- out std_logic;
       RESET_OUT   => gear_to_rm_rst_i,          -- out std_logic;
       DATA_OUT    => rx_data_i,       -- out std_logic_vector(17 downto 0)
       
       DEBUG_OUT   => rx_gear_debug_i
    );
+   rx_gear_reset_i <= rm_rx_to_gear_reset_i or rm_rx_see_reinit when rising_edge(rclk_125_i);
    
    THE_TX_GEAR: CBMNET_PHY_TX_GEAR
    generic map (IS_SYNC_SLAVE => IS_SYNC_SLAVE)
@@ -349,18 +360,15 @@ begin
       CLK_125_IN  => rclk_125_i, -- in std_logic;
       CLK_125_OUT => clk_tx_half_i,
       
-      RESET_IN    => tx_gear_reset_i, -- in std_logic;
-      ALLOW_RELOCK_IN => tx_gear_allow_relock_i, -- in std_logic
-      
+      RESET_IN     => tx_gear_reset_i, -- in std_logic;
       TX_READY_OUT => tx_gear_ready_i,
       
       DATA_IN     => tx_data_i, -- in std_logic_vector(17 downto 0)
-      DATA_OUT    => tx_data_to_serdes_i -- out std_logic_vector(8 downto 0);
+      DATA_OUT    => tx_data_to_serdes_i, -- out std_logic_vector(8 downto 0);
+      
+      DEBUG_OUT => tx_gear_debug_i
    );
-   tx_gear_reset_i <= not tx_rst_fsm_ready_i;
-   tx_gear_allow_relock_i <= '0';
-
-   
+   tx_gear_reset_i <= not tx_rst_fsm_ready_i or gear_to_rm_rst_i;
    
    tx_serdes_rst_i <= '0'; --no function
    serdes_rst_qd_i <= '0'; --included in rst_qd_i
@@ -426,18 +434,38 @@ begin
    );
    
    proc_rst_fsms_ready: process is begin
-      wait until rising_edge(clk_125_local);
+      wait until rising_edge(rclk_125_i);
       rx_rst_fsm_ready_i <= '0';
-      if rx_rst_fsm_state_i = x"6" then
+      if rx_rst_fsm_state_sync_i = x"6" then
          rx_rst_fsm_ready_i <= '1';
       end if;
 
       tx_rst_fsm_ready_i <= '0';
-      if tx_rst_fsm_state_i = x"5" then
+      if tx_rst_fsm_state_sync_i = x"5" then
          tx_rst_fsm_ready_i <= '1';
       end if;
    end process;
+   
+   THE_RX_FSM_STATE_SYNC: signal_sync
+   generic map (WIDTH => 4, DEPTH => 3)
+   port map (
+      RESET => '0',
+      CLK0 => clk_125_local,
+      CLK1 => rclk_125_i,
+      D_IN => rx_rst_fsm_state_i,
+      D_OUT => rx_rst_fsm_state_sync_i
+   );   
          
+   THE_TX_FSM_STATE_SYNC: signal_sync
+   generic map (WIDTH => 4, DEPTH => 3)
+   port map (
+      RESET => '0',
+      CLK0 => clk_125_local,
+      CLK1 => rclk_125_i,
+      D_IN =>  tx_rst_fsm_state_i,
+      D_OUT => tx_rst_fsm_state_sync_i
+   );
+
    -------------------------------------------------      
    -- CBMNet Ready Modules
    -------------------------------------------------      
@@ -511,19 +539,7 @@ begin
 
    
    rm_rx_status_for_tx_i <= rm_rx_almost_ready_i or rm_rx_ready_i;
-   
-   -- clock domain crossing from clk_125_local to rclk_125_i
-   PROC_SYNC_FSM_READY: process is begin
-      wait until rising_edge(rclk_125_i);
-      
-      if IS_SYNC_SLAVE = c_YES then
-         tx_rst_fsm_ready_buf_i <= tx_rst_fsm_ready_i and not gear_to_rm_rst_i;
-         
-      else
-         tx_rst_fsm_ready_buf_i <= tx_rst_fsm_ready_i;
-         
-      end if;
-   end process;
+   tx_rst_fsm_ready_buf_i <= tx_rst_fsm_ready_i and not gear_to_rm_rst_i when rising_edge(rclk_125_i);
       
    serdes_ready_i <= rm_tx_ready_i and rm_rx_rxpcs_ready_i when rising_edge(rclk_125_i);
    led_ok_i       <= serdes_ready_i;
@@ -547,7 +563,7 @@ begin
             sci_read_i      <= '0';
             sci_write_i     <= '0';
             sci_timer       <= sci_timer + 1;
-            if sci_timer(sci_timer'left) = '1' and rx_rst_fsm_ready_i = '1' then
+            if sci_timer(sci_timer'left) = '1' and rx_rst_fsm_state_i = x"6" then
                sci_timer     <= (others => '0');
                sci_state     <= GET_WA;
             end if;      
@@ -606,36 +622,27 @@ begin
       end if;
    end process;
    
-   LED_RX_OUT <= '0' when rx_data_i /= "10" & x"fcc3" and  rx_data_i /= "00" & x"0000" else '1';
-   LED_TX_OUT <= '0' when tx_data_i /= "10" & x"fcc3" and  tx_data_i /= "00" & x"0000" else '1';
-   LED_OK_OUT <= serdes_ready_i;
+   PROC_LEDS: process is
+   begin
+      wait until rising_edge(rclk_125_i);
+      
+      -- leds are low-active !
+      
+      LED_RX_OUT <= '1';
+      LED_TX_OUT <= '1';
+      LED_OK_OUT <= not serdes_ready_i;
+
+      if rx_data_i /= "10" & x"fcc3" and rx_data_i /= "00" & x"0000" then
+         LED_RX_OUT <= '0';
+      end if;
+      
+      if tx_data_i /= "10" & x"fcc3" and tx_data_i /= "00" & x"0000" then
+         LED_TX_OUT <= '0';
+      end if;
+   end process;
    
    GEN_DEBUG: if INCL_DEBUG_AIDS = c_YES generate
-      proc_stat: process is
-         variable last_rx_serdes_rst_i : std_logic;
-      begin
-         wait until rising_edge(clk_125_local);
-         
-         if rst_n_i = '0' then
-            stat_reconnect_counter_i <= (others => '0');
-            stat_last_reconnect_duration_i <= (others => '0');
-            stat_wa_int_i <= (others => '0');
-         else
-            if rx_serdes_rst_i = '1' and last_rx_serdes_rst_i = '0' then
-               stat_reconnect_counter_i <= stat_reconnect_counter_i + TO_UNSIGNED(1,1);
-            end if;
-            
-            if serdes_ready_i = '0' then
-               stat_last_reconnect_duration_i <= stat_last_reconnect_duration_i + TO_UNSIGNED(1,1);
-            end if;
-            
-            stat_wa_int_i <= stat_wa_int_i or wa_position_i;
-         end if;
-         
-         last_rx_serdes_rst_i := rx_serdes_rst_i;
-      end process;
-      
-      process is
+      PROC_DBG_STAB_COUNTER: process is
          variable rx_v, tx_v : std_logic_vector(17 downto 0);
       begin
          wait until rising_edge(rclk_125_i);
@@ -679,8 +686,7 @@ begin
             
          DEBUG_OUT( 63 downto 60) <= serdes_ready_i & rm_rx_ready_i &  rm_tx_ready_i & rm_tx_almost_ready_i;
 
-         DEBUG_OUT( 79 downto 64) <= rx_gear_debug_i(15 downto 0);
-         DEBUG_OUT( 95 downto 80) <= tx_gear_debug_i(15 downto 0);
+         DEBUG_OUT( 95 downto 64) <= rx_gear_debug_i(15 downto 0) & tx_gear_debug_i(15 downto 0);
 
          DEBUG_OUT( 99 downto 96) <= rm_rx_almost_ready_i & rm_rx_rxpcs_ready_i & rm_rx_see_reinit & rm_rx_ebtb_detect_i;
          DEBUG_OUT(103 downto 100) <= wa_position_i(3 downto 0);
@@ -706,7 +712,7 @@ begin
 -- DEBUG_OUT_END
       end process;
    
-      process is
+      PROC_DBG_RXFIFO: process is
       begin
          wait until rising_edge(rclk_125_i);
          if rx_data_i /= "10" & x"fcc3" and  rx_data_i /= "00" & x"0000" then
@@ -718,7 +724,7 @@ begin
       end process;
 
       
-      process is
+      PROC_DBG_TXFIFO: process is
       begin
          wait until rising_edge(rclk_125_i);
          if tx_data_i /= "10" & x"fcc3" and tx_data_i(17 downto 16) /= "00" then
@@ -734,17 +740,6 @@ begin
             tx_data_sp_i9 <= tx_data_sp_i8;
             tx_data_sp_i10 <= tx_data_sp_i9;
             tx_data_sp_i11 <= tx_data_sp_i10;
-         end if;
-      end process;
-
-      
-      process is 
-      begin
-         wait until rising_edge(rclk_125_i);
-         
-         STAT_OP(0)<= '0';
-         if rx_data_i = "10" & K277 & EBTB_D_ENCODE(14,6) then
-            STAT_OP(0) <= '1';
          end if;
       end process;
    end generate;

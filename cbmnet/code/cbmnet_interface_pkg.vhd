@@ -3,6 +3,9 @@
 library ieee;
    use ieee.std_logic_1164.all;
    use ieee.numeric_std.all;
+   
+library work;
+   use work.trb_net_std.all;
 
 package cbmnet_interface_pkg is
    component cbmnet_bridge is
@@ -77,16 +80,8 @@ package cbmnet_interface_pkg is
          GBE_FEE_BUSY_OUT               : out std_logic;
 
          -- reg io
-         REGIO_ADDR_IN                  : in  std_logic_vector(15 downto 0);
-         REGIO_DATA_IN                  : in  std_logic_vector(31 downto 0);
-         REGIO_READ_ENABLE_IN           : in  std_logic;
-         REGIO_WRITE_ENABLE_IN          : in  std_logic;
-         REGIO_TIMEOUT_IN               : in  std_logic;
-         REGIO_DATA_OUT                 : out std_logic_vector(31 downto 0);
-         REGIO_DATAREADY_OUT            : out std_logic;
-         REGIO_WRITE_ACK_OUT            : out std_logic;
-         REGIO_NO_MORE_DATA_OUT         : out std_logic;
-         REGIO_UNKNOWN_ADDR_OUT         : out std_logic
+         REGIO_IN  : in  CTRLBUS_RX;
+         REGIO_OUT : out CTRLBUS_TX
       );
    end component;
    
@@ -478,14 +473,9 @@ package cbmnet_interface_pkg is
          GBE_FEE_BUSY_OUT               : out std_logic;
 
          -- reg io
-         REGIO_ADDR_IN                  : in  std_logic_vector(15 downto 0);
-         REGIO_DATA_IN                  : in  std_logic_vector(31 downto 0);
-         REGIO_READ_ENABLE_IN           : in  std_logic;
-         REGIO_WRITE_ENABLE_IN          : in  std_logic;
-         REGIO_DATA_OUT                 : out std_logic_vector(31 downto 0);
-         REGIO_DATAREADY_OUT            : out std_logic;
-         REGIO_WRITE_ACK_OUT            : out std_logic;
-         REGIO_UNKNOWN_ADDR_OUT         : out std_logic;
+         REGIO_IN                       : in CTRLBUS_RX;
+         REGIO_OUT                      : out CTRLBUS_TX;
+
 
       -- CBMNet
          CBMNET_CLK_IN     : in std_logic;
@@ -673,18 +663,7 @@ package cbmnet_interface_pkg is
          DATA_OUT : out std_logic
       );
    end component;
-   
-   component gray_code_sync is
-      generic (
-         WIDTH : positive := 32
-      );
-      port (
-         IN_CLK_IN : in std_logic;
-         DATA_IN   : in std_logic_vector(WIDTH-1 downto 0);
-         OUT_CLK_IN : in std_logic;
-         DATA_OUT : out std_logic_vector(WIDTH-1 downto 0)
-      );
-   end component;   
+  
    
    component cbmnet_sync_module is
       port(
@@ -703,14 +682,8 @@ package cbmnet_interface_pkg is
          TRB_RDO_FINISHED_OUT : out std_logic;
 
          -- reg io
-         TRB_REGIO_ADDR_IN                  : in  std_logic_vector(15 downto 0);
-         TRB_REGIO_DATA_IN                  : in  std_logic_vector(31 downto 0);
-         TRB_REGIO_READ_ENABLE_IN           : in  std_logic;
-         TRB_REGIO_WRITE_ENABLE_IN          : in  std_logic;
-         TRB_REGIO_DATA_OUT                 : out std_logic_vector(31 downto 0);
-         TRB_REGIO_DATAREADY_OUT            : out std_logic;
-         TRB_REGIO_WRITE_ACK_OUT            : out std_logic;
-         TRB_REGIO_UNKNOWN_ADDR_OUT         : out std_logic;
+         TRB_REGIO_IN  : in  CTRLBUS_RX;
+         TRB_REGIO_OUT : out CTRLBUS_TX;
          
       -- CBMNET
          CBM_CLK_IN           : in std_logic;

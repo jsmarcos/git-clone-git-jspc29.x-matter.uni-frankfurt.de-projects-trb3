@@ -2,6 +2,9 @@ library ieee;
    use ieee.std_logic_1164.all;
    use ieee.numeric_std.all;
    use work.cbmnet_interface_pkg.all;
+   use work.trb_net_std.all;
+   use work.trb_net_components.all;
+   use work.trb3_components.all;   
 
 entity CBMNET_READOUT is
    port (
@@ -38,14 +41,8 @@ entity CBMNET_READOUT is
       GBE_FEE_BUSY_OUT               : out std_logic;
 
       -- reg io
-      REGIO_ADDR_IN                  : in  std_logic_vector(15 downto 0);
-      REGIO_DATA_IN                  : in  std_logic_vector(31 downto 0);
-      REGIO_READ_ENABLE_IN           : in  std_logic;
-      REGIO_WRITE_ENABLE_IN          : in  std_logic;
-      REGIO_DATA_OUT                 : out std_logic_vector(31 downto 0);
-      REGIO_DATAREADY_OUT            : out std_logic;
-      REGIO_WRITE_ACK_OUT            : out std_logic;
-      REGIO_UNKNOWN_ADDR_OUT         : out std_logic;
+      REGIO_IN                       : in  CTRLBUS_RX;
+      REGIO_OUT                      : out CTRLBUS_TX;
 
    -- CBMNet
       CBMNET_CLK_IN     : in std_logic;
@@ -60,6 +57,7 @@ entity CBMNET_READOUT is
 end entity;
 
 architecture cbmnet_readout_arch of CBMNET_READOUT is
+   signal cbm_from_trb_reset_i : std_logic;
    signal reset_combined_i : std_logic;
    signal reset_combined_125_i : std_logic;
 
@@ -96,13 +94,19 @@ architecture cbmnet_readout_arch of CBMNET_READOUT is
    signal frame_packer_data_i  : std_logic_vector(15 downto 0);
    signal obuf_stop_i : std_logic;
    
+   signal obuf_start_i : std_logic;
+   signal obuf_end_i : std_logic;
+   
    signal cbmnet_link_active_in_buf_i : std_logic;
    
 -- stats and monitoring   
    signal cbm_stat_num_packets_i : unsigned(31 downto 0) := (others => '0');
    signal cbm_stat_num_send_completed_i : unsigned(31 downto 0) := (others => '0');
    signal cbm_stat_clks_dead_i   : unsigned(31 downto 0) := (others => '0');
-   signal cbm_stat_connections_i : unsigned(31 downto 0) := (others => '0');   
+   signal cbm_stat_connections_i : unsigned(31 downto 0) := (others => '0');
+   signal cbm_stat_hwords_sent_i : unsigned(31 downto 0) := (others => '0');
+   signal cbm_stat_transmitting_i : std_logic;
+   signal cbm_stat_frame_length_i : unsigned(31 downto 0) := (others => '0');
    
    signal stat_num_packets_i : unsigned(31 downto 0);
    signal stat_num_send_completed_i : unsigned(31 downto 0);
@@ -113,6 +117,13 @@ architecture cbmnet_readout_arch of CBMNET_READOUT is
    
    signal stat_num_recv_completed_i : unsigned(31 downto 0);
    signal stat_link_inactive_i      : unsigned(31 downto 0);   
+   signal stat_hwords_sent_i        : unsigned(31 downto 0);
+   signal stat_frame_length_i       : unsigned(31 downto 0) := (others => '0');
+
+   
+   signal cbm_regio_read_i : std_logic;
+   signal cbm_sync_ack_i : std_logic;
+   signal trb_from_cbm_sync_ack_i : std_logic;
 
 -- debug
    signal debug_decorder_i     : std_logic_vector(31 downto 0);
@@ -149,7 +160,7 @@ begin
    begin
       wait until rising_edge(CBMNET_CLK_IN);
       
-      if RESET_IN='1' or CBMNET_RESET_IN='1' or CBMNET_LINK_ACTIVE_IN='0' then
+      if cbm_from_trb_reset_i='1' or CBMNET_RESET_IN='1' or CBMNET_LINK_ACTIVE_IN='0' then
          counter_v := 0;
       elsif counter_v /= 15 then
          counter_v := counter_v + 1;
@@ -160,7 +171,26 @@ begin
          reset_combined_125_i <= '0';
       end if;
    end process;
-   reset_combined_i <= reset_combined_125_i when rising_edge(CLK_IN);
+   
+   THE_RESET_SYNC: signal_sync 
+   generic map (WIDTH => 1, DEPTH => 3)
+   port map (
+      RESET => '0',
+      CLK0 => CLK_IN,
+      CLK1 => CBMNET_CLK_IN,
+      D_IN(0) => RESET_IN,
+      D_OUT(0) => cbm_from_trb_reset_i
+   );
+   
+   THE_RESET1_SYNC: signal_sync 
+   generic map (WIDTH => 1, DEPTH => 3)
+   port map (
+      RESET => '0',
+      CLK0 => CBMNET_CLK_IN,
+      CLK1 => CLK_IN,
+      D_IN(0) => reset_combined_125_i,
+      D_OUT(0) => reset_combined_i
+   );
    
    
    THE_DECODER: CBMNET_READOUT_TRBNET_DECODER
@@ -291,13 +321,14 @@ begin
 
       -- cbmnet
       CBMNET_STOP_IN   => CBMNET_DATA2SEND_STOP_IN, -- in std_logic;
-      CBMNET_START_OUT => CBMNET_DATA2SEND_START_OUT, -- out std_logic;
-      CBMNET_END_OUT   => CBMNET_DATA2SEND_END_OUT, -- out std_logic;
+      CBMNET_START_OUT => obuf_start_i, -- out std_logic;
+      CBMNET_END_OUT   => obuf_end_i, -- out std_logic;
       CBMNET_DATA_OUT  => CBMNET_DATA2SEND_DATA_OUT, -- out std_logic_vector(15 downto 0);
       
       DEBUG_OUT => debug_obuf_i -- out std_logic_vector(31 downto 0)
    );
-   
+   CBMNET_DATA2SEND_START_OUT <= obuf_start_i;
+   CBMNET_DATA2SEND_END_OUT <= obuf_end_i;
 ----------------------------------------
 -- Slow control and monitoring
 ----------------------------------------   
@@ -322,18 +353,67 @@ begin
       if fifo_rpacket_complete_ack_i = '1' then
          cbm_stat_num_send_completed_i <= cbm_stat_num_send_completed_i + 1;
       end if;
+
+      if cbm_stat_transmitting_i='1' then
+         cbm_stat_hwords_sent_i <= cbm_stat_hwords_sent_i + 1;
+         cbm_stat_frame_length_i <= cbm_stat_frame_length_i + 1;
+      end if;
+      
+      if obuf_start_i='1' and CBMNET_DATA2SEND_STOP_IN='0' then
+         cbm_stat_transmitting_i <= '1';
+         cbm_stat_frame_length_i <= 1;
+         cbm_stat_hwords_sent_i <= cbm_stat_hwords_sent_i + 1;
+      elsif CBMNET_LINK_ACTIVE_IN='0' or obuf_end_i='1' then
+         cbm_stat_transmitting_i <= '0';
+      end if;
    
       last_link_active_v := CBMNET_LINK_ACTIVE_IN;
       last_end_v := frame_packer_end_i;
    end process;
    
    -- and cross over to TrbNet clock domain
-   stat_connections_i <= cbm_stat_connections_i when rising_edge(CLK_IN);
-   stat_num_packets_i <= cbm_stat_num_packets_i when rising_edge(CLK_IN);
-   stat_clks_dead_i   <= cbm_stat_clks_dead_i   when rising_edge(CLK_IN);
-   stat_num_send_completed_i <= cbm_stat_num_send_completed_i when rising_edge(CLK_IN);
+   PROC_CBM_SYNC: process is
+      variable ack_delay : std_logic;
+   begin
+      wait until rising_edge(CBMNET_CLK_IN);
+      
+      cbm_sync_ack_i <= ack_delay;
+      ack_delay := '0';
+
+      if cbm_regio_read_i = '1' then
+         cbm_sync_ack_i <= '0';
+         
+      else
+         ack_delay := '1';
+      
+         stat_connections_i <= cbm_stat_connections_i;
+         stat_num_packets_i <= cbm_stat_num_packets_i;
+         stat_clks_dead_i   <= cbm_stat_clks_dead_i;
+         stat_num_send_completed_i <= cbm_stat_num_send_completed_i;
+         stat_hwords_sent_i <= cbm_stat_hwords_sent_i;
+         stat_frame_length_i <= cbm_stat_frame_length_i;
+      end if;
+   end process;
    
+   THE_REGIO_READ_SYNC: signal_sync 
+   generic map (WIDTH => 1, DEPTH => 3)
+   port map (
+      RESET => reset_combined_i,
+      CLK0 => CLK_IN,
+      CLK1 => CBMNET_CLK_IN,
+      D_IN(0) => REGIO_IN.read,
+      D_OUT(0) => cbm_regio_read_i
+   );
+   
+   THE_REGIO_READ_ACK_SYNC: pos_edge_strech_sync port map (
+      IN_CLK_IN => CBMNET_CLK_IN, OUT_CLK_IN => CLK_IN,
+      DATA_IN   => cbm_sync_ack_i,
+      DATA_OUT  => trb_from_cbm_sync_ack_i
+   );
+   
+   -- statistics in TrbNet clock domain
    PROC_STATS: process is
+      variable fifo_waddr_restore_delay : std_logic;
    begin
       wait until rising_edge(CLK_IN);
       
@@ -346,9 +426,10 @@ begin
          stat_num_recv_completed_i <= stat_num_recv_completed_i + 1;
       end if;
       
-      if fifo_waddr_restore_i = '1' then
+      if fifo_waddr_restore_i = '1' and fifo_waddr_restore_delay = '0' then
          stat_num_packets_aborted_i <= stat_num_packets_aborted_i + 1;
       end if;
+      fifo_waddr_restore_delay := fifo_waddr_restore_i;
    end process;
    
    PROC_READOUT_MUX: process is
@@ -356,49 +437,51 @@ begin
    begin
       wait until rising_edge(CLK_IN);
       
-      regio_data_ready_i <= REGIO_READ_ENABLE_IN;
+      regio_data_ready_i <= REGIO_IN.read;
       regio_unkown_address_i <= '0';
       regio_data_status_i <= x"00000000";
       
-      addr := to_integer(UNSIGNED(REGIO_ADDR_IN(6 downto 0)));
+      addr := to_integer(UNSIGNED(REGIO_IN.addr(6 downto 0)));
       
    -- read
       case addr is
          when 16#00# => regio_data_status_i(0) <= cfg_enabled_i;
          when 16#01# => regio_data_status_i(16 downto 0) <= cfg_source_override_i & cfg_source_i;
          
-         when 16#02# => regio_data_status_i <= std_logic_vector(stat_connections_i);
-         when 16#03# => regio_data_status_i <= std_logic_vector(stat_clks_dead_i);
-         when 16#04# => regio_data_status_i <= std_logic_vector(stat_num_send_completed_i);
-         when 16#05# => regio_data_status_i <= std_logic_vector(stat_num_packets_i);
+         when 16#02# => regio_data_status_i <= std_logic_vector(stat_connections_i); regio_data_ready_i <= trb_from_cbm_sync_ack_i;
+         when 16#03# => regio_data_status_i <= std_logic_vector(stat_clks_dead_i); regio_data_ready_i <= trb_from_cbm_sync_ack_i;
+         when 16#04# => regio_data_status_i <= std_logic_vector(stat_num_send_completed_i); regio_data_ready_i <= trb_from_cbm_sync_ack_i;
+         when 16#05# => regio_data_status_i <= std_logic_vector(stat_num_packets_i); regio_data_ready_i <= trb_from_cbm_sync_ack_i;
          when 16#06# => regio_data_status_i <= std_logic_vector(stat_num_recv_completed_i);
          when 16#07# => regio_data_status_i <= std_logic_vector(stat_link_inactive_i);
          when 16#08# => regio_data_status_i <= std_logic_vector(stat_num_packets_aborted_i);
+         when 16#09# => regio_data_status_i <= std_logic_vector(stat_hwords_sent_i); regio_data_ready_i <= trb_from_cbm_sync_ack_i;
+         when 16#0a# => regio_data_status_i <= std_logic_vector(stat_frame_length_i); regio_data_ready_i <= trb_from_cbm_sync_ack_i;
          
          -- debug only ports
-         when 16#09# => regio_data_status_i <= debug_decorder_i;
-         when 16#0a# => regio_data_status_i <= debug_packer_i;
-         when 16#0b# => regio_data_status_i <= debug_frame_packer_i;
-         when 16#0c# => regio_data_status_i(1 downto 0) <= fifo_wfull_i & fifo_rpacket_complete_i;
-         when 16#0d# => regio_data_status_i <= HUB_CTS_INFORMATION_IN & HUB_CTS_CODE_IN & HUB_CTS_NUMBER_IN;
-         when 16#0e# => regio_data_status_i <= dec_evt_info_i;
-         when 16#0f# => regio_data_status_i <= dec_source_i & dec_length_i;
+         when 16#10# => regio_data_status_i <= debug_decorder_i;
+         when 16#11# => regio_data_status_i <= debug_packer_i;
+         when 16#12# => regio_data_status_i <= debug_frame_packer_i;
+         when 16#13# => regio_data_status_i(1 downto 0) <= fifo_wfull_i & fifo_rpacket_complete_i;
+         when 16#14# => regio_data_status_i <= HUB_CTS_INFORMATION_IN & HUB_CTS_CODE_IN & HUB_CTS_NUMBER_IN;
+         when 16#15# => regio_data_status_i <= dec_evt_info_i;
+         when 16#16# => regio_data_status_i <= dec_source_i & dec_length_i;
          
-         when 16#10# => regio_data_status_i <= debug_fifo_i;
-         when 16#11# => regio_data_status_i <= debug_obuf_i;
+         when 16#17# => regio_data_status_i <= debug_fifo_i;
+         when 16#18# => regio_data_status_i <= debug_obuf_i;
          
-         when others => regio_unkown_address_i <= REGIO_READ_ENABLE_IN;
+         when others => regio_unkown_address_i <= REGIO_IN.read;
       end case;
 
    -- write 
-      if REGIO_WRITE_ENABLE_IN = '1' then
+      if REGIO_IN.write = '1' then
          case addr is
             when 16#0# =>
-               cfg_enabled_i <= REGIO_DATA_IN(0);
+               cfg_enabled_i <= REGIO_IN.data(0);
                
             when 16#1# =>
-               cfg_source_i  <= REGIO_DATA_IN(15 downto 0);
-               cfg_source_override_i <= REGIO_DATA_IN(16);
+               cfg_source_i  <= REGIO_IN.data(15 downto 0);
+               cfg_source_override_i <= REGIO_IN.data(16);
                
             when others =>
                regio_unkown_address_i <= '1';
@@ -407,11 +490,11 @@ begin
    end process;
    
       
-   REGIO_DATA_OUT         <= regio_data_status_i;
-   REGIO_UNKNOWN_ADDR_OUT <= regio_unkown_address_i;
+   REGIO_OUT.data         <= regio_data_status_i;
+   REGIO_OUT.unknown <= regio_unkown_address_i;
    
-   REGIO_DATAREADY_OUT <= REGIO_READ_ENABLE_IN  when rising_edge(CLK_IN);
-   REGIO_WRITE_ACK_OUT <= REGIO_WRITE_ENABLE_IN when rising_edge(CLK_IN);
+   REGIO_OUT.rack <= REGIO_IN.read  when rising_edge(CLK_IN);
+   REGIO_OUT.wack <= REGIO_IN.write when rising_edge(CLK_IN);
    
 end architecture;
 

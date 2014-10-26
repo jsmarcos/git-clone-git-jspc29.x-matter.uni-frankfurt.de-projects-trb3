@@ -88,7 +88,6 @@ package cbmnet_phy_pkg is
          CLK_125_OUT : out std_logic;
          
          RESET_IN    : in std_logic;
-         ALLOW_RELOCK_IN : in std_logic;
 
          DATA_IN     : in std_logic_vector(17 downto 0);
          DATA_OUT    : out std_logic_vector(8 downto 0);

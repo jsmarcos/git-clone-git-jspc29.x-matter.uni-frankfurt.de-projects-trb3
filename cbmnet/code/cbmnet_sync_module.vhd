@@ -1,7 +1,11 @@
 library ieee;
    use ieee.std_logic_1164.all;
    use ieee.numeric_std.all;
+   
+library work;
    use work.cbmnet_interface_pkg.all;
+   use work.trb_net_std.all;
+   
 
 entity cbmnet_sync_module is
    port(
@@ -20,14 +24,8 @@ entity cbmnet_sync_module is
       TRB_RDO_FINISHED_OUT : out std_logic;
 
       -- reg io
-      TRB_REGIO_ADDR_IN                  : in  std_logic_vector(15 downto 0);
-      TRB_REGIO_DATA_IN                  : in  std_logic_vector(31 downto 0);
-      TRB_REGIO_READ_ENABLE_IN           : in  std_logic;
-      TRB_REGIO_WRITE_ENABLE_IN          : in  std_logic;
-      TRB_REGIO_DATA_OUT                 : out std_logic_vector(31 downto 0);
-      TRB_REGIO_DATAREADY_OUT            : out std_logic;
-      TRB_REGIO_WRITE_ACK_OUT            : out std_logic;
-      TRB_REGIO_UNKNOWN_ADDR_OUT         : out std_logic;
+      TRB_REGIO_IN  : in  CTRLBUS_RX;
+      TRB_REGIO_OUT : out CTRLBUS_TX;
       
    -- CBMNET
       CBM_CLK_IN           : in std_logic;
@@ -279,16 +277,16 @@ begin
    end process;
 
 -- TRBNet slow control
-   trb_regio_addr_i <= to_integer(UNSIGNED(TRB_REGIO_ADDR_IN(3 downto 0)));
+   trb_regio_addr_i <= to_integer(UNSIGNED(TRB_REGIO_IN.addr(3 downto 0)));
    
    TRB_SLOW_CTRL_PROC: process is
    begin
       wait until rising_edge(TRB_CLK_IN);
 
-      TRB_REGIO_DATAREADY_OUT <= TRB_REGIO_READ_ENABLE_IN;
-      TRB_REGIO_WRITE_ACK_OUT <= TRB_REGIO_WRITE_ENABLE_IN;
-      TRB_REGIO_UNKNOWN_ADDR_OUT <= '0';
-      TRB_REGIO_DATA_OUT <= (others => '0');
+      TRB_REGIO_OUT.rack <= TRB_REGIO_IN.read;
+      TRB_REGIO_OUT.wack <= TRB_REGIO_IN.write;
+      TRB_REGIO_OUT.unknown <= '0';
+      TRB_REGIO_OUT.data <= (others => '0');
       
       if trb_from_cbm_dlm_sensed_i = '1' then
          trb_next_epoch_updated_i <= '0';
@@ -305,20 +303,20 @@ begin
       else
          case (trb_regio_addr_i) is
             when 0 => 
-               TRB_REGIO_DATA_OUT(31 downto 16) <= trb_dlm_sense_mask_i;
-               TRB_REGIO_DATA_OUT(11 downto  8) <= trb_rdo_fsm_state_i;
-               TRB_REGIO_DATA_OUT(5) <= CBM_LINK_ACTIVE_IN;
-               TRB_REGIO_DATA_OUT(4) <= trb_from_cbm_current_epoch_updated_i;
-               TRB_REGIO_DATA_OUT( 3 downto  0) <= "00" & trb_epoch_update_scheme_i;
+               TRB_REGIO_OUT.data(31 downto 16) <= trb_dlm_sense_mask_i;
+               TRB_REGIO_OUT.data(11 downto  8) <= trb_rdo_fsm_state_i;
+               TRB_REGIO_OUT.data(5) <= CBM_LINK_ACTIVE_IN;
+               TRB_REGIO_OUT.data(4) <= trb_from_cbm_current_epoch_updated_i;
+               TRB_REGIO_OUT.data( 3 downto  0) <= "00" & trb_epoch_update_scheme_i;
             
             when 1 =>
-               TRB_REGIO_DATA_OUT <= trb_pulser_threshold_i;
+               TRB_REGIO_OUT.data <= trb_pulser_threshold_i;
                
             when 2 =>
-               TRB_REGIO_DATA_OUT <= trb_next_epoch_i;
+               TRB_REGIO_OUT.data <= trb_next_epoch_i;
             
             when trb_sync_lowest_address_c =>
-               TRB_REGIO_DATA_OUT <= trb_from_cbm_current_epoch_i;
+               TRB_REGIO_OUT.data <= trb_from_cbm_current_epoch_i;
                trb_sync_buffer_i(trb_sync_lowest_address_c+1) <= trb_from_cbm_timestamp_i;
                trb_sync_buffer_i(trb_sync_lowest_address_c+2) <= trb_from_cbm_timestamp_last_dlm_i;
                trb_sync_buffer_i(trb_sync_lowest_address_c+3) <= trb_from_cbm_timestamp_last_pulse_i;
@@ -330,28 +328,28 @@ begin
                trb_sync_buffer_i(trb_sync_lowest_address_c+9) <= STD_LOGIC_VECTOR(trb_reset_counter_i) & STD_LOGIC_VECTOR(trb_from_cbm_reset_counter_i);               
             
             when trb_sync_lowest_address_c + 1 to trb_sync_lowest_address_c + trb_sync_buffer_i'high =>
-               TRB_REGIO_DATA_OUT <= trb_sync_buffer_i(trb_regio_addr_i);
+               TRB_REGIO_OUT.data <= trb_sync_buffer_i(trb_regio_addr_i);
                
             when others =>
-               TRB_REGIO_UNKNOWN_ADDR_OUT <= TRB_REGIO_READ_ENABLE_IN or TRB_REGIO_WRITE_ENABLE_IN;
+               TRB_REGIO_OUT.unknown <= TRB_REGIO_IN.read or TRB_REGIO_IN.write;
                
          end case;
          
-         if TRB_REGIO_WRITE_ENABLE_IN = '1' then
+         if TRB_REGIO_IN.write = '1' then
             case (trb_regio_addr_i) is
                when 0 =>
-                  trb_dlm_sense_mask_i      <= TRB_REGIO_DATA_IN(31 downto 16);
-                  trb_epoch_update_scheme_i <= TRB_REGIO_DATA_IN(1 downto 0);
+                  trb_dlm_sense_mask_i      <= TRB_REGIO_IN.data(31 downto 16);
+                  trb_epoch_update_scheme_i <= TRB_REGIO_IN.data(1 downto 0);
                
                when 1 =>
-                  trb_pulser_threshold_i <= TRB_REGIO_DATA_IN;
+                  trb_pulser_threshold_i <= TRB_REGIO_IN.data;
                   
                when 2 =>
-                  trb_next_epoch_i <= TRB_REGIO_DATA_IN;
+                  trb_next_epoch_i <= TRB_REGIO_IN.data;
                   trb_next_epoch_updated_i <= '1';
                
                when others =>
-                  TRB_REGIO_UNKNOWN_ADDR_OUT <= '1';
+                  TRB_REGIO_OUT.unknown <= '1';
             end case;
          end if;
       end if;

@@ -47,10 +47,16 @@ architecture cbmnet_readout_obuf_arch of CBMNET_READOUT_OBUF is
    signal wfsm_i : WFSM_T;
    constant wfsm_dec_c : WFSM_DEC_T := (OBTAIN_FREE_BUFFER => x"1", WAIT_FOR_START => x"2", WAIT_FOR_END => x"3", COMPLETE => x"4");
    
-   type RFSM_T is (OBTAIN_FULL_BUFFER, WAIT_WHILE_STOP, COPY, COMPLETE);
+   type RFSM_T is (OBTAIN_FULL_BUFFER, DELAY_WHILE_STOP, WAIT_WHILE_STOP, COPY, PADDING, COMPLETE);
    type RFSM_DEC_T is array(RFSM_T) of std_logic_vector(3 downto 0);
    signal rfsm_i, rfsm_next_i : RFSM_T;
-   constant rfsm_dec_c : RFSM_DEC_T := (OBTAIN_FULL_BUFFER => x"1", WAIT_WHILE_STOP => x"2", COPY => x"3", COMPLETE => x"4");
+   constant rfsm_dec_c : RFSM_DEC_T := (OBTAIN_FULL_BUFFER => x"1", WAIT_WHILE_STOP => x"2", COPY => x"3", COMPLETE => x"4", DELAY_WHILE_STOP => x"5", PADDING => x"6");
+   
+   signal delay_counter_i : integer range 0 to 15;
+   signal reset_delay_counter_i : std_logic;
+
+   signal transmit_length_i : integer range 0 to 63;
+   
 begin
    WPROC: process is
    begin
@@ -107,6 +113,19 @@ begin
       else
          rfsm_i <= rfsm_next_i;
       end if;
+      
+      if rfsm_next_i = OBTAIN_FULL_BUFFER then
+         transmit_length_i <= 0;
+      elsif rfsm_next_i = COPY or rfsm_next_i = PADDING then
+         transmit_length_i <= transmit_length_i + 1;
+      end if;
+      
+      if CBMNET_STOP_IN='1' then
+         delay_counter_i <= 7;
+      elsif delay_counter_i /= 0 then
+         delay_counter_i <= delay_counter_i - 1;
+      end if;
+      
       read_fifo_i <= read_fifo_next_i;
    end process;
    
@@ -124,12 +143,17 @@ begin
          when OBTAIN_FULL_BUFFER =>
             if fifo_get_filled_i(0) = '1' then
                read_fifo_next_i <= 0;
-               rfsm_next_i <= WAIT_WHILE_STOP;
+               rfsm_next_i <= DELAY_WHILE_STOP;
             elsif fifo_get_filled_i(1) = '1' then
                read_fifo_next_i <= 1;
+               rfsm_next_i <= DELAY_WHILE_STOP;
+            end if;
+            
+         when DELAY_WHILE_STOP =>
+            if delay_counter_i = 0 then
                rfsm_next_i <= WAIT_WHILE_STOP;
             end if;
-         
+            
          when WAIT_WHILE_STOP =>
             CBMNET_START_OUT <= '1';
             if CBMNET_STOP_IN='0' then
@@ -140,10 +164,21 @@ begin
          when COPY =>
             fifo_deq_i <= '1';
             if fifo_last_i(read_fifo_i)='1' then
+               if transmit_length_i < 3 then
+                  rfsm_next_i <= PADDING;
+               else
+                  CBMNET_END_OUT <= '1';
+                  rfsm_next_i <= COMPLETE;
+               end if;
+            end if;
+         
+         when PADDING =>
+            if transmit_length_i >= 3 then
                CBMNET_END_OUT <= '1';
                rfsm_next_i <= COMPLETE;
             end if;
             
+         
          when others =>
             fifo_empty_i(read_fifo_i) <= '1';
             rfsm_next_i <= OBTAIN_FULL_BUFFER;
