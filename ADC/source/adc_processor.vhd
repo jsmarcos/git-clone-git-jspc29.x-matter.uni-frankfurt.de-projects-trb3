@@ -40,7 +40,7 @@ attribute syn_ramstyle : string;
 attribute syn_keep     : boolean;
 attribute syn_preserve : boolean;
 
-attribute syn_hier of adc_processor_arch : architecture is "flatten, firm";
+attribute syn_hier of adc_processor_arch : architecture is "hard";
 
 type ram_t          is array (0 to 1023)       of unsigned(17 downto 0);
 type ram_arr_t      is array (0 to 3)          of ram_t;
@@ -110,6 +110,8 @@ signal prepare_header, last_prepare_header, prepare_header_valid : std_logic := 
 signal blockcurrent, last_blockcurrent                           : integer range 0 to 3 := 0;
 signal myavg : unsigned(7 downto 0);
 
+signal invalid_word_count : arr_CHAN_RES_t := (others => (others => '0'));
+
 -- 800 - 83f last ADC values              (local 0x0 - 0x3)
 -- 840 - 87f long-term average / baseline (local 0x4 - 0x7)
 -- 880 - 8bf fifo access (debugging only) (local 0x8 - 0xb)
@@ -138,7 +140,7 @@ begin
         when "10" => DEBUG_BUFFER_DATA(17 downto 0)  <= std_logic_vector(reg_ram_data_out(to_integer(unsigned(reg_buffer_addr(1 downto 0)))));
                      ram_debug_read(to_integer(unsigned(reg_buffer_addr(1 downto 0)))) <= '1';
         when "11" => 
-          DEBUG_BUFFER_DATA  <= (others => '0');
+          DEBUG_BUFFER_DATA  <= std_logic_vector(invalid_word_count(c));
         when others => null;  
       end case;
     else
@@ -181,6 +183,22 @@ ram_clear      <= (others => CONTROL(4)) when rising_edge(CLK);
 ram_reset      <= CONTROL(5)  when rising_edge(CLK);
 baseline_reset <= CONTROL(8)  when rising_edge(CLK);
 readout_reset  <= CONTROL(12) when rising_edge(CLK);
+
+-------------------------------------------------------------------------------
+-- Check words
+-------------------------------------------------------------------------------
+gen_word_checker : for i in 0 to CHANNELS-1 generate
+  process begin
+    wait until rising_edge(CLK);
+    if ADC_VALID = '1' then
+      if ADC_DATA(RESOLUTION*(i+1)-1 downto RESOLUTION*i) /= CONF.check_word1 and
+         ADC_DATA(RESOLUTION*(i+1)-1 downto RESOLUTION*i) /= CONF.check_word2 then
+        invalid_word_count(i) <= invalid_word_count(i) + 1; 
+      end if;
+    end if;
+  end process;
+end generate;
+
 
 -------------------------------------------------------------------------------
 -- Preprocessing

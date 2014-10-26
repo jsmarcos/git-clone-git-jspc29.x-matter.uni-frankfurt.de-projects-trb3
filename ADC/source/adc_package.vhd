@@ -38,6 +38,8 @@ type cfg_t is record
   block_avg         : unsigned_array_8(0 to 3);
   block_sums        : unsigned_array_8(0 to 3);
   block_scale       : unsigned_array_8(0 to 3);
+  check_word1       : std_logic_vector(RESOLUTION-1 downto 0);
+  check_word2       : std_logic_vector(RESOLUTION-1 downto 0);
 end record;
 
 end package;
