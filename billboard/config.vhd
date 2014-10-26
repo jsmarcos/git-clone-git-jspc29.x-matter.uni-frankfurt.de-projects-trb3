@@ -34,7 +34,7 @@ package config is
 ------------------------------------------------------------------------------
     type intlist_t is array(0 to 7) of integer;
     type hw_info_t is array(0 to 7) of unsigned(31 downto 0);
-    constant HW_INFO_BASE            : unsigned(31 downto 0) := x"91009000";
+    constant HW_INFO_BASE            : unsigned(31 downto 0) := x"91007000";
     
     constant CLOCK_FREQUENCY_ARR  : intlist_t := (100,125, others => 0);
     constant MEDIA_FREQUENCY_ARR  : intlist_t := (200,125, others => 0);
@@ -69,9 +69,9 @@ begin
   t(42 downto 42) := "1"; --std_logic_vector(to_unsigned(INCLUDE_SPI,1));
   t(44 downto 44) := "0"; --std_logic_vector(to_unsigned(INCLUDE_STATISTICS,1));
   t(51 downto 48) := x"0";--std_logic_vector(to_unsigned(INCLUDE_TRIGGER_LOGIC,4));
-  t(52 downto 52) := std_logic_vector(to_unsigned(USE_125_MHZ,0));
-  t(53 downto 53) := std_logic_vector(to_unsigned(USE_RXCLOCK,0));
-  t(54 downto 54) := std_logic_vector(to_unsigned(USE_EXTERNALCLOCK,0));
+  t(52 downto 52) := std_logic_vector(to_unsigned(USE_125_MHZ,1));
+  t(53 downto 53) := std_logic_vector(to_unsigned(USE_RXCLOCK,1));
+  t(54 downto 54) := std_logic_vector(to_unsigned(USE_EXTERNALCLOCK,1));
   return t;
 end function;  
 
