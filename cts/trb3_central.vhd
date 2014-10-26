@@ -489,7 +489,7 @@ architecture trb3_central_arch of trb3_central is
    signal timer_ticks                 : std_logic_vector(1 downto 0);
 
    signal trigger_busy_i              : std_logic;
-   signal tdc_inputs                  : std_logic_vector(TDC_CHANNEL_NUMBER downto 1);
+   signal tdc_inputs                  : std_logic_vector(TDC_CHANNEL_NUMBER-1 downto 1);
 
    signal select_tc_i                 : std_logic_vector(31 downto 0);
    signal select_tc_reset_i           : std_logic;
@@ -562,22 +562,14 @@ architecture trb3_central_arch of trb3_central is
    signal cbm_sync_pulser_i : std_logic;
    signal cbm_sync_timing_trigger_i : std_logic;
 
-   signal cbm_regio_addr_i                :   std_logic_vector(15 downto 0);
-   signal cbm_regio_status_data_i         :   std_logic_vector(31 downto 0);
-   signal cbm_regio_read_enable_i         :   std_logic;
-   signal cbm_regio_write_enable_i        :   std_logic;
-   signal cbm_regio_timeout_i             :   std_logic;
-   signal cbm_regio_control_data_i        :  std_logic_vector(31 downto 0);
-   signal cbm_regio_dataready_i           :  std_logic;
-   signal cbm_regio_write_ack_i           :  std_logic;
-   signal cbm_regio_no_more_data_i        :  std_logic;
-   signal cbm_regio_unknown_addr_i        :  std_logic;
+   signal cbm_regio_rx : CTRLBUS_RX;
+   signal cbm_regio_tx : CTRLBUS_TX;
 begin
    assert not(USE_4_SFP = c_YES and INCLUDE_CBMNET = c_YES)  report "CBMNET uses SFPs 1-4 and hence does not support USE_4_SFP" severity failure;
    assert not(INCLUDE_CBMNET = c_YES and INCLUDE_CTS = c_NO) report "CBMNET is supported only with CTS included" severity failure;
 
 -- MBS Module
-   gen_mbs_vulom_as_etm : if ETM_CHOICE = ETM_CHOICE_MBS_VULOM and INCLUDE_CTS = c_YES generate
+   gen_mbs_vulom_as_etm : if ETM_CHOICE = ETM_CHOICE_MBS_VULOM and INCLUDE_CTS = c_YES and INCLUDE_ETM = c_YES generate
       THE_MBS: entity work.mbs_vulom_recv
       port map (
          CLK => clk_100_i,
@@ -604,7 +596,7 @@ begin
    end generate;
 
 -- Mainz A2 Module
-   gen_mainz_a2_as_etm: if ETM_CHOICE = ETM_CHOICE_MAINZ_A2 and INCLUDE_CTS = c_YES generate
+   gen_mainz_a2_as_etm: if ETM_CHOICE = ETM_CHOICE_MAINZ_A2 and INCLUDE_CTS = c_YES and INCLUDE_ETM = c_YES generate
       mainz_a2_recv_1: entity work.mainz_a2_recv
       port map (
          CLK             => clk_100_i,
@@ -629,15 +621,17 @@ begin
    end generate;
 
 -- CBMNet ETM
-   gen_cbmnet_etm: if (ETM_CHOICE = ETM_CHOICE_CBMNET and INCLUDE_CTS = c_YES) generate
+   gen_cbmnet_etm: if (ETM_CHOICE = ETM_CHOICE_CBMNET and INCLUDE_CTS = c_YES) or INCLUDE_ETM = c_NO generate
       cts_ext_trigger <= cbm_etm_trigger_i;
       cts_rdo_additional(0).data_finished <= '1';
+      cts_ext_header <= "00";
+      cts_ext_status <= x"deadc0de";
    end generate;
 
    GEN_CTS: if INCLUDE_CTS = c_YES generate
       THE_CTS: CTS 
       generic map (
-         EXTERNAL_TRIGGER_ID  => X"60"+ETM_CHOICE_type'pos(ETM_CHOICE), -- fill in trigger logic enumeration id of external trigger logic
+         EXTERNAL_TRIGGER_ID  => ETM_ID, -- fill in trigger logic enumeration id of external trigger logic
 
          TRIGGER_COIN_COUNT   => 4,
          TRIGGER_PULSER_COUNT => 2,
@@ -834,16 +828,8 @@ begin
          GBE_FEE_BUSY_OUT               => gbe_fee_busy, -- out std_logic;
 
          -- reg io
-         REGIO_ADDR_IN                  => cbm_regio_addr_i, -- in  std_logic_vector(15 downto 0);
-         REGIO_DATA_IN                  => cbm_regio_control_data_i, -- in  std_logic_vector(31 downto 0);
-         REGIO_TIMEOUT_IN               => cbm_regio_timeout_i, -- in  std_logic;
-         REGIO_READ_ENABLE_IN           => cbm_regio_read_enable_i, -- in  std_logic;
-         REGIO_WRITE_ENABLE_IN          => cbm_regio_write_enable_i, -- in  std_logic;
-         REGIO_DATA_OUT                 => cbm_regio_status_data_i, -- out std_logic_vector(31 downto 0);
-         REGIO_DATAREADY_OUT            => cbm_regio_dataready_i, -- out std_logic;
-         REGIO_WRITE_ACK_OUT            => cbm_regio_write_ack_i, -- out std_logic;
-         REGIO_NO_MORE_DATA_OUT         => cbm_regio_no_more_data_i, -- out std_logic;
-         REGIO_UNKNOWN_ADDR_OUT         => cbm_regio_unknown_addr_i -- out std_logic;
+         REGIO_IN => cbm_regio_rx,
+         REGIO_OUT => cbm_regio_tx
       );
 
       SFP_RATE_SEL(1) <= '1'; -- not supported by SFP, but in general, this should be the correct setting
@@ -886,9 +872,8 @@ begin
       
       cbm_etm_trigger_i <= '0';
       
-      cbm_regio_unknown_addr_i   <= '1';
-      cbm_regio_write_ack_i  <= cbm_regio_write_enable_i;
-      cbm_regio_dataready_i  <= cbm_regio_read_enable_i;
+      cbm_regio_tx.nack    <= cbm_regio_rx.read or cbm_regio_rx.write when rising_edge(clk_100_i);
+      cbm_regio_tx.unknown <= cbm_regio_rx.read or cbm_regio_rx.write when rising_edge(clk_100_i);
    end generate;
    
    
@@ -1498,16 +1483,16 @@ begin
       BUS_NO_MORE_DATA_IN(10)              => '0',
       BUS_UNKNOWN_ADDR_IN(10)              => '0',
 
-      BUS_READ_ENABLE_OUT(11)              => cbm_regio_read_enable_i,
-      BUS_WRITE_ENABLE_OUT(11)             => cbm_regio_write_enable_i,
-      BUS_DATA_OUT(11*32+31 downto 11*32)  => cbm_regio_control_data_i,
-      BUS_ADDR_OUT(11*16+15 downto 11*16)  => cbm_regio_addr_i,
-      BUS_TIMEOUT_OUT(11)                  => cbm_regio_timeout_i,
-      BUS_DATA_IN(11*32+31 downto 11*32)   => cbm_regio_status_data_i,
-      BUS_DATAREADY_IN(11)                 => cbm_regio_dataready_i,
-      BUS_WRITE_ACK_IN(11)                 => cbm_regio_write_ack_i,
-      BUS_NO_MORE_DATA_IN(11)              => cbm_regio_no_more_data_i,
-      BUS_UNKNOWN_ADDR_IN(11)              => cbm_regio_unknown_addr_i,       
+      BUS_READ_ENABLE_OUT(11)              => cbm_regio_rx.read,
+      BUS_WRITE_ENABLE_OUT(11)             => cbm_regio_rx.write,
+      BUS_DATA_OUT(11*32+31 downto 11*32)  => cbm_regio_rx.data,
+      BUS_ADDR_OUT(11*16+15 downto 11*16)  => cbm_regio_rx.addr,
+      BUS_TIMEOUT_OUT(11)                  => cbm_regio_rx.timeout,
+      BUS_DATA_IN(11*32+31 downto 11*32)   => cbm_regio_tx.data,
+      BUS_DATAREADY_IN(11)                 => cbm_regio_tx.ack,
+      BUS_WRITE_ACK_IN(11)                 => cbm_regio_tx.ack,
+      BUS_NO_MORE_DATA_IN(11)              => cbm_regio_tx.nack,
+      BUS_UNKNOWN_ADDR_IN(11)              => cbm_regio_tx.unknown,       
 
       STAT_DEBUG  => open
    );
@@ -1581,7 +1566,6 @@ begin
    GEN_TDC : if INCLUDE_TDC = c_YES generate
       THE_TDC : TDC
       generic map (
-         MODULE_NUMBER => 1,
          CHANNEL_NUMBER => TDC_CHANNEL_NUMBER,   -- Number of TDC channels
          STATUS_REG_NR  => 21,             -- Number of status regs
          CONTROL_REG_NR => 6,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
@@ -1616,14 +1600,10 @@ begin
          --Response to handler
          --       TRG_RELEASE_OUT       => fee_trg_release_i,   -- trigger release signal
          TRG_RELEASE_OUT       => open,
-         TRG_STATUSBIT_OUT(0)  => cts_rdo_additional(2).statusbits,
-         TRG_STATUSBIT_OUT(1)  => cts_rdo_additional(3).statusbits,
-         DATA_OUT(0)           => cts_rdo_additional(2).data,
-         DATA_OUT(1)           => cts_rdo_additional(3).data,
-         DATA_WRITE_OUT(0)     => cts_rdo_additional(2).data_write,
-         DATA_WRITE_OUT(1)     => cts_rdo_additional(3).data_write,
-         DATA_FINISHED_OUT(0)  => cts_rdo_additional(2).data_finished,
-         DATA_FINISHED_OUT(1)  => cts_rdo_additional(3).data_finished,
+         TRG_STATUSBIT_OUT     => cts_rdo_additional(2).statusbits,
+         DATA_OUT              => cts_rdo_additional(2).data,
+         DATA_WRITE_OUT        => cts_rdo_additional(2).data_write,
+         DATA_FINISHED_OUT     => cts_rdo_additional(2).data_finished,
          --Hit Counter Bus
          HCB_READ_EN_IN        => hitreg_read_en,    -- bus read en strobe
          HCB_WRITE_EN_IN       => hitreg_write_en,   -- bus write en strobe
@@ -1671,11 +1651,11 @@ begin
          CONTROL_REG_IN        => tdc_ctrl_reg
       );
          
-      tdc_inputs(1) <= cbm_sync_pulser_i;
-      tdc_inputs(2) <= cbm_sync_dlm_sensed_i;
+    --tdc_inputs(1) used by CBM-MBS ETM
+      tdc_inputs(2) <= cbm_sync_pulser_i;
       tdc_inputs(3) <= cbm_sync_timing_trigger_i;
       tdc_inputs(4) <= JINLVDS(0); --NIM_IN(0);
-      JTTL(0 downto 15) <= (0 => JINLVDS(0), 7 => cbm_sync_dlm_sensed_i, 15 => cbm_sync_dlm_sensed_i, 11 => cbm_clk_i, others => '0');
+      JTTL(0 downto 15) <= (others => '0');
          
          
       PROC_TDC_CTRL_REG : process 
