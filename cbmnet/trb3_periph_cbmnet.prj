@@ -2,7 +2,6 @@
 #--  Version F-2012.03-SP1 
 #--  Project file /d/jspc29/mpenschuck/trb3/cbmnet/trb3_periph_cbmnet.prj
 
-#project files
 add_file -verilog "./cbmnet/cores/CBMnet/cores_fpga/common/rams/ram_1w1r_1c.v"
 add_file -verilog "./cbmnet/cores/CBMnet/cores_fpga/common/rams/ram_1w1r_2c.v"
 add_file -verilog "./cbmnet/cores/CBMnet/cores_fpga/common/rams/ram_1w2r_1c.v"
@@ -127,6 +126,7 @@ add_file -vhdl -lib work "../../trbnet/trb_net16_sbuf.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_pattern_gen.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net16_regIO.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net16_regio_bus_handler.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net16_regio_bus_handler_record.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_priority_encoder.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_dummy_fifo.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net16_dummy_fifo.vhd"
@@ -160,7 +160,9 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4.vhd"
 add_file -vhdl -lib work "./code/cbmnet_interface_pkg.vhd"
 add_file -vhdl -lib work "./code/cbmnet_phy_pkg.vhd"
+
 add_file -vhdl -lib work "../base/cores/cbmnet_sfp1.vhd"
+
 add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/med_sync_define.vhd"
 add_file -vhdl -lib work "./code/cbmnet_phy_ecp3_rx_reset_fsm.vhd"
 add_file -vhdl -lib work "./code/cbmnet_phy_ecp3_tx_reset_fsm.vhd"

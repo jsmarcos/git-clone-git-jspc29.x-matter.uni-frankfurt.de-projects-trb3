@@ -291,6 +291,8 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    signal cbm_pgen_no_more_data_i        :  std_logic;
    signal cbm_pgen_unknown_addr_i        :  std_logic;
   
+   signal cbm_debug_i : std_logic_vector(31 downto 0);
+  
 begin
    clk_125_i <= CLK_GPLL_LEFT; 
    assert(INCLUDE_TRBNET = c_YES);
@@ -299,7 +301,7 @@ begin
    port map (
    -- clock and reset
       CLK125_IN => clk_125_i, -- in std_logic;
-      ASYNC_RESET_IN => clear_i,
+      ASYNC_RESET_IN => '0',
       TRB_CLK_IN => clk_100_i, -- in std_logic;
       TRB_RESET_IN => reset_i, -- in std_logic;
       
@@ -368,6 +370,7 @@ begin
       GBE_FEE_BUSY_OUT               => gbe_fee_busy, -- out std_logic;
 
       -- reg io
+      -- reg io
       REGIO_ADDR_IN                  => cbm_regio_addr_i, -- in  std_logic_vector(15 downto 0);
       REGIO_DATA_IN                  => cbm_regio_control_data_i, -- in  std_logic_vector(31 downto 0);
       REGIO_TIMEOUT_IN               => cbm_regio_timeout_i, -- in  std_logic;
@@ -377,7 +380,9 @@ begin
       REGIO_DATAREADY_OUT            => cbm_regio_dataready_i, -- out std_logic;
       REGIO_WRITE_ACK_OUT            => cbm_regio_write_ack_i, -- out std_logic;
       REGIO_NO_MORE_DATA_OUT         => cbm_regio_no_more_data_i, -- out std_logic;
-      REGIO_UNKNOWN_ADDR_OUT         => cbm_regio_unknown_addr_i -- out std_logic;
+      REGIO_UNKNOWN_ADDR_OUT         => cbm_regio_unknown_addr_i, -- out std_logic;
+      
+      DEBUG_OUT => cbm_debug_i
    );
 
    fee_trg_release_i <= fee_data_finished_i;
@@ -448,7 +453,7 @@ begin
       CLK   => CLK_GPLL_RIGHT,
       CLKOP => clk_100_i,
       CLKOK => clk_200_i,
-      CLKOS => open,
+--      CLKOS => open,
       LOCK  => pll_lock1
       );
       
@@ -640,57 +645,49 @@ begin
       DAT_NO_MORE_DATA_OUT => regio_no_more_data_in,
       DAT_UNKNOWN_ADDR_OUT => regio_unknown_addr_in,
 
-      --Bus Handler (SPI CTRL)
-      BUS_READ_ENABLE_OUT(0)              => spictrl_read_en,
-      BUS_WRITE_ENABLE_OUT(0)             => spictrl_write_en,
-      BUS_DATA_OUT(0*32+31 downto 0*32)   => spictrl_data_in,
       BUS_ADDR_OUT(0*16)                  => spictrl_addr,
       BUS_ADDR_OUT(0*16+15 downto 0*16+1) => open,
-      BUS_TIMEOUT_OUT(0)                  => open,
-      BUS_DATA_IN(0*32+31 downto 0*32)    => spictrl_data_out,
-      BUS_DATAREADY_IN(0)                 => spictrl_ack,
-      BUS_WRITE_ACK_IN(0)                 => spictrl_ack,
-      BUS_NO_MORE_DATA_IN(0)              => spictrl_busy,
-      BUS_UNKNOWN_ADDR_IN(0)              => '0',
-      
-      --Bus Handler (SPI Memory)
-      BUS_READ_ENABLE_OUT(1)              => spimem_read_en,
-      BUS_WRITE_ENABLE_OUT(1)             => spimem_write_en,
-      BUS_DATA_OUT(1*32+31 downto 1*32)   => spimem_data_in,
-      BUS_ADDR_OUT(1*16+5 downto 1*16)    => spimem_addr,
       BUS_ADDR_OUT(1*16+15 downto 1*16+6) => open,
-      BUS_TIMEOUT_OUT(1)                  => open,
-      BUS_DATA_IN(1*32+31 downto 1*32)    => spimem_data_out,
-      BUS_DATAREADY_IN(1)                 => spimem_ack,
-      BUS_WRITE_ACK_IN(1)                 => spimem_ack,
-      BUS_NO_MORE_DATA_IN(1)              => '0',
-      BUS_UNKNOWN_ADDR_IN(1)              => '0',
-
-
-    --CBMNet (read-out)
-      BUS_READ_ENABLE_OUT(2)              => cbm_regio_read_enable_i,
-      BUS_WRITE_ENABLE_OUT(2)             => cbm_regio_write_enable_i,
-      BUS_DATA_OUT(2*32+31 downto 2*32)   => cbm_regio_control_data_i,
+      BUS_ADDR_OUT(1*16+5 downto 1*16)    => spimem_addr,
       BUS_ADDR_OUT(2*16+15 downto 2*16)   => cbm_regio_addr_i,
-      BUS_TIMEOUT_OUT(2)                  => cbm_regio_timeout_i,
-      BUS_DATA_IN(2*32+31 downto 2*32)    => cbm_regio_status_data_i,
-      BUS_DATAREADY_IN(2)                 => cbm_regio_dataready_i,
-      BUS_WRITE_ACK_IN(2)                 => cbm_regio_write_ack_i,
-      BUS_NO_MORE_DATA_IN(2)              => cbm_regio_no_more_data_i,
-      BUS_UNKNOWN_ADDR_IN(2)              => cbm_regio_unknown_addr_i,       
-   
-
-      --TrbNet Pattern Generator
-      BUS_READ_ENABLE_OUT(3)              => cbm_pgen_read_enable_i,
-      BUS_WRITE_ENABLE_OUT(3)             => cbm_pgen_write_enable_i,
-      BUS_DATA_OUT(3*32+31 downto 3*32)   => cbm_pgen_control_data_i,
       BUS_ADDR_OUT(3*16+15 downto 3*16)   => cbm_pgen_addr_i,
-      BUS_TIMEOUT_OUT(3)                  => cbm_pgen_timeout_i,
+      BUS_DATA_IN(0*32+31 downto 0*32)    => spictrl_data_out,
+      BUS_DATA_IN(1*32+31 downto 1*32)    => spimem_data_out,
+      BUS_DATA_IN(2*32+31 downto 2*32)    => cbm_regio_status_data_i,
       BUS_DATA_IN(3*32+31 downto 3*32)    => cbm_pgen_status_data_i,
+      BUS_DATA_OUT(0*32+31 downto 0*32)   => spictrl_data_in,
+      BUS_DATA_OUT(1*32+31 downto 1*32)   => spimem_data_in,
+      BUS_DATA_OUT(2*32+31 downto 2*32)   => cbm_regio_control_data_i,
+      BUS_DATA_OUT(3*32+31 downto 3*32)   => cbm_pgen_control_data_i,
+      BUS_DATAREADY_IN(0)                 => spictrl_ack,
+      BUS_DATAREADY_IN(1)                 => spimem_ack,
+      BUS_DATAREADY_IN(2)                 => cbm_regio_dataready_i,
       BUS_DATAREADY_IN(3)                 => cbm_pgen_dataready_i,
-      BUS_WRITE_ACK_IN(3)                 => cbm_pgen_write_ack_i,
+      BUS_NO_MORE_DATA_IN(0)              => spictrl_busy,
+      BUS_NO_MORE_DATA_IN(1)              => '0',
+      BUS_NO_MORE_DATA_IN(2)              => cbm_regio_no_more_data_i,
       BUS_NO_MORE_DATA_IN(3)              => cbm_pgen_no_more_data_i,
-      BUS_UNKNOWN_ADDR_IN(3)              => cbm_pgen_unknown_addr_i,       
+      BUS_READ_ENABLE_OUT(0)              => spictrl_read_en,
+      BUS_READ_ENABLE_OUT(1)              => spimem_read_en,
+      BUS_READ_ENABLE_OUT(2)              => cbm_regio_read_enable_i,
+      BUS_READ_ENABLE_OUT(3)              => cbm_pgen_read_enable_i,
+      BUS_TIMEOUT_OUT(0)                  => open,
+      BUS_TIMEOUT_OUT(1)                  => open,
+      BUS_TIMEOUT_OUT(2)                  => cbm_regio_timeout_i,
+      BUS_TIMEOUT_OUT(3)                  => cbm_pgen_timeout_i,
+      BUS_UNKNOWN_ADDR_IN(0)              => '0',
+      BUS_UNKNOWN_ADDR_IN(1)              => '0',
+      BUS_UNKNOWN_ADDR_IN(2)              => cbm_regio_unknown_addr_i,     
+      BUS_UNKNOWN_ADDR_IN(3)              => cbm_pgen_unknown_addr_i,   
+      BUS_WRITE_ACK_IN(0)                 => spictrl_ack,
+      BUS_WRITE_ACK_IN(1)                 => spimem_ack,
+      BUS_WRITE_ACK_IN(2)                 => cbm_regio_write_ack_i,
+      BUS_WRITE_ACK_IN(3)                 => cbm_pgen_write_ack_i,
+      BUS_WRITE_ENABLE_OUT(0)             => spictrl_write_en,
+      BUS_WRITE_ENABLE_OUT(1)             => spimem_write_en,
+      BUS_WRITE_ENABLE_OUT(2)             => cbm_regio_write_enable_i,
+      BUS_WRITE_ENABLE_OUT(3)             => cbm_pgen_write_enable_i,
+       
 
     
       STAT_DEBUG => open
@@ -769,6 +766,7 @@ begin
   LED_YELLOW <= not med_stat_op(11);
 
 --   end generate;
-
+   
+  TEST_LINE <= cbm_debug_i(15 downto 0);
 
 end architecture;
