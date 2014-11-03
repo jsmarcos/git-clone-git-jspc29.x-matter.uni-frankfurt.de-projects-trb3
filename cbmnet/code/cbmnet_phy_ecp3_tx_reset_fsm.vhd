@@ -109,66 +109,63 @@ end process;
                                                                                               
 process(cs, TIMER1, TIMER2, tx_pll_lol_qd_s_int)
 begin
-                                                                                              
-      reset_timer1 <= '0';
-      reset_timer2 <= '0';
-      STATE_OUT <= x"F";
-                                                                                              
-  case cs is
-                                                                                              
-    when QUAD_RESET   =>
-      STATE_OUT <= x"1";
-      tx_pcs_rst_ch_c_int <= '1';
-      RST_QD_C_int <= '1';
-      reset_timer1 <= '1';
-      ns <= WAIT_FOR_TIMER1;
-                                                                                              
-    when WAIT_FOR_TIMER1 =>
-      STATE_OUT <= x"2";
-      tx_pcs_rst_ch_c_int <= '1';
-      RST_QD_C_int <= '1';
-      if TIMER1 = '1' then
-        ns <= CHECK_PLOL;
-      else
-        ns <= WAIT_FOR_TIMER1;
-      end if;
-                                                                                              
-    when CHECK_PLOL   =>
-      STATE_OUT <= x"3";
-      tx_pcs_rst_ch_c_int <= '1';
-      RST_QD_C_int <= '0';
-      reset_timer2 <= '1';
-        ns <= WAIT_FOR_TIMER2;
-                                                                                              
-    when WAIT_FOR_TIMER2 =>
-      STATE_OUT <= x"4";
-      tx_pcs_rst_ch_c_int <= '1';
-      RST_QD_C_int <= '0';
-      if TIMER2 = '1' then
-        if tx_pll_lol_qd_s_int = '1' then
+   reset_timer1 <= '0';
+   reset_timer2 <= '0';
+   STATE_OUT <= x"F";
+                                                                                             
+   case cs is
+      when QUAD_RESET   =>
+         STATE_OUT <= x"1";
+         tx_pcs_rst_ch_c_int <= '1';
+         RST_QD_C_int <= '1';
+         reset_timer1 <= '1';
+         ns <= WAIT_FOR_TIMER1;
+                                                                        
+      when WAIT_FOR_TIMER1 =>
+         STATE_OUT <= x"2";
+         tx_pcs_rst_ch_c_int <= '1';
+         RST_QD_C_int <= '1';
+         if TIMER1 = '1' then
+            ns <= CHECK_PLOL;
+         else
+            ns <= WAIT_FOR_TIMER1;
+         end if;
+                                                                        
+      when CHECK_PLOL   =>
+         STATE_OUT <= x"3";
+         tx_pcs_rst_ch_c_int <= '1';
+         RST_QD_C_int <= '0';
+         reset_timer2 <= '1';
+         ns <= WAIT_FOR_TIMER2;
+                                                                        
+      when WAIT_FOR_TIMER2 =>
+         STATE_OUT <= x"4";
+         tx_pcs_rst_ch_c_int <= '1';
+         RST_QD_C_int <= '0';
+         if TIMER2 = '1' then
+            if tx_pll_lol_qd_s_int = '1' then
+               ns <= QUAD_RESET;
+            else
+               ns <= NORMAL;
+            end if;
+         else
+            ns <= WAIT_FOR_TIMER2;
+         end if;
+                                                                        
+      when NORMAL =>
+         STATE_OUT <= x"5";
+         tx_pcs_rst_ch_c_int <= '0';
+         RST_QD_C_int <= '0';
+         if tx_pll_lol_qd_s_int = '1' then
             ns <= QUAD_RESET;
-        else
+         else
             ns <= NORMAL;
-        end if;
-      else
-        ns <= WAIT_FOR_TIMER2;
-      end if;
-                                                                                              
-    when NORMAL =>
-      STATE_OUT <= x"5";
-      tx_pcs_rst_ch_c_int <= '0';
-      RST_QD_C_int <= '0';
-      if tx_pll_lol_qd_s_int = '1' then
-        ns <= QUAD_RESET;
-      else
-        ns <= NORMAL;
-        end if;
-                                                                                              
-    when others =>
-       ns <=    QUAD_RESET;
-                                                                                              
-  end case;
-                                                                                              
+         end if;
+                                                                        
+      when others =>
+         ns <=    QUAD_RESET;
+                                                                                             
+   end case;
 end process;
                                                                                               
 end architecture;

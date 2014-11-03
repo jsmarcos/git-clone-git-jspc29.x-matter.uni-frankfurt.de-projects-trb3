@@ -33,6 +33,9 @@ end entity;
 architecture CBMNET_PHY_TX_GEAR_ARCH of CBMNET_PHY_TX_GEAR is
 --    attribute HGROUP : string;
 --    attribute HGROUP of CBMNET_PHY_TX_GEAR_ARCH : architecture  is "cbmnet_phy_tx_gear";
+   attribute syn_hier : string;
+   attribute syn_hier of CBMNET_PHY_TX_GEAR_ARCH : architecture is "hard";
+
 
    type   FSM_STATES is (FSM_LOCKING, FSM_HIGH, FSM_LOW);
    signal fsm_i : FSM_STATES;
@@ -48,8 +51,9 @@ architecture CBMNET_PHY_TX_GEAR_ARCH of CBMNET_PHY_TX_GEAR is
    attribute syn_ramstyle of mem_i : signal is "registers";
 
    signal mem_read_ptr_i, mem_write_ptr_i : unsigned(MEM_ADDR_DEPTH-1 downto 0) := (others => '0');
+   signal overflow_read_ptr_i, overflow_write_ptr_i : std_logic;
    
-   signal mem_sync_i, mem_sync_delay_i : std_logic;
+   signal mem_sync_i : std_logic;
    signal fsm_locked_i, fsm_locked_slow_i : std_logic;
    
    signal delay_data_i : std_logic_vector(8 downto 0);
@@ -73,31 +77,28 @@ begin
          when FSM_LOW =>
             fsm_i <= FSM_HIGH;
             data_in_buf250_i <= mem_i(to_integer(mem_write_ptr_i));
-            mem_write_ptr_i <= mem_write_ptr_i + 1;
+            mem_write_ptr_i <= mem_write_ptr_i + TO_UNSIGNED(1,1);
             fsm_locked_i <= '1';
             
          when others =>
-            if mem_sync_i = '1' and mem_sync_delay_i = '0' then
+            if mem_sync_i = '1' then
                fsm_i <= FSM_LOW;
-               mem_write_ptr_i <= 0;
             end if;
+            mem_write_ptr_i <= "110";
       end case;
 
       if reset_i = '1' and reset_delay_i='1' then
          fsm_i <= FSM_LOCKING;
-         mem_write_ptr_i <= 0;
+         mem_write_ptr_i <= "110";
       end if;
       
       reset_delay_i <= reset_i;
-      mem_sync_delay_i <= mem_sync_i;
    end process;
-   
-   
    
    PROC_MEM125: process is
    begin
       wait until rising_edge(CLK_125_IN);
-      mem_read_ptr_i <= mem_read_ptr_i + 1;
+      mem_read_ptr_i <= mem_read_ptr_i + TO_UNSIGNED(1,1);
       mem_i(to_integer(mem_read_ptr_i)) <= DATA_IN;
    end process;
    
@@ -109,7 +110,7 @@ begin
       RESET => RESET_IN,
       CLK0 => CLK_125_IN,
       CLK1 => CLK_250_IN,
-      D_IN(0) => mem_read_ptr_i(mem_read_ptr_i'high),
+      D_IN(0)  => overflow_read_ptr_i,
       D_OUT(0) => mem_sync_i
    );
 
@@ -123,7 +124,7 @@ begin
       D_OUT(0) => reset_i
    );
    
-   THE_LOCKDE_SYNC: signal_sync 
+   THE_LOCKED_SYNC: signal_sync 
    generic map (WIDTH => 1, DEPTH => 3)
    port map (
       RESET => RESET_IN,
@@ -134,7 +135,7 @@ begin
    );
    
    PROC_DEBUG_PTR: process is
-      variable delay_read_ptr, buf_read_ptr : unsigned(MEM_ADDR_DEPTH-1 downto 0);
+      variable delay_read_ptr, buf_read_ptr : unsigned(MEM_ADDR_DEPTH-1 downto 0) := (others => '1');
       variable wait_cntr : unsigned(7 downto 0) := x"00"; -- lower the odds of a meta-stab when sampling over regio
       variable cnt : unsigned(7 downto 0) := x"00";
    begin
@@ -144,20 +145,25 @@ begin
          if delay_read_ptr = buf_read_ptr then
             -- stable, let's compare
             DEBUG_OUT(15 downto 0) <= x"0000";
-            DEBUG_OUT(MEM_ADDR_DEPTH-1 downto 0) <= buf_read_ptr;
-            DEBUG_OUT(MEM_ADDR_DEPTH+3 downto 4) <= mem_write_ptr_i;
-            DEBUG_OUT(15 downto 8) <= cnt;
+            DEBUG_OUT(MEM_ADDR_DEPTH-1 downto 0) <= std_logic_vector(buf_read_ptr);
+            DEBUG_OUT(MEM_ADDR_DEPTH+3 downto 4) <= std_logic_vector(mem_write_ptr_i);
+            DEBUG_OUT(15 downto 8) <= std_logic_vector(cnt);
             wait_cntr := cnt;
             wait_cntr(7) := '1';
-            cnt := cnt + 1;
+            cnt := cnt + TO_UNSIGNED(1,1);
          end if;
       else
-         wait_cntr := wait_cntr - 1;
+         wait_cntr := wait_cntr - TO_UNSIGNED(1,1);
       end if;
    
       delay_read_ptr := buf_read_ptr;
       buf_read_ptr := mem_read_ptr_i;
    end process;
    
-   DEBUG_OUT(31 downto 16) <= (others => '0'); -- x"0000" & STD_LOGIC_VECTOR( delay_counter_i );
+   DEBUG_OUT(31 downto 18) <= (others => '0'); -- x"0000" & STD_LOGIC_VECTOR( delay_counter_i );
+   
+   overflow_read_ptr_i  <= '1' when mem_read_ptr_i  = "000" else '0';
+   overflow_write_ptr_i <= '1' when mem_write_ptr_i = "000" else '0';
+   DEBUG_OUT(17 downto 16) <= overflow_write_ptr_i & overflow_read_ptr_i;
+   
 end architecture CBMNET_PHY_TX_GEAR_ARCH;

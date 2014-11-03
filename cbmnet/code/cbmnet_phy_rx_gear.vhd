@@ -70,12 +70,11 @@ begin
       RESET_OUT <= '1';
       reset_timer_i <= '0';
       delay_clock_i <= '0';
-         fsm_state_i <= x"0";
+      fsm_state_i <= x"0";
 
       
       if PCS_READY_IN = '0' then
          fsm_i <= FSM_START;
-         delay_clock_i <= '0';
          
       else
          case (fsm_i) is
@@ -168,7 +167,7 @@ begin
    begin
       wait until rising_edge(CLK_250_IN);
 
-      if not (delay_clock_buf_i = '1' and last_delay_clock_i = '0') or PCS_READY_IN='0' then
+      if not (delay_clock_buf_i = '1' and last_delay_clock_i = '0') then -- or PCS_READY_IN='0' then
          word_idx_i <= not word_idx_i;
       end if;
       

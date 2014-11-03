@@ -80,8 +80,19 @@ package cbmnet_interface_pkg is
          GBE_FEE_BUSY_OUT               : out std_logic;
 
          -- reg io
-         REGIO_IN  : in  CTRLBUS_RX;
-         REGIO_OUT : out CTRLBUS_TX
+         -- reg io
+         REGIO_ADDR_IN                  : in  std_logic_vector(15 downto 0);
+         REGIO_DATA_IN                  : in  std_logic_vector(31 downto 0);
+         REGIO_READ_ENABLE_IN           : in  std_logic;
+         REGIO_WRITE_ENABLE_IN          : in  std_logic;
+         REGIO_TIMEOUT_IN               : in  std_logic;
+         REGIO_DATA_OUT                 : out std_logic_vector(31 downto 0);
+         REGIO_DATAREADY_OUT            : out std_logic;
+         REGIO_WRITE_ACK_OUT            : out std_logic;
+         REGIO_NO_MORE_DATA_OUT         : out std_logic;
+         REGIO_UNKNOWN_ADDR_OUT         : out std_logic;
+         
+         DEBUG_OUT : out std_logic_vector(31 downto 0)
       );
    end component;
    
@@ -161,6 +172,7 @@ package cbmnet_interface_pkg is
          bs_position             : out std_logic_vector(4 downto 0); -- Number of bit-shifts necessary for word-alignment
          rxdata_out              : out std_logic_vector(17 downto 0);
          ebtb_detect             : out std_logic;                    -- Depends on the FSM state, alignment done
+         wait_for_ready1         : out std_logic;
          
          --diagnostics
          ebtb_code_err_cntr_clr  : in std_logic;
@@ -195,8 +207,10 @@ package cbmnet_interface_pkg is
          pma_ready              : in std_logic;
          ebtb_detect            : in std_logic;            -- alignment done and valid 8b10b stream detected
          see_reinit             : in std_logic;
+         rx_wait_for_ready1     : in std_logic;
          rxpcs_almost_ready     : in std_logic;
          txdata_in              : in std_logic_vector(17 downto 0);
+         
          
          rx_bitdelay_done       : in std_logic;
 
@@ -249,6 +263,10 @@ package cbmnet_interface_pkg is
          dlm_rec    : out std_logic_vector(3 downto 0); --receive dlm interface
          dlm_rec_va : out std_logic; 
 
+         crc_error_cntr_flag : out std_logic;
+         crc_error_cntr : out std_logic_vector(15 downto 0);
+         crc_error_cntr_clr : in std_logic;
+         
          -- link signals   
          data_from_link : in  std_logic_vector(17 downto 0); -- interface from the PHY
          data2link      : out std_logic_vector(17 downto 0) -- interface to the PHY   
