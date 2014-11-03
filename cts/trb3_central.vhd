@@ -828,10 +828,23 @@ begin
          GBE_FEE_BUSY_OUT               => gbe_fee_busy, -- out std_logic;
 
          -- reg io
-         REGIO_IN => cbm_regio_rx,
-         REGIO_OUT => cbm_regio_tx
+--          REGIO_IN => cbm_regio_rx,
+--          REGIO_OUT => cbm_regio_tx
+         REGIO_ADDR_IN                  => cbm_regio_rx.addr,
+         REGIO_DATA_IN                  => cbm_regio_rx.data,
+         REGIO_TIMEOUT_IN               => cbm_regio_rx.timeout,
+         REGIO_READ_ENABLE_IN           => cbm_regio_rx.read,
+         REGIO_WRITE_ENABLE_IN          => cbm_regio_rx.write,
+         
+         REGIO_DATA_OUT                 => cbm_regio_tx.data,
+         REGIO_DATAREADY_OUT            => cbm_regio_tx.rack,
+         REGIO_WRITE_ACK_OUT            => cbm_regio_tx.wack,
+         REGIO_NO_MORE_DATA_OUT         => cbm_regio_tx.nack,
+         REGIO_UNKNOWN_ADDR_OUT         => cbm_regio_tx.unknown
       );
 
+      cbm_regio_tx.ack <= cbm_regio_tx.rack or cbm_regio_tx.wack;
+      
       SFP_RATE_SEL(1) <= '1'; -- not supported by SFP, but in general, this should be the correct setting
       LED_TRIGGER_GREEN              <= not cbm_link_active_i;
       LED_TRIGGER_RED                <= '0';
