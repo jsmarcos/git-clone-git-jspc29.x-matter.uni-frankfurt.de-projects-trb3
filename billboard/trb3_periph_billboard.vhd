@@ -358,6 +358,10 @@ end generate;
    );
    
    THE_MBS_RECV: entity work.mbs_vulom_recv
+   generic map (
+      INCL_RDO_TIMESTAMP => c_YES,
+      INCL_REGIO => c_YES
+   )
    port map (
       CLK        => clk_100_i , -- in std_logic;  -- e.g. 100 MHz
       RESET_IN   => reset_i, -- in std_logic;  -- could be used after busy_release to make sure entity is in correct state
@@ -370,6 +374,10 @@ end generate;
       TRG_ASYNC_OUT  => open, -- out std_logic;  -- asynchronous rising edge, length varying, here=> , -- approx. 110 ns
       TRG_SYNC_OUT   => mbs_trg_sync_i, -- out std_logic;  -- sync. to CLK
 
+      TRG_NUMBER_IN  => readout_rx.trg_number,
+      TRG_CODE_IN    => readout_rx.trg_code,
+      TIMING_TRG_IN  => TRIGGER_LEFT,     
+      
       --data output for read-out
       TRIGGER_IN   => readout_rx.data_valid, -- in  std_logic;
       DATA_OUT     => readout_tx(0).data , -- out std_logic_vector(31 downto 0);
@@ -378,28 +386,15 @@ end generate;
       FINISHED_OUT => readout_tx(0).data_finished, -- out std_logic;
 
       --Registers / Debug    
-      CONTROL_REG_IN => mbs_ctrl_i,   -- in  std_logic_vector(31 downto 0);
-      STATUS_REG_OUT => mbs_status_i, -- out std_logic_vector(31 downto 0) => , --= (others => '0');
+      REGIO_IN => regio_mbs_rx,
+      REGIO_OUT => regio_mbs_tx,
+      
+      CONTROL_REG_IN => (others => '0'),   -- in  std_logic_vector(31 downto 0);
+      STATUS_REG_OUT => open, -- out std_logic_vector(31 downto 0) => , --= (others => '0');
       HEADER_REG_OUT => open, -- out std_logic_vector(1 downto 0);
       DEBUG          => open  -- out std_logic_vector(31 downto 0)    
    );
    readout_tx(0).busy_release <= readout_tx(0).data_finished;
-
-   THE_MBS_REGIO: process is
-   begin
-      wait until rising_edge(clk_100_i);
-      
-      regio_mbs_tx.wack <= regio_mbs_rx.write;
-      regio_mbs_tx.rack <= regio_mbs_rx.read;
-      regio_mbs_tx.nack <= '0';
-      regio_mbs_tx.unknown <= '0';
-      
-      if regio_mbs_rx.write='1' then
-         mbs_ctrl_i <= regio_mbs_rx.data;
-      end if;
-      
-      regio_mbs_tx.data <= mbs_status_i;
-   end process;
    
    FPGA5_COMM(10 downto 7) <= "00" & mbs_trg_sync_i & mbs_trg_async_i;
     
@@ -410,7 +405,7 @@ end generate;
    generic map(
       PORT_NUMBER      => 3,
       PORT_ADDRESSES   => (0 => x"d000", 1 => x"b000", 2 => x"b800", others => x"0000"),
-      PORT_ADDR_MASK   => (0 => 9,       1 => 9,       2 => 1,  others => 0),
+      PORT_ADDR_MASK   => (0 => 9,       1 => 9,       2 => 2,  others => 0),
       PORT_MASK_ENABLE => 1
    )
    port map(
