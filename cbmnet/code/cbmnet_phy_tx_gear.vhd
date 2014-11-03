@@ -98,8 +98,8 @@ begin
    PROC_MEM125: process is
    begin
       wait until rising_edge(CLK_125_IN);
-      mem_read_ptr_i <= mem_read_ptr_i + TO_UNSIGNED(1,1);
       mem_i(to_integer(mem_read_ptr_i)) <= DATA_IN;
+      mem_read_ptr_i <= mem_read_ptr_i + TO_UNSIGNED(1,1);
    end process;
    
    TX_READY_OUT <= fsm_locked_slow_i and not RESET_IN;
@@ -117,7 +117,7 @@ begin
    THE_RESET_SYNC: signal_sync 
    generic map (WIDTH => 1, DEPTH => 3)
    port map (
-      RESET => RESET_IN,
+      RESET => '0',
       CLK0 => CLK_125_IN,
       CLK1 => CLK_250_IN,
       D_IN(0) => RESET_IN,
