@@ -143,10 +143,10 @@ begin
          when OBTAIN_FULL_BUFFER =>
             if fifo_get_filled_i(0) = '1' then
                read_fifo_next_i <= 0;
-               rfsm_next_i <= DELAY_WHILE_STOP;
+               rfsm_next_i <= WAIT_WHILE_STOP;
             elsif fifo_get_filled_i(1) = '1' then
                read_fifo_next_i <= 1;
-               rfsm_next_i <= DELAY_WHILE_STOP;
+               rfsm_next_i <= WAIT_WHILE_STOP;
             end if;
             
          when DELAY_WHILE_STOP =>

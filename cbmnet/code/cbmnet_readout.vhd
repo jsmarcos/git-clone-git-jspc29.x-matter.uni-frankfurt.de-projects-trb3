@@ -308,25 +308,33 @@ begin
       DEBUG_OUT => debug_frame_packer_i
    );
    
-   THE_OBUF: CBMNET_READOUT_OBUF 
-   port map (
-      CLK_IN => CBMNET_CLK_IN, -- std_logic;
-      RESET_IN => reset_combined_125_i, -- std_logic;
+--    THE_OBUF: CBMNET_READOUT_OBUF 
+--    port map (
+--       CLK_IN => CBMNET_CLK_IN, -- std_logic;
+--       RESET_IN => reset_combined_125_i, -- std_logic;
+-- 
+--       -- packer
+--       PACKER_STOP_OUT  => obuf_stop_i, -- out std_logic;
+--       PACKER_START_IN  => frame_packer_start_i, -- in  std_logic;
+--       PACKER_END_IN    => frame_packer_end_i, -- in  std_logic;
+--       PACKER_DATA_IN   => frame_packer_data_i, -- in  std_logic_vector(15 downto 0);
+-- 
+--       -- cbmnet
+--       CBMNET_STOP_IN   => CBMNET_DATA2SEND_STOP_IN, -- in std_logic;
+--       CBMNET_START_OUT => obuf_start_i, -- out std_logic;
+--       CBMNET_END_OUT   => obuf_end_i, -- out std_logic;
+--       CBMNET_DATA_OUT  => CBMNET_DATA2SEND_DATA_OUT, -- out std_logic_vector(15 downto 0);
+--       
+--       DEBUG_OUT => debug_obuf_i -- out std_logic_vector(31 downto 0)
+--    );
+   debug_obuf_i <= x"deadbeaf";
+   obuf_stop_i <= CBMNET_DATA2SEND_STOP_IN;
+   obuf_start_i <= frame_packer_start_i;
+   obuf_end_i <= frame_packer_end_i;
+   CBMNET_DATA2SEND_DATA_OUT <= frame_packer_data_i;
 
-      -- packer
-      PACKER_STOP_OUT  => obuf_stop_i, -- out std_logic;
-      PACKER_START_IN  => frame_packer_start_i, -- in  std_logic;
-      PACKER_END_IN    => frame_packer_end_i, -- in  std_logic;
-      PACKER_DATA_IN   => frame_packer_data_i, -- in  std_logic_vector(15 downto 0);
-
-      -- cbmnet
-      CBMNET_STOP_IN   => CBMNET_DATA2SEND_STOP_IN, -- in std_logic;
-      CBMNET_START_OUT => obuf_start_i, -- out std_logic;
-      CBMNET_END_OUT   => obuf_end_i, -- out std_logic;
-      CBMNET_DATA_OUT  => CBMNET_DATA2SEND_DATA_OUT, -- out std_logic_vector(15 downto 0);
-      
-      DEBUG_OUT => debug_obuf_i -- out std_logic_vector(31 downto 0)
-   );
+   
+   
    CBMNET_DATA2SEND_START_OUT <= obuf_start_i;
    CBMNET_DATA2SEND_END_OUT <= obuf_end_i;
 ----------------------------------------
@@ -361,7 +369,7 @@ begin
       
       if obuf_start_i='1' and CBMNET_DATA2SEND_STOP_IN='0' then
          cbm_stat_transmitting_i <= '1';
-         cbm_stat_frame_length_i <= 1;
+         cbm_stat_frame_length_i <= (0 => '1', others => '0');
          cbm_stat_hwords_sent_i <= cbm_stat_hwords_sent_i + 1;
       elsif CBMNET_LINK_ACTIVE_IN='0' or obuf_end_i='1' then
          cbm_stat_transmitting_i <= '0';
@@ -373,7 +381,7 @@ begin
    
    -- and cross over to TrbNet clock domain
    PROC_CBM_SYNC: process is
-      variable ack_delay : std_logic;
+      variable ack_delay : std_logic := '0';
    begin
       wait until rising_edge(CBMNET_CLK_IN);
       
