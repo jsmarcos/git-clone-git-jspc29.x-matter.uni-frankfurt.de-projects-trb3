@@ -22,6 +22,8 @@ entity cbmnet_bridge is
       CBM_CLK_OUT : out std_logic;
       CBM_RESET_OUT: out std_logic;
       
+      REBOOT_FPGA_OUT : out std_logic;
+      
    -- Media Interface
       SD_RXD_P_IN        : in  std_logic := '0';
       SD_RXD_N_IN        : in  std_logic := '0';
@@ -178,6 +180,9 @@ architecture cbmnet_bridge_arch of cbmnet_bridge is
    signal cbm_data2send_buf_i : std_logic_vector(15 downto 0);
    
    signal cbm_phy_ctrl_i : std_logic_vector(31 downto 0);
+   
+   signal cbm_reboot_fpga_i : std_logic;
+   
 
 -- regio
    signal regio_rx, rdo_regio_rx, phy_regio_rx, sync_regio_rx : CTRLBUS_RX;
@@ -194,6 +199,9 @@ architecture cbmnet_bridge_arch of cbmnet_bridge is
    signal trb_data_override_i : std_logic_vector(16 downto 0);
    signal cbm_data_override_i : std_logic_vector(16 downto 0);
    
+-- reboot fsm
+   type RB_FSM_STATES is (WAIT_FOR_D, WAIT_FOR_1, WAIT_FOR_E, REBOOT);
+   signal rb_fsm_i : RB_FSM_STATES;
 begin
    THE_CBM_PHY: cbmnet_phy_ecp3
    generic map (
@@ -624,4 +632,50 @@ begin
    REGIO_WRITE_ACK_OUT <= regio_tx.ack;
    REGIO_NO_MORE_DATA_OUT <= regio_tx.nack;
    REGIO_UNKNOWN_ADDR_OUT <= regio_tx.unknown;
+
+   
+-- REBOOT via DLM
+   THE_DLM_REBOOT: process
+   begin
+      cbm_reboot_fpga_i <= '0';
+      if cbm_link_active_i='0' then
+         rb_fsm_i <= WAIT_FOR_D;
+      else
+         case (rb_fsm_i) is
+            when WAIT_FOR_D =>
+               if cbm_dlm_rec_va_i='1' and cbm_dlm_rec_type_i=x"d" then
+                  rb_fsm_i <= WAIT_FOR_1;
+               end if;
+               
+            when WAIT_FOR_1 =>
+               if cbm_dlm_rec_va_i='1' then
+                  if cbm_dlm_rec_type_i=x"1" then
+                     rb_fsm_i <= WAIT_FOR_E;
+                  else
+                     rb_fsm_i <= WAIT_FOR_D;
+                  end if;
+               end if;
+     
+            when WAIT_FOR_E =>
+               if cbm_dlm_rec_va_i='1' then
+                  if cbm_dlm_rec_type_i=x"E" then
+                     rb_fsm_i <= REBOOT;
+                  else
+                     rb_fsm_i <= WAIT_FOR_D;
+                  end if;
+               end if;
+               
+            when REBOOT =>
+               cbm_reboot_fpga_i <= '1';
+         end case;
+      end if;
+   end process;
+   
+   THE_REBOOT_SYNC: pos_edge_strech_sync
+   port map (
+      IN_CLK_IN  => cbm_clk_i,
+      DATA_IN    => cbm_reboot_fpga_i,
+      OUT_CLK_IN => TRB_CLK_IN,
+      DATA_OUT   => REBOOT_FPGA_OUT
+   );
 end architecture;

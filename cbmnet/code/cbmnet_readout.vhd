@@ -137,22 +137,25 @@ architecture cbmnet_readout_arch of CBMNET_READOUT is
    signal regio_data_ready_i : std_logic;
    signal regio_unkown_address_i : std_logic;
 
-   signal cfg_enabled_i  : std_logic;
+   signal cfg_enabled_i     : std_logic;
+   signal cfg_include_gbe_i : std_logic := '1';
    signal cfg_source_i   : std_logic_vector(15 downto 0);
    signal cfg_source_override_i : std_logic;
+   
+   signal gbe_include_i : std_logic := '1';
 begin
    GBE_CTS_NUMBER_OUT              <= HUB_CTS_NUMBER_IN;
    GBE_CTS_CODE_OUT                <= HUB_CTS_CODE_IN;
    GBE_CTS_INFORMATION_OUT         <= HUB_CTS_INFORMATION_IN;
    GBE_CTS_READOUT_TYPE_OUT        <= HUB_CTS_READOUT_TYPE_IN;
-   GBE_CTS_START_READOUT_OUT       <= HUB_CTS_START_READOUT_IN;
+   GBE_CTS_START_READOUT_OUT       <= HUB_CTS_START_READOUT_IN and gbe_include_i;
    GBE_FEE_DATA_OUT                <= HUB_FEE_DATA_IN;
-   GBE_FEE_DATAREADY_OUT           <= HUB_FEE_DATAREADY_IN;
+   GBE_FEE_DATAREADY_OUT           <= HUB_FEE_DATAREADY_IN and gbe_include_i;
    GBE_FEE_STATUS_BITS_OUT         <= HUB_FEE_STATUS_BITS_IN;
-   GBE_FEE_BUSY_OUT                <= HUB_FEE_BUSY_IN;
+   GBE_FEE_BUSY_OUT                <= HUB_FEE_BUSY_IN and gbe_include_i;
 
-   HUB_FEE_READ_OUT               <= GBE_FEE_READ_IN;
-   HUB_CTS_READOUT_FINISHED_OUT   <= GBE_CTS_READOUT_FINISHED_IN;
+   HUB_FEE_READ_OUT               <= GBE_FEE_READ_IN or not gbe_include_i;
+   HUB_CTS_READOUT_FINISHED_OUT   <= GBE_CTS_READOUT_FINISHED_IN or not gbe_include_i;
    HUB_CTS_STATUS_BITS_OUT        <= GBE_CTS_STATUS_BITS_IN;
    
    proc_reset: process is
@@ -453,7 +456,9 @@ begin
       
    -- read
       case addr is
-         when 16#00# => regio_data_status_i(0) <= cfg_enabled_i;
+         when 16#00# => 
+            regio_data_status_i(0) <= cfg_enabled_i;
+            regio_data_status_i(1) <= cfg_include_gbe_i;
          when 16#01# => regio_data_status_i(16 downto 0) <= cfg_source_override_i & cfg_source_i;
          
          when 16#02# => regio_data_status_i <= std_logic_vector(stat_connections_i); regio_data_ready_i <= trb_from_cbm_sync_ack_i;
@@ -486,6 +491,7 @@ begin
          case addr is
             when 16#0# =>
                cfg_enabled_i <= REGIO_IN.data(0);
+               cfg_include_gbe_i <= REGIO_IN.data(1);
                
             when 16#1# =>
                cfg_source_i  <= REGIO_IN.data(15 downto 0);
@@ -494,6 +500,16 @@ begin
             when others =>
                regio_unkown_address_i <= '1';
          end case;
+      end if;
+      
+      if RESET_IN = '1' then 
+         cfg_enabled_i <= '0';
+         cfg_include_gbe_i <= '1';
+      end if;
+      
+      -- make sure, we enable/disable gbe not during an ongoing rdo
+      if HUB_CTS_START_READOUT_IN='0' and HUB_FEE_BUSY_IN='0' then
+         gbe_include_i <= cfg_include_gbe_i;
       end if;
    end process;
    

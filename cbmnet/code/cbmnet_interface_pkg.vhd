@@ -19,6 +19,8 @@ package cbmnet_interface_pkg is
          CBM_CLK_OUT : out std_logic;
          CBM_RESET_OUT: out std_logic;
          
+         REBOOT_FPGA_OUT: out std_logic;
+         
       -- Media Interface
          SD_RXD_P_IN        : in  std_logic := '0';
          SD_RXD_N_IN        : in  std_logic := '0';
