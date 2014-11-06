@@ -163,7 +163,7 @@ begin
             SLV_ACK_OUT    <= '1';
             wren <= '1';
           when x"0042" =>
-            injection1_reg <= SLV_DATA_IN(15 downto 0);
+            injection2_reg <= SLV_DATA_IN(15 downto 0);
             SLV_ACK_OUT    <= '1';
             wren <= '1';
           when others =>
