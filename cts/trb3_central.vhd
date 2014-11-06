@@ -546,7 +546,8 @@ architecture trb3_central_arch of trb3_central is
 
    signal led_time_ref_i : std_logic;
 
-   signal do_reboot_i : std_logic;
+   signal do_reboot_i         : std_logic;
+   signal killswitch_reboot_i : std_logic;
 
    -- cbmnet  
    signal cbm_clk_i           : std_logic;
@@ -1571,7 +1572,25 @@ begin
       PROGRAMN  => PROGRAMN
    );
 
-   do_reboot_i <= common_ctrl_regs(15);
+   do_reboot_i <= common_ctrl_regs(15) or killswitch_reboot_i;
+   
+   -- if jttl(15) is stabily high for 1.28us: issue reboot
+   THE_KILLSWITCH_PROC: process
+      variable stab_counter : unsigned(7 downto 0);
+      variable inp, inp_delay : std_logic := '0';
+   begin
+      wait until rising_edge(clk_100_i);
+      
+      if inp_delay = inp then
+         stab_counter := stab_counter + 1;
+      else
+         stab_counter := 0;
+      end if;
+      
+      inp_delay := inp;
+      inp := JTTL(15);
+      killswitch_reboot_i <= stab_counter(stab_counter'high) and inp;
+   end process;
 
 -------------------------------------------------------------------------------
 -- TDC
@@ -1668,7 +1687,7 @@ begin
       tdc_inputs(2) <= cbm_sync_pulser_i;
       tdc_inputs(3) <= cbm_sync_timing_trigger_i;
       tdc_inputs(4) <= JINLVDS(0); --NIM_IN(0);
-      JTTL(0 downto 15) <= (others => '0');
+      --JTTL(0 downto 15) <= (others => '0');
          
          
       PROC_TDC_CTRL_REG : process 
