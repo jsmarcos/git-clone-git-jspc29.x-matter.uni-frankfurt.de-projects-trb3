@@ -16,7 +16,7 @@ package mupix_components is
       priout_from_mupix          : in  std_logic;
       sout_c_from_mupix          : in  std_logic;
       sout_d_from_mupix          : in  std_logic;
-      hbus_form_mupix            : in  std_logic;
+      hbus_from_mupix            : in  std_logic;
       fpga_aux_from_board        : in  std_logic_vector(9 downto 0);
       ldpix_to_mupix             : out std_logic;
       ldcol_to_mupix             : out std_logic;
@@ -152,6 +152,7 @@ package mupix_components is
       clk        : in  std_logic;
       reset      : in  std_logic;
       sync_reset : in  std_logic;
+      clk_divcounter : in std_logic_vector(7 downto 0);
       counter    : out std_logic_vector(COUNTWIDTH-1 downto 0));
   end component;
 
@@ -263,7 +264,7 @@ package mupix_components is
       priout_from_mupix         : in  std_logic;
       sout_c_from_mupix         : in  std_logic;
       sout_d_from_mupix         : in  std_logic;
-      hbus_form_mupix           : in  std_logic;
+      hbus_from_mupix           : in  std_logic;
       fpga_aux_from_board       : in  std_logic_vector(9 downto 0);
       timestamp_from_mupix_sync : out std_logic_vector(7 downto 0);
       rowaddr_from_mupix_sync   : out std_logic_vector(5 downto 0);

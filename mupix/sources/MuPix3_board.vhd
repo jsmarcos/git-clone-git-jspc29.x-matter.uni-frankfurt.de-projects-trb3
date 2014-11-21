@@ -24,7 +24,7 @@ entity MuPix3_Board is
     priout_from_mupix    : in  std_logic;
     sout_c_from_mupix    : in  std_logic;
     sout_d_from_mupix    : in  std_logic;
-    hbus_form_mupix      : in  std_logic;
+    hbus_from_mupix      : in  std_logic;
     fpga_aux_from_board  : in  std_logic_vector(9 downto 0);
     ldpix_to_mupix       : out std_logic;
     ldcol_to_mupix       : out std_logic;
@@ -115,7 +115,7 @@ architecture Behavioral of MuPix3_Board is
   signal priout_from_mupix_sync    : std_logic;
   signal sout_c_from_mupix_sync    : std_logic;
   signal sout_d_from_mupix_sync    : std_logic;
-  signal hbus_form_mupix_sync      : std_logic;
+  signal hbus_from_mupix_sync      : std_logic;
   signal fpga_aux_from_board_sync  : std_logic_vector(9 downto 0);
   
   
@@ -195,7 +195,7 @@ begin  -- Behavioral
       priout_from_mupix         => priout_from_mupix,
       sout_c_from_mupix         => sout_c_from_mupix,
       sout_d_from_mupix         => sout_d_from_mupix,
-      hbus_form_mupix           => hbus_form_mupix,
+      hbus_from_mupix           => hbus_from_mupix,
       fpga_aux_from_board       => fpga_aux_from_board,
       timestamp_from_mupix_sync => timestamp_from_mupix_sync,
       rowaddr_from_mupix_sync   => rowaddr_from_mupix_sync,
@@ -203,7 +203,7 @@ begin  -- Behavioral
       priout_from_mupix_sync    => priout_from_mupix_sync,
       sout_c_from_mupix_sync    => sout_c_from_mupix_sync,
       sout_d_from_mupix_sync    => sout_d_from_mupix_sync,
-      hbus_form_mupix_sync      => hbus_form_mupix_sync,
+      hbus_from_mupix_sync      => hbus_from_mupix_sync,
       fpga_aux_from_board_sync  => fpga_aux_from_board_sync,
       SLV_READ_IN               => slv_read(7),
       SLV_WRITE_IN              => slv_write(7),
@@ -296,11 +296,11 @@ begin  -- Behavioral
 
   HitbusHistogram_1 : HitbusHistogram
     generic map (
-      HistogramRange => 8)
+      HistogramRange => 10)
     port map (
       clk                  => clk,
       trigger              => fpga_aux_to_board(0),
-      hitbus               => hbus_form_mupix_sync,
+      hitbus               => hbus_from_mupix_sync,
       SLV_READ_IN          => slv_read(4),
       SLV_WRITE_IN         => slv_write(4),
       SLV_DATA_OUT         => slv_data_rd(4*32+31 downto 4*32),

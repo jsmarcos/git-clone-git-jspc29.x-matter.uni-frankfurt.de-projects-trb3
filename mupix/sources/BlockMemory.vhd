@@ -45,7 +45,7 @@ end BlockMemory;
 architecture Behavioral of BlockMemory is
   
   type   memory_type is array ((2**AddressWidth) - 1 downto 0) of std_logic_vector(DataWidth - 1 downto 0);
-  signal memory : memory_type;
+  signal memory : memory_type := (others => (others => '0'));
 
 begin
 

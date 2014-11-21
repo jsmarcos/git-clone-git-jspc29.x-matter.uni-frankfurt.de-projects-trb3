@@ -46,10 +46,13 @@ end eventbuffer;
 
 architecture behavioral of eventbuffer is
 
+  constant fifo_depth : integer := 12;
+  
   --response to fee
   signal fee_data_int : std_logic_vector(31 downto 0) := (others => '0');
   signal fee_data_write_int : std_logic := '0';
   signal fee_data_finished_int : std_logic := '0';
+  signal fee_data_write_f : std_logic := '0';
   
   --fifo signals
   signal fifo_reset       : std_logic := '0';
@@ -57,7 +60,7 @@ architecture behavioral of eventbuffer is
   signal fifo_empty       : std_logic;
   signal fifo_write       : std_logic := '0';
   signal fifo_status      : std_logic_vector(31 downto 0) := (others => '0');
-  signal fifo_write_ctr   : std_logic_vector(10 downto 0) := (others => '0');
+  signal fifo_write_ctr   : std_logic_vector(fifo_depth - 1 downto 0) := (others => '0');
   signal fifo_data_in     : std_logic_vector(31 downto 0) := (others => '0');
   signal fifo_data_out    : std_logic_vector(31 downto 0) := (others => '0');
   signal fifo_read_enable : std_logic := '0';
@@ -71,9 +74,10 @@ architecture behavioral of eventbuffer is
   signal fifo_reading_s   : std_logic := '0';
   signal fifo_read_done_s : std_logic := '0';
   signal fifo_read_busy_s : std_logic := '0';
+  signal slv_fifo_reset : std_logic := '0';
 
   --fifo fast readout to trb data channel
-  type fifo_read_f_states is (idle, wait_for_data,flush_data, done);
+  type fifo_read_f_states is (idle, wait_for_data,flush_data, lastword, done);
   signal fifo_read_f_fsm : fifo_read_f_states := idle;
   signal fifo_read_f : std_logic := '0';
   signal fifo_read_busy_f : std_logic := '0';
@@ -98,7 +102,7 @@ begin  -- behavioral
 
   fifo_1: entity work.fifo
     generic map (
-      addr_wd => 11,
+      addr_wd => fifo_depth,
       word_wd => 32)
     port map (
       Din     => fifo_data_in,
@@ -112,7 +116,7 @@ begin  -- behavioral
       CLK     => clk);
   
   fifo_read_enable <= fifo_read_s or fifo_read_f;
-  fifo_reset <= clear_buffer_in;
+  fifo_reset <= clear_buffer_in or slv_fifo_reset;
 
   fifo_write_handler : process(clk)
   begin  -- process fifo_write_handler
@@ -127,8 +131,15 @@ begin  -- behavioral
   end process fifo_write_handler;
 
   ------------------------------------------------------------
-  --fifo readout using trb slow control channel
+  --fifo readout to ipu channel
   ------------------------------------------------------------
+  fifo_data_write_ff: process (clk) is
+  begin  -- process fifo_data_write_ff
+    if rising_edge(clk) then
+      fee_data_write_f <= fee_data_write_int;
+    end if;
+  end process fifo_data_write_ff;
+  
   fifo_data_read_f: process is
   begin  -- process fifo_data_read_f
     wait until rising_edge(clk);
@@ -163,10 +174,12 @@ begin  -- behavioral
         fee_data_write_int <= '1';
         if fifo_empty = '1' then
           fifo_read_f <= '0';
-          fifo_read_f_fsm <= done;
-        else
-          fifo_read_f_fsm <= flush_data;
+          fifo_read_f_fsm <= lastword;
         end if;
+      when lastword =>
+        fifo_read_f_fsm <= done;
+        fifo_read_busy_f <= '1';
+        fee_data_int <= fifo_data_out;
       when done =>
         fee_data_finished_int <= '1';
         fifo_read_f_fsm <= idle;
@@ -204,7 +217,7 @@ begin  -- behavioral
           end if;
         when wait1 =>
           fifo_read_busy_s <= '1';
-          fifo_read_s_fsm  <= wait2;
+          fifo_read_s_fsm  <= done;
         when wait2 =>
           fifo_read_busy_s <= '1';
           fifo_read_s_fsm  <= done;
@@ -225,8 +238,8 @@ begin  -- behavioral
   ----------------------------------------------------------------------------- 
 
   fifo_status(1 downto 0)   <= fifo_empty & fifo_full;
-  fifo_status(12 downto 2)  <= fifo_write_ctr;
-  fifo_status(31 downto 13) <= (others => '0');
+  fifo_status((fifo_depth - 1) + 2 downto 2)  <= fifo_write_ctr;
+  fifo_status(31 downto fifo_depth + 2) <= (others => '0');
   
   slv_bus_handler : process(clk)
   begin
@@ -236,6 +249,7 @@ begin  -- behavioral
       slv_no_more_data_out <= '0';
       slv_unknown_addr_out <= '0';
       fifo_start_read      <= '0';
+      slv_fifo_reset       <= '0';
 
       if fifo_reading_s = '1' then
         if (fifo_read_done_s = '0') then
@@ -252,14 +266,21 @@ begin  -- behavioral
         end if;
         
       elsif slv_write_in = '1' then
-        slv_unknown_addr_out <= '1';
+        case SLV_ADDR_IN is
+          when x"0303" =>
+            slv_fifo_reset <= '1';
+            slv_ack_out <= '1';
+          when others =>
+            slv_unknown_addr_out <= '1';
+        end case;
+        
       elsif slv_read_in = '1' then
         case slv_addr_in is
           when x"0300" =>
             slv_data_out <= fifo_status;
             slv_ack_out  <= '1';
           when x"0301" =>
-            slv_data_out(10 downto 0) <= fifo_write_ctr;
+            slv_data_out(fifo_depth - 1 downto 0) <= fifo_write_ctr;
             slv_ack_out               <= '1';
           when x"0302" =>
             fifo_start_read <= '1';
@@ -275,7 +296,7 @@ begin  -- behavioral
 
   --map output signals
   fee_data_out          <= fee_data_int;
-  fee_data_write_out    <= fee_data_write_int;
+  fee_data_write_out    <= fee_data_write_f;
   fee_data_finished_out <= fee_data_finished_int;
   
 end behavioral;

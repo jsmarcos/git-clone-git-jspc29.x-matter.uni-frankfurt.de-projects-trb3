@@ -21,7 +21,7 @@ entity board_interface is
     priout_from_mupix    : in std_logic;
     sout_c_from_mupix    : in std_logic;
     sout_d_from_mupix    : in std_logic;
-    hbus_form_mupix      : in std_logic;
+    hbus_from_mupix      : in std_logic;
     fpga_aux_from_board  : in std_logic_vector(9 downto 0);
     --synced (and inverted) signals
     timestamp_from_mupix_sync : out std_logic_vector(7 downto 0);
@@ -30,7 +30,7 @@ entity board_interface is
     priout_from_mupix_sync    : out std_logic;
     sout_c_from_mupix_sync    : out std_logic;
     sout_d_from_mupix_sync    : out std_logic;
-    hbus_form_mupix_sync      : out std_logic;
+    hbus_from_mupix_sync      : out std_logic;
     fpga_aux_from_board_sync  : out std_logic_vector(9 downto 0);
     --Trb Slv-Bus
     SLV_READ_IN                : in  std_logic;
@@ -63,7 +63,7 @@ begin
       sout_c_from_mupix_sync    <= not sout_c_from_mupix;
       sout_d_from_mupix_sync    <= not sout_d_from_mupix;
       priout_from_mupix_sync    <= priout_from_mupix;  --is inverted on the chip
-      hbus_form_mupix_sync      <= hbus_form_mupix;
+      hbus_from_mupix_sync      <= hbus_from_mupix;
       fpga_aux_from_board_sync  <= fpga_aux_from_board;
     else
       timestamp_from_mupix_sync <= timestamp_from_mupix;
@@ -72,7 +72,7 @@ begin
       sout_c_from_mupix_sync    <= sout_c_from_mupix;
       sout_d_from_mupix_sync    <= sout_d_from_mupix;
       priout_from_mupix_sync    <= not priout_from_mupix;  --is inverted on the chip
-      hbus_form_mupix_sync      <= not hbus_form_mupix;
+      hbus_from_mupix_sync      <= not hbus_from_mupix;
       fpga_aux_from_board_sync  <= not fpga_aux_from_board;
     end if;
   end process;

@@ -123,112 +123,213 @@ DEFINE PORT GROUP "LED_group" "LED*" ;
 IOBUF GROUP "LED_group" IO_TYPE=LVCMOS25 PULLMODE=NONE DRIVE=12;
 
 #################################################################
-#MuPix 4
+#MuPix 3/4/6
 #################################################################
+#Mupix 0
 #SlowControl and Misc
-LOCATE COMP "fpga_led_to_board_0"	SITE "AB5";
-LOCATE COMP "fpga_led_to_board_1"	SITE "AB6";
-LOCATE COMP "fpga_led_to_board_2"	SITE "Y6";
-LOCATE COMP "fpga_led_to_board_3"	SITE "Y7";
-DEFINE PORT GROUP "fpga_led_group" "fpga_led*";
-IOBUF GROUP "fpga_led_group" IO_TYPE=LVCMOS25;
+LOCATE COMP "fpga_led_to_board0_0"	SITE "AB5";
+LOCATE COMP "fpga_led_to_board0_1"	SITE "AB6";
+LOCATE COMP "fpga_led_to_board0_2"	SITE "Y6";
+LOCATE COMP "fpga_led_to_board0_3"	SITE "Y7";
+DEFINE PORT GROUP "fpga_led0_group" "fpga_led_to_board0*";
+IOBUF GROUP "fpga_led0_group" IO_TYPE=LVCMOS25;
 
-LOCATE COMP "fpga_aux_to_board_0"	SITE "T7";
-LOCATE COMP "fpga_aux_to_board_1"	SITE "R6";
-LOCATE COMP "fpga_aux_to_board_2"	SITE "K2";
-LOCATE COMP "fpga_aux_to_board_3"	SITE "T8";
-LOCATE COMP "fpga_aux_to_board_4"	SITE "K4";
-LOCATE COMP "fpga_aux_to_board_5"	SITE "K1";
-LOCATE COMP "fpga_aux_to_board_6"	SITE "E1";
-LOCATE COMP "fpga_aux_to_board_7"	SITE "K5";
-LOCATE COMP "fpga_aux_to_board_8"	SITE "B2";
-LOCATE COMP "fpga_aux_to_board_9"	SITE "B3";
-DEFINE PORT GROUP "fpga_aux_group" "fpga_aux*";
-IOBUF GROUP "fpga_aux_group" IO_TYPE=LVCMOS25;
+LOCATE COMP "fpga_aux_to_board0_0"	SITE "T7";
+LOCATE COMP "fpga_aux_to_board0_1"	SITE "R6";
+LOCATE COMP "fpga_aux_to_board0_2"	SITE "K2";
+LOCATE COMP "fpga_aux_to_board0_3"	SITE "T8";
+LOCATE COMP "fpga_aux_to_board0_4"	SITE "K4";
+LOCATE COMP "fpga_aux_to_board0_5"	SITE "K1";
+LOCATE COMP "fpga_aux_to_board0_6"	SITE "E1";
+LOCATE COMP "fpga_aux_to_board0_7"	SITE "K5";
+LOCATE COMP "fpga_aux_to_board0_8"	SITE "B2";
+LOCATE COMP "fpga_aux_to_board0_9"	SITE "B3";
+DEFINE PORT GROUP "fpga_aux0_group" "fpga_aux_to_board0*";
+IOBUF GROUP "fpga_aux0_group" IO_TYPE=LVCMOS25;
 
-LOCATE COMP "testpulse2_to_board"	SITE "AA4";
-LOCATE COMP "testpulse1_to_board"	SITE "AA3";
-IOBUF  PORT "testpulse2_to_board" IO_TYPE=LVCMOS25 ;
-IOBUF  PORT "testpulse1_to_board" IO_TYPE=LVCMOS25 ;
+LOCATE COMP "testpulse2_to_board0"	SITE "AA4";
+LOCATE COMP "testpulse1_to_board0"	SITE "AA3";
+IOBUF  PORT "testpulse2_to_board0" IO_TYPE=LVCMOS25 ;
+IOBUF  PORT "testpulse1_to_board0" IO_TYPE=LVCMOS25 ;
 
-LOCATE COMP "spi_din_to_board"		SITE "T3";
-LOCATE COMP "spi_ld_to_board"		SITE "R5";
-LOCATE COMP "spi_clk_to_board"		SITE "R4";
-DEFINE PORT GROUP "spi_group" "spi*";
-IOBUF GROUP "spigroup" IO_TYPE=LVCMOS25;
+LOCATE COMP "spi_din_to_board0"		SITE "T3";
+LOCATE COMP "spi_ld_to_board0"		SITE "R5";
+LOCATE COMP "spi_clk_to_board0"		SITE "R4";
+IOBUF  PORT "spi_din_to_board0" IO_TYPE=LVCMOS25 ;
+IOBUF  PORT "spi_ld_to_board0"  IO_TYPE=LVCMOS25 ;
+IOBUF  PORT "spi_clk_to_board0" IO_TYPE=LVCMOS25 ;
 
-LOCATE COMP "hbus_from_mupix"		SITE "W8";
-IOBUF  PORT "hbus_from_mupix" 		IO_TYPE=LVCMOS25 ;
-LOCATE COMP "sout_d_from_mupix"		SITE "V1";
-IOBUF  PORT "sout_d_from_mupix" 	IO_TYPE=LVCMOS25 ;
-LOCATE COMP "sout_c_from_mupix"		SITE "U2";
-IOBUF  PORT "sout_c_from_mupix" 	IO_TYPE=LVCMOS25 ;
-LOCATE COMP "sin_to_mupix"		SITE "T1";
-IOBUF  PORT "sin_to_mupix" 		IO_TYPE=LVCMOS25 ;
-LOCATE COMP "ck_d_to_mupix"		SITE "P4";
-IOBUF  PORT "ck_d_to_mupix" 		IO_TYPE=LVCMOS25 ;
-LOCATE COMP "ld_c_to_mupix" 		SITE "U1";
-IOBUF  PORT "ld_c_to_mupix" 		IO_TYPE=LVCMOS25 ;
-LOCATE COMP "ck_c_to_mupix" 		SITE "R3";
-IOBUF  PORT "ck_c_to_mupix" 		IO_TYPE=LVCMOS25 ;
+LOCATE COMP "hbus_from_mupix0"		SITE "W8";
+IOBUF  PORT "hbus_from_mupix0" 		IO_TYPE=LVCMOS25 ;
+LOCATE COMP "sout_d_from_mupix0"	SITE "V1";
+IOBUF  PORT "sout_d_from_mupix0" 	IO_TYPE=LVCMOS25 ;
+LOCATE COMP "sout_c_from_mupix0"	SITE "U2";
+IOBUF  PORT "sout_c_from_mupix0" 	IO_TYPE=LVCMOS25 ;
+LOCATE COMP "sin_to_mupix0"		SITE "T1";
+IOBUF  PORT "sin_to_mupix0" 		IO_TYPE=LVCMOS25 ;
+LOCATE COMP "ck_d_to_mupix0"		SITE "P4";
+IOBUF  PORT "ck_d_to_mupix0" 		IO_TYPE=LVCMOS25 ;
+LOCATE COMP "ld_c_to_mupix0" 		SITE "U1";
+IOBUF  PORT "ld_c_to_mupix0" 		IO_TYPE=LVCMOS25 ;
+LOCATE COMP "ck_c_to_mupix0" 		SITE "R3";
+IOBUF  PORT "ck_c_to_mupix0" 		IO_TYPE=LVCMOS25 ;
 
 
 #MuPix Readout
-LOCATE COMP "rowaddr_from_mupix_0"	SITE "H2";
-LOCATE COMP "rowaddr_from_mupix_1"	SITE "H1";
-LOCATE COMP "rowaddr_from_mupix_2"	SITE "M5";
-LOCATE COMP "rowaddr_from_mupix_3"	SITE "L2";
-LOCATE COMP "rowaddr_from_mupix_4"	SITE "C2";
-LOCATE COMP "rowaddr_from_mupix_5"	SITE "K3";
-DEFINE PORT GROUP "rowaddr_from_mupix_group" "rowaddr_from_mupix*";
-IOBUF GROUP "rowaddr_from_mupix_group" IO_TYPE=LVCMOS25;
+LOCATE COMP "rowaddr_from_mupix0_0"	SITE "H2";
+LOCATE COMP "rowaddr_from_mupix0_1"	SITE "H1";
+LOCATE COMP "rowaddr_from_mupix0_2"	SITE "M5";
+LOCATE COMP "rowaddr_from_mupix0_3"	SITE "L2";
+LOCATE COMP "rowaddr_from_mupix0_4"	SITE "C2";
+LOCATE COMP "rowaddr_from_mupix0_5"	SITE "K3";
+DEFINE PORT GROUP "rowaddr_from_mupix0_group" "rowaddr_from_mupix0*";
+IOBUF GROUP "rowaddr_from_mupix0_group" IO_TYPE=LVCMOS25;
 
-LOCATE COMP "coladdr_from_mupix_0"	SITE "W6";
-LOCATE COMP "coladdr_from_mupix_1"	SITE "AA5";
-LOCATE COMP "coladdr_from_mupix_2"	SITE "V7";
-LOCATE COMP "coladdr_from_mupix_3"	SITE "G1";
-LOCATE COMP "coladdr_from_mupix_4"	SITE "J1";
-LOCATE COMP "coladdr_from_mupix_5"	SITE "L1";
-DEFINE PORT GROUP "coladdr_from_mupix_group" "coladdr_from_mupix*";
-IOBUF GROUP "coladdr_from_mupix_group" IO_TYPE=LVCMOS25;
+LOCATE COMP "coladdr_from_mupix0_0"	SITE "W6";
+LOCATE COMP "coladdr_from_mupix0_1"	SITE "AA5";
+LOCATE COMP "coladdr_from_mupix0_2"	SITE "V7";
+LOCATE COMP "coladdr_from_mupix0_3"	SITE "G1";
+LOCATE COMP "coladdr_from_mupix0_4"	SITE "J1";
+LOCATE COMP "coladdr_from_mupix0_5"	SITE "L1";
+DEFINE PORT GROUP "coladdr_from_mupix0_group" "coladdr_from_mupix0*";
+IOBUF GROUP "coladdr_from_mupix0_group" IO_TYPE=LVCMOS25;
 
-LOCATE COMP "timestamp_from_mupix_0"	SITE "U3";
-LOCATE COMP "timestamp_from_mupix_1"	SITE "R2";
-LOCATE COMP "timestamp_from_mupix_2"	SITE "P3";
-LOCATE COMP "timestamp_from_mupix_3"	SITE "P6";
-LOCATE COMP "timestamp_from_mupix_4"	SITE "N6";
-LOCATE COMP "timestamp_from_mupix_5"	SITE "AC3";
-LOCATE COMP "timestamp_from_mupix_6"	SITE "AC1";
-LOCATE COMP "timestamp_from_mupix_7"	SITE "AA2";
-DEFINE PORT GROUP "timestamp_from_mupix_group" "timestamp_from_mupix*";
-IOBUF GROUP "timestamp_from_mupix_group" IO_TYPE=LVCMOS25;
+LOCATE COMP "timestamp_from_mupix0_0"	SITE "M21";
+LOCATE COMP "timestamp_from_mupix0_1"	SITE "J24";
+LOCATE COMP "timestamp_from_mupix0_2"	SITE "M24";
+LOCATE COMP "timestamp_from_mupix0_3"	SITE "K25";
+LOCATE COMP "timestamp_from_mupix0_4"	SITE "N21";
+LOCATE COMP "timestamp_from_mupix0_5"	SITE "K26";
+LOCATE COMP "timestamp_from_mupix0_6"	SITE "N22";
+LOCATE COMP "timestamp_from_mupix0_7"	SITE "L19";
+DEFINE PORT GROUP "timestamp_from_mupix0_group" "timestamp_from_mupix0*";
+IOBUF GROUP "timestamp_from_mupix0_group" IO_TYPE=LVCMOS25;
 
-LOCATE COMP "timestamp_to_mupix_0"	SITE "P5";
-LOCATE COMP "timestamp_to_mupix_1"	SITE "N5";
-LOCATE COMP "timestamp_to_mupix_2"	SITE "AC2";
-LOCATE COMP "timestamp_to_mupix_3"	SITE "AB1";
-LOCATE COMP "timestamp_to_mupix_4"	SITE "AA1";
-LOCATE COMP "timestamp_to_mupix_5"	SITE "W7";
-LOCATE COMP "timestamp_to_mupix_6"	SITE "Y5";
-LOCATE COMP "timestamp_to_mupix_7"	SITE "V6";
-DEFINE PORT GROUP "timestamp_to_mupix_group" "timestamp_to_mupix*";
-IOBUF GROUP "timestamp_to_mupix_group" IO_TYPE=LVCMOS25;
-
-
-LOCATE COMP "ldpix_to_mupix"		SITE "T2";
-IOBUF  PORT "ldpix_to_mupix" 		IO_TYPE=LVCMOS25 ;
-LOCATE COMP "ldcol_to_mupix"		SITE "N3";
-IOBUF  PORT "ldcol_to_mupix" 		IO_TYPE=LVCMOS25 ;
-LOCATE COMP "rdcol_to_mupix"		SITE "J4";
-IOBUF  PORT "rdcol_to_mupix" 		IO_TYPE=LVCMOS25 ;
-LOCATE COMP "pulldown_to_mupix"		SITE "L3";
-IOBUF  PORT "pulldown_to_mupix" 	IO_TYPE=LVCMOS25 ;
-LOCATE COMP "priout_from_mupix"		SITE "J3";
-IOBUF  PORT "priout_from_mupix" 	IO_TYPE=LVCMOS25 ;
+LOCATE COMP "timestamp_to_mupix0_0"	SITE "L24";
+LOCATE COMP "timestamp_to_mupix0_1"	SITE "M22";
+LOCATE COMP "timestamp_to_mupix0_2"	SITE "J26";
+LOCATE COMP "timestamp_to_mupix0_3"	SITE "N23";
+LOCATE COMP "timestamp_to_mupix0_4"	SITE "K19";
+LOCATE COMP "timestamp_to_mupix0_5"	SITE "P23";
+LOCATE COMP "timestamp_to_mupix0_6"	SITE "L25";
+LOCATE COMP "timestamp_to_mupix0_7"	SITE "P21";
+DEFINE PORT GROUP "timestamp_to_mupix0_group" "timestamp_to_mupix0*";
+IOBUF GROUP "timestamp_to_mupix0_group" IO_TYPE=LVCMOS25;
 
 
+LOCATE COMP "ldpix_to_mupix0"		SITE "L20";
+IOBUF  PORT "ldpix_to_mupix0" 		IO_TYPE=LVCMOS25 ;
+LOCATE COMP "ldcol_to_mupix0"		SITE "M23";
+IOBUF  PORT "ldcol_to_mupix0" 		IO_TYPE=LVCMOS25 ;
+LOCATE COMP "rdcol_to_mupix0"		SITE "L5";
+IOBUF  PORT "rdcol_to_mupix0" 		IO_TYPE=LVCMOS25 ;
+LOCATE COMP "pulldown_to_mupix0"	SITE "D3";
+IOBUF  PORT "pulldown_to_mupix0" 	IO_TYPE=LVCMOS25 ;
+LOCATE COMP "priout_from_mupix0"	SITE "L6";
+IOBUF  PORT "priout_from_mupix0" 	IO_TYPE=LVCMOS25 ;
 
-	
+
+#Mupix 1
+LOCATE COMP "fpga_led_to_board1_0"	SITE "G26";
+LOCATE COMP "fpga_led_to_board1_1"	SITE "F26";
+LOCATE COMP "fpga_led_to_board1_2"	SITE "H26";
+LOCATE COMP "fpga_led_to_board1_3"	SITE "H25";
+DEFINE PORT GROUP "fpga_led1_group" "fpga_led_to_board1*";
+IOBUF GROUP "fpga_led1_group" IO_TYPE=LVCMOS25;
+
+LOCATE COMP "fpga_aux_to_board1_0"	SITE "AE25";
+LOCATE COMP "fpga_aux_to_board1_1"	SITE "AE24";
+LOCATE COMP "fpga_aux_to_board1_2"	SITE "W23";
+LOCATE COMP "fpga_aux_to_board1_3"	SITE "AF24";
+LOCATE COMP "fpga_aux_to_board1_4"	SITE "AA25";
+LOCATE COMP "fpga_aux_to_board1_5"	SITE "W22";
+LOCATE COMP "fpga_aux_to_board1_6"	SITE "AA26";
+LOCATE COMP "fpga_aux_to_board1_7"	SITE "Y24";
+LOCATE COMP "fpga_aux_to_board1_8"	SITE "W21";
+LOCATE COMP "fpga_aux_to_board1_9"	SITE "W20";
+DEFINE PORT GROUP "fpga_aux1_group" "fpga_aux_to_board1*";
+IOBUF GROUP "fpga_aux01_group" IO_TYPE=LVCMOS25;
+
+LOCATE COMP "testpulse2_to_board1"	SITE "K23";
+LOCATE COMP "testpulse1_to_board1"	SITE "K22";
+IOBUF  PORT "testpulse2_to_board1" IO_TYPE=LVCMOS25 ;
+IOBUF  PORT "testpulse1_to_board1" IO_TYPE=LVCMOS25 ;
+
+LOCATE COMP "spi_din_to_board1"		SITE "Y22";
+LOCATE COMP "spi_ld_to_board1"		SITE "AD24";
+LOCATE COMP "spi_clk_to_board1"		SITE "AA22";
+IOBUF  PORT "spi_din_to_board1" IO_TYPE=LVCMOS25 ;
+IOBUF  PORT "spi_ld_to_board1"  IO_TYPE=LVCMOS25 ;
+IOBUF  PORT "spi_clk_to_board1" IO_TYPE=LVCMOS25 ;
+
+LOCATE COMP "hbus_from_mupix1"		SITE "F25";
+IOBUF  PORT "hbus_from_mupix1" 		IO_TYPE=LVCMOS25 ;
+LOCATE COMP "sout_d_from_mupix1"	SITE "AC26";
+IOBUF  PORT "sout_d_from_mupix1" 	IO_TYPE=LVCMOS25 ;
+LOCATE COMP "sout_c_from_mupix1"	SITE "AC25";
+IOBUF  PORT "sout_c_from_mupix1" 	IO_TYPE=LVCMOS25 ;
+LOCATE COMP "sin_to_mupix1"		SITE "T1";
+IOBUF  PORT "sin_to_mupix1" 		IO_TYPE=LVCMOS25 ;
+LOCATE COMP "ck_d_to_mupix1"		SITE "AB24";
+IOBUF  PORT "ck_d_to_mupix1" 		IO_TYPE=LVCMOS25 ;
+LOCATE COMP "ld_c_to_mupix1" 		SITE "Y20";
+IOBUF  PORT "ld_c_to_mupix1" 		IO_TYPE=LVCMOS25 ;
+LOCATE COMP "ck_c_to_mupix1" 		SITE "AC24";
+IOBUF  PORT "ck_c_to_mupix1" 		IO_TYPE=LVCMOS25 ;
+
+
+#MuPix Readout
+LOCATE COMP "rowaddr_from_mupix1_0"	SITE "R25";
+LOCATE COMP "rowaddr_from_mupix1_1"	SITE "T25";
+LOCATE COMP "rowaddr_from_mupix1_2"	SITE "T26";
+LOCATE COMP "rowaddr_from_mupix1_3"	SITE "V21";
+LOCATE COMP "rowaddr_from_mupix1_4"	SITE "G5";
+LOCATE COMP "rowaddr_from_mupix1_5"	SITE "C3";
+DEFINE PORT GROUP "rowaddr_from_mupix1_group" "rowaddr_from_mupix1*";
+IOBUF GROUP "rowaddr_from_mupix1_group" IO_TYPE=LVCMOS25;
+
+LOCATE COMP "coladdr_from_mupix1_0"	SITE "R22";
+LOCATE COMP "coladdr_from_mupix1_1"	SITE "L26";
+LOCATE COMP "coladdr_from_mupix1_2"	SITE "P22";
+LOCATE COMP "coladdr_from_mupix1_3"	SITE "R26";
+LOCATE COMP "coladdr_from_mupix1_4"	SITE "T24";
+LOCATE COMP "coladdr_from_mupix1_5"	SITE "V22";
+DEFINE PORT GROUP "coladdr_from_mupix1_group" "coladdr_from_mupix1*";
+IOBUF GROUP "coladdr_from_mupix1_group" IO_TYPE=LVCMOS25;
+
+LOCATE COMP "timestamp_from_mupix1_0"	SITE "U3";
+LOCATE COMP "timestamp_from_mupix1_1"	SITE "R2";
+LOCATE COMP "timestamp_from_mupix1_2"	SITE "P3";
+LOCATE COMP "timestamp_from_mupix1_3"	SITE "P6";
+LOCATE COMP "timestamp_from_mupix1_4"	SITE "N6";
+LOCATE COMP "timestamp_from_mupix1_5"	SITE "AC3";
+LOCATE COMP "timestamp_from_mupix1_6"	SITE "AC1";
+LOCATE COMP "timestamp_from_mupix1_7"	SITE "AA2";
+DEFINE PORT GROUP "timestamp_from_mupix1_group" "timestamp_from_mupix1*";
+IOBUF GROUP "timestamp_from_mupix1_group" IO_TYPE=LVCMOS25;
+
+LOCATE COMP "timestamp_to_mupix1_0"	SITE "P5";
+LOCATE COMP "timestamp_to_mupix1_1"	SITE "N5";
+LOCATE COMP "timestamp_to_mupix1_2"	SITE "AC2";
+LOCATE COMP "timestamp_to_mupix1_3"	SITE "AB1";
+LOCATE COMP "timestamp_to_mupix1_4"	SITE "AA1";
+LOCATE COMP "timestamp_to_mupix1_5"	SITE "W7";
+LOCATE COMP "timestamp_to_mupix1_6"	SITE "Y5";
+LOCATE COMP "timestamp_to_mupix1_7"	SITE "V6";
+DEFINE PORT GROUP "timestamp_to_mupix1_group" "timestamp_to_mupix1*";
+IOBUF GROUP "timestamp_to_mupix1_group" IO_TYPE=LVCMOS25;
+
+
+LOCATE COMP "ldpix_to_mupix1"		SITE "T2";
+IOBUF  PORT "ldpix_to_mupix1" 		IO_TYPE=LVCMOS25 ;
+LOCATE COMP "ldcol_to_mupix1"		SITE "N3";
+IOBUF  PORT "ldcol_to_mupix1" 		IO_TYPE=LVCMOS25 ;
+LOCATE COMP "rdcol_to_mupix1"		SITE "J4";
+IOBUF  PORT "rdcol_to_mupix1" 		IO_TYPE=LVCMOS25 ;
+LOCATE COMP "pulldown_to_mupix1"	SITE "L3";
+IOBUF  PORT "pulldown_to_mupix1" 	IO_TYPE=LVCMOS25 ;
+LOCATE COMP "priout_from_mupix1"	SITE "J3";
+IOBUF  PORT "priout_from_mupix1" 	IO_TYPE=LVCMOS25 ;	
 
 
 

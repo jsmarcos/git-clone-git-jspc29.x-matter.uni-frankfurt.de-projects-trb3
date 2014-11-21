@@ -193,6 +193,7 @@ begin
   --0x0802: Last Latency Value
   --0x0803: Read Histograms
   --0x0804: ReadCounter
+  --0x0805: snapshot of hitbus
   -----------------------------------------------------------------------------
   SLV_BUS_HANDLER : process(clk)
   begin  -- process SLV_BUS_HANDLER
@@ -220,7 +221,7 @@ begin
             SLV_ACK_OUT  <= '1';
           when x"0801" =>
             SLV_DATA_OUT(31 downto 16)                <= (others => '0');
-            SLV_DATA_OUT(HistogramRange - 1 downto 0) <= std_logic_vector(hitbus_counter);
+            SLV_DATA_OUT(HistogramRange - 1 downto 0) <= hitbus_HistoWrAddr;
             SLV_ACK_OUT                               <= '1';
           when x"0802" =>
             SLV_DATA_OUT(31 downto 16)                <= (others => '0');
@@ -233,6 +234,9 @@ begin
           when x"0804" =>
             SLV_DATA_OUT(HistogramRange - 1 downto 0) <= std_logic_vector(readcounter);
             SLV_ACK_OUT                               <= '1';
+          when x"0805" =>
+            SLV_DATA_OUT(0) <= hitbus;
+            SLV_ACK_OUT <= '1';
           when others =>
             SLV_UNKNOWN_ADDR_OUT <= '1';
         end case;

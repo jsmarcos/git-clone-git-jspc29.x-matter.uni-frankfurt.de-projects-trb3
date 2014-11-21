@@ -27,31 +27,50 @@ architecture fifo_arch of fifo is
   -- decl
   signal wrcnt     : unsigned (addr_wd-1 downto 0) := (others => '0');
   signal rdcnt     : unsigned (addr_wd-1 downto 0) := (others => '0');
+  signal din_int   : unsigned (word_wd-1 downto 0) := (others => '0');
   type   memory_type is array(0 to (2**addr_wd)-1) of unsigned(word_wd-1 downto 0);
   signal memory    : memory_type;
+  signal memory_address : unsigned(addr_wd-1 downto 0) := (others => '0');
+  
   signal full_loc  : std_logic;
   signal empty_loc : std_logic;
+  signal write_int : std_logic;
   
 begin
-  process
+  
+  blockmemory: process(clk)
   begin
-    wait until rising_edge(CLK);
-    if Reset = '1' then
-      rdcnt <= (others => '0');
-      wrcnt <= (others => '0');
-    else
-      if (Wr = '1' and full_loc = '0') then
-        memory(to_integer(wrcnt)) <= unsigned(Din);
-        wrcnt                     <= wrcnt+1;
-      end if;
+    if rising_edge(clk) then
+        if (write_int = '1') then
+          memory(to_integer(memory_address)) <= din_int;
+        end if;
+        dout  <= std_logic_vector(memory(to_integer(memory_address)));
+    end if;
+  end process blockmemory;
 
-      if (Rd = '1' and empty_loc = '0') then
-        Dout  <= std_logic_vector(memory(to_integer(rdcnt)));
-        rdcnt <= rdcnt+1;
+  AddressMux: process (clk)
+  begin  -- process AddressMux
+    if rising_edge(clk) then
+      if Reset = '1' then
+        rdcnt <= (others => '0');
+        wrcnt <= (others => '0');
+      else
+        if Wr = '1' and full_loc = '0' then
+          memory_address <= wrcnt;
+          write_int      <= '1';
+          din_int        <= unsigned(Din);
+          wrcnt          <= wrcnt + 1;
+        elsif (Rd = '1' and empty_loc = '0') then
+          memory_address <= rdcnt ;
+          rdcnt <= rdcnt + 1;
+        else
+          write_int <= '0';
+          memory_address <= (others => '0');
+        end if;
       end if;
     end if;
-  end process;
-  
+  end process AddressMux;
+      
   full_loc  <= '1' when rdcnt = wrcnt+1 else '0';
   empty_loc <= '1' when rdcnt = wrcnt   else '0';
   Full      <= full_loc;
