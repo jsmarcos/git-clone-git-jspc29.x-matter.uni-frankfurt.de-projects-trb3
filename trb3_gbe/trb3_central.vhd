@@ -253,6 +253,7 @@ signal gbe_stp_reg_data_wr          : std_logic_vector(31 downto 0);
 signal gbe_stp_reg_read             : std_logic;
 signal gbe_stp_reg_write            : std_logic;
 signal gbe_stp_reg_data_rd          : std_logic_vector(31 downto 0);
+signal gbe_unknown                  : std_logic;
 
 signal select_tc                   : std_logic_vector(31 downto 0) := (8 => USE_EXTERNAL_CLOCK_std, others => '0');
 signal select_tc_data_in           : std_logic_vector(31 downto 0);
@@ -575,6 +576,7 @@ gen_normal_hub : if USE_ETHERNET = c_NO generate
       );
       
   reset_via_gbe <= '0';    
+  gbe_unknown   <= '1';
 end generate;
 
 gen_ethernet_hub : if USE_ETHERNET = c_YES generate
@@ -779,6 +781,7 @@ gen_ethernet_hub : if USE_ETHERNET = c_YES generate
     ANALYZER_DEBUG_OUT          => debug
   );
 
+  gbe_unknown <= '0';
 end generate;
 
 ---------------------------------------------------------------------------
@@ -828,7 +831,7 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
     BUS_DATAREADY_IN(1)               => mb_ip_mem_ack,
     BUS_WRITE_ACK_IN(1)               => mb_ip_mem_ack,
     BUS_NO_MORE_DATA_IN(1)            => '0',
-    BUS_UNKNOWN_ADDR_IN(1)            => '0',
+    BUS_UNKNOWN_ADDR_IN(1)            => gbe_unknown,
 
     -- gbe setup
     BUS_ADDR_OUT(2*16+15 downto 2*16) => gbe_stp_reg_addr,
@@ -840,7 +843,7 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
     BUS_DATAREADY_IN(2)               => gbe_stp_reg_ack,
     BUS_WRITE_ACK_IN(2)               => gbe_stp_reg_ack,
     BUS_NO_MORE_DATA_IN(2)            => '0',
-    BUS_UNKNOWN_ADDR_IN(2)            => '0',
+    BUS_UNKNOWN_ADDR_IN(2)            => gbe_unknown,
   
     --SCI first Media Interface
     BUS_READ_ENABLE_OUT(3)              => sci1_read,
