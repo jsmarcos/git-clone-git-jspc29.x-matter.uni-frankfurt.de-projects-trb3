@@ -87,7 +87,7 @@ architecture RTL of mupix_interface is
   signal gen_hit_row  : std_logic_vector(5 downto 0) := (others => '0');
   signal gen_hit_time : std_logic_vector(7 downto 0) := (others => '0');
 
-  signal testoutro : std_logic_vector (127 downto 0) := (others => '0');
+  signal testoutro : std_logic_vector (31 downto 0) := (others => '0');
   
   --Control Registers
   signal resetgraycounter     : std_logic                     := '0';
@@ -112,6 +112,7 @@ begin
   --x0026: Pause Register
   --x0027: Delay Counters 2
   --x0028: Divider for graycounter clock
+  --x0029: testoutro
   -----------------------------------------------------------------------------
 
   SLV_HANDLER : process(clk)
@@ -151,6 +152,9 @@ begin
             SLV_ACK_OUT <= '1';
           when x"0028" =>
             SLV_DATA_OUT <= graycounter_clkdiv_counter;
+            SLV_ACK_OUT <= '1';
+          when x"0029" =>
+            SLV_DATA_OUT <= testoutro;
             SLV_ACK_OUT <= '1';
           when others =>
             SLV_UNKNOWN_ADDR_OUT <= '1';
@@ -259,7 +263,7 @@ begin
       endofevent   <= '0';
     elsif(clk'event and clk = '1') then
       testoutro      <= (others => '0');
-      testoutro(124) <= priout;
+      testoutro(31) <= priout;
 
       case state is
         when reset =>
