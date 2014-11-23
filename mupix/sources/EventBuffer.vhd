@@ -46,7 +46,6 @@ end eventbuffer;
 
 architecture behavioral of eventbuffer is
 
-  constant fifo_depth : integer := 12;
   
   --response to fee
   signal fee_data_int : std_logic_vector(31 downto 0) := (others => '0');
@@ -55,15 +54,15 @@ architecture behavioral of eventbuffer is
   signal fee_data_write_f : std_logic := '0';
   
   --fifo signals
-  signal fifo_reset       : std_logic := '0';
+  signal fifo_reset       : std_logic;
   signal fifo_full        : std_logic;
   signal fifo_empty       : std_logic;
-  signal fifo_write       : std_logic := '0';
-  signal fifo_status      : std_logic_vector(31 downto 0) := (others => '0');
-  signal fifo_write_ctr   : std_logic_vector(fifo_depth - 1 downto 0) := (others => '0');
-  signal fifo_data_in     : std_logic_vector(31 downto 0) := (others => '0');
-  signal fifo_data_out    : std_logic_vector(31 downto 0) := (others => '0');
-  signal fifo_read_enable : std_logic := '0';
+  signal fifo_write       : std_logic;
+  signal fifo_status      : std_logic_vector(31 downto 0) ;
+  signal fifo_write_ctr   : std_logic_vector(11 downto 0) ;
+  signal fifo_data_in     : std_logic_vector(31 downto 0) ;
+  signal fifo_data_out    : std_logic_vector(31 downto 0) ;
+  signal fifo_read_enable : std_logic;
 
   --fifo readout via slv_bus
   type   fifo_read_s_states is (idle, wait1, wait2, done);
@@ -82,38 +81,31 @@ architecture behavioral of eventbuffer is
   signal fifo_read_f : std_logic := '0';
   signal fifo_read_busy_f : std_logic := '0';
 
-  component fifo is
-    generic (
-      addr_wd : integer;
-      word_wd : integer);
-    port (
-      Din     : in  std_logic_vector (word_wd - 1 downto 0);
-      Wr      : in  std_logic;
-      Dout    : out std_logic_vector (word_wd - 1 downto 0);
-      Rd      : in  std_logic;
-      Empty   : out std_logic;
-      Full    : out std_logic;
-      WrCnt_o : out std_logic_vector(addr_wd - 1 downto 0);
-      Reset   : in  std_logic;
-      CLK     : in  std_logic);
-  end component fifo;
+  component fifo_32x2k
+    port (Data: in  std_logic_vector(31 downto 0);
+        Clock: in  std_logic;
+        WrEn: in  std_logic;
+        RdEn: in  std_logic;
+        Reset: in  std_logic;
+        Q: out  std_logic_vector(31 downto 0);
+        WCNT: out  std_logic_vector(11 downto 0);
+        Empty: out  std_logic;
+        Full: out  std_logic);
+  end component;
 
 begin  -- behavioral
 
-  fifo_1: entity work.fifo
-    generic map (
-      addr_wd => fifo_depth,
-      word_wd => 32)
+  fifo_1:  fifo_32x2k
     port map (
-      Din     => fifo_data_in,
-      Wr      => fifo_write,
-      Dout    => fifo_data_out,
-      Rd      => fifo_read_enable,
-      Empty   => fifo_empty,
-      Full    => fifo_full,
-      WrCnt_o => fifo_write_ctr,
-      Reset   => fifo_reset,
-      CLK     => clk);
+      Data => fifo_data_in,
+      Clock => clk,
+      WrEn => fifo_write,
+      RdEn => fifo_read_enable,
+      Reset => fifo_reset,
+      Q => fifo_data_out,
+      WCNT => fifo_write_ctr,
+      Empty => fifo_empty,
+      Full => fifo_full);
   
   fifo_read_enable <= fifo_read_s or fifo_read_f;
   fifo_reset <= clear_buffer_in or slv_fifo_reset;
@@ -238,8 +230,8 @@ begin  -- behavioral
   ----------------------------------------------------------------------------- 
 
   fifo_status(1 downto 0)   <= fifo_empty & fifo_full;
-  fifo_status((fifo_depth - 1) + 2 downto 2)  <= fifo_write_ctr;
-  fifo_status(31 downto fifo_depth + 2) <= (others => '0');
+  fifo_status(11 + 2 downto 2)  <= fifo_write_ctr;
+  fifo_status(31 downto 12 + 2) <= (others => '0');
   
   slv_bus_handler : process(clk)
   begin
@@ -280,7 +272,7 @@ begin  -- behavioral
             slv_data_out <= fifo_status;
             slv_ack_out  <= '1';
           when x"0301" =>
-            slv_data_out(fifo_depth - 1 downto 0) <= fifo_write_ctr;
+            slv_data_out(11 downto 0) <= fifo_write_ctr;
             slv_ack_out               <= '1';
           when x"0302" =>
             fifo_start_read <= '1';
