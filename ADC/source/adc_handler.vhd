@@ -259,7 +259,7 @@ PROC_BUS : process begin
     elsif BUS_RX.addr >= x"0030" and BUS_RX.addr <= x"003b" then      
       BUS_TX.ack  <= '1';
       BUS_TX.data <= adc_debug(to_integer(unsigned(BUS_RX.addr(3 downto 0)))*32+31 downto to_integer(unsigned(BUS_RX.addr(3 downto 0)))*32);
-    elsif BUS_RX.addr >= x"0800" and BUS_RX.addr <= x"08bf" and BUS_RX.addr(5 downto 0) < std_logic_vector(to_unsigned(DEVICES*CHANNELS,6)) then
+    elsif BUS_RX.addr >= x"0800" and BUS_RX.addr <= x"08ff" and BUS_RX.addr(5 downto 0) < std_logic_vector(to_unsigned(DEVICES*CHANNELS,6)) then
       buffer_device <= to_integer(unsigned(BUS_RX.addr(5 downto 2)));
       buffer_addr   <= '0' & BUS_RX.addr(7 downto 6) & BUS_RX.addr(1 downto 0);
       buffer_read(to_integer(unsigned(BUS_RX.addr(5 downto 2))))   <= '1';
