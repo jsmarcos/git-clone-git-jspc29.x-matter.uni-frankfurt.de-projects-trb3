@@ -39,7 +39,6 @@ attribute syn_hier     : string;
 attribute syn_ramstyle : string;
 attribute syn_keep     : boolean;
 attribute syn_preserve : boolean;
-
 attribute syn_hier of adc_processor_arch : architecture is "hard";
 
 type ram_t          is array (0 to 1023)       of unsigned(17 downto 0);

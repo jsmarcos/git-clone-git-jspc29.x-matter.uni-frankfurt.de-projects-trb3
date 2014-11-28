@@ -33,7 +33,8 @@ end entity;
 architecture adc_handler_arch of adc_handler is
 attribute syn_keep     : boolean;
 attribute syn_preserve : boolean;
-
+attribute syn_hier     : string;
+attribute syn_hier of adc_handler_arch : architecture is "hard";
 
 signal adc_data_out  : std_logic_vector(DEVICES*CHANNELS*RESOLUTION-1 downto 0);
 signal adc_fco_out   : std_logic_vector(DEVICES*RESOLUTION-1 downto 0);
