@@ -936,14 +936,19 @@ begin
 
   -- For single edge measurements
   gen_single : if USE_DOUBLE_EDGE = 0 generate
-    hit_in_i <= INP;
+    hit_in_i(8 downto 1)  <= INP(7 downto 0);
+    hit_in_i(24 downto 9) <= not INP(23 downto 8);
   end generate;
 
   -- For ToT Measurements
   gen_double : if USE_DOUBLE_EDGE = 1 generate
-    Gen_Hit_In_Signals : for i in 1 to 24 generate
+    Gen_Hit_In_Signals : for i in 1 to 8 generate
       hit_in_i(i*2-1) <= INP(i-1);
       hit_in_i(i*2)   <= not INP(i-1);
+    end generate Gen_Hit_In_Signals;
+    Gen_Hit_In_Signals : for i in 9 to 24 generate
+      hit_in_i(i*2-1) <= not INP(i-1);
+      hit_in_i(i*2)   <= INP(i-1);
     end generate Gen_Hit_In_Signals;
   end generate;
 

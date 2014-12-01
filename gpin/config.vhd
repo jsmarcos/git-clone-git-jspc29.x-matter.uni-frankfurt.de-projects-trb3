@@ -18,7 +18,7 @@ package config is
                                                                     --ring buffer size: 32,64,96,128
 
 --Include SPI on AddOn connector
-  constant INCLUDE_SPI : integer := c_NO;  --there is no spi connector on the addon
+  constant INCLUDE_SPI : integer := c_YES;  --there is no spi connector on the addon
 
 --Add logic to generate configurable trigger signal from input signals.
   constant INCLUDE_TRIGGER_LOGIC     : integer    := c_YES;
