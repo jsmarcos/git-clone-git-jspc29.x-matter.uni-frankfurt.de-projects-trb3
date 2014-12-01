@@ -63,20 +63,45 @@ signal control    : std_logic_vector(63 downto 0);
 begin
 
 clock <= not clock after 5 ns;
+-- 
+-- config.buffer_depth      <= to_unsigned(100 ,11);
+-- config.samples_after     <= to_unsigned(20  ,11);
+-- config.block_count       <= to_unsigned(3   , 2); 
+-- config.trigger_threshold <= to_unsigned(70  ,18);
+-- config.readout_threshold <= to_unsigned(70  ,18);
+-- config.presum            <= to_unsigned(0   , 8);           
+-- config.averaging         <= to_unsigned(5   , 4);
+-- config.block_avg(0)      <= to_unsigned(1   , 8);
+-- config.block_avg(1)      <= to_unsigned(2   , 8);
+-- config.block_avg(2)      <= to_unsigned(4   , 8);
+-- config.block_avg(3)      <= to_unsigned(1   , 8);
+-- config.block_sums(0)     <= to_unsigned(4   , 8);       
+-- config.block_sums(1)     <= to_unsigned(4   , 8);       
+-- config.block_sums(2)     <= to_unsigned(4   , 8);       
+-- config.block_sums(3)     <= to_unsigned(2   , 8);       
+-- config.block_scale(0)    <= to_unsigned(0   , 8);      
+-- config.block_scale(1)    <= to_unsigned(0   , 8);      
+-- config.block_scale(2)    <= to_unsigned(0   , 8);      
+-- config.block_scale(3)    <= to_unsigned(0   , 8); 
+-- config.baseline_reset_value <= to_unsigned(1023*32, 32);
 
-config.buffer_depth      <= to_unsigned(100 ,11);
-config.samples_after     <= to_unsigned(20  ,11);
-config.block_count       <= to_unsigned(3   , 2); 
-config.trigger_threshold <= to_unsigned(70  ,18);
-config.readout_threshold <= to_unsigned(70  ,18);
+config.trigger_enable    <= x"0000_0000_0000", x"ffff_ffff_fff1" after 5 us;
+config.baseline_always_on <= '0'; --'1', '0' after 10 us;
+
+
+config.buffer_depth      <= to_unsigned(24 ,11);
+config.samples_after     <= to_unsigned(8  ,11);
+config.block_count       <= to_unsigned(2   , 2); 
+config.trigger_threshold <= to_unsigned(40  ,18);
+config.readout_threshold <= to_unsigned(40  ,18);
 config.presum            <= to_unsigned(0   , 8);           
-config.averaging         <= to_unsigned(5   , 4);
+config.averaging         <= to_unsigned(8   , 4);
 config.block_avg(0)      <= to_unsigned(1   , 8);
-config.block_avg(1)      <= to_unsigned(2   , 8);
-config.block_avg(2)      <= to_unsigned(4   , 8);
+config.block_avg(1)      <= to_unsigned(1   , 8);
+config.block_avg(2)      <= to_unsigned(1   , 8);
 config.block_avg(3)      <= to_unsigned(1   , 8);
-config.block_sums(0)     <= to_unsigned(4   , 8);       
-config.block_sums(1)     <= to_unsigned(4   , 8);       
+config.block_sums(0)     <= to_unsigned(15   , 8);       
+config.block_sums(1)     <= to_unsigned(7   , 8);       
 config.block_sums(2)     <= to_unsigned(4   , 8);       
 config.block_sums(3)     <= to_unsigned(2   , 8);       
 config.block_scale(0)    <= to_unsigned(0   , 8);      
@@ -84,9 +109,6 @@ config.block_scale(1)    <= to_unsigned(0   , 8);
 config.block_scale(2)    <= to_unsigned(0   , 8);      
 config.block_scale(3)    <= to_unsigned(0   , 8); 
 config.baseline_reset_value <= to_unsigned(1023*32, 32);
-
-config.trigger_enable    <= x"0000_0000_0000", x"ffff_ffff_fff1" after 5 us;
-config.baseline_always_on <= '0'; --'1', '0' after 10 us;
 
 
 readout_rx.valid_notiming_trg <= '0';
