@@ -11,14 +11,14 @@ package config is
 
 --TDC settings
   constant NUM_TDC_MODULES         : integer range 1 to 4  := 1;  -- number of tdc modules to implement
-  constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 33;  -- number of tdc channels per module
+  constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 49;  -- number of tdc channels per module
   constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6  := 5;  --the nearest power of two, for convenience reasons 
-  constant DOUBLE_EDGE_TYPE        : integer range 0 to 3  := 2;  --double edge type:  0, 1, 2,  3
+  constant DOUBLE_EDGE_TYPE        : integer range 0 to 3  := 3;  --double edge type:  0, 1, 2,  3
   -- 0: single edge only,
   -- 1: same channel,
   -- 2: alternating channels,
   -- 3: same channel with stretcher
-  constant RING_BUFFER_SIZE        : integer range 0 to 7  := 3;  --ring buffer size:  0, 1, 2,  3
+  constant RING_BUFFER_SIZE        : integer range 0 to 7  := 1;  --ring buffer size:  0, 1, 2,  3
                                                                   --ring buffer size: 32,64,96,128
 
 --Include SPI on AddOn connector
@@ -27,7 +27,7 @@ package config is
 --Add logic to generate configurable trigger signal from input signals.
   constant INCLUDE_TRIGGER_LOGIC : integer := c_YES;
   constant INCLUDE_STATISTICS    : integer := c_YES;  --Do histos of all inputs
-  constant PHYSICAL_INPUTS       : integer := 16;  --number of inputs connected
+  constant PHYSICAL_INPUTS       : integer := 24;  --number of inputs connected
   constant USE_SINGLE_FIFO       : integer := c_YES;  -- single fifo for statistics
   
 --Run wih 125 MHz instead of 100 MHz, use received clock from serdes or external clock input
