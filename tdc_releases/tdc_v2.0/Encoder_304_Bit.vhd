@@ -4,7 +4,7 @@
 -- File       : Encoder_304_Bit.vhd
 -- Author     : Cahit Ugur
 -- Created    : 2011-11-28
--- Last update: 2014-06-24
+-- Last update: 2014-10-22
 -------------------------------------------------------------------------------
 -- Description: Encoder for 304 bits
 -------------------------------------------------------------------------------
@@ -168,7 +168,7 @@ begin
     end if;
   end process Interval_Selection;
 
-  ROM_Encoder_1 : ROM_encoder_3
+  The_ROM : entity work.ROM_encoder_3
     port map (
       Address    => address_i,
       OutClock   => CLK,

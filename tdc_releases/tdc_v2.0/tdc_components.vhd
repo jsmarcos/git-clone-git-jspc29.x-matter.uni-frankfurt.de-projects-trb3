@@ -5,9 +5,9 @@ library work;
 use work.trb_net_std.all;
 
 package tdc_components is
+  
   component TDC is
     generic (
-      MODULE_NUMBER  : integer range 1 to 4;
       CHANNEL_NUMBER : integer range 2 to 65;
       STATUS_REG_NR  : integer range 0 to 31;
       CONTROL_REG_NR : integer range 0 to 6;
@@ -19,7 +19,7 @@ package tdc_components is
       CLK_TDC               : in  std_logic;
       CLK_READOUT           : in  std_logic;
       REFERENCE_TIME        : in  std_logic;
-      HIT_IN                : in  std_logic_vector(CHANNEL_NUMBER downto 1);
+      HIT_IN                : in  std_logic_vector(CHANNEL_NUMBER-1 downto 1);
       HIT_CALIBRATION       : in  std_logic;
       TRG_WIN_PRE           : in  std_logic_vector(10 downto 0);
       TRG_WIN_POST          : in  std_logic_vector(10 downto 0);
@@ -35,11 +35,11 @@ package tdc_components is
       TRG_CODE_IN           : in  std_logic_vector(7 downto 0)  := (others => '0');
       TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0) := (others => '0');
       TRG_TYPE_IN           : in  std_logic_vector(3 downto 0)  := (others => '0');
-      TRG_RELEASE_OUT       : out std_logic_vector(MODULE_NUMBER downto 0);
-      TRG_STATUSBIT_OUT     : out std_logic_vector_array_32(0 to MODULE_NUMBER);
-      DATA_OUT              : out std_logic_vector_array_32(0 to MODULE_NUMBER);
-      DATA_WRITE_OUT        : out std_logic_vector(MODULE_NUMBER downto 0);
-      DATA_FINISHED_OUT     : out std_logic_vector(MODULE_NUMBER downto 0);
+      TRG_RELEASE_OUT       : out std_logic;
+      TRG_STATUSBIT_OUT     : out std_logic_vector(31 downto 0);
+      DATA_OUT              : out std_logic_vector(31 downto 0);
+      DATA_WRITE_OUT        : out std_logic;
+      DATA_FINISHED_OUT     : out std_logic;
       HCB_READ_EN_IN        : in  std_logic;
       HCB_WRITE_EN_IN       : in  std_logic;
       HCB_ADDR_IN           : in  std_logic_vector(6 downto 0);
@@ -70,12 +70,6 @@ package tdc_components is
       EFB_DATA_OUT          : out std_logic_vector(31 downto 0);
       EFB_DATAREADY_OUT     : out std_logic;
       EFB_UNKNOWN_ADDR_OUT  : out std_logic;
-      FWB_READ_EN_IN        : in  std_logic;  -- not used after version 1.3
-      FWB_WRITE_EN_IN       : in  std_logic;  -- not used after version 1.3
-      FWB_ADDR_IN           : in  std_logic_vector(6 downto 0);  -- not used after version 1.3
-      FWB_DATA_OUT          : out std_logic_vector(31 downto 0);  -- not used after version 1.3
-      FWB_DATAREADY_OUT     : out std_logic;  -- not used after version 1.3
-      FWB_UNKNOWN_ADDR_OUT  : out std_logic;  -- not used after version 1.3
       LHB_READ_EN_IN        : in  std_logic;
       LHB_WRITE_EN_IN       : in  std_logic;
       LHB_ADDR_IN           : in  std_logic_vector(6 downto 0);
@@ -124,7 +118,7 @@ package tdc_components is
       Channel_DEBUG           : out std_logic_vector(31 downto 0));
   end component;
 
-  component Channel_200
+  component Channel_200 is
     generic (
       CHANNEL_ID : integer range 0 to 64;
       DEBUG      : integer range 0 to 1;
@@ -152,8 +146,8 @@ package tdc_components is
       ENCODER_START_OUT     : out std_logic;
       ENCODER_FINISHED_OUT  : out std_logic;
       FIFO_WRITE_OUT        : out std_logic;
-      Channel_200_DEBUG     : out std_logic_vector(31 downto 0));
-  end component;
+      CHANNEL_200_DEBUG     : out std_logic_vector(31 downto 0)); 
+  end component Channel_200;
 
   component Readout_Header is
     port (
@@ -170,10 +164,9 @@ package tdc_components is
       DATA_WRITE_OUT        : out std_logic;
       DATA_FINISHED_OUT     : out std_logic);
   end component Readout_Header;
-  
+
   component Readout is
     generic (
-      MODULE_NUMBER  : integer range 1 to 4;
       CHANNEL_NUMBER : integer range 2 to 65;
       STATUS_REG_NR  : integer range 0 to 31;
       TDC_VERSION    : std_logic_vector(11 downto 0));
@@ -183,7 +176,7 @@ package tdc_components is
       RESET_COUNTERS           : in  std_logic;
       CLK_100                  : in  std_logic;
       CLK_200                  : in  std_logic;
-      CH_DATA_IN               : in  std_logic_vector_array_36(0 to CHANNEL_NUMBER-1);
+      CH_DATA_IN               : in  std_logic_vector_array_36(0 to CHANNEL_NUMBER);
       CH_DATA_VALID_IN         : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
       CH_EMPTY_IN              : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
       CH_FULL_IN               : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
@@ -212,17 +205,15 @@ package tdc_components is
       TRIGGER_WIN_EN_IN        : in  std_logic;
       TRIG_WIN_END_TDC_IN      : in  std_logic;
       TRIG_WIN_END_RDO_IN      : in  std_logic;
-      TRIG_TIME_IN             : in  std_logic_vector(38 downto 0);
       TRIGGER_TDC_IN           : in  std_logic;
+      TRIG_TIME_IN             : in  std_logic_vector(38 downto 0);
       COARSE_COUNTER_IN        : in  std_logic_vector(10 downto 0);
       EPOCH_COUNTER_IN         : in  std_logic_vector(27 downto 0);
       DEBUG_MODE_EN_IN         : in  std_logic;
       STATUS_REGISTERS_BUS_OUT : out std_logic_vector_array_32(0 to STATUS_REG_NR-1);
       READOUT_DEBUG            : out std_logic_vector(31 downto 0);
-      REFERENCE_TIME           : in  std_logic
-      );
+      REFERENCE_TIME           : in  std_logic); 
   end component Readout;
-
 
   component TriggerHandler is
     generic (
@@ -283,11 +274,32 @@ package tdc_components is
   end component;
 
   component Stretcher is
+    generic (
+      CHANNEL : integer range 1 to 64;
+      DEPTH   : integer range 1 to 10);
     port (
-      PULSE_IN  : in  std_logic;
-      PULSE_OUT : out std_logic);
+      PULSE_IN  : in  std_logic_vector(CHANNEL-1 downto 0);
+      PULSE_OUT : out std_logic_vector(CHANNEL-1 downto 0));
   end component Stretcher;
-  
+
+  component Stretcher_A is
+    generic (
+      CHANNEL : integer range 1 to 64;
+      DEPTH   : integer range 1 to 10);
+    port (
+      PULSE_IN  : in  std_logic_vector(CHANNEL*DEPTH downto 1);
+      PULSE_OUT : out std_logic_vector(CHANNEL*DEPTH-1 downto 0));
+  end component Stretcher_A;
+
+  component Stretcher_B is
+    generic (
+      CHANNEL : integer range 1 to 64;
+      DEPTH   : integer range 1 to 10);
+    port (
+      PULSE_IN  : in  std_logic_vector(CHANNEL*DEPTH-1 downto 1);
+      PULSE_OUT : out std_logic_vector(CHANNEL*DEPTH-1 downto 1));
+  end component Stretcher_B;
+
   component up_counter
     generic (
       NUMBER_OF_BITS : positive); 
@@ -348,4 +360,4 @@ package tdc_components is
   end component ROM4_Encoder;
 
 
-end package;
+end package tdc_components;

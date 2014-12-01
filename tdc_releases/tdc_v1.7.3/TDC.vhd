@@ -598,7 +598,7 @@ begin
       if reset_tdc = '1' then
         coarse_cntr_reset <= '1';
       elsif run_mode_200 = '0' then
-        coarse_cntr_reset <= trig_win_end_tdc_i(32);
+        coarse_cntr_reset <= trig_win_end_tdc_i(1);
       elsif run_mode_edge_200 = '1' then
         coarse_cntr_reset <= '1';
       elsif reset_coarse_cntr_flag = '1' and valid_trigger_tdc = '1' then

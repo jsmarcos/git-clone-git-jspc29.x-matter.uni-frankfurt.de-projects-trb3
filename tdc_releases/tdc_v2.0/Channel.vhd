@@ -294,7 +294,7 @@ begin
           end if;
         end if;
       --elsif encoder_start_100 = '1' then
-      --  encoder_start_cntr <= encoder_start_cntr + to_unsigned(1, 16);
+      --  encoder_start_cntr <= encoder_start_cntr + to_unsigned(1, 24);
       --end if;
       end if;
     end process Encoder_Start_Counter;

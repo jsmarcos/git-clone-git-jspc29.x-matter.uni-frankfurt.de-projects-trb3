@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2014-08-06
+-- Last update: 2014-10-22
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -20,10 +20,10 @@ library work;
 use work.trb_net_std.all;
 use work.trb_net_components.all;
 use work.trb3_components.all;
+use work.tdc_components.all;
 
 entity Readout is
   generic (
-    MODULE_NUMBER  : integer range 1 to 4;
     CHANNEL_NUMBER : integer range 2 to 65;
     STATUS_REG_NR  : integer range 0 to 31;
     TDC_VERSION    : std_logic_vector(11 downto 0)); 
@@ -34,7 +34,7 @@ entity Readout is
     CLK_100                  : in  std_logic;
     CLK_200                  : in  std_logic;
 -- from the channels
-    CH_DATA_IN               : in  std_logic_vector_array_36(0 to CHANNEL_NUMBER-1);
+    CH_DATA_IN               : in  std_logic_vector_array_36(0 to CHANNEL_NUMBER);
     CH_DATA_VALID_IN         : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
     CH_EMPTY_IN              : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
     CH_FULL_IN               : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
@@ -133,10 +133,10 @@ architecture behavioral of Readout is
   signal trig_win_end_100_3reg     : std_logic;
   signal trig_win_end_100_4reg     : std_logic;
   -- channel signals
-  signal ch_data_reg               : std_logic_vector_array_36(0 to CHANNEL_NUMBER-1);
-  signal ch_data_2reg              : std_logic_vector_array_36(0 to CHANNEL_NUMBER-1);
-  signal ch_data_3reg              : std_logic_vector_array_36(0 to CHANNEL_NUMBER-1);
---  signal ch_data_4reg    : std_logic_vector_array_36(0 to CHANNEL_NUMBER-1);
+  signal ch_data_reg               : std_logic_vector_array_36(0 to CHANNEL_NUMBER);
+  signal ch_data_2reg              : std_logic_vector_array_36(0 to CHANNEL_NUMBER);
+  signal ch_data_3reg              : std_logic_vector_array_36(0 to CHANNEL_NUMBER);
+--  signal ch_data_4reg    : std_logic_vector_array_36(0 to CHANNEL_NUMBER);
   signal ch_data_4reg              : std_logic_vector(31 downto 0);
   signal ch_empty_reg              : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
   signal ch_empty_2reg             : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
@@ -163,6 +163,7 @@ architecture behavioral of Readout is
   signal data_finished_fsm       : std_logic;
   signal wr_finished_fsm         : std_logic;
   signal trig_release_fsm        : std_logic;
+  signal wr_header_fsm           : std_logic;
   signal wr_trailer_fsm          : std_logic;
   signal wr_ch_data_fsm          : std_logic;
   signal wr_status_fsm           : std_logic;
@@ -180,7 +181,7 @@ architecture behavioral of Readout is
   signal wait_fsm                : std_logic;
   -- fifo number
   type Std_Logic_8_array is array (0 to 8) of std_logic_vector(3 downto 0);
-  signal empty_channels          : std_logic_vector(CHANNEL_NUMBER downto 0);
+  signal empty_channels          : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
   signal fifo_nr_rd              : integer range 0 to CHANNEL_NUMBER := 0;
   signal fifo_nr_wr              : integer range 0 to CHANNEL_NUMBER := 0;
   signal fifo_nr_wr_reg          : integer range 0 to CHANNEL_NUMBER := 0;
@@ -190,6 +191,7 @@ architecture behavioral of Readout is
   signal rd_en                   : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
   -- data mux
   signal start_write             : std_logic                         := '0';
+  signal wr_header               : std_logic;
   signal wr_ch_data_i            : std_logic;
   signal wr_ch_data_reg          : std_logic;
   signal wr_status               : std_logic;
@@ -354,6 +356,7 @@ begin  -- behavioral
       else
         RD_CURRENT                <= RD_NEXT;
         rd_en                     <= rd_en_fsm;
+        wr_header                 <= wr_header_fsm;
         wr_trailer                <= wr_trailer_fsm;
         wr_status                 <= wr_status_fsm;
         data_finished             <= data_finished_fsm;
@@ -381,6 +384,7 @@ begin  -- behavioral
   begin
 
     rd_en_fsm           <= (others => '0');
+    wr_header_fsm       <= '0';
     wr_trailer_fsm      <= '0';
     data_finished_fsm   <= '0';
     trig_release_fsm    <= '0';
@@ -399,19 +403,22 @@ begin  -- behavioral
       when IDLE =>
         if VALID_TIMING_TRG_IN = '1' then  -- physical trigger
           RD_NEXT       <= WAIT_FOR_TRIG_WIND_END;
+          wr_header_fsm <= '1';
           readout_fsm   <= '1';
         elsif VALID_NOTIMING_TRG_IN = '1' then
           if TRG_TYPE_IN = x"E" then       -- status trigger
+            wr_header_fsm <= '1';
             RD_NEXT       <= SEND_STATUS;
           elsif TRG_TYPE_IN = x"D" then    -- tdc calibration trigger
             RD_NEXT       <= WAIT_FOR_BUFFER_TRANSFER;
+            wr_header_fsm <= '1';
             readout_fsm   <= '1';
           else                             -- the other triggers
-            RD_NEXT           <= SEND_TRIG_RELEASE_C;
+            RD_NEXT           <= SEND_TRIG_RELEASE_A;
             data_finished_fsm <= '1';
           end if;
         elsif INVALID_TRG_IN = '1' then    -- invalid trigger
-          RD_NEXT           <= SEND_TRIG_RELEASE_C;
+          RD_NEXT           <= SEND_TRIG_RELEASE_A;
           data_finished_fsm <= '1';
         end if;
         idle_fsm         <= '1';
@@ -460,7 +467,7 @@ begin  -- behavioral
         if TRG_DATA_VALID_IN = '1' then
           RD_NEXT <= WAIT_FOR_LVL1_TRIG_B;
         elsif TMGTRG_TIMEOUT_IN = '1' then
-          RD_NEXT           <= SEND_TRIG_RELEASE_C;
+          RD_NEXT           <= SEND_TRIG_RELEASE_A;
           data_finished_fsm <= '1';
         end if;
         wait_fsm         <= '1';
@@ -489,7 +496,7 @@ begin  -- behavioral
           if DEBUG_MODE_EN_IN = '1' then
             RD_NEXT <= WAIT_FOR_LVL1_TRIG_A;
           else
-            RD_NEXT           <= SEND_TRIG_RELEASE_C;
+            RD_NEXT           <= SEND_TRIG_RELEASE_A;
             data_finished_fsm <= '1';
           end if;
         else
@@ -657,7 +664,10 @@ begin  -- behavioral
     variable i : integer := 0;
   begin
     if rising_edge(CLK_100) then
-      if wr_ch_data_reg = '1' then
+      if wr_header = '1' then
+        data_out_reg  <= "001" & "0" & TRG_TYPE_IN & TRG_CODE_IN & header_error_bits;
+        stop_status_i <= '0';
+      elsif wr_ch_data_reg = '1' then
         data_out_reg  <= ch_data_4reg;
         stop_status_i <= '0';
       elsif wr_status = '1' then
@@ -692,7 +702,7 @@ begin  -- behavioral
     end if;
   end process Data_Out_MUX;
 
-  wr_info  <= wr_status                           when rising_edge(CLK_100);
+  wr_info  <= wr_header or wr_status              when rising_edge(CLK_100);
   wr_time  <= wr_ch_data_reg and ch_data_4reg(31) when rising_edge(CLK_100);
   wr_epoch <= wr_ch_data_reg and not data_out_reg(31) and data_out_reg(30) and data_out_reg(29) and ch_data_4reg(31);
 
@@ -964,7 +974,7 @@ begin  -- behavioral
 -------------------------------------------------------------------------------
   STATUS_REGISTERS_BUS_OUT(0)(3 downto 0)   <= rd_fsm_debug;
   STATUS_REGISTERS_BUS_OUT(0)(7 downto 4)   <= wr_fsm_debug;
-  STATUS_REGISTERS_BUS_OUT(0)(15 downto 8)  <= std_logic_vector(to_unsigned(MODULE_NUMBER*(CHANNEL_NUMBER-1), 8));
+  STATUS_REGISTERS_BUS_OUT(0)(15 downto 8)  <= std_logic_vector(to_unsigned(CHANNEL_NUMBER-1, 8));
   STATUS_REGISTERS_BUS_OUT(0)(16)           <= REFERENCE_TIME when rising_edge(CLK_100);
   STATUS_REGISTERS_BUS_OUT(0)(27 downto 17) <= TDC_VERSION(10 downto 0);
   STATUS_REGISTERS_BUS_OUT(0)(31 downto 28) <= TRG_TYPE_IN    when rising_edge(CLK_100);

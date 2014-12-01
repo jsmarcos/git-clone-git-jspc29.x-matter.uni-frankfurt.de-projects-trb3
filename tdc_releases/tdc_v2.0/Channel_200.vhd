@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2014-08-28
+-- Last update: 2014-12-01
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -67,11 +67,12 @@ architecture Channel_200 of Channel_200 is
   signal ff_array_en_i : std_logic;
 
   -- hit detection
-  signal result_2_reg    : std_logic := '0';
-  signal hit_detect_i    : std_logic := '0';
-  signal hit_detect_reg  : std_logic;
-  signal hit_detect_2reg : std_logic;
-  signal edge_type_i     : std_logic;
+  signal result_2_reg        : std_logic := '0';
+  signal hit_detect_i        : std_logic := '0';
+  signal hit_detect_reg      : std_logic;
+  signal hit_detect_2reg     : std_logic;
+  signal edge_type_i         : std_logic := '1';
+  signal rising_edge_written : std_logic := '0';
 
   -- time stamp
   signal time_stamp_i              : std_logic_vector(10 downto 0);
@@ -144,10 +145,10 @@ architecture Channel_200 of Channel_200 is
 
   -----------------------------------------------------------------------------
   -- debug
-  signal data_cnt_total      : integer range 0 to 2147483647 := 0;
-  signal data_cnt_event      : integer range 0 to 255        := 0;
-  signal epoch_cnt_total     : integer range 0 to 65535      := 0;
-  signal epoch_cnt_event     : integer range 0 to 127        := 0;
+  signal data_cnt_total  : integer range 0 to 2147483647 := 0;
+  signal data_cnt_event  : integer range 0 to 255        := 0;
+  signal epoch_cnt_total : integer range 0 to 65535      := 0;
+  signal epoch_cnt_event : integer range 0 to 127        := 0;
   -----------------------------------------------------------------------------
 
   attribute syn_keep                  : boolean;
@@ -193,23 +194,35 @@ begin  -- Channel_200
   hit_detect_2reg   <= hit_detect_reg    when rising_edge(CLK_200);
   coarse_cntr_reg   <= COARSE_COUNTER_IN when rising_edge(CLK_200);
   encoder_start_i   <= hit_detect_reg;
---  encoder_start_i   <= hit_detect_2reg;
   ENCODER_START_OUT <= encoder_start_i;
 
-  EdgeTypeCapture: process (CLK_200) is
-  begin  -- process EdgeTypeCapture
-    if rising_edge(CLK_200) then
-      if encoder_start_i = '1' then
-        edge_type_i <= HIT_EDGE_IN;
+  isReferenceEdge : if REFERENCE = c_YES generate
+    edge_type_i <= '1';
+  end generate isReferenceEdge;
+
+  isChannelEdge : if REFERENCE = c_NO generate
+    EdgeTypeCapture : process (CLK_200) is
+    begin  -- process EdgeTypeCapture
+      if rising_edge(CLK_200) then
+        if write_data_i = '1' and edge_type_i = '1' then
+          rising_edge_written <= '1';
+        elsif write_data_i = '1' and edge_type_i = '0' then
+          rising_edge_written <= '0';
+        end if;
+        if HIT_EDGE_IN = '1' and edge_type_i = '0' then
+          edge_type_i <= '1';
+        elsif rising_edge_written = '1' then
+          edge_type_i <= '0';
+        end if;
       end if;
-    end if;
-  end process EdgeTypeCapture;
+    end process EdgeTypeCapture;
+  end generate isChannelEdge;
 
   TimeStampCapture : process (CLK_200)
   begin
     if rising_edge(CLK_200) then
       if hit_detect_reg = '1' then
-        time_stamp_i    <= coarse_cntr_reg;
+        time_stamp_i <= coarse_cntr_reg;
       end if;
       time_stamp_reg  <= time_stamp_i;
       time_stamp_2reg <= time_stamp_reg;
@@ -234,36 +247,17 @@ begin  -- Channel_200
   coarse_cntr_overflow_6reg <= coarse_cntr_overflow_5reg when rising_edge(CLK_200);
   coarse_cntr_overflow_7reg <= coarse_cntr_overflow_6reg when rising_edge(CLK_200);
 
-  isChannelEpoch : if REFERENCE = c_NO generate
-    EpochCounterCapture : process (CLK_200)
-    begin
-      if rising_edge(CLK_200) then
-        if coarse_cntr_overflow_7reg = '1' then
-          epoch_cntr         <= EPOCH_COUNTER_IN;
-          epoch_cntr_updated <= '1';
-        elsif write_epoch_i = '1' then
-          epoch_cntr_updated <= '0';
-        end if;
+  EpochCounterCapture : process (CLK_200)
+  begin
+    if rising_edge(CLK_200) then
+      if coarse_cntr_overflow_7reg = '1' then
+        epoch_cntr         <= EPOCH_COUNTER_IN;
+        epoch_cntr_updated <= '1';
+      elsif write_epoch_i = '1' then
+        epoch_cntr_updated <= '0';
       end if;
-    end process EpochCounterCapture;
-  end generate isChannelEpoch;
-
-  isReferenceEpoch : if REFERENCE = c_YES generate
-    EpochCounterCapture : process (CLK_200)
-    begin
-      if rising_edge(CLK_200) then
-        if hit_detect_reg = '1' then
-          epoch_cntr     <= EPOCH_COUNTER_IN;
-          epoch_cntr_reg <= epoch_cntr;
-        end if;
-        if hit_detect_2reg = '1' and epoch_cntr /= epoch_cntr_reg then
-          epoch_cntr_updated <= '1';
-        elsif write_epoch_i = '1' then
-          epoch_cntr_updated <= '0';
-        end if;
-      end if;
-    end process EpochCounterCapture;
-  end generate isReferenceEpoch;
+    end if;
+  end process EpochCounterCapture;
 
   --purpose: Encoder
   Encoder : Encoder_304_Bit
@@ -360,216 +354,110 @@ begin  -- Channel_200
     end if;
   end process FSM_CLK;
 
-  isChannel : if REFERENCE = c_NO generate  -- if it is a normal channel
-    FSM_PROC : process (FSM_WR_CURRENT, encoder_finished_i, epoch_cntr_updated, TRIGGER_WIN_END_TDC,
-                        trig_win_end_tdc_flag_i, write_data_flag_i)
-    begin
+  FSM_PROC : process (FSM_WR_CURRENT, encoder_finished_i, epoch_cntr_updated, TRIGGER_WIN_END_TDC,
+                      trig_win_end_tdc_flag_i, write_data_flag_i)
+  begin
 
-      FSM_WR_NEXT         <= WRITE_EPOCH;
-      write_epoch_fsm     <= '0';
-      write_data_fsm      <= '0';
-      write_stop_a_fsm    <= '0';
-      write_stop_b_fsm    <= '0';
-      write_data_flag_fsm <= write_data_flag_i;
-      fsm_wr_debug_fsm    <= x"0";
+    FSM_WR_NEXT         <= WRITE_EPOCH;
+    write_epoch_fsm     <= '0';
+    write_data_fsm      <= '0';
+    write_stop_a_fsm    <= '0';
+    write_stop_b_fsm    <= '0';
+    write_data_flag_fsm <= write_data_flag_i;
+    fsm_wr_debug_fsm    <= x"0";
 
-      case (FSM_WR_CURRENT) is
-        when WRITE_EPOCH =>
-          if encoder_finished_i = '1' or write_data_flag_i = '1' then
-            write_epoch_fsm     <= '1';
-            write_data_flag_fsm <= '0';
-            FSM_WR_NEXT         <= EXCEPTION;
-          elsif trig_win_end_tdc_flag_i = '1' or TRIGGER_WIN_END_TDC = '1' then
-            FSM_WR_NEXT <= WRITE_STOP_A;
-          else
-            write_epoch_fsm <= '0';
-            FSM_WR_NEXT     <= WRITE_EPOCH;
-          end if;
-          fsm_wr_debug_fsm <= x"1";
+    case (FSM_WR_CURRENT) is
+      when WRITE_EPOCH =>
+        if encoder_finished_i = '1' or write_data_flag_i = '1' then
+          write_epoch_fsm     <= '1';
+          write_data_flag_fsm <= '0';
+          FSM_WR_NEXT         <= EXCEPTION;
+        elsif trig_win_end_tdc_flag_i = '1' or TRIGGER_WIN_END_TDC = '1' then
+          FSM_WR_NEXT <= WRITE_STOP_A;
+        else
+          write_epoch_fsm <= '0';
+          FSM_WR_NEXT     <= WRITE_EPOCH;
+        end if;
+        fsm_wr_debug_fsm <= x"1";
 --
-        when WRITE_DATA =>
-          if epoch_cntr_updated = '1' then
-            write_epoch_fsm <= '1';
-            FSM_WR_NEXT     <= EXCEPTION;
-          else
-            write_data_fsm <= '1';
-            if trig_win_end_tdc_flag_i = '1' or TRIGGER_WIN_END_TDC = '1' then
-              FSM_WR_NEXT <= WRITE_STOP_A;
-            else
-              FSM_WR_NEXT <= WAIT_FOR_HIT;
-            end if;
-          end if;
-          fsm_wr_debug_fsm <= x"2";
---
-        when EXCEPTION =>
+      when WRITE_DATA =>
+        if epoch_cntr_updated = '1' then
+          write_epoch_fsm <= '1';
+          FSM_WR_NEXT     <= EXCEPTION;
+        else
           write_data_fsm <= '1';
           if trig_win_end_tdc_flag_i = '1' or TRIGGER_WIN_END_TDC = '1' then
             FSM_WR_NEXT <= WRITE_STOP_A;
           else
             FSM_WR_NEXT <= WAIT_FOR_HIT;
           end if;
-          fsm_wr_debug_fsm <= x"3";
+        end if;
+        fsm_wr_debug_fsm <= x"2";
 --
-        when WAIT_FOR_HIT =>
-          if epoch_cntr_updated = '1' and encoder_finished_i = '0' then
-            FSM_WR_NEXT <= WRITE_EPOCH;
-          elsif epoch_cntr_updated = '0' and encoder_finished_i = '1' then
-            FSM_WR_NEXT <= WRITE_DATA;
-          elsif epoch_cntr_updated = '1' and encoder_finished_i = '1' then
-            FSM_WR_NEXT <= WRITE_DATA;
-          elsif trig_win_end_tdc_flag_i = '1' or TRIGGER_WIN_END_TDC = '1' then
-            FSM_WR_NEXT <= WRITE_STOP_A;
-          else
-            FSM_WR_NEXT <= WAIT_FOR_HIT;
-          end if;
-          fsm_wr_debug_fsm <= x"4";
+      when EXCEPTION =>
+        write_data_fsm <= '1';
+        if trig_win_end_tdc_flag_i = '1' or TRIGGER_WIN_END_TDC = '1' then
+          FSM_WR_NEXT <= WRITE_STOP_A;
+        else
+          FSM_WR_NEXT <= WAIT_FOR_HIT;
+        end if;
+        fsm_wr_debug_fsm <= x"3";
 --
-        when WRITE_STOP_A =>
-          write_stop_a_fsm <= '1';
-          FSM_WR_NEXT      <= WRITE_STOP_B;
-          if encoder_finished_i = '1' then
-            write_data_flag_fsm <= '1';
-          end if;
-          fsm_wr_debug_fsm <= x"5";
+      when WAIT_FOR_HIT =>
+        if epoch_cntr_updated = '1' and encoder_finished_i = '0' then
+          FSM_WR_NEXT <= WRITE_EPOCH;
+        elsif epoch_cntr_updated = '0' and encoder_finished_i = '1' then
+          FSM_WR_NEXT <= WRITE_DATA;
+        elsif epoch_cntr_updated = '1' and encoder_finished_i = '1' then
+          FSM_WR_NEXT <= WRITE_DATA;
+        elsif trig_win_end_tdc_flag_i = '1' or TRIGGER_WIN_END_TDC = '1' then
+          FSM_WR_NEXT <= WRITE_STOP_A;
+        else
+          FSM_WR_NEXT <= WAIT_FOR_HIT;
+        end if;
+        fsm_wr_debug_fsm <= x"4";
 --
-        when WRITE_STOP_B =>
-          write_stop_a_fsm <= '1';
-          FSM_WR_NEXT      <= WRITE_STOP_C;
-          if encoder_finished_i = '1' then
-            write_data_flag_fsm <= '1';
-          end if;
-          fsm_wr_debug_fsm <= x"5";
+      when WRITE_STOP_A =>
+        write_stop_a_fsm <= '1';
+        FSM_WR_NEXT      <= WRITE_STOP_B;
+        if encoder_finished_i = '1' then
+          write_data_flag_fsm <= '1';
+        end if;
+        fsm_wr_debug_fsm <= x"5";
 --
-        when WRITE_STOP_C =>
-          write_stop_b_fsm <= '1';
-          FSM_WR_NEXT      <= WRITE_STOP_D;
-          if encoder_finished_i = '1' then
-            write_data_flag_fsm <= '1';
-          end if;
-          fsm_wr_debug_fsm <= x"5";
+      when WRITE_STOP_B =>
+        write_stop_a_fsm <= '1';
+        FSM_WR_NEXT      <= WRITE_STOP_C;
+        if encoder_finished_i = '1' then
+          write_data_flag_fsm <= '1';
+        end if;
+        fsm_wr_debug_fsm <= x"5";
 --
-        when WRITE_STOP_D =>
-          write_stop_b_fsm <= '1';
-          FSM_WR_NEXT      <= WRITE_EPOCH;
-          if encoder_finished_i = '1' then
-            write_data_flag_fsm <= '1';
-          end if;
-          fsm_wr_debug_fsm <= x"5";
+      when WRITE_STOP_C =>
+        write_stop_b_fsm <= '1';
+        FSM_WR_NEXT      <= WRITE_STOP_D;
+        if encoder_finished_i = '1' then
+          write_data_flag_fsm <= '1';
+        end if;
+        fsm_wr_debug_fsm <= x"5";
+--
+      when WRITE_STOP_D =>
+        write_stop_b_fsm <= '1';
+        FSM_WR_NEXT      <= WRITE_EPOCH;
+        if encoder_finished_i = '1' then
+          write_data_flag_fsm <= '1';
+        end if;
+        fsm_wr_debug_fsm <= x"5";
 --        
-        when others =>
-          FSM_WR_NEXT      <= WRITE_EPOCH;
-          write_epoch_fsm  <= '0';
-          write_data_fsm   <= '0';
-          write_stop_a_fsm <= '0';
-          write_stop_b_fsm <= '0';
-          fsm_wr_debug_fsm <= x"0";
-      end case;
-    end process FSM_PROC;
-  end generate isChannel;  -- if it is a normal channel
-
-  isReference : if REFERENCE = c_YES generate  -- if it is the reference channel
-    FSM_PROC : process (FSM_WR_CURRENT, encoder_finished_i, epoch_cntr_updated, TRIGGER_WIN_END_TDC,
-                        trig_win_end_tdc_flag_i, VALID_TIMING_TRG_IN, VALID_NOTIMING_TRG_IN,
-                        MULTI_TMG_TRG_IN, SPIKE_DETECTED_IN)
-    begin
-
-      FSM_WR_NEXT      <= WRITE_EPOCH;
-      write_epoch_fsm  <= '0';
-      write_data_fsm   <= '0';
-      write_stop_a_fsm <= '0';
-      write_stop_b_fsm <= '0';
-      fsm_wr_debug_fsm <= x"0";
-
-      case (FSM_WR_CURRENT) is
-        when WRITE_EPOCH =>
-          if encoder_finished_i = '1' then
-            FSM_WR_NEXT <= WAIT_FOR_VALIDITY;
-          elsif trig_win_end_tdc_flag_i = '1' or TRIGGER_WIN_END_TDC = '1' then
-            FSM_WR_NEXT <= WRITE_STOP_A;
-          else
-            write_epoch_fsm <= '0';
-            FSM_WR_NEXT     <= WRITE_EPOCH;
-          end if;
-          fsm_wr_debug_fsm <= x"1";
---
-        when WAIT_FOR_VALIDITY =>
-          if VALID_TIMING_TRG_IN = '1' or VALID_NOTIMING_TRG_IN = '1'then
-            write_epoch_fsm <= '1';
-            FSM_WR_NEXT     <= EXCEPTION;
-          elsif MULTI_TMG_TRG_IN = '1' or SPIKE_DETECTED_IN = '1' then
-            FSM_WR_NEXT <= WRITE_EPOCH;
-          else
-            FSM_WR_NEXT <= WAIT_FOR_VALIDITY;
-          end if;
-          fsm_wr_debug_fsm <= x"6";
---
-        when WRITE_DATA =>
-          if epoch_cntr_updated = '1' then
-            write_epoch_fsm <= '1';
-            FSM_WR_NEXT     <= EXCEPTION;
-          else
-            write_data_fsm <= '1';
-            if trig_win_end_tdc_flag_i = '1' or TRIGGER_WIN_END_TDC = '1' then
-              FSM_WR_NEXT <= WRITE_STOP_A;
-            else
-              FSM_WR_NEXT <= WAIT_FOR_HIT;
-            end if;
-          end if;
-          fsm_wr_debug_fsm <= x"2";
---
-        when EXCEPTION =>
-          write_data_fsm <= '1';
-          if trig_win_end_tdc_flag_i = '1' or TRIGGER_WIN_END_TDC = '1' then
-            FSM_WR_NEXT <= WRITE_STOP_A;
-          else
-            FSM_WR_NEXT <= WAIT_FOR_HIT;
-          end if;
-          fsm_wr_debug_fsm <= x"3";
---
-        when WAIT_FOR_HIT =>
-          if epoch_cntr_updated = '1' and encoder_finished_i = '0' then
-            FSM_WR_NEXT <= WRITE_EPOCH;
-          elsif epoch_cntr_updated = '0' and encoder_finished_i = '1' then
-            FSM_WR_NEXT <= WRITE_DATA;
-          elsif epoch_cntr_updated = '1' and encoder_finished_i = '1' then
-            FSM_WR_NEXT <= WRITE_DATA;
-          elsif trig_win_end_tdc_flag_i = '1' or TRIGGER_WIN_END_TDC = '1' then
-            FSM_WR_NEXT <= WRITE_STOP_A;
-          else
-            FSM_WR_NEXT <= WAIT_FOR_HIT;
-          end if;
-          fsm_wr_debug_fsm <= x"4";
---
-        when WRITE_STOP_A =>
-          write_stop_a_fsm <= '1';
-          FSM_WR_NEXT      <= WRITE_STOP_B;
-          fsm_wr_debug_fsm <= x"5";
---
-        when WRITE_STOP_B =>
-          write_stop_a_fsm <= '1';
-          FSM_WR_NEXT      <= WRITE_STOP_C;
-          fsm_wr_debug_fsm <= x"5";
---
-        when WRITE_STOP_C =>
-          write_stop_b_fsm <= '1';
-          FSM_WR_NEXT      <= WRITE_STOP_D;
-          fsm_wr_debug_fsm <= x"5";
---
-        when WRITE_STOP_D =>
-          write_stop_b_fsm <= '1';
-          FSM_WR_NEXT      <= WRITE_EPOCH;
-          fsm_wr_debug_fsm <= x"5";
---        
-        when others =>
-          FSM_WR_NEXT      <= WRITE_EPOCH;
-          write_epoch_fsm  <= '0';
-          write_data_fsm   <= '0';
-          write_stop_a_fsm <= '0';
-          write_stop_b_fsm <= '0';
-          fsm_wr_debug_fsm <= x"0";
-      end case;
-    end process FSM_PROC;
-  end generate isReference;  -- if it is the reference channel
+      when others =>
+        FSM_WR_NEXT      <= WRITE_EPOCH;
+        write_epoch_fsm  <= '0';
+        write_data_fsm   <= '0';
+        write_stop_a_fsm <= '0';
+        write_stop_b_fsm <= '0';
+        fsm_wr_debug_fsm <= x"0";
+    end case;
+  end process FSM_PROC;
 
   TriggerWindowFlag : process (CLK_200)
   begin
@@ -596,8 +484,8 @@ begin  -- Channel_200
         ringBuffer_wr_en_i                 <= '1';
       elsif write_data_i = '1' then
         ringBuffer_data_in_i(35 downto 32) <= x"1";
-        ringBuffer_data_in_i(31)           <= '1';   -- data marker
-        ringBuffer_data_in_i(30 downto 29) <= "00";  -- reserved bits
+        ringBuffer_data_in_i(31)           <= '1';          -- data marker
+        ringBuffer_data_in_i(30 downto 29) <= "00";         -- reserved bits
         ringBuffer_data_in_i(28 downto 22) <= std_logic_vector(to_unsigned(CHANNEL_ID, 7));  -- channel number
         ringBuffer_data_in_i(21 downto 12) <= encoder_data_out_i;  -- fine time from the encoder
         ringBuffer_data_in_i(11)           <= edge_type_i;  -- rising '1' or falling '0' edge
@@ -766,8 +654,8 @@ begin  -- Channel_200
     end case;
   end process FSM_DATA_OUTPUT;
 
-  FIFO_DATA_OUT        <= fifo_data_i;
-  FIFO_DATA_VALID_OUT  <= fifo_data_valid_i;
+  FIFO_DATA_OUT       <= fifo_data_i;
+  FIFO_DATA_VALID_OUT <= fifo_data_valid_i;
 
 -------------------------------------------------------------------------------
 -- DEBUG
