@@ -1,8 +1,7 @@
 Version		Release Date	Release Notes
 -------------------------------------------------------------------------------------
-tdc_v2.0	25.08.2014	Double edge detection for longer than 20 ns is
-				implemented. (Not stable-will be fixed in
-				future releases.)
+tdc_v2.0	01.12.2014	Double edge detection in a single channel is
+				implemented. 
 
 tdc_v1.7.3	15.08.2014	Dead time in the encoder is increased 5ns for
 				easier placement.
