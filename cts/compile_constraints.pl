@@ -58,7 +58,7 @@ chdir($script_dir);
 
 system("cp ../base/trb3_central_cts.lpf $workdir/$TOPNAME.lpf");
 system("cat tdc_release/tdc_constraints_4.lpf >> $workdir/$TOPNAME.lpf") if $configSettings{'INCLUDE_TDC'};
-system("cat tdc_release/unimportant_lines_constraints.lpf >> $workdir/$TOPNAME.lpf") if $configSettings{'INCLUDE_TDC'};
+#system("cat tdc_release/unimportant_lines_constraints.lpf >> $workdir/$TOPNAME.lpf") if $configSettings{'INCLUDE_TDC'};
 system("cat cbmnet_bridge/cbmnet_bridge.lpf >> $workdir/$TOPNAME.lpf") if $configSettings{'INCLUDE_CBMNET'};
 system("cat ".$TOPNAME."_constraints.lpf >> $workdir/$TOPNAME.lpf");
 
@@ -77,7 +77,7 @@ $lpf =~ s#GEN_Channels_*_Channels/sync_q_2*#GEN_Channels.*.Channels/sync_q[2]#g;
 $lpf =~ s#GEN_TDC(.*)The_Buffer#GEN_TDC$1Buffer_64.The_Buffer#g;
 $lpf =~ s#THE_TDC/GenCoarseCounter_(\d+)_TheCoarseCounter#THE_TDC/GenCoarseCounter.$1.TheCoarseCounter#g;
 $lpf =~ s#THE_TDC/TheReadout#THE_TDC/TheFirstReadout#g;
-
+$lpf =~ s#gen_DEBUG_risingEdgeDetect_1#gen_DEBUG.risingEdgeDetect_1#g;
 
 open FILE, ">$workdir/$TOPNAME.lpf" or die "Couldnt open file: $!";
 print FILE $lpf;

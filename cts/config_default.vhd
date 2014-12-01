@@ -13,7 +13,7 @@ package config is
 
 --include TDC for all four trigger input lines
     constant INCLUDE_TDC : integer range c_NO to c_YES := c_YES;
-    constant TDC_CHANNEL_NUMBER : integer := 4;
+    constant TDC_CHANNEL_NUMBER : integer := 5;
 
 --Use 64 word ringbuffer instead of 128 word ringbuffer in TDC channels
     constant USE_64_FIFO : integer := c_YES;
@@ -30,11 +30,13 @@ package config is
 
 --Run external 200 MHz clock source
     constant USE_EXTERNAL_CLOCK : integer range c_NO to c_YES := c_NO;    
-    
-    
+       
 --Which external trigger module (ETM) to use?
+    constant INCLUDE_ETM : integer range c_NO to c_YES := c_NO;
     type ETM_CHOICE_type is (ETM_CHOICE_MBS_VULOM, ETM_CHOICE_MAINZ_A2, ETM_CHOICE_CBMNET);
-    constant ETM_CHOICE : ETM_CHOICE_type := ETM_CHOICE_CBMNET;
+    constant ETM_CHOICE : ETM_CHOICE_type := ETM_CHOICE_MBS_VULOM;
+    
+    constant ETM_ID : std_logic_vector(7 downto 0);
     
 ------------------------------------------------------------------------------
 --End of configuration
@@ -123,5 +125,17 @@ package body config is
   constant IS_DOWNLINK          : hub_ct  := IS_DOWNLINK_ARR(CFG_MODE);
   constant IS_UPLINK_ONLY       : hub_ct  := IS_UPLINK_ONLY_ARR(CFG_MODE); 
   
+  function etm_id_func return std_logic_vector is
+   variable res : unsigned(7 downto 0);
+  begin
+   res := x"00";
+   if INCLUDE_ETM=c_YES then
+      res := x"60";
+      res := res + TO_UNSIGNED(ETM_CHOICE_type'pos(ETM_CHOICE), 4);
+   end if;
+   return std_logic_vector(res);
+  end function;
+  
+  constant ETM_ID : std_logic_vector(7 downto 0) := etm_id_func;
   
 end package body;

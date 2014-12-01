@@ -133,8 +133,6 @@ execute($c);
 $c=qq|$lattice_path/ispfpga/bin/lin/trce -fullname -hld -c -v 5 -o "$TOPNAME.twr.hold"  "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
 
-system "kill %1";
-
 chdir "..";
 
 

@@ -107,80 +107,75 @@ begin
    end process;
                                                                                               
                                                                                               
-   proc_fsm_trans: process(cs, tx_pll_lol_qd_s_int, rx_los_low_int, rx_lol_los_int, timer2, proper_word_align_i, proper_byte_align_i, rx_lol_los_int, rm_reset_i)
+   proc_fsm_trans: process(cs, tx_pll_lol_qd_s_int, rx_los_low_int, rx_lol_los_int, rx_lol_los_del,
+                           timer2, proper_word_align_i, proper_byte_align_i, rx_lol_los_int, rm_reset_i)
    begin
-   --       reset_timer1 <= '0';
-         reset_timer2 <= '0';
-   STATE_OUT <= x"F";                                                                                              
-   case cs is
-      when WAIT_FOR_PLOL =>
-         rx_pcs_rst_ch_c_int <= '1';
-         rx_serdes_rst_ch_c_int <= '0';
-         if (tx_pll_lol_qd_s_int = '1' or rx_los_low_int = '1') then  --Also make sure A Signal
-            ns <= WAIT_FOR_PLOL;             --is Present prior to moving to the next
-         else
-            ns <= RX_SERDES_RESET;
-         end if;
-         STATE_OUT <= x"1";
-                                                                                             
-      when RX_SERDES_RESET =>
-         rx_pcs_rst_ch_c_int <= '1';
-         rx_serdes_rst_ch_c_int <= '1';
-   --       reset_timer1 <= '1';
-         ns <= WAIT_FOR_timer1;
-         STATE_OUT <= x"2";
-                                                                                             
-                                                                                             
-      when WAIT_FOR_timer1 =>
-         rx_pcs_rst_ch_c_int <= '1';
-         rx_serdes_rst_ch_c_int <= '1';
-         ns <= CHECK_LOL_LOS;
-         STATE_OUT <= x"3";
-
-      when CHECK_LOL_LOS =>
-         rx_pcs_rst_ch_c_int <= '1';
-         rx_serdes_rst_ch_c_int <= '0';
-         reset_timer2 <= '1';
-         ns <= WAIT_FOR_timer2;
-         STATE_OUT <= x"4";
-
-      when WAIT_FOR_timer2 =>
-         rx_pcs_rst_ch_c_int <= '1';
-         rx_serdes_rst_ch_c_int <= '0';
-         if rx_lol_los_int = rx_lol_los_del then   --NO RISING OR FALLING EDGES
-            if timer2 = '1' then
-               if rx_lol_los_int = '1' then
-                  ns <= WAIT_FOR_PLOL;
-   --            elsif proper_byte_align_i = '0' or proper_word_align_i = '0' then
-   --               ns <= CHECK_LOL_LOS;
-               else
-                  ns <= NORMAL;
-               end if;
-          --  elsif rx_lol_los_int = '0' then
-          --     ns <= NORMAL;
+      reset_timer2 <= '0';
+      STATE_OUT <= x"F";                                                                                              
+      case cs is
+         when WAIT_FOR_PLOL =>
+            rx_pcs_rst_ch_c_int <= '1';
+            rx_serdes_rst_ch_c_int <= '0';
+            if (tx_pll_lol_qd_s_int = '1' or rx_los_low_int = '1') then  --Also make sure A Signal
+               ns <= WAIT_FOR_PLOL;             --is Present prior to moving to the next
             else
-               ns <= WAIT_FOR_timer2;
+               ns <= RX_SERDES_RESET;
             end if;
-         else
-            ns <= CHECK_LOL_LOS;    --RESET timer2
-         end if;
-         STATE_OUT <= x"5";
+            STATE_OUT <= x"1";
+                                                                                                
+         when RX_SERDES_RESET =>
+            rx_pcs_rst_ch_c_int <= '1';
+            rx_serdes_rst_ch_c_int <= '1';
+            ns <= WAIT_FOR_timer1;
+            STATE_OUT <= x"2";
+                                                                                                
+                                                                                                
+         when WAIT_FOR_timer1 =>
+            rx_pcs_rst_ch_c_int <= '1';
+            rx_serdes_rst_ch_c_int <= '1';
+            ns <= CHECK_LOL_LOS;
+            STATE_OUT <= x"3";
 
-                                                                                             
-      when NORMAL =>
-         rx_pcs_rst_ch_c_int <= '0';
-         rx_serdes_rst_ch_c_int <= '0';
-         if rx_lol_los_int = '1' or proper_byte_align_i = '0' or proper_word_align_i = '0' or rm_reset_i = '1' then
+         when CHECK_LOL_LOS =>
+            rx_pcs_rst_ch_c_int <= '1';
+            rx_serdes_rst_ch_c_int <= '0';
+            reset_timer2 <= '1';
+            ns <= WAIT_FOR_timer2;
+            STATE_OUT <= x"4";
+
+         when WAIT_FOR_timer2 =>
+            rx_pcs_rst_ch_c_int <= '1';
+            rx_serdes_rst_ch_c_int <= '0';
+            if rx_lol_los_int = rx_lol_los_del then   --NO RISING OR FALLING EDGES
+               if timer2 = '1' then
+                  if rx_lol_los_int = '1' then
+                     ns <= WAIT_FOR_PLOL;
+                  else
+                     ns <= NORMAL;
+                  end if;
+               else
+                  ns <= WAIT_FOR_timer2;
+               end if;
+            else
+               ns <= CHECK_LOL_LOS;    --RESET timer2
+            end if;
+            STATE_OUT <= x"5";
+
+                                                                                                
+         when NORMAL =>
+            rx_pcs_rst_ch_c_int <= '0';
+            rx_serdes_rst_ch_c_int <= '0';
+            if rx_lol_los_int = '1' or proper_byte_align_i = '0' or proper_word_align_i = '0' or rm_reset_i = '1' then
+               ns <= WAIT_FOR_PLOL;
+            else
+               ns <= NORMAL;
+            end if;
+            STATE_OUT <= x"6";
+                                                                                                
+         when others =>
             ns <= WAIT_FOR_PLOL;
-         else
-            ns <= NORMAL;
-         end if;
-         STATE_OUT <= x"6";
                                                                                              
-      when others =>
-         ns <= WAIT_FOR_PLOL;
-                                                                                             
-   end case;
+      end case;
    end process;
                                                                                               
 end architecture;

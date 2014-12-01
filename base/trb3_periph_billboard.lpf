@@ -1,0 +1,125 @@
+BLOCK RESETPATHS ;
+BLOCK ASYNCPATHS ;
+BLOCK RD_DURING_WR_PATHS ;
+
+
+#################################################################
+# Basic Settings
+#################################################################
+
+SYSCONFIG MCCLK_FREQ = 20;
+
+FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
+FREQUENCY PORT CLK_GPLL_LEFT  125 MHz;
+FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;
+FREQUENCY PORT CLK_GPLL_RIGHT 200 MHz;
+
+#################################################################
+# Clock I/O
+#################################################################
+LOCATE COMP  "CLK_GPLL_LEFT"        SITE "U25";
+LOCATE COMP  "CLK_GPLL_RIGHT"       SITE "W1";
+LOCATE COMP  "CLK_PCLK_LEFT"        SITE "M4";
+LOCATE COMP  "CLK_PCLK_RIGHT"       SITE "U20";
+LOCATE COMP  "CLK_SERDES_INT_LEFT"  SITE "AC10";
+LOCATE COMP  "CLK_SERDES_INT_RIGHT" SITE "AC18";
+
+DEFINE PORT GROUP "CLK_group" "CLK*" ;
+IOBUF GROUP  "CLK_group" IO_TYPE=LVDS25 ;
+
+#################################################################
+# Trigger I/O
+#################################################################
+
+#Trigger from fan-out
+LOCATE COMP  "TRIGGER_RIGHT"   SITE "N24";
+IOBUF  PORT  "TRIGGER_RIGHT" IO_TYPE=LVDS25; 
+
+LOCATE COMP  "TRIGGER_LEFT"   SITE "V3";
+IOBUF  PORT  "TRIGGER_LEFT"  IO_TYPE=LVDS25;
+
+#################################################################
+# To central FPGA
+#################################################################
+
+LOCATE COMP  "FPGA5_COMM_0"   SITE "AD4";
+LOCATE COMP  "FPGA5_COMM_1"   SITE "AE3";
+LOCATE COMP  "FPGA5_COMM_2"   SITE "AA7";
+LOCATE COMP  "FPGA5_COMM_3"   SITE "AB7";
+LOCATE COMP  "FPGA5_COMM_4"   SITE "AD3";
+LOCATE COMP  "FPGA5_COMM_5"   SITE "AC4";
+LOCATE COMP  "FPGA5_COMM_6"   SITE "AE2";
+LOCATE COMP  "FPGA5_COMM_7"   SITE "AF3";
+LOCATE COMP  "FPGA5_COMM_8"   SITE "AE4";
+LOCATE COMP  "FPGA5_COMM_9"   SITE "AF4";
+LOCATE COMP  "FPGA5_COMM_10"  SITE "V10";
+LOCATE COMP  "FPGA5_COMM_11"  SITE "W10";
+DEFINE PORT GROUP "FPGA5_group" "FPGA5*" ;
+IOBUF GROUP "FPGA5_group" IO_TYPE=LVCMOS25 PULLMODE=UP ;
+
+LOCATE COMP  "TEST_LINE_0"   SITE "A5";
+LOCATE COMP  "TEST_LINE_1"   SITE "A6";
+LOCATE COMP  "TEST_LINE_2"   SITE "G8";
+LOCATE COMP  "TEST_LINE_3"   SITE "F9";
+LOCATE COMP  "TEST_LINE_4"   SITE "D9";
+LOCATE COMP  "TEST_LINE_5"   SITE "D10";
+LOCATE COMP  "TEST_LINE_6"   SITE "F10";
+LOCATE COMP  "TEST_LINE_7"   SITE "E10";
+LOCATE COMP  "TEST_LINE_8"   SITE "A8";
+LOCATE COMP  "TEST_LINE_9"   SITE "B8";
+LOCATE COMP  "TEST_LINE_10"  SITE "G10";
+LOCATE COMP  "TEST_LINE_11"  SITE "G9";
+LOCATE COMP  "TEST_LINE_12"  SITE "C9";
+LOCATE COMP  "TEST_LINE_13"  SITE "C10";
+LOCATE COMP  "TEST_LINE_14"  SITE "H10";
+LOCATE COMP  "TEST_LINE_15"  SITE "H11";
+DEFINE PORT GROUP "TEST_LINE_group" "TEST_LINE*" ;
+IOBUF GROUP "TEST_LINE_group" IO_TYPE=LVCMOS25 PULLMODE=DOWN DRIVE=12;
+
+LOCATE COMP  "MBS_IN"    SITE "P1";  
+IOBUF PORT "MBS_IN" IO_TYPE=LVDS25 DIFFRESISTOR=100;
+
+#################################################################
+# Flash ROM and Reboot
+#################################################################
+
+LOCATE COMP  "FLASH_CLK"    SITE "B12";
+LOCATE COMP  "FLASH_CS"   SITE "E11";
+LOCATE COMP  "FLASH_DIN"   SITE "E12";
+LOCATE COMP  "FLASH_DOUT"    SITE "A12";
+
+DEFINE PORT GROUP "FLASH_group" "FLASH*" ;
+IOBUF GROUP "FLASH_group" IO_TYPE=LVCMOS25 PULLMODE=NONE;
+
+LOCATE COMP  "PROGRAMN"   SITE "B11";
+IOBUF  PORT "PROGRAMN" IO_TYPE=LVCMOS25 PULLMODE=UP DRIVE=8  ;
+
+
+#################################################################
+# Misc
+#################################################################
+LOCATE COMP  "TEMPSENS"    SITE "A13";
+IOBUF  PORT "TEMPSENS" IO_TYPE=LVCMOS25 PULLMODE=UP DRIVE=8  ;
+
+#coding of FPGA number
+LOCATE COMP "CODE_LINE_1"    SITE "AA20";
+LOCATE COMP "CODE_LINE_0"    SITE "Y21";
+IOBUF  PORT "CODE_LINE_1" IO_TYPE=LVCMOS25 PULLMODE=UP  ;
+IOBUF  PORT "CODE_LINE_0" IO_TYPE=LVCMOS25 PULLMODE=UP  ;
+
+#terminated differential pair to pads
+#LOCATE COMP  "SUPPL"   SITE "C14";
+#IOBUF  PORT "SUPPL" IO_TYPE=LVDS25   ;
+
+
+#################################################################
+# LED
+#################################################################
+LOCATE COMP  "LED_GREEN"    SITE "F12";
+LOCATE COMP  "LED_ORANGE"   SITE "G13";
+LOCATE COMP  "LED_RED"      SITE "A15";
+LOCATE COMP  "LED_YELLOW"   SITE "A16";
+DEFINE PORT GROUP "LED_group" "LED*" ;
+IOBUF GROUP "LED_group" IO_TYPE=LVCMOS25 PULLMODE=NONE DRIVE=12;
+
+

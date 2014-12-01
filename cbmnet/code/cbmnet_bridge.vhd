@@ -22,6 +22,8 @@ entity cbmnet_bridge is
       CBM_CLK_OUT : out std_logic;
       CBM_RESET_OUT: out std_logic;
       
+      REBOOT_FPGA_OUT : out std_logic;
+      
    -- Media Interface
       SD_RXD_P_IN        : in  std_logic := '0';
       SD_RXD_N_IN        : in  std_logic := '0';
@@ -92,7 +94,9 @@ entity cbmnet_bridge is
       REGIO_DATAREADY_OUT            : out std_logic;
       REGIO_WRITE_ACK_OUT            : out std_logic;
       REGIO_NO_MORE_DATA_OUT         : out std_logic;
-      REGIO_UNKNOWN_ADDR_OUT         : out std_logic
+      REGIO_UNKNOWN_ADDR_OUT         : out std_logic;
+      
+      DEBUG_OUT : out std_logic_vector(31 downto 0)
    );
 end entity;
 
@@ -142,7 +146,11 @@ architecture cbmnet_bridge_arch of cbmnet_bridge is
    signal cbm_serdes_ready_i    :  std_logic;    --   signalize when phy ready  
    signal cbm_link_active_i     :  std_logic;    --   signalize when lp_top is ready
    
+   signal cbm_crc_error_cntr_i : std_logic_vector(15 downto 0);
+   signal cbm_crc_error_cntr_clr_i : std_logic := '0';
+   
    signal cbm_phy_debug : std_logic_vector(511 downto 0);
+   signal cbm_stat_op_i : std_logic_vector(15 downto 0);
 
 
 -- data port mux
@@ -168,40 +176,38 @@ architecture cbmnet_bridge_arch of cbmnet_bridge is
    signal cbm_rdo_data2send_start_i : std_logic;
    signal cbm_rdo_data2send_end_i : std_logic;
    signal cbm_rdo_data2send_i : std_logic_vector(15 downto 0);
+   
+   signal cbm_data2send_buf_i : std_logic_vector(15 downto 0);
+   
+   signal cbm_phy_ctrl_i : std_logic_vector(31 downto 0);
+   
+   signal cbm_reboot_fpga_i : std_logic;
+   
 
 -- regio
-   signal cbm_rdo_regio_addr_i         : std_logic_vector(15 downto 0);
-   signal cbm_rdo_regio_data_status_i  : std_logic_vector(31 downto 0);
-   signal cbm_rdo_regio_read_enable_i  : std_logic;
-   signal cbm_rdo_regio_write_enable_i : std_logic;
-   signal cbm_rdo_regio_data_ctrl_i    : std_logic_vector(31 downto 0);
-   signal cbm_rdo_regio_dataready_i    : std_logic;
-   signal cbm_rdo_regio_write_ack_i    : std_logic;
-   signal cbm_rdo_regio_unknown_addr_i : std_logic;
+   signal regio_rx, rdo_regio_rx, phy_regio_rx, sync_regio_rx : CTRLBUS_RX;
+   signal regio_tx, rdo_regio_tx, phy_regio_tx, sync_regio_tx : CTRLBUS_TX := (nack => '0', unknown => '0', ack => '0', wack => '0', rack => '0', data => (others => '0'));
 
-   signal cbm_phy_regio_addr_i         : std_logic_vector(15 downto 0);
-   signal cbm_phy_regio_data_status_i  : std_logic_vector(31 downto 0);
-   signal cbm_phy_regio_read_enable_i  : std_logic;
-   signal cbm_phy_regio_write_enable_i : std_logic;
-   signal cbm_phy_regio_data_ctrl_i    : std_logic_vector(31 downto 0);
-   signal cbm_phy_regio_dataready_i    : std_logic;
-   signal cbm_phy_regio_write_ack_i    : std_logic;
-   signal cbm_phy_regio_unknown_addr_i : std_logic;  
+   signal cbm_serdes_ready_counter_i : std_logic_vector(31 downto 0) := (others => '0');
+   signal trb_serdes_ready_counter_i : std_logic_vector(31 downto 0) := (others => '0');
 
-   signal cbm_sync_regio_read_en_i     : std_logic;
-   signal cbm_sync_regio_write_en_i    : std_logic;
-   signal cbm_sync_regio_status_data_i : std_logic_vector(31 downto 0);
-   signal cbm_sync_regio_addr_i        : std_logic_vector(3 downto 0);
-   signal cbm_sync_regio_config_data_i : std_logic_vector(31 downto 0);
-   signal cbm_sync_regio_read_ack_i    : std_logic;
-   signal cbm_sync_regio_write_ack_i   : std_logic;
-   signal cbm_sync_regio_unknown_i     : std_logic;
+   signal cbm_serdes_ready_delay_i : std_logic;
 
+   
+   signal cbm_test_line_mux_i : std_logic;
+   
+   signal trb_data_override_i : std_logic_vector(16 downto 0);
+   signal cbm_data_override_i : std_logic_vector(16 downto 0);
+   
+-- reboot fsm
+   type RB_FSM_STATES is (WAIT_FOR_D, WAIT_FOR_1, WAIT_FOR_E, REBOOT);
+   signal rb_fsm_i : RB_FSM_STATES;
 begin
    THE_CBM_PHY: cbmnet_phy_ecp3
    generic map (
       IS_SYNC_SLAVE => c_YES,
       DETERMINISTIC_LATENCY => c_YES
+--      INCL_DEBUG_AIDS => c_NO
    )
    port map (
       CLK                => CLK125_IN,
@@ -237,8 +243,8 @@ begin
       LED_OK_OUT         => LED_OK_OUT,
       
       -- Status and control port
-      STAT_OP            => open,
-      CTRL_OP            => open,
+      STAT_OP            => cbm_stat_op_i,
+      CTRL_OP            => cbm_phy_ctrl_i(15 downto 0),
       DEBUG_OUT          => cbm_phy_debug
    );
    CBM_CLK_OUT <= cbm_clk_i;
@@ -248,33 +254,53 @@ begin
       variable addr : integer range 0 to 31;
    begin
       wait until rising_edge(TRB_CLK_IN);
-      addr := to_integer(unsigned(cbm_phy_regio_addr_i(4 downto 0)));
+      addr := to_integer(unsigned(phy_regio_rx.addr(4 downto 0)));
       
-      cbm_phy_regio_dataready_i <= cbm_phy_regio_read_enable_i;
-      cbm_phy_regio_unknown_addr_i <= '0';
-      cbm_phy_regio_write_ack_i <= '0';
+      phy_regio_tx.rack <= phy_regio_rx.read;
+      phy_regio_tx.unknown <= '0';
+      phy_regio_tx.wack <= '0';
       
-      cbm_phy_regio_data_status_i <= (others => '0');
+      phy_regio_tx.data <= (others => '0');
       
       if addr < 16 then
-         cbm_phy_regio_data_status_i <= cbm_phy_debug(addr*32+31 downto addr*32);
+         phy_regio_tx.data <= cbm_phy_debug(addr*32+31 downto addr*32);
          
       elsif addr = 16 then
-         cbm_phy_regio_data_status_i(11 downto 8) <= "0" & cbm_data2send_stop_i &  cbm_serdes_ready_i & cbm_link_active_i;
-         cbm_phy_regio_data_status_i(7 downto 4) <= "00" & cbm_lt_dlm_valid_i & cbm_lt_ctrl_valid_i;
-         cbm_phy_regio_data_status_i(3 downto 0) <= cbm_data_mux_i & cbm_lt_data_enable_i & cbm_lt_ctrl_enable_i & cbm_lt_force_stop_i;
+         phy_regio_tx.data(11 downto 8) <= "0" & cbm_data2send_stop_i &  cbm_serdes_ready_i & cbm_link_active_i;
+         phy_regio_tx.data(7 downto 4) <= "00" & cbm_lt_dlm_valid_i & cbm_lt_ctrl_valid_i;
+         phy_regio_tx.data(3 downto 0) <= cbm_data_mux_i & cbm_lt_data_enable_i & cbm_lt_ctrl_enable_i & cbm_lt_force_stop_i;
+         phy_regio_tx.data(16) <= cbm_test_line_mux_i;
       
-         if cbm_phy_regio_write_enable_i='1' then
-            cbm_data_mux_i       <= cbm_phy_regio_data_ctrl_i(3);
-            cbm_lt_data_enable_i <= cbm_phy_regio_data_ctrl_i(2);
-            cbm_lt_ctrl_enable_i <= cbm_phy_regio_data_ctrl_i(1);
-            cbm_lt_force_stop_i  <= cbm_phy_regio_data_ctrl_i(0);
+         if phy_regio_rx.write='1' then
+            cbm_data_mux_i       <= phy_regio_rx.data(3);
+            cbm_lt_data_enable_i <= phy_regio_rx.data(2);
+            cbm_lt_ctrl_enable_i <= phy_regio_rx.data(1);
+            cbm_lt_force_stop_i  <= phy_regio_rx.data(0);
             
-            cbm_phy_regio_write_ack_i <= '1';
+            cbm_test_line_mux_i  <= phy_regio_rx.data(16);
+            
+            phy_regio_tx.wack <= '1';
+         end if;
+      
+      elsif addr = 17 then
+         phy_regio_tx.data <= std_logic_vector(trb_serdes_ready_counter_i);
+      
+      elsif addr = 18 then
+         phy_regio_tx.data(16 downto 0) <=trb_data_override_i;
+         if phy_regio_rx.write='1' then
+            trb_data_override_i <= phy_regio_rx.data(16 downto 0);
+            phy_regio_tx.wack <= '1';
          end if;
          
+      elsif addr = 19 then
+         phy_regio_tx.data <= cbm_phy_ctrl_i;
+         if phy_regio_rx.write='1' then
+            cbm_phy_ctrl_i <= phy_regio_rx.data;
+            phy_regio_tx.wack <= '1';
+         end if;
+     
       else
-         cbm_phy_regio_unknown_addr_i <= cbm_phy_regio_write_enable_i or cbm_phy_regio_read_enable_i;
+         phy_regio_tx.unknown <= phy_regio_rx.write or phy_regio_rx.read;
       
       end if;
       
@@ -283,8 +309,12 @@ begin
          cbm_lt_ctrl_enable_i <= '0';
          cbm_lt_force_stop_i  <= '1';
          cbm_data_mux_i <= '0';
+         cbm_test_line_mux_i <= '0';
+         trb_data_override_i <= (others => '0');
       end if;
    end process;
+   phy_regio_tx.nack <= '0';
+   phy_regio_tx.ack <= phy_regio_tx.rack or phy_regio_tx.wack; -- make synplify shut up ;)
    
    THE_CBM_ENDPOINT: cn_lp_top 
    port map (
@@ -307,7 +337,7 @@ begin
       data2send_stop => cbm_data2send_stop_i,
       data2send_start => cbm_data2send_start_i,
       data2send_end => cbm_data2send_end_i,
-      data2send => cbm_data2send_i,
+      data2send => cbm_data2send_buf_i,
       
       dlm2send_va => cbm_dlm2send_va_i,
       dlm2send => cbm_dlm2send_i,
@@ -323,7 +353,12 @@ begin
       ctrl_rec => cbm_ctrl_rec_i,
       ctrl_rec_start => cbm_ctrl_rec_start_i,
       ctrl_rec_end => cbm_ctrl_rec_end_i,
-      ctrl_rec_stop => cbm_ctrl_rec_stop_i
+      ctrl_rec_stop => cbm_ctrl_rec_stop_i,
+      
+      crc_error_cntr_flag => open,
+      crc_error_cntr => cbm_crc_error_cntr_i,
+      crc_error_cntr_clr  => cbm_crc_error_cntr_clr_i
+      
    );
    cbm_reset_n_i <= not cbm_reset_i when rising_edge(cbm_clk_i);
    CBM_LINK_ACTIVE_OUT <= cbm_link_active_i;
@@ -381,14 +416,8 @@ begin
       GBE_FEE_BUSY_OUT               => GBE_FEE_BUSY_OUT,
 
       -- reg io
-      REGIO_ADDR_IN                  => cbm_rdo_regio_addr_i, -- in  std_logic_vector(15 downto 0);
-      REGIO_DATA_IN                  => cbm_rdo_regio_data_ctrl_i, -- in  std_logic_vector(31 downto 0);
-      REGIO_READ_ENABLE_IN           => cbm_rdo_regio_read_enable_i, -- in  std_logic;
-      REGIO_WRITE_ENABLE_IN          => cbm_rdo_regio_write_enable_i, -- in  std_logic;
-      REGIO_DATA_OUT                 => cbm_rdo_regio_data_status_i, -- out std_logic_vector(31 downto 0);
-      REGIO_DATAREADY_OUT            => cbm_rdo_regio_dataready_i, -- out std_logic;
-      REGIO_WRITE_ACK_OUT            => cbm_rdo_regio_write_ack_i, -- out std_logic;
-      REGIO_UNKNOWN_ADDR_OUT         => cbm_rdo_regio_unknown_addr_i, -- out std_logic;
+      REGIO_IN                       => rdo_regio_rx,
+      REGIO_OUT                      => rdo_regio_tx,
 
    -- CBMNet
       CBMNET_CLK_IN         => cbm_clk_i, -- in std_logic;
@@ -415,7 +444,8 @@ begin
       OWN_ADDR => x"0000",
       DEST_ADDR => "0000000000000000",
       PACKET_MODE => 1 --if enabled generates another packet size order to test further corner cases
-   ) port map (
+   )
+   port map (
       clk => cbm_clk_i , -- in std_logic;
       res_n => cbm_reset_n_i, -- in std_logic;
       link_active => cbm_link_active_i, -- in std_logic;
@@ -453,7 +483,7 @@ begin
       ctrl_valid => cbm_lt_ctrl_valid_i, -- out std_logic;
       dlm_valid => cbm_lt_dlm_valid_i -- out std_logic
    );
-   
+
    THE_SYNC_MODULE: cbmnet_sync_module port map (
    -- TRB
       TRB_CLK_IN      => TRB_CLK_IN, --  in std_logic;  
@@ -468,18 +498,11 @@ begin
       TRB_RDO_DATA_OUT      => TRB_RDO_DATA_OUT, --  out std_logic_vector(31 downto 0);
       TRB_RDO_WRITE_OUT     => TRB_RDO_WRITE_OUT, --  out std_logic;
       TRB_RDO_FINISHED_OUT  => TRB_RDO_FINISHED_OUT, --  out std_logic;
-      TRB_RDO_STATUSBIT_OUT  => open,
+      TRB_RDO_STATUSBIT_OUT  => TRB_RDO_STATUSBIT_OUT,
       
       -- reg io
-      TRB_REGIO_ADDR_IN(15 downto 4)      => x"000",
-      TRB_REGIO_ADDR_IN(3 downto 0)       => cbm_sync_regio_addr_i, --  in  std_logic_vector(15 downto 0);
-      TRB_REGIO_DATA_IN                   => cbm_sync_regio_config_data_i, --  in  std_logic_vector(31 downto 0);
-      TRB_REGIO_READ_ENABLE_IN            => cbm_sync_regio_read_en_i, --  in  std_logic;
-      TRB_REGIO_WRITE_ENABLE_IN           => cbm_sync_regio_write_en_i, --  in  std_logic;
-      TRB_REGIO_DATA_OUT                  => cbm_sync_regio_status_data_i, --  out std_logic_vector(31 downto 0);
-      TRB_REGIO_DATAREADY_OUT             => cbm_sync_regio_read_ack_i, --  out std_logic;
-      TRB_REGIO_WRITE_ACK_OUT             => cbm_sync_regio_write_ack_i, --  out std_logic;
-      TRB_REGIO_UNKNOWN_ADDR_OUT          => cbm_sync_regio_unknown_i, --  out std_logic;
+      TRB_REGIO_IN  => sync_regio_rx,
+      TRB_REGIO_OUT => sync_regio_tx,
       
    -- CBMNET
       CBM_CLK_IN            => cbm_clk_i,     --  in std_logic;
@@ -506,6 +529,7 @@ begin
       DEBUG_OUT       => open --  out std_logic_vector(31 downto 0)    
    );      
 
+-- Data2Send Mux for RDO / LinkTester
    cbm_lt_data_enable_buf_i <= cbm_lt_data_enable_i     when rising_edge(cbm_clk_i);
    cbm_lt_data_enable_crs_i <= cbm_lt_data_enable_buf_i when rising_edge(cbm_clk_i);
    
@@ -520,7 +544,7 @@ begin
    
    cbm_data_rec_stop_i <= '1';
    
-   THE_BUS_HANDLER : trb_net16_regio_bus_handler
+   THE_BUS_HANDLER : entity work.trb_net16_regio_bus_handler_record
    generic map(
       PORT_NUMBER    => 3,
       PORT_ADDRESSES => (0 => x"0000", 1 => x"0080", 2 => x"0100",  others => x"0000"),
@@ -530,57 +554,128 @@ begin
       CLK                   => TRB_CLK_IN,
       RESET                 => TRB_RESET_IN,
 
-      DAT_ADDR_IN(8 downto 0)  => REGIO_ADDR_IN(8 downto 0),
-      DAT_ADDR_IN(15 downto 9) => (others => '0'),
-      DAT_DATA_IN           => REGIO_DATA_IN,
-      DAT_DATA_OUT          => REGIO_DATA_OUT,
-      DAT_READ_ENABLE_IN    => REGIO_READ_ENABLE_IN,
-      DAT_WRITE_ENABLE_IN   => REGIO_WRITE_ENABLE_IN,
-      DAT_TIMEOUT_IN        => REGIO_TIMEOUT_IN,
-      DAT_DATAREADY_OUT     => REGIO_DATAREADY_OUT,
-      DAT_WRITE_ACK_OUT     => REGIO_WRITE_ACK_OUT,
-      DAT_NO_MORE_DATA_OUT  => REGIO_NO_MORE_DATA_OUT,
-      DAT_UNKNOWN_ADDR_OUT  => REGIO_UNKNOWN_ADDR_OUT,
-      
-      --CBMNet (read-out)
-      BUS_READ_ENABLE_OUT(0)              => cbm_rdo_regio_read_enable_i,
-      BUS_WRITE_ENABLE_OUT(0)             => cbm_rdo_regio_write_enable_i,
-      BUS_DATA_OUT(0*32+31 downto 0*32)  => cbm_rdo_regio_data_ctrl_i,
-      BUS_ADDR_OUT(0*16+15 downto 0*16)  => cbm_rdo_regio_addr_i,
-      BUS_TIMEOUT_OUT(0)                  => open,
-      BUS_DATA_IN(0*32+31 downto 0*32)   => cbm_rdo_regio_data_status_i,
-      BUS_DATAREADY_IN(0)                 => cbm_rdo_regio_dataready_i,
-      BUS_WRITE_ACK_IN(0)                 => cbm_rdo_regio_write_ack_i,
-      BUS_NO_MORE_DATA_IN(0)              => '0',
-      BUS_UNKNOWN_ADDR_IN(0)              => cbm_rdo_regio_unknown_addr_i,  
+      REGIO_RX  => regio_rx,
+      REGIO_TX  => regio_tx,
 
-      --CBMNet (phy)
-      BUS_READ_ENABLE_OUT(1)              => cbm_phy_regio_read_enable_i,
-      BUS_WRITE_ENABLE_OUT(1)             => cbm_phy_regio_write_enable_i,
-      BUS_DATA_OUT(1*32+31 downto 1*32)  => cbm_phy_regio_data_ctrl_i,
-      BUS_ADDR_OUT(1*16+15 downto 1*16)  => cbm_phy_regio_addr_i,
-      BUS_TIMEOUT_OUT(1)                  => open,
-      BUS_DATA_IN(1*32+31 downto 1*32)   => cbm_phy_regio_data_status_i,
-      BUS_DATAREADY_IN(1)                 => cbm_phy_regio_dataready_i,
-      BUS_WRITE_ACK_IN(1)                 => cbm_phy_regio_write_ack_i,
-      BUS_NO_MORE_DATA_IN(1)              => '0',
-      BUS_UNKNOWN_ADDR_IN(1)              => cbm_phy_regio_unknown_addr_i,  
+      BUS_RX(0) => rdo_regio_rx,
+      BUS_RX(1) => phy_regio_rx,
+      BUS_RX(2) => sync_regio_rx,
+      BUS_TX(0) => rdo_regio_tx,
+      BUS_TX(1) => phy_regio_tx,
+      BUS_TX(2) => sync_regio_tx,
 
-      --CBMNet (sync)
-      BUS_READ_ENABLE_OUT(2)              => cbm_sync_regio_read_en_i,
-      BUS_WRITE_ENABLE_OUT(2)             => cbm_sync_regio_write_en_i,
-      BUS_DATA_OUT(2*32+31 downto 2*32)   => cbm_sync_regio_config_data_i,
-      BUS_ADDR_OUT(2*16+3 downto 2*16)    => cbm_sync_regio_addr_i,
-      BUS_ADDR_OUT(2*16+15 downto 2*16+4) => open,
-      BUS_TIMEOUT_OUT(2)                  => open,
-      BUS_DATA_IN(2*32+31 downto 2*32)    => cbm_sync_regio_status_data_i,
-      BUS_DATAREADY_IN(2)                 => cbm_sync_regio_read_ack_i,
-      BUS_WRITE_ACK_IN(2)                 => cbm_sync_regio_write_ack_i,
-      BUS_NO_MORE_DATA_IN(2)              => '0',
-      BUS_UNKNOWN_ADDR_IN(2)              => cbm_sync_regio_unknown_i,
-      
-      stat_debug => open
+      STAT_DEBUG => open
    );
+   regio_rx <= (
+   addr => "0000000" & REGIO_ADDR_IN(8 downto 0),
+   data => REGIO_DATA_IN,
+   read => REGIO_READ_ENABLE_IN,
+   write => REGIO_WRITE_ENABLE_IN,
+   timeout => REGIO_TIMEOUT_IN);
+
+   
+-- Statistics
+   proc_serdes_counter: process is
+   begin
+      wait until rising_edge(cbm_clk_i);
+      cbm_serdes_ready_delay_i <= cbm_serdes_ready_i;
+      if cbm_serdes_ready_delay_i = '0' and cbm_serdes_ready_i = '1' then
+         cbm_serdes_ready_counter_i <= std_logic_vector(unsigned(cbm_serdes_ready_counter_i) + to_unsigned(1,1));
+      end if;
+   end process;
+   -- not realy necessary, as it's not updated that often, but let's trce shut up w/o add constraints ;)
+   THE_SERDES_COUNTER_SYNC: signal_sync 
+   generic map (WIDTH => 32, DEPTH => 3)
+   port map (
+      RESET => '0',
+      CLK0 => cbm_clk_i,
+      CLK1 => TRB_CLK_IN,
+      D_IN => cbm_serdes_ready_counter_i,
+      D_OUT => trb_serdes_ready_counter_i
+   ); 
+   
+-- Debug   
+   -- Data Override    
+   cbm_data2send_buf_i <= cbm_data2send_i when cbm_data_override_i(16) = '0' else cbm_data_override_i(15 downto 0);
+   THE_OVERRIDE_SYNC: signal_sync
+   generic map (WIDTH => 17, DEPTH => 3)
+   port map (
+      RESET => '0',
+      CLK0 => TRB_CLK_IN,
+      CLK1 => cbm_clk_i,
+      D_IN => trb_data_override_i,
+      D_OUT => cbm_data_override_i
+   );  
    
    
+   PROC_TEST_LINE: process is
+      variable pattern : std_logic_vector(31 downto 0) := (0 => '1', others => '0');
+   begin
+      wait until rising_edge(cbm_clk_i);
+      if trb_reset_in='1' then 
+         pattern := (0 => '1', others => '0');
+      else
+         pattern := pattern(0) & pattern(31 downto 1);
+      end if;
+      
+      if cbm_test_line_mux_i = '1' then
+         DEBUG_OUT <= pattern;
+      else
+         DEBUG_OUT <= (others => '0');
+--         DEBUG_OUT(4 downto 0) <= cbm_serdes_ready_i &  & cbm_data2send_stop_i & cbm_data2send_start_i & cbm_data2send_end_i;
+         DEBUG_OUT(15 downto 0) <=cbm_link_active_i & cbm_stat_op_i(14 downto 0);
+      end if;
+   end process;
+
+   REGIO_DATA_OUT  <= regio_tx.data;
+   REGIO_DATAREADY_OUT <= regio_tx.ack;
+   REGIO_WRITE_ACK_OUT <= regio_tx.ack;
+   REGIO_NO_MORE_DATA_OUT <= regio_tx.nack;
+   REGIO_UNKNOWN_ADDR_OUT <= regio_tx.unknown;
+
+   
+-- REBOOT via DLM
+   THE_DLM_REBOOT: process
+   begin
+      cbm_reboot_fpga_i <= '0';
+      if cbm_link_active_i='0' then
+         rb_fsm_i <= WAIT_FOR_D;
+      else
+         case (rb_fsm_i) is
+            when WAIT_FOR_D =>
+               if cbm_dlm_rec_va_i='1' and cbm_dlm_rec_type_i=x"d" then
+                  rb_fsm_i <= WAIT_FOR_1;
+               end if;
+               
+            when WAIT_FOR_1 =>
+               if cbm_dlm_rec_va_i='1' then
+                  if cbm_dlm_rec_type_i=x"1" then
+                     rb_fsm_i <= WAIT_FOR_E;
+                  else
+                     rb_fsm_i <= WAIT_FOR_D;
+                  end if;
+               end if;
+     
+            when WAIT_FOR_E =>
+               if cbm_dlm_rec_va_i='1' then
+                  if cbm_dlm_rec_type_i=x"E" then
+                     rb_fsm_i <= REBOOT;
+                  else
+                     rb_fsm_i <= WAIT_FOR_D;
+                  end if;
+               end if;
+               
+            when REBOOT =>
+               cbm_reboot_fpga_i <= '1';
+         end case;
+      end if;
+   end process;
+   
+   THE_REBOOT_SYNC: pos_edge_strech_sync
+   port map (
+      IN_CLK_IN  => cbm_clk_i,
+      DATA_IN    => cbm_reboot_fpga_i,
+      OUT_CLK_IN => TRB_CLK_IN,
+      DATA_OUT   => REBOOT_FPGA_OUT
+   );
 end architecture;

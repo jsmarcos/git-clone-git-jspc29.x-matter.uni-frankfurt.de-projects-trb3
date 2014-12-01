@@ -12,7 +12,7 @@ set_option -part_companion ""
 # compilation/mapping options
 set_option -default_enum_encoding sequential
 set_option -symbolic_fsm_compiler 1
-set_option -top_module "trb3_periph_adc"
+set_option -top_module "trb3_periph_billboard"
 set_option -resource_sharing true
 
 # map options
@@ -37,7 +37,7 @@ set_option -write_apr_constraint 0
 
 # set result format/file last
 project -result_format "edif"
-project -result_file "workdir/trb3_periph_adc.edf"
+project -result_file "workdir/trb3_periph_billboard.edf"
 
 #implementation attributes
 
@@ -142,17 +142,12 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.v
 
 add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
 add_file -vhdl -lib "work" "../base/cores/pll_in200_out40.vhd"
-add_file -vhdl -lib "work" "../base/cores/pll_adc10bit.vhd"
-add_file -vhdl -lib "work" "../base/cores/dqsinput_7x5.vhd"
-add_file -vhdl -lib "work" "../base/cores/dqsinput_5x5.vhd"
+#add_file -vhdl -lib "work" "../base/cores/dqsinput_7x5.vhd"
+#add_file -vhdl -lib "work" "../base/cores/dqsinput_5x5.vhd"
 add_file -vhdl -lib "work" "../base/cores/fifo_cdt_200_50.vhd"
-add_file -vhdl -lib "work" "../base/code/sedcheck.vhd"
 
-add_file -vhdl -lib "work" "source/adc_package.vhd"
-add_file -vhdl -lib "work" "source/adc_processor.vhd"
-add_file -vhdl -lib "work" "source/adc_ad9219.vhd"
-add_file -vhdl -lib "work" "source/adc_handler.vhd"
-add_file -vhdl -lib "work" "source/adc_slowcontrol_data_buffer.vhd"
+add_file -vhdl -lib work "../base/code/mbs_vulom_recv.vhd"
 
-add_file -vhdl -lib "work" "trb3_periph_adc.vhd"
-add_file -constraint "trb3_periph_adc.sdc"
+add_file -vhdl -lib "work" "source/billboard.vhd"
+add_file -vhdl -lib "work" "trb3_periph_billboard.vhd"
+add_file -constraint "trb3_periph_billboard.sdc"

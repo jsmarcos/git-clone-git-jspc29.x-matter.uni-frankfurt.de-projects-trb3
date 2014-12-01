@@ -10,7 +10,7 @@ package cbmnet_phy_pkg is
       generic(
          IS_SYNC_SLAVE   : integer := c_NO;       --select slave mode
          IS_SIMULATED    : integer := c_NO;
-         INCL_DEBUG_AIDS : integer;
+         INCL_DEBUG_AIDS : integer := c_YES;
          DETERMINISTIC_LATENCY : integer := c_YES -- if selected proper alignment of barrel shifter and word alignment is enforced (link may come up slower)
       );
       port(
@@ -88,7 +88,6 @@ package cbmnet_phy_pkg is
          CLK_125_OUT : out std_logic;
          
          RESET_IN    : in std_logic;
-         ALLOW_RELOCK_IN : in std_logic;
 
          DATA_IN     : in std_logic_vector(17 downto 0);
          DATA_OUT    : out std_logic_vector(8 downto 0);

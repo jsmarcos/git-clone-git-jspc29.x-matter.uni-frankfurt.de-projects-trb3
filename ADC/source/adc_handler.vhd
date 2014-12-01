@@ -33,7 +33,8 @@ end entity;
 architecture adc_handler_arch of adc_handler is
 attribute syn_keep     : boolean;
 attribute syn_preserve : boolean;
-
+attribute syn_hier     : string;
+attribute syn_hier of adc_handler_arch : architecture is "hard";
 
 signal adc_data_out  : std_logic_vector(DEVICES*CHANNELS*RESOLUTION-1 downto 0);
 signal adc_fco_out   : std_logic_vector(DEVICES*RESOLUTION-1 downto 0);
@@ -242,6 +243,8 @@ PROC_BUS : process begin
         when x"16" =>  BUS_TX.data( 3 downto 0) <= std_logic_vector(config.averaging);
         when x"17" =>  BUS_TX.data(31 downto 0) <=  config.trigger_enable(31 downto  0);
         when x"18" =>  BUS_TX.data(15 downto 0) <=  config.trigger_enable(47 downto 32);
+        when x"19" =>  BUS_TX.data(RESOLUTION-1 downto 0)     <= config.check_word1;
+                       BUS_TX.data(RESOLUTION-1+16 downto 16) <= config.check_word2;
         when others => BUS_TX.ack <= '0'; BUS_TX.unknown <= '1';
       end case;
     elsif BUS_RX.addr >= x"0020" and BUS_RX.addr <= x"002f" then      
@@ -256,8 +259,7 @@ PROC_BUS : process begin
     elsif BUS_RX.addr >= x"0030" and BUS_RX.addr <= x"003b" then      
       BUS_TX.ack  <= '1';
       BUS_TX.data <= adc_debug(to_integer(unsigned(BUS_RX.addr(3 downto 0)))*32+31 downto to_integer(unsigned(BUS_RX.addr(3 downto 0)))*32);
-      
-    elsif BUS_RX.addr >= x"0800" and BUS_RX.addr <= x"08bf" and BUS_RX.addr(5 downto 0) < std_logic_vector(to_unsigned(DEVICES*CHANNELS,6)) then
+    elsif BUS_RX.addr >= x"0800" and BUS_RX.addr <= x"08ff" and BUS_RX.addr(5 downto 0) < std_logic_vector(to_unsigned(DEVICES*CHANNELS,6)) then
       buffer_device <= to_integer(unsigned(BUS_RX.addr(5 downto 2)));
       buffer_addr   <= '0' & BUS_RX.addr(7 downto 6) & BUS_RX.addr(1 downto 0);
       buffer_read(to_integer(unsigned(BUS_RX.addr(5 downto 2))))   <= '1';
@@ -288,6 +290,8 @@ PROC_BUS : process begin
         when x"16" =>   config.averaging          <= unsigned(BUS_RX.data( 3 downto 0));
         when x"17" =>   config.trigger_enable(31 downto  0) <= BUS_RX.data(31 downto 0);
         when x"18" =>   config.trigger_enable(47 downto 32) <= BUS_RX.data(15 downto 0);
+        when x"19" =>   config.check_word1        <= BUS_RX.data(RESOLUTION-1 downto 0);
+                        config.check_word2        <= BUS_RX.data(RESOLUTION-1+16 downto 16);
         when others => BUS_TX.ack <= '0'; BUS_TX.unknown <= '1';        
       end case;
     elsif BUS_RX.addr >= x"0020" and BUS_RX.addr <= x"002f" then      

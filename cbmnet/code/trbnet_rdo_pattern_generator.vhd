@@ -85,11 +85,11 @@ begin
             when 0 =>
                REGIO_DATA_OUT(0) <= send_enabled_i;
                
-            when 1 => REGIO_DATA_OUT(15 downto 0) <= send_length_min_i;
-            when 2 => REGIO_DATA_OUT(15 downto 0) <= send_length_max_i;
-            when 3 => REGIO_DATA_OUT(15 downto 0) <= send_length_step_i;
-            when 4 => REGIO_DATA_OUT <= event_id;
-            when 5 => REGIO_DATA_OUT <= event_gap_i;
+            when 1 => REGIO_DATA_OUT(15 downto 0) <= std_logic_vector(send_length_min_i);
+            when 2 => REGIO_DATA_OUT(15 downto 0) <= std_logic_vector(send_length_max_i);
+            when 3 => REGIO_DATA_OUT(15 downto 0) <= std_logic_vector(send_length_step_i);
+            when 4 => REGIO_DATA_OUT <= std_logic_vector(event_id);
+            when 5 => REGIO_DATA_OUT <= std_logic_vector(event_gap_i);
                
             when others => 
                REGIO_UNKNOWN_ADDR_OUT <= REGIO_WRITE_ENABLE_IN or REGIO_READ_ENABLE_IN;
@@ -99,10 +99,10 @@ begin
          if REGIO_WRITE_ENABLE_IN = '1' then
             case address is
                when 0 => send_enabled_i <= REGIO_DATA_IN(0);
-               when 1 => send_length_min_i <= REGIO_DATA_IN(15 downto 0);
-               when 2 => send_length_max_i <= REGIO_DATA_IN(15 downto 0);
-               when 3 => send_length_step_i <= REGIO_DATA_IN(15 downto 0);
-               when 5 => event_gap_i <= REGIO_DATA_IN;
+               when 1 => send_length_min_i <= unsigned(REGIO_DATA_IN(15 downto 0));
+               when 2 => send_length_max_i <= unsigned(REGIO_DATA_IN(15 downto 0));
+               when 3 => send_length_step_i <= unsigned(REGIO_DATA_IN(15 downto 0));
+               when 5 => event_gap_i <= unsigned(REGIO_DATA_IN);
                   
                when others => 
                   REGIO_WRITE_ACK_OUT <= '0';
@@ -209,7 +209,7 @@ begin
                trb_fsm_i <= SEND_PAYLOAD_RT_L;
                
             when SEND_PAYLOAD_RT_L =>
-               HUB_FEE_DATA_OUT <= x"c0de";
+               HUB_FEE_DATA_OUT <= x"affe";
                HUB_FEE_DATAREADY_OUT <= '1';
                trb_fsm_i <= SEND_PAYLOAD_H;
                send_counter_i <= send_counter_i - 1;

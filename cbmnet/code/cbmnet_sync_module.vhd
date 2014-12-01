@@ -1,7 +1,11 @@
 library ieee;
    use ieee.std_logic_1164.all;
    use ieee.numeric_std.all;
+   
+library work;
    use work.cbmnet_interface_pkg.all;
+   use work.trb_net_std.all;
+   
 
 entity cbmnet_sync_module is
    port(
@@ -20,14 +24,8 @@ entity cbmnet_sync_module is
       TRB_RDO_FINISHED_OUT : out std_logic;
 
       -- reg io
-      TRB_REGIO_ADDR_IN                  : in  std_logic_vector(15 downto 0);
-      TRB_REGIO_DATA_IN                  : in  std_logic_vector(31 downto 0);
-      TRB_REGIO_READ_ENABLE_IN           : in  std_logic;
-      TRB_REGIO_WRITE_ENABLE_IN          : in  std_logic;
-      TRB_REGIO_DATA_OUT                 : out std_logic_vector(31 downto 0);
-      TRB_REGIO_DATAREADY_OUT            : out std_logic;
-      TRB_REGIO_WRITE_ACK_OUT            : out std_logic;
-      TRB_REGIO_UNKNOWN_ADDR_OUT         : out std_logic;
+      TRB_REGIO_IN  : in  CTRLBUS_RX;
+      TRB_REGIO_OUT : out CTRLBUS_TX;
       
    -- CBMNET
       CBM_CLK_IN           : in std_logic;
@@ -73,7 +71,6 @@ architecture cbmnet_sync_module_arch of cbmnet_sync_module is
    
    signal cbm_next_epoch_i : std_logic_vector(31 downto 0);
    signal cbm_next_epoch_updated_i : std_logic;
-
    
    signal cbm_from_trb_next_epoch_i : std_logic_vector(31 downto 0);
    signal cbm_from_trb_next_epoch_updated_i : std_logic;
@@ -132,7 +129,7 @@ architecture cbmnet_sync_module_arch of cbmnet_sync_module is
    signal trb_rdo_fsm_i : TRB_RDO_FSM_T;
    signal trb_rdo_fsm_state_i : std_logic_vector(3 downto 0);
    
-   signal trb_rdo_counter_i : integer range 0 to 15;
+   signal trb_rdo_counter_i : integer range 0 to trb_rdo_buffer_i'high;
    signal trb_rdo_finished_i : std_logic;
    
    type CBM_TRB_RDO_FSM_T is (IDLE, WAIT_FOR_RELEASE, WAIT_BEFORE_IDLE);
@@ -174,7 +171,7 @@ begin
                if TRB_TRIGGER_IN = '1' or TRB_RDO_VALID_NO_TIMING_IN = '1' then
                -- store data
                   header_v(31 downto 28) := "0001"; -- version
-                  header_v(23 downto  8) := trb_pulser_threshold_i(15 downto 0);
+                  header_v(23 downto  8) := std_logic_vector(trb_pulser_threshold_i(15 downto 0));
                   header_v( 7 downto  4) := CBM_PHY_BARREL_SHIFTER_POS_IN;
                   header_v( 3 downto  0) := trb_from_cbm_current_epoch_updated_i & "0" & trb_epoch_update_scheme_i;
                   
@@ -183,17 +180,17 @@ begin
                   
                   -- signals commented out are registered in the cbm clock domain in the next process
                   trb_rdo_buffer_i( 0) <= header_v;
-                  trb_rdo_buffer_i( 1) <= trb_timestamp_i;
-               -- trb_rdo_buffer_i( 2) <= cbm_timestamp_i;
-                  trb_rdo_buffer_i( 3) <= trb_timestamp_last_pulse_i;
-               -- trb_rdo_buffer_i( 4) <= cbm_timestamp_last_pulse_i;
-               -- trb_rdo_buffer_i( 5) <= cbm_current_epoch_i;
-               -- trb_rdo_buffer_i( 6) <= cbm_timestamp_last_dlm_i;
-                  trb_rdo_buffer_i( 7) <= trb_timestamp_last_dlm_i;
-               -- trb_rdo_buffer_i( 8) <= cbm_dlm_counter_i;
-               -- trb_rdo_buffer_i( 9) <= cbm_pulse_counter_i;
-                  trb_rdo_buffer_i(10)(31 downto 16) <= trb_reset_counter_i;
-               -- trb_rdo_buffer_i(10)(15 downto  0) <= cbm_reset_counter_i;
+                  trb_rdo_buffer_i( 1) <= std_logic_vector(trb_timestamp_i);
+               -- trb_rdo_buffer_i( 2) <= std_logic_vector(cbm_timestamp_i);
+                  trb_rdo_buffer_i( 3) <= std_logic_vector(trb_timestamp_last_pulse_i);
+               -- trb_rdo_buffer_i( 4) <= std_logic_vector(cbm_timestamp_last_pulse_i);
+               -- trb_rdo_buffer_i( 5) <= std_logic_vector(cbm_current_epoch_i);
+               -- trb_rdo_buffer_i( 6) <= std_logic_vector(cbm_timestamp_last_dlm_i);
+                  trb_rdo_buffer_i( 7) <= std_logic_vector(trb_timestamp_last_dlm_i);
+               -- trb_rdo_buffer_i( 8) <= std_logic_vector(cbm_dlm_counter_i);
+               -- trb_rdo_buffer_i( 9) <= std_logic_vector(cbm_pulse_counter_i);
+                  trb_rdo_buffer_i(10)(31 downto 16) <= std_logic_vector(trb_reset_counter_i);
+               -- trb_rdo_buffer_i(10)(15 downto  0) <= cbm_reset_counter_i);
                
                   trb_rdo_fsm_i <= WAIT_FOR_VALID;
                end if;
@@ -256,13 +253,13 @@ begin
             end if;
          
             if cbm_from_trb_trigger_in = '1' or cbm_from_trb_rdo_valid_no_timing_in = '1' then
-               trb_rdo_buffer_i( 2) <= cbm_timestamp_i;
-               trb_rdo_buffer_i( 4) <= cbm_timestamp_last_pulse_i;
-               trb_rdo_buffer_i( 5) <= cbm_current_epoch_i;
-               trb_rdo_buffer_i( 6) <= cbm_timestamp_last_dlm_i;
-               trb_rdo_buffer_i( 8) <= cbm_dlm_counter_i;
-               trb_rdo_buffer_i( 9) <= cbm_pulse_counter_i;
-               trb_rdo_buffer_i(10)(15 downto  0) <= cbm_reset_counter_i;
+               trb_rdo_buffer_i( 2) <= std_logic_vector(cbm_timestamp_i);
+               trb_rdo_buffer_i( 4) <= std_logic_vector(cbm_timestamp_last_pulse_i);
+               trb_rdo_buffer_i( 5) <= std_logic_vector(cbm_current_epoch_i);
+               trb_rdo_buffer_i( 6) <= std_logic_vector(cbm_timestamp_last_dlm_i);
+               trb_rdo_buffer_i( 8) <= std_logic_vector(cbm_dlm_counter_i);
+               trb_rdo_buffer_i( 9) <= std_logic_vector(cbm_pulse_counter_i);
+               trb_rdo_buffer_i(10)(15 downto  0) <= std_logic_vector(cbm_reset_counter_i);
                
                cbm_trb_rdo_fsm_i <= WAIT_FOR_RELEASE;
             end if;
@@ -279,16 +276,18 @@ begin
    end process;
 
 -- TRBNet slow control
-   trb_regio_addr_i <= to_integer(UNSIGNED(TRB_REGIO_ADDR_IN(3 downto 0)));
+   trb_regio_addr_i <= to_integer(UNSIGNED(TRB_REGIO_IN.addr(3 downto 0)));
    
    TRB_SLOW_CTRL_PROC: process is
    begin
       wait until rising_edge(TRB_CLK_IN);
 
-      TRB_REGIO_DATAREADY_OUT <= TRB_REGIO_READ_ENABLE_IN;
-      TRB_REGIO_WRITE_ACK_OUT <= TRB_REGIO_WRITE_ENABLE_IN;
-      TRB_REGIO_UNKNOWN_ADDR_OUT <= '0';
-      TRB_REGIO_DATA_OUT <= (others => '0');
+      TRB_REGIO_OUT.rack <= TRB_REGIO_IN.read;
+      TRB_REGIO_OUT.wack <= TRB_REGIO_IN.write;
+      TRB_REGIO_OUT.unknown <= '0';
+      TRB_REGIO_OUT.data <= (others => '0');
+      TRB_REGIO_OUT.nack <= '0';
+      TRB_REGIO_OUT.ack <= '0';
       
       if trb_from_cbm_dlm_sensed_i = '1' then
          trb_next_epoch_updated_i <= '0';
@@ -305,53 +304,53 @@ begin
       else
          case (trb_regio_addr_i) is
             when 0 => 
-               TRB_REGIO_DATA_OUT(31 downto 16) <= trb_dlm_sense_mask_i;
-               TRB_REGIO_DATA_OUT(11 downto  8) <= trb_rdo_fsm_state_i;
-               TRB_REGIO_DATA_OUT(5) <= CBM_LINK_ACTIVE_IN;
-               TRB_REGIO_DATA_OUT(4) <= trb_from_cbm_current_epoch_updated_i;
-               TRB_REGIO_DATA_OUT( 3 downto  0) <= "00" & trb_epoch_update_scheme_i;
+               TRB_REGIO_OUT.data(31 downto 16) <= trb_dlm_sense_mask_i;
+               TRB_REGIO_OUT.data(11 downto  8) <= trb_rdo_fsm_state_i;
+               TRB_REGIO_OUT.data(5) <= CBM_LINK_ACTIVE_IN;
+               TRB_REGIO_OUT.data(4) <= trb_from_cbm_current_epoch_updated_i;
+               TRB_REGIO_OUT.data( 3 downto  0) <= "00" & trb_epoch_update_scheme_i;
             
             when 1 =>
-               TRB_REGIO_DATA_OUT <= trb_pulser_threshold_i;
+               TRB_REGIO_OUT.data <= std_logic_vector(trb_pulser_threshold_i);
                
             when 2 =>
-               TRB_REGIO_DATA_OUT <= trb_next_epoch_i;
+               TRB_REGIO_OUT.data <= trb_next_epoch_i;
             
             when trb_sync_lowest_address_c =>
-               TRB_REGIO_DATA_OUT <= trb_from_cbm_current_epoch_i;
-               trb_sync_buffer_i(trb_sync_lowest_address_c+1) <= trb_from_cbm_timestamp_i;
-               trb_sync_buffer_i(trb_sync_lowest_address_c+2) <= trb_from_cbm_timestamp_last_dlm_i;
-               trb_sync_buffer_i(trb_sync_lowest_address_c+3) <= trb_from_cbm_timestamp_last_pulse_i;
-               trb_sync_buffer_i(trb_sync_lowest_address_c+4) <= trb_timestamp_i;
-               trb_sync_buffer_i(trb_sync_lowest_address_c+5) <= trb_timestamp_last_dlm_i;
-               trb_sync_buffer_i(trb_sync_lowest_address_c+6) <= trb_timestamp_last_pulse_i;
-               trb_sync_buffer_i(trb_sync_lowest_address_c+7) <= trb_from_cbm_dlm_counter_i;
-               trb_sync_buffer_i(trb_sync_lowest_address_c+8) <= trb_from_cbm_pulse_counter_i;
+               TRB_REGIO_OUT.data <= trb_from_cbm_current_epoch_i;
+               trb_sync_buffer_i(trb_sync_lowest_address_c+1) <= std_logic_vector(trb_from_cbm_timestamp_i);
+               trb_sync_buffer_i(trb_sync_lowest_address_c+2) <= std_logic_vector(trb_from_cbm_timestamp_last_dlm_i);
+               trb_sync_buffer_i(trb_sync_lowest_address_c+3) <= std_logic_vector(trb_from_cbm_timestamp_last_pulse_i);
+               trb_sync_buffer_i(trb_sync_lowest_address_c+4) <= std_logic_vector(trb_timestamp_i);
+               trb_sync_buffer_i(trb_sync_lowest_address_c+5) <= std_logic_vector(trb_timestamp_last_dlm_i);
+               trb_sync_buffer_i(trb_sync_lowest_address_c+6) <= std_logic_vector(trb_timestamp_last_pulse_i);
+               trb_sync_buffer_i(trb_sync_lowest_address_c+7) <= std_logic_vector(trb_from_cbm_dlm_counter_i);
+               trb_sync_buffer_i(trb_sync_lowest_address_c+8) <= std_logic_vector(trb_from_cbm_pulse_counter_i);
                trb_sync_buffer_i(trb_sync_lowest_address_c+9) <= STD_LOGIC_VECTOR(trb_reset_counter_i) & STD_LOGIC_VECTOR(trb_from_cbm_reset_counter_i);               
             
-            when trb_sync_lowest_address_c + 1 to trb_sync_lowest_address_c + trb_sync_buffer_i'high =>
-               TRB_REGIO_DATA_OUT <= trb_sync_buffer_i(trb_regio_addr_i);
+            when trb_sync_lowest_address_c + 1 to trb_sync_lowest_address_c =>
+               TRB_REGIO_OUT.data <= trb_sync_buffer_i(trb_regio_addr_i);
                
             when others =>
-               TRB_REGIO_UNKNOWN_ADDR_OUT <= TRB_REGIO_READ_ENABLE_IN or TRB_REGIO_WRITE_ENABLE_IN;
+               TRB_REGIO_OUT.unknown <= TRB_REGIO_IN.read or TRB_REGIO_IN.write;
                
          end case;
          
-         if TRB_REGIO_WRITE_ENABLE_IN = '1' then
+         if TRB_REGIO_IN.write = '1' then
             case (trb_regio_addr_i) is
                when 0 =>
-                  trb_dlm_sense_mask_i      <= TRB_REGIO_DATA_IN(31 downto 16);
-                  trb_epoch_update_scheme_i <= TRB_REGIO_DATA_IN(1 downto 0);
+                  trb_dlm_sense_mask_i      <= TRB_REGIO_IN.data(31 downto 16);
+                  trb_epoch_update_scheme_i <= TRB_REGIO_IN.data(1 downto 0);
                
                when 1 =>
-                  trb_pulser_threshold_i <= TRB_REGIO_DATA_IN;
+                  trb_pulser_threshold_i <= TRB_REGIO_IN.data;
                   
                when 2 =>
-                  trb_next_epoch_i <= TRB_REGIO_DATA_IN;
+                  trb_next_epoch_i <= TRB_REGIO_IN.data;
                   trb_next_epoch_updated_i <= '1';
                
                when others =>
-                  TRB_REGIO_UNKNOWN_ADDR_OUT <= '1';
+                  TRB_REGIO_OUT.unknown <= '1';
             end case;
          end if;
       end if;
@@ -402,7 +401,7 @@ begin
       cbm_dlm_sensed_i <= sensed_v;
       
       if CBM_RESET_IN='1' then
-         cbm_dlm_counter_i <= 0;
+         cbm_dlm_counter_i <= (others=>'0');
       elsif sensed_v='1' then
          cbm_dlm_counter_i <= cbm_dlm_counter_i + 1;
       end if;
@@ -460,25 +459,25 @@ begin
    begin
       wait until rising_edge(CBM_CLK_IN);
       
-      cbm_from_trb_pulser_threshold_i <= trb_pulser_threshold_i;
+      cbm_from_trb_pulser_threshold_i <= unsigned(trb_pulser_threshold_i);
       cbm_pulse_i <= '0';
       
       if CBM_RESET_IN='1' then
-         cbm_pulse_counter_i <= 0;
+         cbm_pulse_counter_i <= (others=>'0');
       end if;
       
       
       if CBM_RESET_IN='1' or cbm_from_trb_pulser_threshold_i=x"00000000" then
-         cbm_pulser_period_counter_i <= 0;
+         cbm_pulser_period_counter_i <= (others=>'0');
          
       elsif cbm_pulser_period_counter_i = cbm_from_trb_pulser_threshold_i then
-         cbm_pulser_period_counter_i <= 0;
+         cbm_pulser_period_counter_i <= (others=>'0');
          cbm_pulse_counter_i <= cbm_pulse_counter_i + 1;
          cbm_timestamp_last_pulse_i <= cbm_timestamp_i;
          cbm_pulse_i <= '1';
       
       elsif cbm_pulser_period_counter_i > cbm_from_trb_pulser_threshold_i then
-         cbm_pulser_period_counter_i <= 0;
+         cbm_pulser_period_counter_i <= (others=>'0');
          
       else
          cbm_pulser_period_counter_i <= cbm_pulser_period_counter_i + 1;
@@ -548,5 +547,8 @@ begin
    cbm_from_trb_rdo_valid_no_timing_in  <= TRB_RDO_VALID_NO_TIMING_IN  when rising_edge(CBM_CLK_IN);
    cbm_from_trb_rdo_finished_i          <= trb_rdo_finished_i          when rising_edge(CBM_CLK_IN);
    cbm_from_trb_reset_in                <= TRB_RESET_IN                when rising_edge(CBM_CLK_IN);
+   
+-- DEBUG
+   DEBUG_OUT <= (others => '0');
    
 end architecture;

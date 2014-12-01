@@ -49,7 +49,7 @@ signal fifo_wait_0, fifo_wait_1, fifo_wait_2 : std_logic;
 signal adc_data_out  : std_logic_vector(DEVICES*CHANNELS*RESOLUTION-1 downto 0);
 signal adc_fco_out   : std_logic_vector(DEVICES*RESOLUTION-1 downto 0);
 signal adc_valid_out : std_logic_vector(DEVICES-1 downto 0);
-signal adc_debug     : std_logic_vector(DEVICES*CHANNELS*32-1 downto 0);
+signal adc_debug     : std_logic_vector(DEVICES*32-1 downto 0);
 signal adc_restart   : std_logic;
 begin
 
@@ -87,10 +87,10 @@ THE_ADC_LEFT : entity work.adc_ad9219
     DATA_VALID_OUT(5 downto 0) => adc_valid_out(5 downto 0),
     DATA_VALID_OUT(6)          => adc_valid_out(7),
     
-    DEBUG(32*6*CHANNELS-1 downto 0)
-                               => adc_debug(32*6*CHANNELS-1 downto 0),
-    DEBUG(32*7*CHANNELS -1 downto 32*6*CHANNELS)
-                               => adc_debug(32*8*CHANNELS-1 downto 32*7*CHANNELS)
+    DEBUG(32*6-1 downto 0)
+                               => adc_debug(32*6-1 downto 0),
+    DEBUG(32*7 -1 downto 32*6)
+                               => adc_debug(32*8-1 downto 32*7)
     
     );
 
@@ -124,10 +124,10 @@ THE_ADC_RIGHT : entity work.adc_ad9219
     DATA_VALID_OUT(0)          => adc_valid_out(6),
     DATA_VALID_OUT(4 downto 1) => adc_valid_out(11 downto 8),
     
-    DEBUG(32*1*CHANNELS-1 downto 0)
-                               => adc_debug(32*7*CHANNELS-1 downto 32*6*CHANNELS),
-    DEBUG(32*5*CHANNELS -1 downto 32*1*CHANNELS)
-                               => adc_debug(32*12*CHANNELS-1 downto 32*8*CHANNELS)
+    DEBUG(32*1-1 downto 0)
+                               => adc_debug(32*7-1 downto 32*6),
+    DEBUG(32*5 -1 downto 32*1)
+                               => adc_debug(32*12-1 downto 32*8)
     
     );    
 
@@ -173,9 +173,9 @@ PROC_BUS : process begin
     if BUS_RX.addr(7 downto 0) = x"80" then
       BUS_TX.data  <= ctrl_reg;
       BUS_TX.ack   <= '1';
-    elsif BUS_RX.addr(7 downto 0) >= x"40" and BUS_RX.addr(7 downto 0) < x"80" 
+    elsif BUS_RX.addr(7 downto 0) >= x"40" and BUS_RX.addr(7 downto 0) < x"50" 
            and BUS_RX.addr(5 downto 0) < std_logic_vector(to_unsigned(DEVICES*CHANNELS,6)) then
-      BUS_TX.data  <= adc_debug(to_integer(unsigned(BUS_RX.addr(5 downto 0)))*32+31 downto to_integer(unsigned(BUS_RX.addr(5 downto 0)))*32);
+      BUS_TX.data  <= adc_debug(to_integer(unsigned(BUS_RX.addr(3 downto 0)))*32+31 downto to_integer(unsigned(BUS_RX.addr(3 downto 0)))*32);
       BUS_TX.ack   <= '1';
     elsif BUS_RX.addr(7 downto 0) = x"83" then
       BUS_TX.data  <= (others => '0');
