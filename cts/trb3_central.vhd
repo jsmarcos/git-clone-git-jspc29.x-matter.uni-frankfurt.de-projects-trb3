@@ -1632,10 +1632,10 @@ begin
          --Response to handler
          --       TRG_RELEASE_OUT       => fee_trg_release_i,   -- trigger release signal
          TRG_RELEASE_OUT       => open,
-         TRG_STATUSBIT_OUT     => cts_rdo_additional(2).statusbits,
-         DATA_OUT              => cts_rdo_additional(2).data,
-         DATA_WRITE_OUT        => cts_rdo_additional(2).data_write,
-         DATA_FINISHED_OUT     => cts_rdo_additional(2).data_finished,
+         TRG_STATUSBIT_OUT     => cts_rdo_additional(1+INCLUDE_CBMNET).statusbits,
+         DATA_OUT              => cts_rdo_additional(1+INCLUDE_CBMNET).data,
+         DATA_WRITE_OUT        => cts_rdo_additional(1+INCLUDE_CBMNET).data_write,
+         DATA_FINISHED_OUT     => cts_rdo_additional(1+INCLUDE_CBMNET).data_finished,
          --Hit Counter Bus
          HCB_READ_EN_IN        => hitreg_read_en,    -- bus read en strobe
          HCB_WRITE_EN_IN       => hitreg_write_en,   -- bus write en strobe
