@@ -7,6 +7,7 @@ library work;
 use work.trb_net_std.all;
 use work.trb_net_components.all;
 use work.trb3_components.all;
+use work.tdc_components.all;
 use work.version.all;
 
 entity TDC is

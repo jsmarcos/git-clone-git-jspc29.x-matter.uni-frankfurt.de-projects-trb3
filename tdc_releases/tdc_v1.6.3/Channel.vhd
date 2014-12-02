@@ -5,7 +5,7 @@ use ieee.numeric_std.all;
 library work;
 use work.trb_net_std.all;
 use work.trb_net_components.all;
-use work.trb3_components.all;
+use work.tdc_components.all;
 use work.config.all;
 
 entity Channel is

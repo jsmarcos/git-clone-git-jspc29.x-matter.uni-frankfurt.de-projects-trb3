@@ -4,7 +4,7 @@
 -- File       : Encoder_304_Bit.vhd
 -- Author     : Cahit Ugur
 -- Created    : 2011-11-28
--- Last update: 2014-04-10
+-- Last update: 2014-12-02
 -------------------------------------------------------------------------------
 -- Description: Encoder for 304 bits
 -------------------------------------------------------------------------------
@@ -20,7 +20,7 @@ use ieee.numeric_std.all;
 
 library work;
 use work.trb_net_std.all;
-use work.trb3_components.all;
+use work.tdc_components.all;
 
 -- synopsys translate_off
 library ecp3;
