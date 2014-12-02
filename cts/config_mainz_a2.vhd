@@ -32,7 +32,7 @@ package config is
     constant USE_EXTERNAL_CLOCK : integer range c_NO to c_YES := c_NO;    
        
 --Which external trigger module (ETM) to use?
-    constant INCLUDE_ETM : integer range c_NO to c_YES := c_NO;
+    constant INCLUDE_ETM : integer range c_NO to c_YES := c_YES;
     type ETM_CHOICE_type is (ETM_CHOICE_MBS_VULOM, ETM_CHOICE_MAINZ_A2, ETM_CHOICE_CBMNET);
     constant ETM_CHOICE : ETM_CHOICE_type := ETM_CHOICE_MAINZ_A2;
     
