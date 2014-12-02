@@ -560,7 +560,7 @@ package tdc_components is
   --    Full    : out std_logic);
   --end component;
 
-  component ROM_Encoder
+  component ROM_Encoder_3
     port (
       Address    : in  std_logic_vector(9 downto 0);
       OutClock   : in  std_logic;
