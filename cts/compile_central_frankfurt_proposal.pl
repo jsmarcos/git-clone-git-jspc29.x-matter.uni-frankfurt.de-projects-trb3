@@ -16,13 +16,12 @@ my $CbmNetPath                   = "../../cbmnet";
 my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
 my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
 
-my $lattice_path                 = '/opt/lattice/diamond/3.2_x64/';
-my $synplify_path                = '/opt/synplicity/I-2013.09-SP1/';
+my $lattice_path                 = '/d/jspc29/lattice/diamond/3.2_x64';
+my $synplify_path                = '/d/jspc29/lattice/synplify/I-2013.09-SP1/';
 my $lattice_bin_path             = "$lattice_path/bin/lin64"; # note the lin or lin64 at the end, no isfgpa needed
-my $config_vhd                   = 'config_mainz_a2.vhd';
+my $config_vhd                   = 'config_default.vhd';
 ###################################################################################
 
-system("ln -f -s $config_vhd config.vhd");
 system("./compile_constraints.pl");
 
 symlink($CbmNetPath, '../cbmnet/cbmnet') unless (-e '../cbmnet/cbmnet');
@@ -47,6 +46,17 @@ my $FAMILYNAME="LatticeECP3";
 my $DEVICENAME="LFE3-150EA";
 my $PACKAGE="FPBGA1156";
 my $SPEEDGRADE="8";
+
+my $WORKDIR = "workdir";
+unless(-d $WORKDIR) {
+  mkdir $WORKDIR or die "can't create workdir '$WORKDIR': $!";
+  system ("cd workdir; ../../base/linkdesignfiles.sh; cd ..;");
+  system ("ln -sfT ../tdc_release/Adder_304.ngo $WORKDIR/Adder_304.ngo");
+  system ("cp ../base/mulipar_nodelist_example.txt $WORKDIR/nodelist.txt");
+}
+
+system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");
+system("ln -f -s $config_vhd config.vhd");
 
 #generate timestamp
 my $t=time;
@@ -76,7 +86,7 @@ my $c="$synplify_path/bin/synplify_premier_dp -batch $TOPNAME.prj";
 $r=execute($c, "do_not_exit" );
 
 
-chdir './workdir';
+chdir $WORKDIR;
 $fh = new FileHandle("<$TOPNAME".".srr");
 my @a = <$fh>;
 $fh -> close;

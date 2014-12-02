@@ -21,7 +21,7 @@ entity adc_handler is
     TRIGGER_FLAG_OUT : out std_logic;
 --Readout    
     READOUT_RX : in  READOUT_RX;
-    READOUT_TX : out readout_tx_array_t((DEVICES_1+DEVICES_2)-1 downto 0);
+    READOUT_TX : out readout_tx_array_t(0 to (DEVICES_1+DEVICES_2)-1);
 --Slow control    
     BUS_RX     : in  CTRLBUS_RX;
     BUS_TX     : out CTRLBUS_TX;
