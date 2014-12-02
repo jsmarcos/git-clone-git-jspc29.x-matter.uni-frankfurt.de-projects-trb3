@@ -22,6 +22,7 @@ my $lattice_bin_path             = "$lattice_path/bin/lin64"; # note the lin or 
 my $config_vhd                   = 'config_default.vhd';
 ###################################################################################
 
+system("ln -f -s $config_vhd config.vhd");
 system("./compile_constraints.pl");
 
 symlink($CbmNetPath, '../cbmnet/cbmnet') unless (-e '../cbmnet/cbmnet');
@@ -46,17 +47,6 @@ my $FAMILYNAME="LatticeECP3";
 my $DEVICENAME="LFE3-150EA";
 my $PACKAGE="FPBGA1156";
 my $SPEEDGRADE="8";
-
-my $WORKDIR = "workdir";
-unless(-d $WORKDIR) {
-  mkdir $WORKDIR or die "can't create workdir '$WORKDIR': $!";
-  system ("cd workdir; ../../base/linkdesignfiles.sh; cd ..;");
-  system ("ln -sfT ../tdc_release/Adder_304.ngo $WORKDIR/Adder_304.ngo");
-  system ("cp ../base/mulipar_nodelist_example.txt $WORKDIR/nodelist.txt");
-}
-
-system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");
-system("ln -f -s $config_vhd config.vhd");
 
 #generate timestamp
 my $t=time;
@@ -86,7 +76,7 @@ my $c="$synplify_path/bin/synplify_premier_dp -batch $TOPNAME.prj";
 $r=execute($c, "do_not_exit" );
 
 
-chdir $WORKDIR;
+chdir './workdir';
 $fh = new FileHandle("<$TOPNAME".".srr");
 my @a = <$fh>;
 $fh -> close;
