@@ -880,7 +880,6 @@ begin
       hub_cts_readout_finished <= gbe_cts_readout_finished;
       hub_fee_read             <= gbe_fee_read;
       
-      trb_reset_in <= reset_via_gbe or MED_STAT_OP(4*16+13); --_delayed(2)
       LED_TRIGGER_GREEN              <= not med_stat_op(4*16+9);
       LED_TRIGGER_RED                <= not (med_stat_op(4*16+11) or med_stat_op(4*16+10));
       
@@ -1572,7 +1571,7 @@ begin
       PROGRAMN  => PROGRAMN
    );
 
-   do_reboot_i <= common_ctrl_regs(15) or killswitch_reboot_i;
+   do_reboot_i <= common_ctrl_regs(15); -- or killswitch_reboot_i;
    
    -- if jttl(15) is stabily high for 1.28us: issue reboot
    THE_KILLSWITCH_PROC: process
@@ -1746,7 +1745,7 @@ begin
    );
 
    TRIGGER_SELECT <= '1';
-   CLOCK_SELECT   <='1'; --use on-board oscillator
+   CLOCK_SELECT   <= '1' when USE_EXTERNAL_CLOCK = c_YES else '0'; --use on-board oscillator
    CLK_MNGR1_USER <= select_tc_i(19 downto 16);
    CLK_MNGR2_USER <= select_tc_i(27 downto 24); 
 
