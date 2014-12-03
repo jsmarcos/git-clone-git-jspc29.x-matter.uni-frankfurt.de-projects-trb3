@@ -79,6 +79,8 @@ library work;
 --      23 : 16   Number of events before selecting next builder (useful to aggregate events to support large data packets)
 --      27 : 24   Event Builder number of calibration trigger
 --        28      If asserted: Use special event builder for calibration trigger, otherwise, use ordinary round robin selection.
+--
+--    0x0e        Statistics: Total dead time of CTS (in clock cycles)
 -- </address_table>
 
 -- Header of data packet written to event builder
@@ -300,7 +302,7 @@ architecture RTL of CTS is
    signal ro_configuration_i, ro_configuration_buf_i : std_logic_vector(4 downto 0);
    
 -- Debug and statistics
-   type cts_status_registers_t is array(0 to 16#0d#) of std_logic_vector(31 downto 0);
+   type cts_status_registers_t is array(0 to 16#0e#) of std_logic_vector(31 downto 0);
    signal cts_status_registers_i : cts_status_registers_t := (others => (others => '0'));
    
    signal debug_lvl1_limit_i, debug_ipu_limit_i, 
@@ -312,7 +314,8 @@ architecture RTL of CTS is
           stat_trigger_edges_i, 
           stat_trigger_accepted_i,
           stat_dead_time_i,
-          stat_idle_time_i  : unsigned(31 downto 0);
+          stat_idle_time_i,
+          stat_total_dead_time_i : unsigned(31 downto 0);
           
    signal stat_trigger_enabled_buf_i,
           stat_trigger_edges_buf_i, 
@@ -820,6 +823,7 @@ begin
       -- DEAD AND IDLE TIME
          if RESET='1' then
             stat_dead_time_i <= (others => '0');
+            stat_total_dead_time_i <= (others => '0');
             stat_idle_time_i <= (others => '0');
             
             stat_dead_time_buf_i <= (others => '1');
@@ -845,6 +849,8 @@ begin
                if stat_dead_time_i /= X"ffffffff" then
                   stat_dead_time_i <= stat_dead_time_i + 1;
                end if;
+               
+               stat_total_dead_time_i <= stat_total_dead_time_i + 1;
             end if;
          end if;
        
@@ -881,6 +887,8 @@ begin
    cts_status_registers_i(16#0d#)(23 downto 16) <= STD_LOGIC_VECTOR(eb_aggr_threshold_i);
    cts_status_registers_i(16#0d#)(27 downto 24) <= eb_special_calibration_eb_i;
    cts_status_registers_i(16#0d#)(28) <= eb_use_special_calibration_eb_i;
+   
+   cts_status_registers_i(16#0e#) <= stat_total_dead_time_i;
    
    regio_proc: process(CLK) is
       variable addr : integer range 0 to 15;

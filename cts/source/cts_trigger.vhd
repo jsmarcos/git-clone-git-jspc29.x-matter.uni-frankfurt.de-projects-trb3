@@ -171,11 +171,18 @@ begin
    end process;
    
    proc_addon_mux: process(CLK_IN) is
+      variable sel : integer range 0 to 255;
    begin
       if rising_edge(CLK_IN) then
-         for i in 0 to TRIGGER_ADDON_COUNT - 1 loop
-            triggers_i(TRIGGER_INPUT_COUNT + i) 
-               <= ADDON_TRIGGERS_IN( to_integer( UNSIGNED(trigger_addon_configs_i(i)) ) );
+         for i in 0 to TRIGGER_ADDON_COUNT - 1  loop
+            sel := to_integer( UNSIGNED(trigger_addon_configs_i(i)) );
+            
+            triggers_i(TRIGGER_INPUT_COUNT + i) <= '0';
+            if sel <= ADDON_TRIGGERS_IN'HIGH then
+               triggers_i(TRIGGER_INPUT_COUNT + i) <= ADDON_TRIGGERS_IN( sel );
+            elsif sel <= ADDON_TRIGGERS_IN'HIGH + 16 then
+               triggers_i(TRIGGER_INPUT_COUNT + i) <= channels_i(sel - ADDON_TRIGGERS_IN'HIGH - 1);
+            end if;
          end loop;
       end if;
    end process;

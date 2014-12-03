@@ -169,7 +169,7 @@ begin
     end if;
   end process Interval_Selection;
 
-  ROM_Encoder_1 : ROM_encoder_3
+  ROM_Encoder_1 : ROM_Encoder_3
     port map (
       Address    => address_i,
       OutClock   => CLK,

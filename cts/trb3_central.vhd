@@ -880,7 +880,6 @@ begin
       hub_cts_readout_finished <= gbe_cts_readout_finished;
       hub_fee_read             <= gbe_fee_read;
       
-      trb_reset_in <= reset_via_gbe or MED_STAT_OP(4*16+13); --_delayed(2)
       LED_TRIGGER_GREEN              <= not med_stat_op(4*16+9);
       LED_TRIGGER_RED                <= not (med_stat_op(4*16+11) or med_stat_op(4*16+10));
       
@@ -1572,7 +1571,7 @@ begin
       PROGRAMN  => PROGRAMN
    );
 
-   do_reboot_i <= common_ctrl_regs(15) or killswitch_reboot_i;
+   do_reboot_i <= common_ctrl_regs(15); -- or killswitch_reboot_i;
    
    -- if jttl(15) is stabily high for 1.28us: issue reboot
    THE_KILLSWITCH_PROC: process
@@ -1632,10 +1631,10 @@ begin
          --Response to handler
          --       TRG_RELEASE_OUT       => fee_trg_release_i,   -- trigger release signal
          TRG_RELEASE_OUT       => open,
-         TRG_STATUSBIT_OUT     => cts_rdo_additional(2).statusbits,
-         DATA_OUT              => cts_rdo_additional(2).data,
-         DATA_WRITE_OUT        => cts_rdo_additional(2).data_write,
-         DATA_FINISHED_OUT     => cts_rdo_additional(2).data_finished,
+         TRG_STATUSBIT_OUT     => cts_rdo_additional(1+INCLUDE_CBMNET).statusbits,
+         DATA_OUT              => cts_rdo_additional(1+INCLUDE_CBMNET).data,
+         DATA_WRITE_OUT        => cts_rdo_additional(1+INCLUDE_CBMNET).data_write,
+         DATA_FINISHED_OUT     => cts_rdo_additional(1+INCLUDE_CBMNET).data_finished,
          --Hit Counter Bus
          HCB_READ_EN_IN        => hitreg_read_en,    -- bus read en strobe
          HCB_WRITE_EN_IN       => hitreg_write_en,   -- bus write en strobe
@@ -1746,7 +1745,7 @@ begin
    );
 
    TRIGGER_SELECT <= '1';
-   CLOCK_SELECT   <='1'; --use on-board oscillator
+   CLOCK_SELECT   <= '1' when USE_EXTERNAL_CLOCK = c_YES else '0'; --use on-board oscillator
    CLK_MNGR1_USER <= select_tc_i(19 downto 16);
    CLK_MNGR2_USER <= select_tc_i(27 downto 24); 
 
