@@ -22,9 +22,9 @@ my $lattice_bin_path             = "$lattice_path/bin/lin64"; # note the lin or 
 my $config_vhd                   = 'config_mainz_a2.vhd';
 ###################################################################################
 
-system("ln -f -s $config_vhd config.vhd");
+system("ln -f -s $config_vhd config.vhd") unless (-e "config.vhd");
 system("./compile_constraints.pl");
-
+system("cp ../base/mulipar_nodelist_example.txt workdir/nodelist.txt") unless (-e "workdir/nodelist.txt");
 symlink($CbmNetPath, '../cbmnet/cbmnet') unless (-e '../cbmnet/cbmnet');
 
 # source the standard lattice environment
@@ -115,10 +115,10 @@ execute($c);
 system("rm $TOPNAME.ncd");
 
 #$c=qq|multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
-$c=qq|par -f "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd" "$TOPNAME.prf"|;
+#$c=qq|par -f "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd" "$TOPNAME.prf"|;
 #$c=qq|par -f "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.dir" "$TOPNAME.prf"|;
-# dont forget to create a nodelist.txt for multipar / mpar
-#$c=qq|mpartrce -p "../$TOPNAME.p2t" -f "../$TOPNAME.p3t" -tf "$TOPNAME.pt" "|.$TOPNAME.qq|_map.ncd" "$TOPNAME.ncd"|;
+# dont forget to create a nodelist.txt for multipar / par -m
+$c=qq|mpartrce -p "../$TOPNAME.p2t" -f "../$TOPNAME.p3t" -tf "$TOPNAME.pt" "$tpmap.ncd" "$TOPNAME.ncd"|;
 execute($c);
 
 # IOR IO Timing Report
