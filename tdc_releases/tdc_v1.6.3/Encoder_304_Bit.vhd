@@ -21,6 +21,7 @@ use ieee.numeric_std.all;
 library work;
 use work.trb_net_std.all;
 use work.trb3_components.all;
+use work.tdc_components.all;
 
 -- synopsys translate_off
 library ecp3;
