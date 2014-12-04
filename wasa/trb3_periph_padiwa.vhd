@@ -6,6 +6,7 @@ library work;
 use work.trb_net_std.all;
 use work.trb_net_components.all;
 use work.trb3_components.all;
+use work.tdc_components.all;
 use work.config.all;
 use work.tdc_version.all;
 use work.version.all;
@@ -185,19 +186,15 @@ architecture trb3_periph_padiwa_arch of trb3_periph_padiwa is
   signal timer_ticks         : std_logic_vector(1 downto 0);
 
   --Flash
-  signal spictrl_read_en  : std_logic;
-  signal spictrl_write_en : std_logic;
-  signal spictrl_data_in  : std_logic_vector(31 downto 0);
-  signal spictrl_addr     : std_logic;
-  signal spictrl_data_out : std_logic_vector(31 downto 0);
-  signal spictrl_ack      : std_logic;
-  signal spictrl_busy     : std_logic;
-  signal spimem_read_en   : std_logic;
-  signal spimem_write_en  : std_logic;
-  signal spimem_data_in   : std_logic_vector(31 downto 0);
-  signal spimem_addr      : std_logic_vector(5 downto 0);
-  signal spimem_data_out  : std_logic_vector(31 downto 0);
-  signal spimem_ack       : std_logic;
+  signal spimem_read_en          : std_logic;
+  signal spimem_write_en         : std_logic;
+  signal spimem_data_in          : std_logic_vector(31 downto 0);
+  signal spimem_addr             : std_logic_vector(8 downto 0);
+  signal spimem_data_out         : std_logic_vector(31 downto 0);
+  signal spimem_dataready_out    : std_logic;
+  signal spimem_no_more_data_out : std_logic;
+  signal spimem_unknown_addr_out : std_logic;
+  signal spimem_write_ack_out    : std_logic;
 
   signal dac_read_en  : std_logic;
   signal dac_write_en : std_logic;
@@ -318,15 +315,15 @@ begin
       RESET_DELAY => x"FEEE"
       )
     port map(
-      CLEAR_IN      => '0',             -- reset input (high active, async)
-      CLEAR_N_IN    => '1',             -- reset input (low active, async)
-      CLK_IN        => clk_200_internal,  -- raw master clock, NOT from PLL/DLL!
-      SYSCLK_IN     => clk_100_i,       -- PLL/DLL remastered clock
-      PLL_LOCKED_IN => pll_lock,        -- master PLL lock signal (async)
-      RESET_IN      => '0',             -- general reset signal (SYSCLK)
-      TRB_RESET_IN  => med_stat_op(13),   -- TRBnet reset signal (SYSCLK)
-      CLEAR_OUT     => clear_i,         -- async reset out, USE WITH CARE!
-      RESET_OUT     => reset_i,         -- synchronous reset out (SYSCLK)
+      CLEAR_IN      => '0',              -- reset input (high active, async)
+      CLEAR_N_IN    => '1',              -- reset input (low active, async)
+      CLK_IN        => clk_200_i,        -- raw master clock, NOT from PLL/DLL!
+      SYSCLK_IN     => clk_100_i,        -- PLL/DLL remastered clock
+      PLL_LOCKED_IN => pll_lock,         -- master PLL lock signal (async)
+      RESET_IN      => '0',              -- general reset signal (SYSCLK)
+      TRB_RESET_IN  => med_stat_op(13),  -- TRBnet reset signal (SYSCLK)
+      CLEAR_OUT     => clear_i,          -- async reset out, USE WITH CARE!
+      RESET_OUT     => reset_i,          -- synchronous reset out (SYSCLK)
       DEBUG_OUT     => open
       );  
 
@@ -372,7 +369,7 @@ begin
       USE_SLAVE   => SYNC_MODE
       )      
     port map(
-      CLK                => clk_200_internal,
+      CLK                => clk_200_i,
       SYSCLK             => clk_100_i,
       RESET              => reset_i,
       CLEAR              => clear_i,
@@ -540,13 +537,13 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER     => 11,
-      PORT_ADDRESSES  => (0 => x"d000", 1 => x"d100", 2 => x"d400", 3 => x"c000", 4 => x"c100",
-                          5 => x"b000", 6 => x"c800", 7 => x"cf00", 8 => x"cf80", 9 => x"d500",
-                         10 => x"c200", others => x"0000"),
-      PORT_ADDR_MASK  => (0 => 1, 1 => 6, 2 => 5, 3 => 7, 4 => 5,
-                          5 => 9, 6 => 3, 7 => 6, 8 => 7, 9 => 4,
-                         10 => 7, others => 0)
+      PORT_NUMBER     => 10,
+      PORT_ADDRESSES  => (0 => x"d000", 1 => x"d400", 2 => x"c000", 3 => x"c100", 4 => x"b000",
+                          5 => x"c800", 6 => x"cf00", 7 => x"cf80", 8 => x"d500", 9 => x"c200",
+                          others => x"0000"),
+      PORT_ADDR_MASK  => (0 => 9, 1 => 5, 2 => 7, 3 => 5, 4 => 9,
+                          5 => 3, 6 => 6, 7 => 7, 8 => 4, 9 => 7,
+                          others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -563,160 +560,124 @@ begin
       DAT_NO_MORE_DATA_OUT => regio_no_more_data_in,
       DAT_UNKNOWN_ADDR_OUT => regio_unknown_addr_in,
 
-      --Bus Handler (SPI CTRL)
-      BUS_READ_ENABLE_OUT(0)                => spictrl_read_en,
-      BUS_WRITE_ENABLE_OUT(0)               => spictrl_write_en,
-      BUS_DATA_OUT(0*32+31 downto 0*32)     => spictrl_data_in,
-      BUS_ADDR_OUT(0*16)                    => spictrl_addr,
-      BUS_ADDR_OUT(0*16+15 downto 0*16+1)   => open,
-      BUS_TIMEOUT_OUT(0)                    => open,
-      BUS_DATA_IN(0*32+31 downto 0*32)      => spictrl_data_out,
-      BUS_DATAREADY_IN(0)                   => spictrl_ack,
-      BUS_WRITE_ACK_IN(0)                   => spictrl_ack,
-      BUS_NO_MORE_DATA_IN(0)                => spictrl_busy,
-      BUS_UNKNOWN_ADDR_IN(0)                => '0',
-      --Bus Handler (SPI Memory)
-      BUS_READ_ENABLE_OUT(1)                => spimem_read_en,
-      BUS_WRITE_ENABLE_OUT(1)               => spimem_write_en,
-      BUS_DATA_OUT(1*32+31 downto 1*32)     => spimem_data_in,
-      BUS_ADDR_OUT(1*16+5 downto 1*16)      => spimem_addr,
-      BUS_ADDR_OUT(1*16+15 downto 1*16+6)   => open,
-      BUS_TIMEOUT_OUT(1)                    => open,
-      BUS_DATA_IN(1*32+31 downto 1*32)      => spimem_data_out,
-      BUS_DATAREADY_IN(1)                   => spimem_ack,
-      BUS_WRITE_ACK_IN(1)                   => spimem_ack,
-      BUS_NO_MORE_DATA_IN(1)                => '0',
-      BUS_UNKNOWN_ADDR_IN(1)                => '0',
+      --Bus Handler (SPI Flash control)
+      BUS_READ_ENABLE_OUT(0)              => spimem_read_en,
+      BUS_WRITE_ENABLE_OUT(0)             => spimem_write_en,
+      BUS_DATA_OUT(0*32+31 downto 0*32)   => spimem_data_in,
+      BUS_ADDR_OUT(0*16+8 downto 0*16)    => spimem_addr,
+      BUS_ADDR_OUT(0*16+15 downto 0*16+9) => open,
+      BUS_TIMEOUT_OUT(0)                  => open,
+      BUS_DATA_IN(0*32+31 downto 0*32)    => spimem_data_out,
+      BUS_DATAREADY_IN(0)                 => spimem_dataready_out,
+      BUS_WRITE_ACK_IN(0)                 => spimem_write_ack_out,
+      BUS_NO_MORE_DATA_IN(0)              => spimem_no_more_data_out,
+      BUS_UNKNOWN_ADDR_IN(0)              => spimem_unknown_addr_out,
       --DAC
-      BUS_READ_ENABLE_OUT(2)                => dac_read_en,
-      BUS_WRITE_ENABLE_OUT(2)               => dac_write_en,
-      BUS_DATA_OUT(2*32+31 downto 2*32)     => dac_data_in,
-      BUS_ADDR_OUT(2*16+4 downto 2*16)      => dac_addr,
-      BUS_ADDR_OUT(2*16+15 downto 2*16+5)   => open,
-      BUS_TIMEOUT_OUT(2)                    => open,
-      BUS_DATA_IN(2*32+31 downto 2*32)      => dac_data_out,
-      BUS_DATAREADY_IN(2)                   => dac_ack,
-      BUS_WRITE_ACK_IN(2)                   => dac_ack,
-      BUS_NO_MORE_DATA_IN(2)                => dac_busy,
-      BUS_UNKNOWN_ADDR_IN(2)                => '0',
+      BUS_READ_ENABLE_OUT(1)              => dac_read_en,
+      BUS_WRITE_ENABLE_OUT(1)             => dac_write_en,
+      BUS_DATA_OUT(1*32+31 downto 1*32)   => dac_data_in,
+      BUS_ADDR_OUT(1*16+4 downto 1*16)    => dac_addr,
+      BUS_ADDR_OUT(1*16+15 downto 1*16+5) => open,
+      BUS_TIMEOUT_OUT(1)                  => open,
+      BUS_DATA_IN(1*32+31 downto 1*32)    => dac_data_out,
+      BUS_DATAREADY_IN(1)                 => dac_ack,
+      BUS_WRITE_ACK_IN(1)                 => dac_ack,
+      BUS_NO_MORE_DATA_IN(1)              => dac_busy,
+      BUS_UNKNOWN_ADDR_IN(1)              => '0',
       --HitRegisters
-      BUS_READ_ENABLE_OUT(3)                => hitreg_read_en,
-      BUS_WRITE_ENABLE_OUT(3)               => hitreg_write_en,
-      BUS_DATA_OUT(3*32+31 downto 3*32)     => open,
-      BUS_ADDR_OUT(3*16+6 downto 3*16)      => hitreg_addr,
-      BUS_ADDR_OUT(3*16+15 downto 3*16+7)   => open,
-      BUS_TIMEOUT_OUT(3)                    => open,
-      BUS_DATA_IN(3*32+31 downto 3*32)      => hitreg_data_out,
-      BUS_DATAREADY_IN(3)                   => hitreg_data_ready,
-      BUS_WRITE_ACK_IN(3)                   => '0',
-      BUS_NO_MORE_DATA_IN(3)                => '0',
-      BUS_UNKNOWN_ADDR_IN(3)                => hitreg_invalid,
+      BUS_READ_ENABLE_OUT(2)              => hitreg_read_en,
+      BUS_WRITE_ENABLE_OUT(2)             => hitreg_write_en,
+      BUS_DATA_OUT(2*32+31 downto 2*32)   => open,
+      BUS_ADDR_OUT(2*16+6 downto 2*16)    => hitreg_addr,
+      BUS_ADDR_OUT(2*16+15 downto 2*16+7) => open,
+      BUS_TIMEOUT_OUT(2)                  => open,
+      BUS_DATA_IN(2*32+31 downto 2*32)    => hitreg_data_out,
+      BUS_DATAREADY_IN(2)                 => hitreg_data_ready,
+      BUS_WRITE_ACK_IN(2)                 => '0',
+      BUS_NO_MORE_DATA_IN(2)              => '0',
+      BUS_UNKNOWN_ADDR_IN(2)              => hitreg_invalid,
       --Status Registers
-      BUS_READ_ENABLE_OUT(4)                => srb_read_en,
-      BUS_WRITE_ENABLE_OUT(4)               => srb_write_en,
-      BUS_DATA_OUT(4*32+31 downto 4*32)     => open,
-      BUS_ADDR_OUT(4*16+6 downto 4*16)      => srb_addr,
-      BUS_ADDR_OUT(4*16+15 downto 4*16+7)   => open,
-      BUS_TIMEOUT_OUT(4)                    => open,
-      BUS_DATA_IN(4*32+31 downto 4*32)      => srb_data_out,
-      BUS_DATAREADY_IN(4)                   => srb_data_ready,
-      BUS_WRITE_ACK_IN(4)                   => '0',
-      BUS_NO_MORE_DATA_IN(4)                => '0',
-      BUS_UNKNOWN_ADDR_IN(4)                => srb_invalid,
-      ----Encoder Start Registers
-      --BUS_READ_ENABLE_OUT(5)              => esb_read_en,
-      --BUS_WRITE_ENABLE_OUT(5)             => esb_write_en,
-      --BUS_DATA_OUT(5*32+31 downto 5*32)   => open,
-      --BUS_ADDR_OUT(5*16+6 downto 5*16)    => esb_addr,
-      --BUS_ADDR_OUT(5*16+15 downto 5*16+7) => open,
-      --BUS_TIMEOUT_OUT(5)                  => open,
-      --BUS_DATA_IN(5*32+31 downto 5*32)    => esb_data_out,
-      --BUS_DATAREADY_IN(5)                 => esb_data_ready,
-      --BUS_WRITE_ACK_IN(5)                 => '0',
-      --BUS_NO_MORE_DATA_IN(5)              => '0',
-      --BUS_UNKNOWN_ADDR_IN(5)              => esb_invalid,
-      ----Fifo Write Registers
-      --BUS_READ_ENABLE_OUT(6)              => efb_read_en,
-      --BUS_WRITE_ENABLE_OUT(6)             => efb_write_en,
-      --BUS_DATA_OUT(6*32+31 downto 6*32)   => open,
-      --BUS_ADDR_OUT(6*16+6 downto 6*16)    => efb_addr,
-      --BUS_ADDR_OUT(6*16+15 downto 6*16+7) => open,
-      --BUS_TIMEOUT_OUT(6)                  => open,
-      --BUS_DATA_IN(6*32+31 downto 6*32)    => efb_data_out,
-      --BUS_DATAREADY_IN(6)                 => efb_data_ready,
-      --BUS_WRITE_ACK_IN(6)                 => '0',
-      --BUS_NO_MORE_DATA_IN(6)              => '0',
-      --BUS_UNKNOWN_ADDR_IN(6)              => efb_invalid,
+      BUS_READ_ENABLE_OUT(3)              => srb_read_en,
+      BUS_WRITE_ENABLE_OUT(3)             => srb_write_en,
+      BUS_DATA_OUT(3*32+31 downto 3*32)   => open,
+      BUS_ADDR_OUT(3*16+6 downto 3*16)    => srb_addr,
+      BUS_ADDR_OUT(3*16+15 downto 3*16+7) => open,
+      BUS_TIMEOUT_OUT(3)                  => open,
+      BUS_DATA_IN(3*32+31 downto 3*32)    => srb_data_out,
+      BUS_DATAREADY_IN(3)                 => srb_data_ready,
+      BUS_WRITE_ACK_IN(3)                 => '0',
+      BUS_NO_MORE_DATA_IN(3)              => '0',
+      BUS_UNKNOWN_ADDR_IN(3)              => srb_invalid,
       --SCI first Media Interface
-      BUS_READ_ENABLE_OUT(5)                => sci1_read,
-      BUS_WRITE_ENABLE_OUT(5)               => sci1_write,
-      BUS_DATA_OUT(5*32+7 downto 5*32)      => sci1_data_in,
-      BUS_DATA_OUT(5*32+31 downto 5*32+8)   => open,
-      BUS_ADDR_OUT(5*16+8 downto 5*16)      => sci1_addr,
-      BUS_ADDR_OUT(5*16+15 downto 5*16+9)   => open,
-      BUS_TIMEOUT_OUT(5)                    => open,
-      BUS_DATA_IN(5*32+7 downto 5*32)       => sci1_data_out,
-      BUS_DATAREADY_IN(5)                   => sci1_ack,
-      BUS_WRITE_ACK_IN(5)                   => sci1_ack,
-      BUS_NO_MORE_DATA_IN(5)                => '0',
-      BUS_UNKNOWN_ADDR_IN(5)                => '0',
+      BUS_READ_ENABLE_OUT(4)              => sci1_read,
+      BUS_WRITE_ENABLE_OUT(4)             => sci1_write,
+      BUS_DATA_OUT(4*32+7 downto 4*32)    => sci1_data_in,
+      BUS_DATA_OUT(4*32+31 downto 4*32+8) => open,
+      BUS_ADDR_OUT(4*16+8 downto 4*16)    => sci1_addr,
+      BUS_ADDR_OUT(4*16+15 downto 4*16+9) => open,
+      BUS_TIMEOUT_OUT(4)                  => open,
+      BUS_DATA_IN(4*32+7 downto 4*32)     => sci1_data_out,
+      BUS_DATAREADY_IN(4)                 => sci1_ack,
+      BUS_WRITE_ACK_IN(4)                 => sci1_ack,
+      BUS_NO_MORE_DATA_IN(4)              => '0',
+      BUS_UNKNOWN_ADDR_IN(4)              => '0',
       --TDC config registers
-      BUS_READ_ENABLE_OUT(6)                => tdc_ctrl_read,
-      BUS_WRITE_ENABLE_OUT(6)               => tdc_ctrl_write,
-      BUS_DATA_OUT(6*32+31 downto 6*32)     => tdc_ctrl_data_in,
-      BUS_ADDR_OUT(6*16+2 downto 6*16)      => tdc_ctrl_addr,
-      BUS_ADDR_OUT(6*16+15 downto 6*16+3)   => open,
-      BUS_TIMEOUT_OUT(6)                    => open,
-      BUS_DATA_IN(6*32+31 downto 6*32)      => tdc_ctrl_data_out,
-      BUS_DATAREADY_IN(6)                   => last_tdc_ctrl_read,
-      BUS_WRITE_ACK_IN(6)                   => tdc_ctrl_write,
-      BUS_NO_MORE_DATA_IN(6)                => '0',
-      BUS_UNKNOWN_ADDR_IN(6)                => '0',
+      BUS_READ_ENABLE_OUT(5)              => tdc_ctrl_read,
+      BUS_WRITE_ENABLE_OUT(5)             => tdc_ctrl_write,
+      BUS_DATA_OUT(5*32+31 downto 5*32)   => tdc_ctrl_data_in,
+      BUS_ADDR_OUT(5*16+2 downto 5*16)    => tdc_ctrl_addr,
+      BUS_ADDR_OUT(5*16+15 downto 5*16+3) => open,
+      BUS_TIMEOUT_OUT(5)                  => open,
+      BUS_DATA_IN(5*32+31 downto 5*32)    => tdc_ctrl_data_out,
+      BUS_DATAREADY_IN(5)                 => last_tdc_ctrl_read,
+      BUS_WRITE_ACK_IN(5)                 => tdc_ctrl_write,
+      BUS_NO_MORE_DATA_IN(5)              => '0',
+      BUS_UNKNOWN_ADDR_IN(5)              => '0',
       --Trigger logic registers
-      BUS_READ_ENABLE_OUT(7)                => trig_read,
-      BUS_WRITE_ENABLE_OUT(7)               => trig_write,
-      BUS_DATA_OUT(7*32+31 downto 7*32)     => trig_din,
-      BUS_ADDR_OUT(7*16+15 downto 7*16)     => trig_addr,
-      BUS_TIMEOUT_OUT(7)                    => open,
-      BUS_DATA_IN(7*32+31 downto 7*32)      => trig_dout,
-      BUS_DATAREADY_IN(7)                   => trig_ack,
-      BUS_WRITE_ACK_IN(7)                   => trig_ack,
-      BUS_NO_MORE_DATA_IN(7)                => '0',
-      BUS_UNKNOWN_ADDR_IN(7)                => trig_nack,
+      BUS_READ_ENABLE_OUT(6)              => trig_read,
+      BUS_WRITE_ENABLE_OUT(6)             => trig_write,
+      BUS_DATA_OUT(6*32+31 downto 6*32)   => trig_din,
+      BUS_ADDR_OUT(6*16+15 downto 6*16)   => trig_addr,
+      BUS_TIMEOUT_OUT(6)                  => open,
+      BUS_DATA_IN(6*32+31 downto 6*32)    => trig_dout,
+      BUS_DATAREADY_IN(6)                 => trig_ack,
+      BUS_WRITE_ACK_IN(6)                 => trig_ack,
+      BUS_NO_MORE_DATA_IN(6)              => '0',
+      BUS_UNKNOWN_ADDR_IN(6)              => trig_nack,
       --Input statistics
-      BUS_READ_ENABLE_OUT(8)                => stat_read,
-      BUS_WRITE_ENABLE_OUT(8)               => stat_write,
-      BUS_DATA_OUT(8*32+31 downto 8*32)     => stat_din,
-      BUS_ADDR_OUT(8*16+15 downto 8*16)     => stat_addr,
-      BUS_TIMEOUT_OUT(8)                    => open,
-      BUS_DATA_IN(8*32+31 downto 8*32)      => stat_dout,
-      BUS_DATAREADY_IN(8)                   => stat_ack,
-      BUS_WRITE_ACK_IN(8)                   => stat_ack,
-      BUS_NO_MORE_DATA_IN(8)                => '0',
-      BUS_UNKNOWN_ADDR_IN(8)                => stat_nack,
+      BUS_READ_ENABLE_OUT(7)              => stat_read,
+      BUS_WRITE_ENABLE_OUT(7)             => stat_write,
+      BUS_DATA_OUT(7*32+31 downto 7*32)   => stat_din,
+      BUS_ADDR_OUT(7*16+15 downto 7*16)   => stat_addr,
+      BUS_TIMEOUT_OUT(7)                  => open,
+      BUS_DATA_IN(7*32+31 downto 7*32)    => stat_dout,
+      BUS_DATAREADY_IN(7)                 => stat_ack,
+      BUS_WRITE_ACK_IN(7)                 => stat_ack,
+      BUS_NO_MORE_DATA_IN(7)              => '0',
+      BUS_UNKNOWN_ADDR_IN(7)              => stat_nack,
       --SEU Detection
-      BUS_READ_ENABLE_OUT(9)                => bussed_rx.read,
-      BUS_WRITE_ENABLE_OUT(9)               => bussed_rx.write,
-      BUS_DATA_OUT(9*32+31 downto 9*32)     => bussed_rx.data,
-      BUS_ADDR_OUT(9*16+15 downto 9*16)     => bussed_rx.addr,
-      BUS_TIMEOUT_OUT(9)                    => bussed_rx.timeout,
-      BUS_DATA_IN(9*32+31 downto 9*32)      => bussed_tx.data,
-      BUS_DATAREADY_IN(9)                   => bussed_tx.ack,
-      BUS_WRITE_ACK_IN(9)                   => bussed_tx.ack,
-      BUS_NO_MORE_DATA_IN(9)                => bussed_tx.nack,
-      BUS_UNKNOWN_ADDR_IN(9)                => bussed_tx.unknown,
+      BUS_READ_ENABLE_OUT(8)              => bussed_rx.read,
+      BUS_WRITE_ENABLE_OUT(8)             => bussed_rx.write,
+      BUS_DATA_OUT(8*32+31 downto 8*32)   => bussed_rx.data,
+      BUS_ADDR_OUT(8*16+15 downto 8*16)   => bussed_rx.addr,
+      BUS_TIMEOUT_OUT(8)                  => bussed_rx.timeout,
+      BUS_DATA_IN(8*32+31 downto 8*32)    => bussed_tx.data,
+      BUS_DATAREADY_IN(8)                 => bussed_tx.ack,
+      BUS_WRITE_ACK_IN(8)                 => bussed_tx.ack,
+      BUS_NO_MORE_DATA_IN(8)              => bussed_tx.nack,
+      BUS_UNKNOWN_ADDR_IN(8)              => bussed_tx.unknown,
       --Channel Debug Registers
-      BUS_READ_ENABLE_OUT(10)               => cdb_read_en,
-      BUS_WRITE_ENABLE_OUT(10)              => cdb_write_en,
-      BUS_DATA_OUT(10*32+31 downto 10*32)   => open,
-      BUS_ADDR_OUT(10*16+6 downto 10*16)    => cdb_addr,
-      BUS_ADDR_OUT(10*16+15 downto 10*16+7) => open,
-      BUS_TIMEOUT_OUT(10)                   => open,
-      BUS_DATA_IN(10*32+31 downto 10*32)    => cdb_data_out,
-      BUS_DATAREADY_IN(10)                  => cdb_data_ready,
-      BUS_WRITE_ACK_IN(10)                  => '0',
-      BUS_NO_MORE_DATA_IN(10)               => '0',
-      BUS_UNKNOWN_ADDR_IN(10)               => cdb_invalid,
+      BUS_READ_ENABLE_OUT(9)              => cdb_read_en,
+      BUS_WRITE_ENABLE_OUT(9)             => cdb_write_en,
+      BUS_DATA_OUT(9*32+31 downto 9*32)   => open,
+      BUS_ADDR_OUT(9*16+6 downto 9*16)    => cdb_addr,
+      BUS_ADDR_OUT(9*16+15 downto 9*16+7) => open,
+      BUS_TIMEOUT_OUT(9)                  => open,
+      BUS_DATA_IN(9*32+31 downto 9*32)    => cdb_data_out,
+      BUS_DATAREADY_IN(9)                 => cdb_data_ready,
+      BUS_WRITE_ACK_IN(9)                 => '0',
+      BUS_NO_MORE_DATA_IN(9)              => '0',
+      BUS_UNKNOWN_ADDR_IN(9)              => cdb_invalid,
 
 
       STAT_DEBUG => open
@@ -737,52 +698,28 @@ begin
 ---------------------------------------------------------------------------
 -- SPI / Flash
 ---------------------------------------------------------------------------
-
-  THE_SPI_MASTER : spi_master
+    THE_SPI_RELOAD : entity spi_flash_and_fpga_reload
     port map(
-      CLK_IN         => clk_100_i,
-      RESET_IN       => reset_i,
-      -- Slave bus
-      BUS_READ_IN    => spictrl_read_en,
-      BUS_WRITE_IN   => spictrl_write_en,
-      BUS_BUSY_OUT   => spictrl_busy,
-      BUS_ACK_OUT    => spictrl_ack,
-      BUS_ADDR_IN(0) => spictrl_addr,
-      BUS_DATA_IN    => spictrl_data_in,
-      BUS_DATA_OUT   => spictrl_data_out,
-      -- SPI connections
-      SPI_CS_OUT     => FLASH_CS,
-      SPI_SDI_IN     => FLASH_DOUT,
-      SPI_SDO_OUT    => FLASH_DIN,
-      SPI_SCK_OUT    => FLASH_CLK,
-      -- BRAM for read/write data
-      BRAM_A_OUT     => spi_bram_addr,
-      BRAM_WR_D_IN   => spi_bram_wr_d,
-      BRAM_RD_D_OUT  => spi_bram_rd_d,
-      BRAM_WE_OUT    => spi_bram_we,
-      -- Status lines
-      STAT           => open
-      );
+      CLK_IN   => clk_100_i,
+      RESET_IN => reset_i,
 
--- data memory for SPI accesses
-  THE_SPI_MEMORY : spi_databus_memory
-    port map(
-      CLK_IN        => clk_100_i,
-      RESET_IN      => reset_i,
-      -- Slave bus
-      BUS_ADDR_IN   => spimem_addr,
-      BUS_READ_IN   => spimem_read_en,
-      BUS_WRITE_IN  => spimem_write_en,
-      BUS_ACK_OUT   => spimem_ack,
-      BUS_DATA_IN   => spimem_data_in,
-      BUS_DATA_OUT  => spimem_data_out,
-      -- state machine connections
-      BRAM_ADDR_IN  => spi_bram_addr,
-      BRAM_WR_D_OUT => spi_bram_wr_d,
-      BRAM_RD_D_IN  => spi_bram_rd_d,
-      BRAM_WE_IN    => spi_bram_we,
-      -- Status lines
-      STAT          => open
+      BUS_ADDR_IN          => spimem_addr,
+      BUS_READ_IN          => spimem_read_en,
+      BUS_WRITE_IN         => spimem_write_en,
+      BUS_DATAREADY_OUT    => spimem_dataready_out,
+      BUS_WRITE_ACK_OUT    => spimem_write_ack_out,
+      BUS_UNKNOWN_ADDR_OUT => spimem_unknown_addr_out,
+      BUS_NO_MORE_DATA_OUT => spimem_no_more_data_out,
+      BUS_DATA_IN          => spimem_data_in,
+      BUS_DATA_OUT         => spimem_data_out,
+
+      DO_REBOOT_IN => common_ctrl_reg(15),
+      PROGRAMN     => PROGRAMN,
+
+      SPI_CS_OUT  => FLASH_CS,
+      SPI_SCK_OUT => FLASH_CLK,
+      SPI_SDO_OUT => FLASH_DIN,
+      SPI_SDI_IN  => FLASH_DOUT
       );
 
 ---------------------------------------------------------------------------
@@ -844,7 +781,7 @@ begin
 ---------------------------------------------------------------------------
   gen_STATISTICS : if INCLUDE_STATISTICS = 1 generate
 
-    THE_STAT_LOGIC : entity work.input_statistics
+    THE_STAT_LOGIC : entity input_statistics
       generic map(
         INPUTS => PHYSICAL_INPUTS
         )
@@ -866,7 +803,7 @@ begin
 ---------------------------------------------------------------------------
 -- SED Detection
 ---------------------------------------------------------------------------
-  THE_SED : entity work.sedcheck
+  THE_SED : entity sedcheck
     port map(
       CLK       => clk_100_i,
       ERROR_OUT => sed_error,
@@ -875,22 +812,9 @@ begin
       );  
 
 ---------------------------------------------------------------------------
--- Reboot FPGA
----------------------------------------------------------------------------
-  THE_FPGA_REBOOT : fpga_reboot
-    port map(
-      CLK       => clk_100_i,
-      RESET     => reset_i,
-      DO_REBOOT => common_ctrl_reg(15),
-      PROGRAMN  => PROGRAMN
-      );
-
-
-
----------------------------------------------------------------------------
 -- LED
 ---------------------------------------------------------------------------
-  LED_ORANGE <= not reset_i when rising_edge(clk_100_internal);
+  LED_ORANGE <= not reset_i when rising_edge(clk_100_i);
   LED_YELLOW <= '1';
   LED_GREEN  <= not med_stat_op(9);
   LED_RED    <= not (med_stat_op(10) or med_stat_op(11));
@@ -904,7 +828,7 @@ begin
 ---------------------------------------------------------------------------
   process
   begin
-    wait until rising_edge(clk_100_internal);
+    wait until rising_edge(clk_100_i);
     time_counter <= time_counter + 1;
   end process;
 
@@ -913,7 +837,7 @@ begin
 -------------------------------------------------------------------------------
 -- TDC
 -------------------------------------------------------------------------------
-  THE_TDC : TDC
+  THE_TDC : entity TDC
     generic map (
       CHANNEL_NUMBER => NUM_TDC_CHANNELS,   -- Number of TDC channels
       STATUS_REG_NR  => 21,             -- Number of status regs

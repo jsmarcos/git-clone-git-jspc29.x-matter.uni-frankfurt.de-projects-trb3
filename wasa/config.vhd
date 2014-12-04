@@ -12,14 +12,14 @@ package config is
 
 --TDC settings
   constant NUM_TDC_MODULES         : integer range 1 to 4  := 1;  -- number of tdc modules to implement
-  constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 5; -- number of tdc channels per module
-  constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6  := 6;  --the nearest power of two, for convenience reasons 
-  constant DOUBLE_EDGE_TYPE        : integer range 0 to 3  := 0;  --double edge type:  0, 1, 2,  3
+  constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 49; -- number of tdc channels per module
+  constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6  := 5;  --the nearest power of two, for convenience reasons 
+  constant DOUBLE_EDGE_TYPE        : integer range 0 to 3  := 3;  --double edge type:  0, 1, 2,  3
   -- 0: single edge only,
   -- 1: same channel,
   -- 2: alternating channels,
   -- 3: same channel with stretcher
-  constant RING_BUFFER_SIZE        : integer range 0 to 7  := 0;  --ring buffer size:  0, 1, 2,  3   --> change names in constraints file
+  constant RING_BUFFER_SIZE        : integer range 0 to 7  := 3;  --ring buffer size:  0, 1, 2,  3   --> change names in constraints file
                                                                   --ring buffer size: 32,64,96,128
 
 --Use only every second input channel (mask slow channels from padiwa amps)
