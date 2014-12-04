@@ -109,7 +109,8 @@ execute($c);
 
 my $tpmap = $TOPNAME . "_map" ;
 
-$c=qq|map  -retime -split_node -a $FAMILYNAME -p $DEVICENAME -t $PACKAGE -s $SPEEDGRADE "$TOPNAME.ngd" -o "$tpmap.ncd"  -mp "$TOPNAME.mrp" "$TOPNAME.lpf"|;
+system("rm $tpmap.ncd");
+$c=qq|map -hier -td_pack -retime EFFORT=6  -split_node -a $FAMILYNAME -p $DEVICENAME -t $PACKAGE -s $SPEEDGRADE "$TOPNAME.ngd" -o "$tpmap.ncd" -xref_sig  -mp "$TOPNAME.mrp"|;
 execute($c);
 
 system("rm $TOPNAME.ncd");
@@ -117,7 +118,7 @@ system("rm $TOPNAME.ncd");
 #$c=qq|multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
 #$c=qq|par -f "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd" "$TOPNAME.prf"|;
 #$c=qq|par -f "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.dir" "$TOPNAME.prf"|;
-# dont forget to create a nodelist.txt for multipar / par -m
+# dont forget to create a nodelist.txt for multipar / mpartrce
 $c=qq|mpartrce -p "../$TOPNAME.p2t" -f "../$TOPNAME.p3t" -tf "$TOPNAME.pt" "$tpmap.ncd" "$TOPNAME.ncd"|;
 execute($c);
 
