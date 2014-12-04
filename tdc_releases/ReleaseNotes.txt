@@ -3,9 +3,7 @@ Version		Release Date	Release Notes
 tdc_v2.0	01.12.2014	Double edge detection in a single channel is
 				implemented. 
 
-tdc_v1.7.3	15.08.2014	Dead time in the encoder is increased 5ns for
-				easier placement.
-				Hit scaler register size is increased to 31 bits.
+tdc_v1.7.3	15.08.2014	Hit scaler register size is increased to 31 bits.
 
 tdc_v1.7.1	29.07.2014	Feature Bit support.
 				Tidy up the entities.

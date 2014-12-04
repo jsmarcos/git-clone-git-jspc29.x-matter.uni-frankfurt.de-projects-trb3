@@ -5,7 +5,7 @@
 -- File       : Stretcher.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-11-07
--- Last update: 2012-11-08
+-- Last update: 2014-08-26
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -66,6 +66,6 @@ begin  -- behavioral
     end if;
   end process TheStretcher;
 
-  PULSE_OUT <= pulse_latch;
+  PULSE_OUT <= pulse_latch after 30 ns;
 
 end behavioral;

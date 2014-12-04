@@ -4,7 +4,7 @@
 -- File       : TriggerHandler.vhd
 -- Author     : Cahit Ugur  c.ugur@gsi.de
 -- Created    : 2013-03-13
--- Last update: 2014-05-06
+-- Last update: 2014-12-02
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -107,8 +107,8 @@ begin  -- architecture behavioral
         PULSE_B_OUT => trigger_pulse_rdo(i));
   end generate GEN_TDC;
 
-  TRIGGER_RDO_OUT <= trigger_pulse_rdo;
-  TRIGGER_TDC_OUT <= trigger_pulse_tdc;
+  TRIGGER_RDO_OUT <= trigger_pulse_rdo when rising_edge(CLK_RDO);
+  TRIGGER_TDC_OUT <= trigger_pulse_tdc when rising_edge(CLK_TDC);
 
   -- A Moore machine's outputs are dependent only on the current state.
   -- The output is written only when the state changes.  (State
@@ -185,7 +185,7 @@ begin  -- architecture behavioral
         trigger_time_i <= EPOCH_COUNTER_IN & COARSE_COUNTER_IN;
       end if;
       if trigger_pulse_tdc(0) = '1' then
-        TRIGGER_TIME_OUT <= trigger_time_i;
+        TRIGGER_TIME_OUT <= std_logic_vector(unsigned(trigger_time_i) - to_unsigned(2,39));
       end if;
     end if;
   end process TriggerTime;

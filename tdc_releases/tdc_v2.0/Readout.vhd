@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2014-10-22
+-- Last update: 2014-12-02
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -93,30 +93,6 @@ architecture behavioral of Readout is
   signal trig_win_post             : unsigned(10 downto 0);
   signal trig_win_en               : std_logic;
   signal trig_time_i               : std_logic_vector(38 downto 0);
-  signal coarse_cntr_reg           : std_logic_vector(10 downto 0);
-  signal coarse_cntr_2reg          : std_logic_vector(10 downto 0);
-  signal coarse_cntr_3reg          : std_logic_vector(10 downto 0);
-  signal coarse_cntr_4reg          : std_logic_vector(10 downto 0);
-  signal coarse_cntr_5reg          : std_logic_vector(10 downto 0);
-  signal coarse_cntr_6reg          : std_logic_vector(10 downto 0);
-  signal coarse_cntr_7reg          : std_logic_vector(10 downto 0);
-  signal coarse_cntr_8reg          : std_logic_vector(10 downto 0);
-  signal coarse_cntr_9reg          : std_logic_vector(10 downto 0);
-  signal coarse_cntr_10reg         : std_logic_vector(10 downto 0);
-  signal coarse_cntr_11reg         : std_logic_vector(10 downto 0);
-  signal coarse_cntr_12reg         : std_logic_vector(10 downto 0);
-  signal epoch_cntr_reg            : std_logic_vector(27 downto 0);
-  signal epoch_cntr_2reg           : std_logic_vector(27 downto 0);
-  signal epoch_cntr_3reg           : std_logic_vector(27 downto 0);
-  signal epoch_cntr_4reg           : std_logic_vector(27 downto 0);
-  signal epoch_cntr_5reg           : std_logic_vector(27 downto 0);
-  signal epoch_cntr_6reg           : std_logic_vector(27 downto 0);
-  signal epoch_cntr_7reg           : std_logic_vector(27 downto 0);
-  signal epoch_cntr_8reg           : std_logic_vector(27 downto 0);
-  signal epoch_cntr_9reg           : std_logic_vector(27 downto 0);
-  signal epoch_cntr_10reg          : std_logic_vector(27 downto 0);
-  signal epoch_cntr_11reg          : std_logic_vector(27 downto 0);
-  signal epoch_cntr_12reg          : std_logic_vector(27 downto 0);
   signal TW_pre                    : std_logic_vector(38 downto 0);
   signal TW_post                   : std_logic_vector(38 downto 0);
   signal trig_win_l                : std_logic;
@@ -272,36 +248,10 @@ begin  -- behavioral
       if RESET_200 = '1' then
         trig_time_i <= (others => '0');
       elsif TRIGGER_TDC_IN = '1' then
-        trig_time_i <= TRIG_TIME_IN; --epoch_cntr_12reg & coarse_cntr_12reg;
+        trig_time_i <= TRIG_TIME_IN;
       end if;
     end if;
   end process DefineTriggerTime;
-  coarse_cntr_reg   <= COARSE_COUNTER_IN when rising_edge(CLK_200);
-  coarse_cntr_2reg  <= coarse_cntr_reg   when rising_edge(CLK_200);
-  coarse_cntr_3reg  <= coarse_cntr_2reg  when rising_edge(CLK_200);
-  coarse_cntr_4reg  <= coarse_cntr_3reg  when rising_edge(CLK_200);
-  coarse_cntr_5reg  <= coarse_cntr_4reg  when rising_edge(CLK_200);
-  coarse_cntr_6reg  <= coarse_cntr_5reg  when rising_edge(CLK_200);
-  coarse_cntr_7reg  <= coarse_cntr_6reg  when rising_edge(CLK_200);
-  coarse_cntr_8reg  <= coarse_cntr_7reg  when rising_edge(CLK_200);
-  coarse_cntr_9reg  <= coarse_cntr_8reg  when rising_edge(CLK_200);
-  coarse_cntr_10reg <= coarse_cntr_9reg  when rising_edge(CLK_200);
-  coarse_cntr_11reg <= coarse_cntr_10reg when rising_edge(CLK_200);
-  coarse_cntr_12reg <= coarse_cntr_11reg when rising_edge(CLK_200);
-
-  epoch_cntr_reg   <= EPOCH_COUNTER_IN when rising_edge(CLK_200);
-  epoch_cntr_2reg  <= epoch_cntr_reg   when rising_edge(CLK_200);
-  epoch_cntr_3reg  <= epoch_cntr_2reg  when rising_edge(CLK_200);
-  epoch_cntr_4reg  <= epoch_cntr_3reg  when rising_edge(CLK_200);
-  epoch_cntr_5reg  <= epoch_cntr_4reg  when rising_edge(CLK_200);
-  epoch_cntr_6reg  <= epoch_cntr_5reg  when rising_edge(CLK_200);
-  epoch_cntr_7reg  <= epoch_cntr_6reg  when rising_edge(CLK_200);
-  epoch_cntr_8reg  <= epoch_cntr_7reg  when rising_edge(CLK_200);
-  epoch_cntr_9reg  <= epoch_cntr_8reg  when rising_edge(CLK_200);
-  epoch_cntr_10reg <= epoch_cntr_9reg  when rising_edge(CLK_200);
-  epoch_cntr_11reg <= epoch_cntr_10reg when rising_edge(CLK_200);
-  epoch_cntr_12reg <= epoch_cntr_11reg when rising_edge(CLK_200);
-
 
 -- Channel Hit Time Determination
   ChannelHitTime : process (CLK_100)
