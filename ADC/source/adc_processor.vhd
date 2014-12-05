@@ -191,7 +191,8 @@ gen_word_checker : for i in 0 to CHANNELS-1 generate
     wait until rising_edge(CLK);
     if ADC_VALID = '1' then
       if ADC_DATA(RESOLUTION*(i+1)-1 downto RESOLUTION*i) /= CONF.check_word1 and
-         ADC_DATA(RESOLUTION*(i+1)-1 downto RESOLUTION*i) /= CONF.check_word2 then
+         ADC_DATA(RESOLUTION*(i+1)-1 downto RESOLUTION*i) /= CONF.check_word2 and 
+         CONF.check_word_enable = '1' then
         invalid_word_count(i) <= invalid_word_count(i) + 1; 
       end if;
     end if;
@@ -539,7 +540,7 @@ begin
     
     when READ_CHANNEL =>
       ram_read(channelselect) <= '1';
-      if readcount = 1 then
+      if readcount = 1 or ram_count(channelselect) = 1 then
         if blockcurrent < to_integer(CONF.block_count)-1 then
           readout_state <= NEXT_BLOCK;
         elsif channelselect < 3 then
@@ -610,7 +611,7 @@ begin
     end if;
     if cnt = to_integer(myavg-1) then
       cnt := 0;
-      RDO_write_proc <= '1';
+      RDO_write_proc <= not CONF.channel_disable(DEVICE*CHANNELS+channelselect_valid);
     elsif myavg /= 0 then
       cnt := cnt + 1;
     end if;
@@ -700,3 +701,4 @@ end architecture;
 -- 1SSSSSSS  -- Status word, MSN=0x1
 -- 4-AC--LL  -- ADC Header, L: number of data words that follow, MSN=0x4
 -- 2RRVVVVV  -- Configuration data
+-- 3-ACVVVV  -- Processed values

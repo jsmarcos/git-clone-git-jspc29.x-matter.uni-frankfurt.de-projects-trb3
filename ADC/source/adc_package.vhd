@@ -33,6 +33,7 @@ type cfg_t is record
   presum            : unsigned( 7 downto 0);
   averaging         : unsigned( 3 downto 0);
   trigger_enable    : std_logic_vector(47 downto 0);
+  channel_disable   : std_logic_vector(47 downto 0);
   baseline_always_on: std_logic;
   baseline_reset_value : unsigned(31 downto 0);
   block_avg         : unsigned_array_8(0 to 3);
@@ -40,6 +41,7 @@ type cfg_t is record
   block_scale       : unsigned_array_8(0 to 3);
   check_word1       : std_logic_vector(RESOLUTION-1 downto 0);
   check_word2       : std_logic_vector(RESOLUTION-1 downto 0);
+  check_word_enable : std_logic;
 end record;
 
 end package;

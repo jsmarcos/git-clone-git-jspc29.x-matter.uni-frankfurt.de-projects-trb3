@@ -245,6 +245,9 @@ PROC_BUS : process begin
         when x"18" =>  BUS_TX.data(15 downto 0) <=  config.trigger_enable(47 downto 32);
         when x"19" =>  BUS_TX.data(RESOLUTION-1 downto 0)     <= config.check_word1;
                        BUS_TX.data(RESOLUTION-1+16 downto 16) <= config.check_word2;
+                       BUS_TX.data(31)                        <= config.check_word_enable;
+        when x"1a" =>  BUS_TX.data(31 downto 0) <=  config.channel_disable(31 downto  0);
+        when x"1b" =>  BUS_TX.data(15 downto 0) <=  config.channel_disable(47 downto 32);
         when others => BUS_TX.ack <= '0'; BUS_TX.unknown <= '1';
       end case;
     elsif BUS_RX.addr >= x"0020" and BUS_RX.addr <= x"002f" then      
@@ -292,6 +295,9 @@ PROC_BUS : process begin
         when x"18" =>   config.trigger_enable(47 downto 32) <= BUS_RX.data(15 downto 0);
         when x"19" =>   config.check_word1        <= BUS_RX.data(RESOLUTION-1 downto 0);
                         config.check_word2        <= BUS_RX.data(RESOLUTION-1+16 downto 16);
+                        config.check_word_enable  <= BUS_RX.data(31);
+        when x"1a" =>  config.channel_disable(31 downto  0) <=  BUS_RX.data(31 downto 0);
+        when x"1b" =>  config.channel_disable(47 downto 32) <=  BUS_RX.data(15 downto 0);
         when others => BUS_TX.ack <= '0'; BUS_TX.unknown <= '1';        
       end case;
     elsif BUS_RX.addr >= x"0020" and BUS_RX.addr <= x"002f" then      

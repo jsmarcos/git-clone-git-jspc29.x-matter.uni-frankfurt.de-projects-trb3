@@ -21,6 +21,9 @@ package config is
   constant RING_BUFFER_SIZE        : integer range 0 to 7  := 3;  --ring buffer size:  0, 1, 2,  3
                                                                   --ring buffer size: 32,64,96,128
 
+  constant EVENT_BUFFER_SIZE       : integer range 9 to 15 := 12; -- size of the event buffer, 2**N
+  constant EVENT_MAX_SIZE          : integer := 2000;             --maximum event size. Should not exceed EVENT_BUFFER_SIZE/3
+                                                                  
 --Include SPI on AddOn connector
   constant INCLUDE_SPI : integer := c_YES;
 

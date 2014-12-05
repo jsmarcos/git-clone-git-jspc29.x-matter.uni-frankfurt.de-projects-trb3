@@ -24,6 +24,15 @@ package config is
     constant INIT_ADDRESS           : std_logic_vector := x"F30a";
     constant BROADCAST_SPECIAL_ADDR : std_logic_vector := x"4b";
    
+--ADC sampling frequency (only 40 MHz supported a.t.m.)
+    constant ADC_SAMPLING_RATE      : integer := 40;
+    
+--These are currently used for the included features table only
+    constant ADC_PROCESSING_TYPE    : integer := 0;
+    constant ADC_BASELINE_LOGIC     : integer := c_YES;
+    constant ADC_TRIGGER_LOGIC      : integer := c_YES;
+    constant ADC_CHANNELS           : integer := 48;
+    
 ------------------------------------------------------------------------------
 --End of design configuration
 ------------------------------------------------------------------------------
@@ -62,10 +71,12 @@ function generateIncludedFeatures return std_logic_vector is
   variable t : std_logic_vector(63 downto 0);
 begin
   t               := (others => '0');
-  t(63 downto 56) := std_logic_vector(to_unsigned(2,8)); --table version 2
-  t(7 downto 0)   := x"00"; --std_logic_vector(to_unsigned(USE_HPTDC_FASTMODE_PINOUT*3,8));
-  t(11 downto 8)  := x"0"; --std_logic_vector(to_unsigned(USE_DOUBLE_EDGE*2,4));
-  t(15)           := '0'; --TDC
+  t(63 downto 56) := std_logic_vector(to_unsigned(4,8)); --table version 2
+  t(7 downto 0)   := std_logic_vector(to_unsigned(ADC_SAMPLING_RATE,8));
+  t(11 downto 8)  := std_logic_vector(to_unsigned(ADC_PROCESSING_TYPE,4)); --processing type
+  t(14 downto 14) := std_logic_vector(to_unsigned(ADC_BASELINE_LOGIC,1));
+  t(15 downto 15) := std_logic_vector(to_unsigned(ADC_TRIGGER_LOGIC,1));
+  t(23 downto 16) := std_logic_vector(to_unsigned(ADC_CHANNELS,8));
   t(42 downto 42) := "1"; --std_logic_vector(to_unsigned(INCLUDE_SPI,1));
   t(44 downto 44) := "0"; --std_logic_vector(to_unsigned(INCLUDE_STATISTICS,1));
   t(51 downto 48) := x"0";--std_logic_vector(to_unsigned(INCLUDE_TRIGGER_LOGIC,4));
@@ -76,5 +87,5 @@ begin
 end function;  
 
   constant INCLUDED_FEATURES : std_logic_vector(63 downto 0) := generateIncludedFeatures;    
-  
+
 end package body;
