@@ -1,5 +1,8 @@
 Version		Release Date	Release Notes
 -------------------------------------------------------------------------------------
+tdc_v2.0.1	05.12.2014	Calibration-physik trigger switching problem
+				is fixed.
+
 tdc_v2.0	01.12.2014	Double edge detection in a single channel is
 				implemented. 
 
