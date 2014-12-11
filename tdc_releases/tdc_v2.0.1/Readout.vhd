@@ -5,7 +5,7 @@
 -- File       : Readout.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-10-25
--- Last update: 2014-12-05
+-- Last update: 2014-12-11
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -33,6 +33,7 @@ entity Readout is
     RESET_COUNTERS           : in  std_logic;
     CLK_100                  : in  std_logic;
     CLK_200                  : in  std_logic;
+    HIT_IN                   : in  std_logic_vector(CHANNEL_NUMBER-1 downto 1);
 -- from the channels
     CH_DATA_IN               : in  std_logic_vector_array_36(0 to CHANNEL_NUMBER);
     CH_DATA_VALID_IN         : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
@@ -71,6 +72,7 @@ entity Readout is
     TRG_TDC_IN               : in  std_logic;
     TRG_TIME_IN              : in  std_logic_vector(38 downto 0);
 -- miscellaneous
+    LIGHT_MODE_IN            : in  std_logic;
     COARSE_COUNTER_IN        : in  std_logic_vector(10 downto 0);
     EPOCH_COUNTER_IN         : in  std_logic_vector(27 downto 0);
     DEBUG_MODE_EN_IN         : in  std_logic;
@@ -86,8 +88,6 @@ architecture behavioral of Readout is
 -- Signal Declarations
 -------------------------------------------------------------------------------
 
-  -- slow control
-  signal slow_control_ch_empty   : std_logic_vector(63 downto 0);
   -- trigger window
   signal trg_win_pre             : unsigned(10 downto 0);
   signal trg_win_post            : unsigned(10 downto 0);
@@ -111,12 +111,7 @@ architecture behavioral of Readout is
   signal ch_data_r               : std_logic_vector_array_36(0 to CHANNEL_NUMBER);
   signal ch_data_2r              : std_logic_vector_array_36(0 to CHANNEL_NUMBER);
   signal ch_data_3r              : std_logic_vector_array_36(0 to CHANNEL_NUMBER);
---  signal ch_data_4r    : std_logic_vector_array_36(0 to CHANNEL_NUMBER);
   signal ch_data_4r              : std_logic_vector(31 downto 0);
-  signal ch_empty_r              : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-  signal ch_empty_2r             : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-  signal ch_empty_3r             : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-  signal ch_empty_4r             : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
   signal ch_hit_time             : std_logic_vector(38 downto 0);
   signal ch_epoch_cntr           : std_logic_vector(27 downto 0);
   signal buffer_transfer_done    : std_logic;
@@ -211,6 +206,11 @@ architecture behavioral of Readout is
   signal wait_time_up           : std_logic;
   signal wrong_readout_up       : std_logic;
   signal finished               : std_logic;
+  -- control
+  signal sync_q                 : std_logic_vector((CHANNEL_NUMBER-2)*3+2 downto 0);
+  signal isNoHit                : std_logic                         := '0';
+  signal isNoHit_r              : std_logic                         := '0';
+  signal hit_in_i               : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
   -- debug
   signal header_error_bits      : std_logic_vector(15 downto 0);
   signal trailer_error_bits     : std_logic_vector(15 downto 0);
@@ -222,7 +222,8 @@ architecture behavioral of Readout is
   signal wr_fsm_debug_r         : std_logic_vector(3 downto 0);
   signal history_wr_fsm         : std_logic_vector(31 downto 0)     := (others => '0');
   signal status_registers_bus   : std_logic_vector(31 downto 0);
-
+  signal any_hit                : std_logic                         := '0';
+  
 begin  -- behavioral
 
   trg_win_pre  <= unsigned(TRG_WIN_PRE_IN);
@@ -359,8 +360,10 @@ begin  -- behavioral
     case (RD_CURRENT) is
       when IDLE =>
         if VALID_TIMING_TRG_IN = '1' then  -- physical trigger
-          RD_NEXT       <= WAIT_FOR_TRG_WIND_END;
-          wr_header_fsm <= '1';
+          RD_NEXT <= WAIT_FOR_TRG_WIND_END;
+          if isNoHit = '0' then
+            wr_header_fsm <= '1';
+          end if;
           --if isLastTriggerNoTiming = '1' then
           --  wrong_readout_fsm <= '1';
           --end if;
@@ -519,7 +522,7 @@ begin  -- behavioral
 --
       when WR_CH =>
         if ch_data_2r(fifo_nr_wr)(35 downto 32) /= x"f" then
-          if wr_number >= DATA_LIMIT_IN then
+          if wr_number >= DATA_LIMIT_IN or isNoHit_r = '1' then
             wr_ch_data_fsm <= '0';
           else
             wr_ch_data_fsm <= '1';
@@ -656,8 +659,6 @@ begin  -- behavioral
   wr_time  <= wr_ch_data_r and ch_data_4r(31) when rising_edge(CLK_100);
   wr_epoch <= wr_ch_data_r and not data_out_r(31) and data_out_r(30) and data_out_r(29) and ch_data_4r(31);
 
-  -- and not (and_all(ch_data_4r(31 downto 29)))
-
 
   DATA_OUT                    <= data_out_r;
   DATA_WRITE_OUT              <= wr_info or wr_time or wr_epoch;  --data_wr_r;
@@ -686,8 +687,33 @@ begin  -- behavioral
 
   ch_full <= or_all(CH_FULL_IN);
 
+-------------------------------------------------------------------------------
+-- Control bits
+-------------------------------------------------------------------------------
+  --purpose: Hit Signal Synchroniser
+  HitSignalSync : for i in 0 to CHANNEL_NUMBER-2 generate
+    sync_q(i*3)   <= HIT_IN(i+1) when rising_edge(CLK_100);
+    sync_q(i*3+1) <= sync_q(i*3);       -- when rising_edge(CLK_100);
+    sync_q(i*3+2) <= sync_q(i*3+1);     -- when rising_edge(CLK_100);
+    hit_in_i(i+1) <= sync_q(i*3+2);
+  end generate HitSignalSync;
 
+  any_hit <= or_all(hit_in_i);
 
+  CheckHitStatus : process (CLK_100) is
+  begin
+    if rising_edge(CLK_100) then        -- rising clock edge
+      if LIGHT_MODE_IN = '0' or TRG_WIN_EN_IN = '1' then
+        isNoHit   <= '0';
+        isNoHit_r <= '0';
+      elsif VALID_TIMING_TRG_IN = '1' then
+        isNoHit   <= '1';
+        isNoHit_r <= isNoHit;
+      elsif or_all(hit_in_i) = '1' then
+        isNoHit <= '0';
+      end if;
+    end if;
+  end process CheckHitStatus;
 -------------------------------------------------------------------------------
 -- Debug and statistics words
 -------------------------------------------------------------------------------
@@ -968,13 +994,8 @@ begin  -- behavioral
 -------------------------------------------------------------------------------
 -- Registering
 -------------------------------------------------------------------------------
-  ch_data_r   <= CH_DATA_IN  when rising_edge(CLK_100);
-  ch_data_2r  <= ch_data_r   when rising_edge(CLK_100);
-  ch_data_3r  <= ch_data_2r  when rising_edge(CLK_100);
---  ch_data_4r  <= ch_data_3r  when rising_edge(CLK_100);
-  ch_empty_r  <= CH_EMPTY_IN when rising_edge(CLK_100);
-  ch_empty_2r <= ch_empty_r  when rising_edge(CLK_100);
-  ch_empty_3r <= ch_empty_2r when rising_edge(CLK_100);
-  ch_empty_4r <= ch_empty_3r when rising_edge(CLK_100);
+  ch_data_r  <= CH_DATA_IN when rising_edge(CLK_100);
+  ch_data_2r <= ch_data_r  when rising_edge(CLK_100);
+  ch_data_3r <= ch_data_2r when rising_edge(CLK_100);
 
 end behavioral;

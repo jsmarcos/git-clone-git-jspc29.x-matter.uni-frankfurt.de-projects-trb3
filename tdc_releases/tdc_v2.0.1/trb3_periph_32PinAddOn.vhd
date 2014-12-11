@@ -95,8 +95,11 @@ architecture trb3_periph_32PinAddOn_arch of trb3_periph_32PinAddOn is
   constant REGIO_NUM_STAT_REGS : integer := 0;
   constant REGIO_NUM_CTRL_REGS : integer := 0;
 
-  attribute syn_keep     : boolean;
-  attribute syn_preserve : boolean;
+  attribute syn_keep             : boolean;
+  attribute syn_preserve         : boolean;
+  attribute NOM_FREQ             : string;
+  attribute NOM_FREQ of OSCinst0 : label is "20.0";
+
 
   --Clock / Reset
   signal clk_100_i                : std_logic;  --clock for main logic, 100 MHz, via Clock Manager and internal PLL
@@ -316,12 +319,14 @@ begin
       );
 
   -- internal oscillator with frequency of 2.5MHz for tdc calibration
-  OSCInst0 : OSCF
+  OSCInst0: OSCF
+-- synthesis translate_off
+    generic map (
+      NOM_FREQ => "20.0")
+-- synthesis translate_on
     port map (
       OSC => osc_int);
-
-
-
+  
 
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (to other FPGA)
@@ -387,9 +392,9 @@ begin
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
       DATA_INTERFACE_NUMBER     => 1,
-      DATA_BUFFER_DEPTH         => 12,
+      DATA_BUFFER_DEPTH         => EVENT_BUFFER_SIZE,
       DATA_BUFFER_WIDTH         => 32,
-      DATA_BUFFER_FULL_THRESH   => 2**12-400,
+      DATA_BUFFER_FULL_THRESH   => 2**EVENT_BUFFER_SIZE-EVENT_MAX_SIZE,
       TRG_RELEASE_AFTER_DATA    => c_YES,
       HEADER_BUFFER_DEPTH       => 9,
       HEADER_BUFFER_FULL_THRESH => 2**9-16

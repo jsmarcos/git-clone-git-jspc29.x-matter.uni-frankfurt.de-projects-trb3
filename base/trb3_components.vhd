@@ -36,9 +36,16 @@ package trb3_components is
   end component pll_in125_out20;
 
   component OSCF  -- internal oscillator with a frequency of 2MHz
-    port (OSC : out
-          std_logic);
+-- synthesis translate_off
+    generic (NOM_FREQ :     string := "2.5");
+-- synthesis translate_on
+    port (OSC         : out std_logic);
   end component;
+
+  --component OSCF
+  --  port (OSC : out
+  --        std_logic);
+  --end component;
 
   component FIFO_32x32_OutReg
     port (

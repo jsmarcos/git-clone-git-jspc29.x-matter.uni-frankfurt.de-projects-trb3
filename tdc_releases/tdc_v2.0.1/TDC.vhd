@@ -110,6 +110,7 @@ architecture TDC of TDC is
 -- Slow control
   signal logic_anal_control         : std_logic_vector(3 downto 0);
   signal debug_mode_en              : std_logic;
+  signal light_mode_en              : std_logic;
   signal reset_counters             : std_logic;
   --signal run_mode                   : std_logic;  -- 1: cc reset every trigger
   --                                                  -- 0: free running mode
@@ -121,11 +122,12 @@ architecture TDC of TDC is
   signal reset_coarse_cntr_flag     : std_logic                                   := '0';
   signal ch_en                      : std_logic_vector(64 downto 1);
   signal data_limit                 : unsigned(7 downto 0);
-  signal calibration_on             : std_logic;  -- turns on calibration for trig type 0xC
+  signal calibration_on             : std_logic                                   := '0';  -- turns on calibration for trig type 0xC
 -- Logic analyser
   signal logic_anal_data            : std_logic_vector(3*32-1 downto 0);
 -- Hit signals
   signal hit_in_d                   : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+  signal hit_in_s                   : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
   signal hit_in_i                   : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
   signal hit_latch                  : std_logic_vector(CHANNEL_NUMBER-1 downto 1) := (others => '0');
   signal hit_edge                   : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
@@ -142,6 +144,7 @@ architecture TDC of TDC is
   signal edge_falling_3r            : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
 -- Calibration
   signal hit_cal_cntr               : unsigned(15 downto 0)                       := (others => '0');
+  signal hit_cal_i                  : std_logic;
   signal hit_cal                    : std_logic;
   signal calibration_freq_select    : unsigned(3 downto 0)                        := (others => '0');
 -- To the channels
@@ -214,6 +217,7 @@ begin
 -- Slow control signals
   logic_anal_control      <= CONTROL_REG_IN(3 downto 0)     when rising_edge(CLK_READOUT);
   debug_mode_en           <= CONTROL_REG_IN(4);
+  light_mode_en           <= CONTROL_REG_IN(5)              when rising_edge(CLK_READOUT);
   reset_counters          <= CONTROL_REG_IN(8) or reset_tdc when rising_edge(CLK_TDC);
   --run_mode              <= CONTROL_REG_IN(12);
   --run_mode_200            <= run_mode                     when rising_edge(CLK_TDC);
@@ -236,7 +240,24 @@ begin
 -------------------------------------------------------------------------------
   -- Hit for calibration generation
   hit_cal_cntr <= hit_cal_cntr + to_unsigned(1, 16) when rising_edge(HIT_CAL_IN);
-  hit_cal      <= hit_cal_cntr(to_integer(calibration_freq_select));
+  hit_cal_i    <= hit_cal_cntr(to_integer(calibration_freq_select));
+
+  HitCalPulse: entity work.risingEdgeDetect
+    port map (
+      CLK       => HIT_CAL_IN,
+      SIGNAL_IN => hit_cal_i,
+      PULSE_OUT => hit_cal);
+
+  GEN_HitSelect : for i in 1 to CHANNEL_NUMBER-1 generate
+    HitSelect: process (calibration_on, HIT_IN, hit_cal)is
+    begin
+      if calibration_on = '0' then
+        hit_in_s(i) <= HIT_IN(i);
+      else
+        hit_in_s(i) <= hit_cal;
+      end if;      
+    end process HitSelect;
+  end generate GEN_HitSelect;
 
   gen_double_withStretcher : if DOUBLE_EDGE_TYPE = 3 generate
     The_Stretcher : entity work.Stretcher
@@ -244,12 +265,12 @@ begin
         CHANNEL => CHANNEL_NUMBER-1,
         DEPTH   => 4)
       port map (
-        PULSE_IN  => HIT_IN(CHANNEL_NUMBER-1 downto 1),
+        PULSE_IN  => hit_in_s(CHANNEL_NUMBER-1 downto 1),
         PULSE_OUT => hit_in_d(CHANNEL_NUMBER-1 downto 1));
   end generate gen_double_withStretcher;
 
   gen_double_withoutStretcher : if DOUBLE_EDGE_TYPE = 1 generate
-    hit_in_d(CHANNEL_NUMBER-1 downto 1) <= HIT_IN(CHANNEL_NUMBER-1 downto 1);
+    hit_in_d(CHANNEL_NUMBER-1 downto 1) <= hit_in_s(CHANNEL_NUMBER-1 downto 1);
   end generate gen_double_withoutStretcher;
 
 
@@ -257,7 +278,7 @@ begin
   GEN_HitBlock : for i in 1 to CHANNEL_NUMBER-1 generate
     gen_double : if DOUBLE_EDGE_TYPE = 1 or DOUBLE_EDGE_TYPE = 3 generate
       edge_rising(i) <= '0' when edge_rising_3r(i) = '1' else
-                        '1' when rising_edge(HIT_IN(i));
+                        '1' when rising_edge(hit_in_s(i));
       edge_rising_r(i)  <= edge_rising(i)                             when rising_edge(CLK_READOUT);  -- using 100MHz clk for longer reset time
       edge_rising_2r(i) <= edge_rising_r(i)                           when rising_edge(CLK_READOUT);
       edge_rising_3r(i) <= edge_rising_r(i) and not edge_rising_2r(i) when rising_edge(CLK_READOUT);
@@ -276,7 +297,7 @@ begin
     -- for single edge and double edge in alternating channel setup
     gen_single : if DOUBLE_EDGE_TYPE = 0 or DOUBLE_EDGE_TYPE = 2 generate
       hit_latch(i) <= '0' when hit_3r(i) = '1' else
-                      '1' when rising_edge(HIT_IN(i));
+                      '1' when rising_edge(hit_in_s(i));
       hit_edge(i) <= '1';
       hit_r       <= hit_latch            when rising_edge(CLK_READOUT);  -- using 100MHz clk for longer reset time
       hit_2r      <= hit_r                when rising_edge(CLK_READOUT);
@@ -288,8 +309,8 @@ begin
     hit_mux_ch : hit_mux
       port map (
         CH_EN_IN           => ch_en(i),
-        CALIBRATION_EN_IN  => calibration_on,
-        HIT_CALIBRATION_IN => hit_cal,
+        CALIBRATION_EN_IN  => '0', --calibration_on,
+        HIT_CALIBRATION_IN => '0', --hit_cal,
         HIT_PHYSICAL_IN    => hit_latch(i),
         HIT_OUT            => hit_in_i(i));
   end generate GEN_hit_mux;
@@ -453,6 +474,7 @@ begin
       RESET_COUNTERS           => reset_counters,
       CLK_100                  => CLK_READOUT,
       CLK_200                  => CLK_TDC,
+      HIT_IN                   => hit_in_i(CHANNEL_NUMBER-1 downto 1),
       -- from the channels
       CH_DATA_IN               => ch_data,
       CH_DATA_VALID_IN         => ch_data_valid,
@@ -491,6 +513,7 @@ begin
       TRG_TDC_IN               => trg_tdc,
       TRG_TIME_IN              => trg_time,
       -- miscellaneous
+      LIGHT_MODE_IN            => light_mode_en,
       COARSE_COUNTER_IN        => coarse_cntr(0),
       EPOCH_COUNTER_IN         => epoch_cntr,
       DEBUG_MODE_EN_IN         => debug_mode_en,
@@ -640,9 +663,9 @@ begin
   --    DATAREADY_OUT    => LHB_DATAREADY_OUT,
   --    UNKNOWN_ADDR_OUT => LHB_UNKNOWN_ADDR_OUT);
 
-  --GenLostHit_Inumber : for i in 1 to CHANNEL_NUMBER-1 generate
+  --GenLostHit_In_number : for i in 1 to CHANNEL_NUMBER-1 generate
   --  ch_lost_hit_bus(i) <= ch_encoder_start_number(i)(15 downto 0) & ch_200_debug(i)(15 downto 0) when rising_edge(CLK_READOUT);
-  --end generate GenLostHit_Inumber;
+  --end generate GenLostHit_In_number;
 
   LHB_DATA_OUT         <= (others => '0');
   LHB_DATAREADY_OUT    <= '0';

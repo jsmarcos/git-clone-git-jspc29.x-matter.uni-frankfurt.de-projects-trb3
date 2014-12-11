@@ -4,6 +4,6 @@ use ieee.numeric_std.all;
 
 package tdc_version is
 
-  constant TDC_VERSION             : std_logic_vector(11 downto 0) := x"200";
+  constant TDC_VERSION             : std_logic_vector(11 downto 0) := x"201";
 
 end;

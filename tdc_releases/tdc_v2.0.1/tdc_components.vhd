@@ -176,6 +176,7 @@ package tdc_components is
       RESET_COUNTERS           : in  std_logic;
       CLK_100                  : in  std_logic;
       CLK_200                  : in  std_logic;
+      HIT_IN                   : in  std_logic_vector(CHANNEL_NUMBER-1 downto 1);
       CH_DATA_IN               : in  std_logic_vector_array_36(0 to CHANNEL_NUMBER);
       CH_DATA_VALID_IN         : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
       CH_EMPTY_IN              : in  std_logic_vector(CHANNEL_NUMBER-1 downto 0);
@@ -207,6 +208,7 @@ package tdc_components is
       TRG_WIN_END_RDO_IN       : in  std_logic;
       TRG_TDC_IN               : in  std_logic;
       TRG_TIME_IN              : in  std_logic_vector(38 downto 0);
+      LIGHT_MODE_IN            : in  std_logic;
       COARSE_COUNTER_IN        : in  std_logic_vector(10 downto 0);
       EPOCH_COUNTER_IN         : in  std_logic_vector(27 downto 0);
       DEBUG_MODE_EN_IN         : in  std_logic;
