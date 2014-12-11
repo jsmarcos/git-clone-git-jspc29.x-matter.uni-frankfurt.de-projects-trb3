@@ -109,6 +109,10 @@ config.block_scale(1)    <= to_unsigned(0   , 8);
 config.block_scale(2)    <= to_unsigned(0   , 8);      
 config.block_scale(3)    <= to_unsigned(0   , 8); 
 config.baseline_reset_value <= to_unsigned(1023*32, 32);
+config.channel_disable <= (others => '0');
+config.check_word1     <= (others => '0');
+config.check_word2     <= (others => '0');
+config.check_word_enable <= '0';
 
 
 readout_rx.valid_notiming_trg <= '0';
@@ -125,7 +129,7 @@ readout_rx.trg_missing        <= '0';
 readout_rx.trg_spike          <= '0';
 readout_rx.buffer_almost_full <= '0';
 
-control <= (others => '0'), (8 => '1',others => '0') after 1us, (others => '0') after 1.01 us,(5 => '1',others => '0') after 5us, (others => '0') after 5.01 us ;
+control <= (others => '0'), (8 => '1',others => '0') after 1 us, (others => '0') after 1.01 us,(5 => '1',others => '0') after 5 us, (others => '0') after 5.01 us ;
 
 proc_rdo : process begin
   readout_rx.data_valid       <= '0';
