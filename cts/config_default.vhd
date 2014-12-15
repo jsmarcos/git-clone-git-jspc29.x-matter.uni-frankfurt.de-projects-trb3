@@ -37,6 +37,13 @@ package config is
     constant ETM_CHOICE : ETM_CHOICE_type := ETM_CHOICE_MBS_VULOM;
     
     constant ETM_ID : std_logic_vector(7 downto 0);
+
+    
+    constant TRIGGER_COIN_COUNT   : integer := 4;
+    constant TRIGGER_PULSER_COUNT : integer := 2;
+    constant TRIGGER_RAND_PULSER  : integer := 1;
+    constant TRIGGER_ADDON_COUNT  : integer := 6;
+    constant PERIPH_TRIGGER_COUNT : integer := 2;      
     
 ------------------------------------------------------------------------------
 --End of configuration

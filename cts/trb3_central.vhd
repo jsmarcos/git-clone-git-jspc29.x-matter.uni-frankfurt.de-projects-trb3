@@ -444,7 +444,7 @@ architecture trb3_central_arch of trb3_central is
    signal cts_rdo_trg_information            : std_logic_vector(23 downto 0);
    signal cts_rdo_trg_number                 : std_logic_vector(15 downto 0);
       
-   constant CTS_ADDON_LINE_COUNT      : integer := 22;
+   constant CTS_ADDON_LINE_COUNT      : integer := 38;
    constant CTS_OUTPUT_MULTIPLEXERS   : integer :=  8;
    constant CTS_OUTPUT_INPUTS         : integer := 16;
 
@@ -634,14 +634,14 @@ begin
       generic map (
          EXTERNAL_TRIGGER_ID  => ETM_ID, -- fill in trigger logic enumeration id of external trigger logic
 
-         TRIGGER_COIN_COUNT   => 4,
-         TRIGGER_PULSER_COUNT => 2,
-         TRIGGER_RAND_PULSER  => 1,
+         TRIGGER_COIN_COUNT   => TRIGGER_COIN_COUNT,
+         TRIGGER_PULSER_COUNT => TRIGGER_PULSER_COUNT,
+         TRIGGER_RAND_PULSER  => TRIGGER_RAND_PULSER,
 
-         TRIGGER_INPUT_COUNT  => 0, -- now all inputs are routed via an input multiplexer!
-         TRIGGER_ADDON_COUNT  => 6,
+         TRIGGER_INPUT_COUNT  => 0, -- obsolete! now all inputs are routed via an input multiplexer!
+         TRIGGER_ADDON_COUNT  => TRIGGER_ADDON_COUNT,
 
-         PERIPH_TRIGGER_COUNT => 2,
+         PERIPH_TRIGGER_COUNT => PERIPH_TRIGGER_COUNT,
 
          OUTPUT_MULTIPLEXERS  => CTS_OUTPUT_MULTIPLEXERS,
 
@@ -718,6 +718,7 @@ begin
       cts_addon_triggers_in(19) <= or_all(JIN1);
       cts_addon_triggers_in(20) <= or_all(JIN2);
       cts_addon_triggers_in(21) <= or_all(NIM_IN);
+      cts_addon_triggers_in(37 downto 22) <= JTTL;
 
       LED_BANK(7 downto 6) <= cts_addon_activity_i(4 downto 3);
       LED_RJ_GREEN <= (
@@ -1800,7 +1801,7 @@ begin
    --  JOUT1                          <= x"0";
    --  JOUT2                          <= x"0";
    --  JOUTLVDS                       <= x"00";
-   --JTTL                           <= x"0000";
+   JTTL                           <= (others => 'Z');
       
    LED_BANK(5 downto 0)           <= (others => '0');
    LED_FAN_GREEN                  <= led_time_ref_i;
