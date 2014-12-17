@@ -148,6 +148,8 @@ add_file -vhdl -lib "work" "../base/cores/dqsinput_5x5.vhd"
 add_file -vhdl -lib "work" "../base/cores/fifo_cdt_200_50.vhd"
 add_file -vhdl -lib "work" "../base/code/sedcheck.vhd"
 
+
+add_file -vhdl -lib "work" "cores/mulacc2.vhd"
 add_file -vhdl -lib "work" "source/adc_package.vhd"
 add_file -vhdl -lib "work" "source/adc_processor.vhd"
 add_file -vhdl -lib "work" "source/adc_ad9219.vhd"
