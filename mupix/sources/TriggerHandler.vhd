@@ -66,6 +66,7 @@ end entity TriggerHandler;
 architecture behavioral of TriggerHandler is
 
 --trigger
+  signal bypass_trigger          : std_logic := '0';
   signal reset_trigger_state     : std_logic                     := '0';
   signal reset_trigger_state_edge : std_logic_vector(1 downto 0) := "00";
   signal valid_trigger_int       : std_logic                     := '0';
@@ -80,7 +81,7 @@ architecture behavioral of TriggerHandler is
   signal fifo_readout_end_int    : std_logic_vector(1 downto 0)  := "00";
 --fee
   signal fee_data_int            : std_logic_vector(31 downto 0) := (others => '0');
-  signal fee_data_write_int      : std_logic                     := '0';
+  signal fee_data_write_int      : std_logic                      := '0';
   signal fee_data_finished_int   : std_logic                     := '0';
   signal fee_trg_release_int     : std_logic                     := '0';
   signal fee_trg_statusbit_int   : std_logic_vector(31 downto 0) := (others => '0');
@@ -124,6 +125,7 @@ architecture behavioral of TriggerHandler is
   type trigger_type_type is (t_timing,
                              t_physics,
                              t_status,
+                             t_ignore,
                              t_unknown);
 
   signal trigger_handler_fsm : trigger_handler_type := idle;
@@ -175,11 +177,21 @@ begin
           trigger_handler_state <= x"01";
           if LVL1_VALID_TIMING_TRG_IN = '1' then
               wr_header_int <= '1';
-              trigger_type <= t_timing;
-              trigger_handler_fsm <= timing_trigger;
+              if bypass_trigger = '1' then
+                trigger_type <= t_ignore;
+                trigger_handler_fsm <= ignore;
+              else
+                trigger_type <= t_timing;
+                trigger_handler_fsm <= timing_trigger;
+              end if;
           elsif(LVL1_VALID_NOTIMING_TRG_IN = '1') then
             wr_header_int <= '1';
-            trigger_handler_fsm <= check_trigger_type;
+            if bypass_trigger = '1' then
+              trigger_type <= t_ignore;
+              trigger_handler_fsm <= ignore;
+            else
+              trigger_handler_fsm <= check_trigger_type;
+            end if;
           end if;
           
         when check_trigger_type =>
@@ -340,6 +352,7 @@ begin
   --0x104: trigger_handler_state
   --0x105: reset counters
   --0x106: reset trigger state machine
+  --0x107: bypass trigger signals flag
  
   slv_bus_handler : process(CLK_IN)
   begin
@@ -357,9 +370,13 @@ begin
          when x"0106" =>
            reset_trigger_state <= SLV_DATA_IN(0);
            slv_ack_out  <= '1';
+         when x"0107"=>
+           bypass_trigger <= SLV_DATA_IN(0);
+           slv_ack_out <= '1';
          when others =>
            slv_unknown_addr_out <= '1';
        end case;
+       
       elsif slv_read_in = '1' then
         case slv_addr_in is
           when x"0100" =>
@@ -377,6 +394,9 @@ begin
           when x"0104" =>
             slv_data_out <= x"000000" & trigger_handler_state;
             slv_ack_out               <= '1';
+          when x"0107" =>
+            slv_data_out(0) <= bypass_trigger; 
+            slv_ack_out <= '1';
           when others =>
             slv_unknown_addr_out <= '1';
         end case;

@@ -97,6 +97,8 @@ architecture RTL of mupix_interface is
   signal timestampcontrolbits : std_logic_vector(31 downto 0) := (others => '0');
   signal generatehitswait     : std_logic_vector(31 downto 0) := (others => '0');
 
+  signal ignorehitflag : std_logic := '0';
+
   signal priout_reg : std_logic := '0';
   
 begin
@@ -112,7 +114,8 @@ begin
   --x0026: Pause Register
   --x0027: Delay Counters 2
   --x0028: Divider for graycounter clock
-  --x0029: testoutro
+  --x0029: mask flag for (col,row) = (0,0)
+  --x0030: testoutro
   -----------------------------------------------------------------------------
 
   SLV_HANDLER : process(clk)
@@ -154,6 +157,9 @@ begin
             SLV_DATA_OUT <= graycounter_clkdiv_counter;
             SLV_ACK_OUT <= '1';
           when x"0029" =>
+            SLV_DATA_OUT(0) <= ignorehitflag;
+            SLV_ACK_OUT <= '1';
+          when x"0030" =>
             SLV_DATA_OUT <= testoutro;
             SLV_ACK_OUT <= '1';
           when others =>
@@ -187,6 +193,9 @@ begin
             SLV_ACK_OUT <= '1';
           when x"0028" =>
             graycounter_clkdiv_counter <= SLV_DATA_IN;
+            SLV_ACK_OUT <= '1';
+          when x"0029" =>
+            ignorehitflag <= SLV_DATA_IN(0);
             SLV_ACK_OUT <= '1';
           when others =>
             SLV_UNKNOWN_ADDR_OUT <= '1';
@@ -404,7 +413,10 @@ begin
           end if;
           if(std_logic_vector(delcounter) = delaycounters2(31 downto 24)) then
             memdata    <= "111100001111" & hit_col & hit_row & hit_time;  --0xF0F
-            memwren    <= '1';
+            memwren <= '1';
+            if(ignorehitflag = '1' and (hit_col = "000000" and hit_row = "000000")) then
+              memwren    <= '0';
+            end if;
             hitcounter <= hitcounter + 1;
             state      <= readcol;
           elsif(delcounter = "00000000" and hitcounter = "11111111111") then
