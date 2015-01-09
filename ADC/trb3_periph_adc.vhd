@@ -254,7 +254,7 @@ begin
 -- Endpoint
 ---------------------------------------------------------------------------
 
-  THE_ENDPOINT : trb_net16_endpoint_hades_full_handler
+  THE_ENDPOINT : entity work.trb_net16_endpoint_hades_full_handler_record
     generic map(
       REGIO_NUM_STAT_REGS       => 0,
       REGIO_NUM_CTRL_REGS       => 0,
@@ -333,35 +333,28 @@ begin
       REGIO_VAR_ENDPOINT_ID(1 downto 0)  => CODE_LINE,
       REGIO_VAR_ENDPOINT_ID(15 downto 2) => (others => '0'),
 
-      BUS_ADDR_OUT         =>  regio_rx.addr, --regio_addr_out,
-      BUS_READ_ENABLE_OUT  =>  regio_rx.read, --regio_read_enable_out,
-      BUS_WRITE_ENABLE_OUT =>  regio_rx.write, --regio_write_enable_out,
-      BUS_DATA_OUT         =>  regio_rx.data, --regio_data_out,
-      BUS_DATA_IN          =>  regio_tx.data, --regio_data_in,
-      BUS_DATAREADY_IN     =>  regio_tx.ack, --regio_dataready_in,
-      BUS_NO_MORE_DATA_IN  =>  regio_tx.nack, --regio_no_more_data_in,
-      BUS_WRITE_ACK_IN     =>  regio_tx.ack, --regio_write_ack_in,
-      BUS_UNKNOWN_ADDR_IN  =>  regio_tx.unknown, --regio_unknown_addr_in,
-      BUS_TIMEOUT_OUT      =>  regio_rx.timeout, --regio_timeout_out,
+      BUS_RX => regio_rx,
+      BUS_TX => regio_tx,
+      
       ONEWIRE_INOUT        => TEMPSENS,
       ONEWIRE_MONITOR_OUT  => open,
 
       TIME_GLOBAL_OUT         => global_time,
       TIME_LOCAL_OUT          => local_time,
       TIME_SINCE_LAST_TRG_OUT => time_since_last_trg,
-      TIME_TICKS_OUT          => timer_ticks,
-
-      STAT_DEBUG_IPU              => open,
-      STAT_DEBUG_1                => open,
-      STAT_DEBUG_2                => open,
-      STAT_DEBUG_DATA_HANDLER_OUT => open,
-      STAT_DEBUG_IPU_HANDLER_OUT  => open,
-      STAT_TRIGGER_OUT            => open,
-      CTRL_MPLEX                  => (others => '0'),
-      IOBUF_CTRL_GEN              => (others => '0'),
-      STAT_ONEWIRE                => open,
-      STAT_ADDR_DEBUG             => open,
-      DEBUG_LVL1_HANDLER_OUT      => open
+      TIME_TICKS_OUT          => timer_ticks
+-- 
+--       STAT_DEBUG_IPU              => open,
+--       STAT_DEBUG_1                => open,
+--       STAT_DEBUG_2                => open,
+--       STAT_DEBUG_DATA_HANDLER_OUT => open,
+--       STAT_DEBUG_IPU_HANDLER_OUT  => open,
+--       STAT_TRIGGER_OUT            => open,
+--       CTRL_MPLEX                  => (others => '0'),
+--       IOBUF_CTRL_GEN              => (others => '0'),
+--       STAT_ONEWIRE                => open,
+--       STAT_ADDR_DEBUG             => open,
+--       DEBUG_LVL1_HANDLER_OUT      => open
       );
 
   timing_trg_received_i <= TRIGGER_LEFT;  --TRIGGER_RIGHT;  --
