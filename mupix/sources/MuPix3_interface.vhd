@@ -36,6 +36,10 @@ entity mupix_interface is
     --trigger
     trigger_ext : in std_logic;
 
+    --reset signals from DAQ
+    timestampreset_in          : in std_logic;
+    eventcounterreset_in       : in std_logic;
+
     --TRB SlowControl
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
@@ -229,7 +233,7 @@ begin
         readnow <= '0';
       end if;
       readmanual <= roregister(3);
-      if(roregister(4) = '1' and roregwritten = '1') then
+      if((roregister(4) = '1' and roregwritten = '1') or eventcounterreset_in = '1') then
         reseteventcount <= '1';
       else
         reseteventcount <= '0';
@@ -533,7 +537,7 @@ begin
     end if;
   end process;
 
-  resetgraycounter <= not rstn;
+  resetgraycounter <= not(rstn) or timestampreset_in;
 
   grcount : Graycounter
     generic map(
@@ -549,4 +553,5 @@ begin
 
   
   ro_busy <= ro_busy_int;
+  
 end RTL;

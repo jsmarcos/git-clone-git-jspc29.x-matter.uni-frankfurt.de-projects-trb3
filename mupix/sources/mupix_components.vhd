@@ -34,6 +34,8 @@ package mupix_components is
       spi_ld_to_board            : out std_logic;
       fpga_led_to_board          : out std_logic_vector(3 downto 0);
       fpga_aux_to_board          : out std_logic_vector(9 downto 0);
+      timestampreset_in          : in std_logic;
+      eventcounterreset_in       : in std_logic;
       TIMING_TRG_IN              : in  std_logic;
       LVL1_TRG_DATA_VALID_IN     : in  std_logic;
       LVL1_VALID_TIMING_TRG_IN   : in  std_logic;
@@ -80,7 +82,9 @@ package mupix_components is
       memwren              : out std_logic;
       endofevent           : out std_logic;
       ro_busy              : out std_logic;
-      trigger_ext          : in std_logic;
+      trigger_ext          : in  std_logic;
+      timestampreset_in    : in std_logic;
+      eventcounterreset_in : in std_logic;
       SLV_READ_IN          : in  std_logic;
       SLV_WRITE_IN         : in  std_logic;
       SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
@@ -90,7 +94,7 @@ package mupix_components is
       SLV_NO_MORE_DATA_OUT : out std_logic;
       SLV_UNKNOWN_ADDR_OUT : out std_logic);
   end component;
-  
+
   --SPI entity to write Sensorboard DACs
   component spi_if
     port (
@@ -149,11 +153,11 @@ package mupix_components is
     generic (
       COUNTWIDTH : integer);
     port (
-      clk        : in  std_logic;
-      reset      : in  std_logic;
-      sync_reset : in  std_logic;
-      clk_divcounter : in std_logic_vector(7 downto 0);
-      counter    : out std_logic_vector(COUNTWIDTH-1 downto 0));
+      clk            : in  std_logic;
+      reset          : in  std_logic;
+      sync_reset     : in  std_logic;
+      clk_divcounter : in  std_logic_vector(7 downto 0);
+      counter        : out std_logic_vector(COUNTWIDTH-1 downto 0));
   end component;
 
 
@@ -283,5 +287,21 @@ package mupix_components is
       SLV_NO_MORE_DATA_OUT      : out std_logic;
       SLV_UNKNOWN_ADDR_OUT      : out std_logic);
   end component board_interface;
+
+  component resethandler is
+    port (
+      CLK_IN                : in  std_logic;
+      RESET_IN              : in  std_logic;
+      TimestampReset_OUT    : out std_logic;
+      EventCounterReset_OUT : out std_logic;
+      SLV_READ_IN           : in  std_logic;
+      SLV_WRITE_IN          : in  std_logic;
+      SLV_DATA_OUT          : out std_logic_vector(31 downto 0);
+      SLV_DATA_IN           : in  std_logic_vector(31 downto 0);
+      SLV_ADDR_IN           : in  std_logic_vector(15 downto 0);
+      SLV_ACK_OUT           : out std_logic;
+      SLV_NO_MORE_DATA_OUT  : out std_logic;
+      SLV_UNKNOWN_ADDR_OUT  : out std_logic);
+  end component resethandler;
   
 end mupix_components;

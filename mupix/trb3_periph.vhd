@@ -69,7 +69,7 @@ entity trb3_periph is
     spi_ld_to_board0      : out std_logic;
     fpga_led_to_board0    : out std_logic_vector(3 downto 0);
     fpga_aux_to_board0    : out std_logic_vector(9 downto 0);
-    
+
     --Connections to Sensorboard 1
     timestamp_from_mupix1 : in  std_logic_vector(7 downto 0);
     rowaddr_from_mupix1   : in  std_logic_vector(5 downto 0);
@@ -120,24 +120,24 @@ entity trb3_periph is
     TEST_LINE  : out   std_logic_vector(15 downto 0)
     );
 
-  attribute syn_useioff                     : boolean;
+  attribute syn_useioff                  : boolean;
   --no IO-FF for LEDs relaxes timing constraints
-  attribute syn_useioff of LED_GREEN        : signal is false;
-  attribute syn_useioff of LED_ORANGE       : signal is false;
-  attribute syn_useioff of LED_RED          : signal is false;
-  attribute syn_useioff of LED_YELLOW       : signal is false;
-  attribute syn_useioff of TEMPSENS         : signal is false;
-  attribute syn_useioff of PROGRAMN         : signal is false;
-  attribute syn_useioff of CODE_LINE        : signal is false;
-  attribute syn_useioff of TRIGGER_LEFT     : signal is false;
-  attribute syn_useioff of TRIGGER_RIGHT    : signal is false;
+  attribute syn_useioff of LED_GREEN     : signal is false;
+  attribute syn_useioff of LED_ORANGE    : signal is false;
+  attribute syn_useioff of LED_RED       : signal is false;
+  attribute syn_useioff of LED_YELLOW    : signal is false;
+  attribute syn_useioff of TEMPSENS      : signal is false;
+  attribute syn_useioff of PROGRAMN      : signal is false;
+  attribute syn_useioff of CODE_LINE     : signal is false;
+  attribute syn_useioff of TRIGGER_LEFT  : signal is false;
+  attribute syn_useioff of TRIGGER_RIGHT : signal is false;
   --important signals
-  attribute syn_useioff of FLASH_CLK        : signal is true;
-  attribute syn_useioff of FLASH_CS         : signal is true;
-  attribute syn_useioff of FLASH_DIN        : signal is true;
-  attribute syn_useioff of FLASH_DOUT       : signal is true;
-  attribute syn_useioff of FPGA5_COMM       : signal is true;
-  attribute syn_useioff of TEST_LINE        : signal is true;
+  attribute syn_useioff of FLASH_CLK     : signal is true;
+  attribute syn_useioff of FLASH_CS      : signal is true;
+  attribute syn_useioff of FLASH_DIN     : signal is true;
+  attribute syn_useioff of FLASH_DOUT    : signal is true;
+  attribute syn_useioff of FPGA5_COMM    : signal is true;
+  attribute syn_useioff of TEST_LINE     : signal is true;
   --attribute syn_useioff of INP           : signal is false;
   --attribute syn_useioff of DAC_SDO       : signal is true;
   --attribute syn_useioff of DAC_SDI       : signal is true;
@@ -152,7 +152,7 @@ architecture trb3_periph_arch of trb3_periph is
   --Constants
   constant REGIO_NUM_STAT_REGS : integer := 5;
   constant REGIO_NUM_CTRL_REGS : integer := 3;
-  constant NumberFEECards : integer := 2;
+  constant NumberFEECards      : integer := 2;
 
   attribute syn_keep     : boolean;
   attribute syn_preserve : boolean;
@@ -297,6 +297,18 @@ architecture trb3_periph_arch of trb3_periph is
   signal mu_regio_no_more_data_out_1 : std_logic;
   signal mu_regio_unknown_addr_out_1 : std_logic;
 
+  --common reset signals for mupix frontends
+  signal reset_timestamps_i                    : std_logic;
+  signal reset_eventcounters_i                 : std_logic;
+  signal resethandler_regio_addr_in_0          : std_logic_vector (15 downto 0);
+  signal resethandler_regio_data_in_0          : std_logic_vector (31 downto 0);
+  signal resethandler_regio_data_out_0         : std_logic_vector (31 downto 0);
+  signal resethandler_regio_read_enable_in_0   : std_logic;
+  signal resethandler_regio_write_enable_in_0  : std_logic;
+  signal resethandler_regio_timeout_in_0       : std_logic;
+  signal resethandler_regio_ack_out_0          : std_logic;
+  signal resethandler_regio_no_more_data_out_0 : std_logic;
+  signal resethandler_regio_unknown_addr_out_0 : std_logic;
 
   
 begin
@@ -511,17 +523,19 @@ begin
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER                                     => 4,
-      PORT_ADDRESSES                                  => (0 => x"d000",
-                                               1      => x"d100",
-                                               2      => x"8000",
-                                               3      => x"9000",
-                                               others => x"0000"),
-      PORT_ADDR_MASK                                  => (0 => 1,
-                                               1      => 6,
-                                               2      => 12,
-                                               3      => 12,
-                                               others => 0)
+      PORT_NUMBER                                                => 5,
+      PORT_ADDRESSES                                             => (0 => x"d000",
+                                                          1      => x"d100",
+                                                          2      => x"8000",  --Mupix 0
+                                                          3      => x"9000",  --Mupix 1
+                                                          4      => x"c000",  --Reset
+                                                          others => x"0000"),
+      PORT_ADDR_MASK                                             => (0 => 1,
+                                                          1      => 6,
+                                                          2      => 12,
+                                                          3      => 12,
+                                                          4      => 12,
+                                                          others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -588,6 +602,19 @@ begin
       BUS_WRITE_ACK_IN(3)                  => mu_regio_write_ack_out_1,
       BUS_NO_MORE_DATA_IN(3)               => mu_regio_no_more_data_out_1,
       BUS_UNKNOWN_ADDR_IN(3)               => mu_regio_unknown_addr_out_1,
+
+      --Common Reset
+      BUS_READ_ENABLE_OUT(4)               => resethandler_regio_read_enable_in_0,
+      BUS_WRITE_ENABLE_OUT(4)              => resethandler_regio_write_enable_in_0,
+      BUS_DATA_OUT(4*32+31 downto 4*32)    => resethandler_regio_data_in_0,
+      BUS_ADDR_OUT(4*16+11 downto 4*16)    => resethandler_regio_addr_in_0(11 downto 0),
+      BUS_ADDR_OUT(4*16+15 downto 4*16+12) => open,
+      BUS_TIMEOUT_OUT(4)                   => open,
+      BUS_DATA_IN(4*32+31 downto 4*32)     => resethandler_regio_data_out_0,
+      BUS_DATAREADY_IN(4)                  => resethandler_regio_ack_out_0,
+      BUS_WRITE_ACK_IN(4)                  => resethandler_regio_ack_out_0,
+      BUS_NO_MORE_DATA_IN(4)               => resethandler_regio_no_more_data_out_0,
+      BUS_UNKNOWN_ADDR_IN(4)               => resethandler_regio_unknown_addr_out_0,
 
       STAT_DEBUG => open
       );
@@ -695,6 +722,9 @@ begin
       fpga_led_to_board    => fpga_led_to_board0,
       fpga_aux_to_board    => fpga_aux_to_board0,
 
+      timestampreset_in    => reset_timestamps_i,
+      eventcounterreset_in => reset_eventcounters_i,
+
       TIMING_TRG_IN              => TRIGGER_RIGHT,
       LVL1_TRG_DATA_VALID_IN     => trg_data_valid_i,
       LVL1_VALID_TIMING_TRG_IN   => trg_timing_valid_i,
@@ -724,7 +754,7 @@ begin
       REGIO_NO_MORE_DATA_OUT => mu_regio_no_more_data_out_0,
       REGIO_UNKNOWN_ADDR_OUT => mu_regio_unknown_addr_out_0);
 
-   MuPix3_Board_1 : MuPix3_Board
+  MuPix3_Board_1 : MuPix3_Board
     port map (
       clk                  => clk_100_i,
       reset                => reset_i,
@@ -752,6 +782,9 @@ begin
       spi_ld_to_board      => spi_ld_to_board1,
       fpga_led_to_board    => fpga_led_to_board1,
       fpga_aux_to_board    => fpga_aux_to_board1,
+
+      timestampreset_in    => reset_timestamps_i,
+      eventcounterreset_in => reset_eventcounters_i,
 
       TIMING_TRG_IN              => TRIGGER_RIGHT,
       LVL1_TRG_DATA_VALID_IN     => trg_data_valid_i,
@@ -782,6 +815,20 @@ begin
       REGIO_NO_MORE_DATA_OUT => mu_regio_no_more_data_out_1,
       REGIO_UNKNOWN_ADDR_OUT => mu_regio_unknown_addr_out_1);
 
-
+  
+  resethandler_1 : entity work.resethandler
+    port map (
+      CLK_IN                => clk_100_i,
+      RESET_IN              => reset_i,
+      TimestampReset_OUT    => reset_timestamps_i,
+      EventCounterReset_OUT => reset_eventcounters_i,
+      SLV_READ_IN           => resethandler_regio_read_enable_in_0,
+      SLV_WRITE_IN          => resethandler_regio_write_enable_in_0,
+      SLV_DATA_OUT          => resethandler_regio_data_out_0,
+      SLV_DATA_IN           => resethandler_regio_data_in_0,
+      SLV_ADDR_IN           => resethandler_regio_addr_in_0,
+      SLV_ACK_OUT           => resethandler_regio_ack_out_0,
+      SLV_NO_MORE_DATA_OUT  => resethandler_regio_no_more_data_out_0,
+      SLV_UNKNOWN_ADDR_OUT  => resethandler_regio_unknown_addr_out_0);
 
 end architecture;

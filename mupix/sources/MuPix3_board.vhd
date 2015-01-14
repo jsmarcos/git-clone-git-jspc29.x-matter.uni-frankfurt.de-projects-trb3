@@ -43,6 +43,10 @@ entity MuPix3_Board is
     fpga_led_to_board    : out std_logic_vector(3 downto 0);
     fpga_aux_to_board    : out std_logic_vector(9 downto 0);
 
+    --resets
+    timestampreset_in    : in std_logic;
+    eventcounterreset_in : in std_logic;
+    
     --TRBv3 connections
     TIMING_TRG_IN              : in std_logic;
     LVL1_TRG_DATA_VALID_IN     : in std_logic;
@@ -117,7 +121,7 @@ architecture Behavioral of MuPix3_Board is
   signal sout_d_from_mupix_sync    : std_logic;
   signal hbus_from_mupix_sync      : std_logic;
   signal fpga_aux_from_board_sync  : std_logic_vector(9 downto 0);
-  
+
   
 
 begin  -- Behavioral
@@ -205,6 +209,7 @@ begin  -- Behavioral
       sout_d_from_mupix_sync    => sout_d_from_mupix_sync,
       hbus_from_mupix_sync      => hbus_from_mupix_sync,
       fpga_aux_from_board_sync  => fpga_aux_from_board_sync,
+      
       SLV_READ_IN               => slv_read(7),
       SLV_WRITE_IN              => slv_write(7),
       SLV_DATA_OUT              => slv_data_rd(7*32+31 downto 7*32),
@@ -232,6 +237,8 @@ begin  -- Behavioral
       memwren              => memwren,
       trigger_ext          => valid_trigger_int,
       ro_busy              => ro_mupix_busy,
+      timestampreset_in    => timestampreset_in,
+      eventcounterreset_in => eventcounterreset_in,
       SLV_READ_IN          => slv_read(0),
       SLV_WRITE_IN         => slv_write(0),
       SLV_DATA_OUT         => slv_data_rd(0*32+31 downto 0*32),
