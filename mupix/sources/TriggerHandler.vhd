@@ -118,6 +118,7 @@ architecture behavioral of TriggerHandler is
                                 trigger_release_a,
                                 trigger_release_b,
                                 trigger_release_c,
+                                wait_trigger_release,
                                 ignore,
                                 wait_trigger_data_valid_a,
                                 wait_trigger_data_valid_b);
@@ -133,6 +134,7 @@ architecture behavioral of TriggerHandler is
   signal wr_header_int : std_logic := '0';
   signal wr_data_int : std_logic := '0';
   signal wr_status_int : std_logic := '0';
+  signal wr_dummy_int : std_logic := '0';
   
 begin
   
@@ -166,6 +168,7 @@ begin
     wr_header_int           <= '0';
     wr_data_int             <= '0';
     wr_status_int           <= '0';
+    wr_dummy_int            <= '0';
     if LVL1_INVALID_TRG_IN = '1' or reset_trigger_state_edge = "01" then
       fast_clear_int      <= '1';
       fee_trg_release_int <= '1';
@@ -229,8 +232,10 @@ begin
           end if;
 
         when ignore =>
+          wr_dummy_int          <= '1'; --write a dummy value to identify
+                                        --inactive FEE
           trigger_handler_state <= x"05";
-          trigger_handler_fsm <= trigger_release_c;
+          trigger_handler_fsm <= wait_trigger_data_valid_b;
 
         when status_trigger => --dummy implementation
           trigger_handler_state <= x"06";
@@ -262,7 +267,6 @@ begin
             trigger_handler_fsm <= wait_trigger_data_valid_b;
           end if;
           
-
         when wait_trigger_data_valid_b =>
           trigger_handler_state <= x"0C";
           trigger_handler_fsm <= trigger_release_a;
@@ -279,7 +283,14 @@ begin
         when trigger_release_c =>
           trigger_handler_state <= x"0F";
           fee_trg_release_int <= '1';
-          trigger_handler_fsm <= idle;
+          trigger_handler_fsm <= wait_trigger_release;
+
+        when wait_trigger_release =>
+          if(LVL1_TRG_DATA_VALID_IN = '1') then
+            trigger_handler_fsm <= wait_trigger_release;
+          else
+            trigger_handler_fsm <= idle;
+          end if;
 
         when others => null;               
       end case;
@@ -301,6 +312,9 @@ begin
       elsif wr_status_int = '1' then
          fee_data_int <= x"deadbeef";
          fee_data_write_int <= '1';
+      elsif wr_dummy_int = '1' then
+         fee_data_write_int <= '1' ;
+         fee_data_int <= x"fff00000";
       else
         fee_data_write_int <= '0';
         fee_data_int <= (others => '1');
