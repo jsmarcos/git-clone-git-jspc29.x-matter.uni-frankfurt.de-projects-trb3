@@ -1,0 +1,77 @@
+library ieee;
+USE IEEE.std_logic_1164.ALL;
+use ieee.numeric_std.all;
+use work.trb_net_std.all;
+
+package config is
+
+
+------------------------------------------------------------------------------
+--Begin of design configuration
+------------------------------------------------------------------------------
+
+    
+--Run wih 125 MHz instead of 100 MHz     
+    constant USE_125_MHZ            : integer := c_NO;  --not implemented yet!  
+    constant USE_EXTERNALCLOCK      : integer := c_NO;  --not implemented yet!  
+    
+--Use sync mode, RX clock for all parts of the FPGA
+    constant USE_RXCLOCK            : integer := c_NO;  --not implemented yet!
+   
+--Address settings   
+    constant INIT_ADDRESS           : std_logic_vector := x"F30f";
+    constant BROADCAST_SPECIAL_ADDR : std_logic_vector := x"4f";
+    constant ADC_SAMPLING_RATE      : integer := 40;
+    
+    
+------------------------------------------------------------------------------
+--End of design configuration
+------------------------------------------------------------------------------
+
+
+------------------------------------------------------------------------------
+--Select settings by configuration 
+------------------------------------------------------------------------------
+    type intlist_t is array(0 to 7) of integer;
+    type hw_info_t is array(0 to 7) of unsigned(31 downto 0);
+    constant HW_INFO_BASE            : unsigned(31 downto 0) := x"91007000";
+    
+    constant CLOCK_FREQUENCY_ARR  : intlist_t := (100,125, others => 0);
+    constant MEDIA_FREQUENCY_ARR  : intlist_t := (200,125, others => 0);
+                          
+  --declare constants, filled in body                          
+    constant HARDWARE_INFO        : std_logic_vector(31 downto 0);
+    constant CLOCK_FREQUENCY      : integer;
+    constant MEDIA_FREQUENCY      : integer;
+    constant INCLUDED_FEATURES      : std_logic_vector(63 downto 0);
+    
+    
+end;
+
+package body config is
+--compute correct configuration mode
+  
+  constant HARDWARE_INFO        : std_logic_vector(31 downto 0) := std_logic_vector(
+                                      HW_INFO_BASE );
+  constant CLOCK_FREQUENCY      : integer := CLOCK_FREQUENCY_ARR(USE_125_MHZ);
+  constant MEDIA_FREQUENCY      : integer := MEDIA_FREQUENCY_ARR(USE_125_MHZ);
+
+  
+  
+function generateIncludedFeatures return std_logic_vector is
+  variable t : std_logic_vector(63 downto 0);
+begin
+  t               := (others => '0');
+  t(63 downto 56) := std_logic_vector(to_unsigned(1,8)); --table version 2
+  t(42 downto 42) := "1"; --std_logic_vector(to_unsigned(INCLUDE_SPI,1));
+  t(44 downto 44) := "0"; --std_logic_vector(to_unsigned(INCLUDE_STATISTICS,1));
+  t(51 downto 48) := x"0";--std_logic_vector(to_unsigned(INCLUDE_TRIGGER_LOGIC,4));
+  t(52 downto 52) := std_logic_vector(to_unsigned(USE_125_MHZ,1));
+  t(53 downto 53) := std_logic_vector(to_unsigned(USE_RXCLOCK,1));
+  t(54 downto 54) := std_logic_vector(to_unsigned(USE_EXTERNALCLOCK,1));
+  return t;
+end function;  
+
+  constant INCLUDED_FEATURES : std_logic_vector(63 downto 0) := generateIncludedFeatures;    
+
+end package body;
