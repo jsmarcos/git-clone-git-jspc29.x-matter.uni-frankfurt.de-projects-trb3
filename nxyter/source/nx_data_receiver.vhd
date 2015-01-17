@@ -24,15 +24,15 @@ entity nx_data_receiver is
     NX_TIMESTAMP_RESET_OUT : out std_logic;
     
     -- ADC Ports
-    ADC_CLK_DAT_IN         : in  std_logic;
-    ADC_FCLK_IN            : in  std_logic_vector(1 downto 0);
-    ADC_DCLK_IN            : in  std_logic_vector(1 downto 0);
     ADC_SAMPLE_CLK_OUT     : out std_logic;
-    ADC_A_IN               : in  std_logic_vector(1 downto 0);
-    ADC_B_IN               : in  std_logic_vector(1 downto 0);
-    ADC_NX_IN              : in  std_logic_vector(1 downto 0);
-    ADC_D_IN               : in  std_logic_vector(1 downto 0);
     ADC_SCLK_LOCK_OUT      : out std_logic;
+
+    ADC_FCLK_IN            : in  std_logic;
+    ADC_DCLK_IN            : in  std_logic;
+    ADC_A_IN               : in  std_logic;
+    ADC_B_IN               : in  std_logic;
+    ADC_NX_IN              : in  std_logic;
+    ADC_D_IN               : in  std_logic;
                            
     -- Outputs             
     DATA_OUT               : out std_logic_vector(43 downto 0);
@@ -467,7 +467,7 @@ begin
           DEBUG_OUT(12)           <= '0';
           DEBUG_OUT(13)           <= '0';
           DEBUG_OUT(14)           <= '0';
-          DEBUG_OUT(15)           <= ADC_SAMPLE_CLK_OUT;
+          DEBUG_OUT(15)           <= '0'; --ADC_SAMPLE_CLK_OUT; (not readable)
 
         when others =>
           -- Default
@@ -853,50 +853,28 @@ begin
       DEBUG_ENABLE => true
       )
     port map (
-      CLK_IN               => NX_DATA_CLK_IN,
-      RESET_IN             => RESET_NX_DATA_CLK_IN,
-      CLK_ADCDAT_IN        => ADC_CLK_DAT_IN,
-      RESET_ADCS           => ADC_RESET_AD9228,
-      
-      ADC0_SCLK_IN         => pll_adc_sampling_clk_o,
-      ADC0_SCLK_OUT        => ADC_SAMPLE_CLK_OUT,
-      ADC0_DATA_A_IN       => ADC_NX_IN(0),
-      ADC0_DATA_B_IN       => ADC_B_IN(0),
-      ADC0_DATA_C_IN       => ADC_A_IN(0),
-      ADC0_DATA_D_IN       => ADC_D_IN(0),
-      ADC0_DCLK_IN         => ADC_DCLK_IN(0),
-      ADC0_FCLK_IN         => ADC_FCLK_IN(0),
-                           
-      ADC1_SCLK_IN         => pll_adc_sampling_clk_o,
-      ADC1_SCLK_OUT        => open,
-      ADC1_DATA_A_IN       => ADC_NX_IN(1), 
-      ADC1_DATA_B_IN       => ADC_A_IN(1),
-      ADC1_DATA_C_IN       => ADC_B_IN(1),
-      ADC1_DATA_D_IN       => ADC_D_IN(1),
-      ADC1_DCLK_IN         => ADC_DCLK_IN(1),
-      ADC1_FCLK_IN         => ADC_FCLK_IN(1),
-                           
-      ADC0_DATA_A_OUT      => adc_data,
-      ADC0_DATA_B_OUT      => open,
-      ADC0_DATA_C_OUT      => open,
-      ADC0_DATA_D_OUT      => open,
-      ADC0_DATA_CLK_OUT    => adc_data_clk,
-                           
-      ADC1_DATA_A_OUT      => open,
-      ADC1_DATA_B_OUT      => open,
-      ADC1_DATA_C_OUT      => open,
-      ADC1_DATA_D_OUT      => open,
-      ADC1_DATA_CLK_OUT    => open,
+      CLK_IN                => NX_DATA_CLK_IN,
+      RESET_IN              => RESET_NX_DATA_CLK_IN,
+      RESET_ADCS            => ADC_RESET_AD9228,
+                            
+      ADC_SCLK_IN           => pll_adc_sampling_clk_o,
+      ADC_SCLK_OUT          => ADC_SAMPLE_CLK_OUT,
+      ADC_DATA_A_IN         => ADC_NX_IN,
+      ADC_DATA_B_IN         => ADC_B_IN,
+      ADC_DATA_C_IN         => ADC_A_IN,
+      ADC_DATA_D_IN         => ADC_D_IN,
+      ADC_DCLK_IN           => ADC_DCLK_IN,
+      ADC_FCLK_IN           => ADC_FCLK_IN,
+                            
+      ADC_DATA_A_OUT        => adc_data,
+      ADC_DATA_B_OUT        => open,
+      ADC_DATA_C_OUT        => open,
+      ADC_DATA_D_OUT        => open,
+      ADC_DATA_CLK_OUT      => adc_data_clk,
+                            
+      ADC_LOCKED_OUT        => adc_locked,
+      ADC_ERROR_STATUS_OUT  => adc_error_status_i,
 
-      ADC0_LOCKED_OUT      => adc_locked,
-      ADC1_LOCKED_OUT      => open,
-
-      ADC0_SLOPPY_FRAME_IN  => adc_sloppy_frame,
-      ADC1_SLOPPY_FRAME_IN  => '0',
-
-      ADC0_ERROR_STATUS_OUT => adc_error_status_i,
-      ADC1_ERROR_STATUS_OUT => open,
-      
       DEBUG_IN              => adc_debug_type,
       DEBUG_OUT             => ADC_DEBUG
       );

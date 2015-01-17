@@ -24,30 +24,22 @@ BLOCK RD_DURING_WR_PATHS ;
 #                                            |
 #                                            |----> Johnson 1/4 --> ADC SCLK
 #
-# CLK_PCLK_RIGHT (PLL#2) --> clk_adc_dat_1
-#                (nx_main_clk * 3/4 = 187.5) -----> ADC Handler 1
-#
-# CLK_PCLK_RIGHT (PLL#3) --> clk_adc_dat_2
-#                (nx_main_clk * 3/4 = 187.5) -----> ADC Handler 2
+# ADC_DATA_CLK           --> ADC Data Clk    -----> FPGA ADC Handler
+#                            DDR (187.5 MHz)
+
 
 # Speed for the configuration Flash access
 SYSCONFIG MCCLK_FREQ = 20;
 
 FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
 FREQUENCY PORT NX1_DATA_CLK_IN 125 MHz;
+FREQUENCY PORT NX1_ADC_DCLK_IN 187.5 MHz;
+FREQUENCY NET "nXyter_FEE_board_0/nx_data_receiver_1/DDR_DATA_CLK_c" 93.750000 MHz;
 
-#USE PRIMARY NET "nx_main_clk_c"; 
-#USE PRIMARY NET "clk_100_i_c";
-#USE PRIMARY NET "CLK_PCLK_RIGHT_c";
-
-FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
-FREQUENCY PORT NX1_DATA_CLK_IN 125 MHz;
-
-USE PRIMARY   NET "nx_main_clk_c"; 
-USE PRIMARY   NET "clk_100_i_c";
 USE PRIMARY   NET "CLK_PCLK_RIGHT_c";
-USE EDGE2EDGE NET "NX_CLK_ADC_DAT";
-USE PRIMARY   NET "nXyter_FEE_board_0/nx_data_receiver_1/adc_ad9228_1/DDR_DATA_CLK_c";
+USE PRIMARY   NET "clk_100_i_c";
+USE PRIMARY   NET "nx_main_clk_c"; 
+USE PRIMARY   NET "nXyter_FEE_board_0/nx_data_receiver_1/DDR_DATA_CLK_c";
                      
 #################################################################
 # Reset Nets
@@ -66,6 +58,10 @@ LOCATE UGROUP        "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLI
 #################################################################
 # Relax some of the timing constraints
 #################################################################
+
+#SPI Interface
+REGION "REGION_SPI" "R9C108D" 20 20 DEVSIZE;
+LOCATE UGROUP "THE_SPI_MEMORY/SPI_group" REGION "REGION_SPI" ;
 
 #################################################
 # Muelleimer:
@@ -109,8 +105,6 @@ MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_timestamp_reset_o
 MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_frame_synced_rr*"                          100 ns;
 MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_debug_type_f*"                            100 ns;
 
-MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_ad9228_*/adc0_sloppy_frame_c*"             200 ns;
-
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/readout_mode_r_*"                          100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/cts_trigger_delay_*"                       100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/ts_window_offset_*"                        100 ns;
@@ -126,19 +120,13 @@ MULTICYCLE FROM CELL "nXyter_FEE_board_*/debug_multiplexer_*/port_select_*"     
 
 MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/new_adc_dt_error_ctr_*"                       100 ns;
 MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/new_timestamp_dt_error_ctr_*"                 100 ns;
-MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/disable_adc_f*"                               100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_error_status_i_*"                         100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_ad9228_*/adc_ad9228_data_handler*/adc_locked_o*" 100 ns;
-
 
 MULTICYCLE TO GROUP  "TEST_LINE_group"          500.000000 ns ;
 MULTICYCLE TO GROUP  "NX1_DEBUG_LINE_group"     500.000000 ns ;
 MAXDELAY   TO GROUP  "TEST_LINE_group"          500.000000 ns ;
 MAXDELAY   TO GROUP  "NX1_DEBUG_LINE_group"     500.000000 ns ;
-
-#SPI Interface
-REGION "REGION_SPI" "R9C108D" 20 20 DEVSIZE;
-LOCATE UGROUP "THE_SPI_MEMORY/SPI_group" REGION "REGION_SPI" ;
 
 #################################################################
 # Constraints for nxyter inputs
@@ -147,15 +135,8 @@ LOCATE UGROUP "THE_SPI_MEMORY/SPI_group" REGION "REGION_SPI" ;
 # look at .par and .twr.setup file for clocks 
 # IN .mrp  you find the semantic errors
 
-# DDR Generic PLL Setup, very important, do never remove!
-LOCATE COMP "pll_adc_clk_1/PLLInst_0" SITE "PLL_R61C5" ;
-
 PROHIBIT PRIMARY   NET "NX1_DATA_CLK_IN_c";
 PROHIBIT SECONDARY NET "NX1_DATA_CLK_IN_c";
 
 DEFINE PORT GROUP    "NX1_IN" "NX1_TIMESTAMP_*";
 INPUT_SETUP GROUP    "NX1_IN" 1.5 ns HOLD 1.5 ns CLKPORT="NX1_DATA_CLK_IN"; 
-
-#UGROUP NXYTER1 BBOX 100 70
- #BLKNAME nXyter_FEE_board_0;
-#LOCATE UGROUP NXYTER1 SITE "R2C2D";

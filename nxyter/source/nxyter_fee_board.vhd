@@ -21,9 +21,7 @@ entity nXyter_FEE_board is
     CLK_IN                     : in  std_logic;  
     RESET_IN                   : in  std_logic;
     CLK_NX_MAIN_IN             : in  std_logic;
-    CLK_ADC_IN                 : in  std_logic;
     PLL_NX_CLK_LOCK_IN         : in  std_logic;
-    PLL_ADC_DCLK_LOCK_IN       : in  std_logic;
     PLL_RESET_OUT              : out std_logic;
     TRIGGER_OUT                : out std_logic;
     
@@ -46,13 +44,13 @@ entity nXyter_FEE_board is
     NX_TIMESTAMP_TRIGGER_OUT   : out std_logic;
     
     -- ADC nXyter Pulse Hight Ports
-    ADC_FCLK_IN                : in  std_logic_vector(1 downto 0);
-    ADC_DCLK_IN                : in  std_logic_vector(1 downto 0);
     ADC_SAMPLE_CLK_OUT         : out std_logic;
-    ADC_A_IN                   : in  std_logic_vector(1 downto 0);
-    ADC_B_IN                   : in  std_logic_vector(1 downto 0);
-    ADC_NX_IN                  : in  std_logic_vector(1 downto 0);
-    ADC_D_IN                   : in  std_logic_vector(1 downto 0);        
+    ADC_FCLK_IN                : in  std_logic;
+    ADC_DCLK_IN                : in  std_logic;
+    ADC_A_IN                   : in  std_logic;
+    ADC_B_IN                   : in  std_logic;
+    ADC_NX_IN                  : in  std_logic;
+    ADC_D_IN                   : in  std_logic;
                                 
     -- Input Triggers
     TIMING_TRIGGER_IN          : in  std_logic;  
@@ -320,7 +318,7 @@ begin
       RESET_IN                 => RESET_IN,
 
       PLL_NX_CLK_LOCK_IN       => PLL_NX_CLK_LOCK_IN, 
-      PLL_ADC_DCLK_LOCK_IN     => PLL_ADC_DCLK_LOCK_IN,
+      PLL_ADC_DCLK_LOCK_IN     => '1',
       PLL_ADC_SCLK_LOCK_IN     => pll_sadc_clk_lock,
       PLL_RESET_OUT            => PLL_RESET_OUT, 
 
@@ -565,16 +563,16 @@ begin
       NX_DATA_CLK_IN         => NX_TIMESTAMP_CLK_IN,
       NX_TIMESTAMP_IN        => NX_TIMESTAMP_IN,
       NX_TIMESTAMP_RESET_OUT => nx_timestamp_reset,
+
+      ADC_SAMPLE_CLK_OUT     => ADC_SAMPLE_CLK_OUT,
+      ADC_SCLK_LOCK_OUT      => pll_sadc_clk_lock,
       
-      ADC_CLK_DAT_IN         => CLK_ADC_IN,
       ADC_FCLK_IN            => ADC_FCLK_IN,
       ADC_DCLK_IN            => ADC_DCLK_IN, 
-      ADC_SAMPLE_CLK_OUT     => ADC_SAMPLE_CLK_OUT,
       ADC_A_IN               => ADC_A_IN,
       ADC_B_IN               => ADC_B_IN,
       ADC_NX_IN              => ADC_NX_IN, 
       ADC_D_IN               => ADC_D_IN,
-      ADC_SCLK_LOCK_OUT      => pll_sadc_clk_lock,
                              
       DATA_OUT               => data_recv,
       DATA_CLK_OUT           => data_clk_recv,
@@ -836,8 +834,6 @@ begin
       SLV_NO_MORE_DATA_OUT => slv_no_more_data(11),
       SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(11)
       );
-
-  --DEBUG_LINE_OUT <= (others => '0');
 
 -------------------------------------------------------------------------------
 -- END

@@ -20,7 +20,7 @@ use FileHandle;
 
 $ENV{'SYNPLIFY'}=$synplify_path;
 $ENV{'SYN_DISABLE_RAINBOW_DONGLE'}=1;
-$ENV{'LM_LICENSE_FILE'}=$lm_license_file_for_synplify;
+#$ENV{'LM_LICENSE_FILE'}=$lm_license_file_for_synplify;
 
 my $FAMILYNAME="LatticeECP3";
 my $DEVICENAME="LFE3-150EA";

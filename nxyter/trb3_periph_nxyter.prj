@@ -12,7 +12,7 @@ set_option -part_companion ""
 # compilation/mapping options
 set_option -default_enum_encoding sequential
 set_option -symbolic_fsm_compiler 1
-set_option -top_module "trb3_periph"
+set_option -top_module "trb3_periph_nxyter"
 set_option -resource_sharing true
 
 # map options
@@ -37,7 +37,7 @@ set_option -write_apr_constraint 0
 
 # set result format/file last
 project -result_format "edif"
-project -result_file "workdir/trb3_periph.edf"
+project -result_file "workdir/trb3_periph_nxyter.edf"
 
 #implementation attributes
 
@@ -144,7 +144,6 @@ add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
 # nXyter Files
 
 add_file -vhdl -lib "work" "cores/pll_nx_clk250.vhd"
-add_file -vhdl -lib "work" "cores/pll_adc_clk.vhd"
 add_file -vhdl -lib "work" "cores/pll_adc_sampling_clk.vhd"
 add_file -vhdl -lib "work" "cores/fifo_data_stream_44to44_dc.vhd"
 add_file -vhdl -lib "work" "cores/ram_dp_128x40.vhd"
@@ -159,7 +158,7 @@ add_file -vhdl -lib "work" "cores/fifo_32_data.vhd"
 add_file -vhdl -lib "work" "cores/dynamic_shift_register33x64.vhd"
 
 add_file -vhdl -lib "work" "../base/code/sedcheck.vhd"
-add_file -vhdl -lib "work" "trb3_periph.vhd"
+add_file -vhdl -lib "work" "trb3_periph_nxyter.vhd"
 
 add_file -vhdl -lib "work" "source/nxyter_components.vhd"
 add_file -vhdl -lib "work" "source/level_to_pulse.vhd"

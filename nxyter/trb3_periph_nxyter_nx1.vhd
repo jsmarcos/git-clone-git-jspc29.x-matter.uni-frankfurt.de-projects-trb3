@@ -13,7 +13,7 @@ library ecp3;
 use ecp3.components.all;
 
 
-entity trb3_periph is
+entity trb3_periph_nxyter is
   port(
     --Clocks
     CLK_GPLL_RIGHT            : in    std_logic;  --Clock Manager 2/(2468), 200 MHz  <-- MAIN CLOCK for FPGA
@@ -126,7 +126,7 @@ entity trb3_periph is
 end entity;
 
 
-architecture trb3_periph_arch of trb3_periph is
+architecture Behavioral of trb3_periph_nxyter is
 
   constant NUM_NXYTER : integer := 1;
     
@@ -265,8 +265,6 @@ architecture trb3_periph_arch of trb3_periph is
   signal nx_pll_clk_lock            : std_logic;
   signal nx_pll_reset               : std_logic;
   
-  signal NX_CLK_ADC_DAT            : std_logic;
-  signal nx_pll_adc_clk_lock       : std_logic;
   signal nx1_adc_sample_clk         : std_logic;
 
   -- nXyter 1 Regio Bus
@@ -657,9 +655,7 @@ begin
       CLK_IN                     => clk_100_i,
       RESET_IN                   => reset_i,
       CLK_NX_MAIN_IN             => nx_main_clk,
-      CLK_ADC_IN                 => NX_CLK_ADC_DAT,
       PLL_NX_CLK_LOCK_IN         => nx_pll_clk_lock,
-      PLL_ADC_DCLK_LOCK_IN       => nx_pll_adc_clk_lock,
       PLL_RESET_OUT              => nx_pll_reset,
       
       TRIGGER_OUT                => fee1_trigger,                       
@@ -679,20 +675,14 @@ begin
       NX_RESET_OUT               => NX1_RESET_OUT,
       NX_TESTPULSE_OUT           => NX1_TESTPULSE_OUT,
       NX_TIMESTAMP_TRIGGER_OUT   => NX1_TS_HOLD_OUT,
-      
-      ADC_FCLK_IN(0)             => NX1_ADC_FCLK_IN,
-      ADC_FCLK_IN(1)             => NX1B_ADC_FCLK_IN,
-      ADC_DCLK_IN(0)             => NX1_ADC_DCLK_IN,
-      ADC_DCLK_IN(1)             => NX1B_ADC_DCLK_IN,
+
       ADC_SAMPLE_CLK_OUT         => nx1_adc_sample_clk,
-      ADC_A_IN(0)                => NX1_ADC_A_IN,
-      ADC_A_IN(1)                => NX1B_ADC_A_IN,
-      ADC_B_IN(0)                => NX1_ADC_B_IN,
-      ADC_B_IN(1)                => NX1B_ADC_B_IN,
-      ADC_NX_IN(0)               => NX1_ADC_NX_IN,
-      ADC_NX_IN(1)               => NX1B_ADC_NX_IN,
-      ADC_D_IN(0)                => NX1_ADC_D_IN,
-      ADC_D_IN(1)                => NX1B_ADC_D_IN,
+      ADC_FCLK_IN                => NX1_ADC_FCLK_IN,
+      ADC_DCLK_IN                => NX1_ADC_DCLK_IN,
+      ADC_A_IN                   => NX1_ADC_A_IN,
+      ADC_B_IN                   => NX1_ADC_B_IN,
+      ADC_NX_IN                  => NX1_ADC_NX_IN,
+      ADC_D_IN                   => NX1_ADC_D_IN,
 
       TIMING_TRIGGER_IN          => TRIGGER_RIGHT, 
       LVL1_TRG_DATA_VALID_IN     => trg_data_valid_i,
@@ -767,14 +757,4 @@ begin
   
   NX1_ADC_SAMPLE_CLK_OUT <= nx1_adc_sample_clk;
   
-  -- ADC Receiver Clock (nXyter Main Clock * 3/4 (187.5), must be 
-  -- based on same ClockSource as nXyter Main Clock)
-  pll_adc_clk_1: entity work.pll_adc_clk
-    port map (
-      CLK   => CLK_PCLK_RIGHT,
-      RESET => nx_pll_reset,
-      CLKOP => NX_CLK_ADC_DAT,
-      LOCK  => nx_pll_adc_clk_lock
-      );
-
 end architecture;

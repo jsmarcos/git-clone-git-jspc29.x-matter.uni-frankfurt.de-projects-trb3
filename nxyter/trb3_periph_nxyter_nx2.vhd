@@ -13,7 +13,7 @@ library ecp3;
 use ecp3.components.all;
 
 
-entity trb3_periph is
+entity trb3_periph_nxyter is
   generic (
     NUM_NXYTER : integer := 1;
     );
@@ -161,7 +161,7 @@ entity trb3_periph is
 end entity;
 
 
-architecture trb3_periph_arch of trb3_periph is
+architecture Behavioral of trb3_periph_nxyter is
 
   -- For 250MHz PLL nxyter clock, THE_32M_ODDR_1
   attribute ODDRAPPS : string;
