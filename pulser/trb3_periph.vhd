@@ -180,10 +180,10 @@ begin
 ---------------------------------------------------------------------------
   THE_MAIN_PLL : pll_in200_out100
     port map(
-      CLK   => CLK_PCLK_RIGHT,
+      CLK   => clk_200_i,
       RESET => '0',
       CLKOP => clk_100_i,
-      CLKOK => clk_200_i,
+      CLKOK => open,
       LOCK  => pll_lock
       );
 
@@ -349,14 +349,15 @@ end generate;
 ---------------------------------------------------------------------------
 -- Pulser
 ---------------------------------------------------------------------------
- tristate_i <= "01010";
+ tristate_i <= "00000";
 --just generating some test output
-timer <= timer + 1 when rising_edge(clk_125_i);
+timer <= timer + 1 when rising_edge(clk_200_i);
 process begin
-  wait until rising_edge(clk_125_i);
-  if    timer = x"01" then   din_i <= x"3";
-  elsif timer = x"02" then   din_i <= x"f";
-  elsif timer = x"03" then   din_i <= x"1";
+  wait until rising_edge(clk_200_i);
+  if    timer = x"01" then   din_i <= x"1";
+  elsif timer = x"02" then   din_i <= x"0";
+  elsif timer = x"03" then   din_i <= x"0";
+  elsif timer = x"80" then   din_i <= x"f";
   else                       din_i <= x"0";
   end if;  
 end process;  
@@ -364,11 +365,11 @@ end process;
 
   THE_DDR: pulserddrecp3
     port map(
-        clk    => CLK_GPLL_LEFT,
+        clk    => CLK_PCLK_LEFT,
         pll_lock => open,
         pll_reset => '0',
         reset => '0',
-        sclk  => clk_125_i,
+        sclk  => clk_200_i,
         tristate => tristate_i,
         din => din_i,
         q   => OUTP

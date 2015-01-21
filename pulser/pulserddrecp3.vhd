@@ -136,10 +136,10 @@ architecture Structure of pulserddrecp3 is
     attribute ODDRAPPS of Inst_ODDRX2D_0_2 : label is "ECLK_ALIGNED";
     attribute ODDRAPPS of Inst_ODDRX2D_0_1 : label is "ECLK_ALIGNED";
     attribute ODDRAPPS of Inst_ODDRX2D_0_0 : label is "ECLK_ALIGNED";
-    attribute FREQUENCY_PIN_CLKOP of Inst2_EHXPLLF : label is "250.000000";
-    attribute FREQUENCY_PIN_CLKOS of Inst2_EHXPLLF : label is "250.000000";
-    attribute FREQUENCY_PIN_CLKI of Inst2_EHXPLLF : label is "125.000000";
-    attribute FREQUENCY_PIN_CLKOK of Inst2_EHXPLLF : label is "125.000000";
+    attribute FREQUENCY_PIN_CLKOP of Inst2_EHXPLLF : label is "400.000000";
+    attribute FREQUENCY_PIN_CLKOS of Inst2_EHXPLLF : label is "400.000000";
+    attribute FREQUENCY_PIN_CLKI of Inst2_EHXPLLF : label is "200.000000";
+    attribute FREQUENCY_PIN_CLKOK of Inst2_EHXPLLF : label is "200.000000";
     attribute IO_TYPE of Inst1_OBZ4 : label is "LVDS25";
     attribute IO_TYPE of Inst1_OBZ3 : label is "LVDS25";
     attribute IO_TYPE of Inst1_OBZ2 : label is "LVDS25";
@@ -171,12 +171,12 @@ begin
     Inst_ODDRX2D_0_1: ODDRX2D
         generic map (MEMMODE=> "DISABLED", ISI_CAL=> "BYPASS")
         port map (DA0=>din(0), DB0=>din(1), DA1=>din(2), DB1=>din(3), 
-            SCLK=>sclk_t, DQCLK1=>dqclk10, DQCLK0=>dqclk00, Q=>buf_qo1);
+            SCLK=>sclk_t, DQCLK1=>dqclk11, DQCLK0=>dqclk01, Q=>buf_qo1);
 
     Inst_ODDRX2D_0_0: ODDRX2D
         generic map (MEMMODE=> "DISABLED", ISI_CAL=> "BYPASS")
         port map (DA0=>din(0), DB0=>din(1), DA1=>din(2), DB1=>din(3), 
-            SCLK=>sclk_t, DQCLK1=>dqclk10, DQCLK0=>dqclk00, Q=>buf_qo0);
+            SCLK=>sclk_t, DQCLK1=>dqclk11, DQCLK0=>dqclk01, Q=>buf_qo0);
 
     Inst7_DQSBUFE11: DQSBUFE1
         generic map (DYNDEL_VAL=>  0, DYNDEL_CNTL=> "DYNAMIC", 
@@ -223,7 +223,7 @@ begin
         CLKOP_TRIM_DELAY=>  0, CLKOP_TRIM_POL=> "RISING", 
         PHASE_DELAY_CNTL=> "STATIC", DUTY=>  8, PHASEADJ=> "0.0", 
         CLKOK_DIV=>  2, CLKOP_DIV=>  4, CLKFB_DIV=>  2, CLKI_DIV=>  1, 
-        FIN=> "125.000000")
+        FIN=> "200.000000")
         port map (CLKI=>clk, CLKFB=>clkintfb, RST=>pll_reset, 
             RSTK=>scuba_vlo, WRDEL=>scuba_vlo, DRPAI3=>scuba_vlo, 
             DRPAI2=>scuba_vlo, DRPAI1=>scuba_vlo, DRPAI0=>scuba_vlo, 
