@@ -72,6 +72,7 @@ architecture RTL of mupix_interface is
   signal eventcounter : unsigned(31 downto 0) := (others => '0');
   signal hitcounter : unsigned(10 downto 0) := (others => '0');
   signal graycounter_clkdiv_counter : std_logic_vector(31 downto 0) := (others => '0');
+  signal sensor_id : std_logic_vector(31 downto 0) := (others => '0');
 
   signal triggering            : std_logic := '0';
   signal busy_r                : std_logic := '0';
@@ -120,6 +121,7 @@ begin
   --x0028: Divider for graycounter clock
   --x0029: mask flag for (col,row) = (0,0)
   --x0030: testoutro
+  --x0031: Sensor-ID
   -----------------------------------------------------------------------------
 
   SLV_HANDLER : process(clk)
@@ -166,6 +168,9 @@ begin
           when x"0030" =>
             SLV_DATA_OUT <= testoutro;
             SLV_ACK_OUT <= '1';
+          when x"0031" =>
+            SLV_DATA_OUT <= sensor_id;
+            SLV_ACK_OUT <= '1';
           when others =>
             SLV_UNKNOWN_ADDR_OUT <= '1';
         end case;
@@ -200,6 +205,9 @@ begin
             SLV_ACK_OUT <= '1';
           when x"0029" =>
             ignorehitflag <= SLV_DATA_IN(0);
+            SLV_ACK_OUT <= '1';
+          when x"0031" =>
+            sensor_id <= SLV_DATA_IN;
             SLV_ACK_OUT <= '1';
           when others =>
             SLV_UNKNOWN_ADDR_OUT <= '1';
@@ -357,9 +365,12 @@ begin
           memwren      <= '0';
           state        <= loadpix;
           if(delcounter = "00000100") then   -- write event header
+            memdata <= sensor_id;
+            memwren <= '1';
+          elsif(delcounter = "0000011") then   -- write event header
             memdata <= "11111010101111101010101110111010";     --0xFABEABBA
             memwren <= '1';
-          elsif(delcounter = "00000011") then  -- write event counter
+          elsif(delcounter = "00000010") then  -- write event counter
             memdata <= std_logic_vector(eventcounter);
             memwren <= '1';
           end if;
@@ -444,33 +455,35 @@ begin
           ro_busy_int  <= '1';
           testoutro(6) <= '1';
           state        <= hitgenerator;
+          delcounter   <= delcounter - 1;
           if(delcounter = "00000100") then   -- write event header
             state                   <= hitgenerator;
-            memdata                 <= "11111010101111101010101110111010";  --0xFABEABBA
+            memdata                 <= sensor_id;
             memwren                 <= '1';
             ngeneratehitscounter    <= unsigned(ngeneratehits);
             generatehitswaitcounter <= unsigned(generatehitswait);
             gen_hit_col             <= (others => '0');
             gen_hit_row             <= (others => '0');
             gen_hit_time            <= (others => '0');
-            delcounter              <= delcounter - 1;
             endofevent              <= '0';
-          elsif(delcounter = "00000011") then    -- write event counter
+          elsif(delcounter = "00000011") then   -- write event header
+            state                   <= hitgenerator;
+            memdata                 <= "11111010101111101010101110111010";  --0xFABEABBA
+            memwren                 <= '1';
+            endofevent              <= '0';
+          elsif(delcounter = "00000010") then    -- write event counter
             state      <= hitgenerator;
             memdata    <= std_logic_vector(eventcounter);
             memwren    <= '1';
-            delcounter <= delcounter - 1;
             endofevent <= '0';
           elsif(delcounter = "00000010") then
             state      <= hitgenerator;
             memwren    <= '0';
-            delcounter <= delcounter - 1;
             endofevent <= '0';
           elsif(delcounter = "00000001") then    -- write trigger number
             state      <= hitgenerator;
             memdata    <= (others => '0');  --empty trigger number
             memwren    <= '1';
-            delcounter <= delcounter - 1;
             endofevent <= '0';
           elsif(delcounter = "00000000" and ngeneratehitscounter > "0000000000000000") then
             state                <= hitgenerator;

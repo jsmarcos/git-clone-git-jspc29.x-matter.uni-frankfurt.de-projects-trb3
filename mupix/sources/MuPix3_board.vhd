@@ -146,7 +146,7 @@ begin  -- Behavioral
           others => x"0000"),
 
       PORT_ADDR_MASK
-                 => (0 => 4,            -- MuPix Interface Control
+                 => (0 => 6,            -- MuPix Interface Control
           1      => 4,                  -- Sensorboard DACs
           2      => 4,                  -- Injection Control
           3      => 4,                  -- MuPix DACs
