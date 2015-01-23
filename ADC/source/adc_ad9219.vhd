@@ -248,7 +248,7 @@ gen_chips : for i in 0 to NUM_DEVICES-1 generate
 
   proc_debug : process begin
     wait until rising_edge(CLK);
-    DEBUG(i*32+31 downto i*32+4) <= counter(i);
+    DEBUG(i*32+31 downto i*32+4) <= std_logic_vector(counter(i));
     case state_q(i) is
       when S1 =>     DEBUG(i*32+3 downto  i*32+0) <= x"1";
       when S2 =>     DEBUG(i*32+3 downto  i*32+0) <= x"2";

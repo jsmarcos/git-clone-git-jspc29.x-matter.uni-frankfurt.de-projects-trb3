@@ -29,20 +29,21 @@ package config is
     constant USE_125_MHZ : integer range c_NO to c_YES := c_NO;    
 
 --Run external 200 MHz clock source
-    constant USE_EXTERNAL_CLOCK : integer range c_NO to c_YES := c_NO;    
+    constant USE_EXTERNAL_CLOCK : integer range c_NO to c_YES := c_YES;    
        
 --Which external trigger module (ETM) to use?
     constant INCLUDE_ETM : integer range c_NO to c_YES := c_YES;
     type ETM_CHOICE_type is (ETM_CHOICE_MBS_VULOM, ETM_CHOICE_MAINZ_A2, ETM_CHOICE_CBMNET);
-    constant ETM_CHOICE : ETM_CHOICE_type := ETM_CHOICE_MAINZ_A2;
-    
+    constant ETM_CHOICE : ETM_CHOICE_type := ETM_CHOICE_MBS_VULOM;
+   
     constant ETM_ID : std_logic_vector(7 downto 0);
-    
-    constant TRIGGER_COIN_COUNT   : integer := 4;
-    constant TRIGGER_PULSER_COUNT : integer := 2;
+
+
+    constant TRIGGER_COIN_COUNT   : integer := 0;
+    constant TRIGGER_PULSER_COUNT : integer := 4;
     constant TRIGGER_RAND_PULSER  : integer := 1;
-    constant TRIGGER_ADDON_COUNT  : integer := 6;
-    constant PERIPH_TRIGGER_COUNT : integer := 2;    
+    constant TRIGGER_ADDON_COUNT  : integer := 10;
+    constant PERIPH_TRIGGER_COUNT : integer := 0;
     
 ------------------------------------------------------------------------------
 --End of configuration

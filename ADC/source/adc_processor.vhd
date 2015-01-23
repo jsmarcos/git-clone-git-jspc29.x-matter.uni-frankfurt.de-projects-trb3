@@ -21,7 +21,12 @@ entity adc_processor is
     
     CONTROL    : in  std_logic_vector(63 downto 0);
     CONFIG     : in  cfg_t;
-   
+
+    PSA_DATA     : in  std_logic_vector(8 downto 0);
+    PSA_DATA_OUT : out std_logic_vector(8 downto 0);
+    PSA_WRITE    : in  std_logic;
+    PSA_ADDR     : in  std_logic_vector(7 downto 0);    
+    
     DEBUG_BUFFER_READ : in  std_logic;
     DEBUG_BUFFER_ADDR : in  std_logic_vector(4 downto 0);
     DEBUG_BUFFER_DATA : out std_logic_vector(31 downto 0);
@@ -45,6 +50,7 @@ type ram_t          is array (0 to 1023)       of unsigned(17 downto 0);
 type ram_arr_t      is array (0 to 3)          of ram_t;
 type arr_values_t   is array (0 to CHANNELS-1) of unsigned(15 downto 0);
 type arr_CHAN_RES_t is array (0 to CHANNELS-1) of unsigned(31 downto 0);
+type psa_ram_t      is array (0 to 256)        of std_logic_vector(8 downto 0);
 
 signal ram               : ram_arr_t := (others => (others => (others => '0')));
 attribute syn_ramstyle of ram     : signal is "block_ram";
@@ -68,6 +74,8 @@ signal reg_buffer_addr   : std_logic_vector(4 downto 0);
 signal reg_buffer_read   : std_logic;
 signal last_ramread      : std_logic := '0';
 signal ram_valid         : std_logic := '0';
+signal ram_rd_move       : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
+signal ram_rd_move_value : unsigned(9 downto 0) := (others => '0');
 
 signal CONF              : cfg_t;
 attribute syn_keep     of CONF : signal is true;
@@ -95,7 +103,7 @@ signal readout_flag      : std_logic_vector(CHANNELS-1 downto 0) := (others => '
 
 signal after_trg_cnt     : unsigned(11 downto 0) := (others => '1');
 
-type state_t is (IDLE, DO_RELEASE, RELEASE_DIRECT, WAIT_FOR_END, CHECK_STATUS_TRIGGER, START, SEND_STATUS, READOUT);
+type state_t is (IDLE, DO_RELEASE, RELEASE_DIRECT, WAIT_FOR_END, CHECK_STATUS_TRIGGER, START, SEND_STATUS, READOUT, PSA_READOUT);
 signal state : state_t;
 signal statebits : std_logic_vector(7 downto 0);
 signal word_counter : unsigned(7 downto 0);
@@ -104,10 +112,30 @@ type rdo_state_t is (RDO_IDLE, READ_CHANNEL, NEXT_BLOCK, NEXT_CHANNEL, RDO_DONE,
 signal readout_state : rdo_state_t;
 signal rdostatebits  : std_logic_vector(3 downto 0);
 signal readout_finished : std_logic := '0';
+signal readout_psa_finished : std_logic := '0';
 signal channelselect, last_channelselect, channelselect_valid    : integer range 0 to 3 := 0;
 signal prepare_header, last_prepare_header, prepare_header_valid : std_logic := '0';
 signal blockcurrent, last_blockcurrent                           : integer range 0 to 3 := 0;
 signal myavg : unsigned(7 downto 0);
+signal ram_read_rdo        : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
+
+signal psa_data_i   : std_logic_vector(8 downto 0);
+signal psa_write_i  : std_logic;
+signal psa_addr_i   : std_logic_vector(7 downto 0);    
+signal psa_ram      : psa_ram_t := (others => (others => '0'));
+signal psa_ram_out, psa_ram_out_t  : std_logic_vector(8 downto 0);
+signal psa_ram_out_ti : std_logic_vector(8 downto 0);
+signal psa_output   : std_logic_vector(40 downto 0);
+signal psa_clear    : std_logic;
+signal psa_enable   : std_logic;
+signal psa_pointer  : integer range 0 to 256 := 0;
+signal ram_read_psa : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
+type psa_state_t is (PSA_IDLE, PSA_START_CHANNEL, PSA_WAIT_RAM, PSA_WAIT_RAM2, PSA_CALC, PSA_WAITWRITE, PSA_WAITWRITE2, PSA_DOWRITE, PSA_FINISH, PSA_WAIT_AFTER);
+signal psa_state    : psa_state_t := PSA_IDLE;
+signal psa_adcdata  : std_logic_vector(15 downto 0);
+signal RDO_write_psa : std_logic := '0';
+signal RDO_data_psa  : std_logic_vector(31 downto 0) := (others => '0');
+
 
 signal invalid_word_count : arr_CHAN_RES_t := (others => (others => '0'));
 
@@ -138,8 +166,7 @@ begin
         when "01" => DEBUG_BUFFER_DATA(15 downto 0)  <= std_logic_vector(baseline(c)); 
         when "10" => DEBUG_BUFFER_DATA(17 downto 0)  <= std_logic_vector(reg_ram_data_out(to_integer(unsigned(reg_buffer_addr(1 downto 0)))));
                      ram_debug_read(to_integer(unsigned(reg_buffer_addr(1 downto 0)))) <= '1';
-        when "11" => 
-          DEBUG_BUFFER_DATA  <= std_logic_vector(invalid_word_count(c));
+        when "11" => DEBUG_BUFFER_DATA  <= std_logic_vector(invalid_word_count(c));
         when others => null;  
       end case;
     else
@@ -316,6 +343,8 @@ gen_buffer_reader : for i in 0 to CHANNELS-1 generate
       ram_rd_pointer(i)  <= ram_rd_pointer(i) + 1;
     elsif ram_remove = '1' then
       ram_rd_pointer(i)  <= ram_rd_pointer(i) + 1;
+    elsif ram_rd_move(i) = '1' then
+      ram_rd_pointer(i) <= ram_rd_pointer(i) - ram_rd_move_value;
     end if;
     
   end process;  
@@ -397,6 +426,40 @@ end generate;
 
 
 -------------------------------------------------------------------------------
+-- Memory for PSA coefficients
+-------------------------------------------------------------------------------
+psa_write_i <= PSA_WRITE when rising_edge(CLK);
+psa_addr_i  <= PSA_ADDR  when rising_edge(CLK);
+psa_data_i  <= PSA_DATA  when rising_edge(CLK);
+PSA_DATA_OUT<= psa_ram_out_ti when rising_edge(CLK);
+psa_ram_out <= psa_ram_out_t  when rising_edge(CLK);
+
+THE_PSA_MEMORY: process begin
+  wait until rising_edge(CLK);
+  if psa_write_i = '1' then
+    psa_ram(to_integer(unsigned('0' & psa_addr_i))) <= psa_data_i;
+  end if; 
+  psa_ram_out_ti     <= psa_ram(to_integer(unsigned('0' & psa_addr_i)));
+  psa_ram_out_t      <= psa_ram(psa_pointer);
+end process;  
+
+-------------------------------------------------------------------------------
+-- Multiply Accumulate for PSA
+-------------------------------------------------------------------------------
+THE_MULACC : entity work.mulacc2
+  port map(
+    CLK0 => CLK,
+    CE0  => psa_enable,
+    RST0 => psa_clear, 
+    ACCUMSLOAD => '0',
+    A => psa_ram_out,
+    B => psa_adcdata,
+    LD => (others => '0'),
+    OVERFLOW => open, 
+    ACCUM => psa_output
+    );
+
+-------------------------------------------------------------------------------
 -- Readout State Machine
 -------------------------------------------------------------------------------
 proc_readout : process 
@@ -447,12 +510,19 @@ begin
       end if;  
       
     when START =>
-      if stop_writing_rdo = '1' then
+      if stop_writing_rdo = '1' and CONF.processing_mode = 0 then
         state <= READOUT;
+      elsif stop_writing_rdo = '1' and CONF.processing_mode = 1 then 
+        state <= PSA_READOUT;
       end if;
     
     when READOUT =>
       if readout_finished  = '1' then
+        state <= RELEASE_DIRECT;
+      end if;
+
+    when PSA_READOUT =>
+      if readout_psa_finished  = '1' then
         state <= RELEASE_DIRECT;
       end if;
       
@@ -525,7 +595,7 @@ PROC_RDO_FSM : process
 begin
   wait until rising_edge(CLK);
   readout_finished <= '0';
-  ram_read         <= (others => '0');
+  ram_read_rdo     <= (others => '0');
   prepare_header   <= '0';
   
   case readout_state is
@@ -539,7 +609,7 @@ begin
       end if;
     
     when READ_CHANNEL =>
-      ram_read(channelselect) <= '1';
+      ram_read_rdo(channelselect) <= '1';
       if readcount = 1 or ram_count(channelselect) = 1 then
         if blockcurrent < to_integer(CONF.block_count)-1 then
           readout_state <= NEXT_BLOCK;
@@ -576,8 +646,6 @@ begin
       readout_state    <= RDO_IDLE;
       
   end case;  
-    
-
 end process;
 
 last_ramread         <= ram_read(channelselect) when rising_edge(CLK);
@@ -600,7 +668,7 @@ begin
     cnt := 0;
   end if;  
   
-  if ram_valid = '1' then
+  if ram_valid = '1' and readout_state /= RDO_IDLE then
     if cnt = 0 then
       RDO_data_proc(15 downto  0) <= std_logic_vector(reg_ram_data_out(channelselect_valid)(15 downto 0));
       RDO_data_proc(19 downto 16) <= std_logic_vector(to_unsigned(channelselect_valid,4));
@@ -616,13 +684,117 @@ begin
       cnt := cnt + 1;
     end if;
   end if;  
+
+  if readout_state = RDO_IDLE then
+    RDO_data_proc <= (others => '0');
+    RDO_write_proc <= '0';
+  end if;  
   
 end process;
 
 
+-------------------------------------------------------------------------------
+-- Data Reading State Machine
+-------------------------------------------------------------------------------
+PROC_PULSE_SHAPE_READOUT : process 
+  variable wordcount : integer range 0 to 256 := 0;
+  variable readcount : integer range 0 to 255 := 0;
+  variable channel   : integer range 0 to CHANNELS-1 := 0;
+  variable time_cnt   : integer range 0 to 5 := 0;
+begin
+  wait until rising_edge(CLK);
+  ram_read_psa         <= (others => '0');
+  ram_rd_move          <= (others => '0');
+  readout_psa_finished <= '0';
+  psa_adcdata          <= std_logic_vector(reg_ram_data_out(channel)(15 downto 0));
+  psa_clear            <= '0';
+  psa_enable           <= '1';
+  RDO_write_psa        <= '0';
+  case psa_state is
+    when PSA_IDLE =>
+      channel        := 0;
+      readcount      := to_integer(CONF.block_avg(0));
+      wordcount      := to_integer(CONF.block_sums(0));
+      psa_pointer    <= 256;
+      psa_clear      <= '1';
+      if state = PSA_READOUT then
+        psa_state      <= PSA_START_CHANNEL;
+      end if;
+    when PSA_START_CHANNEL =>
+      ram_read_psa(channel) <= '1';
+      readcount   := readcount - 1;
+      psa_clear   <= '1';
+      psa_state   <= PSA_WAIT_RAM;
+    when PSA_WAIT_RAM =>
+      ram_read_psa(channel) <= '1';
+      readcount   := readcount - 1;
+      psa_clear   <= '1';
+      psa_state   <= PSA_WAIT_RAM2;
+    when PSA_WAIT_RAM2 =>
+      ram_read_psa(channel) <= '1';
+      psa_pointer <= 0;
+      psa_clear   <= '1';
+      psa_state   <= PSA_CALC;
+    when PSA_CALC =>
+      if readcount = 1 then
+        psa_pointer <= psa_pointer + 1;
+        psa_state   <= PSA_WAITWRITE;
+      else
+        ram_read_psa(channel) <= '1';
+        psa_pointer <= psa_pointer + 1;
+        readcount   := readcount - 1;    
+      end if;
+    when PSA_WAITWRITE   =>
+      time_cnt    := 4;
+      psa_pointer <= psa_pointer + 1;
+      psa_state   <= PSA_WAITWRITE2;
+    
+    when PSA_WAITWRITE2 =>
+      psa_pointer <= 256;
+      time_cnt    := time_cnt -1;
+      if time_cnt = 0 then
+        psa_state <= PSA_DOWRITE;
+      end if;  
+    when PSA_DOWRITE =>
+      RDO_write_psa <= '1';
+      RDO_data_psa(15 downto  0) <= psa_output(to_integer(CONF.block_scale(0))+15 downto to_integer(CONF.block_scale(0)));
+      RDO_data_psa(19 downto 16) <= std_logic_vector(to_unsigned(channel,4));
+      RDO_data_psa(23 downto 20) <= std_logic_vector(to_unsigned(DEVICE,4)); 
+      RDO_data_psa(27 downto 24) <= x"0";
+      RDO_data_psa(31 downto 28) <= x"3";
+      if wordcount > 1 then
+        wordcount := wordcount - 1;
+        readcount := to_integer(CONF.block_avg(0));
+        psa_state <= PSA_START_CHANNEL;
+        ram_rd_move(channel) <= '1';
+        ram_rd_move_value <= ("00" & CONF.block_avg(0)) - 1;
+      elsif channel < 3 then
+        channel   := channel + 1;
+        readcount := to_integer(CONF.block_avg(0));
+        wordcount := to_integer(CONF.block_sums(0));
+        psa_state <= PSA_START_CHANNEL;
+      else
+        psa_state <= PSA_FINISH;
+      end if;
+      
+    when PSA_FINISH =>
+      readout_psa_finished <= '1';
+      psa_state            <= PSA_WAIT_AFTER;
+      
+    when PSA_WAIT_AFTER =>
+      psa_state    <= PSA_IDLE;
+      
+  
+  end case;
+end process;
 
-READOUT_TX.data_write <= RDO_write_main or RDO_write_proc when rising_edge(CLK);
-READOUT_TX.data       <= RDO_data_main  or RDO_data_proc  when rising_edge(CLK);
+-------------------------------------------------------------------------------
+-- Data Output
+-------------------------------------------------------------------------------
+
+ram_read <= ram_read_rdo or ram_read_psa;
+READOUT_TX.data_write <= RDO_write_main or RDO_write_proc or RDO_write_psa when rising_edge(CLK);
+READOUT_TX.data       <= RDO_data_main  or RDO_data_proc  or RDO_data_psa  when rising_edge(CLK);
 
 
 

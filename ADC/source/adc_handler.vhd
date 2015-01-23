@@ -36,6 +36,8 @@ attribute syn_preserve : boolean;
 attribute syn_hier     : string;
 attribute syn_hier of adc_handler_arch : architecture is "hard";
 
+type psa_data_t is array(0 to DEVICES-1) of std_logic_vector(8 downto 0);
+
 signal adc_data_out  : std_logic_vector(DEVICES*CHANNELS*RESOLUTION-1 downto 0);
 signal adc_fco_out   : std_logic_vector(DEVICES*RESOLUTION-1 downto 0);
 signal adc_valid_out : std_logic_vector(DEVICES-1 downto 0);
@@ -64,13 +66,17 @@ signal buffer_read     : std_logic_vector(15 downto 0);
 signal buffer_ready    : std_logic_vector(DEVICES-1 downto 0);
 signal buffer_device   : integer range 0 to DEVICES-1;
 
+signal psa_data        : std_logic_vector(8 downto 0);
+signal psa_data_out    : psa_data_t;
+signal psa_write       : std_logic;
+signal psa_addr        : std_logic_vector(7 downto 0);
+
 type arr_4_32_t is array (0 to 3) of unsigned(31 downto 0);
 signal baseline_reset_value : arr_4_32_t := (others => (others => '0'));
 
 -- 000 - 0ff configuration
 --       000 reset, buffer clear strobes
 --       001 buffer control reg
---       002 - 003 trigger generation channel enable
 --       010 buffer depth  (1-1023)
 --       011 number of samples after trigger arrived (0-1023 * 25ns)
 --       012 number of blocks to process (1-4)
@@ -78,6 +84,10 @@ signal baseline_reset_value : arr_4_32_t := (others => (others => '0'));
 --       014 read-out threshold (0-1023 from baseline, polarity)
 --       015 number of values to sum before storing
 --       016 baseline averaging (2**N)
+--       017 - 018 trigger generation channel enable
+--       019 check words
+--       01a - 01b channel disable
+--       01c processing mode: 0: normal block mode, 1: pulse shape processing
 --       020 - 023 number of values to sum  (1-255)
 --       024 - 027 number of sums           (1-255)
 --       028 - 02b 2^k scaling factor       (0-8)
@@ -87,9 +97,11 @@ signal baseline_reset_value : arr_4_32_t := (others => (others => '0'));
 --       100 clock valid (1 bit per ADC)
 --       101 fco valid (1 bit per ADC)
 --       102 readout state
+-- 200 - 2ff pulse shape multiplicators
 -- 800 - 83f last ADC values              (local 0x0 - 0x3)
 -- 840 - 87f long-term average / baseline (local 0x4 - 0x7)
 -- 880 - 8bf fifo access (debugging only) (local 0x8 - 0xb)
+-- 8c0 - 8ff invalid word count           (local 0xc - 0xf)
 -- 900 - 9ff processor registers          (local 0x10 - 0x1f)
 
 
@@ -192,6 +204,11 @@ gen_processors : for i in 0 to DEVICES-1 generate
       CONTROL(63 downto 32) => buffer_ctrl_reg,
       CONFIG             => config,  --trigger offset, zero sup offset, depth, 
       
+      PSA_DATA           => psa_data,
+      PSA_DATA_OUT       => psa_data_out(i),
+      PSA_ADDR           => psa_addr,
+      PSA_WRITE          => psa_write,
+      
       DEBUG_BUFFER_ADDR  => buffer_addr,
       DEBUG_BUFFER_READ  => buffer_read(i),
       DEBUG_BUFFER_DATA  => buffer_data(i),
@@ -217,6 +234,7 @@ PROC_BUS : process begin
   BUS_TX.unknown <= '0';
   buffer_read    <= (others => '0');
   strobe_reg     <= (others => '0');
+  psa_write      <= '0';
   if or_all(buffer_ready) = '1' then
      BUS_TX.data <= buffer_data(buffer_device);
      BUS_TX.ack  <= '1';
@@ -248,6 +266,7 @@ PROC_BUS : process begin
                        BUS_TX.data(31)                        <= config.check_word_enable;
         when x"1a" =>  BUS_TX.data(31 downto 0) <=  config.channel_disable(31 downto  0);
         when x"1b" =>  BUS_TX.data(15 downto 0) <=  config.channel_disable(47 downto 32);
+        when x"1c" =>  BUS_TX.data(1 downto 0) <= std_logic_vector(to_unsigned(config.processing_mode,2));
         when others => BUS_TX.ack <= '0'; BUS_TX.unknown <= '1';
       end case;
     elsif BUS_RX.addr >= x"0020" and BUS_RX.addr <= x"002f" then      
@@ -296,8 +315,9 @@ PROC_BUS : process begin
         when x"19" =>   config.check_word1        <= BUS_RX.data(RESOLUTION-1 downto 0);
                         config.check_word2        <= BUS_RX.data(RESOLUTION-1+16 downto 16);
                         config.check_word_enable  <= BUS_RX.data(31);
-        when x"1a" =>  config.channel_disable(31 downto  0) <=  BUS_RX.data(31 downto 0);
-        when x"1b" =>  config.channel_disable(47 downto 32) <=  BUS_RX.data(15 downto 0);
+        when x"1a" =>   config.channel_disable(31 downto  0) <=  BUS_RX.data(31 downto 0);
+        when x"1b" =>   config.channel_disable(47 downto 32) <=  BUS_RX.data(15 downto 0);
+        when x"1c" =>   config.processing_mode <= to_integer(unsigned(BUS_RX.data(1 downto 0)));
         when others => BUS_TX.ack <= '0'; BUS_TX.unknown <= '1';        
       end case;
     elsif BUS_RX.addr >= x"0020" and BUS_RX.addr <= x"002f" then      
@@ -319,6 +339,11 @@ PROC_BUS : process begin
     elsif BUS_RX.addr = x"0080" then
       ctrl_reg    <= BUS_RX.data;
       BUS_TX.ack  <= '1';      
+    elsif BUS_RX.addr >= x"0200" and BUS_RX.addr <= x"02FF" then
+      psa_data    <= BUS_RX.data(8 downto 0);
+      psa_write   <=  '1';
+      psa_addr    <= BUS_RX.addr(7 downto 0);
+      BUS_TX.ack  <= '1';
     else
       BUS_TX.unknown <= '1';
     end if;  

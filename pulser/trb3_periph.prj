@@ -12,7 +12,7 @@ set_option -part_companion ""
 # compilation/mapping options
 set_option -default_enum_encoding sequential
 set_option -symbolic_fsm_compiler 1
-set_option -top_module "trb3_periph_adc"
+set_option -top_module "trb3_periph"
 set_option -resource_sharing true
 
 # map options
@@ -37,7 +37,7 @@ set_option -write_apr_constraint 0
 
 # set result format/file last
 project -result_format "edif"
-project -result_file "workdir/trb3_periph_adc.edf"
+project -result_file "workdir/trb3_periph.edf"
 
 #implementation attributes
 
@@ -148,13 +148,6 @@ add_file -vhdl -lib "work" "../base/cores/dqsinput_5x5.vhd"
 add_file -vhdl -lib "work" "../base/cores/fifo_cdt_200_50.vhd"
 add_file -vhdl -lib "work" "../base/code/sedcheck.vhd"
 
+add_file -vhdl -lib "work" "pulserddrecp3.vhd"
+add_file -vhdl -lib "work" "trb3_periph.vhd"
 
-add_file -vhdl -lib "work" "cores/mulacc2.vhd"
-add_file -vhdl -lib "work" "source/adc_package.vhd"
-add_file -vhdl -lib "work" "source/adc_processor.vhd"
-add_file -vhdl -lib "work" "source/adc_ad9219.vhd"
-add_file -vhdl -lib "work" "source/adc_handler.vhd"
-add_file -vhdl -lib "work" "source/adc_slowcontrol_data_buffer.vhd"
-
-add_file -vhdl -lib "work" "trb3_periph_adc.vhd"
-add_file -constraint "trb3_periph_adc.sdc"

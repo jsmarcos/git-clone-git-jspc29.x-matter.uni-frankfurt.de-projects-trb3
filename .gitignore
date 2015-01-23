@@ -32,3 +32,4 @@ modelsim.ini
 work
 *.wlf
 *stacktrace.txt
+*edn

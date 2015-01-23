@@ -8,9 +8,9 @@ use work.trb_net_components.all;
 use work.trb3_components.all;
 use work.config.all;
 use work.version.all;
-use work.adc_package.all;
 
-entity trb3_periph_adc is
+
+entity trb3_periph is
   port(
     --Clocks
     CLK_GPLL_LEFT        : in    std_logic;  --Clock Manager 1/(2468), 125 MHz
@@ -31,38 +31,7 @@ entity trb3_periph_adc is
     FPGA5_COMM           : inout std_logic_vector(11 downto 0);
                                         --Bit 0/1 input, serial link RX active
                                         --Bit 2/3 output, serial link TX active
-
-    --Connection to AddOn               
-    ADC1_CH              : in std_logic_vector(4 downto 0);
-    ADC2_CH              : in std_logic_vector(4 downto 0);
-    ADC3_CH              : in std_logic_vector(4 downto 0);
-    ADC4_CH              : in std_logic_vector(4 downto 0);
-    ADC5_CH              : in std_logic_vector(4 downto 0);
-    ADC6_CH              : in std_logic_vector(4 downto 0);
-    ADC7_CH              : in std_logic_vector(4 downto 0);
-    ADC8_CH              : in std_logic_vector(4 downto 0);
-    ADC9_CH              : in std_logic_vector(4 downto 0);
-    ADC10_CH             : in std_logic_vector(4 downto 0);
-    ADC11_CH             : in std_logic_vector(4 downto 0);
-    ADC12_CH             : in std_logic_vector(4 downto 0);
-    ADC_DCO              : in std_logic_vector(12 downto 1);
-
-    SPI_ADC_SCK          : out std_logic;
-    SPI_ADC_SDIO         : inout std_logic;
-    
-    LMK_CLK              : out std_logic;
-    LMK_DATA             : out std_logic;
-    LMK_LE_1             : out std_logic;
-    LMK_LE_2             : out std_logic;
-    
-    P_CLOCK              : out std_logic;
-    POWER_ENABLE         : out std_logic;
-    
-    FPGA_CS              : out std_logic_vector(1 downto 0);
-    FPGA_SCK             : out std_logic_vector(1 downto 0);
-    FPGA_SDI             : out std_logic_vector(1 downto 0);
-    FPGA_SDO             : in  std_logic_vector(1 downto 0);
-    
+    OUTP                 : out std_logic_vector(4 downto 0);
     --Flash ROM & Reboot
     FLASH_CLK  : out   std_logic;
     FLASH_CS   : out   std_logic;
@@ -104,7 +73,7 @@ entity trb3_periph_adc is
 end entity;
 
 
-architecture trb3_periph_adc_arch of trb3_periph_adc is
+architecture trb3_periph_arch of trb3_periph is
 
   attribute syn_keep     : boolean;
   attribute syn_preserve : boolean;
@@ -148,23 +117,38 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   signal time_since_last_trg : std_logic_vector(31 downto 0);
   signal timer_ticks         : std_logic_vector(1 downto 0);
 
-  --SPI to MachXO FPGA (and LMK01010, and ADC SPI) 
-  signal spi_cs                    : std_logic_vector(15 downto 0);
-  signal spi_sdi, spi_sdo, spi_sck : std_logic;
-  signal adcspi_ctrl               : std_logic_vector(7 downto 0);
 
-  signal regio_rx, busadc_rx, busspi_rx, busmem_rx, bussed_rx : CTRLBUS_RX;
-  signal regio_tx, busadc_tx, busspi_tx, busmem_tx, bussed_tx : CTRLBUS_TX;
+  signal regio_rx, buspulse_rx, busspi_rx, busmem_rx, bussed_rx : CTRLBUS_RX;
+  signal regio_tx, buspulse_tx, busspi_tx, busmem_tx, bussed_tx : CTRLBUS_TX;
   signal readout_rx : READOUT_RX;
-  signal readout_tx : readout_tx_array_t(0 to 11);
+  signal readout_tx : READOUT_TX;
   
-  signal fee_data_finished_in : std_logic_vector(DEVICES-1 downto 0);
-  signal fee_data_write_in    : std_logic_vector(DEVICES-1 downto 0);
-  signal fee_trg_release_in   : std_logic_vector(DEVICES-1 downto 0);
-  signal fee_data_in           : std_logic_vector(32*DEVICES-1 downto 0);
-  signal fee_trg_statusbits_in : std_logic_vector(32*DEVICES-1 downto 0);
+  signal fee_data_finished_in : std_logic_vector(0 downto 0);
+  signal fee_data_write_in    : std_logic_vector(0 downto 0);
+  signal fee_trg_release_in   : std_logic_vector(0 downto 0);
+  signal fee_data_in           : std_logic_vector(31 downto 0);
+  signal fee_trg_statusbits_in : std_logic_vector(31 downto 0);
   
   signal sed_debug : std_logic_vector(31 downto 0);
+  
+  signal din_i       : std_logic_vector(3 downto 0);
+  signal timer       : unsigned(7 downto 0) := (others => '0'); 
+  signal tristate_i  : std_logic_vector(4 downto 0);
+  
+  
+  component pulserddrecp3 is
+    port (
+        clk: in  std_logic; 
+        clkout: out  std_logic; 
+        pll_lock: out  std_logic; 
+        pll_reset: in  std_logic; 
+        reset: in  std_logic; 
+        sclk: out  std_logic; 
+        tristate: in  std_logic_vector(4 downto 0); 
+        din: in  std_logic_vector(3 downto 0); 
+        q: out  std_logic_vector(4 downto 0)
+        );
+  end component;
   
 begin
 ---------------------------------------------------------------------------
@@ -196,10 +180,10 @@ begin
 ---------------------------------------------------------------------------
   THE_MAIN_PLL : pll_in200_out100
     port map(
-      CLK   => CLK_PCLK_RIGHT,
+      CLK   => clk_200_i,
       RESET => '0',
       CLKOP => clk_100_i,
-      CLKOK => clk_200_i,
+      CLKOK => open,
       LOCK  => pll_lock
       );
 
@@ -269,7 +253,7 @@ begin
       CLOCK_FREQUENCY           => CLOCK_FREQUENCY,
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
-      DATA_INTERFACE_NUMBER     => 12,
+      DATA_INTERFACE_NUMBER     => 1,
       DATA_BUFFER_DEPTH         => 10,
       DATA_BUFFER_WIDTH         => 32,
       DATA_BUFFER_FULL_THRESH   => 2**10-511,
@@ -343,103 +327,62 @@ begin
       TIME_LOCAL_OUT          => local_time,
       TIME_SINCE_LAST_TRG_OUT => time_since_last_trg,
       TIME_TICKS_OUT          => timer_ticks
--- 
---       STAT_DEBUG_IPU              => open,
---       STAT_DEBUG_1                => open,
---       STAT_DEBUG_2                => open,
---       STAT_DEBUG_DATA_HANDLER_OUT => open,
---       STAT_DEBUG_IPU_HANDLER_OUT  => open,
---       STAT_TRIGGER_OUT            => open,
---       CTRL_MPLEX                  => (others => '0'),
---       IOBUF_CTRL_GEN              => (others => '0'),
---       STAT_ONEWIRE                => open,
---       STAT_ADDR_DEBUG             => open,
---       DEBUG_LVL1_HANDLER_OUT      => open
+
       );
 
   timing_trg_received_i <= TRIGGER_LEFT;  --TRIGGER_RIGHT;  --
   common_stat_reg       <= (others => '0');
 
-gen_rdo_tx : for i in 0 to DEVICES-1 generate
-      fee_trg_release_in(i)                      <= readout_tx(i).busy_release;
-      fee_trg_statusbits_in(i*32+31 downto i*32) <= readout_tx(i).statusbits;
-      fee_data_in(i*32+31 downto i*32)           <= readout_tx(i).data;
-      fee_data_write_in(i)                       <= readout_tx(i).data_write;
-      fee_data_finished_in(i)                    <= readout_tx(i).data_finished;
+gen_rdo_tx : for i in 0 to 0 generate
+      fee_trg_release_in(i)                      <= readout_tx.busy_release;
+      fee_trg_statusbits_in(i*32+31 downto i*32) <= readout_tx.statusbits;
+      fee_data_in(i*32+31 downto i*32)           <= readout_tx.data;
+      fee_data_write_in(i)                       <= readout_tx.data_write;
+      fee_data_finished_in(i)                    <= readout_tx.data_finished;
 end generate;
 
+  readout_tx.busy_release <= '1';
+  readout_tx.data_finished<= '1';
+  readout_tx.statusbits <= (others => '0');
+  
+  
 ---------------------------------------------------------------------------
--- AddOn
+-- Pulser
 ---------------------------------------------------------------------------
-gen_reallogic : if USE_DUMMY_READOUT = 0 generate
-  THE_ADC : entity work.adc_handler
-    port map(
-      CLK        => clk_100_i,
-      CLK_ADCRAW => CLK_PCLK_RIGHT,
+ tristate_i <= "00000";
+--just generating some test output
+timer <= timer + 1 when rising_edge(clk_200_i);
+process begin
+  wait until rising_edge(clk_200_i);
+  if    timer = x"01" then   din_i <= x"1";
+  elsif timer = x"02" then   din_i <= x"0";
+  elsif timer = x"03" then   din_i <= x"0";
+  elsif timer = x"80" then   din_i <= x"f";
+  else                       din_i <= x"0";
+  end if;  
+end process;  
 
-      ADCCLK_OUT => P_CLOCK, 
-      ADC_DATA( 4 downto  0)   => ADC1_CH,
-      ADC_DATA( 9 downto  5)   => ADC2_CH,
-      ADC_DATA(14 downto 10)   => ADC3_CH,
-      ADC_DATA(19 downto 15)   => ADC4_CH,
-      ADC_DATA(24 downto 20)   => ADC5_CH,
-      ADC_DATA(29 downto 25)   => ADC6_CH,
-      ADC_DATA(34 downto 30)   => ADC7_CH,
-      ADC_DATA(39 downto 35)   => ADC8_CH,
-      ADC_DATA(44 downto 40)   => ADC9_CH,
-      ADC_DATA(49 downto 45)   => ADC10_CH,
-      ADC_DATA(54 downto 50)   => ADC11_CH,
-      ADC_DATA(59 downto 55)   => ADC12_CH,
-      ADC_DCO     => ADC_DCO,
-      TRIGGER_FLAG_OUT => FPGA5_COMM(7),
-      
-      TRIGGER_IN  => TRIGGER_LEFT,
-      READOUT_RX  => readout_rx,
-      READOUT_TX  => readout_tx,
-      BUS_RX      => busadc_rx,
-      BUS_TX      => busadc_tx,
-      
-      ADCSPI_CTRL => adcspi_ctrl
-      );    
-end generate;
-    
-gen_dummyreadout : if USE_DUMMY_READOUT = 1 generate
-  THE_ADC : entity work.adc_slowcontrol_data_buffer
-    port map(
-      CLK        => clk_100_i,
-      CLK_ADCRAW => CLK_PCLK_RIGHT,
-      
-      ADCCLK_OUT => P_CLOCK,
-      ADC_DATA( 4 downto  0)   => ADC1_CH,
-      ADC_DATA( 9 downto  5)   => ADC2_CH,
-      ADC_DATA(14 downto 10)   => ADC3_CH,
-      ADC_DATA(19 downto 15)   => ADC4_CH,
-      ADC_DATA(24 downto 20)   => ADC5_CH,
-      ADC_DATA(29 downto 25)   => ADC6_CH,
-      ADC_DATA(34 downto 30)   => ADC7_CH,
-      ADC_DATA(39 downto 35)   => ADC8_CH,
-      ADC_DATA(44 downto 40)   => ADC9_CH,
-      ADC_DATA(49 downto 45)   => ADC10_CH,
-      ADC_DATA(54 downto 50)   => ADC11_CH,
-      ADC_DATA(59 downto 55)   => ADC12_CH,
-      ADC_DCO     => ADC_DCO,
-      
-      ADC_CONTROL_OUT => adcspi_ctrl,
-      
-      BUS_RX      => busadc_rx,
-      BUS_TX      => busadc_tx
-      );
-end generate;
 
+  THE_DDR: pulserddrecp3
+    port map(
+        clk    => CLK_PCLK_LEFT,
+        pll_lock => open,
+        pll_reset => '0',
+        reset => '0',
+        sclk  => clk_200_i,
+        tristate => tristate_i,
+        din => din_i,
+        q   => OUTP
+        );
     
 ---------------------------------------------------------------------------
 -- Bus Handler
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : entity work.trb_net16_regio_bus_handler_record
     generic map(
-      PORT_NUMBER      => 4,
-      PORT_ADDRESSES   => (0 => x"d000", 1 => x"d400", 2 => x"a000", 3 => x"d500", others => x"0000"),
-      PORT_ADDR_MASK   => (0 => 9,       1 => 5,       2 => 12,      3 => 2,       others => 0),
+      PORT_NUMBER      => 3,
+      PORT_ADDRESSES   => (0 => x"d000", 1 => x"a000", 2 => x"d500", others => x"0000"),
+      PORT_ADDR_MASK   => (0 => 9,       1 => 8,       2 => 2,       others => 0),
       PORT_MASK_ENABLE => 1
       )
     port map(
@@ -450,13 +393,11 @@ end generate;
       REGIO_TX  => regio_tx,
       
       BUS_RX(0) => busmem_rx, --Flash
-      BUS_RX(1) => busspi_rx, --SPI
-      BUS_RX(2) => busadc_rx, --ADC
-      BUS_RX(3) => bussed_rx,
+      BUS_RX(1) => buspulse_rx, --Pulser
+      BUS_RX(2) => bussed_rx, --SED
       BUS_TX(0) => busmem_tx,
-      BUS_TX(1) => busspi_tx,
-      BUS_TX(2) => busadc_tx,
-      BUS_TX(3) => bussed_tx,
+      BUS_TX(1) => buspulse_tx,
+      BUS_TX(2) => bussed_tx,
       
       STAT_DEBUG => open
       );
@@ -502,67 +443,7 @@ THE_SPI_RELOAD : entity work.spi_flash_and_fpga_reload
       DEBUG     => sed_debug
       );    
     
--------------------------------------------------------------------------------
--- SPI
--------------------------------------------------------------------------------
 
-  FPGA_SPI : spi_ltc2600
-    generic map (
-      BITS       => 32,
-      WAITCYCLES => 15)
-    port map (
-      CLK_IN         => clk_100_i,
-      RESET_IN       => reset_i,
-      -- Slave bus
-      BUS_READ_IN    => busspi_rx.read,
-      BUS_WRITE_IN   => busspi_rx.write,
-      BUS_BUSY_OUT   => busspi_tx.nack,
-      BUS_ACK_OUT    => busspi_tx.ack,
-      BUS_ADDR_IN    => busspi_rx.addr(4 downto 0),
-      BUS_DATA_IN    => busspi_rx.data,
-      BUS_DATA_OUT   => busspi_tx.data,
-      -- SPI connections
-      SPI_CS_OUT  => spi_CS,
-      SPI_SDI_IN  => spi_SDI,
-      SPI_SDO_OUT => spi_SDO,
-      SPI_SCK_OUT => spi_SCK,
-      SPI_CLR_OUT => open
-      );
-
-  -- the bits spi_CS (chip select) determines which SPI device is to be programmed
-  -- it is already inverted, such that spi_CS=0xffff when nothing is to be programmed
-  -- since the CS of the ADCs can only be controlled via the FPGA,
-  -- we multiplex the SDI/O and SCK lines according to CS. This way we can control
-  -- when which SPI device should be addressed via software
-
-  FPGA_CS_mux: process (spi_CS(2 downto 0)) is
-  begin  -- process FPGA_CS_mux
-    case spi_CS(2 downto 0) is
-      when b"110"  =>
-        FPGA_CS <= b"00";
-      when b"101"  =>
-        FPGA_CS <= b"01";
-      when b"011"  =>
-        FPGA_CS <= b"10";        
-      when others =>
-        FPGA_CS <= b"11";
-    end case;
-  end process FPGA_CS_mux;
-  
-  FPGA_SCK(0) <= spi_SCK     when spi_CS(2 downto 0) /= b"111" else '1';
-  FPGA_SDI(0) <= spi_SDO     when spi_CS(2 downto 0) /= b"111" else '0';
-  spi_SDI     <= FPGA_SDO(0) when spi_CS(2 downto 0) /= b"111" else '0';
-  
-  SPI_ADC_SCK         <= spi_SCK when spi_CS(3) = '0' else adcspi_ctrl(4);
-  SPI_ADC_SDIO        <= spi_SDO when spi_CS(3) = '0' else adcspi_ctrl(5);
-  FPGA_SCK(1)         <= '0'     when spi_CS(3) = '0' else adcspi_ctrl(6); --CSB
-  
-  LMK_CLK             <= spi_SCK when spi_CS(5 downto 4) /= b"11" else '1' ;
-  LMK_DATA            <= spi_SDO when spi_CS(5 downto 4) /= b"11" else '0' ;
-  LMK_LE_1            <= spi_CS(4); -- active low
-  LMK_LE_2            <= spi_CS(5); -- active low
-  
-  POWER_ENABLE        <= adcspi_ctrl(0);
 ---------------------------------------------------------------------------
 -- LED
 ---------------------------------------------------------------------------
