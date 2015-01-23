@@ -1,7 +1,15 @@
 Version		Release Date	Release Notes
 -------------------------------------------------------------------------------------
+tdc_v2.1.0	15.12.2014	The ring buffer almost full threshold is made
+				dynamic in order to "mimic" a adjustable ring
+				buffer size.
+
 tdc_v2.0.1	05.12.2014	Calibration-physik trigger switching problem
 				is fixed.
+				With the calibration trigger 50ns pulses are
+				sent to the channels in order to calibrate the
+				ToT measurements in the channels. There are
+				some grass hits around the main peak.
 
 tdc_v2.0	01.12.2014	Double edge detection in a single channel is
 				implemented. 
