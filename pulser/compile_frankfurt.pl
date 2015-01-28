@@ -10,12 +10,12 @@ use strict;
 #Settings for this project
 my $TOPNAME                      = "trb3_periph";  #Name of top-level entity
 
-my $lattice_path                 = '/d/jspc29/lattice/diamond/3.2_x64';
-my $synplify_path                = '/d/jspc29/lattice/synplify/I-2013.09-SP1/';
-my $synplify_path_gsi            = '/opt/synplicity/I-2013.09-SP1';
-my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
-#my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
-my $lm_license_file_for_par      = "1710\@cronos.e12.physik.tu-muenchen.de";
+my $lattice_path                 = '/d/jspc29/lattice/diamond/3.4_x64';
+my $synplify_path                = '/d/jspc29/lattice/synplify/J-2014.09-SP2/';
+# my $synplify_path_gsi            = '/opt/synplicity/I-2013.09-SP1';
+my $lm_license_file_for_synplify = "1702\@hadeb05.gsi.de";#"27000\@lxcad01.gsi.de";
+my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
+# my $lm_license_file_for_par      = "1710\@cronos.e12.physik.tu-muenchen.de";
 ###################################################################################
 
 $ENV{'PAR_DESIGN_NAME'}=$TOPNAME;
@@ -78,8 +78,10 @@ $fh->close;
 system("env| grep LM_");
 my $r = "";
 
+my $c="$lattice_path/bin/lin64/synpwrap -fg -options -batch $TOPNAME.prj";
+#my $c="$synplify_path/bin/synplify_pro -batch $TOPNAME.prj";
 # my $c="$synplify_path/bin/synplify_premier_dp -batch $TOPNAME.prj";
-my $c="ssh -p 59222 jmichel\@cerberus \"cd /home/jmichel/git/trb3/pulser; LM_LICENSE_FILE=27000\@lxcad01.gsi.de $synplify_path_gsi/bin/synplify_premier_dp -batch $TOPNAME.prj\"";
+# my $c="ssh -p 59222 jmichel\@cerberus \"cd /home/jmichel/git/trb3/pulser; LM_LICENSE_FILE=27000\@lxcad01.gsi.de $synplify_path_gsi/bin/synplify_premier_dp -batch $TOPNAME.prj\"";
 
 $r=execute($c, "do_not_exit" );
 
