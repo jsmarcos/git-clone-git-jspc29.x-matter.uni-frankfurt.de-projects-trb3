@@ -354,7 +354,7 @@ end generate;
 timer <= timer + 1 when rising_edge(clk_200_i);
 process begin
   wait until rising_edge(clk_200_i);
-  if    timer = x"01" then   din_i <= x"1";
+  if    timer = x"01" then   din_i <= x"f";
   elsif timer = x"02" then   din_i <= x"0";
   elsif timer = x"03" then   din_i <= x"0";
   elsif timer = x"80" then   din_i <= x"f";
