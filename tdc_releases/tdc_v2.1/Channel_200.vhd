@@ -5,7 +5,7 @@
 -- File       : Channel_200.vhd
 -- Author     : c.ugur@gsi.de
 -- Created    : 2012-08-28
--- Last update: 2014-12-15
+-- Last update: 2015-01-26
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -198,11 +198,11 @@ begin  -- Channel_200
   encoder_start     <= hit_detect_r;
   ENCODER_START_OUT <= encoder_start;
 
-  isReferenceEdge : if REFERENCE = c_YES generate
+  isReferenceEdge : if REFERENCE = c_YES or DOUBLE_EDGE_TYPE = 0 or DOUBLE_EDGE_TYPE = 2 generate
     edge_type <= '1';
   end generate isReferenceEdge;
 
-  isChannelEdge : if REFERENCE = c_NO generate
+  isChannelEdge : if REFERENCE = c_NO and (DOUBLE_EDGE_TYPE = 1 or DOUBLE_EDGE_TYPE = 3) generate
     EdgeTypeCapture : process (CLK_200) is
     begin  -- process EdgeTypeCapture
       if rising_edge(CLK_200) then
