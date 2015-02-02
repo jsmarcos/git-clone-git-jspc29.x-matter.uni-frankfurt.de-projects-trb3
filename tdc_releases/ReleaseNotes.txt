@@ -1,5 +1,16 @@
 Version		Release Date	Release Notes
 -------------------------------------------------------------------------------------
+tdc_v2.1.1	28.01.2015	The dead time of the TDC is decreased to 20ns.
+				Small bug with "Light Mode" is removed.
+				"Data Limit" parameter is removed, as it is
+				not needed due to the dynamic buffer size.
+				Coarse/Epoch counter misallignment bug is
+				fixed.
+				Channel input is blocked until the falling
+				edge information is written in the ring buffer
+				to avoid data mismatch.
+				Ring buffer overwrite bit is implemented.
+
 tdc_v2.1.0	15.12.2014	The ring buffer almost full threshold is made
 				dynamic in order to "mimic" a adjustable ring
 				buffer size.

@@ -6,6 +6,7 @@ use work.trb_net_std.all;
 
 package trb3_components is
 
+  type unsigned_array_31         is array (integer range <>) of unsigned(30 downto 0);
   type unsigned_array_8          is array (integer range <>) of unsigned(7 downto 0);
   type unsigned_array_5          is array (integer range <>) of unsigned(4 downto 0);
 
