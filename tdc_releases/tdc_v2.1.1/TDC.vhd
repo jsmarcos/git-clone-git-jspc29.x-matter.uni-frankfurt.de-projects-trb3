@@ -232,7 +232,7 @@ begin
   trg_win_en             <= CONTROL_REG_IN(1*32+31);
   ch_en                  <= CONTROL_REG_IN(3*32+31 downto 2*32+0);
   -- data_limit          <= unsigned(CONTROL_REG_IN(4*32+7 downto 4*32+0)); -- since flexible threshold it is not needed
-  ring_buffer_full_thres <= CONTROL_REG_IN(5*32+6 downto 5*32+0) when rising_edge(CLK_READOUT);
+  ring_buffer_full_thres <= CONTROL_REG_IN(4*32+6 downto 4*32+0) when rising_edge(CLK_READOUT);
 
 
 -- Reset signals
