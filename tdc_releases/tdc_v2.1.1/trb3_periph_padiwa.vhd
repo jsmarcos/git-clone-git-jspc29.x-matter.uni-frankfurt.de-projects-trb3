@@ -432,9 +432,9 @@ begin
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
       DATA_INTERFACE_NUMBER     => 1,
-      DATA_BUFFER_DEPTH         => 12,
+      DATA_BUFFER_DEPTH         => EVENT_BUFFER_SIZE,
       DATA_BUFFER_WIDTH         => 32,
-      DATA_BUFFER_FULL_THRESH   => 2**12-400,
+      DATA_BUFFER_FULL_THRESH   => 2**EVENT_BUFFER_SIZE-EVENT_MAX_SIZE,
       TRG_RELEASE_AFTER_DATA    => c_YES,
       HEADER_BUFFER_DEPTH       => 9,
       HEADER_BUFFER_FULL_THRESH => 2**9-16

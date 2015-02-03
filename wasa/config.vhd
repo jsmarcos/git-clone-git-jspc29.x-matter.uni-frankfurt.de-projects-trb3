@@ -19,8 +19,11 @@ package config is
   -- 1: same channel,
   -- 2: alternating channels,
   -- 3: same channel with stretcher
-  constant RING_BUFFER_SIZE        : integer range 0 to 7  := 3;  --ring buffer size:  0, 1, 2,  3   --> change names in constraints file
-                                                                  --ring buffer size: 32,64,96,128
+  constant RING_BUFFER_SIZE        : integer range 0 to 7  := 7;  --ring buffer size:  0, 1, 2,  3,  7   --> change names in constraints file
+                                                                  --ring buffer size: 32,64,96,128,dyn
+
+  constant EVENT_BUFFER_SIZE       : integer range 9 to 13 := 13; -- size of the event buffer, 2**N
+  constant EVENT_MAX_SIZE          : integer := 4096;             --maximum event size. Should not exceed EVENT_BUFFER_SIZE/2
 
 --Use only every second input channel (mask slow channels from padiwa amps)
   constant USE_PADIWA_FAST_ONLY : integer := c_NO;
