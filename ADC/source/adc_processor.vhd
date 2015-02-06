@@ -151,7 +151,8 @@ signal cfd_delay_ram         :  cfd_delay_ram_arr_t := (others => (others => (ot
 --attribute syn_ramstyle of cfd_delay_ram : signal is "block_ram";
 
 --signal subtracted    : signed(16 downto 0) := (others => '0');
-signal cfd_integral_sum  : signed(20 downto 0) := (others => '0');
+signal cfd_integral_sum  : signed(18 downto 0) := (others => '0');
+signal cfd_integral_sum_abs  : unsigned(18 downto 0) := (others => '0');
 type cfd_signed19_t is array(CHANNELS-1 downto 0) of signed(18 downto 0);
 type cfd_signed17_t is array(CHANNELS-1 downto 0) of signed(16 downto 0);
 
@@ -922,19 +923,24 @@ begin
       readcount   := readcount + 1;
 			cfd_integral_sum <= cfd_integral_sum + resize(cfd_subtracted(ch), cfd_integral_sum'length);
 			
+						
 			if readcount >= to_integer(CONF.cfd_window) then
-     		cfd_state <= CFD_WRITE_HEADER;	 	   			
+			  cfd_integral_sum_abs <= unsigned(abs(cfd_integral_sum)); 
+			  cfd_state <= CFD_WRITE_HEADER;
      	end if;
     
     when CFD_WRITE_HEADER =>
-      RDO_write_cfd <= '1';
-			RDO_data_cfd(15 downto 0) <= (others => '0'); -- unused
-			RDO_data_cfd(19 downto 16) <= std_logic_vector(to_unsigned(ch,4));
-      RDO_data_cfd(23 downto 20) <= std_logic_vector(to_unsigned(DEVICE,4)); 
-      RDO_data_cfd(27 downto 24) <= x"0"; -- like CFD
-      RDO_data_cfd(31 downto 28) <= x"c"; -- like CFD
-     	cfd_state <= CFD_WRITE_INTEGRAL;
-    
+      if cfd_integral_sum_abs >= CONF.readout_threshold then
+        RDO_write_cfd <= '1';
+			  RDO_data_cfd(15 downto 0) <= (others => '0'); -- unused
+			  RDO_data_cfd(19 downto 16) <= std_logic_vector(to_unsigned(ch,4));
+        RDO_data_cfd(23 downto 20) <= std_logic_vector(to_unsigned(DEVICE,4)); 
+        RDO_data_cfd(27 downto 24) <= x"0"; -- like CFD
+        RDO_data_cfd(31 downto 28) <= x"c"; -- like CFD
+     	  cfd_state <= CFD_WRITE_INTEGRAL;
+      else
+        cfd_state <= CFD_NEXT_CHANNEL;  
+      end if;
     when CFD_WRITE_INTEGRAL =>
     	RDO_write_cfd <= '1';
     	RDO_data_cfd <= std_logic_vector(resize(cfd_integral_sum,RDO_data_cfd'length));
