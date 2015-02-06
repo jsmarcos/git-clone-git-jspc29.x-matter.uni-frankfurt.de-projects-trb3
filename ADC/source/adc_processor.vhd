@@ -150,23 +150,21 @@ type cfd_delay_ram_arr_t          is  array (CHANNELS-1 downto 0) of cfd_delay_r
 signal cfd_delay_ram         :  cfd_delay_ram_arr_t := (others => (others => (others => '0' )));
 --attribute syn_ramstyle of cfd_delay_ram : signal is "block_ram";
 
-signal cfd_readcount           : integer range 0 to 2047 := 0;
-signal cfd_readcount_delay     : integer range 0 to 15 := 0;
-signal cfd_readcount_save       : unsigned(10 downto 0) := (others => '0');
-
 --signal subtracted    : signed(16 downto 0) := (others => '0');
 signal cfd_integral_sum  : signed(20 downto 0) := (others => '0');
-type cfd_t is array(CHANNELS-1 downto 0) of signed(18 downto 0);
-signal cfd_prev      : cfd_t := (others => (others => '0'));
-signal cfd           : cfd_t := (others => (others => '0'));
-signal cfd_prev_save : signed(18 downto 0) := (others => '0');
-signal cfd_save      : signed(18 downto 0) := (others => '0');	
-signal cfd_zerocrossing  : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
+type cfd_signed19_t is array(CHANNELS-1 downto 0) of signed(18 downto 0);
+type cfd_signed17_t is array(CHANNELS-1 downto 0) of signed(18 downto 0);
 
-type cfd_state_t is (CFD_IDLE, CFD_WAIT_AND_INTEGRATE, CFD_FINISH, CFD_WAIT_AFTER, 
+signal cfd_prev      : cfd_signed19_t := (others => (others => '0'));
+signal cfd           : cfd_signed19_t := (others => (others => '0'));
+signal cfd_prev_save : signed(18 downto 0) := (others => '0');
+signal cfd_save      : signed(18 downto 0) := (others => '0');
+signal cfd_zerocrossing  : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
+signal cfd_subtracted    : cfd_signed17_t := (others => (others => '0'));
+
+type cfd_state_t is (CFD_IDLE, CFD_DELAY_AND_INTEGRATE, CFD_FINISH, CFD_WAIT_AFTER, 
 	CFD_START_CHANNEL, CFD_SEARCH_AND_INTEGRATE, CFD_ZEROFOUND_AND_INTEGRATE, 
-	CFD_WRITE_HEADER, CFD_WRITE_INTEGRAL, CFD_WRITE_READCOUNT, CFD_WRITE_ZEROX1, CFD_WRITE_ZEROX2
-);
+	CFD_WRITE_HEADER, CFD_WRITE_INTEGRAL, CFD_WRITE_READCOUNT, CFD_WRITE_ZEROX1, CFD_WRITE_ZEROX2, CFD_WAIT_RAM, CFD_NEXT_CHANNEL, CFD_WAIT_RAM2);
 signal cfd_state : cfd_state_t;
 signal RDO_write_cfd : std_logic := '0';
 signal RDO_data_cfd  : std_logic_vector(31 downto 0) := (others => '0');
@@ -837,83 +835,133 @@ gen_cfd : for ch in 0 to CHANNELS - 1 generate
 cfd_zerocrossing(ch) <= '1' when cfd(ch) < 0 and cfd_prev(ch) >= 0 else '0';
 
 proc_cfd : process
-	variable subtracted : signed(16 downto 0) := (others => '0'); 
 	begin
 		wait until rising_edge(CLK);
 		
 		if reg_ram_data_out(ch)(17) = '1' then
-  	  subtracted := signed(resize(reg_ram_data_out(ch)(15 downto 0), subtracted'length)) 
-  		  	- signed(resize(baseline(ch), subtracted'length));
+  	  cfd_subtracted(ch) <= signed(resize(reg_ram_data_out(ch)(15 downto 0), cfd_subtracted(ch)'length)) 
+  		  	- signed(resize(baseline(ch), cfd_subtracted(ch)'length));
     else
-  	  subtracted := (others => '0');
+  	  cfd_subtracted(ch) <= (others => '0');
     end if;	
 		
-		cfd_delay_ram(ch)(0) <= subtracted;
+		cfd_delay_ram(ch)(0) <= cfd_subtracted(ch);
 		gen_cfd_delay : for i in 0 to cfd_delay_ram(ch)'length-2 loop
 			cfd_delay_ram(ch)(i+1) <= cfd_delay_ram(ch)(i);
 		end loop;
-		cfd(ch) <= resize(subtracted, cfd(ch)'length) - resize(cfd_delay_ram(ch)(2) & "0", cfd(ch)'length);
+		cfd(ch) <= resize(cfd_subtracted(ch), cfd(ch)'length) 
+							 -	resize(cfd_delay_ram(ch)(to_integer(CONF.cfd_delay)) & "0", cfd(ch)'length);
 	
+		cfd_prev(ch) <= cfd(ch); 
 	end process;
 end generate;
 
 PROC_CFD_READOUT : process 
-  variable wordcount : integer range 0 to 256 := 0;
-  variable readcount : integer range 0 to 255 := 0;
-  variable channel   : integer range 0 to CHANNELS-1 := 0;
-  variable time_cnt   : integer range 0 to 5 := 0;
+	variable readcount        : integer range 0 to 255 := 0;
+	variable readcount_zerox  : integer range 0 to 255 := 0;
+  variable delaycount       : integer range 0 to 15 := 0;
+  variable ch               : integer range 0 to CHANNELS-1 := 0;
 begin
-  wait until rising_edge(CLK);
+	wait until rising_edge(CLK);
+	
   readout_cfd_finished <= '0';
   RDO_write_cfd        <= '0';
+  
   case cfd_state is
     when CFD_IDLE =>
-      channel        := 0;
-      readcount      := to_integer(CONF.block_avg(0));
-      wordcount      := to_integer(CONF.block_sums(0));
+      ch        := 0;      
       if state = CFD_READOUT then
         CFD_state      <= CFD_START_CHANNEL;
       end if;
+      
     when CFD_START_CHANNEL =>
-      ram_read_cfd(channel) <= '1';
-      readcount   := readcount - 1;
-      cfd_state   <= CFD_WAIT_AND_INTEGRATE;
+    	cfd_integral_sum <= (others => '0');
+      ram_read_cfd(ch) <= '1';
+      readcount   := 1;
+      cfd_state   <= CFD_WAIT_RAM;
 
-		when CFD_WAIT_AND_INTEGRATE =>
-    when CFD_SEARCH_AND_INTEGRATE =>
+		when CFD_WAIT_RAM =>
+			ram_read_cfd(ch) <= '1';
+      readcount   := readcount + 1;
+			cfd_state <= CFD_WAIT_RAM2;
+
+		when CFD_WAIT_RAM2 => 
+			ram_read_cfd(ch) <= '1';
+      readcount   := readcount + 1;
+			delaycount     := to_integer(CONF.cfd_delay);
+			cfd_state <= CFD_DELAY_AND_INTEGRATE;						
+
+		when CFD_DELAY_AND_INTEGRATE =>
+			ram_read_cfd(ch) <= '1';
+      readcount   := readcount + 1;
+			cfd_integral_sum <= cfd_integral_sum + resize(cfd_subtracted(ch), cfd_integral_sum'length);
+			if delaycount = 0 then
+				cfd_state <= CFD_SEARCH_AND_INTEGRATE;
+			else
+				delaycount := delaycount - 1;
+			end if; 			
+			
+		when CFD_SEARCH_AND_INTEGRATE =>
+			ram_read_cfd(ch) <= '1';
+      readcount   := readcount + 1;
+			cfd_integral_sum <= cfd_integral_sum + resize(cfd_subtracted(ch), cfd_integral_sum'length);
+			
+			if cfd_zerocrossing(ch) = '1' then
+      	cfd_state <= CFD_ZEROFOUND_AND_INTEGRATE;
+      	readcount_zerox := readcount;		
+      	cfd_save <= cfd(ch);
+      	cfd_prev_save <= cfd_prev(ch);
+     	end if;
+     	
+     	if readcount >= to_integer(CONF.cfd_window) then
+     		cfd_state <= CFD_NEXT_CHANNEL;	 	   			
+     	end if;
+    		
     when CFD_ZEROFOUND_AND_INTEGRATE =>
+    	ram_read_cfd(ch) <= '1';
+      readcount   := readcount + 1;
+			cfd_integral_sum <= cfd_integral_sum + resize(cfd_subtracted(ch), cfd_integral_sum'length);
+			
+			if readcount >= to_integer(CONF.cfd_window) then
+     		cfd_state <= CFD_WRITE_HEADER;	 	   			
+     	end if;
     
     when CFD_WRITE_HEADER =>
       RDO_write_cfd <= '1';
 			RDO_data_cfd(15 downto 0) <= (others => '0'); -- unused
-			RDO_data_cfd(19 downto 16) <= std_logic_vector(to_unsigned(channelselect,4));
+			RDO_data_cfd(19 downto 16) <= std_logic_vector(to_unsigned(ch,4));
       RDO_data_cfd(23 downto 20) <= std_logic_vector(to_unsigned(DEVICE,4)); 
       RDO_data_cfd(27 downto 24) <= x"0"; -- like CFD
       RDO_data_cfd(31 downto 28) <= x"c"; -- like CFD
      	cfd_state <= CFD_WRITE_INTEGRAL;
     
     when CFD_WRITE_INTEGRAL =>
-    	
+    	RDO_write_cfd <= '1';
+    	RDO_data_cfd <= std_logic_vector(resize(cfd_integral_sum,RDO_data_cfd'length));
+    	cfd_state <= CFD_WRITE_READCOUNT;
     	
     when CFD_WRITE_READCOUNT =>
+    	RDO_write_cfd <= '1';
+    	RDO_data_cfd <= std_logic_vector(to_unsigned(readcount_zerox,RDO_data_cfd'length));
+    	cfd_state <= CFD_WRITE_ZEROX1;
     	
     when CFD_WRITE_ZEROX1 =>
+    	RDO_write_cfd <= '1';
+    	RDO_data_cfd <= std_logic_vector(resize(cfd_prev_save,RDO_data_cfd'length));
+    	cfd_state <= CFD_WRITE_ZEROX2;
     
-    when CFD_WRITE_ZEROX2 =>	
-    	
-    
-      if wordcount > 1 then
-        wordcount := wordcount - 1;
-        readcount := to_integer(CONF.block_avg(0));
-        cfd_state <= CFD_START_CHANNEL;
-      elsif channel < 3 then
-        channel   := channel + 1;
-        readcount := to_integer(CONF.block_avg(0));
-        wordcount := to_integer(CONF.block_sums(0));
+    when CFD_WRITE_ZEROX2 =>	   
+      RDO_write_cfd <= '1';
+    	RDO_data_cfd <= std_logic_vector(resize(cfd_save,RDO_data_cfd'length));
+    	cfd_state <= CFD_NEXT_CHANNEL;
+      
+    when CFD_NEXT_CHANNEL => 
+    	if ch < 3 then
+        ch        := ch + 1;
         cfd_state <= CFD_START_CHANNEL;
       else
         cfd_state <= CFD_FINISH;
-      end if;
+      end if;  
       
     when CFD_FINISH =>
       readout_cfd_finished <= '1';
@@ -921,8 +969,6 @@ begin
       
     when CFD_WAIT_AFTER =>
       cfd_state    <= CFD_IDLE;
-
-      
   
   end case;
 end process;

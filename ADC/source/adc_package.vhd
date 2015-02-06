@@ -43,6 +43,8 @@ type cfg_t is record
   check_word1       : std_logic_vector(RESOLUTION-1 downto 0);
   check_word2       : std_logic_vector(RESOLUTION-1 downto 0);
   check_word_enable : std_logic;
+  cfd_window        : unsigned( 7 downto 0);
+  cfd_delay         : unsigned( 3 downto 0);
 end record;
 
 end package;
