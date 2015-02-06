@@ -100,8 +100,8 @@ config.processing_mode   <= 2;
 config.buffer_depth      <= to_unsigned(128 ,11);
 config.samples_after     <= to_unsigned(8  ,11);
 config.block_count       <= to_unsigned(2   , 2); 
-config.trigger_threshold <= to_unsigned(40  ,18);
-config.readout_threshold <= to_unsigned(40  ,18);
+config.trigger_threshold <= to_unsigned(30  ,18);
+config.readout_threshold <= to_unsigned(30  ,18);
 config.presum            <= to_unsigned(0   , 8);           
 config.averaging         <= to_unsigned(6   , 4);
 config.block_avg(0)      <= to_unsigned(4   , 8);
@@ -121,8 +121,8 @@ config.channel_disable <= (others => '0');
 config.check_word1     <= (others => '0');
 config.check_word2     <= (others => '0');
 config.check_word_enable <= '0';
-config.cfd_window <= to_unsigned(50, 8);
-config.cfd_delay <= to_unsigned(1, 4);
+config.cfd_window <= to_unsigned(100, 8);
+config.cfd_delay <= to_unsigned(2, 4);
 
 
 readout_rx.valid_notiming_trg <= '0';
