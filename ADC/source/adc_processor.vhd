@@ -114,7 +114,7 @@ architecture adc_processor_arch of adc_processor is
   signal channelselect, last_channelselect, channelselect_valid    : integer range 0 to 3                    := 0;
   signal prepare_header, last_prepare_header, prepare_header_valid : std_logic                               := '0';
   signal blockcurrent, last_blockcurrent                           : integer range 0 to 3                    := 0;
-  signal myavg                                                     : unsigned(7 downto 0);
+  signal myavg                                                     : unsigned(7 downto 0) := (others => '0');
   signal ram_read_rdo                                              : std_logic_vector(CHANNELS - 1 downto 0) := (others => '0');
 
   signal psa_data_i                 : std_logic_vector(8 downto 0);
@@ -914,6 +914,7 @@ begin
         cfd_state     <= CFD_WRITE_READCOUNT;
 
       when CFD_WRITE_READCOUNT =>
+        report "CFD ch=" & integer'image(ch) & ": zero=" & integer'image(readcount_zerox) severity note;
         RDO_write_cfd <= '1';
         RDO_data_cfd  <= std_logic_vector(to_unsigned(readcount_zerox, RDO_data_cfd'length));
         cfd_state     <= CFD_WRITE_ZEROX1;
