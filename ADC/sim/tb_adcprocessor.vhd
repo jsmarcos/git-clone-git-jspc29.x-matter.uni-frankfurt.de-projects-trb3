@@ -101,6 +101,7 @@ config.buffer_depth      <= to_unsigned(128 ,11);
 config.samples_after     <= to_unsigned(8  ,11);
 config.block_count       <= to_unsigned(2   , 2); 
 config.trigger_threshold <= to_unsigned(30  ,18);
+config.trigger_threshold(16) <= '1'; -- invert polarity 
 config.readout_threshold <= to_unsigned(30  ,18);
 config.presum            <= to_unsigned(0   , 8);           
 config.averaging         <= to_unsigned(6   , 4);

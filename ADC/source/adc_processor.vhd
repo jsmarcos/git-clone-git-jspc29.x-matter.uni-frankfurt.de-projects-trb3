@@ -813,8 +813,14 @@ begin
     begin
       wait until rising_edge(CLK);
 
-      cfd_subtracted(ch) <= signed(resize(reg_ram_data_out(ch)(15 downto 0), cfd_subtracted(ch)'length)) - signed(resize(baseline(ch), cfd_subtracted(ch)'length));
-
+      if CONF.trigger_threshold(16) = '0' then
+        cfd_subtracted(ch) <= signed(resize(reg_ram_data_out(ch)(15 downto 0), cfd_subtracted(ch)'length)) 
+                            - signed(resize(baseline(ch), cfd_subtracted(ch)'length));
+      else
+        cfd_subtracted(ch) <= signed(resize(baseline(ch), cfd_subtracted(ch)'length)) 
+                            - signed(resize(reg_ram_data_out(ch)(15 downto 0), cfd_subtracted(ch)'length));
+      end if;
+      
       cfd_delay_ram(ch)(0) <= cfd_subtracted(ch);
       gen_cfd_delay : for i in 0 to cfd_delay_ram(ch)'length - 2 loop
         cfd_delay_ram(ch)(i + 1) <= cfd_delay_ram(ch)(i);
