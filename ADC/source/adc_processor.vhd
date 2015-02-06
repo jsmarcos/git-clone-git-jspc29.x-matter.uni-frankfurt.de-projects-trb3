@@ -839,12 +839,9 @@ proc_cfd : process
 	begin
 		wait until rising_edge(CLK);
 		
-		if reg_ram_data_out(ch)(17) = '1' then
-  	  cfd_subtracted(ch) <= signed(resize(reg_ram_data_out(ch)(15 downto 0), cfd_subtracted(ch)'length)) 
-  		  	- signed(resize(baseline(ch), cfd_subtracted(ch)'length));
-    else
-  	  cfd_subtracted(ch) <= (others => '0');
-    end if;	
+		cfd_subtracted(ch) <= signed(resize(reg_ram_data_out(ch)(15 downto 0), cfd_subtracted(ch)'length)) 
+  	 	- signed(resize(baseline(ch), cfd_subtracted(ch)'length));
+	
 		
 		cfd_delay_ram(ch)(0) <= cfd_subtracted(ch);
 		gen_cfd_delay : for i in 0 to cfd_delay_ram(ch)'length-2 loop
@@ -907,7 +904,7 @@ begin
       readcount   := readcount + 1;
 			cfd_integral_sum <= cfd_integral_sum + resize(cfd_subtracted(ch), cfd_integral_sum'length);
 			
-			if cfd_zerocrossing(ch) = '1' then
+			if cfd_zerocrossing(ch) = '1' and reg_ram_data_out(ch)(17) = '1' then
       	cfd_state <= CFD_ZEROFOUND_AND_INTEGRATE;
       	readcount_zerox := readcount;		
       	cfd_save <= cfd(ch);
