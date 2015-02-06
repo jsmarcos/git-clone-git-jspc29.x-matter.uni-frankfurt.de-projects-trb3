@@ -267,8 +267,8 @@ PROC_BUS : process begin
         when x"1a" =>  BUS_TX.data(31 downto 0) <=  config.channel_disable(31 downto  0);
         when x"1b" =>  BUS_TX.data(15 downto 0) <=  config.channel_disable(47 downto 32);
         when x"1c" =>  BUS_TX.data(1 downto 0) <= std_logic_vector(to_unsigned(config.processing_mode,2));
-        when x"1d" =>  BUS_TX.data(7 downto 0) <= std_logic_vector(config.cfd_window);
-        when x"1e" =>  BUS_TX.data(3 downto 0) <= std_logic_vector(config.cfd_delay);
+        when x"1d" =>  BUS_TX.data(7  downto 0) <= std_logic_vector(config.cfd_window);
+                       BUS_TX.data(11 downto 8) <= std_logic_vector(config.cfd_delay);
         when others => BUS_TX.ack <= '0'; BUS_TX.unknown <= '1';
       end case;
     elsif BUS_RX.addr >= x"0020" and BUS_RX.addr <= x"002f" then      
@@ -320,8 +320,8 @@ PROC_BUS : process begin
         when x"1a" =>   config.channel_disable(31 downto  0) <=  BUS_RX.data(31 downto 0);
         when x"1b" =>   config.channel_disable(47 downto 32) <=  BUS_RX.data(15 downto 0);
         when x"1c" =>   config.processing_mode <= to_integer(unsigned(BUS_RX.data(1 downto 0)));
-        when x"1d" =>   config.cfd_window      <= unsigned(BUS_RX.data(7 downto 0));
-        when x"1e" =>   config.cfd_delay       <= unsigned(BUS_RX.data(3 downto 0));
+        when x"1d" =>   config.cfd_window      <= unsigned(BUS_RX.data( 7 downto 0));
+                        config.cfd_delay       <= unsigned(BUS_RX.data(11 downto 8));
         when others => BUS_TX.ack <= '0'; BUS_TX.unknown <= '1';        
       end case;
     elsif BUS_RX.addr >= x"0020" and BUS_RX.addr <= x"002f" then      
