@@ -64,9 +64,9 @@ signal readout_rx : READOUT_RX;
 signal readout_tx : READOUT_TX;
 signal control    : std_logic_vector(63 downto 0);
 
-signal psa_data   : std_logic_vector(8 downto 0);
-signal psa_write  : std_logic;
-signal psa_addr   : std_logic_vector(7 downto 0);
+signal psa_data   : std_logic_vector(8 downto 0) := (others => '0');
+signal psa_write  : std_logic := '0';
+signal psa_addr   : std_logic_vector(7 downto 0) := (others => '0');
 
 begin
 
