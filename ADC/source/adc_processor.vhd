@@ -153,7 +153,7 @@ signal cfd_delay_ram         :  cfd_delay_ram_arr_t := (others => (others => (ot
 --signal subtracted    : signed(16 downto 0) := (others => '0');
 signal cfd_integral_sum  : signed(20 downto 0) := (others => '0');
 type cfd_signed19_t is array(CHANNELS-1 downto 0) of signed(18 downto 0);
-type cfd_signed17_t is array(CHANNELS-1 downto 0) of signed(18 downto 0);
+type cfd_signed17_t is array(CHANNELS-1 downto 0) of signed(16 downto 0);
 
 signal cfd_prev      : cfd_signed19_t := (others => (others => '0'));
 signal cfd           : cfd_signed19_t := (others => (others => '0'));
