@@ -863,7 +863,7 @@ PROC_CFD_READOUT : process
   variable ch               : integer range 0 to CHANNELS-1 := 0;
 begin
 	wait until rising_edge(CLK);
-	
+  ram_read_cfd         <= (others => '0');	
   readout_cfd_finished <= '0';
   RDO_write_cfd        <= '0';
   
