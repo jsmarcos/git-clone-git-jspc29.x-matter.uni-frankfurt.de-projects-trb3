@@ -103,7 +103,7 @@ signal readout_flag      : std_logic_vector(CHANNELS-1 downto 0) := (others => '
 
 signal after_trg_cnt     : unsigned(11 downto 0) := (others => '1');
 
-type state_t is (IDLE, DO_RELEASE, RELEASE_DIRECT, WAIT_FOR_END, CHECK_STATUS_TRIGGER, START, SEND_STATUS, READOUT, PSA_READOUT);
+type state_t is (IDLE, DO_RELEASE, RELEASE_DIRECT, WAIT_FOR_END, CHECK_STATUS_TRIGGER, START, SEND_STATUS, READOUT, PSA_READOUT, CFD_READOUT);
 signal state : state_t;
 signal statebits : std_logic_vector(7 downto 0);
 signal word_counter : unsigned(7 downto 0);
@@ -142,6 +142,37 @@ signal invalid_word_count : arr_CHAN_RES_t := (others => (others => '0'));
 -- 800 - 83f last ADC values              (local 0x0 - 0x3)
 -- 840 - 87f long-term average / baseline (local 0x4 - 0x7)
 -- 880 - 8bf fifo access (debugging only) (local 0x8 - 0xb)
+
+-- cfd stuff 
+type cfd_delay_ram_t is array (0 to 15) of signed(16 downto 0);
+type cfd_delay_ram_arr_t          is  array (CHANNELS-1 downto 0) of cfd_delay_ram_t;
+
+signal cfd_delay_ram         :  cfd_delay_ram_arr_t := (others => (others => (others => '0' )));
+--attribute syn_ramstyle of cfd_delay_ram : signal is "block_ram";
+
+signal cfd_readcount           : integer range 0 to 2047 := 0;
+signal cfd_readcount_delay     : integer range 0 to 15 := 0;
+signal cfd_readcount_save       : unsigned(10 downto 0) := (others => '0');
+
+--signal subtracted    : signed(16 downto 0) := (others => '0');
+signal cfd_integral_sum  : signed(20 downto 0) := (others => '0');
+type cfd_t is array(CHANNELS-1 downto 0) of signed(18 downto 0);
+signal cfd_prev      : cfd_t := (others => (others => '0'));
+signal cfd           : cfd_t := (others => (others => '0'));
+signal cfd_prev_save : signed(18 downto 0) := (others => '0');
+signal cfd_save      : signed(18 downto 0) := (others => '0');	
+signal cfd_zerocrossing  : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
+
+type cfd_state_t is (CFD_IDLE, CFD_WAIT_AND_INTEGRATE, CFD_FINISH, CFD_WAIT_AFTER, 
+	CFD_START_CHANNEL, CFD_SEARCH_AND_INTEGRATE, CFD_ZEROFOUND_AND_INTEGRATE, 
+	CFD_WRITE_HEADER, CFD_WRITE_INTEGRAL, CFD_WRITE_READCOUNT, CFD_WRITE_ZEROX1, CFD_WRITE_ZEROX2
+);
+signal cfd_state : cfd_state_t;
+signal RDO_write_cfd : std_logic := '0';
+signal RDO_data_cfd  : std_logic_vector(31 downto 0) := (others => '0');
+signal readout_cfd_finished : std_logic := '0';
+signal ram_read_cfd : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
+
 
 begin
 
@@ -513,7 +544,9 @@ begin
       if stop_writing_rdo = '1' and CONF.processing_mode = 0 then
         state <= READOUT;
       elsif stop_writing_rdo = '1' and CONF.processing_mode = 1 then 
-        state <= PSA_READOUT;
+      	state <= PSA_READOUT;
+     	elsif stop_writing_rdo = '1' and CONF.processing_mode = 2 then 
+        state <= CFD_READOUT;
       end if;
     
     when READOUT =>
@@ -525,6 +558,12 @@ begin
       if readout_psa_finished  = '1' then
         state <= RELEASE_DIRECT;
       end if;
+    
+    when CFD_READOUT =>
+      if readout_cfd_finished  = '1' then
+        state <= RELEASE_DIRECT;
+      end if;
+    
       
     when SEND_STATUS =>
       RDO_write_main <= '1';   
@@ -588,7 +627,7 @@ end process;
 
 
 -------------------------------------------------------------------------------
--- Data Reading State Machine
+-- Waveforms Data Reading State Machine
 -------------------------------------------------------------------------------
 PROC_RDO_FSM : process 
   variable readcount     : integer range 0 to 255 := 0;
@@ -694,7 +733,7 @@ end process;
 
 
 -------------------------------------------------------------------------------
--- Data Reading State Machine
+-- PSA Data Reading State Machine
 -------------------------------------------------------------------------------
 PROC_PULSE_SHAPE_READOUT : process 
   variable wordcount : integer range 0 to 256 := 0;
@@ -788,13 +827,113 @@ begin
   end case;
 end process;
 
+
+-------------------------------------------------------------------------------
+-- CFD Data Reading State Machine
+-------------------------------------------------------------------------------
+
+gen_cfd : for ch in 0 to CHANNELS - 1 generate
+
+cfd_zerocrossing(ch) <= '1' when cfd(ch) < 0 and cfd_prev(ch) >= 0 else '0';
+
+proc_cfd : process
+	variable subtracted : signed(16 downto 0) := (others => '0'); 
+	begin
+		wait until rising_edge(CLK);
+		
+		if reg_ram_data_out(ch)(17) = '1' then
+  	  subtracted := signed(resize(reg_ram_data_out(ch)(15 downto 0), subtracted'length)) 
+  		  	- signed(resize(baseline(ch), subtracted'length));
+    else
+  	  subtracted := (others => '0');
+    end if;	
+		
+		cfd_delay_ram(ch)(0) <= subtracted;
+		gen_cfd_delay : for i in 0 to cfd_delay_ram(ch)'length-2 loop
+			cfd_delay_ram(ch)(i+1) <= cfd_delay_ram(ch)(i);
+		end loop;
+		cfd(ch) <= resize(subtracted, cfd(ch)'length) - resize(cfd_delay_ram(ch)(2) & "0", cfd(ch)'length);
+	
+	end process;
+end generate;
+
+PROC_CFD_READOUT : process 
+  variable wordcount : integer range 0 to 256 := 0;
+  variable readcount : integer range 0 to 255 := 0;
+  variable channel   : integer range 0 to CHANNELS-1 := 0;
+  variable time_cnt   : integer range 0 to 5 := 0;
+begin
+  wait until rising_edge(CLK);
+  readout_cfd_finished <= '0';
+  RDO_write_cfd        <= '0';
+  case cfd_state is
+    when CFD_IDLE =>
+      channel        := 0;
+      readcount      := to_integer(CONF.block_avg(0));
+      wordcount      := to_integer(CONF.block_sums(0));
+      if state = CFD_READOUT then
+        CFD_state      <= CFD_START_CHANNEL;
+      end if;
+    when CFD_START_CHANNEL =>
+      ram_read_cfd(channel) <= '1';
+      readcount   := readcount - 1;
+      cfd_state   <= CFD_WAIT_AND_INTEGRATE;
+
+		when CFD_WAIT_AND_INTEGRATE =>
+    when CFD_SEARCH_AND_INTEGRATE =>
+    when CFD_ZEROFOUND_AND_INTEGRATE =>
+    
+    when CFD_WRITE_HEADER =>
+      RDO_write_cfd <= '1';
+			RDO_data_cfd(15 downto 0) <= (others => '0'); -- unused
+			RDO_data_cfd(19 downto 16) <= std_logic_vector(to_unsigned(channelselect,4));
+      RDO_data_cfd(23 downto 20) <= std_logic_vector(to_unsigned(DEVICE,4)); 
+      RDO_data_cfd(27 downto 24) <= x"0"; -- like CFD
+      RDO_data_cfd(31 downto 28) <= x"c"; -- like CFD
+     	cfd_state <= CFD_WRITE_INTEGRAL;
+    
+    when CFD_WRITE_INTEGRAL =>
+    	
+    	
+    when CFD_WRITE_READCOUNT =>
+    	
+    when CFD_WRITE_ZEROX1 =>
+    
+    when CFD_WRITE_ZEROX2 =>	
+    	
+    
+      if wordcount > 1 then
+        wordcount := wordcount - 1;
+        readcount := to_integer(CONF.block_avg(0));
+        cfd_state <= CFD_START_CHANNEL;
+      elsif channel < 3 then
+        channel   := channel + 1;
+        readcount := to_integer(CONF.block_avg(0));
+        wordcount := to_integer(CONF.block_sums(0));
+        cfd_state <= CFD_START_CHANNEL;
+      else
+        cfd_state <= CFD_FINISH;
+      end if;
+      
+    when CFD_FINISH =>
+      readout_cfd_finished <= '1';
+      cfd_state            <= CFD_WAIT_AFTER;
+      
+    when CFD_WAIT_AFTER =>
+      cfd_state    <= CFD_IDLE;
+
+      
+  
+  end case;
+end process;
+
 -------------------------------------------------------------------------------
 -- Data Output
 -------------------------------------------------------------------------------
 
-ram_read <= ram_read_rdo or ram_read_psa;
-READOUT_TX.data_write <= RDO_write_main or RDO_write_proc or RDO_write_psa when rising_edge(CLK);
-READOUT_TX.data       <= RDO_data_main  or RDO_data_proc  or RDO_data_psa  when rising_edge(CLK);
+ram_read <= ram_read_rdo or ram_read_psa or ram_read_cfd;
+READOUT_TX.data_write <= RDO_write_main or RDO_write_proc or RDO_write_psa or RDO_write_cfd when rising_edge(CLK);
+READOUT_TX.data       <= RDO_data_main  or RDO_data_proc  or RDO_data_psa or RDO_data_cfd when rising_edge(CLK);
 
 
 

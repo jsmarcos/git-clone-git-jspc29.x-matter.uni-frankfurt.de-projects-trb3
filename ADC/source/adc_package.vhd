@@ -25,7 +25,7 @@ type unsigned_array_8  is array (integer range <>) of unsigned( 7 downto 0);
 
 
 type cfg_t is record
-  processing_mode   : integer range 0 to 3; --0: normal block processing, 1: pulse shape processing
+  processing_mode   : integer range 0 to 3; --0: normal block processing, 1: pulse shape processing, 2: CFD
   buffer_depth      : unsigned(10 downto 0);
   samples_after     : unsigned(10 downto 0);
   block_count       : unsigned( 1 downto 0);
