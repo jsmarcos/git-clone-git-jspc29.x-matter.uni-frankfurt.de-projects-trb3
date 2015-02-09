@@ -725,6 +725,7 @@ begin
     psa_clear            <= '0';
     psa_enable           <= '1';
     RDO_write_psa        <= '0';
+    RDO_data_psa            <= (others => '0');
     case psa_state is
       when PSA_IDLE =>
         channel     := 0;
@@ -841,6 +842,7 @@ begin
     ram_read_cfd         <= (others => '0');
     readout_cfd_finished <= '0';
     RDO_write_cfd        <= '0';
+    RDO_data_cfd            <= (others => '0');
 
     case cfd_state is
       when CFD_IDLE =>
