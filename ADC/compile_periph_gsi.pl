@@ -53,7 +53,8 @@ system ("../base/make_version_vhd.pl");
 
 
 my $c="$synplify_path/bin/synplify_premier_dp -batch $TOPNAME.prj";
-my $r=execute($c, "do_not_exit" );
+my $r;
+$r=execute($c, "do_not_exit" );
 checksrr();
 
 $ENV{'LM_LICENSE_FILE'}=$lm_license_file_for_par;
@@ -72,9 +73,9 @@ execute($c);
 
 system("rm $TOPNAME.ncd");
 
-#$c=qq|mpartrce -p "../$TOPNAME.p2t" -log "$TOPNAME.log" -o "$TOPNAME.rpt" -pr "$TOPNAME.prf" -tf "$TOPNAME.pt" "|.$TOPNAME.qq|_map.ncd" "$TOPNAME.ncd"|;
-#  $c=qq|multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
-$c=qq|par -w -l 5 -i 6 -t 3 -c 0 -e 0 -exp parUseNBR=1:parCDP=0:parCDR=0:parPathBased=OFF $tpmap.ncd $TOPNAME.ncd $TOPNAME.prf|;
+$c=qq|mpartrce -p "../$TOPNAME.p2t" -f "../$TOPNAME.p3t" -tf "$TOPNAME.pt" "$tpmap.ncd" "$TOPNAME.ncd"|;
+#$c=qq|mpar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
+#$c=qq|par -w -l 5 -i 6 -t 5 -c 0 -e 0 -exp parUseNBR=1:parCDP=0:parCDR=0:parPathBased=OFF $tpmap.ncd $TOPNAME.ncd $TOPNAME.prf|;
 execute($c);
 
 $c=qq|ltxt2ptxt $TOPNAME.ncd|;

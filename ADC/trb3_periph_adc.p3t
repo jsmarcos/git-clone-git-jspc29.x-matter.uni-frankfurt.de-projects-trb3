@@ -1,0 +1,5 @@
+-rem
+-distrce
+-log "trb3_periph_adc.log"
+-o "trb3_periph_adc.csv"
+-pr "trb3_periph_adc.prf"
