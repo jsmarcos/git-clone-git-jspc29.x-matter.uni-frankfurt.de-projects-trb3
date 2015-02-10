@@ -6,6 +6,7 @@ library work;
 use work.trb_net_std.all;
 use work.trb3_components.all;
 use work.adc_package.all;
+use work.config.all;
 
 entity adc_ad9219 is
   generic(
@@ -63,12 +64,24 @@ signal lock            : std_logic_vector(1 downto 0);
 
 begin
 
+gen_40MHz : if ADC_SAMPLING_RATE = 40 generate
   THE_ADC_REF : entity work.pll_in200_out40
     port map(
       CLK   => CLK_ADCRAW,
       CLKOP => ADCCLK_OUT,
       LOCK  => lock(0)
       );
+end generate;
+
+gen_65MHz : if ADC_SAMPLING_RATE = 65 generate
+  THE_ADC_REF : entity work.pll_in200_out65
+    port map(
+      CLK   => CLK_ADCRAW,
+      CLKOP => ADCCLK_OUT,
+      LOCK  => lock(0)
+      );
+end generate;
+
 
   THE_ADC_PLL_0 : entity work.pll_adc10bit
     port map(
