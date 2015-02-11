@@ -1,7 +1,7 @@
 -w
 -i 20
 -l 5
--n 60
+-n 100
 -y
 -s  1 
 -t 1
@@ -18,4 +18,4 @@
 # -c 0
 # -e 0
 #
--exp parCB=On:parCDP=1:parCDR=1:parPlcInLimit=0:parPlcInNeighborSize=1:parPathBased=ON:parHold=ON:parHoldLimit=10000:paruseNBR=1
+-exp parCB=On:parCDP=1:parCDR=1:parPlcInLimit=0:parPlcInNeighborSize=1:parPathBased=ON:parHold=ON:parHoldLimit=10000:parUseNBR=1
