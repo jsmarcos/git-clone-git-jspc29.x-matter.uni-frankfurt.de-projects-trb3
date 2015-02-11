@@ -19,8 +19,8 @@ set_option -resource_sharing true
 set_option -frequency 200
 set_option -fanout_limit 100
 set_option -disable_io_insertion 0
-set_option -retiming 0
-set_option -pipe 0
+set_option -retiming 1
+set_option -pipe 1
 #set_option -force_gsr 
 set_option -force_gsr false
 set_option -fixgatedclocks false #3
