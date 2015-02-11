@@ -91,10 +91,10 @@ clock <= not clock after 5 ns;
 -- config.block_scale(1)    <= to_unsigned(0   , 8);      
 -- config.block_scale(2)    <= to_unsigned(0   , 8);      
 -- config.block_scale(3)    <= to_unsigned(0   , 8); 
--- config.baseline_reset_value <= to_unsigned(1023*32, 32);
+-- config.baseline_reset_value <= x"300";
 
-config.trigger_enable    <= x"0000_0000_0000", x"ffff_ffff_fff1" after 5 us;
-config.baseline_always_on <= '0'; --'1', '0' after 10 us;
+config.trigger_enable    <= x"0000_0000_0000", x"ffff_ffff_ffff" after 5 us;
+config.baseline_always_on <= '0'; --'1', '0' after 40 us;
 
 config.processing_mode   <= 2;
 config.buffer_depth      <= to_unsigned(128 ,11);
@@ -105,7 +105,7 @@ config.trigger_threshold(16) <= '1'; -- invert polarity
 config.trigger_threshold(17) <= '1'; -- unused 
 config.readout_threshold <= to_unsigned(30  ,18);
 config.presum            <= to_unsigned(0   , 8);           
-config.averaging         <= to_unsigned(6   , 4);
+config.averaging         <= to_unsigned(8   , 4);
 config.block_avg(0)      <= to_unsigned(4   , 8);
 config.block_avg(1)      <= to_unsigned(1   , 8);
 config.block_avg(2)      <= to_unsigned(1   , 8);
@@ -118,7 +118,7 @@ config.block_scale(0)    <= to_unsigned(0   , 8);
 config.block_scale(1)    <= to_unsigned(0   , 8);      
 config.block_scale(2)    <= to_unsigned(0   , 8);      
 config.block_scale(3)    <= to_unsigned(0   , 8); 
-config.baseline_reset_value <= to_unsigned(2**6*1024-1, 32);
+config.baseline_reset_value <= to_unsigned(2**(to_integer(config.averaging))*3*16*16, 32);
 config.channel_disable <= (others => '0');
 config.check_word1     <= (others => '0');
 config.check_word2     <= (others => '0');
