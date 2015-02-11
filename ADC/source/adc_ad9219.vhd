@@ -31,9 +31,11 @@ end entity;
 
 
 architecture adc_ad9219_arch of  adc_ad9219 is
+attribute syn_hier     : string;
+attribute syn_hier of adc_ad9219_arch : architecture is "hard";
 
 type q_t is array(0 to NUM_DEVICES-1) of std_logic_vector(19 downto 0);
-signal q,qq,qqq,q_q : q_t;
+signal q,qq,qqq : q_t;
 
 signal clk_adcfast_i : std_logic; --200MHz/325MHz
 signal clk_data      : std_logic; --100MHz/162.5MHz
@@ -47,6 +49,7 @@ type state_t is (S1,S2,S3,S4,S5);
 type states_t is array(0 to NUM_DEVICES-1) of state_t;
 signal state    : states_t;
 signal state_q  : states_t; 
+signal state_qq  : states_t;
 
 type value_it is array(0 to 4) of std_logic_vector(9 downto 0);
 type value_t is array(0 to NUM_DEVICES-1) of value_it;
@@ -265,7 +268,7 @@ gen_chips : for i in 0 to NUM_DEVICES-1 generate
   proc_debug : process begin
     wait until rising_edge(CLK);
     DEBUG(i*32+31 downto i*32+4) <= std_logic_vector(counter(i));
-    case state_q(i) is
+    case state_qq(i) is
       when S1 =>     DEBUG(i*32+3 downto  i*32+0) <= x"1";
       when S2 =>     DEBUG(i*32+3 downto  i*32+0) <= x"2";
       when S3 =>     DEBUG(i*32+3 downto  i*32+0) <= x"3";
@@ -277,8 +280,9 @@ gen_chips : for i in 0 to NUM_DEVICES-1 generate
   
 end generate;    
 
-q_q     <= qqq   when rising_edge(CLK);
+--q_q     <= qqq   when rising_edge(CLK);
 state_q <= state when rising_edge(CLK);
+state_qq <= state_q when rising_edge(CLK);
 
 
 
