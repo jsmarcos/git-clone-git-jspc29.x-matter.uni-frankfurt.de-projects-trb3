@@ -155,7 +155,6 @@ add_file -vhdl -lib "work" "cores/mulacc2.vhd"
 add_file -vhdl -lib "work" "source/adc_package.vhd"
 add_file -vhdl -lib "work" "source/adc_processor.vhd"
 add_file -vhdl -lib "work" "source/adc_ad9219.vhd"
-add_file -vhdl -lib "work" "source/adc_ad9219_chip.vhd"
 add_file -vhdl -lib "work" "source/adc_handler.vhd"
 add_file -vhdl -lib "work" "source/adc_slowcontrol_data_buffer.vhd"
 
