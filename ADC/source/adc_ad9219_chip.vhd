@@ -24,8 +24,8 @@ end entity;
 
 architecture adc_ad9219_chip_arch of adc_ad9219_chip is
   -- Placer Directives
-  attribute HGROUP : string;
-  attribute HGROUP of adc_ad9219_chip_arch : architecture  is "ADC_AD9219_CHIP_group";
+  --attribute HGROUP : string;
+  --attribute HGROUP of adc_ad9219_chip_arch : architecture  is "ADC_AD9219_CHIP_group";
   
   signal qq, qqq : std_logic_vector(19 downto 0);
 

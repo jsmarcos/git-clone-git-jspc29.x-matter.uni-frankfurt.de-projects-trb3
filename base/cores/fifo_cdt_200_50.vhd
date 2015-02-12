@@ -27,10 +27,6 @@ end fifo_cdt_200_50;
 
 architecture Structure of fifo_cdt_200_50 is
 
-   -- Placer Directives, manually added
-   attribute HGROUP : string;
-   attribute HGROUP of Structure : architecture  is "FIFO_CDT_200_50_group";
-
     -- internal signal declarations
     signal invout_1: std_logic;
     signal invout_0: std_logic;
