@@ -24,8 +24,8 @@ package config is
     constant INIT_ADDRESS           : std_logic_vector := x"F30a";
     constant BROADCAST_SPECIAL_ADDR : std_logic_vector := x"4b";
    
---ADC sampling frequency: 40 or 65 MHz supported
-    constant ADC_SAMPLING_RATE      : integer := 65;
+--ADC sampling frequency: 40 or 64 MHz supported
+    constant ADC_SAMPLING_RATE      : integer := 64;
     
 --These are currently used for the included features table only
     constant ADC_PROCESSING_TYPE    : integer := 0;

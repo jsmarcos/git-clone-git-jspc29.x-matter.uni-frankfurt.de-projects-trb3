@@ -31,8 +31,8 @@ architecture adc_ad9219_arch of adc_ad9219 is
   type q_t is array (0 to NUM_DEVICES - 1) of std_logic_vector(19 downto 0);
   signal q : q_t;
 
-  signal clk_adcfast_i : std_logic;     --200MHz/325MHz
-  signal clk_adcdata   : std_logic;     --100MHz/162.5MHz
+  signal clk_adcfast_i : std_logic;     --200MHz/320MHz
+  signal clk_adcdata   : std_logic;     --100MHz/160MHz
   signal restart_i     : std_logic;
 
 begin
@@ -51,14 +51,14 @@ begin
       );
   end generate;
 
-  gen_65MHz : if ADC_SAMPLING_RATE = 65 generate
-    THE_ADC_REF : entity work.pll_in200_out65
+  gen_64MHz : if ADC_SAMPLING_RATE = 64 generate
+    THE_ADC_REF : entity work.pll_in200_out64
       port map(
         CLK   => CLK_ADCRAW,
         CLKOP => ADCCLK_OUT,
         LOCK  => open
       );
-    THE_ADC_PLL_0 : entity work.pll_adc10bit_65
+    THE_ADC_PLL_0 : entity work.pll_adc10bit_64
       port map(
         CLK   => CLK_ADCRAW,
         CLKOP => clk_adcfast_i,
