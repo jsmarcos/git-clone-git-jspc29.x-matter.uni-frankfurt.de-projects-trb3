@@ -69,6 +69,13 @@ LOCATE COMP  "CLK_TEST_OUT_0"   SITE "U9";
 IOBUF  PORT  "CLK_TEST_OUT_0"  IO_TYPE=LVDS25 ; 
 
 
+LOCATE COMP  "CLKRJ_0"   SITE "U9"; 
+LOCATE COMP  "CLKRJ_1"   SITE "U8"; 
+LOCATE COMP  "CLKRJ_2"   SITE "Y34";
+LOCATE COMP  "CLKRJ_3"   SITE "Y33"; 
+DEFINE PORT GROUP "CLKRJ_group" "CLKRJ*" ;
+IOBUF GROUP  "CLKRJ_group" IO_TYPE=LVCMOS25 PULLMODE=NONE DRIVE=4;
+
 #################################################################
 # Clock and Trigger Select
 #################################################################

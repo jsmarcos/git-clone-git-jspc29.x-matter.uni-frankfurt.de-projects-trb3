@@ -107,12 +107,6 @@ LOCATE COMP  "CLK_GPLL_LEFT"        SITE "U25";
 DEFINE PORT GROUP "CLK_group" "CLK*" ;
 IOBUF GROUP  "CLK_group" IO_TYPE=LVDS25 ;
 
-LOCATE COMP  "CLKRJ_0"   SITE "U9"; 
-LOCATE COMP  "CLKRJ_1"   SITE "U8"; 
-LOCATE COMP  "CLKRJ_2"   SITE "Y34";
-LOCATE COMP  "CLKRJ_3"   SITE "Y33"; 
-DEFINE PORT GROUP "CLKRJ_group" "CLKRJ*" ;
-IOBUF GROUP  "CLKRJ_group" IO_TYPE=LVCMOS25 PULLMODE=NONE DRIVE=4;
 
 #################################################################
 # Trigger I/O
