@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="pll_calibration" module="pll_calibration" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2015 02 13 16:40:27.778" version="5.7" type="Module" synthesis="synplify" source_format="VHDL">
+  <Package>
+		<File name="pll_calibration.lpc" type="lpc" modified="2015 02 13 16:40:26.000"/>
+		<File name="pll_calibration.vhd" type="top_level_vhdl" modified="2015 02 13 16:40:26.000"/>
+		<File name="pll_calibration_tmpl.vhd" type="template_vhdl" modified="2015 02 13 16:40:26.000"/>
+  </Package>
+</DiamondModule>
