@@ -65,8 +65,8 @@ end component;
 signal clock100 : std_logic := '1';
 signal clock200 : std_logic := '1';
 signal adc_data   : std_logic_vector(39 downto 0) := (others => '0');
-signal adc_data_ser : std_logic_vector(4 downto 0);
-signal adc_dco : std_logic;
+signal adc_data_ser : std_logic_vector(24 downto 0);
+signal adc_dco : std_logic_vector(5 downto 1);
 signal adc_valid  : std_logic := '0';
 signal stop_in    : std_logic := '0';
 signal trigger_out: std_logic := '0';
@@ -194,8 +194,9 @@ proc_rdo : process begin
 end process;
 
 THE_ADC_SER : adc_serializer
-  port map(ADC_DCO  => ADC_DCO,
-           ADC_DATA => ADC_DATA_ser);
+  port map(ADC_DCO  => ADC_DCO(1),
+           ADC_DATA => ADC_DATA_ser(4 downto 0)
+           );
 
 THE_ADC : adc_ad9219
   generic map(
@@ -205,10 +206,8 @@ THE_ADC : adc_ad9219
            CLK_ADCRAW     => clock200,
            RESTART_IN     => '0',
            ADCCLK_OUT     => open,
-           ADC_DATA(4 downto 0) => adc_data_ser,
-           ADC_DATA(24 downto 5) => open,
-           ADC_DCO(1)        => adc_dco,
-           ADC_DCO(5 downto 2) => open,
+           ADC_DATA => adc_data_ser,
+           ADC_DCO        => adc_dco,
            DATA_OUT(39 downto 0)       => adc_data,
            FCO_OUT        => open,
            DATA_VALID_OUT(0) => adc_valid,
