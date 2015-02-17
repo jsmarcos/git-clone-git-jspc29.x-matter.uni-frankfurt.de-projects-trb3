@@ -246,7 +246,7 @@ gen_chips : for i in 0 to NUM_DEVICES-1 generate
   
   proc_output : process begin
     wait until rising_edge(CLK);
-    fifo_last_empty <= fifo_empty;
+    fifo_last_empty(i) <= fifo_empty(i);
     if fifo_last_empty(i) = '0' then
       DATA_OUT(i*40+39 downto i*40+0) <= fifo_output(i)(39 downto 0);
       FCO_OUT (i*10+9  downto i*10+0) <= fifo_output(i)(49 downto 40);
