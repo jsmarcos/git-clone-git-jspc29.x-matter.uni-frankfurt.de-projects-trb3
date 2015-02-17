@@ -198,19 +198,21 @@ THE_ADC_SER : adc_serializer
            ADC_DATA => ADC_DATA_ser);
 
 THE_ADC : adc_ad9219
-  generic map(NUM_DEVICES => 5)
+  generic map(
+    NUM_DEVICES => 5
+  )
   port map(CLK            => clock100,
            CLK_ADCRAW     => clock200,
            RESTART_IN     => '0',
-           --ADCCLK_OUT     => open,
+           ADCCLK_OUT     => open,
            ADC_DATA(4 downto 0) => adc_data_ser,
-           --ADC_DATA(24 downto 5) => open,
+           ADC_DATA(24 downto 5) => open,
            ADC_DCO(1)        => adc_dco,
-           --ADC_DCO(5 downto 2) => open,
+           ADC_DCO(5 downto 2) => open,
            DATA_OUT(39 downto 0)       => adc_data,
-           --FCO_OUT        => open,
-           DATA_VALID_OUT(0) => adc_valid--,
-           --DEBUG          => open
+           FCO_OUT        => open,
+           DATA_VALID_OUT(0) => adc_valid,
+           DEBUG          => open
            );
 
 UUT: adc_processor
