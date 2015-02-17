@@ -193,10 +193,13 @@ proc_rdo : process begin
   readout_rx.data_valid       <= '0';
 end process;
 
-THE_ADC_SER : adc_serializer
-  port map(ADC_DCO  => ADC_DCO(1),
-           ADC_DATA => ADC_DATA_ser(4 downto 0)
-           );
+gen_chips : for i in 0 to 4 generate
+  THE_ADC_SER : adc_serializer
+    port map(ADC_DCO  => ADC_DCO(i + 1),
+             ADC_DATA => ADC_DATA_ser(5*(i+1)-1 downto 5 * i)
+    );
+
+end generate;
 
 THE_ADC : adc_ad9219
   generic map(
