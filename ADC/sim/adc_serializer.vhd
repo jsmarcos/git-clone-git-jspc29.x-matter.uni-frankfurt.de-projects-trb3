@@ -26,7 +26,7 @@ begin
   ADC_DCO <= ddr_clock;
   
   output : process is
-    variable cnt : unsigned(4 downto 0);
+    variable cnt : unsigned(4 downto 0) := (others => '0');
   begin
     wait until rising_edge(ddr_clock);
     ADC_DATA <= std_logic_vector(cnt);
