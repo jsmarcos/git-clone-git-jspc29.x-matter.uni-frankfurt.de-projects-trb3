@@ -26,12 +26,15 @@ begin
   ADC_DCO <= ddr_clock;
   
   output : process is
+    variable cnt : unsigned(4 downto 0);
   begin
     wait until rising_edge(ddr_clock);
-    ADC_DATA <= (others => '1');
+    ADC_DATA <= std_logic_vector(cnt);
+    cnt := cnt+1;
     
     wait until falling_edge(ddr_clock);
-    ADC_DATA <= (others => '0');
+    ADC_DATA <= std_logic_vector(cnt);
+    cnt := cnt+1;
   end process output;  
   
 end architecture arch;
