@@ -64,10 +64,10 @@ end component;
 
 signal clock100 : std_logic := '1';
 signal clock200 : std_logic := '1';
-signal adc_data   : std_logic_vector(39 downto 0) := (others => '0');
-signal adc_data_ser : std_logic_vector(24 downto 0);
-signal adc_dco : std_logic_vector(5 downto 1);
-signal adc_valid  : std_logic := '0';
+signal adc_data   : std_logic_vector(199 downto 0) := (others => '0');
+signal adc_data_ser : std_logic_vector(24 downto 0) := (others => '0');
+signal adc_dco : std_logic_vector(5 downto 1) := (others => '0');
+signal adc_valid  : std_logic_vector(4 downto 0) := (others => '1');
 signal stop_in    : std_logic := '0';
 signal trigger_out: std_logic := '0';
 signal config     : cfg_t;
@@ -208,9 +208,9 @@ THE_ADC : adc_ad9219
            ADCCLK_OUT     => open,
            ADC_DATA => adc_data_ser,
            ADC_DCO        => adc_dco,
-           DATA_OUT(39 downto 0)       => adc_data,
+           DATA_OUT       => adc_data,
            FCO_OUT        => open,
-           DATA_VALID_OUT(0) => adc_valid,
+           DATA_VALID_OUT => adc_valid,
            DEBUG          => open
            );
 
@@ -220,8 +220,8 @@ UUT: adc_processor
     )
   port map(
     CLK        => clock100,
-    ADC_DATA   => adc_data,
-    ADC_VALID  => adc_valid,
+    ADC_DATA   => adc_data(39 downto 0),
+    ADC_VALID  => adc_valid(0),
     STOP_IN    => stop_in,
     TRIGGER_OUT=> trigger_out,
     
