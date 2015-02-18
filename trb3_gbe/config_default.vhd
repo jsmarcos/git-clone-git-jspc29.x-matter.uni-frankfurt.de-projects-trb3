@@ -29,7 +29,7 @@ package config is
     constant USE_RXCLOCK            : integer := c_NO;
 
 --Run external 200 MHz clock source
-    constant USE_EXTERNAL_CLOCK : integer range c_NO to c_YES := c_NO;
+    constant USE_EXTERNAL_CLOCK : integer range c_NO to c_YES := c_YES;
    
 --Address settings   
     constant INIT_ENDPOINT_ID       : std_logic_vector := x"0005";
