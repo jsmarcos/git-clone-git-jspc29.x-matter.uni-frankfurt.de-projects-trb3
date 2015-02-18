@@ -371,7 +371,7 @@ end generate;
 ---------------------------------------------------------------------------
 -- AddOn
 ---------------------------------------------------------------------------
-gen_reallogic : if USE_DUMMY_READOUT = 0 generate
+gen_reallogic : if READOUT_MODE /= READOUT_MODE_DUMMY generate
   THE_ADC : entity work.adc_handler
     port map(
       CLK        => clk_100_i,
@@ -403,7 +403,7 @@ gen_reallogic : if USE_DUMMY_READOUT = 0 generate
       );    
 end generate;
     
-gen_dummyreadout : if USE_DUMMY_READOUT = 1 generate
+gen_dummyreadout : if READOUT_MODE = READOUT_MODE_DUMMY generate
   THE_ADC : entity work.adc_slowcontrol_data_buffer
     port map(
       CLK        => clk_100_i,

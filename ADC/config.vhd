@@ -10,7 +10,8 @@ package config is
 --Begin of design configuration
 ------------------------------------------------------------------------------
 
-    constant USE_DUMMY_READOUT      : integer := c_NO;  --use slowcontrol for readout, no trigger logic
+    type READOUT_MODE_type is (READOUT_MODE_DUMMY, READOUT_MODE_PSA, READOUT_MODE_CFD);
+    constant READOUT_MODE : READOUT_MODE_type := READOUT_MODE_CFD;  --use slowcontrol for readout, no trigger logic
     
 --Run wih 125 MHz instead of 100 MHz     
     constant USE_125_MHZ            : integer := c_NO;  --not implemented yet!  
@@ -25,10 +26,11 @@ package config is
     constant BROADCAST_SPECIAL_ADDR : std_logic_vector := x"4b";
    
 --ADC sampling frequency: 40 or 80 MHz supported
+--note that not all READOUT_MODEs will lead to timing-error free designs
+--the READOUT_MODE_PSA mode is usually only working with 40MHz
     constant ADC_SAMPLING_RATE      : integer := 80;
     
 --These are currently used for the included features table only
-    constant ADC_PROCESSING_TYPE    : integer := 0;
     constant ADC_BASELINE_LOGIC     : integer := c_YES;
     constant ADC_TRIGGER_LOGIC      : integer := c_YES;
     constant ADC_CHANNELS           : integer := 48;
@@ -69,11 +71,22 @@ package body config is
   
 function generateIncludedFeatures return std_logic_vector is
   variable t : std_logic_vector(63 downto 0);
+  variable proc_type : std_logic_vector(3 downto 0);
 begin
+  
+  case READOUT_MODE is
+    when READOUT_MODE_DUMMY =>
+      proc_type := x"0";
+    when READOUT_MODE_PSA =>
+      proc_type := x"2";
+    when READOUT_MODE_CFD =>
+      proc_type := x"8";
+  end case;
+
   t               := (others => '0');
   t(63 downto 56) := std_logic_vector(to_unsigned(4,8)); --table version 2
   t(7 downto 0)   := std_logic_vector(to_unsigned(ADC_SAMPLING_RATE,8));
-  t(11 downto 8)  := std_logic_vector(to_unsigned(ADC_PROCESSING_TYPE,4)); --processing type
+  t(11 downto 8)  := proc_type; --processing type
   t(14 downto 14) := std_logic_vector(to_unsigned(ADC_BASELINE_LOGIC,1));
   t(15 downto 15) := std_logic_vector(to_unsigned(ADC_TRIGGER_LOGIC,1));
   t(23 downto 16) := std_logic_vector(to_unsigned(ADC_CHANNELS,8));
