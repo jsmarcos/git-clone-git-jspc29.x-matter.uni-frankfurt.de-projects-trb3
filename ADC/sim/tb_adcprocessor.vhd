@@ -27,11 +27,6 @@ component adc_ad9219
        DEBUG          : out std_logic_vector(NUM_DEVICES * 32 - 1 downto 0));
 end component adc_ad9219;
 
-component adc_serializer
-  port(ADC_DCO  : out std_logic;
-       ADC_DATA : out std_logic_vector(4 downto 0));
-end component adc_serializer;
-
 component adc_processor is
   generic(
     DEVICE     : integer range 0 to 15 := 15
@@ -64,10 +59,8 @@ end component;
 
 signal clock100 : std_logic := '1';
 signal clock200 : std_logic := '1';
-signal adc_data   : std_logic_vector(199 downto 0) := (others => '0');
-signal adc_data_ser : std_logic_vector(24 downto 0) := (others => '0');
-signal adc_dco : std_logic_vector(5 downto 1) := (others => '0');
-signal adc_valid  : std_logic_vector(4 downto 0) := (others => '1');
+signal adc_data   : std_logic_vector(39 downto 0) := (others => '0');
+signal adc_valid  : std_logic_vector(0 downto 0) := (others => '1');
 signal stop_in    : std_logic := '0';
 signal trigger_out: std_logic := '0';
 signal config     : cfg_t;
@@ -193,24 +186,16 @@ proc_rdo : process begin
   readout_rx.data_valid       <= '0';
 end process;
 
-gen_chips : for i in 0 to 4 generate
-  THE_ADC_SER : adc_serializer
-    port map(ADC_DCO  => ADC_DCO(i + 1),
-             ADC_DATA => ADC_DATA_ser(5*(i+1)-1 downto 5 * i)
-    );
-
-end generate;
-
 THE_ADC : adc_ad9219
   generic map(
-    NUM_DEVICES => 5
+    NUM_DEVICES => 1
   )
   port map(CLK            => clock100,
            CLK_ADCRAW     => clock200,
            RESTART_IN     => '0',
            ADCCLK_OUT     => open,
-           ADC_DATA => adc_data_ser,
-           ADC_DCO        => adc_dco,
+           ADC_DATA       => (others => '0'),
+           ADC_DCO        => (others => '0'),
            DATA_OUT       => adc_data,
            FCO_OUT        => open,
            DATA_VALID_OUT => adc_valid,
@@ -223,7 +208,7 @@ UUT: adc_processor
     )
   port map(
     CLK        => clock100,
-    ADC_DATA   => adc_data(39 downto 0),
+    ADC_DATA   => adc_data,
     ADC_VALID  => adc_valid(0),
     STOP_IN    => stop_in,
     TRIGGER_OUT=> trigger_out,
