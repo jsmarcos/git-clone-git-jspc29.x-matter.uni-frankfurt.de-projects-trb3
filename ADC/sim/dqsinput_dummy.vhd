@@ -28,7 +28,9 @@ architecture arch of dqsinput_dummy is
   type ch_t is array (0 to CHANNELS) of std_logic_vector(3 downto 0);
   signal ch : ch_t;
   
+  signal start_read, read_done : std_logic;
   signal readwords : integer;
+  
   type word_t is array (0 to CHANNELS-1) of std_logic_vector(9 downto 0);
   type word_arr_t is array (1 to 2) of word_t; 
   signal words : word_arr_t;
@@ -84,12 +86,15 @@ begin
       s3 := std_logic_vector(to_unsigned(t3, 10) + random3 - to_unsigned(integer(randrange), 10));
       s4 := std_logic_vector(to_unsigned(t4, 10) + random4 - to_unsigned(integer(randrange), 10));
 
-      wait until readwords /= 0;
+      wait until start_read = '1';
+            
       words(readwords)(0) <= s1;
       words(readwords)(1) <= s2;
       words(readwords)(2) <= s3;
       words(readwords)(3) <= s4; 
-      readwords <= readwords - 1;
+      read_done <= '1';
+      wait until start_read = '0';
+      read_done <= '0';
       
     end loop;
     file_close(stimulus);
@@ -98,9 +103,17 @@ begin
   dataoutput : process is
   begin
     -- fill the words signal
-    readwords <= words'length;
-    wait until readwords = 0;
+    readwords <= 1;
+    start_read <= '1';
+    wait until read_done = '1';
+    start_read <= '0';
+    wait until read_done = '0';
     
+    readwords <= 2;
+    start_read <= '1';
+    wait until read_done = '1';
+    start_read <= '0';
+    wait until read_done = '0'; 
     
     wait until rising_edge(sclk_int);
     q(3  downto  0) <= words(1)(0)(9 downto 6);
