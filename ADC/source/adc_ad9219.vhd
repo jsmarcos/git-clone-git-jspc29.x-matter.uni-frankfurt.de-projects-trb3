@@ -179,12 +179,13 @@ begin
     clk_fifo   <= clk_adc;
     fifo_empty <= (others => '0'); -- since we're reading with sampling frequency
     fill_fifo : process is
-      variable count : integer range 0 to 7 := 0;
+      constant count_max : integer := 7;
+      variable count : integer range 0 to count_max := 0;
     begin
       wait until rising_edge(clk_fifo);
       if RESTART_IN = '1' then
         count := 0;
-      elsif count /= count'high then
+      elsif count /= count_max then
         count := count + 1;
         fifo_read <= (others => '0');
       else
