@@ -36,7 +36,7 @@ architecture adc_ad9219_arch of adc_ad9219 is
   signal restart_i     : std_logic;
 
   type cnt_t is array (0 to NUM_DEVICES - 1) of unsigned(27 downto 0);
-  signal counter : cnt_t;
+  signal counter, counter_q : cnt_t;
 
   type state_t is (S1, S2, S3, S4, S5);
   type states_t is array (0 to NUM_DEVICES - 1) of state_t;
@@ -52,15 +52,21 @@ architecture adc_ad9219_arch of adc_ad9219 is
   signal fifo_output : fifo_t;
 
   signal fifo_write      : std_logic_vector(NUM_DEVICES - 1 downto 0);
+  signal fifo_read       : std_logic_vector(NUM_DEVICES - 1 downto 0);
   signal fifo_empty      : std_logic_vector(NUM_DEVICES - 1 downto 0);
   signal fifo_last_empty : std_logic_vector(NUM_DEVICES - 1 downto 0);
+  signal fifo_true_empty : std_logic_vector(NUM_DEVICES - 1 downto 0);
+
+  signal clk_fifo, clk_adc : std_logic;
 
 begin
+  ADCCLK_OUT <= clk_adc;
+
   gen_40MHz : if ADC_SAMPLING_RATE = 40 generate
     THE_ADC_REF : entity work.pll_in200_out40
       port map(
         CLK   => CLK_ADCRAW,
-        CLKOP => ADCCLK_OUT,
+        CLKOP => clk_adc,
         LOCK  => open
       );
     THE_ADC_PLL_0 : entity work.pll_adc10bit
@@ -75,7 +81,7 @@ begin
     THE_ADC_REF : entity work.pll_in200_out80
       port map(
         CLK   => CLK_ADCRAW,
-        CLKOP => ADCCLK_OUT,
+        CLKOP => clk_adc,
         LOCK  => open
       );
     THE_ADC_PLL_0 : entity work.pll_adc10bit_80
@@ -154,12 +160,37 @@ begin
       );
   end generate;
 
+  -- for simulation purposes only
   gen_dummy_dqs : if NUM_DEVICES = 1 generate
     THE_DUMMY_DQS : entity work.dqsinput_dummy
       port map(eclk => clk_adcfast_i,
                sclk => clk_data,
                q_0  => q(0)
       );
+  end generate;
+
+  gen_output_for_psa : if READOUT_MODE = READOUT_MODE_PSA generate
+    clk_fifo   <= CLK;
+    fifo_empty <= fifo_true_empty;
+    fifo_read <= (others => '1');
+  end generate;
+
+  gen_output_for_cfd : if READOUT_MODE = READOUT_MODE_CFD generate
+    clk_fifo   <= clk_adc;
+    fifo_empty <= (others => '0'); -- since we're reading with sampling frequency
+    fill_fifo : process is
+      variable count : integer range 0 to 7 := 0;
+    begin
+      wait until rising_edge(clk_fifo);
+      if RESTART_IN = '1' then
+        count := 0;
+      elsif count /= count'high then
+        count := count + 1;
+        fifo_read <= (others => '0');
+      else
+        fifo_read <= (others => '1');  
+      end if;
+    end process fill_fifo;    
   end generate;
 
   gen_chips : for i in 0 to NUM_DEVICES - 1 generate
@@ -236,20 +267,19 @@ begin
         Data(39 downto 30) => fifo_input(i)(3),
         Data(49 downto 40) => fifo_input(i)(4),
         WrClock            => clk_data,
-        RdClock            => CLK,
+        RdClock            => clk_fifo,
         WrEn               => fifo_write(i),
-        RdEn               => '1',
+        RdEn               => fifo_read(i),
         Reset              => RESTART_IN,
         RPReset            => RESTART_IN,
         Q(49 downto 0)     => fifo_output(i),
-        Empty              => fifo_empty(i),
+        Empty              => fifo_true_empty(i),
         Full               => open
       );
-    --   DEBUG(i) <= or_all(tmp(i));    
 
     proc_output : process
     begin
-      wait until rising_edge(CLK);
+      wait until rising_edge(clk_fifo);
       fifo_last_empty(i) <= fifo_empty(i);
       if fifo_last_empty(i) = '0' then
         DATA_OUT(i * 40 + 39 downto i * 40 + 0) <= fifo_output(i)(39 downto 0);
@@ -264,7 +294,9 @@ begin
     proc_debug : process
     begin
       wait until rising_edge(CLK);
-      DEBUG(i * 32 + 31 downto i * 32 + 4) <= std_logic_vector(counter(i));
+      state_q(i) <= state(i);
+      counter_q(i) <= counter(i);
+      DEBUG(i * 32 + 31 downto i * 32 + 4) <= std_logic_vector(counter_q(i));
       case state_q(i) is
         when S1     => DEBUG(i * 32 + 3 downto i * 32 + 0) <= x"1";
         when S2     => DEBUG(i * 32 + 3 downto i * 32 + 0) <= x"2";
@@ -275,9 +307,7 @@ begin
       end case;
     end process;
 
-  end generate;
-
-  state_q <= state when rising_edge(CLK);
+  end generate;                         -- gen_chips
 
 end architecture;
 
