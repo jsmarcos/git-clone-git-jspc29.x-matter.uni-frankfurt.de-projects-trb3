@@ -72,11 +72,15 @@ signal psa_data   : std_logic_vector(8 downto 0) := (others => '0');
 signal psa_write  : std_logic := '0';
 signal psa_addr   : std_logic_vector(7 downto 0) := (others => '0');
 
+signal restart : std_logic := '0';
+
 begin
 
 clock100 <= not clock100 after 5 ns;
 
 clock200 <= not clock200 after 2.5 ns;
+
+restart <= '1', '0' after 200 ns;
 
 
 -- 
@@ -192,7 +196,7 @@ THE_ADC : adc_ad9219
   )
   port map(CLK            => clock100,
            CLK_ADCRAW     => clock200,
-           RESTART_IN     => '0',
+           RESTART_IN     => restart,
            ADCCLK_OUT     => open,
            ADC_DATA       => (others => '0'),
            ADC_DCO        => (others => '0'),
