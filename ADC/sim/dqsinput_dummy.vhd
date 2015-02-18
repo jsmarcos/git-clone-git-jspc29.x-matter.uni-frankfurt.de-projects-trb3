@@ -25,8 +25,6 @@ end entity dqsinput_dummy;
 architecture arch of dqsinput_dummy is
   signal sclk_int : std_logic                     := '0';
   signal q        : std_logic_vector(19 downto 0) := (others => '0');
-  type ch_t is array (0 to CHANNELS) of std_logic_vector(3 downto 0);
-  signal ch : ch_t;
   
   signal start_read, read_done : std_logic;
   signal readwords : integer;
@@ -48,8 +46,6 @@ begin
     gen_data_mapping_bits : for k in 0 to 3 generate
       q_0(k * (CHANNELS + 1) + j) <= q(j * 4 + 3 - k);
     end generate;
-    -- finally, ch(i) is 4bits of 10bit ADC stream (MSB first) 
-    q(4 * (j + 1) - 1 downto 4 * j) <= ch(j);
   end generate;
 
   datareader : process is
