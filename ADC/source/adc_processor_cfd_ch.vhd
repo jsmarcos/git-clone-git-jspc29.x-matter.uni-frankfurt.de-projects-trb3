@@ -106,7 +106,7 @@ begin
   proc_baseline_delay : process is
   begin
     wait until rising_edge(CLK);
-    delay_baseline     <= delay_baseline(delay_baseline'high downto 1) & delay_baseline_in;
+    delay_baseline     <= delay_baseline(delay_baseline'high-1 downto 0) & delay_baseline_in;
     delay_baseline_out <= delay_baseline(delay_baseline'high);
   end process proc_baseline_delay;
 
