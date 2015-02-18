@@ -138,17 +138,17 @@ begin
     q(19 downto 16) <= "0011";
     
     wait until rising_edge(sclk_int);
-    q(3  downto  0) <= words(1)(0)(7 downto 4);
-    q(7  downto  4) <= words(1)(1)(7 downto 4);
-    q(11 downto  8) <= words(1)(2)(7 downto 4);
-    q(15 downto 12) <= words(1)(3)(7 downto 4);
+    q(3  downto  0) <= words(2)(0)(7 downto 4);
+    q(7  downto  4) <= words(2)(1)(7 downto 4);
+    q(11 downto  8) <= words(2)(2)(7 downto 4);
+    q(15 downto 12) <= words(2)(3)(7 downto 4);
     q(19 downto 16) <= "1111";
     
     wait until rising_edge(sclk_int);
-    q(3  downto  0) <= words(1)(0)(3 downto 0);
-    q(7  downto  4) <= words(1)(1)(3 downto 0);
-    q(11 downto  8) <= words(1)(2)(3 downto 0);
-    q(15 downto 12) <= words(1)(3)(3 downto 0);
+    q(3  downto  0) <= words(2)(0)(3 downto 0);
+    q(7  downto  4) <= words(2)(1)(3 downto 0);
+    q(11 downto  8) <= words(2)(2)(3 downto 0);
+    q(15 downto 12) <= words(2)(3)(3 downto 0);
     q(19 downto 16) <= "1111";   
     
   end process dataoutput;
