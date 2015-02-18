@@ -25,7 +25,7 @@ type unsigned_array_8  is array (integer range <>) of unsigned( 7 downto 0);
 
 
 type cfg_t is record
-  processing_mode   : integer range 0 to 3; --0: normal block processing, 1: pulse shape processing, 2: CFD
+  processing_mode   : integer range 0 to 3; --0: normal block processing, 1: pulse shape processing
   buffer_depth      : unsigned(10 downto 0);
   samples_after     : unsigned(10 downto 0);
   block_count       : unsigned( 1 downto 0);
@@ -45,6 +45,18 @@ type cfg_t is record
   check_word_enable : std_logic;
   cfd_window        : unsigned( 7 downto 0);
   cfd_delay         : unsigned( 3 downto 0);
+end record;
+
+type cfg_cfd_t is record
+  InputThreshold   : unsigned(9 downto 0);
+  PolarityInvert   : std_logic;
+  BaselineAverage  : unsigned(3 downto 0);
+  BaselineAlwaysOn : std_logic;
+  CFDDelay         : unsigned(4 downto 0);
+  CFDMult          : unsigned(3 downto 0);
+  CFDMultDly       : unsigned(3 downto 0);
+  IntegrateWindow  : unsigned(7 downto 0);
+  TriggerDelay     : unsigned(11 downto 0);
 end record;
 
 end package;
