@@ -10,8 +10,9 @@ package config is
 --Begin of design configuration
 ------------------------------------------------------------------------------
 
+--Select the basic readout functionality of the firmware
     type READOUT_MODE_type is (READOUT_MODE_DUMMY, READOUT_MODE_PSA, READOUT_MODE_CFD);
-    constant READOUT_MODE : READOUT_MODE_type := READOUT_MODE_CFD;  --use slowcontrol for readout, no trigger logic
+    constant READOUT_MODE : READOUT_MODE_type := READOUT_MODE_CFD;
     
 --Run wih 125 MHz instead of 100 MHz     
     constant USE_125_MHZ            : integer := c_NO;  --not implemented yet!  
@@ -28,6 +29,7 @@ package config is
 --ADC sampling frequency: 40 or 80 MHz supported
 --note that not all READOUT_MODEs will lead to timing-error free designs
 --the READOUT_MODE_PSA mode is usually only working with 40MHz
+--the READOUT_MODE_CFD mode is more robust against clock domain crossing issues 
     constant ADC_SAMPLING_RATE      : integer := 80;
     
 --These are currently used for the included features table only
