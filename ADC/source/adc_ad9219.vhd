@@ -239,7 +239,7 @@ begin
         RdClock            => CLK,
         WrEn               => fifo_write(i),
         RdEn               => '1',
-        Reset              => '0',
+        Reset              => RESTART_IN,
         RPReset            => RESTART_IN,
         Q(49 downto 0)     => fifo_output(i),
         Empty              => fifo_empty(i),
