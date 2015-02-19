@@ -58,9 +58,11 @@ architecture adc_ad9219_arch of adc_ad9219 is
   signal fifo_true_empty : std_logic_vector(NUM_DEVICES - 1 downto 0);
 
   signal clk_fifo, clk_adc : std_logic;
+  signal DATA_OUT_s       : std_logic_vector(NUM_DEVICES * CHANNELS * RESOLUTION - 1 downto 0) := (others => '0');
 
 begin
   ADCCLK_OUT <= clk_adc;
+  DATA_OUT <= DATA_OUT_s;
 
   gen_40MHz : if ADC_SAMPLING_RATE = 40 generate
     THE_ADC_REF : entity work.pll_in200_out40
@@ -283,12 +285,11 @@ begin
       wait until rising_edge(clk_fifo);
       fifo_last_empty(i) <= fifo_empty(i);
       if fifo_last_empty(i) = '0' then
-        DATA_OUT(i * 40 + 39 downto i * 40 + 0) <= fifo_output(i)(39 downto 0);
+        DATA_OUT_s(i * 40 + 39 downto i * 40 + 0) <= fifo_output(i)(39 downto 0);
         FCO_OUT(i * 10 + 9 downto i * 10 + 0)   <= fifo_output(i)(49 downto 40);
         DATA_VALID_OUT(i)                       <= '1';
         counter(i)                              <= counter(i) + 1;
       else
-        DATA_OUT(i * 40 + 39 downto i * 40 + 0) <= (others => '0');
         DATA_VALID_OUT(i) <= '0';
       end if;
     end process;
