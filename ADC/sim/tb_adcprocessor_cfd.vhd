@@ -36,9 +36,9 @@ begin
   config.BaselineAverage <= to_unsigned(8, 4);
   config.PolarityInvert  <= '1';
 
-  config.check_word1       <= (others => '0');
-  config.check_word2       <= (others => '0');
-  config.check_word_enable <= '0';
+  config.CheckWord1       <= (others => '0');
+  config.CheckWord2       <= (others => '0');
+  config.CheckWordEnable  <= '0';
 
   readout_rx.valid_notiming_trg <= '0';
   readout_rx.invalid_trg        <= '0';

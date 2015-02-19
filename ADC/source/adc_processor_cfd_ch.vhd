@@ -61,7 +61,7 @@ begin
     process
     begin
       wait until rising_edge(CLK);
-      if ADC_DATA /= CONF.check_word1 and ADC_DATA /= CONF.check_word2 and CONF.check_word_enable = '1' then
+      if ADC_DATA /= CONF.CheckWord1 and ADC_DATA /= CONF.CheckWord2 and CONF.CheckWordEnable = '1' then
         invalid_word_count <= invalid_word_count + 1;
       end if;
     end process;
@@ -125,5 +125,7 @@ begin
     end if;
     baseline <= baseline_average(avg + RESOLUTION - 1 downto avg);
   end process proc_baseline_average;
+
+
 
 end architecture arch;
