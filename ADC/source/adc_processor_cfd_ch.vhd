@@ -28,8 +28,9 @@ architecture arch of adc_processor_cfd_ch is
   constant RESOLUTION_CFD  : integer := RESOLUTION_PROD + 1; -- this should be 16 to fit into the readout ram
 
   constant RESOLUTION_BASEAVG : integer := RESOLUTION + 2 ** CONF.BaselineAverage'length - 1;
-  constant LENGTH_BASEDLY     : integer := 32;
+  constant LENGTH_BASEDLY     : integer := 32; -- longer than typical pulses?
   constant LENGTH_CFDDLY      : integer := 2 ** CONF.CFDDelay'length;
+  constant LENGTH_INTDLY      : integer := 2;  -- must match CFD/zeroX calculation chain
 
   type unsigned_in_thresh_t is record
     value  : unsigned(RESOLUTION - 1 downto 0);
@@ -57,7 +58,7 @@ architecture arch of adc_processor_cfd_ch is
 
   signal invalid_word_count : unsigned(DEBUG.InvalidWordCount'length - 1 downto 0) := (others => '0');
 
-  signal baseline, input  : unsigned(RESOLUTION - 1 downto 0) := (others => '0');
+  signal baseline, input  : unsigned(RESOLUTION - 1 downto 0)         := (others => '0');
   signal baseline_average : unsigned(RESOLUTION_BASEAVG - 1 downto 0) := (others => '0');
 
   type delay_baseline_t is array (LENGTH_BASEDLY - 1 downto 0) of unsigned_in_thresh_t;
@@ -72,10 +73,23 @@ architecture arch of adc_processor_cfd_ch is
   signal delay_cfd_in  : signed(RESOLUTION_SUB - 1 downto 0) := (others => '0');
   signal delay_cfd_out : signed(RESOLUTION_SUB - 1 downto 0) := (others => '0');
 
-  signal prod, prod_invert : product_thresh_t;
+  signal prod, prod_invert : product_thresh_t := product_thresh_t_INIT;
   signal prod_delay        : signed(RESOLUTION_PROD - 1 downto 0);
 
-  signal cfd : cfd_thresh_t;            -- the bipolar signal
+  signal cfd                               : cfd_thresh_t                        := cfd_thresh_t_INIT; -- the bipolar signal
+  signal cfd_prev, cfd_prev_save, cfd_save : signed(RESOLUTION_CFD - 1 downto 0) := (others => '0');
+
+  type delay_integral_t is array (LENGTH_INTDLY - 1 downto 0) of signed(RESOLUTION_SUB - 1 downto 0);
+  signal delay_integral     : delay_integral_t                         := (others => (others => '0'));
+  signal delay_integral_in  : signed(RESOLUTION_SUB - 1 downto 0) := (others => '0');
+  signal delay_integral_out : signed(RESOLUTION_SUB - 1 downto 0) := (others => '0');
+
+  signal integral_sum                      : signed(RESOLUTION_CFD - 1 downto 0) := (others => '0');
+
+  signal epoch_counter : unsigned(23 downto 0) := (others => '0');
+  type state_t is (IDLE, INTEGRATE);
+  signal state : state_t := IDLE;
+
 begin
   -- input ADC data interpreted as unsigned
   input <= unsigned(ADC_DATA);
@@ -186,9 +200,59 @@ begin
     prod_invert.value  <= -prod.value;
     prod_invert.thresh <= prod.thresh;
 
-    -- add
+    -- add both signals to generate the bipolar cfd signal
     cfd.value  <= resize(prod_invert.value, RESOLUTION_CFD) + resize(prod_delay, RESOLUTION_CFD);
     cfd.thresh <= prod_invert.thresh;
   end process proc_cfd_mult_inv_add;
+
+  -- Integrate delay
+  delay_integral_in <= delay_cfd_out;
+  proc_integral_delay : process is
+  begin
+    wait until rising_edge(CLK);
+    delay_integral     <= delay_integral(delay_integral'high - 1 downto 0) & delay_integral_in;
+    delay_integral_out <= delay_integral(delay_integral'high);
+  end process proc_integral_delay;
+
+  -- ZeroX detect, integrate, write to RAM
+  proc_zeroX_gate : process is
+    variable zeroX            : std_logic := '0';
+    variable integral_counter : integer range 0 to 2 ** CONF.IntegrateWindow'length - 1;
+  begin
+    wait until rising_edge(CLK);
+
+    epoch_counter <= epoch_counter + 1;
+
+    cfd_prev <= cfd.value;
+    if cfd_prev < 0 and cfd.value > 0 and cfd.thresh = '1' then
+      zeroX := '1';
+    else
+      zeroX := '0';
+    end if;
+
+    case state is
+      when IDLE =>
+        if zeroX = '1' then
+          state            <= INTEGRATE;
+          integral_counter := to_integer(CONF.IntegrateWindow);
+          integral_sum <= resize(delay_integral_out, RESOLUTION_CFD);
+          cfd_prev_save <= cfd_prev;
+          cfd_save <= cfd.value;
+        end if;        
+      when INTEGRATE =>
+        if integral_counter = 0 then
+          state         <= IDLE;
+        else
+          integral_sum <= integral_sum + resize(delay_integral_out, RESOLUTION_CFD);
+          integral_counter := integral_counter - 1;
+        end if;
+    end case;
+
+  end process proc_zeroX_gate;
+  
+  
+
+  
+  
 
 end architecture arch;
