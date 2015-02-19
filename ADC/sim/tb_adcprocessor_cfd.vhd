@@ -13,6 +13,7 @@ end entity;
 architecture tb_arch of tb is
   signal clock100    : std_logic                     := '1';
   signal clock200    : std_logic                     := '1';
+  signal clock_adc   : std_logic                     := '1';
   signal adc_data    : std_logic_vector(39 downto 0) := (others => '0');
   signal stop_in     : std_logic                     := '0';
   signal trigger_out : std_logic                     := '0';
@@ -85,7 +86,7 @@ begin
     port map(CLK            => clock100,
              CLK_ADCRAW     => clock200,
              RESTART_IN     => restart,
-             ADCCLK_OUT     => open,
+             ADCCLK_OUT     => clock_adc,
              ADC_DATA       => (others => '0'),
              ADC_DCO        => (others => '0'),
              DATA_OUT       => adc_data,
@@ -99,7 +100,8 @@ begin
       DEVICE => 0
     )
     port map(
-      CLK                => clock100,
+      CLK_SYS            => clock100,
+      CLK_ADC            => clock_adc,
       ADC_DATA           => adc_data,
       STOP_IN            => stop_in,
       TRIGGER_OUT        => trigger_out,

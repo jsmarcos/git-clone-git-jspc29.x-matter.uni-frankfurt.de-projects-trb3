@@ -18,12 +18,13 @@ entity adc_processor_cfd_ch is
     RAM_ADDR    : in  std_logic_vector(7 downto 0);
     RAM_DATA    : out std_logic_vector(31 downto 0);
 
-    TRIGGER_OUT : out std_logic
+    DEBUG       : out debug_cfd_t
+
   );
 end entity adc_processor_cfd_ch;
 
 architecture arch of adc_processor_cfd_ch is
-  signal invalid_word_count : unsigned(31 downto 0) := (others => '0');
+  signal invalid_word_count : unsigned(DEBUG.InvalidWordCount'length-1 downto 0) := (others => '0');
 
   type unsigned_in_thresh_t is record
     word   : unsigned(RESOLUTION - 1 downto 0);
@@ -54,7 +55,13 @@ architecture arch of adc_processor_cfd_ch is
   signal delay_cfd_out : signed(RESOLUTION downto 0) := (others => '0');
 
 begin
+  -- input ADC data interpreted as unsigned
   input <= unsigned(ADC_DATA);
+
+  -- Tell the outer word some useful debug infos
+  DEBUG.InvalidWordCount <= invalid_word_count;
+  DEBUG.Baseline <= baseline;
+  DEBUG.LastWord <= input;
 
   -- word checker, needed for ADC phase adjustment
   gen_word_checker : for i in 0 to CHANNELS - 1 generate
@@ -99,7 +106,7 @@ begin
     end if;
     delay_baseline_in.thresh <= thresh;
     subtracted.thresh        <= thresh;
-    TRIGGER_OUT              <= thresh;
+    DEBUG.Trigger            <= thresh;
   end process proc_compare_invert;
 
   -- delay for baseline
