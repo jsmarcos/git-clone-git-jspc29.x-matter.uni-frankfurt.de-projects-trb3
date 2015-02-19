@@ -57,7 +57,7 @@ architecture arch of adc_processor_cfd_ch is
 
   signal invalid_word_count : unsigned(DEBUG.InvalidWordCount'length - 1 downto 0) := (others => '0');
 
-  signal baseline, input  : unsigned(RESOLUTION - 1 downto 0);
+  signal baseline, input  : unsigned(RESOLUTION - 1 downto 0) := (others => '0');
   signal baseline_average : unsigned(RESOLUTION_BASEAVG - 1 downto 0) := (others => '0');
 
   type delay_baseline_t is array (LENGTH_BASEDLY - 1 downto 0) of unsigned_in_thresh_t;

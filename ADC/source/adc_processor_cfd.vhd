@@ -37,7 +37,7 @@ architecture arch of adc_processor_cfd is
   attribute syn_preserve : boolean;
   attribute syn_hier of arch : architecture is "hard";
 
-  signal CONF_adc, CONF_sys : cfg_cfd_t;
+  signal CONF_adc, CONF_sys : cfg_cfd_t := cfg_cfd_t_INIT;
   attribute syn_keep of CONF_adc, CONF_sys : signal is true;
   attribute syn_preserve of CONF_adc, CONF_sys : signal is true;
 
@@ -45,7 +45,7 @@ architecture arch of adc_processor_cfd is
   type debug_t is array (CHANNELS - 1 downto 0) of debug_cfd_t;
   signal debug_adc, debug_sys : debug_t;
 
-  signal reg_buffer_addr : std_logic_vector(4 downto 0);
+  signal reg_buffer_addr : std_logic_vector(4 downto 0) := (others => '0');
   signal reg_buffer_read : std_logic;
 
 begin
