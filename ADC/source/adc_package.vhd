@@ -59,6 +59,23 @@ package adc_package is
     ChannelDisable   : std_logic_vector(47 downto 0);
   end record;
 
+  constant cfg_cfd_t_INIT : cfg_cfd_t := (
+    InputThreshold   => (others => '0'),
+    PolarityInvert   => '0',
+    BaselineAverage  => (others => '0'),
+    BaselineAlwaysOn => '0',
+    CFDDelay         => (others => '0'),
+    CFDMult          => (others => '0'),
+    CFDMultDly       => (others => '0'),
+    IntegrateWindow  => (others => '0'),
+    TriggerDelay     => (others => '0'),
+    CheckWord1       => (others => '0'),
+    CheckWord2       => (others => '0'),
+    CheckWordEnable  => '0',
+    TriggerEnable    => (others => '0'),
+    ChannelDisable   => (others => '0')
+  );
+
   type debug_cfd_t is record
     InvalidWordCount : unsigned(31 downto 0);
     Baseline         : unsigned(RESOLUTION - 1 downto 0);

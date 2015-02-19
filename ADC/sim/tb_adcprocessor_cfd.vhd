@@ -17,7 +17,7 @@ architecture tb_arch of tb is
   signal adc_data    : std_logic_vector(39 downto 0) := (others => '0');
   signal stop_in     : std_logic                     := '0';
   signal trigger_out : std_logic                     := '0';
-  signal config      : cfg_cfd_t;
+  signal config      : cfg_cfd_t := cfg_cfd_t_INIT;
   signal readout_rx  : READOUT_RX;
   signal readout_tx  : READOUT_TX;
   signal control     : std_logic_vector(63 downto 0);
