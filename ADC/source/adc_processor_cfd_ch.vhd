@@ -23,34 +23,34 @@ entity adc_processor_cfd_ch is
 end entity adc_processor_cfd_ch;
 
 architecture arch of adc_processor_cfd_ch is
-  constant RESOLUTION_SUB     : integer := RESOLUTION + 1; -- one sign bit extra for baseline subtracted value
-  constant RESOLUTION_PROD    : integer := RESOLUTION_SUB + CONF.CFDMult'length; -- assume CONF.CFDMult length equals CFDMultDly
-  constant RESOLUTION_CFD     : integer := RESOLUTION_PROD + 1; -- this should be 16 to fit into the readout ram
-  
+  constant RESOLUTION_SUB  : integer := RESOLUTION + 1; -- one sign bit extra for baseline subtracted value
+  constant RESOLUTION_PROD : integer := RESOLUTION_SUB + CONF.CFDMult'length; -- assume CONF.CFDMult length equals CFDMultDly
+  constant RESOLUTION_CFD  : integer := RESOLUTION_PROD + 1; -- this should be 16 to fit into the readout ram
+
   constant RESOLUTION_BASEAVG : integer := RESOLUTION + 2 ** CONF.BaselineAverage'length - 1;
   constant LENGTH_BASEDLY     : integer := 32;
   constant LENGTH_CFDDLY      : integer := 2 ** CONF.CFDDelay'length;
 
   type unsigned_in_thresh_t is record
-    value   : unsigned(RESOLUTION - 1 downto 0);
+    value  : unsigned(RESOLUTION - 1 downto 0);
     thresh : std_logic;
   end record;
   constant unsigned_in_thresh_t_INIT : unsigned_in_thresh_t := (value => (others => '0'), thresh => '0');
 
   type subtracted_thresh_t is record
-    value   : signed(RESOLUTION_SUB - 1 downto 0);
+    value  : signed(RESOLUTION_SUB - 1 downto 0);
     thresh : std_logic;
   end record;
   constant subtracted_thresh_t_INIT : subtracted_thresh_t := (value => (others => '0'), thresh => '0');
 
   type product_thresh_t is record
-    value   : signed(RESOLUTION_PROD - 1 downto 0);
+    value  : signed(RESOLUTION_PROD - 1 downto 0);
     thresh : std_logic;
   end record;
   constant product_thresh_t_INIT : product_thresh_t := (value => (others => '0'), thresh => '0');
 
   type cfd_thresh_t is record
-    value   : signed(RESOLUTION_CFD - 1 downto 0);
+    value  : signed(RESOLUTION_CFD - 1 downto 0);
     thresh : std_logic;
   end record;
   constant cfd_thresh_t_INIT : cfd_thresh_t := (value => (others => '0'), thresh => '0');
@@ -75,7 +75,7 @@ architecture arch of adc_processor_cfd_ch is
   signal prod, prod_invert : product_thresh_t;
   signal prod_delay        : signed(RESOLUTION_PROD - 1 downto 0);
 
-  signal cfd : cfd_thresh_t; -- the bipolar signal
+  signal cfd : cfd_thresh_t;            -- the bipolar signal
 begin
   -- input ADC data interpreted as unsigned
   input <= unsigned(ADC_DATA);
@@ -177,17 +177,17 @@ begin
     prod_delay   <= resize(prod_delay_s, RESOLUTION_PROD); -- get rid of extra bit again
 
     -- undelayed chain: input is subtracted signal
-    mult_s             := signed(resize(CONF.CFDMult, CONF.CFDMult'length + 1)); -- add extra zero sign bit
-    prod_s             := mult_s * subtracted.value;
-    prod.value          <= resize(prod_s, RESOLUTION_PROD); -- get rid of extra bit again
-    prod.thresh        <= subtracted.thresh;
-    
+    mult_s      := signed(resize(CONF.CFDMult, CONF.CFDMult'length + 1)); -- add extra zero sign bit
+    prod_s      := mult_s * subtracted.value;
+    prod.value  <= resize(prod_s, RESOLUTION_PROD); -- get rid of extra bit again
+    prod.thresh <= subtracted.thresh;
+
     -- invert
-    prod_invert.value   <= -prod.value;
-    prod_invert.thresh <= prod_invert.thresh;
-  
+    prod_invert.value  <= -prod.value;
+    prod_invert.thresh <= prod.thresh;
+
     -- add
-    cfd.value <= resize(prod_invert.value, RESOLUTION_CFD) + resize(prod_delay, RESOLUTION_CFD);
+    cfd.value  <= resize(prod_invert.value, RESOLUTION_CFD) + resize(prod_delay, RESOLUTION_CFD);
     cfd.thresh <= prod_invert.thresh;
   end process proc_cfd_mult_inv_add;
 
