@@ -45,8 +45,8 @@ architecture adc_ad9219_arch of adc_ad9219 is
 
   type value_it is array (0 to 4) of std_logic_vector(9 downto 0);
   type value_t is array (0 to NUM_DEVICES - 1) of value_it;
-  signal value      : value_t;
-  signal fifo_input : value_t;
+  signal value : value_t := (others => (others => (others => '0')));
+  signal fifo_input : value_t := (others => (others => (others => '0')));
 
   type fifo_t is array (0 to NUM_DEVICES - 1) of std_logic_vector(49 downto 0);
   signal fifo_output : fifo_t;
