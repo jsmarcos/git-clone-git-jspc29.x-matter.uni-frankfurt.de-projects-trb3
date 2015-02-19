@@ -40,6 +40,8 @@ begin
   config.CFDDelay <= to_unsigned(2, 5);
   config.CFDMult <= to_unsigned(2, 4);
   config.CFDMultDly <= to_unsigned(3, 4);
+
+  config.IntegrateWindow <= to_unsigned(60, 8);
    
   config.CheckWord1       <= (others => '0');
   config.CheckWord2       <= (others => '0');

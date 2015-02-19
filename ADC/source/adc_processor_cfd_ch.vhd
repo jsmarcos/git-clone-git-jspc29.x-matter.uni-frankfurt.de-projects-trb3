@@ -30,7 +30,7 @@ architecture arch of adc_processor_cfd_ch is
   constant RESOLUTION_BASEAVG : integer := RESOLUTION + 2 ** CONF.BaselineAverage'length - 1;
   constant LENGTH_BASEDLY     : integer := 32; -- longer than typical pulses?
   constant LENGTH_CFDDLY      : integer := 2 ** CONF.CFDDelay'length;
-  constant LENGTH_INTDLY      : integer := 2;  -- must match CFD/zeroX calculation chain
+  constant LENGTH_INTDLY      : integer := 3;  -- must match CFD/zeroX calculation chain
 
   type unsigned_in_thresh_t is record
     value  : unsigned(RESOLUTION - 1 downto 0);
@@ -74,7 +74,7 @@ architecture arch of adc_processor_cfd_ch is
   signal delay_cfd_out : signed(RESOLUTION_SUB - 1 downto 0) := (others => '0');
 
   signal prod, prod_invert : product_thresh_t := product_thresh_t_INIT;
-  signal prod_delay        : signed(RESOLUTION_PROD - 1 downto 0);
+  signal prod_delay        : signed(RESOLUTION_PROD - 1 downto 0) := (others => '0');
 
   signal cfd                               : cfd_thresh_t                        := cfd_thresh_t_INIT; -- the bipolar signal
   signal cfd_prev, cfd_prev_save, cfd_save : signed(RESOLUTION_CFD - 1 downto 0) := (others => '0');
