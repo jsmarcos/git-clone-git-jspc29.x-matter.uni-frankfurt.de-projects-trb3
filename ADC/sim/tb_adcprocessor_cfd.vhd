@@ -30,10 +30,11 @@ begin
 
   restart <= '1', '0' after 200 ns;
 
-  config.BaselineAlwaysOn <= '1', '0' after 5 us;
+  config.BaselineAlwaysOn <= '1', '0' after 20 us;
 
   config.InputThreshold  <= to_unsigned(40, 10);
   config.BaselineAverage <= to_unsigned(8, 4);
+  config.PolarityInvert  <= '1';
 
   config.check_word1       <= (others => '0');
   config.check_word2       <= (others => '0');
