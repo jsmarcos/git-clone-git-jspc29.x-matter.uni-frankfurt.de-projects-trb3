@@ -8,60 +8,82 @@ use work.adc_package.all;
 
 entity adc_processor_cfd_ch is
   port(
-    CLK         : in  std_logic;
+    CLK      : in  std_logic;
 
-    ADC_DATA    : in  std_logic_vector(RESOLUTION - 1 downto 0);
+    ADC_DATA : in  std_logic_vector(RESOLUTION - 1 downto 0);
 
-    CONF        : in  cfg_cfd_t;
+    CONF     : in  cfg_cfd_t;
 
-    RAM_RD      : in  std_logic;
-    RAM_ADDR    : in  std_logic_vector(7 downto 0);
-    RAM_DATA    : out std_logic_vector(31 downto 0);
+    RAM_RD   : in  std_logic;
+    RAM_ADDR : in  std_logic_vector(7 downto 0);
+    RAM_DATA : out std_logic_vector(31 downto 0);
 
-    DEBUG       : out debug_cfd_t
-
+    DEBUG    : out debug_cfd_t
   );
 end entity adc_processor_cfd_ch;
 
 architecture arch of adc_processor_cfd_ch is
-  signal invalid_word_count : unsigned(DEBUG.InvalidWordCount'length-1 downto 0) := (others => '0');
+  constant RESOLUTION_SUB     : integer := RESOLUTION + 1; -- one sign bit extra for baseline subtracted value
+  constant RESOLUTION_PROD    : integer := RESOLUTION_SUB + CONF.CFDMult'length; -- assume CONF.CFDMult length equals CFDMultDly
+  constant RESOLUTION_CFD     : integer := RESOLUTION_PROD + 1; -- this should be 16 to fit into the readout ram
+  
+  constant RESOLUTION_BASEAVG : integer := RESOLUTION + 2 ** CONF.BaselineAverage'length - 1;
+  constant LENGTH_BASEDLY     : integer := 32;
+  constant LENGTH_CFDDLY      : integer := 2 ** CONF.CFDDelay'length;
 
   type unsigned_in_thresh_t is record
-    word   : unsigned(RESOLUTION - 1 downto 0);
+    value   : unsigned(RESOLUTION - 1 downto 0);
     thresh : std_logic;
   end record;
-  constant unsigned_in_thresh_t_INIT : unsigned_in_thresh_t := (word => (others => '0'), thresh => '0');
+  constant unsigned_in_thresh_t_INIT : unsigned_in_thresh_t := (value => (others => '0'), thresh => '0');
 
-  signal baseline, input : unsigned(RESOLUTION - 1 downto 0);
+  type subtracted_thresh_t is record
+    value   : signed(RESOLUTION_SUB - 1 downto 0);
+    thresh : std_logic;
+  end record;
+  constant subtracted_thresh_t_INIT : subtracted_thresh_t := (value => (others => '0'), thresh => '0');
 
-  signal baseline_average : unsigned(RESOLUTION + 2 ** CONF.BaselineAverage'length - 1 - 1 downto 0) := (others => '0');
+  type product_thresh_t is record
+    value   : signed(RESOLUTION_PROD - 1 downto 0);
+    thresh : std_logic;
+  end record;
+  constant product_thresh_t_INIT : product_thresh_t := (value => (others => '0'), thresh => '0');
 
-  type delay_baseline_t is array (31 downto 0) of unsigned_in_thresh_t;
+  type cfd_thresh_t is record
+    value   : signed(RESOLUTION_CFD - 1 downto 0);
+    thresh : std_logic;
+  end record;
+  constant cfd_thresh_t_INIT : cfd_thresh_t := (value => (others => '0'), thresh => '0');
+
+  signal invalid_word_count : unsigned(DEBUG.InvalidWordCount'length - 1 downto 0) := (others => '0');
+
+  signal baseline, input  : unsigned(RESOLUTION - 1 downto 0);
+  signal baseline_average : unsigned(RESOLUTION_BASEAVG - 1 downto 0) := (others => '0');
+
+  type delay_baseline_t is array (LENGTH_BASEDLY - 1 downto 0) of unsigned_in_thresh_t;
   signal delay_baseline     : delay_baseline_t     := (others => unsigned_in_thresh_t_INIT);
   signal delay_baseline_in  : unsigned_in_thresh_t := unsigned_in_thresh_t_INIT;
   signal delay_baseline_out : unsigned_in_thresh_t := unsigned_in_thresh_t_INIT;
 
-  type subtracted_thresh_t is record
-    word   : signed(RESOLUTION downto 0);
-    thresh : std_logic;
-  end record;
-  constant subtracted_thresh_t_INIT : subtracted_thresh_t := (word => (others => '0'), thresh => '0');
-
   signal subtracted : subtracted_thresh_t := subtracted_thresh_t_INIT;
 
-  type delay_cfd_t is array (2 ** (CONF.CFDDelay'length) - 1 downto 0) of signed(RESOLUTION downto 0);
-  signal delay_cfd     : delay_cfd_t                 := (others => (others => '0'));
-  signal delay_cfd_in  : signed(RESOLUTION downto 0) := (others => '0');
-  signal delay_cfd_out : signed(RESOLUTION downto 0) := (others => '0');
+  type delay_cfd_t is array (LENGTH_CFDDLY - 1 downto 0) of signed(RESOLUTION_SUB - 1 downto 0);
+  signal delay_cfd     : delay_cfd_t                         := (others => (others => '0'));
+  signal delay_cfd_in  : signed(RESOLUTION_SUB - 1 downto 0) := (others => '0');
+  signal delay_cfd_out : signed(RESOLUTION_SUB - 1 downto 0) := (others => '0');
 
+  signal prod, prod_invert : product_thresh_t;
+  signal prod_delay        : signed(RESOLUTION_PROD - 1 downto 0);
+
+  signal cfd : cfd_thresh_t; -- the bipolar signal
 begin
   -- input ADC data interpreted as unsigned
   input <= unsigned(ADC_DATA);
 
   -- Tell the outer word some useful debug infos
   DEBUG.InvalidWordCount <= invalid_word_count;
-  DEBUG.Baseline <= baseline;
-  DEBUG.LastWord <= input;
+  DEBUG.Baseline         <= baseline;
+  DEBUG.LastWord         <= input;
 
   -- word checker, needed for ADC phase adjustment
   gen_word_checker : for i in 0 to CHANNELS - 1 generate
@@ -95,8 +117,8 @@ begin
     end if;
 
     -- output
-    delay_baseline_in.word <= input;
-    subtracted.word        <= sub;
+    delay_baseline_in.value <= input;
+    subtracted.value        <= sub;
 
     -- check if signal is above thresh
     if sub > thresh_s then
@@ -113,7 +135,7 @@ begin
   proc_baseline_delay : process is
   begin
     wait until rising_edge(CLK);
-    delay_baseline     <= delay_baseline(delay_baseline'high-1 downto 0) & delay_baseline_in;
+    delay_baseline     <= delay_baseline(delay_baseline'high - 1 downto 0) & delay_baseline_in;
     delay_baseline_out <= delay_baseline(delay_baseline'high);
   end process proc_baseline_delay;
 
@@ -125,7 +147,7 @@ begin
   begin
     wait until rising_edge(CLK);
     avg     := to_integer(CONF.BaselineAverage);
-    input_r := resize(delay_baseline_out.word, l);
+    input_r := resize(delay_baseline_out.value, l);
     fract_r := resize(baseline_average(avg + RESOLUTION - 1 downto avg), l);
     if delay_baseline_out.thresh = '0' or CONF.BaselineAlwaysOn = '1' then
       baseline_average <= baseline_average + input_r - fract_r;
@@ -133,6 +155,40 @@ begin
     baseline <= baseline_average(avg + RESOLUTION - 1 downto avg);
   end process proc_baseline_average;
 
+  -- CFD delay
+  delay_cfd_in <= subtracted.value;
+  proc_cfd_delay : process is
+  begin
+    wait until rising_edge(CLK);
+    delay_cfd     <= delay_cfd(delay_cfd'high - 1 downto 0) & delay_cfd_in;
+    delay_cfd_out <= delay_cfd(to_integer(CONF.CFDDelay));
+  end process proc_cfd_delay;
 
+  -- CFD multiply, invert, add
+  proc_cfd_mult_inv_add : process is
+    variable mult_s, mult_delay_s : signed(CONF.CFDMultDly'length downto 0); -- extra sign bit
+    variable prod_s, prod_delay_s : signed(RESOLUTION_PROD downto 0); -- extra sign bit
+  begin
+    wait until rising_edge(CLK);
+
+    -- delayed chain: input is output of delay, aka delay_cfd_out
+    mult_delay_s := signed(resize(CONF.CFDMultDly, CONF.CFDMultDly'length + 1)); -- add extra zero sign bit
+    prod_delay_s := mult_delay_s * delay_cfd_out;
+    prod_delay   <= resize(prod_delay_s, RESOLUTION_PROD); -- get rid of extra bit again
+
+    -- undelayed chain: input is subtracted signal
+    mult_s             := signed(resize(CONF.CFDMult, CONF.CFDMult'length + 1)); -- add extra zero sign bit
+    prod_s             := mult_s * subtracted.value;
+    prod.value          <= resize(prod_s, RESOLUTION_PROD); -- get rid of extra bit again
+    prod.thresh        <= subtracted.thresh;
+    
+    -- invert
+    prod_invert.value   <= -prod.value;
+    prod_invert.thresh <= prod_invert.thresh;
+  
+    -- add
+    cfd.value <= resize(prod_invert.value, RESOLUTION_CFD) + resize(prod_delay, RESOLUTION_CFD);
+    cfd.thresh <= prod_invert.thresh;
+  end process proc_cfd_mult_inv_add;
 
 end architecture arch;
