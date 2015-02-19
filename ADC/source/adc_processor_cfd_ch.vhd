@@ -33,7 +33,7 @@ architecture arch of adc_processor_cfd_ch is
 
   signal baseline, input : unsigned(RESOLUTION - 1 downto 0);
 
-  signal baseline_average : unsigned(RESOLUTION + 2 ** CONF.BaselineAverage'length - 1 - 1 downto 0);
+  signal baseline_average : unsigned(RESOLUTION + 2 ** CONF.BaselineAverage'length - 1 - 1 downto 0) := (others => '0');
 
   type delay_baseline_t is array (31 downto 0) of unsigned_in_thresh_t;
   signal delay_baseline     : delay_baseline_t     := (others => unsigned_in_thresh_t_INIT);

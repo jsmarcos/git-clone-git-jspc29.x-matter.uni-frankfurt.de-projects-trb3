@@ -288,6 +288,7 @@ begin
         DATA_VALID_OUT(i)                       <= '1';
         counter(i)                              <= counter(i) + 1;
       else
+        DATA_OUT(i * 40 + 39 downto i * 40 + 0) <= (others => '0');
         DATA_VALID_OUT(i) <= '0';
       end if;
     end process;
