@@ -126,6 +126,11 @@ begin
         elsif READOUT_RX.valid_timing_trg = '1' then
           state <= CFD_READOUT;
           channelselect := 0;
+          -- if there's already new data present, 
+          -- start moving the counter already now 
+          if ram_data_sys(channelselect) /= x"00000000" then
+            ram_counter(channelselect) <= ram_counter(channelselect) + 1;
+          end if;
         end if;
 
       when RELEASE_DIRECT =>
@@ -156,6 +161,7 @@ begin
         if ram_data_sys(channelselect) = x"00000000" then
           if channelselect = 3 then
             state <= RELEASE_DIRECT;
+            channelselect := 0;
           else
             channelselect := channelselect + 1;
           end if;
