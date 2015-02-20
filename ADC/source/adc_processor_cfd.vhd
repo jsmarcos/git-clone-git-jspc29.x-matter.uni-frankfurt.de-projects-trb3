@@ -48,6 +48,12 @@ architecture arch of adc_processor_cfd is
   signal reg_buffer_addr : std_logic_vector(4 downto 0) := (others => '0');
   signal reg_buffer_read : std_logic;
 
+  type ram_addr_t is array (CHANNELS - 1 downto 0) of std_logic_vector(8 downto 0);
+  type ram_data_t is array (CHANNELS - 1 downto 0) of std_logic_vector(31 downto 0);
+  signal ram_addr_adc, ram_addr_sys : ram_addr_t := (others => (others => '0'));
+  signal ram_data_adc, ram_data_sys : ram_data_t := (others => (others => '0'));
+  --signal ram_we_adc : std_logic_vector(CHANNELS - 1 downto 0) := (others => '0');
+
 begin
   CONF_adc <= CONFIG when rising_edge(CLK_ADC);
   CONF_sys <= CONFIG when rising_edge(CLK_SYS);
@@ -59,14 +65,29 @@ begin
   gen_cfd : for i in 0 to CHANNELS - 1 generate
     trigger_gen(i) <= debug_sys(i).Trigger;
     THE_CFD : entity work.adc_processor_cfd_ch
+      generic map(
+        DEVICE => DEVICE,
+        CHANNEL => i
+      )
       port map(CLK      => CLK_ADC,
                ADC_DATA => ADC_DATA(RESOLUTION * (i + 1) - 1 downto RESOLUTION * i),
                CONF     => CONF_adc,
-               RAM_RD   => '0',
-               RAM_ADDR => (others => '0'),
-               RAM_DATA => open,
+               RAM_ADDR => ram_addr_adc(i),
+               RAM_DATA => ram_data_adc(i),
                DEBUG    => debug_adc(i)
       );
+      
+    dpram : entity work.dpram_32x512
+    port map(WrAddress => ram_addr_adc(i),
+             RdAddress => ram_addr_sys(i),
+             Data      => ram_data_adc(i),
+             WE        => '1', -- always write to address
+             RdClock   => CLK_ADC,
+             RdClockEn => '1',
+             Reset     => '0',
+             WrClock   => CLK_SYS,
+             WrClockEn => '1',
+             Q         => ram_data_sys(i));
   end generate;
 
   PROC_DEBUG_BUFFER : process

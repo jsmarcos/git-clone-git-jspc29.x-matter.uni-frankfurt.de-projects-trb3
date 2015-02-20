@@ -7,6 +7,10 @@ use work.trb3_components.all;
 use work.adc_package.all;
 
 entity adc_processor_cfd_ch is
+  generic(
+    DEVICE  : integer range 0 to 15 := 0;
+    CHANNEL : integer range 0 to 3 := 0
+  );
   port(
     CLK      : in  std_logic;
 
@@ -14,9 +18,8 @@ entity adc_processor_cfd_ch is
 
     CONF     : in  cfg_cfd_t;
 
-    RAM_RD   : in  std_logic;
-    RAM_ADDR : in  std_logic_vector(7 downto 0);
-    RAM_DATA : out std_logic_vector(31 downto 0);
+    RAM_ADDR : out  std_logic_vector(8 downto 0);
+    RAM_DATA : out  std_logic_vector(31 downto 0);
 
     DEBUG    : out debug_cfd_t
   );
@@ -86,10 +89,11 @@ architecture arch of adc_processor_cfd_ch is
 
   signal integral_sum                      : signed(RESOLUTION_CFD - 1 downto 0) := (others => '0');
 
-  signal epoch_counter : unsigned(23 downto 0) := (others => '0');
-  type state_t is (IDLE, INTEGRATE);
+  signal epoch_counter, epoch_counter_save : unsigned(23 downto 0) := (others => '0');
+  type state_t is (IDLE, INTEGRATE, WRITE1, WRITE2, WRITE3, WRITE4, FINISH);
   signal state : state_t := IDLE;
 
+  signal ram_counter : unsigned(8 downto 0) := (others => '0'); 
 begin
   -- input ADC data interpreted as unsigned
   input <= unsigned(ADC_DATA);
@@ -215,6 +219,7 @@ begin
   end process proc_integral_delay;
 
   -- ZeroX detect, integrate, write to RAM
+  RAM_ADDR <= std_logic_vector(ram_counter);
   proc_zeroX_gate : process is
     variable zeroX            : std_logic := '0';
     variable integral_counter : integer range 0 to 2 ** CONF.IntegrateWindow'length - 1;
@@ -224,7 +229,7 @@ begin
     epoch_counter <= epoch_counter + 1;
 
     cfd_prev <= cfd.value;
-    if cfd_prev < 0 and cfd.value > 0 and cfd.thresh = '1' then
+    if cfd_prev < 0 and cfd.value >= 0 and cfd.thresh = '1' then
       zeroX := '1';
     else
       zeroX := '0';
@@ -232,26 +237,62 @@ begin
 
     case state is
       when IDLE =>
+        RAM_DATA <= (others => '0'); -- always write zeros as end marker
         if zeroX = '1' then
           state            <= INTEGRATE;
           integral_counter := to_integer(CONF.IntegrateWindow);
           integral_sum <= resize(delay_integral_out, RESOLUTION_CFD);
           cfd_prev_save <= cfd_prev;
           cfd_save <= cfd.value;
+          epoch_counter_save <= epoch_counter;
         end if;        
+      
       when INTEGRATE =>
         if integral_counter = 0 then
-          state         <= IDLE;
+          state         <= WRITE1;
         else
           integral_sum <= integral_sum + resize(delay_integral_out, RESOLUTION_CFD);
           integral_counter := integral_counter - 1;
         end if;
+        
+      when WRITE1 => 
+        
+        RAM_DATA(31 downto 24) <= x"c0";
+        RAM_DATA(23 downto 20) <= std_logic_vector(to_unsigned(DEVICE, 4));
+        RAM_DATA(19 downto 16) <= std_logic_vector(to_unsigned(CHANNEL, 4));
+        RAM_DATA(15 downto  8) <= std_logic_vector(resize(epoch_counter_save(epoch_counter_save'high downto 16),8));
+        RAM_DATA( 7 downto  0) <= (others => '0');
+        -- assume that ram_counter is already at next position
+        -- ram_counter <= ram_counter + 1;
+        state <= WRITE2;
+        
+      when WRITE2 => 
+        RAM_DATA(31 downto 16) <= std_logic_vector(epoch_counter_save(15 downto 0));
+        RAM_DATA(15 downto  0) <= std_logic_vector(integral_sum); 
+        ram_counter <= ram_counter + 1;
+        state <= WRITE3;
+        
+      when WRITE3 => 
+        RAM_DATA(31 downto 16) <= std_logic_vector(cfd_prev_save);
+        RAM_DATA(15 downto  0) <= std_logic_vector(cfd_save);
+        ram_counter <= ram_counter + 1;
+        state <= WRITE4;
+        
+        
+      when WRITE4 =>
+        RAM_DATA <= (others => '1'); -- padding word
+        ram_counter <= ram_counter + 1;
+        state <= FINISH;
+        
+      when FINISH =>
+        -- move to next position
+        ram_counter <= ram_counter + 1;
+        state <= IDLE;  
+                  
     end case;
 
   end process proc_zeroX_gate;
   
-  
-
   
   
 
