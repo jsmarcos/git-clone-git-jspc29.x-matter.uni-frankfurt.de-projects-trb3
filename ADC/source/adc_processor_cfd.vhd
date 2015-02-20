@@ -50,23 +50,33 @@ architecture arch of adc_processor_cfd is
 
   type ram_addr_t is array (CHANNELS - 1 downto 0) of std_logic_vector(8 downto 0);
   type ram_data_t is array (CHANNELS - 1 downto 0) of std_logic_vector(31 downto 0);
+  type ram_counter_t is array (CHANNELS - 1 downto 0) of unsigned(8 downto 0);
   signal ram_addr_adc, ram_addr_sys : ram_addr_t := (others => (others => '0'));
   signal ram_data_adc, ram_data_sys : ram_data_t := (others => (others => '0'));
+  signal ram_counter : ram_counter_t := (others => (others => '0')); 
   --signal ram_we_adc : std_logic_vector(CHANNELS - 1 downto 0) := (others => '0');
 
+  type state_t is (IDLE, DO_RELEASE, RELEASE_DIRECT, WAIT_FOR_END, CHECK_STATUS_TRIGGER, SEND_STATUS, CFD_READOUT);
+  signal state     : state_t;
+  signal statebits : std_logic_vector(7 downto 0);
+
+  signal RDO_data_main  : std_logic_vector(31 downto 0) := (others => '0');
+  signal RDO_write_main : std_logic                     := '0';
+  signal readout_reset  : std_logic                     := '0';
 begin
   CONF_adc <= CONFIG when rising_edge(CLK_ADC);
   CONF_sys <= CONFIG when rising_edge(CLK_SYS);
 
   trigger_mask <= CONF_sys.TriggerEnable((DEVICE + 1) * CHANNELS - 1 downto DEVICE * CHANNELS);
-  TRIGGER_OUT <= or_all(trigger_gen and trigger_mask) when rising_edge(CLK_SYS);
+  TRIGGER_OUT  <= or_all(trigger_gen and trigger_mask) when rising_edge(CLK_SYS);
 
   debug_sys <= debug_adc when rising_edge(CLK_SYS);
   gen_cfd : for i in 0 to CHANNELS - 1 generate
     trigger_gen(i) <= debug_sys(i).Trigger;
+    
     THE_CFD : entity work.adc_processor_cfd_ch
       generic map(
-        DEVICE => DEVICE,
+        DEVICE  => DEVICE,
         CHANNEL => i
       )
       port map(CLK      => CLK_ADC,
@@ -76,19 +86,96 @@ begin
                RAM_DATA => ram_data_adc(i),
                DEBUG    => debug_adc(i)
       );
-      
+    
+    ram_addr_sys(i) <= std_logic_vector(ram_counter(i));
     dpram : entity work.dpram_32x512
-    port map(WrAddress => ram_addr_adc(i),
-             RdAddress => ram_addr_sys(i),
-             Data      => ram_data_adc(i),
-             WE        => '1', -- always write to address
-             RdClock   => CLK_ADC,
-             RdClockEn => '1',
-             Reset     => '0',
-             WrClock   => CLK_SYS,
-             WrClockEn => '1',
-             Q         => ram_data_sys(i));
+      port map(WrAddress => ram_addr_adc(i),
+               RdAddress => ram_addr_sys(i),
+               Data      => ram_data_adc(i),
+               WE        => '1',        -- always write
+               RdClock   => CLK_SYS,
+               RdClockEn => '1',
+               Reset     => '0',
+               WrClock   => CLK_ADC,
+               WrClockEn => '1',
+               Q         => ram_data_sys(i));
   end generate;
+
+  READOUT_TX.data_write <= RDO_write_main when rising_edge(CLK_SYS);
+  READOUT_TX.data       <= RDO_data_main when rising_edge(CLK_SYS);
+  readout_reset         <= CONTROL(12) when rising_edge(CLK_SYS);
+  statebits             <= std_logic_vector(to_unsigned(state_t'pos(state), 8));
+
+  proc_readout : process
+    variable channelselect : integer range 0 to 3;
+  begin
+    wait until rising_edge(CLK_SYS);
+    READOUT_TX.busy_release  <= '0';
+    READOUT_TX.data_finished <= '0';
+    RDO_data_main            <= (others => '0');
+    RDO_write_main           <= '0';
+
+    case state is
+      when IDLE =>
+        READOUT_TX.statusbits <= (others => '0');
+        if READOUT_RX.valid_notiming_trg = '1' then
+          state <= CHECK_STATUS_TRIGGER;
+        elsif READOUT_RX.data_valid = '1' then --seems to have missed trigger...
+          READOUT_TX.statusbits <= (23 => '1', others => '0'); --event not found
+          state                 <= RELEASE_DIRECT;
+        elsif READOUT_RX.valid_timing_trg = '1' then
+          state <= CFD_READOUT;
+          channelselect := 0;
+        end if;
+
+      when RELEASE_DIRECT =>
+        state <= DO_RELEASE;
+
+      when DO_RELEASE =>
+        if READOUT_RX.data_valid = '1' then
+          READOUT_TX.busy_release  <= '1';
+          READOUT_TX.data_finished <= '1';
+          state                    <= WAIT_FOR_END;
+        end if;
+
+      when WAIT_FOR_END =>
+        if READOUT_RX.data_valid = '0' then
+          state <= IDLE;
+        end if;
+
+      when CHECK_STATUS_TRIGGER =>
+        if READOUT_RX.data_valid = '1' then
+          if READOUT_RX.trg_type = x"E" then
+            state <= SEND_STATUS;
+          else
+            state <= RELEASE_DIRECT;
+          end if;
+        end if;
+
+      when CFD_READOUT =>
+        if ram_data_sys(channelselect) = x"00000000" then
+          if channelselect = 3 then
+            state <= RELEASE_DIRECT;
+          else
+            channelselect := channelselect + 1;
+          end if;
+        else
+          RDO_data_main <= ram_data_sys(channelselect);
+          RDO_write_main <= '1';
+          ram_counter(channelselect) <= ram_counter(channelselect) + 1;
+        end if;
+        
+      when SEND_STATUS =>
+        RDO_write_main <= '1';
+        RDO_data_main  <= x"20000000";
+        -- not implemented yet
+        state          <= RELEASE_DIRECT;
+    end case;
+
+    if readout_reset = '1' then
+      state <= IDLE;
+    end if;
+  end process;
 
   PROC_DEBUG_BUFFER : process
     variable c : integer range 0 to 3;
@@ -114,6 +201,8 @@ begin
             DEBUG_BUFFER_DATA(2)            <= STOP_IN;
             DEBUG_BUFFER_DATA(12)           <= '1'; -- ADC_VALID
             DEBUG_BUFFER_DATA(19 downto 16) <= trigger_gen;
+          when x"6" =>
+            DEBUG_BUFFER_DATA(7 downto 0) <= statebits;
           when others => null;
         end case;
       end if;
