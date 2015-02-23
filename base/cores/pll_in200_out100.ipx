@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<DiamondModule name="pll_in200_out100" module="PLL" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2012 12 14 18:35:50.458" version="5.3" type="Module" synthesis="" source_format="VHDL">
+<DiamondModule name="pll_in200_out100" module="PLL" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2014 08 12 13:37:14.642" version="5.6" type="Module" synthesis="" source_format="VHDL">
   <Package>
-		<File name="pll_in200_out100.lpc" type="lpc" modified="2012 12 14 18:35:48.000"/>
-		<File name="pll_in200_out100.vhd" type="top_level_vhdl" modified="2012 12 14 18:35:48.000"/>
-		<File name="pll_in200_out100_tmpl.vhd" type="template_vhdl" modified="2012 12 14 18:35:48.000"/>
+		<File name="pll_in200_out100.lpc" type="lpc" modified="2014 08 12 13:36:33.000"/>
+		<File name="pll_in200_out100.vhd" type="top_level_vhdl" modified="2014 08 12 13:36:34.000"/>
+		<File name="pll_in200_out100_tmpl.vhd" type="template_vhdl" modified="2014 08 12 13:36:34.000"/>
   </Package>
 </DiamondModule>

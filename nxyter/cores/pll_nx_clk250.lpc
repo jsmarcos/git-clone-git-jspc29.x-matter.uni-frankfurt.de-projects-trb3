@@ -16,8 +16,8 @@ CoreRevision=5.3
 ModuleName=pll_nx_clk250
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=10/02/2013
-Time=16:44:45
+Date=04/08/2014
+Time=23:14:13
 
 [Parameters]
 Verilog=0
@@ -50,11 +50,11 @@ ClkOSDelay=0
 PhaseDuty=Static
 CLKOK_INPUT=CLKOP
 SecD=2
-U_KFrq=50
+U_KFrq=125
 OK_Tol=0.0
-KFrq=
+KFrq=125.000000
 ClkRst=0
-PCDR=0
+PCDR=1
 FINDELA=0
 VcoRate=
 Bandwidth=1.753251

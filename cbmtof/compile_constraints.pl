@@ -9,5 +9,7 @@ my $TOPNAME                      = "cbmtof";  #Name of top-level entity
 #create full lpf file
 system("cp ../base/cbmtof.lpf diamond/$TOPNAME.lpf");
 system("cat currentRelease/trbnet_constraints.lpf >> diamond/$TOPNAME.lpf");
-system("cat currentRelease/tdc_constraints.lpf >> diamond/$TOPNAME.lpf");
+system("cat currentRelease/tdc_constraints_64.lpf >> diamond/$TOPNAME.lpf");
+system("cat currentRelease/unimportant_lines_constraints.lpf >> diamond/$TOPNAME.lpf");
+system("cat unimportant_lines_constraints.lpf >> diamond/$TOPNAME.lpf");
 

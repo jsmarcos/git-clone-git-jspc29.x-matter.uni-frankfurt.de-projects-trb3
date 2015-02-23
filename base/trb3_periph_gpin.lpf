@@ -12,6 +12,11 @@ FREQUENCY PORT CLK_GPLL_LEFT  125 MHz;
 FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;
 FREQUENCY PORT CLK_GPLL_RIGHT 200 MHz;
 
+MULTICYCLE FROM CLKNET "clk_100_i_c" TO CLKNET "CLK_PCLK_LEFT_c" 2 X ;
+MULTICYCLE FROM CLKNET "CLK_PCLK_LEFT_c" TO CLKNET "clk_100_i_c" 2 X ;
+
+LOCATE COMP   "THE_MEDIA_UPLINK/gen_serdes_1_200_THE_SERDES/PCSD_INST" SITE "PCSA" ;
+
 #################################################################
 # Clock I/O
 #################################################################
@@ -88,8 +93,8 @@ LOCATE COMP  "INP_2"    SITE "Y22";   # CHO31
 LOCATE COMP  "INP_3"    SITE "AB24";  # CHO32
 LOCATE COMP  "INP_4"    SITE "N5";    # CHO41
 LOCATE COMP  "INP_5"    SITE "AC2";   # CHO42
-LOCATE COMP  "INP_6"    SITE "N3";    # CHO43
-LOCATE COMP  "INP_7"    SITE "P5";    # CHO44
+LOCATE COMP  "INP_6"    SITE "P5";    # CHO43
+LOCATE COMP  "INP_7"    SITE "N3";    # CHO44
 LOCATE COMP  "INP_8"    SITE "Y19";   # OUT1
 LOCATE COMP  "INP_9"    SITE "AC26";  # OUT2
 LOCATE COMP  "INP_10"   SITE "F25";   # OUT3

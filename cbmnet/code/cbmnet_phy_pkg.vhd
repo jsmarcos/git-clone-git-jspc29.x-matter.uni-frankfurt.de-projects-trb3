@@ -8,7 +8,10 @@ library ieee;
 package cbmnet_phy_pkg is
    component cbmnet_phy_ecp3 is
       generic(
-         IS_SYNC_SLAVE   : integer := c_NO       --select slave mode
+         IS_SYNC_SLAVE   : integer := c_NO;       --select slave mode
+         IS_SIMULATED    : integer := c_NO;
+         INCL_DEBUG_AIDS : integer := c_YES;
+         DETERMINISTIC_LATENCY : integer := c_YES -- if selected proper alignment of barrel shifter and word alignment is enforced (link may come up slower)
       );
       port(
          CLK                : in  std_logic; -- *internal* 125 MHz reference clock
@@ -27,7 +30,6 @@ package cbmnet_phy_pkg is
          CLK_RX_FULL_OUT    : out std_logic := '0';  -- recovered 250 MHz
          CLK_RX_RESET_OUT   : out std_logic := '1';  -- set to 0, ~1us after link is recognised to be stable
 
-         LINK_ACTIVE_OUT    : out std_logic; -- link is active and can send and receive data
          SERDES_ready       : out std_logic;
 
          --SFP Connection
@@ -47,7 +49,7 @@ package cbmnet_phy_pkg is
          -- Status and control port
          STAT_OP            : out std_logic_vector (15 downto 0);
          CTRL_OP            : in  std_logic_vector (15 downto 0) := (others => '0');
-         DEBUG_OUT          : out std_logic_vector (127 downto 0) := (others => '0')
+         DEBUG_OUT          : out std_logic_vector (511 downto 0) := (others => '0')
       );
    end component;
    
@@ -55,6 +57,9 @@ package cbmnet_phy_pkg is
 -- INTERNAL
 -----------------------------------------------------------------------------------------------------------------------
    component CBMNET_PHY_RX_GEAR is
+      generic(
+         IS_SYNC_SLAVE   : integer := c_NO       --select slave mode
+      );
       port (
       -- SERDES PORT
          CLK_250_IN  : in std_logic;
@@ -66,7 +71,10 @@ package cbmnet_phy_pkg is
          RM_RESET_IN : in std_logic;
          CLK_125_OUT : out std_logic;
          RESET_OUT   : out std_logic;
-         DATA_OUT    : out std_logic_vector(17 downto 0)
+         DATA_OUT    : out std_logic_vector(17 downto 0);
+         
+      -- DEBUG
+         DEBUG_OUT   : out std_logic_vector(31 downto 0) := (others => '0')
       );
    end component;   
    
@@ -78,11 +86,15 @@ package cbmnet_phy_pkg is
          CLK_250_IN  : in std_logic;
          CLK_125_IN  : in std_logic;
          CLK_125_OUT : out std_logic;
+         
          RESET_IN    : in std_logic;
-         
+
          DATA_IN     : in std_logic_vector(17 downto 0);
+         DATA_OUT    : out std_logic_vector(8 downto 0);
          
-         DATA_OUT    : out std_logic_vector(8 downto 0)
+         TX_READY_OUT: out std_logic;
+      
+         DEBUG_OUT   : out std_logic_vector(31 downto 0)
       );
    end component;  
   
@@ -134,6 +146,9 @@ package cbmnet_phy_pkg is
    END COMPONENT;
    
    component cbmnet_phy_ecp3_rx_reset_fsm is
+      generic (
+         IS_SIMULATED : integer range 0 to 1 := c_NO
+      );   
       port (
          RST_N             : in std_logic;
          RX_REFCLK         : in std_logic;
@@ -149,8 +164,34 @@ package cbmnet_phy_pkg is
          RX_PCS_RST_CH_C   : out std_logic;
          STATE_OUT         : out std_logic_vector(3 downto 0)
       );
-   end component ;
+   end component;
+   
+   component cbmnet_phy_ecp3_tx_reset_fsm is
+      generic (
+         IS_SIMULATED : integer range 0 to 1 := c_NO
+      );
+      port (
+         RST_N           : in std_logic;
+         TX_REFCLK       : in std_logic;   
+         TX_PLL_LOL_QD_S : in std_logic;
+         RST_QD_C        : out std_logic;
+         TX_PCS_RST_CH_C : out std_logic;
+         STATE_OUT       : out std_logic_vector(3 downto 0)
+
+      );
+   end component;   
+   
+   function EBTB_D_ENCODE(
+      constant x : integer range 0 to 31;
+      constant y : integer range 0 to 7
+   ) return std_logic_vector;
+   
 end package cbmnet_phy_pkg;
 
 package body cbmnet_phy_pkg is
+   function EBTB_D_ENCODE(constant x : integer range 0 to 31; constant y : integer range 0 to 7) return std_logic_vector
+   is begin
+      return STD_LOGIC_VECTOR(TO_UNSIGNED(x, 5)) & STD_LOGIC_VECTOR(TO_UNSIGNED(y, 3));
+   end EBTB_D_ENCODE;
+   
 end package body;

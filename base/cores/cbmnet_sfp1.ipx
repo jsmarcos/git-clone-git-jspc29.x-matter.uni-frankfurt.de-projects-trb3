@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="cbmnet_sfp1" module="cbmnet_sfp1" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2014 02 19 18:17:29.662" version="8.1" type="Module" synthesis="synplify" source_format="VHDL">
+  <Package>
+		<File name="cbmnet_sfp1.lpc" type="lpc" modified="2014 02 19 18:17:20.000"/>
+		<File name="cbmnet_sfp1.pp" type="pp" modified="2014 02 19 18:17:20.000"/>
+		<File name="cbmnet_sfp1.sym" type="sym" modified="2014 02 19 18:17:21.000"/>
+		<File name="cbmnet_sfp1.tft" type="tft" modified="2013 11 18 18:14:59.000"/>
+		<File name="cbmnet_sfp1.txt" type="pcs_module" modified="2014 02 19 18:17:20.000"/>
+		<File name="cbmnet_sfp1.vhd" type="top_level_vhdl" modified="2013 11 18 18:14:59.000"/>
+  </Package>
+</DiamondModule>

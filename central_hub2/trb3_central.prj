@@ -115,6 +115,7 @@ add_file -vhdl -lib work "../../trbnet/lattice/ecp3/trb_net_fifo_16bit_bram_dual
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/serdes_onboard_full.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/serdes_onboard_full_125.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/serdes_full_ctc.vhd"
+add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/serdes_full_noctc.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_int.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_ctc.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_1_125_int.vhd"

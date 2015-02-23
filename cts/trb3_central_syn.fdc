@@ -1,0 +1,61 @@
+###==== BEGIN Header
+
+# Synopsys, Inc. constraint file
+# /d/jspc29/mpenschuck/trb3/cts/trb3_central_syn.fdc
+# Written on Mon Oct 13 15:39:36 2014
+# by Synplify Premier with Design Planner, G-2012.09-SP1  FDC Constraint Editor
+
+# Custom constraint commands may be added outside of the SCOPE tab sections bounded with BEGIN/END.
+# These sections are generated from SCOPE spreadsheet tabs.
+
+###==== END Header
+
+###==== BEGIN Collections - (Populated from tab in SCOPE, do not edit)
+###==== END Collections
+
+###==== BEGIN Clocks - (Populated from tab in SCOPE, do not edit)
+create_clock  -name {clk100} {n:THE_MAIN_PLL.CLKOP} -period {10}
+create_clock  {n:THE_MAIN_PLL.CLKOK} -period {5}
+create_clock  {n:THE_MEDIA_ONBOARD.gen_serdes_200\.THE_SERDES.refclkdiv2_rx_ch0} -period {10}
+create_clock  {n:THE_MEDIA_ONBOARD.gen_serdes_200\.THE_SERDES.refclkdiv2_rx_ch1} -period {10}
+create_clock  {n:THE_MEDIA_ONBOARD.gen_serdes_200\.THE_SERDES.refclkdiv2_rx_ch2} -period {10}
+create_clock  {n:THE_MEDIA_ONBOARD.gen_serdes_200\.THE_SERDES.refclkdiv2_rx_ch3} -period {10}
+create_clock  {n:THE_MEDIA_ONBOARD.gen_serdes_200\.THE_SERDES.refclkdiv2_tx_ch} -period {10}
+create_clock  -name {refTime} {n:GEN_CTS\.THE_CTS.TIME_REFERENCE_OUT} -period {10}
+create_clock  {n:GBE.imp_gen\.serdes_intclk_gen\.PCS_SERDES.clk_int\.SERDES_GBE.rx_full_clk_ch3} -period {8}
+create_clock  {p:CLK_GPLL_RIGHT} -period {8}
+create_clock  {p:CLK_PCLK_RIGHT} -period {5}
+
+create_clock  -name {rclk125} {n:GEN_CBMNET\.THE_CBM_BRIDGE.THE_CBM_PHY.THE_RX_GEAR.CLK_125_OUT} -period {8}
+create_clock  {n:GEN_CBMNET\.THE_CBM_BRIDGE.THE_CBM_PHY.THE_SERDES.rx_full_clk_ch0} -period {4}
+create_clock  {n:GEN_CBMNET\.THE_CBM_BRIDGE.THE_CBM_PHY.THE_SERDES.tx_full_clk_ch0} -period {4}
+
+###==== END Clocks
+
+###==== BEGIN "Generated Clocks" - (Populated from tab in SCOPE, do not edit)
+###==== END "Generated Clocks"
+
+###==== BEGIN Inputs/Outputs - (Populated from tab in SCOPE, do not edit)
+###==== END Inputs/Outputs
+
+
+###==== BEGIN "Delay Paths" - (Populated from tab in SCOPE, do not edit)
+###==== END "Delay Paths"
+
+###==== BEGIN Attributes - (Populated from tab in SCOPE, do not edit)
+###==== END Attributes
+
+###==== BEGIN "I/O Standards" - (Populated from tab in SCOPE, do not edit)
+###==== END "I/O Standards"
+
+###==== BEGIN "Compile Points" - (Populated from tab in SCOPE, do not edit)
+define_compile_point  {v:work.TDC_work_trb3_central_trb3_central_arch_0layer0} -type {hard}
+###==== END "Compile Points"
+
+
+
+
+
+
+
+

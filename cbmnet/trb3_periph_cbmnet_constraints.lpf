@@ -1,46 +1,26 @@
-# BLOCK RESETPATHS ;
-# BLOCK ASYNCPATHS ;
-# BLOCK RD_DURING_WR_PATHS ;
+SYSCONFIG MCCLK_FREQ=20 ;
 
-#################################################################
-# Basic Settings
-#################################################################
-
-  SYSCONFIG MCCLK_FREQ = 20;
-
-  FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
-  FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;
-  FREQUENCY PORT CLK_GPLL_RIGHT 200 MHz;
-  FREQUENCY PORT CLK_GPLL_LEFT  125 MHz;
-
-  FREQUENCY NET "THE_CBM_PHY/CLK_TX_FULL_I" 250 MHz;
-  FREQUENCY NET "THE_CBM_PHY/RCLK_250_I" 250 MHz;
-  
-#Change the next two lines to the clk_fast signal of the ADC  
-  USE PRIMARY2EDGE NET "THE_MAIN_PLL/PLLInst_0";
-  USE PRIMARY NET "THE_MAIN_PLL/PLLInst_0";
-  USE PRIMARY NET "CLK_PCLK_LEFT";
-  USE PRIMARY NET "CLK_PCLK_LEFT_c";
-  
-  USE PRIMARY NET "THE_CBM_PHY/RCLK_250_I";
-  USE SECONDARY NET "THE_CBM_PHY/CLK_TX_FULL_I";
-  
-#################################################################
-# Reset Nets
-#################################################################  
-GSR_NET NET "GSR_N";  
-
-
-################################################################
-# Locate Serdes and media interfaces
-#################################################################
-LOCATE COMP   "THE_MEDIA_UPLINK/gen_serdes_1_200_THE_SERDES/PCSD_INST" SITE "PCSA" ;
-REGION "MEDIA_UPLINK" "R102C95D" 13 25;
+LOCATE COMP "THE_MEDIA_UPLINK/gen_serdes_1_200.THE_SERDES/PCSD_INST" SITE "PCSA" ;
+REGION "MEDIA_UPLINK" "R102C95D" 13 25 DEVSIZE;
 LOCATE UGROUP "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLINK" ;
-
 
 #################################################################
 # Relax some of the timing constraints
 #################################################################
-MULTICYCLE TO CELL "THE_MEDIA_DOWNLINK/SCI_DATA_OUT*" 50 ns;
-MULTICYCLE TO CELL "THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
+
+FREQUENCY PORT "CLK_GPLL_LEFT" 125.0 MHz;
+FREQUENCY PORT "TRIGGER_LEFT" 100.0 MHz;
+FREQUENCY NET "THE_MAIN_PLL/clk_200_i" 200.0 MHz;
+FREQUENCY NET "THE_MAIN_PLL/clk_100_i_c" 100.0 MHz;
+FREQUENCY NET "THE_MEDIA_UPLINK/gen_serdes_1_200.THE_SERDES/un1_THE_MEDIA_UPLINK_c" 100.0 MHz;
+FREQUENCY NET "THE_MEDIA_UPLINK/gen_serdes_1_200.THE_SERDES/refclkdiv2_rx_ch1" 100.0 MHz;
+FREQUENCY NET "THE_MEDIA_UPLINK/gen_serdes_1_200.THE_SERDES/refclkdiv2_tx_ch" 100.0 MHz;
+FREQUENCY NET "THE_CBM_BRIDGE/THE_CBM_PHY/THE_SERDES/CLK_RX_FULL_OUT" 250.0 MHz;
+FREQUENCY NET "THE_CBM_BRIDGE/THE_CBM_PHY/THE_SERDES/clk_tx_full_i" 250.0 MHz;
+FREQUENCY NET "THE_CBM_BRIDGE/THE_CBM_PHY/THE_RX_GEAR/CLK_RX_HALF_OUT_c" 125.0 MHz;
+
+LOCATE UGROUP "CBMNET_PHY_GROUP" SITE "R100C62D";
+LOCATE UGROUP "CBMNET_BRIDGE_GROUP"   SITE "R42C20D";
+LOCATE COMP "THE_CBM_BRIDGE/THE_CBM_PHY/THE_SERDES/PCSD_INST" SITE "PCSB" ;
+
+UGROUP "THE_RESET_HANDLER_GRP" BLKNAME THE_RESET_HANDLER;

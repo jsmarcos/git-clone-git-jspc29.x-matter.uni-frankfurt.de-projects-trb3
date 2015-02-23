@@ -16,8 +16,8 @@ CoreRevision=5.3
 ModuleName=pll_adc_clk
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=10/02/2013
-Time=22:14:51
+Date=04/07/2014
+Time=15:14:44
 
 [Parameters]
 Verilog=0
@@ -54,7 +54,7 @@ U_KFrq=50
 OK_Tol=0.0
 KFrq=
 ClkRst=0
-PCDR=0
+PCDR=1
 FINDELA=0
 VcoRate=
 Bandwidth=1.826303

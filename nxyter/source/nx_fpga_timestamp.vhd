@@ -7,181 +7,181 @@ use work.nxyter_components.all;
 
 entity nx_fpga_timestamp is
   port (
-    CLK_IN                : in std_logic;
-    RESET_IN              : in  std_logic;
-    NX_CLK_IN             : in  std_logic;      
-    
-    TIMESTAMP_SYNC_IN     : in  std_logic;
-    TRIGGER_IN            : in  std_logic;
-    TIMESTAMP_CURRENT_OUT : out unsigned(11 downto 0);
-    TIMESTAMP_HOLD_OUT    : out unsigned(11 downto 0);
-    NX_TIMESTAMP_SYNC_OUT : out std_logic;
+    CLK_IN                   : in  std_logic;
+    RESET_IN                 : in  std_logic;
+    NX_MAIN_CLK_IN           : in  std_logic;      
+                             
+    TIMESTAMP_RESET_IN       : in  std_logic;
+    TIMESTAMP_RESET_OUT      : out std_logic;
+    TRIGGER_IN               : in  std_logic; -- must be in NX_MAIN_CLK_DOMAIN
+    TIMESTAMP_HOLD_OUT       : out unsigned(11 downto 0);
+    TIMESTAMP_TRIGGER_OUT    : out std_logic;
 
     -- Slave bus         
-    SLV_READ_IN           : in  std_logic;
-    SLV_WRITE_IN          : in  std_logic;
-    SLV_DATA_OUT          : out std_logic_vector(31 downto 0);
-    SLV_DATA_IN           : in  std_logic_vector(31 downto 0);
-    SLV_ACK_OUT           : out std_logic;
-    SLV_NO_MORE_DATA_OUT  : out std_logic;
-    SLV_UNKNOWN_ADDR_OUT  : out std_logic;
-    
-    -- Debug Line
-    DEBUG_OUT             : out std_logic_vector(15 downto 0)
+    SLV_READ_IN              : in  std_logic;
+    SLV_WRITE_IN             : in  std_logic;
+    SLV_DATA_OUT             : out std_logic_vector(31 downto 0);
+    SLV_DATA_IN              : in  std_logic_vector(31 downto 0);
+    SLV_ACK_OUT              : out std_logic;
+    SLV_NO_MORE_DATA_OUT     : out std_logic;
+    SLV_UNKNOWN_ADDR_OUT     : out std_logic;
+                             
+    -- Debug Line            
+    DEBUG_OUT                : out std_logic_vector(15 downto 0)
     );
 end entity;
 
 architecture Behavioral of nx_fpga_timestamp is
-  signal timestamp_ctr       : unsigned(11 downto 0);
-  signal timestamp_current_o : unsigned(11 downto 0);
-  signal timestamp_hold      : std_logic_vector(11 downto 0);
-  signal trigger_x           : std_logic;
-  signal trigger_l           : std_logic;
-  signal trigger             : std_logic;
-  signal timestamp_sync_x    : std_logic;
-  signal timestamp_sync_l    : std_logic;
-  signal timestamp_sync      : std_logic;
+  type S_STATES is (S_IDLE,
+                    S_RESET,
+                    S_RESET_WAIT,
+                    S_HOLD
+                    );
+  signal S_STATE : S_STATES;
+  
+  signal wait_timer_start     : std_logic;
+  signal wait_timer_done      : std_logic;
 
-  signal nx_timestamp_sync_o : std_logic;
+  signal timestamp_reset_ff   : std_logic;
+  signal timestamp_reset_f    : std_logic;
+  signal timestamp_reset      : std_logic;
+  signal timestamp_ctr        : unsigned(11 downto 0);
 
-  signal fifo_full          : std_logic;
-  signal fifo_write_enable    : std_logic;
+  signal timestamp_hold_o     : std_logic_vector(11 downto 0);
+  signal timestamp_trigger_o  : std_logic;
+  signal timestamp_reset_o    : std_logic;
 
-  -- Main Clock Domain
-  signal fifo_empty          : std_logic;
-  signal fifo_read_enable    : std_logic;
-  signal fifo_data_valid_t   : std_logic; 
-  signal fifo_data_valid     : std_logic;
-  signal fifo_data_out       : std_logic_vector(11 downto 0);
-  signal timestamp_hold_o    : unsigned(11 downto 0);
+  -- Reset
+  signal reset_nx_main_clk_in_ff  : std_logic;
+  signal reset_nx_main_clk_in_f   : std_logic;
+  signal RESET_NX_MAIN_CLK_IN     : std_logic;
+
+  attribute syn_keep : boolean;
+  attribute syn_keep of reset_nx_main_clk_in_ff     : signal is true;
+  attribute syn_keep of reset_nx_main_clk_in_f      : signal is true;
+
+  attribute syn_keep of timestamp_reset_ff          : signal is true;
+  attribute syn_keep of timestamp_reset_f           : signal is true;
+  
+  attribute syn_preserve : boolean;
+  attribute syn_preserve of reset_nx_main_clk_in_ff : signal is true;
+  attribute syn_preserve of reset_nx_main_clk_in_f  : signal is true;
+
+  attribute syn_preserve of timestamp_reset_ff      : signal is true;
+  attribute syn_preserve of timestamp_reset_f       : signal is true;
   
 begin
+  DEBUG_OUT(0)             <= NX_MAIN_CLK_IN;
+  DEBUG_OUT(1)             <= '0';
+  DEBUG_OUT(2)             <= TIMESTAMP_RESET_IN;
+  DEBUG_OUT(3)             <= '0';
+  DEBUG_OUT(4)             <= TRIGGER_IN;
+  DEBUG_OUT(5)             <= '0';
+  DEBUG_OUT(6)             <= timestamp_reset_ff;
+  DEBUG_OUT(7)             <= '0';
+  DEBUG_OUT(8)             <= timestamp_reset_f;
+  DEBUG_OUT(9)             <= '0';
+  DEBUG_OUT(10)            <= timestamp_reset;
+  DEBUG_OUT(11)            <= '0';
+  DEBUG_OUT(12)            <= timestamp_reset_o;
+  DEBUG_OUT(13)            <= '0';
+  DEBUG_OUT(14)            <= timestamp_trigger_o;
 
-  DEBUG_OUT(0)             <= CLK_IN;
-  DEBUG_OUT(1)             <= TIMESTAMP_SYNC_IN;
-  DEBUG_OUT(2)             <= nx_timestamp_sync_o;
-  DEBUG_OUT(3)             <= TRIGGER_IN;
-  DEBUG_OUT(4)             <= fifo_full;
-  DEBUG_OUT(5)             <= fifo_write_enable;
-  DEBUG_OUT(6)             <= fifo_empty;
-  DEBUG_OUT(7)             <= fifo_read_enable;
-  DEBUG_OUT(8)             <= fifo_data_valid_t;
-  DEBUG_OUT(9)             <= fifo_data_valid;
-  DEBUG_OUT(15 downto 10)  <= fifo_data_out(5 downto 0);
+  DEBUG_OUT(15)            <= '0';
+  --timestamp_hold_o(10 downto 0);
 
+  -----------------------------------------------------------------------------
+  -- Reset Domain Transfer
+  -----------------------------------------------------------------------------
+  reset_nx_main_clk_in_ff   <= RESET_IN when rising_edge(NX_MAIN_CLK_IN);
+  reset_nx_main_clk_in_f    <= reset_nx_main_clk_in_ff
+                               when rising_edge(NX_MAIN_CLK_IN); 
+  RESET_NX_MAIN_CLK_IN      <= reset_nx_main_clk_in_f
+                               when rising_edge(NX_MAIN_CLK_IN);
+
+  -----------------------------------------------------------------------------
   -- NX Clock Domain
-  
-  -- Cross Clockdomain for TRIGGER and SYNC 
-  PROC_SYNC: process (NX_CLK_IN)
-  begin
-    if( rising_edge(NX_CLK_IN) ) then
-      if (RESET_IN = '1') then
-        trigger_x        <= '0';
-        trigger_l        <= '0';
-        timestamp_sync_x <= '0';
-        timestamp_sync_l <= '0';
-      else
-        trigger_x        <= TRIGGER_IN;
-        trigger_l        <= trigger_x;
-        timestamp_sync_x <= TIMESTAMP_SYNC_IN;
-        timestamp_sync_l <= timestamp_sync_x;
-      end if;
-    end if;
-  end process PROC_SYNC;
-
-  -- Convert TRIGGER_IN to Pulse
-  level_to_pulse_1: level_to_pulse
-    port map (
-      CLK_IN    => NX_CLK_IN,
-      RESET_IN  => RESET_IN,
-      LEVEL_IN  => trigger_l,
-      PULSE_OUT => trigger
-      );
-
-  -- Convert TIMESTAMP_SYNC_IN to Pulse
-  level_to_pulse_2: level_to_pulse
-    port map (
-      CLK_IN    => NX_CLK_IN,
-      RESET_IN  => RESET_IN,
-      LEVEL_IN  => timestamp_sync_l,
-      PULSE_OUT => timestamp_sync
-      );
+  -----------------------------------------------------------------------------
 
   -- Timestamp Process + Trigger
-  
-  PROC_TIMESTAMP_CTR: process (NX_CLK_IN)
-  begin
-    if( rising_edge(NX_CLK_IN) ) then
-      if( RESET_IN = '1' ) then
-        timestamp_ctr         <= (others => '0');
-        timestamp_hold        <= (others => '0');
-        nx_timestamp_sync_o   <= '0';
-        fifo_write_enable     <= '0';
-      else
-        nx_timestamp_sync_o   <= '0';
-        fifo_write_enable     <= '0';   
+  timestamp_reset_ff         <= TIMESTAMP_RESET_IN
+                                when rising_edge(NX_MAIN_CLK_IN);
+  timestamp_reset_f          <= timestamp_reset_ff
+                                when rising_edge(NX_MAIN_CLK_IN);
+  timestamp_reset            <= timestamp_reset_f
+                                when rising_edge(NX_MAIN_CLK_IN);
 
-        if (timestamp_sync = '1') then
-          timestamp_ctr       <= (others => '0');
-          timestamp_hold      <= (others => '0');
-          nx_timestamp_sync_o <= '1';
-        else
-          if (trigger = '1' and fifo_full = '0') then
-            timestamp_hold    <= std_logic_vector(timestamp_ctr - 3);
-            fifo_write_enable <= '1';
-          end if;
-          timestamp_ctr       <= timestamp_ctr + 1;
-        end if;
+  -- Timer
+  timer_static_TS_RESET: timer_static
+    generic map (
+      CTR_WIDTH => 3,
+      CTR_END   => 7
+      )
+    port map (
+      CLK_IN         => NX_MAIN_CLK_IN,
+      RESET_IN       => RESET_NX_MAIN_CLK_IN,
+      TIMER_START_IN => wait_timer_start,
+      TIMER_DONE_OUT => wait_timer_done
+      );
+
+  PROC_TIMESTAMP_CTR: process (NX_MAIN_CLK_IN)
+  begin
+    if (rising_edge(NX_MAIN_CLK_IN)) then
+      if (RESET_NX_MAIN_CLK_IN = '1') then
+        wait_timer_start         <= '0';
+        timestamp_ctr            <= (others => '0');
+        timestamp_hold_o         <= (others => '0');
+        timestamp_reset_o        <= '0';
+        S_STATE                  <=  S_RESET;
+      else
+        wait_timer_start         <= '0';
+        timestamp_trigger_o      <= '0'; 
+        timestamp_reset_o        <= '0';
+
+        case S_STATE is
+
+          when S_IDLE =>
+            timestamp_ctr            <= timestamp_ctr + 1;            
+            if (timestamp_reset = '0' and timestamp_reset_f = '1') then
+              S_STATE                <= S_RESET;
+            elsif (TRIGGER_IN = '1') then
+              S_STATE                <= S_HOLD;
+            else
+              S_STATE                <= S_IDLE;
+            end if;
+            
+          when S_RESET =>
+            timestamp_reset_o        <= '1';
+            wait_timer_start         <= '1';
+            S_STATE                  <=  S_RESET_WAIT;
+
+          when S_RESET_WAIT =>
+            if (wait_timer_done = '0') then
+              timestamp_reset_o      <= '1';
+              S_STATE                <= S_RESET_WAIT;
+            else
+              timestamp_ctr          <= (others => '0');
+              S_STATE                <= S_IDLE;
+            end if;
+
+          when S_HOLD =>
+            timestamp_ctr            <= timestamp_ctr + 1;
+            timestamp_hold_o         <= timestamp_ctr;
+            timestamp_trigger_o      <= '1';
+            S_STATE                  <=  S_IDLE;
+            
+        end case;
+        
       end if;
     end if;
   end process PROC_TIMESTAMP_CTR;
 
-  timestamp_current_o         <= timestamp_ctr;
-
-  -----------------------------------------------------------------------------
-  -- Main Clock Domain -> Tranfer TimeStamp
-  -----------------------------------------------------------------------------
-  
-  fifo_ts_12to12_dc_1: fifo_ts_12to12_dc
-    port map (
-      Data    => timestamp_hold,
-      WrClock => NX_CLK_IN,
-      RdClock => CLK_IN,
-      WrEn    => fifo_write_enable,
-      RdEn    => fifo_read_enable,
-      Reset   => RESET_IN,
-      RPReset => RESET_IN,
-      Q       => fifo_data_out,
-      Empty   => fifo_empty,
-      Full    => fifo_full
-    );
-
-  fifo_read_enable  <= not fifo_empty;
-
-  PROC_RECEIVE_TS: process (CLK_IN)
-  begin
-    if( rising_edge(CLK_IN) ) then
-      if( RESET_IN = '1' ) then
-        fifo_data_valid_t    <= '0';
-        fifo_data_valid      <= '0';
-        timestamp_hold_o     <= (others => '0');
-      else
-        if (fifo_data_valid = '1') then
-          timestamp_hold_o   <= unsigned(fifo_data_out);
-        end if;
-
-        fifo_data_valid_t    <= fifo_read_enable;
-        fifo_data_valid      <= fifo_data_valid_t;
-      end if;
-    end if;
-  end process PROC_RECEIVE_TS;
-  
   -----------------------------------------------------------------------------
   -- Output Signals
   -----------------------------------------------------------------------------
-  
-  TIMESTAMP_CURRENT_OUT  <= timestamp_current_o;
-  TIMESTAMP_HOLD_OUT     <= timestamp_hold_o;
-  NX_TIMESTAMP_SYNC_OUT  <= nx_timestamp_sync_o;
+
+  TIMESTAMP_RESET_OUT       <= timestamp_reset_o;
+  TIMESTAMP_HOLD_OUT        <= timestamp_hold_o;
+  TIMESTAMP_TRIGGER_OUT     <= timestamp_trigger_o;
 
 end Behavioral;

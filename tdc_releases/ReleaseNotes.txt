@@ -1,11 +1,61 @@
 Version		Release Date	Release Notes
 -------------------------------------------------------------------------------------
-tdc_v2.0	15.11.2012	Double edge detection for longer than 20 ns is
-				implemented. (Not stable-will be fixed in
-				future releases.)
+tdc_v2.0.1	05.12.2014	Calibration-physik trigger switching problem
+				is fixed.
 
-tdc_v1.5.2*	06.05.2013	Epoch counter bug fix (data word - epoch word
+tdc_v2.0	01.12.2014	Double edge detection in a single channel is
+				implemented. 
+
+tdc_v1.7.3	15.08.2014	Hit scaler register size is increased to 31 bits.
+
+tdc_v1.7.1	29.07.2014	Feature Bit support.
+				Tidy up the entities.
+
+tdc_v1.7	24.06.2014	Paralel working Readouts are implemented.
+				Trigger time calculation is done in the
+				trigger handler.
+	
+tdc_v1.6.3	24.06.2014	Bug fix in the hit rate counters
+				(syncronisation problem).
+
+tdc_v1.6.2	08.05.2014	Small bug fix in the wait time for data
+				transfer to buffer.
+
+tdc_v1.6.1	06.05.2014	Less EPOCH counter - unnecessary EPOCH words,
+				which occur with enabled trigger window, are
+				eliminated from the data stream.
+				FSM initialisation problem by the Channel_200
+				entity is solved.
+				Channel FSM debug words are written to bus
+				0xc200.
+				Number of coarse counters is increased to 16
+				to ease the fanout.
+				Bug fix for the missing data with the
+				calibration trigger.
+				Bug fix for the duplicate data when trigger
+				window is enabled.
+
+tdc_v1.6	20.01.2014	Epoch counter bug fix (data word - epoch word
 				place swap).
+				Trigger window bug fix (epoch counter more
+				than 24 bit had integer conversion
+				problem. Trigger window right side control is
+				enabled).
+				Readout algorith change (the channel fifos are
+				readout to intermediate buffer, so the later
+				channels in the readout order are kept as the
+				trigger arrival time).
+				Trigger on TDC channel (the feature for
+				triggering on TDC channel is implemented)
+				Reference channel hit rate counter
+				implemented.
+				The channels (incl. ch0) can be calibrated
+				with the internal oscillator with different
+				frequencies (see manual slow control
+				registers).
+				The coarse counter can be set to reset via
+				slow control. The action will take place when
+				the first valid trigger arrives.
 
 tdc_v1.5.1	20.06.2013	Efficiency bug fix (epoch counter update - hit
 				at the same time). Hit level bit bug fix for

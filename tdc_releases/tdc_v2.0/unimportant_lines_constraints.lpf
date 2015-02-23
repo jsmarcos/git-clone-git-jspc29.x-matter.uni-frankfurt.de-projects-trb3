@@ -1,0 +1,112 @@
+#############################################################################
+##                         Unimportant Data Lines                          ##
+#############################################################################
+MULTICYCLE FROM CELL "THE_TDC/reset_tdc*" TO CLKNET CLK_PCLK_LEFT_c 2x;
+
+MULTICYCLE FROM CELL "THE_TDC/reset_counters*" 4x;
+# MULTICYCLE FROM CELL "PROC_TDC_CTRL_REG*tdc_ctrl_reg*" 4x;
+
+# MULTICYCLE TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/SimAdderNo*FC/FF*" 4x;
+# MULTICYCLE TO CELL "THE_TDC/ReferenceChannel/Channel200/SimAdderNo*FC/FF*" 4x;
+
+MULTICYCLE TO CELL "THE_TDC/GEN_Channels*Channels/sync_q*" 4 x;
+MULTICYCLE TO CELL "THE_TDC/ReferenceChannel/sync_q*" 4 x;
+
+MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/Channel200/RingBuffer*FIFO/FF*" TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/ringBuffer_almost_full_sync*" 2x;
+MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/Channel200/RingBuffer*FIFO/FF*" TO CELL "THE_TDC/ReferenceChannel/Channel200/ringBuffer_almost_full_sync*" 2x;
+
+MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter*" TO CELL "THE_TDC/GEN_Channels*Channels/epoch_cntr_reg*" 3 X;
+MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter*" TO CELL "THE_TDC/ReferenceChannel/epoch_cntr_reg*" 3 X;
+
+MULTICYCLE TO CELL "THE_TDC/TheReadout/TW_pre*" 4 x;
+MULTICYCLE TO CELL "THE_TDC/TheReadout/TW_post*" 4 x;
+
+
+
+# #MAXDELAY FROM GROUP "hitBuf*" TO GROUP "FC*" 0.600000 nS;
+# #MAXDELAY FROM GROUP "hitBuf_ref*" TO GROUP "Ref_Ch" 0.600000 nS;
+
+MAXDELAY NET "THE_TDC/hit_in_i*" 0.600000 nS; #DATAPATH_ONLY ;
+
+
+## Maybe effective
+
+# MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/The_Buffer/*" TO CELL "THE_TDC/TheReadout/rd_en*" 2 X;
+
+
+
+
+
+# # BLOCK NET "THE_TDC/reset_tdc*" ;
+# # BLOCK NET "THE_TDC/reset_rdo*" ;
+# # #BLOCK NET "THE_TDC/hit_in_i_*" ;
+# # BLOCK NET "THE_TDC/hit_latch*" ;
+# # BLOCK NET "THE_TDC/reset_counters_i*" ;
+
+
+
+PROHIBIT SECONDARY NET "THE_TDC/ReferenceChannel/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.1.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.2.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.3.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.4.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.5.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.6.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.7.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.8.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.9.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.10.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.11.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.12.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.13.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.14.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.15.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.16.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.17.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.18.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.19.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.20.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.21.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.22.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.23.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.24.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.25.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.26.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.27.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.28.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.29.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.30.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.31.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.32.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.33.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.34.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.35.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.36.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.37.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.38.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.39.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.40.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.41.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.42.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.43.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.44.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.45.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.46.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.47.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.48.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.49.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.50.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.51.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.52.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.53.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.54.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.55.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.56.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.57.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.58.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.59.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.60.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.61.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.62.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.63.Channels/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.64.Channels/Channel200/ff_array_en_i";

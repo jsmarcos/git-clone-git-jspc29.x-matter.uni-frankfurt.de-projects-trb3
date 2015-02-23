@@ -2,36 +2,36 @@
 use Data::Dumper;
 use warnings;
 use strict;
-
-
+use Term::ANSIColor;
+use File::stat;
+use POSIX;
+use Cwd 'abs_path';
 
 
 ###################################################################################
 #Settings for this project
 my $TOPNAME                      = "trb3_central";  #Name of top-level entity
-my $lattice_path                 = '/d/jspc29/lattice/diamond/2.01';
-#my $lattice_path                 = '/d/jspc29/lattice/diamond/2.0';
-#my $lattice_path                 = '/d/jspc29/lattice/diamond/1.4.2.105';
-#my $synplify_path                = '/d/jspc29/lattice/synplify/G-2012.09-SP1/';
-my $synplify_path                = '/d/jspc29/lattice/synplify/F-2012.03-SP1/';
+my $BasePath                     = "../base/";     #path to "base" directory
+my $CbmNetPath                   = "../../cbmnet";
 my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
 my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
+
+my $lattice_path                 = '/d/jspc29/lattice/diamond/3.2_x64';
+my $synplify_path                = '/d/jspc29/lattice/synplify/I-2013.09-SP1/';
 ###################################################################################
 
 
+system("./compile_constraints.pl");
 
-
-
-
-
+symlink($CbmNetPath, '../cbmnet/cbmnet') unless (-e '../cbmnet/cbmnet');
 
 use FileHandle;
+
+my $absBasePath = abs_path($BasePath);
 
 $ENV{'SYNPLIFY'}=$synplify_path;
 $ENV{'SYN_DISABLE_RAINBOW_DONGLE'}=1;
 $ENV{'LM_LICENSE_FILE'}=$lm_license_file_for_synplify;
-
-
 
 
 my $FAMILYNAME="LatticeECP3";
@@ -39,16 +39,7 @@ my $DEVICENAME="LFE3-150EA";
 my $PACKAGE="FPBGA1156";
 my $SPEEDGRADE="8";
 
-
 #create full lpf file
-system("cp ../base/trb3_central_cts.lpf workdir/$TOPNAME.lpf");
-system("cat tdc_release/tdc_constraints.lpf >> workdir/$TOPNAME.lpf");
-system("cat ".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
-system("sed -i 's#THE_TDC/#gen_TDC_THE_TDC/#g' workdir/$TOPNAME.lpf");
-
-system("ln -f -s config_default.vhd config.vhd");
-
-if(defined $ENV{'LPF_ONLY'} and $ENV{'LPF_ONLY'} == 1) {exit;}
 
 #set -e
 #set -o errexit
@@ -69,7 +60,7 @@ use ieee.numeric_std.all;
 package version is
 
     constant VERSION_NUMBER_TIME  : integer   := $t;
-
+    
 end package version;
 EOF
 $fh->close;
@@ -79,9 +70,8 @@ my $r = "";
 
 my $c="$synplify_path/bin/synplify_premier_dp -batch $TOPNAME.prj";
 $r=execute($c, "do_not_exit" );
-
-
 chdir "workdir";
+
 $fh = new FileHandle("<$TOPNAME".".srr");
 my @a = <$fh>;
 $fh -> close;
@@ -92,75 +82,76 @@ foreach (@a)
 {
     if(/\@E:/)
     {
-	print "\n";
-	$c="cat $TOPNAME.srr | grep \"\@E\"";
-	system($c);
+   print "\n";
+   $c="cat $TOPNAME.srr | grep \"\@E\"";
+   system($c);
         print "\n\n";
-	exit 129;
+   exit 129;
     }
 }
 
 
 $ENV{'LM_LICENSE_FILE'}=$lm_license_file_for_par;
 
-
-$c=qq| $lattice_path/ispfpga/bin/lin/edif2ngd -path "../" -path "." -l $FAMILYNAME -d $DEVICENAME "$TOPNAME.edf" "$TOPNAME.ngo" |;
+$c=qq' $lattice_path/ispfpga/bin/lin/edif2ngd  -l $FAMILYNAME -d $DEVICENAME "$TOPNAME.edf" "$TOPNAME.ngo" | grep -v -e "WARNING - edif2ngd: Unsupported property" | grep -v -e "Property MEM_INIT_FILE has no value" ' ;
 execute($c);
 
 $c=qq|$lattice_path/ispfpga/bin/lin/edfupdate   -t "$TOPNAME.tcy" -w "$TOPNAME.ngo" -m "$TOPNAME.ngo" "$TOPNAME.ngx"|;
 execute($c);
 
-$c=qq|$lattice_path/ispfpga/bin/lin/ngdbuild  -a $FAMILYNAME -d $DEVICENAME -p "$lattice_path/ispfpga/ep5c00/data" -dt "$TOPNAME.ngo" "$TOPNAME.ngd"|;
+$c=qq'$lattice_path/ispfpga/bin/lin/ngdbuild  -a $FAMILYNAME -d $DEVICENAME -p "$lattice_path/ispfpga/ep5c00/data" -dt "$TOPNAME.ngo" "$TOPNAME.ngd" | grep -v -e "^WARNING.*has no load"';
 execute($c);
 
 my $tpmap = $TOPNAME . "_map" ;
 
-system("mv $TOPNAME.ncd guidefile.ncd");
-# $c=qq|$lattice_path/ispfpga/bin/lin/map -g guidefile.ncd -retime -split_node -a $FAMILYNAME -p $DEVICENAME -t $PACKAGE -s $SPEEDGRADE "$TOPNAME.ngd" -pr "$TOPNAME.prf" -o "$tpmap.ncd"  -mp "$TOPNAME.mrp" "$TOPNAME.lpf"|;
-$c=qq|$lattice_path/ispfpga/bin/lin/map                  -retime -split_node -a $FAMILYNAME -p $DEVICENAME -t $PACKAGE -s $SPEEDGRADE "$TOPNAME.ngd" -pr "$TOPNAME.prf" -o "$tpmap.ncd"  -mp "$TOPNAME.mrp" "$TOPNAME.lpf"|;
+system("rm $tpmap.ncd");
+$c=qq|$lattice_path/ispfpga/bin/lin/map -hier -td_pack -retime EFFORT=6  -split_node -a $FAMILYNAME -p $DEVICENAME -t $PACKAGE -s $SPEEDGRADE "$TOPNAME.ngd" -o "$tpmap.ncd" -xref_sig  -mp "$TOPNAME.mrp"|;
 execute($c);
 
+system("rm $TOPNAME.ncd");
 
-$c=qq|multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
-#$c=qq|$lattice_path/ispfpga/bin/lin/par -f "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd" "$TOPNAME.prf"|;
-#$c=qq|$lattice_path/ispfpga/bin/lin/par -f "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.dir" "$TOPNAME.prf"|;
+system "xterm -geometry 120x40+0+45 -e 'watch head -n 100  $TOPNAME.par' &";
+
+$c=qq|mpartrce -p "../$TOPNAME.p2t" -f "../$TOPNAME.p3t" -tf "$TOPNAME.pt" "|.$TOPNAME.qq|_map.ncd" "$TOPNAME.ncd"|;
 execute($c);
 
 # IOR IO Timing Report
 $c=qq|$lattice_path/ispfpga/bin/lin/iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;
-#execute($c);
-
-# TWR Timing Report
-$c=qq|$lattice_path/ispfpga/bin/lin/trce -c -v 15 -o "$TOPNAME.twr.setup" "$TOPNAME.ncd" "$TOPNAME.prf"|;
-execute($c);
-
-$c=qq|$lattice_path/ispfpga/bin/lin/trce -hld -c -v 5 -o "$TOPNAME.twr.hold"  "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
 
 $c=qq|$lattice_path/ispfpga/bin/lin/ltxt2ptxt $TOPNAME.ncd|;
 execute($c);
 
-$c=qq|$lattice_path/ispfpga/bin/lin/bitgen -w -g CfgMode:Disable -g RamCfg:Reset -g ES:No  $TOPNAME.ncd $TOPNAME.bit $TOPNAME.prf|;
-# $c=qq|$lattice_path/ispfpga/bin/lin/bitgen  -w "$TOPNAME.ncd"  "$TOPNAME.prf"|;
+$c=qq|$lattice_path/ispfpga/bin/lin/bitgen  -w "$TOPNAME.ncd" "$TOPNAME.prf"|;
+execute($c);
+
+
+# TWR Timing Report
+$c=qq|$lattice_path/ispfpga/bin/lin/trce -fullname -c -v 15 -o "$TOPNAME.twr.setup" "$TOPNAME.ncd" "$TOPNAME.prf"|;
+execute($c);
+
+$c=qq|$lattice_path/ispfpga/bin/lin/trce -fullname -hld -c -v 5 -o "$TOPNAME.twr.hold"  "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
 
 chdir "..";
 
-exit;
 
 sub execute {
     my ($c, $op) = @_;
     #print "option: $op \n";
     $op = "" if(!$op);
+    print color 'blue bold';
     print "\n\ncommand to execute: $c \n";
-    $r=system($c);
+    print color 'reset';
+    $r=system("$c  | $absBasePath/pretty_syn.pl");
     if($r) {
-	print "$!";
-	if($op ne "do_not_exit") {
-	    exit;
-	}
+  print "$!";
+  if($op ne "do_not_exit") {
+      wait;
+  }
     }
 
     return $r;
 
 }
+

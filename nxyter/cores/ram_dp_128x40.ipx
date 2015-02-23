@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="ram_dp_128x40" module="RAM_DP" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2013 12 15 14:15:58.011" version="6.1" type="Module" synthesis="synplify" source_format="VHDL">
+  <Package>
+		<File name="" type="mem" modified="2013 12 15 14:15:58.000"/>
+		<File name="ram_dp_128x40.lpc" type="lpc" modified="2013 12 15 14:15:56.000"/>
+		<File name="ram_dp_128x40.vhd" type="top_level_vhdl" modified="2013 12 15 14:15:56.000"/>
+		<File name="ram_dp_128x40_tmpl.vhd" type="template_vhdl" modified="2013 12 15 14:15:56.000"/>
+		<File name="tb_ram_dp_128x40_tmpl.vhd" type="testbench_vhdl" modified="2013 12 15 14:15:56.000"/>
+  </Package>
+</DiamondModule>

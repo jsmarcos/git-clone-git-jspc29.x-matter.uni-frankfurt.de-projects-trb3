@@ -14,8 +14,9 @@ use work.cbmnet_phy_pkg.all;
 
 entity trb3_periph_cbmnet is
    generic (
-      CBM_FEE_MODE : integer := CBM_FEE_MODE_C -- in FEE mode, logic will run on recovered clock and (for now) listen only to data received
+      CBM_FEE_MODE : integer := CBM_FEE_MODE_C; -- in FEE mode, logic will run on recovered clock and (for now) listen only to data received
                                      -- in Master mode, logic will run on internal clock and regularly send dlms
+      INCLUDE_TRBNET : integer := INCLUDE_TRBNET_C
    );
    port(
       --Clocks
@@ -72,7 +73,8 @@ entity trb3_periph_cbmnet is
       SUPPL      : in    std_logic;       --terminated diff pair, PCLK, Pads
 
       --Test Connectors
-      TEST_LINE : out std_logic_vector(15 downto 0);
+      TEST_LINE : out std_logic_vector(15 downto 0); 
+      --TEST_LVDS_LINE : out std_logic_vector(1 downto 0);
 
       -- PCS Core TODO: Suppose this is necessary only for simulation
       SD_RXD_N_IN     : in std_logic;
@@ -109,15 +111,14 @@ entity trb3_periph_cbmnet is
    
    attribute syn_keep : boolean;
    attribute syn_keep of CLK_GPLL_LEFT, CLK_GPLL_RIGHT, CLK_PCLK_LEFT, CLK_PCLK_RIGHT, TRIGGER_LEFT, TRIGGER_RIGHT : signal is true;
-   attribute syn_keep     : boolean;
    attribute syn_preserve : boolean;
+   
 end entity;
 
 architecture trb3_periph_arch of trb3_periph_cbmnet is
---Constants
+   --Constants
    constant REGIO_NUM_STAT_REGS : integer := 2;
    constant REGIO_NUM_CTRL_REGS : integer := 2;
-
 
    --Clock / Reset
    signal clk_125_i                : std_logic; -- clock reference for CBMNet serdes
@@ -128,16 +129,12 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    signal clear_i                  : std_logic;
    signal reset_i                  : std_logic;
    signal GSR_N                    : std_logic;
+
    attribute syn_keep of GSR_N     : signal is true;
    attribute syn_preserve of GSR_N : signal is true;
 
-
-   signal rclk_125_i                : std_logic; -- recovered clock 
-   signal rreset_i                  : std_logic; -- reset for recovered clock ~ 1us after clock becomes stable
-
-
    --Media Interface
-   signal med_stat_op        : std_logic_vector (1*16-1 downto 0);
+   signal med_stat_op        : std_logic_vector (1*16-1 downto 0) := (others => '0');
    signal med_ctrl_op        : std_logic_vector (1*16-1 downto 0);
    signal med_stat_debug     : std_logic_vector (1*64-1 downto 0);
    signal med_ctrl_debug     : std_logic_vector (1*64-1 downto 0);
@@ -219,14 +216,11 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    signal spimem_data_out  : std_logic_vector(31 downto 0);
    signal spimem_ack       : std_logic;
 
-   signal debug_read_en   : std_logic;
-   signal debug_write_en  : std_logic;
-   signal debug_data_in   : std_logic_vector(31 downto 0);
-   signal debug_addr      : std_logic_vector(5 downto 0);
-   signal debug_data_out  : std_logic_vector(31 downto 0);
-   signal debug_ack       : std_logic;
-   
-   
+   signal trb_trigger : std_logic;
+   signal sync_dlm_sense : std_logic;
+   signal sync_pulser : std_logic;
+
+
    signal spi_bram_addr : std_logic_vector(7 downto 0);
    signal spi_bram_wr_d : std_logic_vector(7 downto 0);
    signal spi_bram_rd_d : std_logic_vector(7 downto 0);
@@ -236,109 +230,85 @@ architecture trb3_periph_arch of trb3_periph_cbmnet is
    signal time_counter : unsigned(31 downto 0);
 
    -- CBMNet signals
-   constant NUM_LANES : integer := 1;
-   signal cbm_res_n             :  std_logic; -- Active low reset; can be changed by define
+
+
+   signal hub_cts_number                   : std_logic_vector(15 downto 0);
+   signal hub_cts_code                     : std_logic_vector(7 downto 0);
+   signal hub_cts_information              : std_logic_vector(7 downto 0);
+   signal hub_cts_start_readout            : std_logic;
+   signal hub_cts_readout_type             : std_logic_vector(3 downto 0);
+   signal hub_cts_readout_finished         : std_logic;
+   signal hub_cts_status_bits              : std_logic_vector(31 downto 0);
+   signal hub_fee_data                     : std_logic_vector(15 downto 0);
+   signal hub_fee_dataready                : std_logic;
+   signal hub_fee_read                     : std_logic;
+   signal hub_fee_status_bits              : std_logic_vector(31 downto 0);
+   signal hub_fee_busy                     : std_logic;
+
+   signal gbe_cts_number                   : std_logic_vector(15 downto 0);
+   signal gbe_cts_code                     : std_logic_vector(7 downto 0);
+   signal gbe_cts_information              : std_logic_vector(7 downto 0);
+   signal gbe_cts_start_readout            : std_logic;
+   signal gbe_cts_readout_type             : std_logic_vector(3 downto 0);
+   signal gbe_cts_readout_finished         : std_logic;
+   signal gbe_cts_status_bits              : std_logic_vector(31 downto 0);
+   signal gbe_fee_data                     : std_logic_vector(15 downto 0);
+   signal gbe_fee_dataready                : std_logic;
+   signal gbe_fee_read                     : std_logic;
+   signal gbe_fee_status_bits              : std_logic_vector(31 downto 0);
+   signal gbe_fee_busy                     : std_logic;  
+
+   signal do_reboot_i : std_logic;
+
+   signal cbm_clk_i : std_logic;
+   signal cbm_reset_i : std_logic;
    signal cbm_link_active       :  std_logic; -- link is active and can send and receive data
+   signal etm_trigger_i : std_logic;
+   signal cbm_sync_dlm_sensed_i : std_logic;
+   signal cbm_sync_pulser_i : std_logic;
+   signal cbm_sync_timing_trigger_i : std_logic;
 
-   signal cbm_ctrl2send_stop    :  std_logic := '0'; -- send control interface
-   signal cbm_ctrl2send_start   :  std_logic := '0';
-   signal cbm_ctrl2send_end     :  std_logic := '0';
-   signal cbm_ctrl2send         :  std_logic_vector(15 downto 0) := (others => '0');
-
-   signal cbm_data2send_stop    :  std_logic_vector(NUM_LANES-1 downto 0) := (others => '0'); -- send data interface
-   signal cbm_data2send_start   :  std_logic_vector(NUM_LANES-1 downto 0) := (others => '0');
-   signal cbm_data2send_end     :  std_logic_vector(NUM_LANES-1 downto 0) := (others => '0');
-   signal cbm_data2send         :  std_logic_vector((16*NUM_LANES)-1 downto 0) := (others => '0');
-
-   signal cbm_dlm2send_va       :  std_logic := '0';                      -- send dlm interface
-   signal cbm_dlm2send          :  std_logic_vector(3 downto 0) := (others => '0');
-
-   signal cbm_dlm_rec_type      :  std_logic_vector(3 downto 0) := (others => '0');   -- receive dlm interface
-   signal cbm_dlm_rec_va        :  std_logic := '0';
-
-   signal cbm_data_rec          :  std_logic_vector((16*NUM_LANES)-1 downto 0);   -- receive data interface
-   signal cbm_data_rec_start    :  std_logic_vector(NUM_LANES-1 downto 0);
-   signal cbm_data_rec_end      :  std_logic_vector(NUM_LANES-1 downto 0);         
-   signal cbm_data_rec_stop     :  std_logic_vector(NUM_LANES-1 downto 0) := (others =>'0');  
-
-   signal cbm_ctrl_rec          :  std_logic_vector(15 downto 0);       -- receive control interface
-   signal cbm_ctrl_rec_start    :  std_logic;
-   signal cbm_ctrl_rec_end      :  std_logic;                 
-   signal cbm_ctrl_rec_stop     :  std_logic := '0';
-
-   signal cbm_data_from_link    :  std_logic_vector((18*NUM_LANES)-1 downto 0);   -- interface from the PHY
-   signal cbm_data2link         :  std_logic_vector((18*NUM_LANES)-1 downto 0);   -- interface to the PHY
-
-   signal cbm_link_activeovr    :  std_logic := '0'; -- Overrides; set 0 by default
-   signal cbm_link_readyovr     :  std_logic := '0';
-
-   signal cbm_SERDES_ready      :  std_logic;    -- signalize when PHY ready
-
-   signal phy_stat_op,    phy_ctrl_op    : std_logic_vector(15 downto 0) := (others => '0');
-   signal phy_stat_debug, phy_ctrl_debug : std_logic_vector(63 downto 0) := (others => '0');
-   
-   signal phy_debug_i : std_logic_vector (127 downto 0) := (others => '0');
-
--- Link Tester
-   signal link_tester_ctrl_en   :std_logic;
-   signal link_tester_dlm_en    :std_logic;
-   signal link_tester_data_en   :std_logic;
-                                           
-   signal link_tester_data_stop :std_logic;
-   signal link_tester_ctrl_stop :std_logic;
-                                           
-   signal link_tester_data_valid:std_logic;
-   signal link_tester_ctrl_valid:std_logic;
-   signal link_tester_dlm_valid :std_logic;
+   signal cbm_regio_addr_i                :   std_logic_vector(15 downto 0);
+   signal cbm_regio_status_data_i         :   std_logic_vector(31 downto 0);
+   signal cbm_regio_read_enable_i         :   std_logic;
+   signal cbm_regio_write_enable_i        :   std_logic;
+   signal cbm_regio_timeout_i             :   std_logic;
+   signal cbm_regio_control_data_i        :  std_logic_vector(31 downto 0);
+   signal cbm_regio_dataready_i           :  std_logic;
+   signal cbm_regio_write_ack_i           :  std_logic;
+   signal cbm_regio_no_more_data_i        :  std_logic;
+   signal cbm_regio_unknown_addr_i        :  std_logic;
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-   
-
-
-   signal link_tester_ctrl : std_logic_vector(31 downto 0) := (others => '0');
-   signal link_tester_stat : std_logic_vector(31 downto 0) := (others => '0');
-   
+   signal cbm_pgen_addr_i                :   std_logic_vector(15 downto 0);
+   signal cbm_pgen_status_data_i         :   std_logic_vector(31 downto 0);
+   signal cbm_pgen_read_enable_i         :   std_logic;
+   signal cbm_pgen_write_enable_i        :   std_logic;
+   signal cbm_pgen_timeout_i             :   std_logic;
+   signal cbm_pgen_control_data_i        :  std_logic_vector(31 downto 0);
+   signal cbm_pgen_dataready_i           :  std_logic;
+   signal cbm_pgen_write_ack_i           :  std_logic;
+   signal cbm_pgen_no_more_data_i        :  std_logic;
+   signal cbm_pgen_unknown_addr_i        :  std_logic;
+  
+   signal cbm_debug_i : std_logic_vector(31 downto 0);
+  
 begin
    clk_125_i <= CLK_GPLL_LEFT; 
+   assert(INCLUDE_TRBNET = c_YES);
 
----------------------------------------------------------------------------
--- CBMNet and PHY
----------------------------------------------------------------------------   
-   THE_CBM_PHY: cbmnet_phy_ecp3
-   generic map (IS_SYNC_SLAVE => CBM_FEE_MODE)
+   THE_CBM_BRIDGE: cbmnet_bridge
    port map (
-      CLK                => clk_125_i,
-      RESET              => reset_i,
-      CLEAR              => '0',
-         
-      --Internal Connection TX
-      PHY_TXDATA_IN      => cbm_data2link(15 downto  0),
-      PHY_TXDATA_K_IN    => cbm_data2link(17 downto 16),
+   -- clock and reset
+      CLK125_IN => clk_125_i, -- in std_logic;
+      ASYNC_RESET_IN => '0',
+      TRB_CLK_IN => clk_100_i, -- in std_logic;
+      TRB_RESET_IN => reset_i, -- in std_logic;
       
-      --Internal Connection RX
-      PHY_RXDATA_OUT     => cbm_data_from_link(15 downto 0),
-      PHY_RXDATA_K_OUT   => cbm_data_from_link(17 downto 16),
+      CBM_CLK_OUT => cbm_clk_i, -- out std_logic;
+      CBM_RESET_OUT=> cbm_reset_i, -- out std_logic;
       
-      CLK_RX_HALF_OUT    => rclk_125_i,
-      CLK_RX_FULL_OUT    => open,
-      CLK_RX_RESET_OUT   => rreset_i,
-
-      LINK_ACTIVE_OUT    => open,
-      SERDES_ready       => cbm_SERDES_ready,
-      
-      --SFP Connection
+   -- Media Interface
       SD_RXD_P_IN        => SD_RXD_P_IN,
       SD_RXD_N_IN        => SD_RXD_N_IN,
       SD_TXD_P_OUT       => SD_TXD_P_OUT,
@@ -352,232 +322,105 @@ begin
       LED_TX_OUT         => LED_TX(1),
       LED_OK_OUT         => LED_LINKOK(1),
       
-      -- Status and control port
-      STAT_OP            => phy_stat_op,
-      CTRL_OP            => phy_ctrl_op,
-      DEBUG_OUT          => phy_debug_i
+   -- Status and strobes   
+      CBM_LINK_ACTIVE_OUT     => cbm_link_active,
+      CBM_DLM_OUT             => cbm_sync_dlm_sensed_i, -- out std_logic;
+      CBM_TIMING_TRIGGER_OUT  => cbm_sync_timing_trigger_i, -- out std_logic;
+      CBM_SYNC_PULSER_OUT     => cbm_sync_pulser_i, -- out std_logic;
+   
+   -- TRBNet Terminal
+      TRB_TRIGGER_OUT => trb_trigger, --  out std_logic;
+
+      --data output for read-out
+      TRB_TRIGGER_IN        => timing_trg_received_i, --  in  std_logic;
+      
+      TRB_RDO_VALID_DATA_TRG_IN   => trg_data_valid_i,
+      TRB_RDO_VALID_NO_TIMING_IN  => trg_notiming_valid_i,
+      
+      TRB_RDO_DATA_OUT      => fee_data_i, --  out std_logic_vector(31 downto 0);
+      TRB_RDO_WRITE_OUT     => fee_data_write_i, --  out std_logic;
+      TRB_RDO_STATUSBIT_OUT => fee_trg_statusbits_i, --  out std_logic_vector(31 downto 0);
+      TRB_RDO_FINISHED_OUT  => fee_data_finished_i, --  out std_logic;
+   
+      HUB_CTS_NUMBER_IN              => hub_cts_number, -- in  std_logic_vector (15 downto 0);
+      HUB_CTS_CODE_IN                => hub_cts_code, -- in  std_logic_vector (7  downto 0);
+      HUB_CTS_INFORMATION_IN         => hub_cts_information, -- in  std_logic_vector (7  downto 0);
+      HUB_CTS_READOUT_TYPE_IN        => hub_cts_readout_type, -- in  std_logic_vector (3  downto 0);
+      HUB_CTS_START_READOUT_IN       => hub_cts_start_readout, -- in  std_logic;
+      HUB_CTS_READOUT_FINISHED_OUT   => hub_cts_readout_finished, -- out std_logic;  --no more data, end transfer, send TRM
+      HUB_CTS_STATUS_BITS_OUT        => hub_cts_status_bits, -- out std_logic_vector (31 downto 0);
+      HUB_FEE_DATA_IN                => hub_fee_data, -- in  std_logic_vector (15 downto 0);
+      HUB_FEE_DATAREADY_IN           => hub_fee_dataready, -- in  std_logic;
+      HUB_FEE_READ_OUT               => hub_fee_read, -- out std_logic;  --must be high when idle, otherwise you will never get a dataready
+      HUB_FEE_STATUS_BITS_IN         => hub_fee_status_bits, -- in  std_logic_vector (31 downto 0);
+      HUB_FEE_BUSY_IN                => hub_fee_busy, -- in  std_logic;   
+
+      -- connect to GbE
+      GBE_CTS_NUMBER_OUT             => gbe_cts_number, -- out std_logic_vector (15 downto 0);
+      GBE_CTS_CODE_OUT               => gbe_cts_code, -- out std_logic_vector (7  downto 0);
+      GBE_CTS_INFORMATION_OUT        => gbe_cts_information, -- out std_logic_vector (7  downto 0);
+      GBE_CTS_READOUT_TYPE_OUT       => gbe_cts_readout_type, -- out std_logic_vector (3  downto 0);
+      GBE_CTS_START_READOUT_OUT      => gbe_cts_start_readout, -- out std_logic;
+      GBE_CTS_READOUT_FINISHED_IN    => gbe_cts_readout_finished, -- in  std_logic;      --no more data, end transfer, send TRM
+      GBE_CTS_STATUS_BITS_IN         => gbe_cts_status_bits, -- in  std_logic_vector (31 downto 0);
+      GBE_FEE_DATA_OUT               => gbe_fee_data, -- out std_logic_vector (15 downto 0);
+      GBE_FEE_DATAREADY_OUT          => gbe_fee_dataready, -- out std_logic;
+      GBE_FEE_READ_IN                => gbe_fee_read, -- in  std_logic;  --must be high when idle, otherwise you will never get a dataready
+      GBE_FEE_STATUS_BITS_OUT        => gbe_fee_status_bits, -- out std_logic_vector (31 downto 0);
+      GBE_FEE_BUSY_OUT               => gbe_fee_busy, -- out std_logic;
+
+      -- reg io
+      -- reg io
+      REGIO_ADDR_IN                  => cbm_regio_addr_i, -- in  std_logic_vector(15 downto 0);
+      REGIO_DATA_IN                  => cbm_regio_control_data_i, -- in  std_logic_vector(31 downto 0);
+      REGIO_TIMEOUT_IN               => cbm_regio_timeout_i, -- in  std_logic;
+      REGIO_READ_ENABLE_IN           => cbm_regio_read_enable_i, -- in  std_logic;
+      REGIO_WRITE_ENABLE_IN          => cbm_regio_write_enable_i, -- in  std_logic;
+      REGIO_DATA_OUT                 => cbm_regio_status_data_i, -- out std_logic_vector(31 downto 0);
+      REGIO_DATAREADY_OUT            => cbm_regio_dataready_i, -- out std_logic;
+      REGIO_WRITE_ACK_OUT            => cbm_regio_write_ack_i, -- out std_logic;
+      REGIO_NO_MORE_DATA_OUT         => cbm_regio_no_more_data_i, -- out std_logic;
+      REGIO_UNKNOWN_ADDR_OUT         => cbm_regio_unknown_addr_i, -- out std_logic;
+      
+      DEBUG_OUT => cbm_debug_i
    );
 
-   SFP_RATESEL   <= (others => '1');
+   fee_trg_release_i <= fee_data_finished_i;
    
-   TEST_LINE(14 downto 0) <= phy_stat_op(14 downto 0);
-   TEST_LINE(15) <= cbm_dlm2send_va when CBM_FEE_MODE = c_YES else cbm_dlm_rec_va;
-
-
-   THE_CBM_ENDPOINT: lp_top 
-   generic map (
-      NUM_LANES => NUM_LANES,
-      TX_SLAVE  => 1
-   )
+   SFP_RATESEL   <= (others => '0');
+   
+   THE_RDO_PGEN: trbnet_rdo_pattern_generator
    port map (
-   -- Clk & Reset
-      clk => rclk_125_i,
-      res_n => cbm_res_n,
+      CLK_IN    => clk_100_i,
+      RESET_IN  => reset_i,
 
-   -- Phy
-      data_from_link => cbm_data_from_link,
-      data2link => cbm_data2link,
-      link_activeovr => '0',
-      link_readyovr => '0',
-      SERDES_ready => cbm_SERDES_ready,
+      HUB_CTS_NUMBER_OUT          => hub_cts_number, 
+      HUB_CTS_CODE_OUT            => hub_cts_code,
+      HUB_CTS_OUTFORMATION_OUT    => hub_cts_information,
+      HUB_CTS_READOUT_TYPE_OUT    => hub_cts_readout_type,
+      HUB_CTS_START_READOUT_OUT   => hub_cts_start_readout,
+      HUB_CTS_READOUT_FINISHED_IN => hub_cts_readout_finished,
+      HUB_CTS_STATUS_BITS_IN      => hub_cts_status_bits,
+      HUB_FEE_DATA_OUT            => hub_fee_data,
+      HUB_FEE_DATAREADY_OUT       => hub_fee_dataready,
+      HUB_FEE_READ_IN             => hub_fee_read,
+      HUB_FEE_STATUS_BITS_OUT     => hub_fee_status_bits,
+      HUB_FEE_BUSY_OUT            => hub_fee_busy,
 
-   -- CBMNet Interface
-      link_active => cbm_link_active,
-      ctrl2send_stop => cbm_ctrl2send_stop,
-      ctrl2send_start => cbm_ctrl2send_start,
-      ctrl2send_end => cbm_ctrl2send_end,
-      ctrl2send => cbm_ctrl2send,
-      
-      data2send_stop => cbm_data2send_stop,
-      data2send_start => cbm_data2send_start,
-      data2send_end => cbm_data2send_end,
-      data2send => cbm_data2send,
-      
-      dlm2send_va => cbm_dlm2send_va,
-      dlm2send => cbm_dlm2send,
-      
-      dlm_rec_type => cbm_dlm_rec_type,
-      dlm_rec_va => cbm_dlm_rec_va,
-
-      data_rec => cbm_data_rec,
-      data_rec_start => cbm_data_rec_start,
-      data_rec_end => cbm_data_rec_end,
-      data_rec_stop => cbm_data_rec_stop,
-      
-      ctrl_rec => cbm_ctrl_rec,
-      ctrl_rec_start => cbm_ctrl_rec_start,
-      ctrl_rec_end => cbm_ctrl_rec_end,
-      ctrl_rec_stop => cbm_ctrl_rec_stop
-      
+      REGIO_READ_ENABLE_IN      => cbm_pgen_read_enable_i,
+      REGIO_WRITE_ENABLE_IN     => cbm_pgen_write_enable_i,
+      REGIO_DATA_IN             => cbm_pgen_control_data_i,
+      REGIO_ADDR_IN             => cbm_pgen_addr_i,
+      REGIO_TIMEOUT_IN          => cbm_pgen_timeout_i,
+      REGIO_DATA_OUT            => cbm_pgen_status_data_i,
+      REGIO_DATAREADY_OUT       => cbm_pgen_dataready_i,
+      REGIO_WRITE_ACK_OUT       => cbm_pgen_write_ack_i,
+      REGIO_NO_MORE_DATA_OUT    => cbm_pgen_no_more_data_i,
+      REGIO_UNKNOWN_ADDR_OUT    => cbm_pgen_unknown_addr_i
    );
-   cbm_res_n <= not rreset_i;
-
----------------------------------------------------------------------------
--- CBMNet Link Tester
----------------------------------------------------------------------------      
-   GEN_LINK_TESTER_BE: if CBM_FEE_MODE = c_NO generate
-      THE_LINK_TESTER: link_tester_be
-      generic map (
-         MIN_CTRL_PACKET_SIZE => 12, -- : integer := 12;
-         MAX_CTRL_PACKET_SIZE => 60, -- : integer := 60;
-
-         DATAWIDTH  => 16, -- : integer := 16;
-         SINGLE_DEST => 1, -- : integer := 1;        
-         DATA_PADDING => 0, -- : integer := 0;
-         CTRL_PADDING => 16#A5A5#, -- : integer := 16#A5A5#;
-         
-         ROC_ADDR => "00000000XXXXXXXX", -- : std_logic_vector(15 downto 0) := "00000000xxxxxxxx";
-         OWN_ADDR => "1000000000000000" -- : std_logic_vector(15 downto 0) := "1000000000000000";
-      )
-      port map (
-         clk => rclk_125_i, -- in std_logic;
-         res_n => cbm_res_n, -- in std_logic;
-         link_active => cbm_link_active, -- in std_logic;
-
-         ctrl_en => link_tester_ctrl_en, -- in std_logic;              //enable ctrl packet generation
-         dlm_en  => link_tester_dlm_en, -- in std_logic;               //enable dlm generation        
-         force_rec_data_stop => link_tester_data_stop, -- in std_logic;  //force data flow to stop
-         force_rec_ctrl_stop => link_tester_ctrl_stop, -- in std_logic;  //force ctrl flow to stop
-
-         ctrl2send_stop => cbm_ctrl2send_stop, -- in std_logic;
-         ctrl2send_start => cbm_ctrl2send_start, -- out std_logic;
-         ctrl2send_end => cbm_ctrl2send_end, -- out std_logic;
-         ctrl2send => cbm_ctrl2send, -- out std_logic_vector(15 downto 0);
-
-         dlm2send_valid => cbm_dlm2send_va, -- out std_logic;
-         dlm2send => cbm_dlm2send, -- out std_logic_vector(3 downto 0);
-
-         dlm_rec => cbm_dlm_rec_type, -- in std_logic_vector(3 downto 0);
-         dlm_rec_valid => cbm_dlm_rec_va, -- in std_logic;
-
-         data_rec_start => cbm_data_rec_start(0), -- in std_logic;
-         data_rec_end => cbm_data_rec_end(0), -- in std_logic;
-         data_rec => cbm_data_rec, -- in std_logic_vector(DATAWIDTH-1 downto 0);
-         data_rec_stop => cbm_data_rec_stop(0), -- out std_logic;
-
-         ctrl_rec_start => cbm_ctrl_rec_start, -- in std_logic;
-         ctrl_rec_end => cbm_ctrl_rec_end, -- in std_logic;
-         ctrl_rec => cbm_ctrl_rec, -- in std_logic_vector(15 downto 0);
-         ctrl_rec_stop => cbm_ctrl_rec_stop, -- out std_logic;
-
-         data_valid => link_tester_data_valid, -- out std_logic;
-         ctrl_valid => link_tester_ctrl_valid, -- out std_logic;
-         dlm_valid => link_tester_dlm_valid -- out std_logic
-      );
-   end generate;
-
-   GEN_LINK_TESTER_FE: if CBM_FEE_MODE = c_YES generate
-      THE_LINK_TESTER: link_tester_fe 
-   --   generic map (
-   --       MIN_PACKET_SIZE => 8, -- : integer := 8;
-   --       MAX_PACKET_SIZE => 64, -- : integer := 64;
-   --       PACKET_GRAN => 2, -- : integer := 2;
-   -- 
-   --       MIN_CTRL_PACKET_SIZE => 12, -- : integer := 12;
-   --       MAX_CTRL_PACKET_SIZE => 60, -- : integer := 60;
-   -- 
-   --       DATAWIDTH  => 16, -- : integer := 16;
-   --       SINGLE_DEST => 1, -- : integer := 1;        
-   --       DATA_PADDING => 0, -- : integer := 0;
-   --       CTRL_PADDING => 16#A5A5#, -- : integer := 16#A5A5#;
-   --       
-   --       ROC_ADDR => "0000000000000000", -- : std_logic_vector(15 downto 0) := "0000000000000000";
-   --       OWN_ADDR => "1000000000000000", -- : std_logic_vector(15 downto 0) := "1000000000000000";
-   --    
-   --       PACKET_MODE : integer := 1 --if enabled generates another packet size order to test further corner cases
-   --  )
-      port map (
-         clk => rclk_125_i, -- in std_logic;
-         res_n => cbm_res_n, -- in std_logic;
-         link_active => cbm_link_active, -- in std_logic;
-
-         data_en => link_tester_data_en, -- in std_logic;     //enable data packet generation
-         ctrl_en => link_tester_ctrl_en, -- in std_logic;     //enable ctrl packet generation
-         force_rec_ctrl_stop => link_tester_ctrl_stop, -- in std_logic;  //force ctrl flow to stop
-
-         ctrl2send_stop => cbm_ctrl2send_stop, -- in std_logic;
-         ctrl2send_start => cbm_ctrl2send_start, -- out std_logic;
-         ctrl2send_end => cbm_ctrl2send_end, -- out std_logic;
-         ctrl2send => cbm_ctrl2send, -- out std_logic_vector(15 downto 0);
-
-         data2send_stop => cbm_data2send_stop(0), -- in std_logic;
-         data2send_start => cbm_data2send_start(0), -- out std_logic;
-         data2send_end => cbm_data2send_end(0), -- out std_logic;
-         data2send => cbm_data2send, -- out std_logic_vector(15 downto 0);
-
-         dlm2send_valid => cbm_dlm2send_va, -- out std_logic;
-         dlm2send => cbm_dlm2send, -- out std_logic_vector(3 downto 0);
-
-         dlm_rec => cbm_dlm_rec_type, -- in std_logic_vector(3 downto 0);
-         dlm_rec_valid => cbm_dlm_rec_va, -- in std_logic;
-
-         data_rec_start => cbm_data_rec_start(0), -- in std_logic;
-         data_rec_end => cbm_data_rec_end(0), -- in std_logic;
-         data_rec => cbm_data_rec, -- in std_logic_vector(15 downto 0);
-         data_rec_stop => cbm_data_rec_stop(0), -- out std_logic;
-
-         ctrl_rec_start => cbm_ctrl_rec_start, -- in std_logic;
-         ctrl_rec_end => cbm_ctrl_rec_end, -- in std_logic;
-         ctrl_rec => cbm_ctrl_rec, -- in std_logic_vector(15 downto 0);
-         ctrl_rec_stop => cbm_ctrl_rec_stop -- std_logic
-      );
-   end generate;
+   gbe_fee_read <= '1';
+   gbe_cts_status_bits <= x"beafc0de";
    
-   link_tester_stat <= (
-      0 => link_tester_data_valid,
-      1 => link_tester_ctrl_valid,
-      2 => link_tester_dlm_valid,
-      others => '0'
-   );
-
-   link_tester_data_en <= link_tester_ctrl(0);
-   link_tester_ctrl_en <= link_tester_ctrl(1);
-   link_tester_dlm_en  <= link_tester_ctrl(2);
-
-   link_tester_data_stop <= link_tester_ctrl(4);
-   link_tester_ctrl_stop <= link_tester_ctrl(5);
-   
-   PROC_REGIO_DEBUG: process is 
-      variable address : integer range 0 to 255;
-   begin
-      wait until rising_edge(clk_100_i);
-      address := to_integer(unsigned(debug_addr));
-      
-      debug_data_out <= x"00000000";
-      debug_ack <= '0';
-      
-      debug_ack <= debug_read_en or debug_write_en;
-      case address is
-         when 16#0# => debug_data_out <= x"0000" & phy_stat_op;
-         when 16#1# => debug_data_out <= x"0000" & phy_ctrl_op;
-         when 16#2# => debug_data_out <= phy_stat_debug(31 downto  0);
-         when 16#3# => debug_data_out <= phy_stat_debug(63 downto 32);
-         when 16#4# => debug_data_out <= phy_ctrl_debug(31 downto  0);
-         when 16#5# => debug_data_out <= phy_ctrl_debug(63 downto 32);
-         when 16#6# => debug_data_out <= STD_LOGIC_VECTOR(TO_UNSIGNED(CBM_FEE_MODE, 32));
-         when 16#8# => debug_data_out <= phy_debug_i(31+32*0 downto 32*0);
-         when 16#9# => debug_data_out <= phy_debug_i(31+32*1 downto 32*1);
-         when 16#a# => debug_data_out <= phy_debug_i(31+32*2 downto 32*2);
-         when 16#b# => debug_data_out <= phy_debug_i(31+32*3 downto 32*3);         
-
-         when 16#c# => debug_data_out <= link_tester_stat;
-         when 16#d# => debug_data_out <= link_tester_ctrl;
-         
-         when others => debug_ack <= '0';
-      end case;
-   
-      if debug_write_en = '1' then
-         case (address) is
-            when 16#1# => phy_ctrl_op <= debug_data_in(15 downto 0);
-            when 16#4# => phy_ctrl_debug(31 downto  0) <= debug_data_in;
-            when 16#5# => phy_ctrl_debug(63 downto 32) <= debug_data_in;
-            
-            when 16#d# => link_tester_ctrl <= debug_data_in;   
-            when others => debug_ack <= '0';
-         end case;
-      end if;
-   end process;
-    
 ---------------------------------------------------------------------------
 -- Reset Generation
 ---------------------------------------------------------------------------
@@ -610,13 +453,13 @@ begin
       CLK   => CLK_GPLL_RIGHT,
       CLKOP => clk_100_i,
       CLKOK => clk_200_i,
-      CLKOS => open,
+--      CLKOS => open,
       LOCK  => pll_lock1
       );
       
    pll_lock <= pll_lock1; -- and pll_lock2;
 
-
+--   GEN_TRBNET: if INCLUDE_TRBNET = c_YES generate
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (to other FPGA)
 ---------------------------------------------------------------------------
@@ -777,14 +620,15 @@ begin
       DEBUG_LVL1_HANDLER_OUT      => open
       );
 
+      timing_trg_received_i <= TRIGGER_LEFT;
 ---------------------------------------------------------------------------
 -- Bus Handler
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
-      PORT_NUMBER    => 3,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"a000", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1, 1 => 6, 2 => 6, others => 0)
+      PORT_NUMBER    => 4,
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"a800", 3=>x"aa00", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 9,       3=> 4,      others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -801,46 +645,51 @@ begin
       DAT_NO_MORE_DATA_OUT => regio_no_more_data_in,
       DAT_UNKNOWN_ADDR_OUT => regio_unknown_addr_in,
 
-      --Bus Handler (SPI CTRL)
-      BUS_READ_ENABLE_OUT(0)              => spictrl_read_en,
-      BUS_WRITE_ENABLE_OUT(0)             => spictrl_write_en,
-      BUS_DATA_OUT(0*32+31 downto 0*32)   => spictrl_data_in,
       BUS_ADDR_OUT(0*16)                  => spictrl_addr,
       BUS_ADDR_OUT(0*16+15 downto 0*16+1) => open,
-      BUS_TIMEOUT_OUT(0)                  => open,
-      BUS_DATA_IN(0*32+31 downto 0*32)    => spictrl_data_out,
-      BUS_DATAREADY_IN(0)                 => spictrl_ack,
-      BUS_WRITE_ACK_IN(0)                 => spictrl_ack,
-      BUS_NO_MORE_DATA_IN(0)              => spictrl_busy,
-      BUS_UNKNOWN_ADDR_IN(0)              => '0',
-      
-      --Bus Handler (SPI Memory)
-      BUS_READ_ENABLE_OUT(1)              => spimem_read_en,
-      BUS_WRITE_ENABLE_OUT(1)             => spimem_write_en,
-      BUS_DATA_OUT(1*32+31 downto 1*32)   => spimem_data_in,
-      BUS_ADDR_OUT(1*16+5 downto 1*16)    => spimem_addr,
       BUS_ADDR_OUT(1*16+15 downto 1*16+6) => open,
-      BUS_TIMEOUT_OUT(1)                  => open,
+      BUS_ADDR_OUT(1*16+5 downto 1*16)    => spimem_addr,
+      BUS_ADDR_OUT(2*16+15 downto 2*16)   => cbm_regio_addr_i,
+      BUS_ADDR_OUT(3*16+15 downto 3*16)   => cbm_pgen_addr_i,
+      BUS_DATA_IN(0*32+31 downto 0*32)    => spictrl_data_out,
       BUS_DATA_IN(1*32+31 downto 1*32)    => spimem_data_out,
+      BUS_DATA_IN(2*32+31 downto 2*32)    => cbm_regio_status_data_i,
+      BUS_DATA_IN(3*32+31 downto 3*32)    => cbm_pgen_status_data_i,
+      BUS_DATA_OUT(0*32+31 downto 0*32)   => spictrl_data_in,
+      BUS_DATA_OUT(1*32+31 downto 1*32)   => spimem_data_in,
+      BUS_DATA_OUT(2*32+31 downto 2*32)   => cbm_regio_control_data_i,
+      BUS_DATA_OUT(3*32+31 downto 3*32)   => cbm_pgen_control_data_i,
+      BUS_DATAREADY_IN(0)                 => spictrl_ack,
       BUS_DATAREADY_IN(1)                 => spimem_ack,
-      BUS_WRITE_ACK_IN(1)                 => spimem_ack,
+      BUS_DATAREADY_IN(2)                 => cbm_regio_dataready_i,
+      BUS_DATAREADY_IN(3)                 => cbm_pgen_dataready_i,
+      BUS_NO_MORE_DATA_IN(0)              => spictrl_busy,
       BUS_NO_MORE_DATA_IN(1)              => '0',
+      BUS_NO_MORE_DATA_IN(2)              => cbm_regio_no_more_data_i,
+      BUS_NO_MORE_DATA_IN(3)              => cbm_pgen_no_more_data_i,
+      BUS_READ_ENABLE_OUT(0)              => spictrl_read_en,
+      BUS_READ_ENABLE_OUT(1)              => spimem_read_en,
+      BUS_READ_ENABLE_OUT(2)              => cbm_regio_read_enable_i,
+      BUS_READ_ENABLE_OUT(3)              => cbm_pgen_read_enable_i,
+      BUS_TIMEOUT_OUT(0)                  => open,
+      BUS_TIMEOUT_OUT(1)                  => open,
+      BUS_TIMEOUT_OUT(2)                  => cbm_regio_timeout_i,
+      BUS_TIMEOUT_OUT(3)                  => cbm_pgen_timeout_i,
+      BUS_UNKNOWN_ADDR_IN(0)              => '0',
       BUS_UNKNOWN_ADDR_IN(1)              => '0',
+      BUS_UNKNOWN_ADDR_IN(2)              => cbm_regio_unknown_addr_i,     
+      BUS_UNKNOWN_ADDR_IN(3)              => cbm_pgen_unknown_addr_i,   
+      BUS_WRITE_ACK_IN(0)                 => spictrl_ack,
+      BUS_WRITE_ACK_IN(1)                 => spimem_ack,
+      BUS_WRITE_ACK_IN(2)                 => cbm_regio_write_ack_i,
+      BUS_WRITE_ACK_IN(3)                 => cbm_pgen_write_ack_i,
+      BUS_WRITE_ENABLE_OUT(0)             => spictrl_write_en,
+      BUS_WRITE_ENABLE_OUT(1)             => spimem_write_en,
+      BUS_WRITE_ENABLE_OUT(2)             => cbm_regio_write_enable_i,
+      BUS_WRITE_ENABLE_OUT(3)             => cbm_pgen_write_enable_i,
+       
 
-      --Bus Handler (SPI CTRL)
-      BUS_READ_ENABLE_OUT(2)              => debug_read_en,
-      BUS_WRITE_ENABLE_OUT(2)             => debug_write_en,
-      BUS_DATA_OUT(2*32+31 downto 2*32)   => debug_data_in,
-      BUS_ADDR_OUT(2*16+5 downto 2*16)    => debug_addr,
-      BUS_ADDR_OUT(2*16+15 downto 2*16+6) => open,
-      BUS_TIMEOUT_OUT(2)                  => open,
-      BUS_DATA_IN(2*32+31 downto 2*32)    => debug_data_out,
-      BUS_DATAREADY_IN(2)                 => debug_ack,
-      BUS_WRITE_ACK_IN(2)                 => debug_ack,
-      BUS_NO_MORE_DATA_IN(2)              => '0',
-      BUS_UNKNOWN_ADDR_IN(2)              => '0',
-      
-      
+    
       STAT_DEBUG => open
       );
 
@@ -916,12 +765,8 @@ begin
   LED_RED    <= not time_counter(26);
   LED_YELLOW <= not med_stat_op(11);
 
----------------------------------------------------------------------------
--- Test Circuits
----------------------------------------------------------------------------
-  process
-  begin
-    wait until rising_edge(clk_100_i);
-    time_counter <= time_counter + 1;
-  end process;
+--   end generate;
+   
+  TEST_LINE <= cbm_debug_i(15 downto 0);
+
 end architecture;

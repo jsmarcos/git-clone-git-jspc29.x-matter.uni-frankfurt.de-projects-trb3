@@ -1,0 +1,22 @@
+#################################################################
+# Reset Nets
+#################################################################  
+GSR_NET NET "reset_i";  
+
+#################################################################
+# Locate Serdes and media interfaces
+#################################################################
+
+MULTICYCLE TO CELL "THE_MEDIA_DOWNLINK/SCI_DATA_OUT*" 50 ns;
+MULTICYCLE TO CELL "THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
+MULTICYCLE TO CELL "THE_RESET_HANDLER/final_reset*" 30 ns;
+MULTICYCLE TO CELL "THE_RESET_HANDLER/trb_reset_*" 20 ns;
+MULTICYCLE TO CELL "gen_SPI_DAC_SPI_*io*" 20 ns;
+MULTICYCLE TO CELL "THE_SPI_MASTER_THE_SPI_SLIM_tx_sreg_oregio*" 20 ns;
+
+BLOCK PATH TO CELL "gen_TRIGGER_LOGIC_THE_TRIG_LOGIC/out_*";
+
+#Jan: Placement of TrbNet components (at least, most of them)
+
+
+MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset*" 30 ns;

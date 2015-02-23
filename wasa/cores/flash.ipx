@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<DiamondModule name="flash" module="EFB" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2012 12 10 14:50:18.087" version="1.1" type="Module" synthesis="" source_format="VHDL">
-  <Package>
-		<File name="flash.lpc" type="lpc" modified="2012 12 10 14:50:11.000"/>
-		<File name="flash.vhd" type="top_level_vhdl" modified="2012 12 10 14:50:11.000"/>
-		<File name="flash_tmpl.vhd" type="template_vhdl" modified="2012 12 10 14:50:11.000"/>
-  </Package>
-</DiamondModule>

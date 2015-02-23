@@ -1,0 +1,309 @@
+#################################################################
+# TDC Constraints
+#################################################################
+##############################################################################
+##		        REFERENCE CHANNEL PLACEMENT                         ##
+##############################################################################
+UGROUP "Ref_Ch" BBOX 1 51 
+	BLKNAME THE_TDC/ReferenceChannel/Channel200/SimAdderNo_FC;
+LOCATE UGROUP "Ref_Ch" SITE "R8C131D" ;
+UGROUP "ref_hit" BBOX 1 1
+	BLKNAME THE_TDC/ReferenceChannel/hit_buf_RNO;
+LOCATE UGROUP "ref_hit" SITE "R9C133D" ;
+UGROUP "Ref_ff_en"  BBOX 1 1
+	BLKNAME THE_TDC/ReferenceChannel/Channel200/ff_array_en_i_1_i;
+LOCATE UGROUP "Ref_ff_en" SITE "R8C156D" ;
+
+##############################################################################
+##	            DELAY LINE and HIT BUFFER PLACEMENTS                    ##
+##############################################################################
+UGROUP "FC_1" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_1_Channels/Channel200/SimAdderNo_FC;
+LOCATE UGROUP "FC_1" SITE "R10C131D" ;
+UGROUP "hit_1" BBOX 1 1
+	BLKNAME THE_TDC/GEN_Channels_1_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_1" SITE "R11C133D" ;
+UGROUP "ff_en_1"  BBOX 1 1
+       BLKNAME THE_TDC/GEN_Channels_1_Channels/Channel200/ff_array_en_i_1_i;
+LOCATE UGROUP "ff_en_1" SITE "R10C156D" ;
+#
+UGROUP "FC_2" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_2_Channels/Channel200/SimAdderNo_FC;
+LOCATE UGROUP "FC_2" SITE "R21C131D" ;
+UGROUP "hit_2"  BBOX 1 1
+	BLKNAME THE_TDC/GEN_Channels_2_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_2" SITE "R22C133D" ;
+UGROUP "ff_en_2" BBOX 1 1
+       BLKNAME THE_TDC/GEN_Channels_2_Channels/Channel200/ff_array_en_i_1_i;
+LOCATE UGROUP "ff_en_2" SITE "R21C156D" ;
+#
+UGROUP "FC_3" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_3_Channels/Channel200/SimAdderNo_FC;
+LOCATE UGROUP "FC_3" SITE "R23C131D" ;
+UGROUP "hit_3"  BBOX 1 1
+	BLKNAME THE_TDC/GEN_Channels_3_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_3" SITE "R24C133D" ;
+UGROUP "ff_en_3" BBOX 1 1
+       BLKNAME THE_TDC/GEN_Channels_3_Channels/Channel200/ff_array_en_i_1_i;
+LOCATE UGROUP "ff_en_3" SITE "R23C156D" ;
+#
+UGROUP "FC_4" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_4_Channels/Channel200/SimAdderNo_FC;
+LOCATE UGROUP "FC_4" SITE "R30C131D" ;
+UGROUP "hit_4"  BBOX 1 1
+	BLKNAME THE_TDC/GEN_Channels_4_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_4" SITE "R31C133D" ;
+UGROUP "ff_en_4" BBOX 1 1
+       BLKNAME THE_TDC/GEN_Channels_4_Channels/Channel200/ff_array_en_i_1_i;
+LOCATE UGROUP "ff_en_4" SITE "R30C156D" ;
+#
+UGROUP "FC_5" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_5_Channels/Channel200/SimAdderNo_FC;
+LOCATE UGROUP "FC_5" SITE "R32C131D" ;
+UGROUP "hit_5"  BBOX 1 1
+	BLKNAME THE_TDC/GEN_Channels_5_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_5" SITE "R33C133D" ;
+UGROUP "ff_en_5" BBOX 1 1
+       BLKNAME THE_TDC/GEN_Channels_5_Channels/Channel200/ff_array_en_i_1_i;
+LOCATE UGROUP "ff_en_5" SITE "R32C156D" ;
+#
+UGROUP "FC_6" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_6_Channels/Channel200/SimAdderNo_FC;
+LOCATE UGROUP "FC_6" SITE "R35C131D" ;
+UGROUP "hit_6"  BBOX 1 1
+	BLKNAME THE_TDC/GEN_Channels_6_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_6" SITE "R36C133D" ;
+UGROUP "ff_en_6" BBOX 1 1
+       BLKNAME THE_TDC/GEN_Channels_6_Channels/Channel200/ff_array_en_i_1_i;
+LOCATE UGROUP "ff_en_6" SITE "R35C156D" ;
+#
+UGROUP "FC_7" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_7_Channels/Channel200/SimAdderNo_FC;
+LOCATE UGROUP "FC_7" SITE "R37C131D" ;
+UGROUP "hit_7"  BBOX 1 1
+	BLKNAME THE_TDC/GEN_Channels_7_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_7" SITE "R38C133D" ;
+UGROUP "ff_en_7" BBOX 1 1
+       BLKNAME THE_TDC/GEN_Channels_7_Channels/Channel200/ff_array_en_i_1_i;
+LOCATE UGROUP "ff_en_7" SITE "R37C156D" ;
+#
+UGROUP "FC_8" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_8_Channels/Channel200/SimAdderNo_FC;
+LOCATE UGROUP "FC_8" SITE "R48C131D" ;
+UGROUP "hit_8"  BBOX 1 1
+	BLKNAME THE_TDC/GEN_Channels_8_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_8" SITE "R49C133D" ;
+UGROUP "ff_en_8" BBOX 1 1
+       BLKNAME THE_TDC/GEN_Channels_8_Channels/Channel200/ff_array_en_i_1_i;
+LOCATE UGROUP "ff_en_8" SITE "R48C156D" ;
+#
+UGROUP "FC_9" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_9_Channels/Channel200/SimAdderNo_FC;
+LOCATE UGROUP "FC_9" SITE "R50C131D" ;
+UGROUP "hit_9"  BBOX 1 1
+	BLKNAME THE_TDC/GEN_Channels_9_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_9" SITE "R51C133D" ;
+UGROUP "ff_en_9" BBOX 1 1
+       BLKNAME THE_TDC/GEN_Channels_9_Channels/Channel200/ff_array_en_i_1_i;
+LOCATE UGROUP "ff_en_9" SITE "R50C156D" ;
+#
+UGROUP "FC_10" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_10_Channels/Channel200/SimAdderNo_FC;
+LOCATE UGROUP "FC_10" SITE "R53C131D" ;
+UGROUP "hit_10"  BBOX 1 1
+	BLKNAME THE_TDC/GEN_Channels_10_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_10" SITE "R54C133D" ;
+UGROUP "ff_en_10" BBOX 1 1
+       BLKNAME THE_TDC/GEN_Channels_10_Channels/Channel200/ff_array_en_i_1_i;
+LOCATE UGROUP "ff_en_10" SITE "R53C156D" ;
+#
+UGROUP "FC_11" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_11_Channels/Channel200/SimAdderNo_FC;
+LOCATE UGROUP "FC_11" SITE "R55C131D" ;
+UGROUP "hit_11" BBOX 1 1
+	BLKNAME THE_TDC/GEN_Channels_11_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_11" SITE "R56C133D" ;
+UGROUP "ff_en_11" BBOX 1 1
+       BLKNAME THE_TDC/GEN_Channels_11_Channels/Channel200/ff_array_en_i_1_i;
+LOCATE UGROUP "ff_en_11" SITE "R55C156D" ;
+#
+UGROUP "FC_12" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_12_Channels/Channel200/SimAdderNo_FC;
+LOCATE UGROUP "FC_12" SITE "R10C58D" ;
+UGROUP "hit_12" BBOX 1 1
+       BLKNAME THE_TDC/GEN_Channels_12_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_12" SITE "R11C60D" ;
+UGROUP "ff_en_12" BBOX 1 1
+       BLKNAME THE_TDC/GEN_Channels_12_Channels/Channel200/ff_array_en_i_1_i;
+LOCATE UGROUP "ff_en_12" SITE "R10C83D" ;
+#
+UGROUP "FC_13" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_13_Channels/Channel200/SimAdderNo_FC;
+LOCATE UGROUP "FC_13" SITE "R23C58D" ;
+UGROUP "hit_13" BBOX 1 1
+	BLKNAME THE_TDC/GEN_Channels_13_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_13" SITE "R24C60D" ;
+UGROUP "ff_en_13" BBOX 1 1
+       BLKNAME THE_TDC/GEN_Channels_13_Channels/Channel200/ff_array_en_i_1_i;
+LOCATE UGROUP "ff_en_13" SITE "R23C83D" ;
+#
+UGROUP "FC_14" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_14_Channels/Channel200/SimAdderNo_FC;
+LOCATE UGROUP "FC_14" SITE "R32C58D" ;
+UGROUP "hit_14" BBOX 1 1
+	BLKNAME THE_TDC/GEN_Channels_14_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_14" SITE "R33C60D" ;
+UGROUP "ff_en_14" BBOX 1 1
+       BLKNAME THE_TDC/GEN_Channels_14_Channels/Channel200/ff_array_en_i_1_i;
+LOCATE UGROUP "ff_en_14" SITE "R32C83D" ;
+#
+UGROUP "FC_15" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_15_Channels/Channel200/SimAdderNo_FC;
+LOCATE UGROUP "FC_15" SITE "R37C58D" ;
+UGROUP "hit_15" BBOX 1 1
+	BLKNAME THE_TDC/GEN_Channels_15_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_15" SITE "R38C60D" ;
+UGROUP "ff_en_15" BBOX 1 1
+       BLKNAME THE_TDC/GEN_Channels_15_Channels/Channel200/ff_array_en_i_1_i;
+LOCATE UGROUP "ff_en_15" SITE "R37C83D" ;
+#
+UGROUP "FC_16" BBOX 1 51 
+	BLKNAME THE_TDC/GEN_Channels_16_Channels/Channel200/SimAdderNo_FC;
+LOCATE UGROUP "FC_16" SITE "R50C58D" ;
+UGROUP "hit_16" BBOX 1 1
+	BLKNAME THE_TDC/GEN_Channels_16_Channels/hit_buf_RNO;
+LOCATE UGROUP "hit_16" SITE "R51C60D" ;
+UGROUP "ff_en_16" BBOX 1 1
+       BLKNAME THE_TDC/GEN_Channels_16_Channels/Channel200/ff_array_en_i_1_i;
+LOCATE UGROUP "ff_en_16" SITE "R50C83D" ;
+
+##############################################################################
+##			     CHANNEL PLACEMENTS                             ##
+##############################################################################
+UGROUP "EF_ref" BBOX 16 54
+       	BLKNAME THE_TDC/ReferenceChannel/Channel200
+	BLKNAME THE_TDC/GEN_Channels_1_Channels/Channel200
+	BLKNAME THE_TDC/GEN_Channels_2_Channels/Channel200
+	BLKNAME THE_TDC/GEN_Channels_3_Channels/Channel200
+	BLKNAME THE_TDC/ReferenceChannel/The_Buffer
+	BLKNAME THE_TDC/GEN_Channels_1_Channels/The_Buffer
+	BLKNAME THE_TDC/GEN_Channels_2_Channels/The_Buffer
+	BLKNAME THE_TDC/GEN_Channels_3_Channels/The_Buffer;
+LOCATE UGROUP "EF_ref" SITE "R8C128D" ;
+
+UGROUP "EF_4" BBOX 10 54
+       	BLKNAME THE_TDC/GEN_Channels_4_Channels/Channel200
+	BLKNAME THE_TDC/GEN_Channels_5_Channels/Channel200
+	BLKNAME THE_TDC/GEN_Channels_4_Channels/The_Buffer
+	BLKNAME THE_TDC/GEN_Channels_5_Channels/The_Buffer;
+LOCATE UGROUP "EF_4" SITE "R24C128D" ;
+
+UGROUP "EF_6" BBOX 17 54
+	BLKNAME THE_TDC/GEN_Channels_6_Channels/Channel200
+	BLKNAME THE_TDC/GEN_Channels_7_Channels/Channel200
+	BLKNAME THE_TDC/GEN_Channels_8_Channels/Channel200
+	BLKNAME THE_TDC/GEN_Channels_9_Channels/Channel200
+	BLKNAME THE_TDC/GEN_Channels_6_Channels/The_Buffer
+	BLKNAME THE_TDC/GEN_Channels_7_Channels/The_Buffer
+	BLKNAME THE_TDC/GEN_Channels_8_Channels/The_Buffer
+	BLKNAME THE_TDC/GEN_Channels_9_Channels/The_Buffer;
+LOCATE UGROUP "EF_6" SITE "R35C128D" ;
+
+UGROUP "EF_10" BBOX 17 54
+	BLKNAME THE_TDC/GEN_Channels_10_Channels/Channel200
+	BLKNAME THE_TDC/GEN_Channels_11_Channels/Channel200
+	BLKNAME THE_TDC/GEN_Channels_10_Channels/The_Buffer
+	BLKNAME THE_TDC/GEN_Channels_11_Channels/The_Buffer;
+LOCATE UGROUP "EF_10" SITE "R53C128D" ;
+
+UGROUP "EF_12" BBOX 16 54
+	BLKNAME THE_TDC/GEN_Channels_12_Channels/Channel200
+	BLKNAME THE_TDC/GEN_Channels_13_Channels/Channel200
+	BLKNAME THE_TDC/GEN_Channels_12_Channels/The_Buffer
+	BLKNAME THE_TDC/GEN_Channels_13_Channels/The_Buffer;
+LOCATE UGROUP "EF_12" SITE "R8C56D" ;
+
+UGROUP "EF_14" BBOX 10 54
+	BLKNAME THE_TDC/GEN_Channels_14_Channels/Channel200
+	BLKNAME THE_TDC/GEN_Channels_14_Channels/The_Buffer;
+LOCATE UGROUP "EF_14" SITE "R24C56D" ;
+
+UGROUP "EF_15" BBOX 17 54
+	BLKNAME THE_TDC/GEN_Channels_15_Channels/Channel200
+	BLKNAME THE_TDC/GEN_Channels_16_Channels/Channel200
+	BLKNAME THE_TDC/GEN_Channels_15_Channels/The_Buffer
+	BLKNAME THE_TDC/GEN_Channels_16_Channels/The_Buffer;
+LOCATE UGROUP "EF_15" SITE "R35C56D" ;
+
+#############################################################################
+## Coarse counter register placement
+#############################################################################
+
+UGROUP "UR_Coarse_Counter"
+	BLKNAME THE_TDC/GenCoarseCounter_1_TheCoarseCounter;
+LOCATE UGROUP "UR_Coarse_Counter" SITE R36C134D;
+UGROUP "LR_Coarse_Counter"
+	BLKNAME THE_TDC/GenCoarseCounter_2_TheCoarseCounter;
+LOCATE UGROUP "LR_Coarse_Counter" SITE R85C134D;
+UGROUP "UL_Coarse_Counter"
+        BLKNAME THE_TDC/GenCoarseCounter_3_TheCoarseCounter;
+LOCATE UGROUP "UL_Coarse_Counter" SITE R36C50D;
+UGROUP "LL_Coarse_Counter"
+        BLKNAME THE_TDC/GenCoarseCounter_4_TheCoarseCounter;
+LOCATE UGROUP "LL_Coarse_Counter" SITE R85C50D;
+UGROUP "TheCounters"
+       BLKNAME THE_TDC/GenCoarseCounter_0_TheCoarseCounter
+       BLKNAME THE_TDC/TheEpochCounter;
+#LOCATE UGROUP "TheCounters" REGION REGION_READOUT;
+
+#############################################################################
+## Other Logic Placements
+#############################################################################
+
+UGROUP "BusHandlers"
+       BLKNAME THE_TDC/TheHitCounterBus
+       BLKNAME THE_TDC/TheStatusRegistersBus
+#       BLKNAME THE_TDC/TheLostHitBus
+#       BLKNAME THE_TDC/TheEncoderStartBus
+#       BLKNAME THE_TDC/TheEncoderFinishedBus
+;
+LOCATE UGROUP "BusHandlers" REGION "REGION_TRBNET";
+LOCATE PGROUP "BusHandlers" REGION "REGION_TRBNET";
+
+UGROUP "TheTdcReadout"  #BBOX 35 57  
+  BLKNAME THE_TDC/TheReadout
+  ;
+#LOCATE UGROUP "TheTdcReadout" SITE "R53C53D";
+
+UGROUP "TheTriggerHandler"
+  BLKNAME THE_TDC/TheTriggerHandler
+  ;
+LOCATE UGROUP "TheTriggerHandler" SITE "R65C80D";
+
+#############################################################################
+##                         Unimportant Data Lines                          ##
+#############################################################################
+
+BLOCK NET "THE_TDC/reset_tdc*" ;
+BLOCK NET "THE_TDC/reset_rdo*" ;
+BLOCK NET "THE_TDC/hit_in_i_*" ;
+BLOCK NET "THE_TDC/reset_counters_i*" ;
+BLOCK PATH TO CELL "THE_TDC/GEN_Channels_*_Channels/sync_q_2*";
+
+
+
+#BLOCK PATH TO CELL "THE_TDC/GEN_Channels_*_Channels/Channel200/SimAdderNo_FC/FF_*" ;
+
+
+
+PROHIBIT SECONDARY NET "THE_TDC/ReferenceChannel/Channel200/ff_array_en_i";
+PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels_*_Channels/Channel200/ff_array_en_i";
+
+MAXDELAY NET "THE_TDC/ReferenceChannel/hit_buf" 0.600000 nS DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/GEN_Channels_*_Channels/hit_buf" 0.600000 nS DATAPATH_ONLY ;
+
+MULTICYCLE FROM CELL "THE_TDC/GEN_Channels_*_Channels/gen_DEBUG_risingEdgeDetect_1/PULSE_OUT" 5 x;
+MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/gen_DEBUG_risingEdgeDetect_1/PULSE_OUT" 5 x;
+MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter_*" TO CELL "THE_TDC/GEN_Channels_*_Channels/epoch_cntr_reg*" 5 X;
+MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter_*" TO CELL "THE_TDC/ReferenceChannel/epoch_cntr_reg*" 5 X;
+MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset_1" 50 ns;

@@ -26,6 +26,10 @@ set_option -fixgatedclocks 3
 set_option -fixgeneratedclocks 3
 set_option -compiler_compatible true
 
+set_option -max_parallel_jobs 3
+#set_option -automatic_compile_point 1
+#set_option -continue_on_error 1
+set_option -resolve_multiple_driver 1
 
 # simulation options
 set_option -write_verilog 0
@@ -62,12 +66,17 @@ add_file -vhdl -lib work "../../trbnet/basics/priority_arbiter.vhd"
 add_file -vhdl -lib work "../../trbnet/special/trb_net_reset_handler.vhd"
 add_file -vhdl -lib work "../../trbnet/special/spi_flash_and_fpga_reload.vhd"
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/lattice_ecp2m_fifo.vhd"
+add_file -vhdl -lib work "../../trbnet/lattice/ecp3/fifo/fifo_18x1k_oreg.vhd"
 #gbe files
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net_gbe_protocols.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net_gbe_components.vhd"
 
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/serdes_ch4.vhd"
 
+add_file -vhdl -lib work "../../trbnet/special/uart_rec.vhd"
+add_file -vhdl -lib work "../../trbnet/special/uart_trans.vhd"
+add_file -vhdl -lib work "../../trbnet/special/uart.vhd"
+add_file -vhdl -lib work "../../trbnet/lattice/ecp3/fifo/fifo_9x2k_oreg.vhd"
 
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_frame_receiver.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_receive_control.vhd"
@@ -134,6 +143,16 @@ add_file -verilog -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/sgmii33/reset_c
 add_file -verilog -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/sgmii33/reset_controller_cdr.v"
 add_file -verilog -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/sgmii33/register_interface_hb.v"
 add_file -verilog -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/sgmii33/rate_resolution.v"
+
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_transmit_control2.vhd"
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_response_constructor_TrbNetData.vhd"
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_4kx18x9.vhd"
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_4kx8_ecp3.vhd"
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_512x32x8.vhd"
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/ipcores_ecp3/fifo_32kx9_flags.vhd"
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_ipu_interface.vhd"
+add_file -vhdl -lib work "../../trbnet/gbe2_ecp3/trb_net16_gbe_event_constr.vhd"
+
 
 
 #trbnet and base files
@@ -203,13 +222,15 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/serdes_onboard_
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_ctc.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_int.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_1_125_int.vhd"
-
+add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/serdes_full_noctc.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_lsm_sfp.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4_onboard.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp_4.vhd"
-
+add_file -vhdl -lib work "../base/code/input_to_trigger_logic.vhd"
+add_file -vhdl -lib work "../base/code/input_statistics.vhd"
 add_file -vhdl -lib work "../base/cores/pll_in200_out100.vhd"
+add_file -vhdl -lib work "../base/cores/pll_200_4.vhd"
 add_file -vhdl -lib work "./trb3_central.vhd"
 
 

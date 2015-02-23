@@ -1,9 +1,9 @@
 [Device]
 Family=latticeecp3
 PartType=LFE3-150EA
-PartName=LFE3-150EA-8FN1156C
+PartName=LFE3-150EA-8FN672C
 SpeedGrade=8
-Package=FPBGA1156
+Package=FPBGA672
 OperatingCondition=COM
 Status=P
 
@@ -12,12 +12,12 @@ VendorName=Lattice Semiconductor Corporation
 CoreType=LPM
 CoreStatus=Demo
 CoreName=PLL
-CoreRevision=5.3
+CoreRevision=5.6
 ModuleName=pll_in200_out100
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=12/14/2012
-Time=18:35:48
+Date=08/12/2014
+Time=13:36:33
 
 [Parameters]
 Verilog=0
@@ -64,3 +64,6 @@ ClkOSBp=0
 EnCLKOK=1
 ClkOKBp=1
 enClkOK2=0
+
+[Command]
+cmd_line= -w -n pll_in200_out100 -lang vhdl -synth synplify -arch ep5c00 -type pll -fin 200 -phase_cntl STATIC -bypassk -fclkop 100 -fclkop_tol 0.0 -fb_mode INTERNAL -noclkos -fclkok 200 -fclkok_tol 0.0 -use_rst -noclkok2 -bw
