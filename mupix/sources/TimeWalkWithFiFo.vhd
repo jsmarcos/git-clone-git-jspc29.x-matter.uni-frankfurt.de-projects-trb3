@@ -108,7 +108,7 @@ begin  -- architecture TimeWalk_arch
   begin  -- process edge_counter
     if rising_edge(trb_slv_clock) then
       hitbusRisingEdge <= hitbusRisingEdge(0) & hitbus;
-      szintilatorRisingEdge <= szintilatorRisingEdge & szintillator_trigger;
+      szintilatorRisingEdge <= szintilatorRisingEdge(0) & szintillator_trigger;
       if szintilatorRisingEdge = "01" then
         szintilatorEdgeCounter <= szintilatorEdgeCounter + 1;
       end if;
@@ -215,10 +215,10 @@ begin  -- architecture TimeWalk_arch
           when x"0403" =>
             slv_data_out <= hitbus_timeout;
             slv_ack_out <= '1';
-          when x"0404"
+          when x"0404" =>
             slv_data_out <= szintilatorEdgeCounter;
             slv_ack_out <= '1';
-          when x"0405"
+          when x"0405" =>
             slv_data_out <= hitbusEdgeCounter;
             slv_ack_out <= '1';
           when others =>
