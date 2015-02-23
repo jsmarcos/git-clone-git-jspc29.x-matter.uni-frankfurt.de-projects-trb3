@@ -144,8 +144,10 @@ LOCATE COMP "fpga_aux_to_board0_0"	SITE "E1";
 LOCATE COMP "fpga_aux_to_board0_1"	SITE "K5";
 LOCATE COMP "fpga_aux_to_board0_2"	SITE "B2";
 LOCATE COMP "fpga_aux_to_board0_3"	SITE "B3";
-DEFINE PORT GROUP "fpga_aux0_group" "fpga_aux_to_board0*";
-IOBUF GROUP "fpga_aux0_group" IO_TYPE=LVCMOS25;
+DEFINE PORT GROUP "fpga_aux_to_board0_group" "fpga_aux_to_board0*";
+IOBUF GROUP "fpga_aux_to_board0_group" IO_TYPE=LVCMOS25;
+DEFINE PORT GROUP "fpga_aux_from_board0_group" "fpga_aux_from_board0*";
+IOBUF GROUP "fpga_aux_from_board0_group" IO_TYPE=LVCMOS25;
 
 LOCATE COMP "testpulse2_to_board0"	SITE "AA4";
 LOCATE COMP "testpulse1_to_board0"	SITE "AA3";
@@ -249,8 +251,10 @@ LOCATE COMP "fpga_aux_to_board1_0"	SITE "AA26";
 LOCATE COMP "fpga_aux_to_board1_1"	SITE "Y24";
 LOCATE COMP "fpga_aux_to_board1_2"	SITE "W21";
 LOCATE COMP "fpga_aux_to_board1_3"	SITE "W20";
-DEFINE PORT GROUP "fpga_aux1_group" "fpga_aux_to_board1*";
-IOBUF GROUP "fpga_aux01_group" IO_TYPE=LVCMOS25;
+DEFINE PORT GROUP "fpga_aux_to_board1_group" "fpga_aux_to_board1*";
+IOBUF GROUP "fpga_aux_to_board1_group" IO_TYPE=LVCMOS25;
+DEFINE PORT GROUP "fpga_aux_from_board1_group" "fpga_aux_from_board1*";
+IOBUF GROUP "fpga_aux_from_board1_group" IO_TYPE=LVCMOS25;
 
 LOCATE COMP "testpulse2_to_board1"	SITE "K23";
 LOCATE COMP "testpulse1_to_board1"	SITE "K22";
