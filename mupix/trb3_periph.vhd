@@ -52,7 +52,7 @@ entity trb3_periph is
     sout_c_from_mupix0    : in  std_logic;
     sout_d_from_mupix0    : in  std_logic;
     hbus_from_mupix0      : in  std_logic;
-    fpga_aux_from_board0  : in  std_logic_vector(9 downto 0);
+    fpga_aux_from_board0  : in  std_logic_vector(5 downto 0);
     ldpix_to_mupix0       : out std_logic;
     ldcol_to_mupix0       : out std_logic;
     timestamp_to_mupix0   : out std_logic_vector(7 downto 0);
@@ -68,7 +68,7 @@ entity trb3_periph is
     spi_clk_to_board0     : out std_logic;
     spi_ld_to_board0      : out std_logic;
     fpga_led_to_board0    : out std_logic_vector(3 downto 0);
-    fpga_aux_to_board0    : out std_logic_vector(9 downto 0);
+    fpga_aux_to_board0    : out std_logic_vector(3 downto 0);
 
     --Connections to Sensorboard 1
     timestamp_from_mupix1 : in  std_logic_vector(7 downto 0);
@@ -78,7 +78,7 @@ entity trb3_periph is
     sout_c_from_mupix1    : in  std_logic;
     sout_d_from_mupix1    : in  std_logic;
     hbus_from_mupix1      : in  std_logic;
-    fpga_aux_from_board1  : in  std_logic_vector(9 downto 0);
+    fpga_aux_from_board1  : in  std_logic_vector(5 downto 0);
     ldpix_to_mupix1       : out std_logic;
     ldcol_to_mupix1       : out std_logic;
     timestamp_to_mupix1   : out std_logic_vector(7 downto 0);
@@ -94,7 +94,7 @@ entity trb3_periph is
     spi_clk_to_board1     : out std_logic;
     spi_ld_to_board1      : out std_logic;
     fpga_led_to_board1    : out std_logic_vector(3 downto 0);
-    fpga_aux_to_board1    : out std_logic_vector(9 downto 0);
+    fpga_aux_to_board1    : out std_logic_vector(3 downto 0);
 
 
     ---------------------------------------------------------------------------
@@ -696,6 +696,7 @@ begin
   MuPix3_Board_0 : MuPix3_Board
     port map (
       clk                  => clk_100_i,
+      fast_clk             => clk_200_i,
       reset                => reset_i,
       timestamp_from_mupix => timestamp_from_mupix0,
       rowaddr_from_mupix   => rowaddr_from_mupix0,
@@ -757,6 +758,7 @@ begin
   MuPix3_Board_1 : MuPix3_Board
     port map (
       clk                  => clk_100_i,
+      fast_clk             => clk_200_i,
       reset                => reset_i,
       timestamp_from_mupix => timestamp_from_mupix1,
       rowaddr_from_mupix   => rowaddr_from_mupix1,

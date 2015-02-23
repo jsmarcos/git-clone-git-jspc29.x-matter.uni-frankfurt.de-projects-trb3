@@ -16,6 +16,7 @@ entity MuPix3_Board is
   port(
     --Clock signal
     clk                  : in  std_logic;
+    fast_clk             : in  std_logic;
     reset                : in  std_logic;
     --signals to and from MuPix 3 chip/board DACS
     timestamp_from_mupix : in  std_logic_vector(7 downto 0);
@@ -25,7 +26,7 @@ entity MuPix3_Board is
     sout_c_from_mupix    : in  std_logic;
     sout_d_from_mupix    : in  std_logic;
     hbus_from_mupix      : in  std_logic;
-    fpga_aux_from_board  : in  std_logic_vector(9 downto 0);
+    fpga_aux_from_board  : in  std_logic_vector(5 downto 0);
     ldpix_to_mupix       : out std_logic;
     ldcol_to_mupix       : out std_logic;
     timestamp_to_mupix   : out std_logic_vector(7 downto 0);
@@ -41,7 +42,7 @@ entity MuPix3_Board is
     spi_clk_to_board     : out std_logic;
     spi_ld_to_board      : out std_logic;
     fpga_led_to_board    : out std_logic_vector(3 downto 0);
-    fpga_aux_to_board    : out std_logic_vector(9 downto 0);
+    fpga_aux_to_board    : out std_logic_vector(3 downto 0);
 
     --resets
     timestampreset_in    : in std_logic;
@@ -84,7 +85,7 @@ architecture Behavioral of MuPix3_Board is
 
 --signal declarations
 -- Bus Handler
-  constant NUM_PORTS : integer := 8;
+  constant NUM_PORTS : integer := 9;
 
   signal slv_read         : std_logic_vector(NUM_PORTS-1 downto 0);
   signal slv_write        : std_logic_vector(NUM_PORTS-1 downto 0);
@@ -120,7 +121,8 @@ architecture Behavioral of MuPix3_Board is
   signal sout_c_from_mupix_sync    : std_logic;
   signal sout_d_from_mupix_sync    : std_logic;
   signal hbus_from_mupix_sync      : std_logic;
-  signal fpga_aux_from_board_sync  : std_logic_vector(9 downto 0);
+  signal fpga_aux_from_board_sync  : std_logic_vector(5 downto 0);
+  signal szintilator_sync          : std_logic;
 
   
 
@@ -143,6 +145,7 @@ begin  -- Behavioral
           5      => x"0300",            -- Event Buffer
           6      => x"0100",            -- Trigger Handler
           7      => x"0200",            -- Board Interface
+          8      => x"0400",            -- TimeWalk Measurement           
           others => x"0000"),
 
       PORT_ADDR_MASK
@@ -153,7 +156,8 @@ begin  -- Behavioral
           4      => 8,                  -- HitBus Histograms
           5      => 8,                  -- Event Buffer
           6      => 8,                  -- Trigger Handler
-          7      => 8,                  -- Board Interface 
+          7      => 8,                  -- Board Interface
+          8      => 8,                  -- TimeWalk Measurement                        
           others => 0)
 
       --PORT_MASK_ENABLE => 1
@@ -193,6 +197,7 @@ begin  -- Behavioral
   board_interface_1: entity work.board_interface
     port map (
       clk_in                    => clk,
+      fast_clk_in               => fast_clk,
       timestamp_from_mupix      => timestamp_from_mupix,
       rowaddr_from_mupix        => rowaddr_from_mupix,
       coladdr_from_mupix        => coladdr_from_mupix,
@@ -209,6 +214,7 @@ begin  -- Behavioral
       sout_d_from_mupix_sync    => sout_d_from_mupix_sync,
       hbus_from_mupix_sync      => hbus_from_mupix_sync,
       fpga_aux_from_board_sync  => fpga_aux_from_board_sync,
+      szintilator_sync          => szintilator_sync,
       
       SLV_READ_IN               => slv_read(7),
       SLV_WRITE_IN              => slv_write(7),
@@ -378,6 +384,22 @@ begin  -- Behavioral
       SLV_ACK_OUT                => slv_ack(6),
       SLV_NO_MORE_DATA_OUT       => slv_no_more_data(6),
       SLV_UNKNOWN_ADDR_OUT       => slv_unknown_addr(6));
+
+  TimeWalkWithFiFo_1: entity work.TimeWalkWithFiFo
+    port map (
+      trb_slv_clock        => clk,
+      fast_clk             => fast_clk,
+      reset                => reset,
+      hitbus               => hbus_from_mupix_sync,
+      szintillator_trigger => szintilator_sync,
+      SLV_READ_IN          => slv_read(8),
+      SLV_WRITE_IN         => slv_write(8),
+      SLV_DATA_OUT         => slv_data_rd(8*32+31 downto 8*32),
+      SLV_DATA_IN          => slv_data_wr(8*32+31 downto 8*32),
+      SLV_ADDR_IN          => slv_addr(8*16+15 downto 8*16),
+      SLV_ACK_OUT          => slv_ack(8),
+      SLV_NO_MORE_DATA_OUT => slv_no_more_data(8),
+      SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(8));
 
 
 end Behavioral;

@@ -9,6 +9,7 @@ package mupix_components is
   component MuPix3_Board
     port (
       clk                        : in  std_logic;
+      fast_clk                   : in  std_logic;
       reset                      : in  std_logic;
       timestamp_from_mupix       : in  std_logic_vector(7 downto 0);
       rowaddr_from_mupix         : in  std_logic_vector(5 downto 0);
@@ -17,7 +18,7 @@ package mupix_components is
       sout_c_from_mupix          : in  std_logic;
       sout_d_from_mupix          : in  std_logic;
       hbus_from_mupix            : in  std_logic;
-      fpga_aux_from_board        : in  std_logic_vector(9 downto 0);
+      fpga_aux_from_board        : in  std_logic_vector(5 downto 0);
       ldpix_to_mupix             : out std_logic;
       ldcol_to_mupix             : out std_logic;
       timestamp_to_mupix         : out std_logic_vector(7 downto 0);
@@ -33,7 +34,7 @@ package mupix_components is
       spi_clk_to_board           : out std_logic;
       spi_ld_to_board            : out std_logic;
       fpga_led_to_board          : out std_logic_vector(3 downto 0);
-      fpga_aux_to_board          : out std_logic_vector(9 downto 0);
+      fpga_aux_to_board          : out std_logic_vector(3 downto 0);
       timestampreset_in          : in std_logic;
       eventcounterreset_in       : in std_logic;
       TIMING_TRG_IN              : in  std_logic;
@@ -262,6 +263,7 @@ package mupix_components is
   component board_interface is
     port (
       clk_in                    : in  std_logic;
+      fast_clk_in               : in  std_logic;
       timestamp_from_mupix      : in  std_logic_vector(7 downto 0);
       rowaddr_from_mupix        : in  std_logic_vector(5 downto 0);
       coladdr_from_mupix        : in  std_logic_vector(5 downto 0);
@@ -269,7 +271,7 @@ package mupix_components is
       sout_c_from_mupix         : in  std_logic;
       sout_d_from_mupix         : in  std_logic;
       hbus_from_mupix           : in  std_logic;
-      fpga_aux_from_board       : in  std_logic_vector(9 downto 0);
+      fpga_aux_from_board       : in  std_logic_vector(5 downto 0);
       timestamp_from_mupix_sync : out std_logic_vector(7 downto 0);
       rowaddr_from_mupix_sync   : out std_logic_vector(5 downto 0);
       coladdr_from_mupix_sync   : out std_logic_vector(5 downto 0);
@@ -277,7 +279,8 @@ package mupix_components is
       sout_c_from_mupix_sync    : out std_logic;
       sout_d_from_mupix_sync    : out std_logic;
       hbus_form_mupix_sync      : out std_logic;
-      fpga_aux_from_board_sync  : out std_logic_vector(9 downto 0);
+      fpga_aux_from_board_sync  : out std_logic_vector(5 downto 0);
+      szintilator_sync          : out std_logic;
       SLV_READ_IN               : in  std_logic;
       SLV_WRITE_IN              : in  std_logic;
       SLV_DATA_OUT              : out std_logic_vector(31 downto 0);
@@ -303,5 +306,34 @@ package mupix_components is
       SLV_NO_MORE_DATA_OUT  : out std_logic;
       SLV_UNKNOWN_ADDR_OUT  : out std_logic);
   end component resethandler;
+
+  component TimeWalkWithFiFo is
+    port (
+      trb_slv_clock        : in  std_logic;
+      fast_clk             : in  std_logic;
+      reset                : in  std_logic;
+      hitbus               : in  std_logic;
+      szintillator_trigger : in  std_logic;
+      SLV_READ_IN          : in  std_logic;
+      SLV_WRITE_IN         : in  std_logic;
+      SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
+      SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
+      SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
+      SLV_ACK_OUT          : out std_logic;
+      SLV_NO_MORE_DATA_OUT : out std_logic;
+      SLV_UNKNOWN_ADDR_OUT : out std_logic);
+  end component TimeWalkWithFiFo;
+
+  component TimeWalk is
+    port (
+      clk                  : in  std_logic;
+      reset                : in  std_logic;
+      hitbus               : in  std_logic;
+      hitbus_timeout       : in  std_logic_vector(31 downto 0);
+      szintillator_trigger : in  std_logic;
+      readyToWrite         : in  std_logic;
+      measurementFinished  : out std_logic;
+      measurementData      : out std_logic_vector(31 downto 0));
+  end component TimeWalk;
   
 end mupix_components;

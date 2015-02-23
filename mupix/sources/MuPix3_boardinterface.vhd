@@ -14,6 +14,7 @@ use work.mupix_components.all;
 entity board_interface is
   port(
     clk_in               : in  std_logic;
+    fast_clk_in          : in  std_logic;
     -- signals from mupix
     timestamp_from_mupix : in std_logic_vector(7 downto 0);
     rowaddr_from_mupix   : in std_logic_vector(5 downto 0);
@@ -22,7 +23,7 @@ entity board_interface is
     sout_c_from_mupix    : in std_logic;
     sout_d_from_mupix    : in std_logic;
     hbus_from_mupix      : in std_logic;
-    fpga_aux_from_board  : in std_logic_vector(9 downto 0);
+    fpga_aux_from_board  : in std_logic_vector(5 downto 0);
     --synced (and inverted) signals
     timestamp_from_mupix_sync : out std_logic_vector(7 downto 0);
     rowaddr_from_mupix_sync   : out std_logic_vector(5 downto 0);
@@ -31,7 +32,8 @@ entity board_interface is
     sout_c_from_mupix_sync    : out std_logic;
     sout_d_from_mupix_sync    : out std_logic;
     hbus_from_mupix_sync      : out std_logic;
-    fpga_aux_from_board_sync  : out std_logic_vector(9 downto 0);
+    fpga_aux_from_board_sync  : out std_logic_vector(5 downto 0);
+    szintilator_sync          : out std_logic;
     --Trb Slv-Bus
     SLV_READ_IN                : in  std_logic;
     SLV_WRITE_IN               : in  std_logic;
@@ -51,11 +53,24 @@ architecture rtl of board_interface is
   
 begin
 
+-- fast synchronize for hitbus and szintilator
+   fast_sync: process (fast_clk_in) is
+   begin  -- process fast_sync
+     if rising_edge(fast_clk_in) then
+       szintilator_sync <= fpga_aux_from_board(0);
+       if invert_signals_int = '1' then
+         hbus_from_mupix_sync <=  hbus_from_mupix;
+       else
+         hbus_from_mupix_sync <=  not hbus_from_mupix;
+       end if;
+     end if;
+   end process fast_sync;
 
 -- Synchronize input signals
   process
   begin
     wait until rising_edge(clk_in);
+    fpga_aux_from_board_sync  <= fpga_aux_from_board;
     if invert_signals_int = '1' then
       timestamp_from_mupix_sync <= not timestamp_from_mupix;
       rowaddr_from_mupix_sync   <= not rowaddr_from_mupix;
@@ -63,8 +78,6 @@ begin
       sout_c_from_mupix_sync    <= not sout_c_from_mupix;
       sout_d_from_mupix_sync    <= not sout_d_from_mupix;
       priout_from_mupix_sync    <= priout_from_mupix;  --is inverted on the chip
-      hbus_from_mupix_sync      <= hbus_from_mupix;
-      fpga_aux_from_board_sync  <= fpga_aux_from_board;
     else
       timestamp_from_mupix_sync <= timestamp_from_mupix;
       rowaddr_from_mupix_sync   <= rowaddr_from_mupix;
@@ -72,8 +85,6 @@ begin
       sout_c_from_mupix_sync    <= sout_c_from_mupix;
       sout_d_from_mupix_sync    <= sout_d_from_mupix;
       priout_from_mupix_sync    <= not priout_from_mupix;  --is inverted on the chip
-      hbus_from_mupix_sync      <= not hbus_from_mupix;
-      fpga_aux_from_board_sync  <= not fpga_aux_from_board;
     end if;
   end process;
 
