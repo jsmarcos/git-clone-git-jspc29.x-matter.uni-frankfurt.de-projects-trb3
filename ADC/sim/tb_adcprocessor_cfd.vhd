@@ -110,7 +110,6 @@ begin
       CLK_SYS            => clock100,
       CLK_ADC            => clock_adc,
       ADC_DATA           => adc_data,
-      STOP_IN            => stop_in,
       TRIGGER_OUT        => trigger_out,
       CONTROL            => control,
       CONFIG             => config,
