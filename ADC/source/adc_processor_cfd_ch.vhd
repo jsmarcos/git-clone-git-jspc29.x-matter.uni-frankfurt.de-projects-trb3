@@ -95,7 +95,7 @@ architecture arch of adc_processor_cfd_ch is
   type state_t is (IDLE, INTEGRATE, WRITE1, WRITE2, WRITE3, WRITE4, FINISH, WAIT_BSY);
   signal state : state_t := IDLE;
 
-  signal ram_counter : unsigned(8 downto 0) := (others => '0'); 
+  signal ram_counter : unsigned(2 downto 0) := (others => '0'); 
 begin
   -- input ADC data interpreted as unsigned
   input <= unsigned(ADC_DATA);
