@@ -50,7 +50,7 @@ architecture arch of adc_processor_cfd is
 
   type ram_addr_t is array (CHANNELS - 1 downto 0) of std_logic_vector(8 downto 0);
   type ram_data_t is array (CHANNELS - 1 downto 0) of std_logic_vector(31 downto 0);
-  type ram_counter_t is array (CHANNELS - 1 downto 0) of unsigned(2 downto 0);
+  type ram_counter_t is array (CHANNELS - 1 downto 0) of unsigned(8 downto 0);
   signal ram_addr_adc, ram_addr_sys : ram_addr_t := (others => (others => '0'));
   signal ram_data_adc, ram_data_sys : ram_data_t := (others => (others => '0'));
   signal ram_counter : ram_counter_t := (others => (others => '0')); 
