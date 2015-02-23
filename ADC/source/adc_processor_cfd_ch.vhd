@@ -221,7 +221,7 @@ begin
   end process proc_integral_delay;
 
   -- ZeroX detect, integrate, write to RAM
-  RAM_ADDR <= std_logic_vector(ram_counter);
+  RAM_ADDR <= std_logic_vector(resize(ram_counter,RAM_ADDR'length));
   proc_zeroX_gate : process is
     variable zeroX            : std_logic := '0';
     variable integral_counter : integer range 0 to 2 ** CONF.IntegrateWindow'length - 1;

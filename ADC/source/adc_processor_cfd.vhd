@@ -93,7 +93,7 @@ begin
                DEBUG    => debug_adc(i)
       );
     
-    ram_addr_sys(i) <= std_logic_vector(ram_counter(i));
+    ram_addr_sys(i) <= std_logic_vector(resize(ram_counter(i),ram_addr_sys(i)'length));
     dpram : entity work.dpram_32x512
       port map(WrAddress => ram_addr_adc(i),
                RdAddress => ram_addr_sys(i),
