@@ -24,17 +24,28 @@ architecture TimeWalk_Arch of TimeWalk is
   signal hitbuscounter             : unsigned(15 downto 0)        := (others => '0');
   signal hitbus_edge               : std_logic_vector(1 downto 0) := (others => '0');
   signal szintillator_trigger_edge : std_logic_vector(1 downto 0) := (others => '0');
+  signal hitbusBuffer : std_logic := '0';
+  signal szintilatorTriggerBuffer : std_logic := '0';
   type TimeWalk_fsm_type is (idle, waitforhitbus, measurehitbus, measurement_done);
   signal timewalk_fsm              : TimeWalk_fsm_type            := idle;
 
   
 begin  -- architecture TimeWalk_Arch
 
+  -- purpose: synchronize signals and edge detection
+  signal_synchro: process (clk) is
+  begin  -- process clk
+    if rising_edge(clk) then
+      hitbusBuffer <= hitbus;
+      szintilatorTriggerBuffer <= szintillator_trigger;
+      hitbus_edge               <= hitbus_edge(0) & hitbusBuffer;
+      szintillator_trigger_edge <= szintillator_trigger_edge(0) & szintilatorTriggerBuffer;  
+    end if;
+  end process signal_synchro;
+
   TimeWalk_Measurement : process (clk, reset) is
   begin  -- process TimeWalk_Measurement
     if rising_edge(clk) then
-      hitbus_edge               <= hitbus_edge(0) & hitbus;
-      szintillator_trigger_edge <= szintillator_trigger_edge(0) & szintillator_trigger;
       measurementFinished  <= '0';
       measurementData      <= (others => '0');
       case timewalk_fsm is

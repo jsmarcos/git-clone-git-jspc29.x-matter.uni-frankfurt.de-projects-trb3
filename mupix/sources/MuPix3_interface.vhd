@@ -324,6 +324,7 @@ begin
           memwren      <= '0';
           ro_busy_int  <= '0';
           endofevent   <= '0';
+          delcounter   <= (others => '0');
           hitcounter   <= (others => '0');
           eventcounter <= eventcounter;
           if(reseteventcount = '1') then

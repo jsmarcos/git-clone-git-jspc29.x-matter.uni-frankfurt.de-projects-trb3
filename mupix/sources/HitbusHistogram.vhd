@@ -45,6 +45,7 @@ architecture Behavioral of HitbusHistogram is
 
 
   signal hitbus_i : std_logic_vector(1 downto 0);
+  signal hitbus_buffer : std_logic;
 
   --ToT Histogram
   type   hithisto_fsm_type is (idle, hitbus_high);
@@ -110,15 +111,21 @@ begin
       DataValid => open,
       BinHeight => latency_BinValue);
 
-
+  -- purpose: hitbus synchronize and  edge detect
+  hitbus_edge_proc: process (clk) is
+  begin  -- process hitbus_edge_proc
+    if rising_edge(clk) then
+      hitbus_buffer <= hitbus;
+      hitbus_i <= hitbus_i(0) & hitbus_buffer;
+    end if;
+  end process hitbus_edge_proc;
+  
   -----------------------------------------------------------------------------
   --Time over Threshold histogram
   -----------------------------------------------------------------------------
-  
   HitBusHisto : process(clk)
   begin  -- process HitBusHisto
     if rising_edge(clk) then
-      hitbus_i <= hitbus_i(0) & hitbus;
       case hithisto_fsm is
         when idle =>
           --hitbus_counter  <= (others => '0');

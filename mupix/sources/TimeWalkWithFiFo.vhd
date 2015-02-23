@@ -38,6 +38,8 @@ architecture TimeWalk_arch of TimeWalkWithFiFo is
   signal szintilatorEdgeCounter : unsigned(31 downto 0) := (others => '0');
   signal hitbusRisingEdge : std_logic_vector(1 downto 0) := (others => '0');
   signal szintilatorRisingEdge : std_logic_vector(1 downto 0) := (others => '0');
+  signal hitbus_buffer : std_logic := '0';
+  signal szintilator_trigger_buffer : std_logic := '0';
   
   signal FiFo_Wren         : std_logic                     := '0';
   signal FiFo_Rden         : std_logic                     := '0';
@@ -107,8 +109,10 @@ begin  -- architecture TimeWalk_arch
   edge_counter: process (trb_slv_clock) is
   begin  -- process edge_counter
     if rising_edge(trb_slv_clock) then
-      hitbusRisingEdge <= hitbusRisingEdge(0) & hitbus;
-      szintilatorRisingEdge <= szintilatorRisingEdge(0) & szintillator_trigger;
+      hitbus_buffer <= hitbus;
+      szintilator_trigger_buffer <= szintillator_trigger;
+      hitbusRisingEdge <= hitbusRisingEdge(0) & hitbus_buffer;
+      szintilatorRisingEdge <= szintilatorRisingEdge(0) & szintilator_trigger_buffer;
       if szintilatorRisingEdge = "01" then
         szintilatorEdgeCounter <= szintilatorEdgeCounter + 1;
       end if;

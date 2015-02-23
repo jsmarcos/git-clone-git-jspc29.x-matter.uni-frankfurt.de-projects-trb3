@@ -55,11 +55,11 @@ begin
 
   process(clk, reset)
   begin
-    if(reset = '1') then
-      counter_reg    <= (others => '0');
-      counter_reg(0) <= '1';
-      no_ones_below(0) <= '1';
-    elsif (clk'event and clk = '1') then
+    --if(reset = '1') then
+    --  counter_reg    <= (others => '0');
+    --  counter_reg(0) <= '1';
+    --  no_ones_below(0) <= '1';
+    if (clk'event and clk = '1') then
       if (sync_reset = '1') then
         no_ones_below(0) <= '1';
         counter_reg    <= (others => '0');
