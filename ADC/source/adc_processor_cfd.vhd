@@ -15,7 +15,6 @@ entity adc_processor_cfd is
     CLK_ADC            : in  std_logic;
 
     ADC_DATA           : in  std_logic_vector(RESOLUTION * CHANNELS - 1 downto 0);
-    STOP_IN            : in  std_logic;
     TRIGGER_OUT        : out std_logic;
 
     CONTROL            : in  std_logic_vector(63 downto 0);
@@ -221,7 +220,6 @@ begin
         DEBUG_BUFFER_READY <= '1';
         case reg_buffer_addr(3 downto 0) is
           when x"2" =>
-            DEBUG_BUFFER_DATA(2)            <= STOP_IN;
             DEBUG_BUFFER_DATA(12)           <= '1'; -- ADC_VALID
             DEBUG_BUFFER_DATA(19 downto 16) <= trigger_gen;
           when x"6" =>
