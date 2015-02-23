@@ -71,6 +71,7 @@ architecture RTL of mupix_interface is
   signal graycount : std_logic_vector(7 downto 0) := (others => '0');
   signal eventcounter : unsigned(31 downto 0) := (others => '0');
   signal hitcounter : unsigned(10 downto 0) := (others => '0');
+  signal maxNumberHits : std_logic_vector(31 downto 0) := (others => '1');
   signal graycounter_clkdiv_counter : std_logic_vector(31 downto 0) := (others => '0');
   signal sensor_id : std_logic_vector(31 downto 0) := (others => '0');
 
@@ -122,6 +123,7 @@ begin
   --x0029: mask flag for (col,row) = (0,0)
   --x0030: testoutro
   --x0031: Sensor-ID
+  --x0032: maximal frame size
   -----------------------------------------------------------------------------
 
   SLV_HANDLER : process(clk)
@@ -171,6 +173,9 @@ begin
           when x"0031" =>
             SLV_DATA_OUT <= sensor_id;
             SLV_ACK_OUT <= '1';
+          when x"0032" =>
+            SLV_DATA_OUT <= maxNumberHits;
+            SLV_ACK_OUT <= '1';
           when others =>
             SLV_UNKNOWN_ADDR_OUT <= '1';
         end case;
@@ -208,6 +213,9 @@ begin
             SLV_ACK_OUT <= '1';
           when x"0031" =>
             sensor_id <= SLV_DATA_IN;
+            SLV_ACK_OUT <= '1';
+          when x"0032" =>
+            maxNumberHits <= SLV_DATA_IN;
             SLV_ACK_OUT <= '1';
           when others =>
             SLV_UNKNOWN_ADDR_OUT <= '1';
@@ -434,8 +442,8 @@ begin
             end if;
             hitcounter <= hitcounter + 1;
             state      <= readcol;
-          elsif(delcounter = "00000000" and hitcounter = "11111111111") then
-            -- 2048 hits - this makes no sense
+          elsif(delcounter = "00000000" and hitcounter = unsigned(maxNumberHits(10 downto 0))) then
+            -- maximal number of hits reaced
             -- force end of event 
             memwren    <= '1';
             memdata    <= "10111110111011111011111011101111";  --0xBEEFBEEF
