@@ -67,7 +67,7 @@ begin
   begin
     readout_rx.data_valid       <= '0';
     readout_rx.valid_timing_trg <= '0';
-    wait for 15 us;
+    wait for 13740 ns;
     wait until rising_edge(clock100);
     wait for 0.5 ns;
     readout_rx.valid_timing_trg <= '1';
@@ -83,6 +83,7 @@ begin
     wait until rising_edge(clock100);
     wait for 0.5 ns;
     readout_rx.data_valid <= '0';
+    wait;
   end process;
 
   THE_ADC : entity work.adc_ad9219
