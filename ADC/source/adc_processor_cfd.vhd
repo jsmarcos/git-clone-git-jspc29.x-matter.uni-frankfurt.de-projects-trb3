@@ -56,13 +56,15 @@ architecture arch of adc_processor_cfd is
   signal ram_counter : ram_counter_t := (others => (others => '0')); 
   --signal ram_we_adc : std_logic_vector(CHANNELS - 1 downto 0) := (others => '0');
 
-  type state_t is (IDLE, DO_RELEASE, RELEASE_DIRECT, WAIT_FOR_END, CHECK_STATUS_TRIGGER, SEND_STATUS, CFD_READOUT);
+  type state_t is (IDLE, DO_RELEASE, RELEASE_DIRECT, WAIT_FOR_END, CHECK_STATUS_TRIGGER, SEND_STATUS, CFD_READOUT, WAIT_BSY);
   signal state     : state_t;
   signal statebits : std_logic_vector(7 downto 0);
 
   signal RDO_data_main  : std_logic_vector(31 downto 0) := (others => '0');
   signal RDO_write_main : std_logic                     := '0';
   signal readout_reset  : std_logic                     := '0';
+  signal busy_in_adc, busy_in_sys : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
+  signal busy_out_adc, busy_out_sys : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
 begin
   CONF_adc <= CONFIG when rising_edge(CLK_ADC);
   CONF_sys <= CONFIG when rising_edge(CLK_SYS);
@@ -71,6 +73,8 @@ begin
   TRIGGER_OUT  <= or_all(trigger_gen and trigger_mask) when rising_edge(CLK_SYS);
 
   debug_sys <= debug_adc when rising_edge(CLK_SYS);
+  busy_in_adc <= busy_in_sys when rising_edge(CLK_ADC);
+  busy_out_sys <= busy_out_adc when rising_edge(CLK_SYS);
   gen_cfd : for i in 0 to CHANNELS - 1 generate
     trigger_gen(i) <= debug_sys(i).Trigger;
     
@@ -84,6 +88,8 @@ begin
                CONF     => CONF_adc,
                RAM_ADDR => ram_addr_adc(i),
                RAM_DATA => ram_data_adc(i),
+               RAM_BSY_IN => busy_in_adc(i),
+               RAM_BSY_OUT => busy_out_adc(i),
                DEBUG    => debug_adc(i)
       );
     
@@ -115,6 +121,8 @@ begin
     RDO_data_main            <= (others => '0');
     RDO_write_main           <= '0';
 
+    busy_in_sys <= (others => '0');
+
     case state is
       when IDLE =>
         READOUT_TX.statusbits <= (others => '0');
@@ -124,10 +132,8 @@ begin
           READOUT_TX.statusbits <= (23 => '1', others => '0'); --event not found
           state                 <= RELEASE_DIRECT;
         elsif READOUT_RX.valid_timing_trg = '1' then
-          state <= CFD_READOUT;
-          -- if there's already new data present, 
-          -- start moving the counter already now 
-          ram_counter(channelselect) <= ram_counter(channelselect) + 1;
+          state <= WAIT_BSY;
+          busy_in_sys(channelselect) <= '1';
         end if;
 
       when RELEASE_DIRECT =>
@@ -154,7 +160,16 @@ begin
           end if;
         end if;
 
+      when WAIT_BSY =>
+        busy_in_sys(channelselect) <= '1';
+        if busy_out_sys(channelselect) = '0' then
+          -- start moving the counter already now 
+          ram_counter(channelselect) <= ram_counter(channelselect) + 1;
+          state <= CFD_READOUT;
+        end if;
+          
       when CFD_READOUT =>
+        busy_in_sys(channelselect) <= '1';
         if ram_data_sys(channelselect) = x"00000000" then
           -- for old channel, decrease count since we found the end
           ram_counter(channelselect) <= ram_counter(channelselect) - 1;
@@ -164,12 +179,14 @@ begin
             channelselect := 0;
           else
             channelselect := channelselect + 1;
+            state <= WAIT_BSY;
           end if;
         else
           RDO_data_main <= ram_data_sys(channelselect);
           RDO_write_main <= '1';
           ram_counter(channelselect) <= ram_counter(channelselect) + 1;
         end if;
+        
         
       when SEND_STATUS =>
         RDO_write_main <= '1';

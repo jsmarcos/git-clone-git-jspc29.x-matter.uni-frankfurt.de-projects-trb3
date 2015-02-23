@@ -20,6 +20,8 @@ entity adc_processor_cfd_ch is
 
     RAM_ADDR : out  std_logic_vector(8 downto 0);
     RAM_DATA : out  std_logic_vector(31 downto 0);
+    RAM_BSY_IN : in std_logic;
+    RAM_BSY_OUT : out std_logic;
 
     DEBUG    : out debug_cfd_t
   );
@@ -90,7 +92,7 @@ architecture arch of adc_processor_cfd_ch is
   signal integral_sum                      : signed(RESOLUTION_CFD - 1 downto 0) := (others => '0');
 
   signal epoch_counter, epoch_counter_save : unsigned(23 downto 0) := (others => '0');
-  type state_t is (IDLE, INTEGRATE, WRITE1, WRITE2, WRITE3, WRITE4, FINISH);
+  type state_t is (IDLE, INTEGRATE, WRITE1, WRITE2, WRITE3, WRITE4, FINISH, WAIT_BSY);
   signal state : state_t := IDLE;
 
   signal ram_counter : unsigned(8 downto 0) := (others => '0'); 
@@ -235,6 +237,8 @@ begin
       zeroX := '0';
     end if;
 
+    RAM_BSY_OUT <= '0';
+
     case state is
       when IDLE =>
         RAM_DATA <= (others => '0'); -- always write zeros as end marker
@@ -249,14 +253,20 @@ begin
       
       when INTEGRATE =>
         if integral_counter = 0 then
-          state         <= WRITE1;
+          state         <= WAIT_BSY;
         else
           integral_sum <= integral_sum + resize(delay_integral_out, RESOLUTION_CFD);
           integral_counter := integral_counter - 1;
         end if;
+      
+      when WAIT_BSY =>
+        if RAM_BSY_IN = '0' then
+          state <= WRITE1; 
+          RAM_BSY_OUT <= '1';
+        end if;
+        
         
       when WRITE1 => 
-        
         RAM_DATA(31 downto 24) <= x"c0";
         RAM_DATA(23 downto 20) <= std_logic_vector(to_unsigned(DEVICE, 4));
         RAM_DATA(19 downto 16) <= std_logic_vector(to_unsigned(CHANNEL, 4));
@@ -265,29 +275,34 @@ begin
         -- assume that ram_counter is already at next position
         -- ram_counter <= ram_counter + 1;
         state <= WRITE2;
+        RAM_BSY_OUT <= '1';
         
       when WRITE2 => 
         RAM_DATA(31 downto 16) <= std_logic_vector(epoch_counter_save(15 downto 0));
         RAM_DATA(15 downto  0) <= std_logic_vector(integral_sum); 
         ram_counter <= ram_counter + 1;
         state <= WRITE3;
+        RAM_BSY_OUT <= '1';
         
       when WRITE3 => 
         RAM_DATA(31 downto 16) <= std_logic_vector(cfd_prev_save);
         RAM_DATA(15 downto  0) <= std_logic_vector(cfd_save);
         ram_counter <= ram_counter + 1;
         state <= WRITE4;
+        RAM_BSY_OUT <= '1';
         
         
       when WRITE4 =>
         RAM_DATA <= (others => '1'); -- padding word
         ram_counter <= ram_counter + 1;
         state <= FINISH;
+        RAM_BSY_OUT <= '1';
         
       when FINISH =>
         -- move to next position
         ram_counter <= ram_counter + 1;
         state <= IDLE;  
+        RAM_BSY_OUT <= '1';
                   
     end case;
 
