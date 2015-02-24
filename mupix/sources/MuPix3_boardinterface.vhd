@@ -50,6 +50,8 @@ end entity board_interface;
 architecture rtl of board_interface is
 
   signal invert_signals_int : std_logic := '0';
+  signal szintilator_sync_buf : std_logic := '0';
+  signal hitbus_buf : std_logic := '0';
   
 begin
 
@@ -57,11 +59,13 @@ begin
    fast_sync: process (fast_clk_in) is
    begin  -- process fast_sync
      if rising_edge(fast_clk_in) then
-       szintilator_sync <= fpga_aux_from_board(0);
+       hitbus_buf <= hbus_from_mupix;
+       szintilator_sync_buf <= fpga_aux_from_board(0);
+       szintilator_sync <= szintilator_sync_buf;
        if invert_signals_int = '1' then
-         hbus_from_mupix_sync <=  hbus_from_mupix;
+         hbus_from_mupix_sync <=  hitbus_buf;
        else
-         hbus_from_mupix_sync <=  not hbus_from_mupix;
+         hbus_from_mupix_sync <=  not hitbus_buf;
        end if;
      end if;
    end process fast_sync;
