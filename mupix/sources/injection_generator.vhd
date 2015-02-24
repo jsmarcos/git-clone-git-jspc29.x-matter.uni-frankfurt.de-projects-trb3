@@ -17,7 +17,7 @@ use work.mupix_components.all;
 
 entity injection_generator is
   port (
-    rstn                 : in  std_logic;
+    rst                  : in  std_logic;
     clk                  : in  std_logic;
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
@@ -49,9 +49,9 @@ architecture rtl of injection_generator is
 
 begin
 
-  process(clk, rstn)
+  process(clk, rst)
   begin
-    if(rstn = '0') then
+    if(rst = '1') then
 
       testpulse1_i <= '0';
       testpulse2_i <= '0';

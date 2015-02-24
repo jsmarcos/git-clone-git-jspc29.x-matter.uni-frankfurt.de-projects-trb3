@@ -16,7 +16,7 @@ use work.mupix_components.all;
 entity spi_if is
   port(
     clk                  : in  std_logic;
-    reset_n              : in  std_logic;
+    reset                : in  std_logic;
     SLV_READ_IN          : in  std_logic;
     SLV_WRITE_IN         : in  std_logic;
     SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
@@ -54,10 +54,10 @@ architecture rtl of spi_if is
 begin
 
 
-  process(clk, reset_n)
+  process(clk, reset)
 
   begin
-    if(reset_n = '0') then
+    if(reset = '1') then
       ckdiv        <= (others => '0');
       cyclecounter <= (others => '0');
       spi_data     <= '0';

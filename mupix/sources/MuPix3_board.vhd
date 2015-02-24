@@ -228,7 +228,7 @@ begin  -- Behavioral
   --Mupix 3 Chip Interface
   mupix_interface_1 : mupix_interface
     port map (
-      rstn                 => not Reset,
+      rst                  => Reset,
       clk                  => clk,
       ldpix                => ldpix_to_mupix,
       ldcol                => ldcol_to_mupix,
@@ -258,7 +258,7 @@ begin  -- Behavioral
   spi_if_1 : spi_if
     port map (
       clk                  => clk,
-      reset_n              => not Reset,
+      reset                => Reset,
       SLV_READ_IN          => slv_read(1),
       SLV_WRITE_IN         => slv_write(1),
       SLV_DATA_OUT         => slv_data_rd(1*32+31 downto 1*32),
@@ -273,7 +273,7 @@ begin  -- Behavioral
 
   inj_gen : injection_generator
     port map(
-      rstn                 => not reset,
+      rst                  => reset,
       clk                  => clk,
       SLV_READ_IN          => slv_read(2),
       SLV_WRITE_IN         => slv_write(2),
