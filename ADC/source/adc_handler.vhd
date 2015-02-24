@@ -369,7 +369,7 @@ begin
         )
         port map(
           CLK_SYS               => CLK,
-          CLK_ADC               => adc_clk(i),
+          CLK_ADC               => adc_clk(i+1),
           ADC_DATA              => adc_data_out((i + 1) * RESOLUTION * CHANNELS - 1 downto i * RESOLUTION * CHANNELS),
           TRIGGER_OUT           => adc_trigger(i),
           CONTROL(31 downto 0)  => strobe_reg,
