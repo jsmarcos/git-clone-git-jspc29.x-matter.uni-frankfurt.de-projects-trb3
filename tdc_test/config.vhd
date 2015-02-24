@@ -19,7 +19,7 @@ package config is
   -- 1: same channel,
   -- 2: alternating channels,
   -- 3: same channel with stretcher
-  constant RING_BUFFER_SIZE        : integer range 0 to 7  := 1;  --ring buffer size:  0, 1, 2,  3
+  constant RING_BUFFER_SIZE        : integer range 0 to 7  := 7;  --ring buffer size:  0, 1, 2, 3, dyn
                                                                   --ring buffer size: 32,64,96,128
 
 --Include SPI on AddOn connector    

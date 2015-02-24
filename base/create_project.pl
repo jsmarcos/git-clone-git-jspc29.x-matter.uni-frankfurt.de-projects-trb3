@@ -20,11 +20,11 @@ sub parsePRJ {
    open FH, "<" , $input;
    while (my $line = <FH>) {
       chomp $line;
-      if ($line =~ m/^\s*set_option -([^\s]+)\s+"?([^"]+)"?$/) {
+      if ($line =~ m/^\s*set_option -([^\s]+)\s+"?([^"]+)"?\s*$/) {
          $options->{$1} = $2;
       }
       
-      if ($line =~ m/^\s*add_file -(vhdl|verilog|fpga_constraint)( -lib "?([^"\s]+)"?|)? "?([^"]+)"?$/g) {
+      if ($line =~ m/^\s*add_file -(vhdl|verilog|fpga_constraint)( -lib "?([^"\s]+)"?|)? "?([^"]+)"?\s*$/g) {
          push @files, [$3, $4];
       }
       

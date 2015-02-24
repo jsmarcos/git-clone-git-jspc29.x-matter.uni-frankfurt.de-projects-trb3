@@ -101,7 +101,7 @@ add_file -vhdl -lib work "../../trbnet/special/handler_data.vhd"
 add_file -vhdl -lib work "../../trbnet/special/handler_ipu.vhd"
 add_file -vhdl -lib work "../../trbnet/special/handler_trigger_and_data.vhd"
 add_file -vhdl -lib work "../../trbnet/special/trb_net_reset_handler.vhd"
-add_file -vhdl -lib work "../../trbnet/trb_net16_endpoint_hades_full_handler.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net16_endpoint_hades_full_handler_record.vhd"
 add_file -vhdl -lib work "../../trbnet/special/fpga_reboot.vhd"
 add_file -vhdl -lib work "../../trbnet/special/bus_register_handler.vhd"
 

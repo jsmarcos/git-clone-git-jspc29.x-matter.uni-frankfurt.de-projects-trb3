@@ -255,11 +255,11 @@ signal gbe_stp_reg_write            : std_logic;
 signal gbe_stp_reg_data_rd          : std_logic_vector(31 downto 0);
 signal gbe_unknown                  : std_logic;
 
-signal select_tc                   : std_logic_vector(31 downto 0) := (8 => USE_EXTERNAL_CLOCK_std, others => '0');
-signal select_tc_data_in           : std_logic_vector(31 downto 0);
-signal select_tc_write             : std_logic;
-signal select_tc_read              : std_logic;
-signal select_tc_ack               : std_logic;
+-- signal select_tc                   : std_logic_vector(31 downto 0) := (8 => USE_EXTERNAL_CLOCK_std, others => '0');
+-- signal select_tc_data_in           : std_logic_vector(31 downto 0);
+-- signal select_tc_write             : std_logic;
+-- signal select_tc_read              : std_logic;
+-- signal select_tc_ack               : std_logic;
 
 signal trig_outputs : std_logic_vector(4 downto 0);
 signal trig_inputs  : std_logic_vector(15 downto 0);
@@ -280,14 +280,8 @@ signal stat_ack   : std_logic := '0';
 signal stat_nack  : std_logic := '0';
 signal stat_addr  : std_logic_vector(15 downto 0) := (others => '0');  
 
-signal uart_din   : std_logic_vector(31 downto 0);
-signal uart_dout  : std_logic_vector(31 downto 0);
-signal uart_write : std_logic := '0';
-signal uart_read  : std_logic := '0';
-signal uart_ack   : std_logic := '0';
-signal uart_nack  : std_logic := '0';
-signal uart_empty : std_logic := '0';
-signal uart_addr  : std_logic_vector(15 downto 0) := (others => '0');  
+signal busuart_rx, bustc_rx : CTRLBUS_RX;
+signal busuart_tx, bustc_tx : CTRLBUS_TX;
 signal uart_tx    : std_logic_vector(4 downto 0);
 signal uart_rx    : std_logic_vector(4 downto 0);
 
@@ -873,16 +867,16 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
     BUS_UNKNOWN_ADDR_IN(4)              => '0',
 
     -- Trigger and Clock Manager Settings
-    BUS_ADDR_OUT(6*16-1 downto 5*16) => open,
-    BUS_DATA_OUT(6*32-1 downto 5*32) => select_tc_data_in,
-    BUS_READ_ENABLE_OUT(5)           => select_tc_read,
-    BUS_WRITE_ENABLE_OUT(5)          => select_tc_write,
+    BUS_ADDR_OUT(6*16-1 downto 5*16) => bustc_rx.addr,
+    BUS_DATA_OUT(6*32-1 downto 5*32) => bustc_rx.data,
+    BUS_READ_ENABLE_OUT(5)           => bustc_rx.read,
+    BUS_WRITE_ENABLE_OUT(5)          => bustc_rx.write,
     BUS_TIMEOUT_OUT(5)               => open,
-    BUS_DATA_IN(6*32-1 downto 5*32)  => select_tc,
-    BUS_DATAREADY_IN(5)              => select_tc_ack,
-    BUS_WRITE_ACK_IN(5)              => select_tc_ack,
-    BUS_NO_MORE_DATA_IN(5)           => '0',
-    BUS_UNKNOWN_ADDR_IN(5)           => '0',   
+    BUS_DATA_IN(6*32-1 downto 5*32)  => bustc_tx.data,
+    BUS_DATAREADY_IN(5)              => bustc_tx.ack,
+    BUS_WRITE_ACK_IN(5)              => bustc_tx.ack,
+    BUS_NO_MORE_DATA_IN(5)           => bustc_tx.nack,
+    BUS_UNKNOWN_ADDR_IN(5)           => bustc_tx.unknown,   
     
     --Trigger logic registers
     BUS_READ_ENABLE_OUT(6)              => trig_read,
@@ -909,16 +903,16 @@ THE_BUS_HANDLER : trb_net16_regio_bus_handler
     BUS_UNKNOWN_ADDR_IN(7)              => stat_nack,      
     
     --Uart
-    BUS_READ_ENABLE_OUT(8)              => uart_read,
-    BUS_WRITE_ENABLE_OUT(8)             => uart_write,
-    BUS_DATA_OUT(8*32+31 downto 8*32)   => uart_din,
-    BUS_ADDR_OUT(8*16+15 downto 8*16)   => uart_addr,
+    BUS_READ_ENABLE_OUT(8)              => busuart_rx.read,
+    BUS_WRITE_ENABLE_OUT(8)             => busuart_rx.write,
+    BUS_DATA_OUT(8*32+31 downto 8*32)   => busuart_rx.data,
+    BUS_ADDR_OUT(8*16+15 downto 8*16)   => busuart_rx.addr,
     BUS_TIMEOUT_OUT(8)                  => open,
-    BUS_DATA_IN(8*32+31 downto 8*32)    => uart_dout,
-    BUS_DATAREADY_IN(8)                 => uart_ack,
-    BUS_WRITE_ACK_IN(8)                 => uart_ack,
-    BUS_NO_MORE_DATA_IN(8)              => uart_empty,
-    BUS_UNKNOWN_ADDR_IN(8)              => uart_nack,          
+    BUS_DATA_IN(8*32+31 downto 8*32)    => busuart_tx.data,
+    BUS_DATAREADY_IN(8)                 => busuart_tx.ack,
+    BUS_WRITE_ACK_IN(8)                 => busuart_tx.ack,
+    BUS_NO_MORE_DATA_IN(8)              => busuart_tx.nack,
+    BUS_UNKNOWN_ADDR_IN(8)              => busuart_tx.unknown,
     STAT_DEBUG  => open
     );
 
@@ -1017,14 +1011,8 @@ gen_uart : if INCLUDE_UART = 1 generate
       RESET     => reset_i,
       UART_RX   => uart_rx,
       UART_TX   => uart_tx, 
-      DATA_OUT  => uart_dout,
-      DATA_IN   => uart_din,
-      ADDR_IN   => uart_addr,
-      WRITE_IN  => uart_write,
-      READ_IN   => uart_read,
-      ACK_OUT   => uart_ack,
-      EMPTY_OUT => uart_empty,
-      UNKWN_OUT => uart_nack 
+      BUS_RX    => busuart_rx,
+      BUS_TX    => busuart_tx
       );
       
   uart_rx(0) <= CLKRJ(0);  
@@ -1045,20 +1033,26 @@ end generate;
 -- Clock and Trigger Configuration
 ---------------------------------------------------------------------------
 
-process begin
-  wait until rising_edge(clk_sys_i);
-  if select_tc_write = '1' then
-    select_tc <= select_tc_data_in;
-  end if;
-  select_tc_ack <= select_tc_read or select_tc_write;
-end process;
 
-  TRIGGER_SELECT <= select_tc(0);
-  CLOCK_SELECT   <= select_tc(8); --use on-board oscillator
-  CLK_MNGR1_USER <= select_tc(19 downto 16);
-  CLK_MNGR2_USER <= select_tc(27 downto 24); 
+THE_CLOCK_SWITCH: entity work.clock_switch
+  port map(
+    INT_CLK_IN   => CLK_GPLL_RIGHT,
+    SYS_CLK_IN   => clk_sys_i,
+    
+    BUS_RX       => bustc_rx,
+    BUS_TX       => bustc_tx,
 
-   
+    PLL_LOCK     => pll_lock,
+    RESET_IN     => reset_i,
+    RESET_OUT    => open,
+
+    CLOCK_SELECT   => CLOCK_SELECT,
+    TRIG_SELECT    => TRIGGER_SELECT,
+    CLK_MNGR1_USER => CLK_MNGR1_USER,
+    CLK_MNGR2_USER => CLK_MNGR2_USER,
+    
+    DEBUG_OUT      => open
+    );
 
   TRIGGER_OUT    <= '0';
 
