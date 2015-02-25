@@ -91,8 +91,7 @@ architecture RTL of mupix_interface is
 
   signal gen_hit_col  : std_logic_vector(5 downto 0) := (others => '0');
   signal gen_hit_row  : std_logic_vector(5 downto 0) := (others => '0');
-  signal gen_hit_time : std_logic_vector(7 downto 0) := (others => '0');
-
+  
   signal testoutro : std_logic_vector (31 downto 0) := (others => '0');
 
   --Control Registers
@@ -450,7 +449,6 @@ begin
               generatehitswaitcounter <= unsigned(generatehitswait);
               gen_hit_col             <= (others => '0');
               gen_hit_row             <= (others => '0');
-              gen_hit_time            <= (others => '0');
             elsif(delcounter = "00000011") then  -- write event header
               state      <= hitgenerator;
               memdata    <= "11111010101111101010101110111010";  --0xFABEABBA
