@@ -27,10 +27,7 @@ entity adc_ad9219 is
   );
 end entity;
 
-architecture arch of adc_ad9219 is
-  attribute HGROUP : string;
-  attribute HGROUP of arch : architecture  is "ADC_AD9219_group";
-  
+architecture adc_ad9219_arch of adc_ad9219 is
   type q_t is array (0 to NUM_DEVICES - 1) of std_logic_vector(19 downto 0);
   signal q, qq, qqq : q_t;
 

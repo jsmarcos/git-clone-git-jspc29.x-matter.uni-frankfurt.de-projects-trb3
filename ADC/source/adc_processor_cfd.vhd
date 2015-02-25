@@ -31,9 +31,6 @@ entity adc_processor_cfd is
 end entity adc_processor_cfd;
 
 architecture arch of adc_processor_cfd is
-  attribute HGROUP : string;
-  attribute HGROUP of arch : architecture  is "ADC_PROCESSOR_group";
-  
 --  attribute syn_hier : string;
 --  attribute syn_keep : boolean;
 --  attribute syn_preserve : boolean;
