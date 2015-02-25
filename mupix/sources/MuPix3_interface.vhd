@@ -289,7 +289,10 @@ begin
       else
         testoutro     <= (others => '0');
         testoutro(31) <= priout;
-
+        memwren     <= '0';
+        memdata     <= (others => '0');
+        endofevent  <= '0';
+        ro_busy_int <= '0';
         case state is
           when pause =>
             pausecounter <= pausecounter +1;
@@ -301,14 +304,8 @@ begin
             ldcol       <= '0';
             rdcol       <= '0';
             pulldown    <= '0';
-            memwren     <= '0';
-            endofevent  <= '0';
-            ro_busy_int <= '0';
           when waiting =>
             testoutro(1) <= '1';
-            memwren      <= '0';
-            ro_busy_int  <= '0';
-            endofevent   <= '0';
             delcounter   <= (others => '0');
             hitcounter   <= (others => '0');
             eventcounter <= eventcounter;
@@ -350,13 +347,11 @@ begin
             else
               state <= waiting;
             end if;
-            endofevent <= '0';
           when loadpix =>
             ro_busy_int  <= '1';
             testoutro(2) <= '1';
             ldpix        <= '0';
             delcounter   <= delcounter - 1;
-            memwren      <= '0';
             state        <= loadpix;
             if(delcounter = "00000100") then     -- write event header
               memdata <= sensor_id;
@@ -373,10 +368,9 @@ begin
               pulldown   <= '1';
               delcounter <= unsigned(delaycounters1(15 downto 8));
             end if;
-            endofevent <= '0';
           when pulld =>
+            ro_busy_int  <= '1';
             testoutro(3) <= '1';
-            memwren      <= '0';
             if unsigned(delaycounters1(15 downto 8)) = delcounter then
               pulldown <= '0';
             end if;
@@ -387,16 +381,14 @@ begin
               ldcol      <= '1';
               delcounter <= unsigned(delaycounters1(23 downto 16));
             end if;
-            endofevent <= '0';
           when loadcol =>
+            ro_busy_int  <= '1';
             testoutro(4) <= '1';
-            memwren      <= '0';
             if(delcounter = unsigned(delaycounters1(23 downto 16))) then
               ldcol <= '0';
             end if;
             delcounter <= delcounter - 1;
             state      <= loadcol;
-            endofevent <= '0';
             if(delcounter = "00000000") then
               if priout = '1' then
                 state      <= readcol;
@@ -410,14 +402,13 @@ begin
               end if;
             end if;
           when readcol =>
+            ro_busy_int  <= '1';
             testoutro(5) <= '1';
             if(delcounter = unsigned(delaycounters1(31 downto 24)) - unsigned(delaycounters2(15 downto 8))) then
               rdcol <= '0';
             end if;
             delcounter <= delcounter - 1;
-            memwren    <= '0';
             state      <= readcol;
-            endofevent <= '0';
             if (std_logic_vector(delcounter) = delaycounters2(23 downto 16)) then
               priout_reg <= priout;
             end if;
@@ -460,26 +451,21 @@ begin
               gen_hit_col             <= (others => '0');
               gen_hit_row             <= (others => '0');
               gen_hit_time            <= (others => '0');
-              endofevent              <= '0';
             elsif(delcounter = "00000011") then  -- write event header
               state      <= hitgenerator;
               memdata    <= "11111010101111101010101110111010";  --0xFABEABBA
               memwren    <= '1';
-              endofevent <= '0';
             elsif(delcounter = "00000010") then  -- write event counter
               state      <= hitgenerator;
               memdata    <= std_logic_vector(eventcounter);
               memwren    <= '1';
-              endofevent <= '0';
             elsif(delcounter = "00000010") then
               state      <= hitgenerator;
               memwren    <= '0';
-              endofevent <= '0';
             elsif(delcounter = "00000001") then  -- write trigger number
               state      <= hitgenerator;
               memdata    <= (others => '0');     --empty trigger number
               memwren    <= '1';
-              endofevent <= '0';
             elsif(delcounter = "00000000" and ngeneratehitscounter > "0000000000000000") then
               state                <= hitgenerator;
               delcounter           <= delcounter;
@@ -491,7 +477,6 @@ begin
               end if;
               memdata    <= "111100001111" & "0" & gen_hit_col(4 downto 0) & gen_hit_row & graycount;  --0xF0F
               memwren    <= '1';
-              endofevent <= '0';
             elsif(delcounter = "00000000" and ngeneratehitscounter = "0000000000000000" and generatehits = '0') then
               state      <= waiting;
               -- end of event
@@ -506,27 +491,20 @@ begin
               endofevent <= '1';
             else
               state      <= hitgenerator;
-              memwren    <= '0';
-              endofevent <= '0';
             end if;
             
           when hitgeneratorwait =>
-            ro_busy_int             <= '0';
             state                   <= hitgeneratorwait;
             testoutro(7)            <= '1';
-            memwren                 <= '0';
-            endofevent              <= '0';
             generatehitswaitcounter <= generatehitswaitcounter - 1;
             if(to_integer(generatehitswaitcounter) = 0)then
               state        <= hitgenerator;
               delcounter   <= "00000100";
               eventcounter <= eventcounter + 1;
             end if;
-            
           when others =>
             testoutro(8) <= '1';
             state        <= waiting;
-            endofevent   <= '0';
         end case;
       end if;
     end if;
