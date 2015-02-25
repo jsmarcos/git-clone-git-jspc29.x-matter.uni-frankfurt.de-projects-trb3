@@ -36,6 +36,8 @@ MULTICYCLE TO CELL "THE_MEDIA_DOWNLINK/SCI_DATA_OUT*" 50 ns;
 MULTICYCLE TO CELL "THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
 MULTICYCLE TO CELL "THE_ADC/restart_i" 20 ns;
 
+UGROUP "THE_RESET_HANDLER_GRP" BLKNAME THE_RESET_HANDLER;
+MULTICYCLE TO CELL "THE_RESET_HANDLER/final_reset[*]" 30.000000 ns ;
 
 #################################################################
 # Constraints for MuPix inputs

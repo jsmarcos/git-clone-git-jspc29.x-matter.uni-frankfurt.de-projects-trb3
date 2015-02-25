@@ -2,15 +2,16 @@
 use Data::Dumper;
 use warnings;
 use strict;
-
+use FileHandle;
 
 
 
 ###################################################################################
 #Settings for this project
 my $TOPNAME                      = "trb3_periph";  #Name of top-level entity
-my $lattice_path                 = '/opt/lattice/diamond/2.01/';
-my $synplify_path                = '/opt/synplicity/F-2012.03-SP1/';
+my $lattice_path                 = '/opt/lattice/diamond/3.2_x64/';
+my $lattice_bin_path             = "$lattice_path/bin/lin64";
+my $synplify_path                = '/opt/synplicity/I-2013.09-SP1';
 my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
 my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
 ###################################################################################
@@ -20,7 +21,8 @@ my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
 
 
 # source the standard lattice environment
-open my $SOURCE, "bash -c 'cd $lattice_path/ispfpga && . ../bin/lin/diamond_env >& /dev/null; env'|" or
+$ENV{bindir}="$lattice_bin_path";
+open my $SOURCE, "bash -c '. $lattice_bin_path/diamond_env ; env'|" or
   die "Can't fork: $!";
 while (<$SOURCE>) {
   if (/^(.*)=(.*)/) {
@@ -29,9 +31,7 @@ while (<$SOURCE>) {
 }
 close $SOURCE;
 
-
-use FileHandle;
-
+$ENV{'PAR_DESIGN_NAME'}=$TOPNAME;
 $ENV{'SYNPLIFY'}=$synplify_path;
 $ENV{'SYN_DISABLE_RAINBOW_DONGLE'}=1;
 $ENV{'LM_LICENSE_FILE'}=$lm_license_file_for_synplify;
@@ -45,8 +45,16 @@ my $PACKAGE="FPBGA672";
 my $SPEEDGRADE="8";
 
 
+my $WORKDIR = "workdir";
+unless(-d $WORKDIR) {
+    mkdir $WORKDIR or die "can't create workdir '$WORKDIR': $!";
+}
+
+system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");
+
+
 #create full lpf file
-system("cp ../base/$TOPNAME"."_nxyter.lpf workdir/$TOPNAME.lpf");
+system("cp ../base/$TOPNAME"."_mupix.lpf workdir/$TOPNAME.lpf");
 system("cat ".$TOPNAME."_constraints.lpf >> workdir/$TOPNAME.lpf");
 
 #set -e
@@ -103,41 +111,50 @@ foreach (@a)
 $ENV{'LM_LICENSE_FILE'}=$lm_license_file_for_par;
 
 
-$c=qq| $lattice_path/ispfpga/bin/lin/edif2ngd -path "../" -path "." -l $FAMILYNAME -d $DEVICENAME "$TOPNAME.edf" "$TOPNAME.ngo" |;
+$c=qq| edif2ngd -path "../" -path "." -l $FAMILYNAME -d $DEVICENAME "$TOPNAME.edf" "$TOPNAME.ngo" |;
 execute($c);
 
-$c=qq|$lattice_path/ispfpga/bin/lin/edfupdate   -t "$TOPNAME.tcy" -w "$TOPNAME.ngo" -m "$TOPNAME.ngo" "$TOPNAME.ngx"|;
+$c=qq| edfupdate   -t "$TOPNAME.tcy" -w "$TOPNAME.ngo" -m "$TOPNAME.ngo" "$TOPNAME.ngx"|;
 execute($c);
 
-$c=qq|$lattice_path/ispfpga/bin/lin/ngdbuild  -a $FAMILYNAME -d $DEVICENAME -p "$lattice_path/ispfpga/ep5c00/data" -dt "$TOPNAME.ngo" "$TOPNAME.ngd"|;
+$c=qq| ngdbuild  -a $FAMILYNAME -d $DEVICENAME -p "$lattice_path/ispfpga/ep5c00/data" -dt "$TOPNAME.ngo" "$TOPNAME.ngd"|;
 execute($c);
 
 my $tpmap = $TOPNAME . "_map" ;
 
-$c=qq|$lattice_path/ispfpga/bin/lin/map  -retime -split_node -a $FAMILYNAME -p $DEVICENAME -t $PACKAGE -s $SPEEDGRADE "$TOPNAME.ngd" -pr "$TOPNAME.prf" -o "$tpmap.ncd"  -mp "$TOPNAME.mrp" "$TOPNAME.lpf"|;
+$c=qq| map  -hier -td_pack -retime EFFORT=6 -split_node -a $FAMILYNAME -p $DEVICENAME -t $PACKAGE -s $SPEEDGRADE "$TOPNAME.ngd" -pr "$TOPNAME.prf" -o "$tpmap.ncd"  -mp "$TOPNAME.mrp" "$TOPNAME.lpf"|;
 execute($c);
 
 system("rm $TOPNAME.ncd");
 
 
-$c=qq|$lattice_path/ispfpga/bin/lin/multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
+#$c=qq| multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
+#execute($c);
+#$c=qq|par -w -l 5 -t 1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
+#execute($c);
+#$c="cp $TOPNAME.dir/5_1.ncd $TOPNAME.ncd";
+#system($c);
+#$c="cat $TOPNAME.par";
+#system($c);
+# dont forget to create a nodelist.txt for multipar / mpartrce
+$c=qq|mpartrce -p "../$TOPNAME.p2t" -f "../$TOPNAME.p3t" -tf "$TOPNAME.pt" "$tpmap.ncd" "$TOPNAME.ncd"|;
 execute($c);
 
 # IOR IO Timing Report
-$c=qq|$lattice_path/ispfpga/bin/lin/iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;
+$c=qq| iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
 
 # TWR Timing Report
-$c=qq|$lattice_path/ispfpga/bin/lin/trce -c -v 15 -o "$TOPNAME.twr.setup" "$TOPNAME.ncd" "$TOPNAME.prf"|;
+$c=qq| trce -c -v 15 -o "$TOPNAME.twr.setup" "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
 
-$c=qq|$lattice_path/ispfpga/bin/lin/trce -hld -c -v 5 -o "$TOPNAME.twr.hold"  "$TOPNAME.ncd" "$TOPNAME.prf"|;
+$c=qq| trce -hld -c -v 5 -o "$TOPNAME.twr.hold"  "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
 
-$c=qq|$lattice_path/ispfpga/bin/lin/ltxt2ptxt $TOPNAME.ncd|;
+$c=qq| ltxt2ptxt $TOPNAME.ncd|;
 execute($c);
 
-$c=qq|$lattice_path/ispfpga/bin/lin/bitgen -w -g CfgMode:Disable -g RamCfg:Reset -g ES:No  $TOPNAME.ncd $TOPNAME.bit $TOPNAME.prf|;
+$c=qq| bitgen -w -g CfgMode:Disable -g RamCfg:Reset -g ES:No  $TOPNAME.ncd $TOPNAME.bit $TOPNAME.prf|;
 # $c=qq|$lattice_path/ispfpga/bin/lin/bitgen  -w "$TOPNAME.ncd"  "$TOPNAME.prf"|;
 execute($c);
 
