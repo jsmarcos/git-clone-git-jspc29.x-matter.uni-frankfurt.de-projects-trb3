@@ -362,7 +362,7 @@ begin
               memdata <= sensor_id;
               memwren <= '1';
             elsif(delcounter = "0000011") then   -- write event header
-              memdata <= "11111010101111101010101110111010";     --0xFABEABBA
+              memdata <= "11111010101111101010101110111010";       --0xFABEABBA
               memwren <= '1';
             elsif(delcounter = "00000010") then  -- write event counter
               memdata <= std_logic_vector(eventcounter);
@@ -397,16 +397,17 @@ begin
             delcounter <= delcounter - 1;
             state      <= loadcol;
             endofevent <= '0';
-            if(delcounter = "00000000" and priout = '1') then
-              state      <= readcol;
-              rdcol      <= '1';
-              delcounter <= unsigned(delaycounters1(31 downto 24));
-            elsif(delcounter = "00000000") then
-              -- end of event
-              memwren    <= '1';
-              memdata    <= "10111110111011111011111011101111";  --0xBEEFBEEF
-              endofevent <= '1';
-              state      <= pause;
+            if(delcounter = "00000000") then
+              if priout = '1' then
+                state      <= readcol;
+                rdcol      <= '1';
+                delcounter <= unsigned(delaycounters1(31 downto 24));
+              else
+                memwren    <= '1';
+                memdata    <= "10111110111011111011111011101111";  --0xBEEFBEEF
+                endofevent <= '1';
+                state      <= pause;
+              end if;
             end if;
           when readcol =>
             testoutro(5) <= '1';
@@ -432,7 +433,7 @@ begin
               -- maximal number of hits reaced
               -- force end of event 
               memwren    <= '1';
-              memdata    <= "10111110111011111011111011101111";  --0xBEEFBEEF
+              memdata    <= "10111110111011111011111011101111";    --0xBEEFBEEF
               endofevent <= '1';
               state      <= pause;
             elsif(delcounter = "00000000" and (priout = '1' or (delaycounters2(23 downto 16) /= "00000000" and priout_reg = '1'))) then
