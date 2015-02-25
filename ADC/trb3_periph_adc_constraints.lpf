@@ -84,7 +84,23 @@ USE PRIMARY NET "CLK_PCLK_RIGHT_c";
 #USE PRIMARY2EDGE NET "THE_ADC/clk_adcfast_i_0";
 #USE PRIMARY2EDGE NET "THE_ADC/clk_adcfast_i_1";
 
-MULTICYCLE FROM CLKNET "clk_100_i_c" TO CLKNET "gen_reallogic_THE_ADC/adc_clk_right_c" 2 X;
-MULTICYCLE FROM CLKNET "gen_reallogic_THE_ADC/adc_clk_right_c" TO CLKNET "clk_100_i_c" 2 X;
-MULTICYCLE FROM CLKNET "clk_100_i_c" TO CLKNET "P_CLOCK_c" 2 X;
-MULTICYCLE FROM CLKNET "P_CLOCK_c" TO CLKNET "clk_100_i_c" 2 X;
+#MULTICYCLE FROM CLKNET "clk_100_i_c" TO CLKNET "gen_reallogic_THE_ADC/adc_clk_right_c" 2 X;
+#MULTICYCLE FROM CLKNET "gen_reallogic_THE_ADC/adc_clk_right_c" TO CLKNET "clk_100_i_c" 2 X;
+#MULTICYCLE FROM CLKNET "clk_100_i_c" TO CLKNET "P_CLOCK_c" 2 X;
+#MULTICYCLE FROM CLKNET "P_CLOCK_c" TO CLKNET "clk_100_i_c" 2 X;
+
+UGROUP "THE_ADC_RIGHT_group" BLKNAME gen_reallogic.THE_ADC/THE_ADC_RIGHT;
+UGROUP "THE_ADC_LEFT_group" BLKNAME gen_reallogic.THE_ADC/THE_ADC_LEFT;
+UGROUP "THE_ADC_PROC_cfd_0_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.0.THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_1_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.1.THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_2_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.2.THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_3_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.3.THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_4_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.4.THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_5_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.5.THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_6_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.6.THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_7_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.7.THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_8_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.8.THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_9_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.9.THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_10_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.10.THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_11_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.11.THE_ADC_PROC;
+
