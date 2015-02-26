@@ -16,8 +16,8 @@ CoreRevision=6.1
 ModuleName=dpram_32x512
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=02/20/2015
-Time=17:02:35
+Date=02/26/2015
+Time=08:41:58
 
 [Parameters]
 Verilog=0
@@ -35,7 +35,7 @@ enByte=0
 ByteSize=9
 adPipeline=0
 inPipeline=0
-outPipeline=0
+outPipeline=1
 MOR=0
 InData=Registered
 AdControl=Registered
