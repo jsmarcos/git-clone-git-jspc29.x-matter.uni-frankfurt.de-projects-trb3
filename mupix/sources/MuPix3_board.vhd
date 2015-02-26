@@ -331,7 +331,6 @@ begin  -- Behavioral
       Reset                   => reset,
       MuPixData_in            => memdata,
       MuPixDataWr_in          => memwren,
-      MuPixEndOfEvent_in      => ro_mupix_busy,
       FEE_DATA_OUT            => buffer_data,
       FEE_DATA_WRITE_OUT      => buffer_data_valid,
       FEE_DATA_FINISHED_OUT   => open,

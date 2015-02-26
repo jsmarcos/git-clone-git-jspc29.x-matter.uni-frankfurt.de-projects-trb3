@@ -184,7 +184,6 @@ package mupix_components is
       Reset                   : in  std_logic;
       MuPixData_in            : in  std_logic_vector(31 downto 0);
       MuPixDataWr_in          : in  std_logic;
-      MuPixEndOfEvent_in      : in  std_logic;
       FEE_DATA_OUT            : out std_logic_vector(31 downto 0);
       FEE_DATA_WRITE_OUT      : out std_logic;
       FEE_DATA_FINISHED_OUT   : out std_logic;
