@@ -55,7 +55,7 @@ architecture arch of adc_processor_cfd is
   signal ram_counter : ram_counter_t := (others => (others => '0')); 
   --signal ram_we_adc : std_logic_vector(CHANNELS - 1 downto 0) := (others => '0');
 
-  type state_t is (IDLE, DO_RELEASE, RELEASE_DIRECT, WAIT_FOR_END, CHECK_STATUS_TRIGGER, SEND_STATUS, CFD_READOUT, WAIT_BSY);
+  type state_t is (IDLE, DO_RELEASE, RELEASE_DIRECT, WAIT_FOR_END, CHECK_STATUS_TRIGGER, SEND_STATUS, READOUT, WAIT_BSY, WAIT_RAM);
   signal state     : state_t;
   signal statebits : std_logic_vector(7 downto 0);
 
@@ -162,16 +162,23 @@ begin
       when WAIT_BSY =>
         busy_in_sys(channelselect) <= '1';
         if busy_out_sys(channelselect) = '0' then
-          -- start moving the counter already now 
+          -- start moving the counter already now
+          -- the RAM output is registered 
           ram_counter(channelselect) <= ram_counter(channelselect) + 1;
-          state <= CFD_READOUT;
+          state <= WAIT_RAM;
         end if;
+      
+      when WAIT_RAM =>
+        busy_in_sys(channelselect) <= '1';
+        ram_counter(channelselect) <= ram_counter(channelselect) + 1;
+        state <= READOUT;
+        
           
-      when CFD_READOUT =>
+      when READOUT =>
         busy_in_sys(channelselect) <= '1';
         if ram_data_sys(channelselect) = x"00000000" then
           -- for old channel, decrease count since we found the end
-          ram_counter(channelselect) <= ram_counter(channelselect) - 1;
+          ram_counter(channelselect) <= ram_counter(channelselect) - 2;
           -- go to next channel or finish readout
           if channelselect = 3 then
             state <= RELEASE_DIRECT;
@@ -190,7 +197,7 @@ begin
       when SEND_STATUS =>
         RDO_write_main <= '1';
         RDO_data_main  <= x"20000000";
-        -- not implemented yet
+        -- nothing implemented yet
         state          <= RELEASE_DIRECT;
     end case;
 
