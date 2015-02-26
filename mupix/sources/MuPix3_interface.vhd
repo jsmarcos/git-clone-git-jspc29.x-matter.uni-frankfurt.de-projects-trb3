@@ -288,10 +288,14 @@ begin
       else
         testoutro     <= (others => '0');
         testoutro(31) <= priout;
-        memwren     <= '0';
-        memdata     <= (others => '0');
-        endofevent  <= '0';
-        ro_busy_int <= '0';
+        memwren       <= '0';
+        memdata       <= (others => '0');
+        endofevent    <= '0';
+        ro_busy_int   <= '0';
+        ldpix         <= '0';
+        pulldown      <= '0';
+        ldcol         <= '0';
+        rdcol         <= '0';
         case state is
           when pause =>
             pausecounter <= pausecounter +1;
@@ -299,10 +303,6 @@ begin
               state        <= waiting;
               pausecounter <= (others => '0');
             end if;
-            ldpix       <= '0';
-            ldcol       <= '0';
-            rdcol       <= '0';
-            pulldown    <= '0';
           when waiting =>
             testoutro(1) <= '1';
             delcounter   <= (others => '0');
@@ -311,10 +311,6 @@ begin
             if(reseteventcount = '1') then
               eventcounter <= (others => '0');
             end if;
-            ldpix    <= '0';
-            ldcol    <= '0';
-            rdcol    <= '0';
-            pulldown <= '0';
             if(readmanual = '1') then
               state <= readman;
             elsif(continousread = '1' or readnow = '1' or(triggering = '1' and trigger_ext = '1' and generatetriggeredhits = '0')) then
@@ -349,7 +345,6 @@ begin
           when loadpix =>
             ro_busy_int  <= '1';
             testoutro(2) <= '1';
-            ldpix        <= '0';
             delcounter   <= delcounter - 1;
             state        <= loadpix;
             if(delcounter = "00000100") then     -- write event header
@@ -370,9 +365,6 @@ begin
           when pulld =>
             ro_busy_int  <= '1';
             testoutro(3) <= '1';
-            if unsigned(delaycounters1(15 downto 8)) = delcounter then
-              pulldown <= '0';
-            end if;
             delcounter <= delcounter - 1;
             state      <= pulld;
             if(delcounter = "00000000") then
@@ -383,9 +375,6 @@ begin
           when loadcol =>
             ro_busy_int  <= '1';
             testoutro(4) <= '1';
-            if(delcounter = unsigned(delaycounters1(23 downto 16))) then
-              ldcol <= '0';
-            end if;
             delcounter <= delcounter - 1;
             state      <= loadcol;
             if(delcounter = "00000000") then
@@ -403,8 +392,8 @@ begin
           when readcol =>
             ro_busy_int  <= '1';
             testoutro(5) <= '1';
-            if(delcounter = unsigned(delaycounters1(31 downto 24)) - unsigned(delaycounters2(15 downto 8))) then
-              rdcol <= '0';
+            if(delcounter > unsigned(delaycounters1(31 downto 24)) - unsigned(delaycounters2(15 downto 8))) then
+              rdcol <= '1';
             end if;
             delcounter <= delcounter - 1;
             state      <= readcol;
@@ -426,14 +415,16 @@ begin
               memdata    <= "10111110111011111011111011101111";    --0xBEEFBEEF
               endofevent <= '1';
               state      <= pause;
-            elsif(delcounter = "00000000" and (priout = '1' or (delaycounters2(23 downto 16) /= "00000000" and priout_reg = '1'))) then
-              state      <= readcol;
-              rdcol      <= '1';
-              delcounter <= unsigned(delaycounters1(31 downto 24));
             elsif(delcounter = "00000000") then
-              state      <= pulld;
-              pulldown   <= '1';
-              delcounter <= unsigned(delaycounters2(7 downto 0));
+              if (priout = '1' or (delaycounters2(23 downto 16) /= "00000000" and priout_reg = '1')) then
+                state      <= readcol;
+                rdcol      <= '1';
+                delcounter <= unsigned(delaycounters1(31 downto 24));
+              else
+                state      <= pulld;
+                pulldown   <= '1';
+                delcounter <= unsigned(delaycounters2(7 downto 0));  
+              end if;
             end if;
             
           when hitgenerator =>
