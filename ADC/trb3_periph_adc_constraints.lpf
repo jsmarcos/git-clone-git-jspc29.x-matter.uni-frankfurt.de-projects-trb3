@@ -91,7 +91,7 @@ USE PRIMARY NET "CLK_PCLK_RIGHT_c";
 
 # left are ADCs 0-5 and 7 (counted from 0)
 UGROUP "THE_ADC_LEFT_group" BLKNAME gen_reallogic.THE_ADC/THE_ADC_LEFT;
-REGION "THE_ADC_LEFT_region" "R57C2D" 9 45;
+REGION "THE_ADC_LEFT_region" "R57C2D" 9 55;
 LOCATE UGROUP "THE_ADC_LEFT_group" REGION "THE_ADC_LEFT_region";
 
 UGROUP "THE_ADC_PROC_cfd_0_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.0.THE_ADC_PROC;
