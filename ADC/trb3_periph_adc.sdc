@@ -19,6 +19,8 @@ define_clock   {n:THE_MAIN_PLL.CLKOP} -name {n:THE_MAIN_PLL.CLKOP}  -freq 100 -c
 define_clock   {n:THE_MEDIA_UPLINK.gen_serdes_1_200\.THE_SERDES.rx_half_clk_ch1} -name {n:THE_MEDIA_UPLINK.gen_serdes_1_200\.THE_SERDES.rx_half_clk_ch1}  -freq 100 -clockgroup default_clkgroup_6
 define_clock   {n:THE_MEDIA_UPLINK.gen_serdes_1_200\.THE_SERDES.refclkdiv2_rx_ch1} -name {n:THE_MEDIA_UPLINK.gen_serdes_1_200\.THE_SERDES.refclkdiv2_rx_ch1}  -freq 100 -clockgroup default_clkgroup_7
 define_clock   {n:THE_MEDIA_UPLINK.gen_serdes_1_200\.THE_SERDES.refclkdiv2_tx_ch} -name {n:THE_MEDIA_UPLINK.gen_serdes_1_200\.THE_SERDES.refclkdiv2_tx_ch}  -freq 100 -clockgroup default_clkgroup_8
+define_clock   {n:pll_in200_out80_gen_80MHz_THE_ADC_REF_0|CLKOP_inferred_clock} -name {n:pll_in200_out80_gen_80MHz_THE_ADC_REF_0|CLKOP_inferred_clock}  -freq 80 -clockgroup default_clkgroup_9
+define_clock   {n:pll_in200_out80_gen_80MHz_THE_ADC_REF|CLKOP_inferred_clock} -name {n:pll_in200_out80_gen_80MHz_THE_ADC_REF|CLKOP_inferred_clock} -freq 80 -clockgroup default_clkgroup_10
 
 #
 # Clock to Clock
