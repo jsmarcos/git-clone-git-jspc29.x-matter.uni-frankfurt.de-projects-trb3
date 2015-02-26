@@ -31,10 +31,10 @@ entity adc_handler is
 end entity;
 
 architecture adc_handler_arch of adc_handler is
---  attribute syn_keep : boolean;
---  attribute syn_preserve : boolean;
---  attribute syn_hier : string;
---  attribute syn_hier of adc_handler_arch : architecture is "hard";
+  attribute syn_keep : boolean;
+  attribute syn_preserve : boolean;
+  attribute syn_hier : string;
+  attribute syn_hier of adc_handler_arch : architecture is "hard";
 
   type psa_data_t is array (0 to DEVICES - 1) of std_logic_vector(8 downto 0);
 
@@ -45,10 +45,10 @@ architecture adc_handler_arch of adc_handler is
 
   signal ctrl_reg   : std_logic_vector(31 downto 0);
   signal strobe_reg : std_logic_vector(31 downto 0);
---  attribute syn_keep of ctrl_reg : signal is true;
---  attribute syn_preserve of ctrl_reg : signal is true;
---  attribute syn_keep of strobe_reg : signal is true;
---  attribute syn_preserve of strobe_reg : signal is true;
+  attribute syn_keep of ctrl_reg : signal is true;
+  attribute syn_preserve of ctrl_reg : signal is true;
+  attribute syn_keep of strobe_reg : signal is true;
+  attribute syn_preserve of strobe_reg : signal is true;
 
   signal buffer_ctrl_reg : std_logic_vector(31 downto 0);
   signal adc_restart     : std_logic;
@@ -58,6 +58,10 @@ architecture adc_handler_arch of adc_handler is
 
   signal config        : cfg_t;
   signal config_cfd    : cfg_cfd_t;
+  attribute syn_keep of config : signal is true;
+  attribute syn_preserve of config : signal is true;
+  attribute syn_keep of config_cfd : signal is true;
+  attribute syn_preserve of config_cfd : signal is true;
   signal buffer_addr   : std_logic_vector(4 downto 0);
   signal buffer_data   : buffer_data_t;
   signal buffer_read   : std_logic_vector(15 downto 0);

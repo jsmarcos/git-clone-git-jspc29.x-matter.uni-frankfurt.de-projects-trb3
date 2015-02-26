@@ -31,14 +31,14 @@ entity adc_processor_cfd is
 end entity adc_processor_cfd;
 
 architecture arch of adc_processor_cfd is
---  attribute syn_hier : string;
---  attribute syn_keep : boolean;
---  attribute syn_preserve : boolean;
---  attribute syn_hier of arch : architecture is "hard";
+  attribute syn_hier : string;
+  attribute syn_keep : boolean;
+  attribute syn_preserve : boolean;
+  attribute syn_hier of arch : architecture is "hard";
 
   signal CONF_adc, CONF_sys : cfg_cfd_t := cfg_cfd_t_INIT;
---  attribute syn_keep of CONF_adc, CONF_sys : signal is true;
---  attribute syn_preserve of CONF_adc, CONF_sys : signal is true;
+  attribute syn_keep of CONF_adc, CONF_sys : signal is true;
+  attribute syn_preserve of CONF_adc, CONF_sys : signal is true;
 
   signal trigger_gen, trigger_mask : std_logic_vector(CHANNELS - 1 downto 0);
   type debug_t is array (CHANNELS - 1 downto 0) of debug_cfd_t;
@@ -65,8 +65,8 @@ architecture arch of adc_processor_cfd is
   signal busy_in_adc, busy_in_sys : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
   signal busy_out_adc, busy_out_sys : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
 begin
-  CONF_adc <= CONFIG when rising_edge(CLK_ADC);
-  CONF_sys <= CONFIG when rising_edge(CLK_SYS);
+  CONF_adc <= CONF_sys when rising_edge(CLK_ADC);
+  CONF_sys <= CONFIG   when rising_edge(CLK_SYS);
 
   trigger_mask <= CONF_sys.TriggerEnable((DEVICE + 1) * CHANNELS - 1 downto DEVICE * CHANNELS);
   TRIGGER_OUT  <= or_all(trigger_gen and trigger_mask) when rising_edge(CLK_SYS);
