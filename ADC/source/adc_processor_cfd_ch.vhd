@@ -104,6 +104,7 @@ begin
   DEBUG.InvalidWordCount <= invalid_word_count;
   DEBUG.Baseline         <= baseline;
   DEBUG.LastWord         <= input;
+  DEBUG.EpochCounter     <= epoch_counter;
 
   -- word checker, needed for ADC phase adjustment
   gen_word_checker : for i in 0 to CHANNELS - 1 generate

@@ -80,6 +80,7 @@ package adc_package is
     InvalidWordCount : unsigned(31 downto 0);
     Baseline         : unsigned(RESOLUTION - 1 downto 0);
     LastWord         : unsigned(RESOLUTION - 1 downto 0);
+    EpochCounter     : unsigned(23 downto 0);
     Trigger          : std_logic;
   end record;
 

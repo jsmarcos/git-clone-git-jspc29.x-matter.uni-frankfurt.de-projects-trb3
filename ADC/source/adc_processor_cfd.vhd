@@ -64,6 +64,11 @@ architecture arch of adc_processor_cfd is
   signal readout_reset  : std_logic                     := '0';
   signal busy_in_adc, busy_in_sys : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
   signal busy_out_adc, busy_out_sys : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
+  
+  type epoch_counter_t is array(CHANNELS - 1 downto 0) of unsigned(23 downto 0);
+  signal epoch_counter : epoch_counter_t;
+  
+  --signal trigger_delay : unsigned();
 begin
   CONF_adc <= CONFIG when rising_edge(CLK_ADC);
 
@@ -74,6 +79,7 @@ begin
   busy_out_sys <= busy_out_adc when rising_edge(CLK_SYS);
   gen_cfd : for i in 0 to CHANNELS - 1 generate
     trigger_gen(i) <= debug_adc(i).Trigger;
+    epoch_counter(i) <= debug_adc(i).EpochCounter when rising_edge(CLK_SYS);
     
     THE_CFD : entity work.adc_processor_cfd_ch
       generic map(
@@ -107,7 +113,6 @@ begin
   READOUT_TX.data_write <= RDO_write_main when rising_edge(CLK_SYS);
   READOUT_TX.data       <= RDO_data_main when rising_edge(CLK_SYS);
   readout_reset         <= CONTROL(12) when rising_edge(CLK_SYS);
-  statebits             <= std_logic_vector(to_unsigned(state_t'pos(state), 8)) when rising_edge(CLK_ADC);
 
   proc_readout : process
     variable channelselect : integer range 0 to 3;
@@ -157,6 +162,9 @@ begin
           end if;
         end if;
 
+      --when TRIG_DLY =>
+                
+
       when WAIT_BSY =>
         busy_in_sys(channelselect) <= '1';
         if busy_out_sys(channelselect) = '0' then
@@ -169,6 +177,8 @@ begin
       when WAIT_RAM =>
         busy_in_sys(channelselect) <= '1';
         ram_counter(channelselect) <= ram_counter(channelselect) + 1;
+        RDO_data_main <= x"cc" & std_logic_vector(epoch_counter(channelselect));
+        RDO_write_main <= '1'; 
         state <= READOUT;
         
           
@@ -204,6 +214,8 @@ begin
     end if;
   end process;
 
+  statebits             <= std_logic_vector(to_unsigned(state_t'pos(state), 8)) when rising_edge(CLK_ADC);
+  
   PROC_DEBUG_BUFFER : process
     variable c : integer range 0 to 3;
   begin
