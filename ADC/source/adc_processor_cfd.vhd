@@ -107,7 +107,7 @@ begin
   READOUT_TX.data_write <= RDO_write_main when rising_edge(CLK_SYS);
   READOUT_TX.data       <= RDO_data_main when rising_edge(CLK_SYS);
   readout_reset         <= CONTROL(12) when rising_edge(CLK_SYS);
-  statebits             <= std_logic_vector(to_unsigned(state_t'pos(state), 8));
+  statebits             <= std_logic_vector(to_unsigned(state_t'pos(state), 8)) when rising_edge(CLK_ADC);
 
   proc_readout : process
     variable channelselect : integer range 0 to 3;
