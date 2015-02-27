@@ -45,24 +45,31 @@ architecture adc_ad9219_arch of adc_ad9219 is
 
   type value_it is array (0 to 4) of std_logic_vector(9 downto 0);
   type value_t is array (0 to NUM_DEVICES - 1) of value_it;
-  signal value : value_t := (others => (others => (others => '0')));
-  signal fifo_input : value_t := (others => (others => (others => '0')));
+  signal value        : value_t := (others => (others => (others => '0')));
+  signal buffer_input : value_t := (others => (others => (others => '0')));
 
   type fifo_t is array (0 to NUM_DEVICES - 1) of std_logic_vector(49 downto 0);
-  signal fifo_output : fifo_t;
+  signal buffer_output : fifo_t;
 
-  signal fifo_write      : std_logic_vector(NUM_DEVICES - 1 downto 0);
-  signal fifo_read       : std_logic_vector(NUM_DEVICES - 1 downto 0);
-  signal fifo_empty      : std_logic_vector(NUM_DEVICES - 1 downto 0);
-  signal fifo_last_empty : std_logic_vector(NUM_DEVICES - 1 downto 0);
-  signal fifo_true_empty : std_logic_vector(NUM_DEVICES - 1 downto 0);
+  signal buffer_write      : std_logic_vector(NUM_DEVICES - 1 downto 0);
+  signal buffer_read       : std_logic_vector(NUM_DEVICES - 1 downto 0);
+  signal buffer_empty      : std_logic_vector(NUM_DEVICES - 1 downto 0);
+  signal buffer_last_empty : std_logic_vector(NUM_DEVICES - 1 downto 0);
+  signal fifo_empty        : std_logic_vector(NUM_DEVICES - 1 downto 0);
 
-  signal clk_fifo, clk_adc : std_logic;
-  signal DATA_OUT_s       : std_logic_vector(NUM_DEVICES * CHANNELS * RESOLUTION - 1 downto 0) := (others => '0');
+  signal clk_rd, clk_adc : std_logic;
+  signal DATA_OUT_s      : std_logic_vector(NUM_DEVICES * CHANNELS * RESOLUTION - 1 downto 0) := (others => '0');
+
+  --type buff_addr_t is array (0 to NUM_DEVICES - 1) of std_logic_vector(3 downto 0);
+  --signal buf_rd_addr, buf_wr_addr : buff_addr_t;
+
+  type buff_counter_t is array (0 to NUM_DEVICES - 1) of unsigned(3 downto 0);
+  signal buf_rd_counter : buff_counter_t := (others => x"10");
+  signal buf_wr_counter : buff_counter_t := (others => x"00");
 
 begin
   ADCCLK_OUT <= clk_adc;
-  DATA_OUT <= DATA_OUT_s;
+  DATA_OUT   <= DATA_OUT_s;
 
   gen_40MHz : if ADC_SAMPLING_RATE = 40 generate
     THE_ADC_REF : entity work.pll_in200_out40
@@ -172,28 +179,64 @@ begin
   end generate;
 
   gen_output_for_psa : if READOUT_MODE = READOUT_MODE_PSA generate
-    clk_fifo   <= CLK;
-    fifo_empty <= fifo_true_empty;
-    fifo_read <= (others => '1');
+    clk_rd       <= CLK;
+    buffer_empty <= fifo_empty;
+    buffer_read  <= (others => '1');
+    gen_fifos : for i in 0 to NUM_DEVICES - 1 generate
+      THE_FIFO : entity work.fifo_cdt_200_50 --50*16
+        port map(
+          Data(9 downto 0)   => buffer_input(i)(0),
+          Data(19 downto 10) => buffer_input(i)(1),
+          Data(29 downto 20) => buffer_input(i)(2),
+          Data(39 downto 30) => buffer_input(i)(3),
+          Data(49 downto 40) => buffer_input(i)(4),
+          WrClock            => clk_data,
+          RdClock            => clk_rd,
+          WrEn               => buffer_write(i),
+          RdEn               => buffer_read(i),
+          Reset              => '0',
+          RPReset            => RESTART_IN,
+          Q                  => buffer_output(i),
+          Empty              => fifo_empty(i),
+          Full               => open
+        );
+    end generate;
   end generate;
 
   gen_output_for_cfd : if READOUT_MODE = READOUT_MODE_CFD generate
-    clk_fifo   <= clk_adc;
-    fifo_empty <= (others => '0'); -- since we're reading with sampling frequency
-    fill_fifo : process is
-      constant count_max : integer := 7;
-      variable count : integer range 0 to count_max := 0;
-    begin
-      wait until rising_edge(clk_fifo);
-      if RESTART_IN = '1' then
-        count := 0;
-      elsif count /= count_max then
-        count := count + 1;
-        fifo_read <= (others => '0');
-      else
-        fifo_read <= (others => '1');  
-      end if;
-    end process fill_fifo;    
+    clk_rd       <= clk_adc;
+    -- since we're reading with sampling frequency
+    -- the buffer is never empty
+    buffer_empty <= (others => '0');
+    gen_ringbuffers : for i in 0 to NUM_DEVICES - 1 generate
+      THE_RINGBUF : entity work.dpram_50x16
+        port map(WrAddress          => std_logic_vector(buf_wr_counter(i)),
+                 RdAddress          => std_logic_vector(buf_rd_counter(i)),
+                 Data(9 downto 0)   => buffer_input(i)(0),
+                 Data(19 downto 10) => buffer_input(i)(1),
+                 Data(29 downto 20) => buffer_input(i)(2),
+                 Data(39 downto 30) => buffer_input(i)(3),
+                 Data(49 downto 40) => buffer_input(i)(4),
+                 WE                 => buffer_write(i),
+                 RdClock            => clk_rd,
+                 RdClockEn          => '1',
+                 Reset              => '0',
+                 WrClock            => clk_data,
+                 WrClockEn          => '1',
+                 Q                  => buffer_output(i));
+      proc_rd_counter : process is
+      begin
+        wait until rising_edge(clk_rd);
+        buf_rd_counter(i) <= buf_rd_counter(i) + 1;
+      end process proc_rd_counter;
+      proc_wr_counter : process is
+      begin
+        wait until rising_edge(clk_data);
+        if buffer_write(i) = '1' then
+          buf_wr_counter(i) <= buf_wr_counter(i) + 1;
+        end if;
+      end process proc_wr_counter;
+    end generate;
   end generate;
 
   gen_chips : for i in 0 to NUM_DEVICES - 1 generate
@@ -206,8 +249,8 @@ begin
     proc_collect_data : process
     begin
       wait until rising_edge(clk_data);
-      qq(i)         <= q(i);
-      fifo_write(i) <= '0';
+      qq(i)           <= q(i);
+      buffer_write(i) <= '0';
       case state(i) is
         when S1 =>
           if qqq(i)(19 downto 16) = "0011" then
@@ -218,13 +261,13 @@ begin
             value(i)(3)(9 downto 8) <= qqq(i)(13 downto 12);
             value(i)(4)(9 downto 8) <= qqq(i)(17 downto 16);
 
-            fifo_input(i)                <= value(i);
-            fifo_input(i)(0)(1 downto 0) <= qqq(i)(3 downto 2);
-            fifo_input(i)(1)(1 downto 0) <= qqq(i)(7 downto 6);
-            fifo_input(i)(2)(1 downto 0) <= qqq(i)(11 downto 10);
-            fifo_input(i)(3)(1 downto 0) <= qqq(i)(15 downto 14);
-            fifo_input(i)(4)(1 downto 0) <= qqq(i)(19 downto 18);
-            fifo_write(i)                <= '1';
+            buffer_input(i)                <= value(i);
+            buffer_input(i)(0)(1 downto 0) <= qqq(i)(3 downto 2);
+            buffer_input(i)(1)(1 downto 0) <= qqq(i)(7 downto 6);
+            buffer_input(i)(2)(1 downto 0) <= qqq(i)(11 downto 10);
+            buffer_input(i)(3)(1 downto 0) <= qqq(i)(15 downto 14);
+            buffer_input(i)(4)(1 downto 0) <= qqq(i)(19 downto 18);
+            buffer_write(i)                <= '1';
           end if;
         when S2 =>
           state(i)                <= S3;
@@ -234,14 +277,14 @@ begin
           value(i)(3)(7 downto 4) <= qqq(i)(15 downto 12);
           value(i)(4)(7 downto 4) <= qqq(i)(19 downto 16);
         when S3 =>
-          state(i)                     <= S4;
-          fifo_input(i)                <= value(i);
-          fifo_input(i)(0)(3 downto 0) <= qqq(i)(3 downto 0);
-          fifo_input(i)(1)(3 downto 0) <= qqq(i)(7 downto 4);
-          fifo_input(i)(2)(3 downto 0) <= qqq(i)(11 downto 8);
-          fifo_input(i)(3)(3 downto 0) <= qqq(i)(15 downto 12);
-          fifo_input(i)(4)(3 downto 0) <= qqq(i)(19 downto 16);
-          fifo_write(i)                <= '1';
+          state(i)                       <= S4;
+          buffer_input(i)                <= value(i);
+          buffer_input(i)(0)(3 downto 0) <= qqq(i)(3 downto 0);
+          buffer_input(i)(1)(3 downto 0) <= qqq(i)(7 downto 4);
+          buffer_input(i)(2)(3 downto 0) <= qqq(i)(11 downto 8);
+          buffer_input(i)(3)(3 downto 0) <= qqq(i)(15 downto 12);
+          buffer_input(i)(4)(3 downto 0) <= qqq(i)(19 downto 16);
+          buffer_write(i)                <= '1';
         when S4 =>
           state(i)                <= S5;
           value(i)(0)(9 downto 6) <= qqq(i)(3 downto 0);
@@ -262,33 +305,15 @@ begin
       end if;
     end process;
 
-    THE_FIFO : entity work.fifo_cdt_200_50 --50*16
-      port map(
-        Data(9 downto 0)   => fifo_input(i)(0),
-        Data(19 downto 10) => fifo_input(i)(1),
-        Data(29 downto 20) => fifo_input(i)(2),
-        Data(39 downto 30) => fifo_input(i)(3),
-        Data(49 downto 40) => fifo_input(i)(4),
-        WrClock            => clk_data,
-        RdClock            => clk_fifo,
-        WrEn               => fifo_write(i),
-        RdEn               => fifo_read(i),
-        Reset              => RESTART_IN,
-        RPReset            => RESTART_IN,
-        Q(49 downto 0)     => fifo_output(i),
-        Empty              => fifo_true_empty(i),
-        Full               => open
-      );
-
     proc_output : process
     begin
-      wait until rising_edge(clk_fifo);
-      fifo_last_empty(i) <= fifo_empty(i);
-      if fifo_last_empty(i) = '0' then
-        DATA_OUT_s(i * 40 + 39 downto i * 40 + 0) <= fifo_output(i)(39 downto 0);
-        FCO_OUT(i * 10 + 9 downto i * 10 + 0)   <= fifo_output(i)(49 downto 40);
-        DATA_VALID_OUT(i)                       <= '1';
-        counter(i)                              <= counter(i) + 1;
+      wait until rising_edge(clk_rd);
+      buffer_last_empty(i) <= buffer_empty(i);
+      if buffer_last_empty(i) = '0' then
+        DATA_OUT_s(i * 40 + 39 downto i * 40 + 0) <= buffer_output(i)(39 downto 0);
+        FCO_OUT(i * 10 + 9 downto i * 10 + 0)     <= buffer_output(i)(49 downto 40);
+        DATA_VALID_OUT(i)                         <= '1';
+        counter(i)                                <= counter(i) + 1;
       else
         DATA_VALID_OUT(i) <= '0';
       end if;
@@ -297,8 +322,8 @@ begin
     proc_debug : process
     begin
       wait until rising_edge(CLK);
-      state_q(i) <= state(i);
-      counter_q(i) <= counter(i);
+      state_q(i)                           <= state(i);
+      counter_q(i)                         <= counter(i);
       DEBUG(i * 32 + 31 downto i * 32 + 4) <= std_logic_vector(counter_q(i));
       case state_q(i) is
         when S1     => DEBUG(i * 32 + 3 downto i * 32 + 0) <= x"1";
@@ -313,6 +338,3 @@ begin
   end generate;                         -- gen_chips
 
 end architecture;
-
-
-
