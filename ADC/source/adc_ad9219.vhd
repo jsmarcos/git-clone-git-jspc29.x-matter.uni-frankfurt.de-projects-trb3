@@ -64,8 +64,8 @@ architecture adc_ad9219_arch of adc_ad9219 is
   --signal buf_rd_addr, buf_wr_addr : buff_addr_t;
 
   type buff_counter_t is array (0 to NUM_DEVICES - 1) of unsigned(3 downto 0);
-  signal buf_rd_counter : buff_counter_t := (others => x"10");
-  signal buf_wr_counter : buff_counter_t := (others => x"00");
+  signal buf_rd_counter : buff_counter_t := (others => x"8");
+  signal buf_wr_counter : buff_counter_t := (others => x"0");
 
 begin
   ADCCLK_OUT <= clk_adc;
