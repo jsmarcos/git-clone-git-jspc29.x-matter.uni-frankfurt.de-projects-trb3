@@ -56,8 +56,8 @@ architecture adc_handler_arch of adc_handler is
   signal adc_trigger : std_logic_vector(DEVICES - 1 downto 0);
   signal adc_stop    : std_logic;
 
-  signal config        : cfg_t;
-  signal config_cfd    : cfg_cfd_t;
+  signal config     : cfg_t;
+  signal config_cfd : cfg_cfd_t;
   attribute syn_keep of config : signal is true;
   attribute syn_preserve of config : signal is true;
   attribute syn_keep of config_cfd : signal is true;
@@ -78,6 +78,9 @@ architecture adc_handler_arch of adc_handler is
 
   signal adc_clk                     : std_logic_vector(DEVICES downto 1) := (others => '1');
   signal adc_clk_left, adc_clk_right : std_logic                          := '1';
+
+  signal BUS_RX_adc : CTRLBUS_RX;
+  signal BUS_TX_adc : CTRLBUS_TX;
 
 -- 000 - 0ff configuration
 --       000 reset, buffer clear strobes
@@ -373,7 +376,7 @@ begin
         )
         port map(
           CLK_SYS               => CLK,
-          CLK_ADC               => adc_clk(i+1),
+          CLK_ADC               => adc_clk(i + 1),
           ADC_DATA              => adc_data_out((i + 1) * RESOLUTION * CHANNELS - 1 downto i * RESOLUTION * CHANNELS),
           TRIGGER_OUT           => adc_trigger(i),
           CONTROL(31 downto 0)  => strobe_reg,
@@ -391,109 +394,112 @@ begin
 
     config_cfd.BaselineAlwaysOn <= buffer_ctrl_reg(4);
 
+    BUS_TX     <= BUS_TX_adc when rising_edge(CLK);
+    BUS_RX_adc <= BUS_RX when rising_edge(adc_clk_left);
+
     PROC_BUS : process
     begin
-      wait until rising_edge(CLK);
-      BUS_TX.ack     <= '0';
-      BUS_TX.nack    <= '0';
-      BUS_TX.unknown <= '0';
-      buffer_read    <= (others => '0');
-      strobe_reg     <= (others => '0');
+      wait until rising_edge(adc_clk_left);
+      BUS_TX_adc.ack     <= '0';
+      BUS_TX_adc.nack    <= '0';
+      BUS_TX_adc.unknown <= '0';
+      buffer_read        <= (others => '0');
+      strobe_reg         <= (others => '0');
       if or_all(buffer_ready) = '1' then
-        BUS_TX.data <= buffer_data(buffer_device);
-        BUS_TX.ack  <= '1';
-      elsif BUS_RX.read = '1' then
-        if BUS_RX.addr <= x"000f" then
-          BUS_TX.ack <= '1';
+        BUS_TX_adc.data <= buffer_data(buffer_device);
+        BUS_TX_adc.ack  <= '1';
+      elsif BUS_RX_adc.read = '1' then
+        if BUS_RX_adc.addr <= x"000f" then
+          BUS_TX_adc.ack <= '1';
           case BUS_RX.addr(3 downto 0) is
-            when x"1"   => BUS_TX.data <= buffer_ctrl_reg;
-            when others => BUS_TX.ack <= '0';
-              BUS_TX.unknown <= '1';
+            when x"1"   => BUS_TX_adc.data <= buffer_ctrl_reg;
+            when others => BUS_TX_adc.ack <= '0';
+              BUS_TX_adc.unknown <= '1';
           end case;
-        elsif BUS_RX.addr = x"0080" then
-          BUS_TX.data <= ctrl_reg;
-          BUS_TX.ack  <= '1';
-        elsif BUS_RX.addr >= x"0010" and BUS_RX.addr <= x"001f" then --basic config registers
-          BUS_TX.ack  <= '1';
-          BUS_TX.data <= (others => '0');
-          case BUS_RX.addr(7 downto 0) is
+        elsif BUS_RX_adc.addr = x"0080" then
+          BUS_TX_adc.data <= ctrl_reg;
+          BUS_TX_adc.ack  <= '1';
+        elsif BUS_RX_adc.addr >= x"0010" and BUS_RX_adc.addr <= x"001f" then --basic config registers
+          BUS_TX_adc.ack  <= '1';
+          BUS_TX_adc.data <= (others => '0');
+          case BUS_RX_adc.addr(7 downto 0) is
             when x"13" =>
-              BUS_TX.data(9 downto 0)                          <= std_logic_vector(config_cfd.InputThreshold);
-              BUS_TX.data(17)                                  <= config_cfd.PolarityInvert;
-            when x"16" => BUS_TX.data(3 downto 0)              <= std_logic_vector(config_cfd.BaselineAverage);
-            when x"17" => BUS_TX.data(31 downto 0)             <= config_cfd.TriggerEnable(31 downto 0);
-            when x"18" => BUS_TX.data(15 downto 0)             <= config_cfd.TriggerEnable(47 downto 32);
-            when x"19" => BUS_TX.data(RESOLUTION - 1 downto 0) <= config_cfd.CheckWord1;
-              BUS_TX.data(RESOLUTION - 1 + 16 downto 16)       <= config_cfd.CheckWord2;
-              BUS_TX.data(31)                                  <= config_cfd.CheckWordEnable;
-            when x"1a" => BUS_TX.data(31 downto 0)             <= config_cfd.ChannelDisable(31 downto 0);
-            when x"1b" => BUS_TX.data(15 downto 0)             <= config_cfd.ChannelDisable(47 downto 32);
+              BUS_TX_adc.data(9 downto 0)                          <= std_logic_vector(config_cfd.InputThreshold);
+              BUS_TX_adc.data(17)                                  <= config_cfd.PolarityInvert;
+            when x"16" => BUS_TX_adc.data(3 downto 0)              <= std_logic_vector(config_cfd.BaselineAverage);
+            when x"17" => BUS_TX_adc.data(31 downto 0)             <= config_cfd.TriggerEnable(31 downto 0);
+            when x"18" => BUS_TX_adc.data(15 downto 0)             <= config_cfd.TriggerEnable(47 downto 32);
+            when x"19" => BUS_TX_adc.data(RESOLUTION - 1 downto 0) <= config_cfd.CheckWord1;
+              BUS_TX_adc.data(RESOLUTION - 1 + 16 downto 16)       <= config_cfd.CheckWord2;
+              BUS_TX_adc.data(31)                                  <= config_cfd.CheckWordEnable;
+            when x"1a" => BUS_TX_adc.data(31 downto 0)             <= config_cfd.ChannelDisable(31 downto 0);
+            when x"1b" => BUS_TX_adc.data(15 downto 0)             <= config_cfd.ChannelDisable(47 downto 32);
             when x"1d" =>
-              BUS_TX.data(7 downto 0)   <= std_logic_vector(config_cfd.IntegrateWindow);
-              BUS_TX.data(12 downto 8)  <= std_logic_vector(config_cfd.CFDDelay);
-              BUS_TX.data(16 downto 13) <= std_logic_vector(config_cfd.CFDMult);
-              BUS_TX.data(20 downto 17) <= std_logic_vector(config_cfd.CFDMultDly);
+              BUS_TX_adc.data(7 downto 0)   <= std_logic_vector(config_cfd.IntegrateWindow);
+              BUS_TX_adc.data(12 downto 8)  <= std_logic_vector(config_cfd.CFDDelay);
+              BUS_TX_adc.data(16 downto 13) <= std_logic_vector(config_cfd.CFDMult);
+              BUS_TX_adc.data(20 downto 17) <= std_logic_vector(config_cfd.CFDMultDly);
             when others =>
-              BUS_TX.ack     <= '0';
-              BUS_TX.unknown <= '1';
+              BUS_TX_adc.ack     <= '0';
+              BUS_TX_adc.unknown <= '1';
           end case;
-        elsif BUS_RX.addr >= x"0030" and BUS_RX.addr <= x"003b" then
-          BUS_TX.ack  <= '1';
-          BUS_TX.data <= adc_debug(to_integer(unsigned(BUS_RX.addr(3 downto 0))) * 32 + 31 downto to_integer(unsigned(BUS_RX.addr(3 downto 0))) * 32);
-        elsif BUS_RX.addr >= x"0800" and BUS_RX.addr <= x"08ff" and BUS_RX.addr(5 downto 0) < std_logic_vector(to_unsigned(DEVICES * CHANNELS, 6)) then
-          buffer_device                                              <= to_integer(unsigned(BUS_RX.addr(5 downto 2)));
-          buffer_addr                                                <= '0' & BUS_RX.addr(7 downto 6) & BUS_RX.addr(1 downto 0);
-          buffer_read(to_integer(unsigned(BUS_RX.addr(5 downto 2)))) <= '1';
-        elsif BUS_RX.addr >= x"0900" and BUS_RX.addr <= x"09ff" then
-          if BUS_RX.addr(3 downto 0) < std_logic_vector(to_unsigned(DEVICES, 4)) then
-            buffer_device                                              <= to_integer(unsigned(BUS_RX.addr(3 downto 0)));
-            buffer_addr                                                <= '1' & BUS_RX.addr(7 downto 4);
-            buffer_read(to_integer(unsigned(BUS_RX.addr(3 downto 0)))) <= '1';
+        elsif BUS_RX_adc.addr >= x"0030" and BUS_RX_adc.addr <= x"003b" then
+          BUS_TX_adc.ack  <= '1';
+          BUS_TX_adc.data <= adc_debug(to_integer(unsigned(BUS_RX_adc.addr(3 downto 0))) * 32 + 31 downto to_integer(unsigned(BUS_RX_adc.addr(3 downto 0))) * 32);
+        elsif BUS_RX_adc.addr >= x"0800" and BUS_RX_adc.addr <= x"08ff" and BUS_RX_adc.addr(5 downto 0) < std_logic_vector(to_unsigned(DEVICES * CHANNELS, 6)) then
+          buffer_device                                                  <= to_integer(unsigned(BUS_RX_adc.addr(5 downto 2)));
+          buffer_addr                                                    <= '0' & BUS_RX_adc.addr(7 downto 6) & BUS_RX_adc.addr(1 downto 0);
+          buffer_read(to_integer(unsigned(BUS_RX_adc.addr(5 downto 2)))) <= '1';
+        elsif BUS_RX_adc.addr >= x"0900" and BUS_RX_adc.addr <= x"09ff" then
+          if BUS_RX_adc.addr(3 downto 0) < std_logic_vector(to_unsigned(DEVICES, 4)) then
+            buffer_device                                                  <= to_integer(unsigned(BUS_RX_adc.addr(3 downto 0)));
+            buffer_addr                                                    <= '1' & BUS_RX_adc.addr(7 downto 4);
+            buffer_read(to_integer(unsigned(BUS_RX_adc.addr(3 downto 0)))) <= '1';
           else
-            BUS_TX.data <= (others => '0');
-            BUS_TX.ack  <= '1';
+            BUS_TX_adc.data <= (others => '0');
+            BUS_TX_adc.ack  <= '1';
           end if;
         else
-          BUS_TX.unknown <= '1';
+          BUS_TX_adc.unknown <= '1';
         end if;
 
-      elsif BUS_RX.write = '1' then
-        if BUS_RX.addr >= x"0010" and BUS_RX.addr <= x"001f" then --basic config registers
-          BUS_TX.ack <= '1';
-          case BUS_RX.addr(7 downto 0) is
+      elsif BUS_RX_adc.write = '1' then
+        if BUS_RX_adc.addr >= x"0010" and BUS_RX_adc.addr <= x"001f" then --basic config registers
+          BUS_TX_adc.ack <= '1';
+          case BUS_RX_adc.addr(7 downto 0) is
             when x"13" =>
-              config_cfd.InputThreshold                          <= unsigned(BUS_RX.data(9 downto 0));
-              config_cfd.PolarityInvert                          <= BUS_RX.data(17);
-            when x"16" => config_cfd.BaselineAverage             <= unsigned(BUS_RX.data(3 downto 0));
-            when x"17" => config_cfd.TriggerEnable(31 downto 0)  <= BUS_RX.data(31 downto 0);
-            when x"18" => config_cfd.TriggerEnable(47 downto 32) <= BUS_RX.data(15 downto 0);
+              config_cfd.InputThreshold                          <= unsigned(BUS_RX_adc.data(9 downto 0));
+              config_cfd.PolarityInvert                          <= BUS_RX_adc.data(17);
+            when x"16" => config_cfd.BaselineAverage             <= unsigned(BUS_RX_adc.data(3 downto 0));
+            when x"17" => config_cfd.TriggerEnable(31 downto 0)  <= BUS_RX_adc.data(31 downto 0);
+            when x"18" => config_cfd.TriggerEnable(47 downto 32) <= BUS_RX_adc.data(15 downto 0);
             when x"19" =>
-              config_cfd.CheckWord1                               <= BUS_RX.data(RESOLUTION - 1 downto 0);
-              config_cfd.CheckWord2                               <= BUS_RX.data(RESOLUTION - 1 + 16 downto 16);
-              config_cfd.CheckWordEnable                          <= BUS_RX.data(31);
-            when x"1a" => config_cfd.ChannelDisable(31 downto 0)  <= BUS_RX.data(31 downto 0);
-            when x"1b" => config_cfd.ChannelDisable(47 downto 32) <= BUS_RX.data(15 downto 0);
+              config_cfd.CheckWord1                               <= BUS_RX_adc.data(RESOLUTION - 1 downto 0);
+              config_cfd.CheckWord2                               <= BUS_RX_adc.data(RESOLUTION - 1 + 16 downto 16);
+              config_cfd.CheckWordEnable                          <= BUS_RX_adc.data(31);
+            when x"1a" => config_cfd.ChannelDisable(31 downto 0)  <= BUS_RX_adc.data(31 downto 0);
+            when x"1b" => config_cfd.ChannelDisable(47 downto 32) <= BUS_RX_adc.data(15 downto 0);
             when x"1d" =>
-              config_cfd.IntegrateWindow <= unsigned(BUS_RX.data(7 downto 0));
-              config_cfd.CFDDelay        <= unsigned(BUS_RX.data(12 downto 8));
-              config_cfd.CFDMult         <= unsigned(BUS_RX.data(16 downto 13));
-              config_cfd.CFDMultDly      <= unsigned(BUS_RX.data(20 downto 17));
-            when others => BUS_TX.ack    <= '0';
-              BUS_TX.unknown             <= '1';
+              config_cfd.IntegrateWindow  <= unsigned(BUS_RX_adc.data(7 downto 0));
+              config_cfd.CFDDelay         <= unsigned(BUS_RX_adc.data(12 downto 8));
+              config_cfd.CFDMult          <= unsigned(BUS_RX_adc.data(16 downto 13));
+              config_cfd.CFDMultDly       <= unsigned(BUS_RX_adc.data(20 downto 17));
+            when others => BUS_TX_adc.ack <= '0';
+              BUS_TX_adc.unknown          <= '1';
           end case;
-        elsif BUS_RX.addr <= x"000f" then
-          BUS_TX.ack <= '1';
-          case BUS_RX.addr(3 downto 0) is
-            when x"0"   => strobe_reg <= BUS_RX.data;
-            when x"1"   => buffer_ctrl_reg <= BUS_RX.data;
-            when others => BUS_TX.ack <= '0';
-              BUS_TX.unknown <= '1';
+        elsif BUS_RX_adc.addr <= x"000f" then
+          BUS_TX_adc.ack <= '1';
+          case BUS_RX_adc.addr(3 downto 0) is
+            when x"0"   => strobe_reg <= BUS_RX_adc.data;
+            when x"1"   => buffer_ctrl_reg <= BUS_RX_adc.data;
+            when others => BUS_TX_adc.ack <= '0';
+              BUS_TX_adc.unknown <= '1';
           end case;
-        elsif BUS_RX.addr = x"0080" then
-          ctrl_reg   <= BUS_RX.data;
-          BUS_TX.ack <= '1';
+        elsif BUS_RX_adc.addr = x"0080" then
+          ctrl_reg       <= BUS_RX_adc.data;
+          BUS_TX_adc.ack <= '1';
         else
-          BUS_TX.unknown <= '1';
+          BUS_TX_adc.unknown <= '1';
         end if;
       end if;
     end process;

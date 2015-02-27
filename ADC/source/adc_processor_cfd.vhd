@@ -65,8 +65,8 @@ architecture arch of adc_processor_cfd is
   signal busy_in_adc, busy_in_sys : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
   signal busy_out_adc, busy_out_sys : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
 begin
-  CONF_adc <= CONF_sys when rising_edge(CLK_ADC);
-  CONF_sys <= CONFIG   when rising_edge(CLK_SYS);
+  CONF_adc <= CONFIG when rising_edge(CLK_ADC);
+  CONF_sys <= CONFIG when rising_edge(CLK_SYS);
 
   trigger_mask <= CONF_sys.TriggerEnable((DEVICE + 1) * CHANNELS - 1 downto DEVICE * CHANNELS);
   TRIGGER_OUT  <= or_all(trigger_gen and trigger_mask) when rising_edge(CLK_SYS);
@@ -209,7 +209,7 @@ begin
   PROC_DEBUG_BUFFER : process
     variable c : integer range 0 to 3;
   begin
-    wait until rising_edge(CLK_SYS);
+    wait until rising_edge(CLK_ADC);
     reg_buffer_addr   <= DEBUG_BUFFER_ADDR;
     reg_buffer_read   <= DEBUG_BUFFER_READ;
     c                 := to_integer(unsigned(reg_buffer_addr(1 downto 0)));
@@ -218,9 +218,9 @@ begin
       if reg_buffer_addr(4) = '0' then
         DEBUG_BUFFER_READY <= '1';
         case reg_buffer_addr(3 downto 2) is
-          when "00"   => DEBUG_BUFFER_DATA <= std_logic_vector(resize(debug_sys(c).LastWord, 32));
-          when "01"   => DEBUG_BUFFER_DATA <= std_logic_vector(resize(debug_sys(c).Baseline, 32));
-          when "11"   => DEBUG_BUFFER_DATA <= std_logic_vector(resize(debug_sys(c).InvalidWordCount, 32));
+          when "00"   => DEBUG_BUFFER_DATA <= std_logic_vector(resize(debug_adc(c).LastWord, 32));
+          when "01"   => DEBUG_BUFFER_DATA <= std_logic_vector(resize(debug_adc(c).Baseline, 32));
+          when "11"   => DEBUG_BUFFER_DATA <= std_logic_vector(resize(debug_adc(c).InvalidWordCount, 32));
           when others => null;
         end case;
       else
