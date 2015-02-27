@@ -66,7 +66,7 @@ architecture arch of adc_processor_cfd is
   signal busy_out_adc, busy_out_sys : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
   
   type epoch_counter_t is array(CHANNELS - 1 downto 0) of unsigned(23 downto 0);
-  signal epoch_counter : epoch_counter_t;
+  signal epoch_counter, epoch_counter_save : epoch_counter_t;
   
   signal trigger_delay : unsigned(11 downto 0);
 begin
@@ -138,6 +138,7 @@ begin
         elsif READOUT_RX.valid_timing_trg = '1' then
           state <= TRIG_DLY;
           counter := to_integer(trigger_delay);
+          epoch_counter_save <= epoch_counter;
         end if;
 
       when RELEASE_DIRECT =>
@@ -184,7 +185,7 @@ begin
       when WAIT_RAM =>
         busy_in_sys(channelselect) <= '1';
         ram_counter(channelselect) <= ram_counter(channelselect) + 1;
-        RDO_data_main <= x"cc" & std_logic_vector(epoch_counter(channelselect));
+        RDO_data_main <= x"cc" & std_logic_vector(epoch_counter_save(channelselect));
         RDO_write_main <= '1'; 
         state <= READOUT;
         
