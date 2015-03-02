@@ -79,7 +79,7 @@ architecture adc_handler_arch of adc_handler is
   signal adc_clk                     : std_logic_vector(DEVICES downto 1) := (others => '1');
   signal adc_clk_left, adc_clk_right : std_logic                          := '1';
 
-  signal BUS_RX_adc : CTRLBUS_RX;
+  signal BUS_RX_adc, BUS_RX_sys : CTRLBUS_RX;
   signal BUS_TX_adc : CTRLBUS_TX;
 
 -- 000 - 0ff configuration
@@ -395,7 +395,8 @@ begin
     config_cfd.BaselineAlwaysOn <= buffer_ctrl_reg(4);
 
     BUS_TX     <= BUS_TX_adc when rising_edge(CLK);
-    BUS_RX_adc <= BUS_RX when rising_edge(adc_clk_left);
+    BUS_RX_sys <= BUS_RX when rising_edge(CLK);
+    BUS_RX_adc <= BUS_RX_sys when rising_edge(adc_clk_left);
 
     PROC_BUS : process
     begin
@@ -411,7 +412,7 @@ begin
       elsif BUS_RX_adc.read = '1' then
         if BUS_RX_adc.addr <= x"000f" then
           BUS_TX_adc.ack <= '1';
-          case BUS_RX.addr(3 downto 0) is
+          case BUS_RX_adc.addr(3 downto 0) is
             when x"1"   => BUS_TX_adc.data <= buffer_ctrl_reg;
             when others => BUS_TX_adc.ack <= '0';
               BUS_TX_adc.unknown <= '1';

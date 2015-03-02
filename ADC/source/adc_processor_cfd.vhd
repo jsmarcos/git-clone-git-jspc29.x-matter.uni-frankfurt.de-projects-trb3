@@ -61,7 +61,7 @@ architecture arch of adc_processor_cfd is
 
   type state_t is (IDLE, DO_RELEASE, RELEASE_DIRECT, WAIT_FOR_END, CHECK_STATUS_TRIGGER, SEND_STATUS, READOUT, WAIT_BSY, WAIT_RAM, TRIG_DLY);
   signal state     : state_t;
-  signal statebits : std_logic_vector(7 downto 0);
+  signal statebits, statebits_adc : std_logic_vector(7 downto 0);
 
   signal RDO_data_main  : std_logic_vector(31 downto 0) := (others => '0');
   signal RDO_write_main : std_logic                     := '0';
@@ -227,7 +227,8 @@ begin
     end if;
   end process;
 
-  statebits             <= std_logic_vector(to_unsigned(state_t'pos(state), 8)) when rising_edge(CLK_ADC);
+  statebits             <= std_logic_vector(to_unsigned(state_t'pos(state), 8)) when rising_edge(CLK_SYS);
+  statebits_adc <= statebits when rising_edge(CLK_ADC);
   
   PROC_DEBUG_BUFFER : process
     variable c : integer range 0 to 3;
@@ -253,7 +254,7 @@ begin
             DEBUG_BUFFER_DATA(12)           <= '1'; -- ADC_VALID
             DEBUG_BUFFER_DATA(19 downto 16) <= trigger_gen;
           when x"6" =>
-            DEBUG_BUFFER_DATA(7 downto 0) <= statebits;
+            DEBUG_BUFFER_DATA(7 downto 0) <= statebits_adc;
           when others => null;
         end case;
       end if;

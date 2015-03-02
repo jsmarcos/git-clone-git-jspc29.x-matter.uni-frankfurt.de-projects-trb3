@@ -42,6 +42,7 @@ architecture adc_ad9219_arch of adc_ad9219 is
   type states_t is array (0 to NUM_DEVICES - 1) of state_t;
   signal state   : states_t;
   signal state_q : states_t;
+  signal state_qq: states_t;
 
   type value_it is array (0 to 4) of std_logic_vector(9 downto 0);
   type value_t is array (0 to NUM_DEVICES - 1) of value_it;
@@ -249,6 +250,7 @@ begin
     proc_collect_data : process
     begin
       wait until rising_edge(clk_data);
+      state_q(i) <= state(i);
       qq(i)           <= q(i);
       buffer_write(i) <= '0';
       case state(i) is
@@ -322,10 +324,10 @@ begin
     proc_debug : process
     begin
       wait until rising_edge(clk_rd);
-      state_q(i)                           <= state(i);
+      state_qq(i)                           <= state_q(i);
       counter_q(i)                         <= counter(i);
       DEBUG(i * 32 + 31 downto i * 32 + 4) <= std_logic_vector(counter_q(i));
-      case state_q(i) is
+      case state_qq(i) is
         when S1     => DEBUG(i * 32 + 3 downto i * 32 + 0) <= x"1";
         when S2     => DEBUG(i * 32 + 3 downto i * 32 + 0) <= x"2";
         when S3     => DEBUG(i * 32 + 3 downto i * 32 + 0) <= x"3";
