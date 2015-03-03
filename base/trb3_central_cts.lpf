@@ -74,7 +74,7 @@ LOCATE COMP  "CLKRJ_1"   SITE "U8";
 LOCATE COMP  "CLKRJ_2"   SITE "Y34";
 LOCATE COMP  "CLKRJ_3"   SITE "Y33"; 
 DEFINE PORT GROUP "CLKRJ_group" "CLKRJ*" ;
-IOBUF GROUP  "CLKRJ_group" IO_TYPE=LVCMOS25 PULLMODE=NONE DRIVE=4;
+IOBUF GROUP  "CLKRJ_group" IO_TYPE=LVCMOS25 PULLMODE=UP DRIVE=12;
 
 #################################################################
 # Clock and Trigger Select
