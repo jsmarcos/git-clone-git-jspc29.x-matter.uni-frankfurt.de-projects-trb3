@@ -36,10 +36,6 @@ architecture arch of adc_processor_cfd is
   attribute syn_preserve : boolean;
   attribute syn_hier of arch : architecture is "hard";
 
-  signal CONTROL_adc : std_logic_vector(63 downto 0);
-  attribute syn_keep of CONTROL_adc : signal is true;
-  attribute syn_preserve of CONTROL_adc : signal is true;
-
   signal CONF_adc : cfg_cfd_t := cfg_cfd_t_INIT;
   attribute syn_keep of CONF_adc : signal is true;
   attribute syn_preserve of CONF_adc : signal is true;
@@ -75,7 +71,6 @@ architecture arch of adc_processor_cfd is
   signal trigger_delay : unsigned(11 downto 0);
 begin
   CONF_adc <= CONFIG when rising_edge(CLK_ADC);
-  CONTROL_adc <= CONTROL when rising_edge(CLK_ADC);
   trigger_delay <= CONFIG.TriggerDelay when rising_edge(CLK_SYS);
   
   trigger_mask <= CONF_adc.TriggerEnable((DEVICE + 1) * CHANNELS - 1 downto DEVICE * CHANNELS);
@@ -118,7 +113,7 @@ begin
 
   READOUT_TX.data_write <= RDO_write_main when rising_edge(CLK_SYS);
   READOUT_TX.data       <= RDO_data_main when rising_edge(CLK_SYS);
-  readout_reset         <= CONTROL_adc(12) when rising_edge(CLK_SYS);
+  readout_reset         <= CONTROL(12) when rising_edge(CLK_SYS);
 
   proc_readout : process
     variable channelselect : integer range 0 to 3;
