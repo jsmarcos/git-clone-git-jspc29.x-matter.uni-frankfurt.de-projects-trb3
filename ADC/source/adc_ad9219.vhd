@@ -323,7 +323,7 @@ begin
 
     proc_debug : process
     begin
-      wait until rising_edge(clk_rd);
+      wait until rising_edge(CLK);
       state_qq(i)                           <= state_q(i);
       counter_q(i)                         <= counter(i);
       DEBUG(i * 32 + 31 downto i * 32 + 4) <= std_logic_vector(counter_q(i));
