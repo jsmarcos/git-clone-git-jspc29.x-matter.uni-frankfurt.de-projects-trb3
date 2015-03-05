@@ -57,7 +57,7 @@ architecture arch of adc_processor_cfd is
 
   type state_t is (IDLE, DO_RELEASE, RELEASE_DIRECT, WAIT_FOR_END, CHECK_STATUS_TRIGGER, SEND_STATUS, READOUT, WAIT_BSY, WAIT_RAM, TRIG_DLY);
   signal state     : state_t;
-  signal statebits, statebits_adc : std_logic_vector(7 downto 0);
+  signal statebits : std_logic_vector(7 downto 0);
 
   signal RDO_data_main  : std_logic_vector(31 downto 0) := (others => '0');
   signal RDO_write_main : std_logic                     := '0';
@@ -70,10 +70,9 @@ architecture arch of adc_processor_cfd is
   
   signal trigger_delay : unsigned(11 downto 0);
 begin
-  CONF_adc <= CONFIG when rising_edge(CLK_ADC);
-  CONF_sys <= CONFIG when rising_edge(CLK_SYS);
-  trigger_delay <= CONFIG.TriggerDelay when rising_edge(CLK_SYS);
-  
+  CONF_adc <= CONF_sys when rising_edge(CLK_ADC);
+  CONF_sys <= CONFIG   when rising_edge(CLK_SYS);
+
   trigger_mask <= CONF_sys.TriggerEnable((DEVICE + 1) * CHANNELS - 1 downto DEVICE * CHANNELS);
   TRIGGER_OUT  <= or_all(trigger_gen and trigger_mask) when rising_edge(CLK_SYS);
 
@@ -228,7 +227,7 @@ begin
   PROC_DEBUG_BUFFER : process
     variable c : integer range 0 to 3;
   begin
-    wait until rising_edge(CLK_ADC);
+    wait until rising_edge(CLK_SYS);
     reg_buffer_addr   <= DEBUG_BUFFER_ADDR;
     reg_buffer_read   <= DEBUG_BUFFER_READ;
     c                 := to_integer(unsigned(reg_buffer_addr(1 downto 0)));
@@ -237,9 +236,9 @@ begin
       if reg_buffer_addr(4) = '0' then
         DEBUG_BUFFER_READY <= '1';
         case reg_buffer_addr(3 downto 2) is
-          when "00"   => DEBUG_BUFFER_DATA <= std_logic_vector(resize(debug_adc(c).LastWord, 32));
-          when "01"   => DEBUG_BUFFER_DATA <= std_logic_vector(resize(debug_adc(c).Baseline, 32));
-          when "11"   => DEBUG_BUFFER_DATA <= std_logic_vector(resize(debug_adc(c).InvalidWordCount, 32));
+          when "00"   => DEBUG_BUFFER_DATA <= std_logic_vector(resize(debug_sys(c).LastWord, 32));
+          when "01"   => DEBUG_BUFFER_DATA <= std_logic_vector(resize(debug_sys(c).Baseline, 32));
+          when "11"   => DEBUG_BUFFER_DATA <= std_logic_vector(resize(debug_sys(c).InvalidWordCount, 32));
           when others => null;
         end case;
       else
