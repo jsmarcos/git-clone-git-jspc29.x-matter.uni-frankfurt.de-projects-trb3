@@ -1,4 +1,4 @@
 [lxhadeb07]
 system = linux
-corenum = 32
+corenum = 16
 workdir = /home/aneiser/trb3/ADC/workdir
