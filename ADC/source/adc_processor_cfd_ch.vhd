@@ -92,7 +92,7 @@ architecture arch of adc_processor_cfd_ch is
   signal integral_sum                      : signed(RESOLUTION_CFD - 1 downto 0) := (others => '0');
 
   signal epoch_counter, epoch_counter_save : unsigned(23 downto 0) := (others => '0');
-  type state_t is (IDLE, INTEGRATE, WRITE1, WRITE2, WRITE3, WRITE4, FINISH, WAIT_BSY);
+  type state_t is (IDLE, INTEGRATE, WRITE1, WRITE2, WRITE3, WRITE4, FINISH, LOCKED);
   signal state : state_t := IDLE;
 
   signal ram_counter : unsigned(8 downto 0) := (others => '0'); 
@@ -239,10 +239,11 @@ begin
     end if;
 
     RAM_BSY_OUT <= '0';
+    RAM_DATA <= (others => '0'); -- always write zeros as end marker
+    
 
     case state is
       when IDLE =>
-        RAM_DATA <= (others => '0'); -- always write zeros as end marker
         if zeroX = '1' then
           state            <= INTEGRATE;
           integral_counter := to_integer(CONF.IntegrateWindow);
@@ -250,20 +251,22 @@ begin
           cfd_prev_save <= cfd_prev;
           cfd_save <= cfd.value;
           epoch_counter_save <= epoch_counter;
+        elsif RAM_BSY_IN = '1' then
+          state <= LOCKED;
         end if;        
       
       when INTEGRATE =>
         if integral_counter = 0 then
-          state         <= WAIT_BSY;
+          state         <= WRITE1;
         else
           integral_sum <= integral_sum + resize(delay_integral_out, RESOLUTION_CFD);
           integral_counter := integral_counter - 1;
         end if;
       
-      when WAIT_BSY =>
+      when LOCKED =>
+        RAM_BSY_OUT <= '1';
         if RAM_BSY_IN = '0' then
-          state <= WRITE1; 
-          RAM_BSY_OUT <= '1';
+          state <= IDLE;           
         end if;
         
         

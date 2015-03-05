@@ -146,7 +146,7 @@ begin
         elsif READOUT_RX.valid_timing_trg = '1' then
           state <= TRIG_DLY;
           counter := to_integer(trigger_delay);
-          epoch_counter_save <= epoch_counter;
+          epoch_counter_save <= epoch_counter; -- all channels at the same time
         end if;
 
       when RELEASE_DIRECT =>
@@ -183,7 +183,7 @@ begin
 
       when WAIT_BSY =>
         busy_in_sys(channelselect) <= '1';
-        if busy_out_sys(channelselect) = '0' then
+        if busy_out_sys(channelselect) = '1' then
           -- start moving the counter already now
           -- the RAM output is registered 
           ram_counter(channelselect) <= ram_counter(channelselect) + 1;
