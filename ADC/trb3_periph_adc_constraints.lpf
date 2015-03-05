@@ -91,6 +91,9 @@ USE PRIMARY NET "CLK_PCLK_RIGHT_c";
 #MULTICYCLE FROM CLKNET "gen_reallogic_THE_ADC/THE_ADC_LEFT/clk_data_c" TO CLKNET "P_CLOCK_c" 2 X;
 #MULTICYCLE FROM CLKNET "gen_reallogic_THE_ADC/THE_ADC_RIGHT/clk_data" TO CLKNET "gen_reallogic_THE_ADC/adc_clk_right_c" 2 X;
 
+MULTICYCLE FROM CELL "gen_reallogic*THE_ADC/gen_readout_cfd*gen_processors*THE_ADC_PROC/CONF_sys*" TO CELL "gen_reallogic*THE_ADC/gen_readout_cfd*gen_processors*THE_ADC_PROC/CONF_adc*" 4 X;
+
+
 # we define everything doubled to make it work with all lattice/synplify versions
 # due to _ vs . notation of generate statements args...
 
