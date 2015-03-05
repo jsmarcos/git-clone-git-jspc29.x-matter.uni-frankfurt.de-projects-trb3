@@ -228,7 +228,7 @@ begin
   end process;
 
   statebits             <= std_logic_vector(to_unsigned(state_t'pos(state), 8)) when rising_edge(CLK_SYS);
-  --statebits_adc <= statebits when rising_edge(CLK_ADC);
+  statebits_adc <= statebits when rising_edge(CLK_ADC);
   
   PROC_DEBUG_BUFFER : process
     variable c : integer range 0 to 3;
