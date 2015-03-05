@@ -279,34 +279,29 @@ begin
         -- assume that ram_counter is already at next position
         -- ram_counter <= ram_counter + 1;
         state <= WRITE2;
-        RAM_BSY_OUT <= '1';
         
       when WRITE2 => 
         RAM_DATA(31 downto 16) <= std_logic_vector(epoch_counter_save(15 downto 0));
         RAM_DATA(15 downto  0) <= std_logic_vector(integral_sum); 
         ram_counter <= ram_counter + 1;
         state <= WRITE3;
-        RAM_BSY_OUT <= '1';
         
       when WRITE3 => 
         RAM_DATA(31 downto 16) <= std_logic_vector(cfd_prev_save);
         RAM_DATA(15 downto  0) <= std_logic_vector(cfd_save);
         ram_counter <= ram_counter + 1;
         state <= WRITE4;
-        RAM_BSY_OUT <= '1';
         
         
       when WRITE4 =>
         RAM_DATA <= (others => '1'); -- padding word
         ram_counter <= ram_counter + 1;
         state <= FINISH;
-        RAM_BSY_OUT <= '1';
         
       when FINISH =>
         -- move to next position
         ram_counter <= ram_counter + 1;
         state <= IDLE;  
-        RAM_BSY_OUT <= '1';
                   
     end case;
 
