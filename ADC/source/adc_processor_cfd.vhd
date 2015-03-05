@@ -114,6 +114,7 @@ begin
   READOUT_TX.data_write <= RDO_write_main when rising_edge(CLK_SYS);
   READOUT_TX.data       <= RDO_data_main when rising_edge(CLK_SYS);
   readout_reset         <= CONTROL(12) when rising_edge(CLK_SYS);
+  statebits             <= std_logic_vector(to_unsigned(state_t'pos(state), 8));
 
   proc_readout : process
     variable channelselect : integer range 0 to 3;
@@ -222,9 +223,6 @@ begin
     end if;
   end process;
 
-  statebits             <= std_logic_vector(to_unsigned(state_t'pos(state), 8)) when rising_edge(CLK_SYS);
-  statebits_adc <= statebits when rising_edge(CLK_ADC);
-  
   PROC_DEBUG_BUFFER : process
     variable c : integer range 0 to 3;
   begin
@@ -249,7 +247,7 @@ begin
             DEBUG_BUFFER_DATA(12)           <= '1'; -- ADC_VALID
             DEBUG_BUFFER_DATA(19 downto 16) <= trigger_gen;
           when x"6" =>
-            DEBUG_BUFFER_DATA(7 downto 0) <= statebits_adc;
+            DEBUG_BUFFER_DATA(7 downto 0) <= statebits;
           when others => null;
         end case;
       end if;
