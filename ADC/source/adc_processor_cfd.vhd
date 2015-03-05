@@ -67,6 +67,8 @@ architecture arch of adc_processor_cfd is
   
   type epoch_counter_t is array(CHANNELS - 1 downto 0) of unsigned(23 downto 0);
   signal epoch_counter, epoch_counter_save : epoch_counter_t;
+  signal epoch_counter_sys, epoch_counter_adc : epoch_counter_t;
+  
   
   signal trigger_delay : unsigned(11 downto 0);
 begin
@@ -81,7 +83,11 @@ begin
   busy_out_sys <= busy_out_adc when rising_edge(CLK_SYS);
   gen_cfd : for i in 0 to CHANNELS - 1 generate
     trigger_gen(i) <= debug_sys(i).Trigger;
-    epoch_counter(i) <= debug_adc(i).EpochCounter when rising_edge(CLK_SYS);
+        
+    -- first convert to gray counting, then do clock domain crossing 
+    epoch_counter_adc(i) <= debug_adc(i).EpochCounter xor shift_right(debug_adc(i).EpochCounter,1);
+    epoch_counter_sys(i) <= epoch_counter_adc(i) when rising_edge(CLK_SYS);
+    epoch_counter(i) <= epoch_counter_sys(i); -- no back conversion to binary for now  
     
     THE_CFD : entity work.adc_processor_cfd_ch
       generic map(
