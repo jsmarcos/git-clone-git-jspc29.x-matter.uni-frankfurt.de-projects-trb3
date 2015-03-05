@@ -9,10 +9,10 @@ package config is
 ------------------------------------------------------------------------------
 
    constant INCLUDE_CTS : integer range c_NO to c_YES := c_YES;
-   constant INCLUDE_CBMNET : integer range c_NO to c_YES := c_YES;
+   constant INCLUDE_CBMNET : integer range c_NO to c_YES := c_NO;
 
 --include TDC for all four trigger input lines
-    constant INCLUDE_TDC : integer range c_NO to c_YES := c_YES;
+    constant INCLUDE_TDC : integer range c_NO to c_YES := c_NO;
     constant TDC_CHANNEL_NUMBER : integer := 5;
 
 --Use 64 word ringbuffer instead of 128 word ringbuffer in TDC channels
@@ -29,7 +29,7 @@ package config is
     constant USE_125_MHZ : integer range c_NO to c_YES := c_NO;    
 
 --Run external 200 MHz clock source
-    constant USE_EXTERNAL_CLOCK : integer range c_NO to c_YES := c_NO;    
+    constant USE_EXTERNAL_CLOCK : integer range c_NO to c_YES := c_YES;    
        
 --Which external trigger module (ETM) to use?
     constant INCLUDE_ETM : integer range c_NO to c_YES := c_NO;
