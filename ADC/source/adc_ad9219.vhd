@@ -102,6 +102,22 @@ begin
       );
   end generate;
 
+  gen_64MHz : if ADC_SAMPLING_RATE = 64 generate
+    THE_ADC_REF : entity work.pll_in200_out64
+      port map(
+        CLK   => CLK_ADCRAW,
+        CLKOP => clk_adc,
+        LOCK  => open
+      );
+    THE_ADC_PLL_0 : entity work.pll_adc10bit_64
+
+      port map(
+        CLK   => CLK_ADCRAW,
+        CLKOP => clk_adcfast_i,
+        LOCK  => open
+      );
+  end generate;
+
   restart_i <= RESTART_IN when rising_edge(clk_data);
 
   gen_7 : if NUM_DEVICES = 7 generate

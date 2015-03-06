@@ -26,11 +26,11 @@ package config is
     constant INIT_ADDRESS           : std_logic_vector := x"F30a";
     constant BROADCAST_SPECIAL_ADDR : std_logic_vector := x"4b";
    
---ADC sampling frequency: 40 or 80 MHz supported
+--ADC sampling frequency: 40, 64 or 80 MHz supported
 --note that not all READOUT_MODEs will lead to timing-error free designs
 --the READOUT_MODE_PSA mode is usually only working with 40MHz
 --the READOUT_MODE_CFD mode is more robust against clock domain crossing issues 
-    constant ADC_SAMPLING_RATE      : integer := 80;
+    constant ADC_SAMPLING_RATE      : integer := 64;
     
 --These are currently used for the included features table only
     constant ADC_BASELINE_LOGIC     : integer := c_YES;
