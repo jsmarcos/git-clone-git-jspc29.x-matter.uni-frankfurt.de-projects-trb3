@@ -93,6 +93,7 @@ USE PRIMARY NET "CLK_PCLK_RIGHT_c";
 
 MULTICYCLE FROM CELL "gen_reallogic*THE_ADC/gen_readout_cfd*gen_processors*THE_ADC_PROC/CONF_sys*" TO CELL "gen_reallogic*THE_ADC/gen_readout_cfd*gen_processors*THE_ADC_PROC/CONF_adc*" 4 X;
 MULTICYCLE FROM CELL "gen_reallogic*THE_ADC/gen_readout_cfd*gen_processors*THE_ADC_PROC/busy_in_sys*" TO CELL "gen_reallogic*THE_ADC/gen_readout_cfd*gen_processors*THE_ADC_PROC/busy_in_adc*" 2 X;
+MULTICYCLE FROM CELL "gen_reallogic*THE_ADC/THE_ADC_*/state_q_*" TO CELL "gen_reallogic*THE_ADC/THE_ADC_*/state_qq_*" 2 X;
 
 # we define everything doubled to make it work with all lattice/synplify versions
 # due to _ vs . notation of generate statements args...
