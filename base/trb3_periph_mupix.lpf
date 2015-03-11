@@ -256,8 +256,8 @@ IOBUF GROUP "fpga_aux_to_board1_group" IO_TYPE=LVCMOS25;
 DEFINE PORT GROUP "fpga_aux_from_board1_group" "fpga_aux_from_board1*";
 IOBUF GROUP "fpga_aux_from_board1_group" IO_TYPE=LVCMOS25;
 
-LOCATE COMP "testpulse2_to_board1"	SITE "K23";
-LOCATE COMP "testpulse1_to_board1"	SITE "K22";
+LOCATE COMP "testpulse1_to_board1"	SITE "K23";
+LOCATE COMP "testpulse2_to_board1"	SITE "K22";
 IOBUF  PORT "testpulse2_to_board1" IO_TYPE=LVCMOS25 ;
 IOBUF  PORT "testpulse1_to_board1" IO_TYPE=LVCMOS25 ;
 
@@ -336,3 +336,41 @@ LOCATE COMP "pulldown_to_mupix1"	SITE "D3";
 IOBUF  PORT "pulldown_to_mupix1" 	IO_TYPE=LVCMOS25 ;
 LOCATE COMP "priout_from_mupix1"	SITE "L6";
 IOBUF  PORT "priout_from_mupix1" 	IO_TYPE=LVCMOS25 ;
+
+############################################################
+#unused pins on connector
+############################################################
+LOCATE COMP "not_connected_0" 		SITE "AD1";
+LOCATE COMP "not_connected_1"		SITE "AD2";
+LOCATE COMP "not_connected_2"		SITE "AB3";
+LOCATE COMP "not_connected_3"		SITE "AB4";
+LOCATE COMP "not_connected_4"		SITE "W9";
+LOCATE COMP "not_connected_5"  		SITE "F1";
+LOCATE COMP "not_connected_6"		SITE "P1";
+LOCATE COMP "not_connected_7"		SITE "P2";
+LOCATE COMP "not_connected_8"		SITE "R1";
+LOCATE COMP "not_connected_9"		SITE "M6";
+LOCATE COMP "not_connected_10" 		SITE "D2";
+LOCATE COMP "not_connected_11"		SITE "D1";
+LOCATE COMP "not_connected_12"		SITE "C1";
+
+LOCATE COMP "not_connected_13"		SITE "J23";
+LOCATE COMP "not_connected_14"		SITE "H23";
+LOCATE COMP "not_connected_15"		SITE "F24";
+LOCATE COMP "not_connected_16"		SITE "G24";
+#not_connected_17 is input only
+LOCATE COMP "not_connected_18"		SITE "AB26";
+LOCATE COMP "not_connected_19"		SITE "H24";
+LOCATE COMP "not_connected_20"		SITE "G25";
+LOCATE COMP "not_connected_21"		SITE "K24";
+LOCATE COMP "not_connected_22"		SITE "U26";
+LOCATE COMP "not_connected_23"		SITE "G6";
+LoCATE COMP "not_connected_24"		SITE "K8";
+LOCATE COMP "not_connected_25"		SITE "J7";
+DEFINE PORT GROUP "not_connected_group" "not_connected*";
+IOBUF GROUP "not_connected_group" IO_TYPE=LVCMOS25;
+
+###########################################################
+##Relax some timing constraints
+###########################################################
+MULTICYCLE FROM CELL "MuPix3_Board_*/board_interface_1/hbus_from_mupix_sync" TO CELL "MuPix3_Board_*/HitbusHistogram_1/hitbus_buffer" 2 X;
