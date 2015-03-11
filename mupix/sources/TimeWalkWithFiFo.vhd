@@ -33,7 +33,8 @@ architecture TimeWalk_arch of TimeWalkWithFiFo is
 
   constant bitsBeforeWriteCounter : integer := 2;
   signal hitbus_timeout            : std_logic_vector(31 downto 0)        := (others => '0');
-  
+
+  signal resetcounters : std_logic := '0';
   signal hitbusEdgeCounter : unsigned(31 downto 0) := (others => '0');
   signal szintilatorEdgeCounter : unsigned(31 downto 0) := (others => '0');
   signal hitbusRisingEdge : std_logic_vector(1 downto 0) := (others => '0');
@@ -112,11 +113,16 @@ begin  -- architecture TimeWalk_arch
       szintilator_trigger_buffer <= szintillator_trigger;
       hitbusRisingEdge <= hitbusRisingEdge(0) & hitbus_buffer;
       szintilatorRisingEdge <= szintilatorRisingEdge(0) & szintilator_trigger_buffer;
-      if szintilatorRisingEdge = "01" then
-        szintilatorEdgeCounter <= szintilatorEdgeCounter + 1;
-      end if;
-      if hitbusRisingEdge = "01" then
-        hitbusEdgeCounter <= hitbusEdgeCounter + 1;
+      if resetcounters = '1' then
+        szintilatorEdgeCounter <= (others => '0');
+        hitbusEdgeCounter <= (others => '0');
+      else
+        if szintilatorRisingEdge = "01" then
+          szintilatorEdgeCounter <= szintilatorEdgeCounter + 1;
+        end if;
+        if hitbusRisingEdge = "01" then
+          hitbusEdgeCounter <= hitbusEdgeCounter + 1;
+        end if;
       end if;
     end if;
   end process edge_counter;
@@ -166,6 +172,7 @@ begin  -- architecture TimeWalk_arch
   --0x0403: timeout after szintilator trigger signal
   --0x0404: number of rising edges on szintilator
   --0x0405: number of rising edges on hitbus
+  --0x0406: reset counters
   -----------------------------------------------------------------------------
   fifo_status((bitsBeforeWriteCounter - 1) downto 0) <= fifo_empty & FiFo_full;
   fifo_status(12 + bitsBeforeWriteCounter downto bitsBeforeWriteCounter) <= FiFo_writecounter;
@@ -199,6 +206,9 @@ begin  -- architecture TimeWalk_arch
         case SLV_ADDR_IN is
           when x"0403" =>
             hitbus_timeout   <= slv_data_in;
+            slv_ack_out <= '1';
+          when x"0406" =>
+            resetcounters <= slv_data_in(0);
             slv_ack_out <= '1';
           when others =>
             slv_unknown_addr_out <= '1';

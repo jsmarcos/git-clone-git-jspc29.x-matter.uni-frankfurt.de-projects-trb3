@@ -18,7 +18,6 @@ entity eventbuffer is
     --data from mupix interface
     mupixdata_in       : in std_logic_vector(31 downto 0);
     mupixdatawr_in     : in std_logic;
-    mupixendofevent_in : in std_logic;
 
     --response from fee (to trb fifo)       
     fee_data_out            : out std_logic_vector(31 downto 0);
