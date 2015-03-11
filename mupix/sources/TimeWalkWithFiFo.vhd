@@ -42,7 +42,6 @@ architecture TimeWalk_arch of TimeWalkWithFiFo is
   signal szintilator_trigger_buffer : std_logic := '0';
   
   signal FiFo_Wren         : std_logic                     := '0';
-  signal FiFo_Rden         : std_logic                     := '0';
   signal FiFo_data_in      : std_logic_vector(31 downto 0) := (others => '0');
   signal FiFo_data_out     : std_logic_vector(31 downto 0) := (others => '0');
   signal FiFo_writecounter : std_logic_vector(12 downto 0) := (others => '0');
@@ -84,7 +83,7 @@ begin  -- architecture TimeWalk_arch
       WrClock => fast_clk,
       RdClock => trb_slv_clock,
       WrEn    => FiFo_Wren,
-      RdEn    => FiFo_Rden,
+      RdEn    => fifo_read_s,
       Reset   => Reset,
       RPReset => Reset,
       Q       => FiFo_data_out,
