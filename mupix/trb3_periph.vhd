@@ -100,7 +100,7 @@ entity trb3_periph is
     ---------------------------------------------------------------------------
     -- END SensorBoard MuPix 
     ---------------------------------------------------------------------------
-
+    not_connected : out std_logic_vector(25 downto 0);
 
     --Flash ROM & Reboot
     FLASH_CLK  : out   std_logic;
@@ -312,6 +312,10 @@ architecture trb3_periph_arch of trb3_periph is
 
   
 begin
+
+  --tie not connected outputs to 0
+  not_connected(25 downto 18) <= (others => '0');
+  not_connected(16 downto 0) <= (others => '0');
 ---------------------------------------------------------------------------
 -- Reset Generation
 ---------------------------------------------------------------------------

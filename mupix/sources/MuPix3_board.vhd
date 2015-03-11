@@ -401,5 +401,8 @@ begin  -- Behavioral
       SLV_NO_MORE_DATA_OUT => slv_no_more_data(8),
       SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(8));
 
-
+  --set unused signals to board 0
+  fpga_led_to_board <= (others => '0');
+  fpga_aux_to_board <= (others => '0');
+  
 end Behavioral;
