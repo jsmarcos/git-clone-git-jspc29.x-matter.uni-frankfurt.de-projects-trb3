@@ -1712,8 +1712,6 @@ begin
       esb_data_ready <= '0';
       fwb_data_ready <= '0';
       hitreg_data_ready <= '0';
-   
-   
       process begin
          wait until rising_edge(clk_100_i);
          srb_invalid <= srb_read_en or srb_write_en;
@@ -1755,6 +1753,9 @@ begin
 --    CLK_MNGR2_USER <= select_tc_i(27 downto 24); 
 
    THE_CLOCK_SWITCH: entity work.clock_switch
+   generic map(
+      DEFAULT_INTERNAL_TRIGGER => c_YES
+      )
    port map(
       INT_CLK_IN   => CLK_GPLL_RIGHT,
       SYS_CLK_IN   => clk_100_i,

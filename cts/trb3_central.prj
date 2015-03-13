@@ -60,7 +60,7 @@ impl -active "workdir"
 
 ####################
 
-add_file -fpga_constraint "./trb3_central_syn.fdc"
+#add_file -fpga_constraint "./trb3_central_syn.fdc"
 
 
 

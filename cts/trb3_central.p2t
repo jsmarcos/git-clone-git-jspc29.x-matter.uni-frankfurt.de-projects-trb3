@@ -4,11 +4,11 @@
 -n 1
 -y
 -s 15
--t 19
+-t 18
 -c 1
 -e 2
 #-g guidefile.ncd
--m nodelist.txt
+#-m nodelist.txt
 # -w
 # -i 6
 # -l 5

@@ -8,6 +8,9 @@ library work;
   use work.config.all;
 
 entity clock_switch is
+  generic(
+    DEFAULT_INTERNAL_TRIGGER  : integer := c_NO
+    );
   port (
     INT_CLK_IN   : in std_logic;  -- dont care which clock
     SYS_CLK_IN   : in std_logic;
@@ -30,13 +33,14 @@ end entity;
 
 architecture clock_switch_arch of clock_switch is
   constant USE_EXTERNAL_CLOCK_std : std_logic := std_logic_vector(to_unsigned(USE_EXTERNAL_CLOCK,1))(0);
+  constant DEFAULT_INTERNAL_TRIGGER_std : std_logic := std_logic_vector(to_unsigned(DEFAULT_INTERNAL_TRIGGER,1))(0);
 
   type INT_FSM_STATES_T is (WAIT_FOR_LOCK, WAIT_PLL_STABLE, OPERATING);
   signal int_fsm_i : INT_FSM_STATES_T := WAIT_FOR_LOCK;
   signal int_fsm_code_i : std_logic_vector(3 downto 0);
 
   signal select_tc  : std_logic_vector(7 downto 0);
-  signal select_trg : std_logic;
+  signal select_trg : std_logic := DEFAULT_INTERNAL_TRIGGER_std;
   signal select_clk : std_logic := USE_EXTERNAL_CLOCK_std;
 --   signal select_clk_sys  : std_logic := USE_EXTERNAL_CLOCK_std;
   signal select_clk_qsys : std_logic;
