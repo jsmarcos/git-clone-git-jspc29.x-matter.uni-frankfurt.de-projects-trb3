@@ -1,0 +1,116 @@
+% Created 2015-03-13 Fri 17:19
+\documentclass[11pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fixltx2e}
+\usepackage{graphicx}
+\usepackage{longtable}
+\usepackage{float}
+\usepackage{wrapfig}
+\usepackage{soul}
+\usepackage{textcomp}
+\usepackage{marvosym}
+\usepackage{wasysym}
+\usepackage{latexsym}
+\usepackage{amssymb}
+\usepackage{hyperref}
+\tolerance=1000
+\providecommand{\alert}[1]{\textbf{#1}}
+
+\title{ReleaseNotes}
+\author{Cahit Ugur}
+\date{\today}
+\hypersetup{
+  pdfkeywords={},
+  pdfsubject={},
+  pdfcreator={Emacs Org-mode version 7.9.3f}}
+
+\begin{document}
+
+\maketitle
+
+\setcounter{tocdepth}{3}
+\tableofcontents
+\vspace*{1cm}
+
+\begin{center}
+\begin{longtable}{|l|l|p{10cm}|}
+\caption{TDC versions release information.} \label{tab:tdcVersionTable}\\
+\hline
+ \textbf{Version}  &  \textbf{Release Date}  &  \textbf{Release Notes}                                                           \\
+\hline
+\endhead
+\hline\multicolumn{3}{r}{Continued on next page}\
+\endfoot
+\endlastfoot
+\hline
+ tdc\_v2.1.2       &             28.01.2015  &  In case of a missing reference time a header error bit is set and DAQ keeps running.  \\
+                   &                         &  Grass hits in ToT with calbration trigger is removed. The ToT mean value - 10ns gives the stretching offset of the channel.  \\
+                   &                         &  Channel invert bits are implemented.                                              \\
+                   &                         &  Trigger window bugfix.                                                            \\
+\hline
+ tdc\_v2.1.1       &             28.01.2015  &  The dead time of the TDC is decreased to 20ns.                                    \\
+                   &                         &  Small bug with ``Light Mode'' is removed.                                         \\
+                   &                         &  ``Data Limit'' parameter is removed, as it is not needed due to the dynamic buffer size.  \\
+                   &                         &  Coarse/Epoch counter misallignment bug is fixed.                                  \\
+                   &                         &  Channel input is blocked until the falling edge information is written in the ring buffer to avoid data mismatch.  \\
+                   &                         &  Ring buffer overwrite bit is implemented.                                         \\
+\hline
+ tdc\_v2.1.0       &             15.12.2014  &  The ring buffer almost full threshold is made dynamic in order to ``mimic'' a adjustable ring buffer size.  \\
+\hline
+ tdc\_v2.0.1       &             05.12.2014  &  Calibration-physik trigger switching problem is fixed.                            \\
+                   &                         &  With the calibration trigger 50ns pulses are sent to the channels in order to calibrate the ToT measurements in the channels. There are some grass hits around the main peak.  \\
+\hline
+ tdc\_v2.0         &             01.12.2014  &  Double edge detection in a single channel is implemented.                         \\
+\hline
+ tdc\_v1.7.3       &             15.08.2014  &  Hit scaler register size is increased to 31 bits.                                 \\
+\hline
+ tdc\_v1.7.1       &             29.07.2014  &  Feature Bit support.                                                              \\
+                   &                         &  Tidy up the entities.                                                             \\
+\hline
+ tdc\_v1.7         &             24.06.2014  &  Paralel working Readouts are implemented.                                         \\
+                   &                         &  Trigger time calculation is done in the trigger handler.                          \\
+\hline
+ tdc\_v1.6.3       &             24.06.2014  &  Bug fix in the hit rate counters                         (syncronisation problem).  \\
+\hline
+ tdc\_v1.6.2       &             08.05.2014  &  Small bug fix in the wait time for data                          transfer to buffer.  \\
+\hline
+ tdc\_v1.6.1       &             06.05.2014  &  Less EPOCH counter - unnecessary EPOCH words, which occur with enabled trigger window, are eliminated from the data stream.  \\
+                   &                         &  FSM initialisation problem by the Channel\_200 entity is solved.                  \\
+                   &                         &  Channel FSM debug words are written to bus 0xc200.                                \\
+                   &                         &  Number of coarse counters is increased to 16 to ease the fanout.                  \\
+                   &                         &  Bug fix for the missing data with the calibration trigger.                        \\
+                   &                         &  Bug fix for the duplicate data when trigger window is enabled.                    \\
+\hline
+ tdc\_v1.6         &             20.01.2014  &  Epoch counter bug fix (data word - epoch word place swap).                        \\
+                   &                         &  Trigger window bug fix (epoch counter more than 24 bit had integer conversion problem. Trigger window right side control is enabled).  \\
+                   &                         &  Readout algorith change (the channel fifos are readout to intermediate buffer, so the later channels in the readout order are kept as the trigger arrival time).  \\
+                   &                         &  Trigger on TDC channel (the feature for triggering on TDC channel is implemented) Reference channel hit rate counter implemented.  \\
+                   &                         &  The channels (incl. ch0) can be calibrated with the internal oscillator with different frequencies (see manual slow control registers).  \\
+                   &                         &  The coarse counter can be set to reset via slow control. The action will take place when the first valid trigger arrives.  \\
+\hline
+ tdc\_v1.5.1       &             20.06.2013  &  Efficiency bug fix (epoch counter update - hit at the same time). Hit level bit bug fix for the web server. Reference Channel coarse counter alignmet fix.  \\
+\hline
+ tdc\_v1.5         &             03.05.2013  &  TDC calibration trigger is implemented in order to shoot every channel with sufficient \# of hits for proper calibration. Also the TDC is adapted for short pulses.  \\
+\hline
+ tdc\_v1.4         &             18.04.2013  &  Limiting data transfer functionality is added. Use 0xc804 register to define the \# of word per channel to be read-out.  \\
+\hline
+ tdc\_v1.3         &             05.03.2013  &  Encoder efficiency is increased to 100\%. Extra bits are encoded in the data (low resolution and no successfull binary conversion, see the manual).  \\
+                   &                         &  Channel block during the readout is removed. Only the relevant hits per trigger are readout.  \\
+                   &                         &  Control registers are moved to 0xc800.                                            \\
+\hline
+ tdc\_v1.2         &             12.11.2012  &  First strecher prototype is successfully implemented. Some bugs are fixed.        \\
+\hline
+ tdc\_v1.1.1       &             07.11.2012  &  The status registers are moved to the bus address 0xc100. Also debug registers (encoder start, fifo write, lost hits) are included in the bus - 0xc200 0xc300 0xc400  \\
+\hline
+ tdc\_v1.1         &             26.10.2012  &  Readout process is collected in an individual entity.                             \\
+\hline
+ tdc\_v1.0         &             25.10.2012  &  The time measurement interval is extended with a 28-bit epoch counter.            \\
+\hline
+ tdc\_v0.5         &             22.10.2012  &  Hit counter registers and LVDS receiver output level can be reached via slow control.  \\
+\hline
+\end{longtable}
+
+\end{center}
+
+\end{document}
