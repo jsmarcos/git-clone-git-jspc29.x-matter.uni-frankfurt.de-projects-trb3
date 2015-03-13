@@ -60,7 +60,7 @@ impl -active "workdir"
 
 ####################
 
-add_file -fpga_constraint "./trb3_central_syn.fdc"
+#add_file -fpga_constraint "./trb3_central_syn.fdc"
 
 
 
@@ -72,6 +72,7 @@ add_file -vhdl -lib work "version.vhd"
 add_file -vhdl -lib work "config.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_components.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net16_hub_func.vhd"
+add_file -vhdl -lib work "../base/code/clock_switch.vhd"
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/lattice_ecp2m_fifo.vhd"
 add_file -vhdl -lib work "../base/trb3_components.vhd"
 add_file -vhdl -lib work "../base/code/mbs_vulom_recv.vhd"

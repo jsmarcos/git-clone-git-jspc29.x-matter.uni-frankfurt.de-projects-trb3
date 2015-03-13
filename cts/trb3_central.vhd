@@ -3,6 +3,10 @@ Library ieee;
    use ieee.numeric_std.all;
    use ieee.std_logic_unsigned.all;
 
+-- synopsys translate_off
+library ecp3;
+   use ecp3.components.all;
+-- synopsys translate_on   
 library work;
    use work.trb_net_std.all;
    use work.trb_net_components.all;
@@ -494,14 +498,6 @@ architecture trb3_central_arch of trb3_central is
    signal select_tc_i                 : std_logic_vector(31 downto 0);
    signal select_tc_reset_i           : std_logic;
 
-   signal select_tc_address_i         : std_logic_vector(15 downto 0);
-   signal select_tc_control_data_i    : std_logic_vector(31 downto 0);
-   signal select_tc_status_data_i     : std_logic_vector(31 downto 0);
-   signal select_tc_write_en_i        : std_logic;
-   signal select_tc_read_en_i         : std_logic;
-   signal select_tc_read_ack_i        : std_logic;
-   signal select_tc_write_ack_i       : std_logic;
-   signal select_tc_unknown_addr_i    : std_logic;
 
    signal hitreg_read_en    : std_logic;
    signal hitreg_write_en   : std_logic;
@@ -563,8 +559,16 @@ architecture trb3_central_arch of trb3_central is
    signal cbm_sync_pulser_i : std_logic;
    signal cbm_sync_timing_trigger_i : std_logic;
 
-   signal cbm_regio_rx : CTRLBUS_RX;
-   signal cbm_regio_tx : CTRLBUS_TX;
+   signal cbm_regio_rx, bustc_rx : CTRLBUS_RX;
+   signal cbm_regio_tx, bustc_tx : CTRLBUS_TX;
+   
+   
+   component OSCF is
+      port (
+         OSC : out std_logic
+         );
+   end component;      
+   
 begin
    assert not(USE_4_SFP = c_YES and INCLUDE_CBMNET = c_YES)  report "CBMNET uses SFPs 1-4 and hence does not support USE_4_SFP" severity failure;
    assert not(INCLUDE_CBMNET = c_YES and INCLUDE_CTS = c_NO) report "CBMNET is supported only with CTS included" severity failure;
@@ -926,13 +930,6 @@ begin
       CLKOP  => clk_100_i,
       CLKOK  => clk_200_i,
       LOCK   => pll_lock
-   );
-
-   -- generates hits for calibration uncorrelated with tdc clk
-   -- also used for the trigger and clock selection procoess
-   OSCInst0 : OSCF  -- internal oscillator with frequency of 2.5MHz
-   port map (
-      OSC => osc_int
    );
 
    clk_125_i <= CLK_GPLL_RIGHT;      
@@ -1421,16 +1418,16 @@ begin
       BUS_UNKNOWN_ADDR_IN(4)           => cts_regio_unknown_addr,
 
       -- Trigger and Clock Manager Settings
-      BUS_ADDR_OUT(6*16-1 downto 5*16) => select_tc_address_i,
-      BUS_DATA_OUT(6*32-1 downto 5*32) => select_tc_control_data_i,
-      BUS_READ_ENABLE_OUT(5)           => select_tc_read_en_i,
-      BUS_WRITE_ENABLE_OUT(5)          => select_tc_write_en_i,
+      BUS_ADDR_OUT(6*16-1 downto 5*16) => bustc_rx.addr,
+      BUS_DATA_OUT(6*32-1 downto 5*32) => bustc_rx.data,
+      BUS_READ_ENABLE_OUT(5)           => bustc_rx.read,
+      BUS_WRITE_ENABLE_OUT(5)          => bustc_rx.write,
       BUS_TIMEOUT_OUT(5)               => open,
-      BUS_DATA_IN(6*32-1 downto 5*32)  => select_tc_status_data_i,
-      BUS_DATAREADY_IN(5)              => select_tc_read_ack_i,
-      BUS_WRITE_ACK_IN(5)              => select_tc_write_ack_i,
-      BUS_NO_MORE_DATA_IN(5)           => '0',
-      BUS_UNKNOWN_ADDR_IN(5)           => select_tc_unknown_addr_i,   
+      BUS_DATA_IN(6*32-1 downto 5*32)  => bustc_tx.data,
+      BUS_DATAREADY_IN(5)              => bustc_tx.ack,
+      BUS_WRITE_ACK_IN(5)              => bustc_tx.ack,
+      BUS_NO_MORE_DATA_IN(5)           => bustc_tx.nack,
+      BUS_UNKNOWN_ADDR_IN(5)           => bustc_tx.unknown,   
 
       --HitRegisters
       BUS_READ_ENABLE_OUT(6)              => hitreg_read_en,
@@ -1596,6 +1593,13 @@ begin
 -- TDC
 -------------------------------------------------------------------------------
    GEN_TDC : if INCLUDE_TDC = c_YES generate
+   -- generates hits for calibration uncorrelated with tdc clk
+   -- also used for the trigger and clock selection procoess
+      OSCInst0 : OSCF  -- internal oscillator with frequency of 2.5MHz
+      port map (
+         OSC => osc_int
+      );
+   
       THE_TDC : TDC
       generic map (
          CHANNEL_NUMBER => TDC_CHANNEL_NUMBER,   -- Number of TDC channels
@@ -1708,8 +1712,6 @@ begin
       esb_data_ready <= '0';
       fwb_data_ready <= '0';
       hitreg_data_ready <= '0';
-   
-   
       process begin
          wait until rising_edge(clk_100_i);
          srb_invalid <= srb_read_en or srb_write_en;
@@ -1724,31 +1726,55 @@ begin
 ---------------------------------------------------------------------------
 -- Clock and Trigger Configuration
 ---------------------------------------------------------------------------
+-- 
+--    THE_TRIGGER_CLOCK_MGR: trigger_clock_manager
+--    port map (
+--       TRB_CLK_IN => clk_100_i, --  in std_logic;
+--       INT_CLK_IN => osc_int, --  in std_logic;  -- dont care which clock, but not faster than TRB_CLK_IN
+--       RESET_IN   => reset_i, --  in std_logic;
+-- 
+--       -- only single register, so no address
+--       REGIO_ADDRESS_IN        => select_tc_address_i(1 downto 0),
+--       REGIO_DATA_IN           => select_tc_control_data_i, --  in  std_logic_vector(31 downto 0);
+--       REGIO_READ_ENABLE_IN    => select_tc_read_en_i, --  in  std_logic;
+--       REGIO_WRITE_ENABLE_IN   => select_tc_write_en_i, --  in  std_logic;
+--       REGIO_DATA_OUT          => select_tc_status_data_i, --  out std_logic_vector(31 downto 0);
+--       REGIO_DATAREADY_OUT     => select_tc_read_ack_i, --  out std_logic;
+--       REGIO_WRITE_ACK_OUT     => select_tc_write_ack_i, --  out std_logic;
+--       REGIO_UNKNOWN_ADDRESS_OUT  => select_tc_unknown_addr_i,
+--       
+--       RESET_OUT               => select_tc_reset_i, --  out std_logic;
+--       TC_SELECT_OUT           => select_tc_i --  out std_logic_vector(31 downto 0)
+--    );
 
-   THE_TRIGGER_CLOCK_MGR: trigger_clock_manager
-   port map (
-      TRB_CLK_IN => clk_100_i, --  in std_logic;
-      INT_CLK_IN => osc_int, --  in std_logic;  -- dont care which clock, but not faster than TRB_CLK_IN
-      RESET_IN   => reset_i, --  in std_logic;
+--    TRIGGER_SELECT <= '1';
+--    CLOCK_SELECT   <= '1' when USE_EXTERNAL_CLOCK = c_YES else '0'; --use on-board oscillator
+--    CLK_MNGR1_USER <= select_tc_i(19 downto 16);
+--    CLK_MNGR2_USER <= select_tc_i(27 downto 24); 
 
-      -- only single register, so no address
-      REGIO_ADDRESS_IN        => select_tc_address_i(1 downto 0),
-      REGIO_DATA_IN           => select_tc_control_data_i, --  in  std_logic_vector(31 downto 0);
-      REGIO_READ_ENABLE_IN    => select_tc_read_en_i, --  in  std_logic;
-      REGIO_WRITE_ENABLE_IN   => select_tc_write_en_i, --  in  std_logic;
-      REGIO_DATA_OUT          => select_tc_status_data_i, --  out std_logic_vector(31 downto 0);
-      REGIO_DATAREADY_OUT     => select_tc_read_ack_i, --  out std_logic;
-      REGIO_WRITE_ACK_OUT     => select_tc_write_ack_i, --  out std_logic;
-      REGIO_UNKNOWN_ADDRESS_OUT  => select_tc_unknown_addr_i,
+   THE_CLOCK_SWITCH: entity work.clock_switch
+   generic map(
+      DEFAULT_INTERNAL_TRIGGER => c_YES
+      )
+   port map(
+      INT_CLK_IN   => CLK_GPLL_RIGHT,
+      SYS_CLK_IN   => clk_100_i,
       
-      RESET_OUT               => select_tc_reset_i, --  out std_logic;
-      TC_SELECT_OUT           => select_tc_i --  out std_logic_vector(31 downto 0)
-   );
+      BUS_RX       => bustc_rx,
+      BUS_TX       => bustc_tx,
 
-   TRIGGER_SELECT <= '1';
-   CLOCK_SELECT   <= '1' when USE_EXTERNAL_CLOCK = c_YES else '0'; --use on-board oscillator
-   CLK_MNGR1_USER <= select_tc_i(19 downto 16);
-   CLK_MNGR2_USER <= select_tc_i(27 downto 24); 
+      PLL_LOCK     => pll_lock,
+      RESET_IN     => reset_i,
+      RESET_OUT    => open,
+
+      CLOCK_SELECT   => CLOCK_SELECT,
+      TRIG_SELECT    => TRIGGER_SELECT,
+      CLK_MNGR1_USER => CLK_MNGR1_USER,
+      CLK_MNGR2_USER => CLK_MNGR2_USER,
+      
+      DEBUG_OUT      => open
+      );
+
 
 
    cts_rdo_trigger <= cts_trigger_out;
