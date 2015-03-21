@@ -6,6 +6,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.all;
 use IEEE.numeric_std.all;
 
+
 entity TimeWalk is
   port (
     clk                  : in  std_logic;
@@ -22,24 +23,45 @@ architecture TimeWalk_Arch of TimeWalk is
 
   signal latencycounter            : unsigned(15 downto 0)        := (others => '0');
   signal hitbuscounter             : unsigned(15 downto 0)        := (others => '0');
+  signal hitbus_delayed            : std_logic := '0';
   signal hitbus_edge               : std_logic_vector(1 downto 0) := (others => '0');
   signal szintillator_trigger_edge : std_logic_vector(1 downto 0) := (others => '0');
-  signal hitbusBuffer : std_logic := '0';
-  signal szintilatorTriggerBuffer : std_logic := '0';
+  signal szintillator_trigger_buffer : std_logic := '0';
   type TimeWalk_fsm_type is (idle, waitforhitbus, measurehitbus, measurement_done);
   signal timewalk_fsm              : TimeWalk_fsm_type            := idle;
 
+  component SignalDelay is
+    generic (
+      Width : integer range 1 to 32;
+      Delay : integer range 2 to 8);
+    port (
+      clk_in   : in  std_logic;
+      write_en_in : in std_logic;
+      delay_in : in  std_logic_vector(Delay - 1 downto 0);
+      sig_in   : in  std_logic_vector(Width - 1 downto 0);
+      sig_out  : out std_logic_vector(Width - 1 downto 0));
+  end component SignalDelay;
   
 begin  -- architecture TimeWalk_Arch
 
+  SignalDelay_1: entity work.SignalDelay
+    generic map (
+      Width => 1,
+      Delay => 12)
+    port map (
+      clk_in   => clk,
+      write_en_in => '1',
+      delay_in => std_logic_vector(to_unsigned(16,12)),
+      sig_in(0)   => hitbus,
+      sig_out(0)  => hitbus_delayed);
+  
   -- purpose: synchronize signals and edge detection
   signal_synchro: process (clk) is
   begin  -- process clk
     if rising_edge(clk) then
-      hitbusBuffer <= hitbus;
-      szintilatorTriggerBuffer <= szintillator_trigger;
-      hitbus_edge               <= hitbus_edge(0) & hitbusBuffer;
-      szintillator_trigger_edge <= szintillator_trigger_edge(0) & szintilatorTriggerBuffer;  
+      hitbus_edge               <= hitbus_edge(0) & hitbus_delayed;
+      szintillator_trigger_buffer <= szintillator_trigger;
+      szintillator_trigger_edge <= szintillator_trigger_edge(0) & szintillator_trigger_buffer;  
     end if;
   end process signal_synchro;
 
@@ -54,7 +76,7 @@ begin  -- architecture TimeWalk_Arch
         hitbuscounter  <= (others => '0');
         if szintillator_trigger_edge = "01" then
           timewalk_fsm   <= waitforhitbus;
-          latencycounter <= latencycounter + 1;
+          latencycounter <= to_unsigned(1,16);
         end if;
         when waitforhitbus =>
         latencycounter <= latencycounter + 1;
@@ -62,7 +84,7 @@ begin  -- architecture TimeWalk_Arch
           timewalk_fsm <= idle;
         elsif hitbus_edge = "01" then
           timewalk_fsm  <= measurehitbus;
-          hitbuscounter <= hitbuscounter + 1;
+          hitbuscounter <= to_unsigned(1,16);
         else
           timewalk_fsm <= waitforhitbus;
         end if;

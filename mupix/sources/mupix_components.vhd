@@ -334,5 +334,6 @@ package mupix_components is
       measurementFinished  : out std_logic;
       measurementData      : out std_logic_vector(31 downto 0));
   end component TimeWalk;
+
   
 end mupix_components;

@@ -32,7 +32,7 @@ end entity TimeWalkWithFiFo;
 architecture TimeWalk_arch of TimeWalkWithFiFo is
 
   constant bitsBeforeWriteCounter : integer := 2;
-  signal hitbus_timeout            : std_logic_vector(31 downto 0)        := (others => '0');
+  signal hitbus_timeout            : std_logic_vector(31 downto 0)        := x"00000024";
 
   signal resetcounters : std_logic := '0';
   signal hitbusEdgeCounter : unsigned(31 downto 0) := (others => '0');
