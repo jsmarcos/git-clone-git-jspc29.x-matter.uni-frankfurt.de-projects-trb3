@@ -48,9 +48,10 @@ architecture Behavioral of HitbusHistogram is
   signal hitbus_buffer : std_logic;
 
   --ToT Histogram
-  type   hithisto_fsm_type is (idle, hitbus_high);
+  type   hithisto_fsm_type is (idle, hitbus_high, wait_for_postOscillation);
   signal hithisto_fsm       : hithisto_fsm_type := idle;
   signal hitbus_counter     : unsigned(HistogramRange - 1 downto 0);  --duration of hitbus high
+  signal postOscillationCounter : unsigned(HistogramRange - 1 downto 0);
   signal hitbus_HistoWrAddr : std_logic_vector(HistogramRange - 1 downto 0);
   signal hitbus_WriteBin    : std_logic;
   signal hitbus_BinValue    : std_logic_vector(15 downto 0);
@@ -76,9 +77,7 @@ architecture Behavioral of HitbusHistogram is
   signal reading_histo_mem : std_logic                             := '0';  --read in progress
   signal readcounter       : unsigned(HistogramRange - 1 downto 0) := (others => '0');
   
-  
-
-  
+    
 begin
 
   Histogram_1 : Histogram
@@ -126,21 +125,30 @@ begin
   HitBusHisto : process(clk)
   begin  -- process HitBusHisto
     if rising_edge(clk) then
+      hitbus_WriteBin <= '0';
+      postOscillationCounter <= (others => '0');
       case hithisto_fsm is
         when idle =>
-          --hitbus_counter  <= (others => '0');
-          hitbus_WriteBin <= '0';
           if hitbus_i = "01" then       --rising edge
-            hitbus_counter <= to_unsigned(0, HistogramRange);
+            hitbus_counter <= to_unsigned(1, HistogramRange);
             hithisto_fsm   <= hitbus_high;
           end if;
         when hitbus_high =>
           hitbus_counter <= hitbus_counter + 1;
           if hitbus_i = "10" then       --falling edge
-            hitbus_WriteBin    <= '1';
-            hitbus_HistoWrAddr <= std_logic_vector(hitbus_counter);
-            hithisto_fsm       <= idle;
+            hithisto_fsm       <= wait_for_postOscillation;
           end if;
+        when wait_for_postOscillation =>
+            postOscillationCounter <= postOscillationCounter + 1;
+            if(to_integer(postOscillationCounter) = 5) then --wait 5 clock cycles
+              hitbus_WriteBin    <= '1';
+              hitbus_HistoWrAddr <= std_logic_vector(hitbus_counter);
+              hithisto_fsm <= idle;
+            end if;
+            if(hitbus_i = "01") then --new rising edge cut belong to the same event
+              hitbus_counter <= hitbus_counter + postOscillationCounter;
+              hithisto_fsm <= hitbus_high;
+            end if;
       end case;
     end if;
   end process HitBusHisto;
@@ -162,6 +170,7 @@ begin
             latency_fsm  <= waittime;
             wait_counter <= wait_counter + 1;
           end if;
+          
         when waittime =>
           wait_counter <= wait_counter + 1;
           if std_logic_vector(wait_counter) = histo_ctrl(31 downto 16) then
