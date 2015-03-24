@@ -513,7 +513,7 @@ begin
     end if;
   end process;
 
-  resetgraycounter <= rst or timestampreset_in;
+  resetgraycounter <= rst or timestampreset_in or timestampcontrolbits(9);
 
   grcount : Graycounter
     generic map(
@@ -522,7 +522,6 @@ begin
     port map(
       clk            => clk,
       reset          => resetgraycounter,
-      sync_reset     => timestampcontrolbits(9),
       clk_divcounter => graycounter_clkdiv_counter(7 downto 0),
       counter        => graycount
       );

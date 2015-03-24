@@ -156,7 +156,6 @@ package mupix_components is
     port (
       clk            : in  std_logic;
       reset          : in  std_logic;
-      sync_reset     : in  std_logic;
       clk_divcounter : in  std_logic_vector(7 downto 0);
       counter        : out std_logic_vector(COUNTWIDTH-1 downto 0));
   end component;

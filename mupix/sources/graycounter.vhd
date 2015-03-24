@@ -13,22 +13,21 @@ entity Graycounter is
     COUNTWIDTH : integer := 8
     );
   port (
-    clk        : in std_logic;          -- clock
-    reset      : in std_logic;          -- asynchronous reset
-    sync_reset : in std_logic;          -- synchronous reset
-    clk_divcounter : in std_logic_vector(7 downto 0); -- clockdivider for
-                                                      -- graycounter clock
-    counter : out std_logic_vector(COUNTWIDTH-1 downto 0)  -- counter
+    clk            : in  std_logic;     -- clock
+    reset          : in  std_logic;     -- reset
+    clk_divcounter : in  std_logic_vector(7 downto 0);  -- clockdivider for
+                                                        -- graycounter clock
+    counter        : out std_logic_vector(COUNTWIDTH-1 downto 0)  -- counter
     );
 end Graycounter;
 
 architecture rtl of Graycounter is
   
-  signal msb           : std_logic := '0';
+  signal msb           : std_logic                             := '0';
   signal counter_reg   : std_logic_vector(COUNTWIDTH downto 0) := (others => '0');
   signal no_ones_below : std_logic_vector(COUNTWIDTH downto 0) := "000000001";
-  signal clk_enable : std_logic := '0';
-  signal divcounter : unsigned(7 downto 0) := (others => '0');
+  signal clk_enable    : std_logic                             := '0';
+  signal divcounter    : unsigned(7 downto 0)                  := (others => '0');
   
 begin
   
@@ -36,7 +35,7 @@ begin
 
   msb <= counter_reg(COUNTWIDTH) or counter_reg(COUNTWIDTH-1);
 
-  clock_divider_proc: process (clk) is
+  clock_divider_proc : process (clk) is
   begin  -- process clock_divider_proc
     if rising_edge(clk) then
       if reset = '1' then
@@ -56,19 +55,19 @@ begin
   process(clk, reset)
   begin
     if (clk'event and clk = '1') then
-      if (sync_reset = '1') then
+      if (reset = '1') then
         no_ones_below(0) <= '1';
-        counter_reg    <= (others => '0');
-        counter_reg(0) <= '1';
+        counter_reg      <= (others => '0');
+        counter_reg(0)   <= '1';
       else
         if clk_enable = '1' then
           counter_reg(0) <= not counter_reg(0);
-        for i in 1 to COUNTWIDTH-1 loop
-          counter_reg(i) <= counter_reg(i) xor (counter_reg(i-1) and no_ones_below(i-1));
-        end loop;
-        counter_reg(COUNTWIDTH) <= counter_reg(COUNTWIDTH) xor (msb and no_ones_below(COUNTWIDTH-1));
+          for i in 1 to COUNTWIDTH-1 loop
+            counter_reg(i) <= counter_reg(i) xor (counter_reg(i-1) and no_ones_below(i-1));
+          end loop;
+          counter_reg(COUNTWIDTH) <= counter_reg(COUNTWIDTH) xor (msb and no_ones_below(COUNTWIDTH-1));
         else
-          counter_reg <=  counter_reg;
+          counter_reg <= counter_reg;
         end if;
       end if;
     end if;
