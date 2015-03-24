@@ -402,6 +402,6 @@ begin  -- Behavioral
 
   --set unused signals to board 0
   fpga_led_to_board <= (others => '0');
-  fpga_aux_to_board <= (others => '0');
+  fpga_aux_to_board(3 downto 1) <= (others => '0');
   
 end Behavioral;
