@@ -5,7 +5,7 @@
 -- File       : Stretcher.vhd
 -- Author     : cugur@gsi.de
 -- Created    : 2012-11-07
--- Last update: 2015-01-30
+-- Last update: 2015-02-17
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -40,7 +40,7 @@ begin  -- behavioral
     pulse_a_in(DEPTH*i)                        <= PULSE_IN(i-1);
     pulse_a_in(DEPTH*i-1 downto DEPTH*(i-1)+1) <= pulse_b_out(DEPTH*i-1 downto DEPTH*(i-1)+1);
     pulse_b_in(DEPTH*i-1 downto DEPTH*(i-1)+1) <= pulse_a_out(DEPTH*i-1 downto DEPTH*(i-1)+1);
-    PULSE_OUT(i-1)                             <= transport not pulse_a_out(DEPTH*(i-1)) after 34 ns;
+    PULSE_OUT(i-1)                             <= transport not pulse_a_out(DEPTH*(i-1)) after 28 ns;
   end generate GEN;
 
   Stretcher_A_1 : entity work.Stretcher_A

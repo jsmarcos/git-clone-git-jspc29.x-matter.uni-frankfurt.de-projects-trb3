@@ -96,8 +96,11 @@ architecture trb3_periph_ADA_arch of trb3_periph_ADA is
   --Clock / Reset
   signal clk_100_i                : std_logic;  --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i                : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
-  signal osc_int                  : std_logic;  -- clock for calibrating the tdc, 2.5 MHz, via internal osscilator
+  signal clk_20                   : std_logic;  --clock for calibration at 20 MHz, via PLL
+  signal clk_20_i                 : std_logic;  --clock for calibration at 20 MHz, via PLL
+  signal osc_int                  : std_logic;  --clock for calibration at 20 MHz, via internal osscilator
   signal pll_lock                 : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
+  signal pll_lock2                : std_logic;  --Internal PLL locked.
   signal clear_i                  : std_logic;
   signal reset_i                  : std_logic;
   signal GSR_N                    : std_logic;
@@ -252,7 +255,7 @@ architecture trb3_periph_ADA_arch of trb3_periph_ADA is
   signal tdc_ctrl_addr      : std_logic_vector(2 downto 0);
   signal tdc_ctrl_data_in   : std_logic_vector(31 downto 0);
   signal tdc_ctrl_data_out  : std_logic_vector(31 downto 0);
-  signal tdc_ctrl_reg       : std_logic_vector(5*32+31 downto 0);
+  signal tdc_ctrl_reg       : std_logic_vector(7*32+31 downto 0);
 
   signal spi_bram_addr : std_logic_vector(7 downto 0);
   signal spi_bram_wr_d : std_logic_vector(7 downto 0);
@@ -312,18 +315,33 @@ begin
 ---------------------------------------------------------------------------
 -- Clock Handling
 ---------------------------------------------------------------------------
-  THE_MAIN_PLL : pll_in200_out100
-    port map(
-      CLK   => CLK_GPLL_RIGHT,
-      CLKOP => clk_100_i,
-      CLKOK => clk_200_i,
-      LOCK  => pll_lock
-      );
-
-  -- internal oscillator with frequency of 2.5MHz for tdc calibration
-  OSCInst0 : OSCF
+  THE_MAIN_PLL : entity work.pll_in200_out100
     port map (
-      OSC => osc_int);
+      CLK   => CLK_GPLL_RIGHT,
+      RESET => '0',
+      CLKOP => clk_100_i,               -- 100 MHz        
+      CLKOK => clk_200_i,               -- 200 MHz, bypass
+      LOCK  => pll_lock);
+
+
+  ---- internal oscillator with frequency of 20MHz for tdc calibration
+  --OSCInst0 : OSCF
+  --  -- synthesis translate_off
+  --  generic map (
+  --    NOM_FREQ => "20.0")
+  --  -- synthesis translate_on
+  --  port map (
+  --    OSC => clk_20);
+
+  --pll_calibration: entity work.pll_in20_out100
+  --  port map (
+  --    CLK   => clk_20,
+  --    CLKOP => osc_int,
+  --    CLKOS => clk_20_i,
+  --    LOCK  => pll_lock2);
+
+  osc_int <= CLK_GPLL_LEFT;
+  
 
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (to other FPGA)
@@ -897,8 +915,7 @@ begin
     generic map (
       CHANNEL_NUMBER => NUM_TDC_CHANNELS,   -- Number of TDC channels
       STATUS_REG_NR  => 21,             -- Number of status regs
-      CONTROL_REG_NR => 6,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
-      TDC_VERSION    => TDC_VERSION,    -- TDC version number
+      CONTROL_REG_NR => 8,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
       DEBUG          => c_YES,
       SIMULATION     => c_NO)
     port map (

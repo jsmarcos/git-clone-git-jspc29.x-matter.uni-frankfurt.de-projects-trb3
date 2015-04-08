@@ -45,6 +45,14 @@ package trb3_components is
       LOCK  : out std_logic);
   end component pll_in200_out100;
 
+  component pll_in20_out100 is
+    port (
+      CLK   : in  std_logic;            -- 20 MHz
+      CLKOP : out std_logic;            -- 100 MHz
+      CLKOS : out std_logic;            -- 20 MHz, bypass
+      LOCK  : out std_logic);
+  end component pll_in20_out100;
+  
   component pll_calibration is
     port (
       CLK   : in  std_logic;            -- clk_in 100MHz       
@@ -52,226 +60,17 @@ package trb3_components is
       LOCK  : out std_logic);
   end component pll_calibration;
 
---  component OSCF  -- internal oscillator with a frequency of 2MHz
----- synthesis translate_off
---    generic (NOM_FREQ :     string := "20.0");
----- synthesis translate_on
---    port (OSC         : out std_logic);
---  end component;
+  component OSCF  -- internal oscillator with a frequency of 2MHz
+-- synthesis translate_off
+    generic (NOM_FREQ :     string := "20.0");
+-- synthesis translate_on
+    port (OSC         : out std_logic);
+  end component;
 
   --component OSCF
   --  port (OSC : out
   --        std_logic);
   --end component;
-
-  component FIFO_32x32_OutReg
-    port (
-      Data       : in  std_logic_vector(31 downto 0);
-      WrClock    : in  std_logic;
-      RdClock    : in  std_logic;
-      WrEn       : in  std_logic;
-      RdEn       : in  std_logic;
-      Reset      : in  std_logic;
-      RPReset    : in  std_logic;
-      Q          : out std_logic_vector(31 downto 0);
-      Empty      : out std_logic;
-      Full       : out std_logic;
-      AlmostFull : out std_logic);
-  end component;
-
-  component FIFO_36x128_OutReg is
-    port (
-      Data  : in  std_logic_vector(35 downto 0);
-      Clock : in  std_logic;
-      WrEn  : in  std_logic;
-      RdEn  : in  std_logic;
-      Reset : in  std_logic;
-      Q     : out std_logic_vector(35 downto 0);
-      Empty : out std_logic;
-      Full  : out std_logic);
-  end component FIFO_36x128_OutReg;
-
-  component FIFO_36x64_OutReg is
-    port (
-      Data  : in  std_logic_vector(35 downto 0);
-      Clock : in  std_logic;
-      WrEn  : in  std_logic;
-      RdEn  : in  std_logic;
-      Reset : in  std_logic;
-      Q     : out std_logic_vector(35 downto 0);
-      Empty : out std_logic;
-      Full  : out std_logic);
-  end component;
-
-  component FIFO_36x32_OutReg is
-    port (
-      Data  : in  std_logic_vector(35 downto 0);
-      Clock : in  std_logic;
-      WrEn  : in  std_logic;
-      RdEn  : in  std_logic;
-      Reset : in  std_logic;
-      Q     : out std_logic_vector(35 downto 0);
-      Empty : out std_logic;
-      Full  : out std_logic);
-  end component FIFO_36x32_OutReg;
-
-  component FIFO_36x16_OutReg is
-    port (
-      Data  : in  std_logic_vector(35 downto 0);
-      Clock : in  std_logic;
-      WrEn  : in  std_logic;
-      RdEn  : in  std_logic;
-      Reset : in  std_logic;
-      Q     : out std_logic_vector(35 downto 0);
-      Empty : out std_logic;
-      Full  : out std_logic);
-  end component;
-
-  component FIFO_DC_36x128_DynThr_OutReg is
-    port (
-      Data         : in  std_logic_vector(35 downto 0);
-      WrClock      : in  std_logic;
-      RdClock      : in  std_logic;
-      WrEn         : in  std_logic;
-      RdEn         : in  std_logic;
-      Reset        : in  std_logic;
-      RPReset      : in  std_logic;
-      AmFullThresh : in  std_logic_vector(6 downto 0);
-      Q            : out std_logic_vector(35 downto 0);
-      Empty        : out std_logic;
-      Full         : out std_logic;
-      AlmostFull   : out std_logic);
-  end component FIFO_DC_36x128_DynThr_OutReg;
-
-  component FIFO_DC_36x128_OutReg is
-    port (
-      Data       : in  std_logic_vector(35 downto 0);
-      WrClock    : in  std_logic;
-      RdClock    : in  std_logic;
-      WrEn       : in  std_logic;
-      RdEn       : in  std_logic;
-      Reset      : in  std_logic;
-      RPReset    : in  std_logic;
-      Q          : out std_logic_vector(35 downto 0);
-      Empty      : out std_logic;
-      Full       : out std_logic;
-      AlmostFull : out std_logic);
-  end component FIFO_DC_36x128_OutReg;
-
-  component FIFO_DC_36x64_OutReg is
-    port (
-      Data       : in  std_logic_vector(35 downto 0);
-      WrClock    : in  std_logic;
-      RdClock    : in  std_logic;
-      WrEn       : in  std_logic;
-      RdEn       : in  std_logic;
-      Reset      : in  std_logic;
-      RPReset    : in  std_logic;
-      Q          : out std_logic_vector(35 downto 0);
-      Empty      : out std_logic;
-      Full       : out std_logic;
-      AlmostFull : out std_logic);
-  end component FIFO_DC_36x64_OutReg;
-
-  component FIFO_DC_36x32_OutReg is
-    port (
-      Data       : in  std_logic_vector(35 downto 0);
-      WrClock    : in  std_logic;
-      RdClock    : in  std_logic;
-      WrEn       : in  std_logic;
-      RdEn       : in  std_logic;
-      Reset      : in  std_logic;
-      RPReset    : in  std_logic;
-      Q          : out std_logic_vector(35 downto 0);
-      Empty      : out std_logic;
-      Full       : out std_logic;
-      AlmostFull : out std_logic);
-  end component;
-
-  component FIFO_DC_36x16_OutReg is
-    port (
-      Data       : in  std_logic_vector(35 downto 0);
-      WrClock    : in  std_logic;
-      RdClock    : in  std_logic;
-      WrEn       : in  std_logic;
-      RdEn       : in  std_logic;
-      Reset      : in  std_logic;
-      RPReset    : in  std_logic;
-      Q          : out std_logic_vector(35 downto 0);
-      Empty      : out std_logic;
-      Full       : out std_logic;
-      AlmostFull : out std_logic);
-  end component;
-
-  component FIFO_36x128_OutReg_Counter is
-    port (
-      Data    : in  std_logic_vector(35 downto 0);
-      WrClock : in  std_logic;
-      RdClock : in  std_logic;
-      WrEn    : in  std_logic;
-      RdEn    : in  std_logic;
-      Reset   : in  std_logic;
-      RPReset : in  std_logic;
-      Q       : out std_logic_vector(35 downto 0);
-      WCNT    : out std_logic_vector(7 downto 0);
-      Empty   : out std_logic;
-      Full    : out std_logic);
-  end component FIFO_36x128_OutReg_Counter;
-
-  component bit_sync
-    generic (
-      DEPTH : integer);
-    port (
-      RESET : in  std_logic;
-      CLK0  : in  std_logic;
-      CLK1  : in  std_logic;
-      D_IN  : in  std_logic;
-      D_OUT : out std_logic);
-  end component;
-
-  component edge_to_pulse
-    port (
-      clock     : in  std_logic;
-      en_clk    : in  std_logic;
-      signal_in : in  std_logic;
-      pulse     : out std_logic);
-  end component;
-
-  component risingEdgeDetect is
-    port (
-      CLK       : in  std_logic;
-      SIGNAL_IN : in  std_logic;
-      PULSE_OUT : out std_logic);
-  end component risingEdgeDetect;
-
-  component fallingEdgeDetect is
-    port (
-      CLK       : in  std_logic;
-      SIGNAL_IN : in  std_logic;
-      PULSE_OUT : out std_logic);
-  end component fallingEdgeDetect;
-
-  component ShiftRegisterSISO
-    generic (
-      DEPTH : integer range 1 to 32;
-      WIDTH : integer range 1 to 32);
-    port (
-      CLK   : in  std_logic;
-      D_IN  : in  std_logic_vector(WIDTH-1 downto 0);
-      D_OUT : out std_logic_vector(WIDTH-1 downto 0));
-  end component;
-
-  component Stretcher
-    port (
-      PULSE_IN  : in  std_logic;
-      PULSE_OUT : out std_logic);
-  end component;
-
-  component WaveLauncher is
-    port (
-      HIT_IN  : in  std_logic;
-      HIT_OUT : out std_logic);
-  end component WaveLauncher;
 
   component adc_ad9222
     generic(

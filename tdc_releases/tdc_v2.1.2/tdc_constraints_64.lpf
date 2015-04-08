@@ -853,10 +853,10 @@ LOCATE UGROUP "EF_CC3" SITE "R78C56D" ;
 #############################################################################
 ## Stretcher
 #############################################################################
-UGROUP "Stretcher_A" BBOX 7 7
+UGROUP "Stretcher_A" BBOX 6 8
         BLKNAME THE_TDC/gen_double_withStretcher.The_Stretcher/Stretcher_A_1
 ;
-LOCATE UGROUP "Stretcher_A" SITE "R117C175D";
+LOCATE UGROUP "Stretcher_A" SITE "R2C174D";
 
 UGROUP "Stretcher_B" BBOX 6 8
         BLKNAME THE_TDC/gen_double_withStretcher.The_Stretcher/Stretcher_B_1

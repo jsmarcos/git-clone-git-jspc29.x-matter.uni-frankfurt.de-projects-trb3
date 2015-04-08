@@ -10,15 +10,14 @@ use work.trb3_components.all;
 use work.config.all;
 use work.tdc_components.all;
 use work.tdc_version.all;
-use work.version.all;
 
 entity TDC is
   generic (
-    CHANNEL_NUMBER : integer range 2 to 65;
-    STATUS_REG_NR  : integer range 0 to 31;
-    CONTROL_REG_NR : integer range 1 to 8;
-    DEBUG          : integer range 0 to 1 := c_NO;
-    SIMULATION     : integer range 0 to 1 := c_NO);
+    CHANNEL_NUMBER : integer range 2 to 65 := 5;
+    STATUS_REG_NR  : integer range 0 to 31 := 21;
+    CONTROL_REG_NR : integer range 1 to 8  := 8;
+    DEBUG          : integer range 0 to 1  := c_NO;
+    SIMULATION     : integer range 0 to 1  := c_NO);
   port (
     RESET                 : in  std_logic;
     CLK_TDC               : in  std_logic;
@@ -27,7 +26,7 @@ entity TDC is
     HIT_IN                : in  std_logic_vector(CHANNEL_NUMBER-1 downto 1);
     HIT_CAL_IN            : in  std_logic;
     TRG_WIN_PRE           : in  std_logic_vector(10 downto 0);
-    TRG_WIN_POST          : in  std_logic_vector(10 downto 0);
+    TRG_WIN_POST          : in  std_logic_vector(10 downto 0) := "00000001010";
 --
     -- Trigger signals from handler
     TRG_DATA_VALID_IN     : in  std_logic                     := '0';
@@ -133,19 +132,24 @@ architecture TDC of TDC is
 -- Logic analyser
   signal logic_anal_data            : std_logic_vector(3*32-1 downto 0);
 -- Hit signals
-  signal hit_in_d                   : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-  signal hit_in_s                   : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
-  signal hit_in_i                   : std_logic_vector(CHANNEL_NUMBER-1 downto 0);
+  signal hit_in_d                   : std_logic_vector(CHANNEL_NUMBER-1 downto 0) := (others => '0');
+  signal hit_in_d_i                 : std_logic_vector(CHANNEL_NUMBER-1 downto 0) := (others => '0');
+  signal hit_in_s                   : std_logic_vector(CHANNEL_NUMBER-1 downto 0) := (others => '0');
+  signal hit_in_i                   : std_logic_vector(CHANNEL_NUMBER-1 downto 0) := (others => '0');
   signal hit_latch                  : std_logic_vector(CHANNEL_NUMBER-1 downto 1) := (others => '0');
   signal hit_edge                   : std_logic_vector(CHANNEL_NUMBER-1 downto 1) := (others => '0');
   signal edge_rising                : std_logic_vector(CHANNEL_NUMBER-1 downto 1) := (others => '0');
-  signal edge_rising_r              : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
-  signal edge_rising_2r             : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
-  signal edge_rising_3r             : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
+  signal edge_rising_r              : std_logic_vector(CHANNEL_NUMBER-1 downto 1) := (others => '0');
+  signal edge_rising_2r             : std_logic_vector(CHANNEL_NUMBER-1 downto 1) := (others => '0');
+  signal edge_rising_3r             : std_logic_vector(CHANNEL_NUMBER-1 downto 1) := (others => '0');
   signal edge_falling               : std_logic_vector(CHANNEL_NUMBER-1 downto 1) := (others => '0');
-  signal edge_falling_r             : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
-  signal edge_falling_2r            : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
-  signal edge_falling_3r            : std_logic_vector(CHANNEL_NUMBER-1 downto 1);
+  signal edge_falling_r             : std_logic_vector(CHANNEL_NUMBER-1 downto 1) := (others => '0');
+  signal edge_falling_2r            : std_logic_vector(CHANNEL_NUMBER-1 downto 1) := (others => '0');
+  signal edge_falling_3r            : std_logic_vector(CHANNEL_NUMBER-1 downto 1) := (others => '0');
+  signal edge_falling_d             : std_logic_vector(CHANNEL_NUMBER-1 downto 1) := (others => '0');
+  signal edge_falling_d_r           : std_logic_vector(CHANNEL_NUMBER-1 downto 1) := (others => '0');
+  signal edge_falling_d_2r          : std_logic_vector(CHANNEL_NUMBER-1 downto 1) := (others => '0');
+  signal edge_falling_d_3r          : std_logic_vector(CHANNEL_NUMBER-1 downto 1) := (others => '0');
 -- Calibration
   signal hit_cal_cntr               : unsigned(15 downto 0)                       := (others => '0');
   signal hit_cal_i                  : std_logic;
@@ -291,32 +295,50 @@ begin
   end process HitSelectRef;
 
   GEN_HitSelect : for i in 1 to CHANNEL_NUMBER-1 generate
-    HitSelect : process (calibration_on_5r, HIT_IN, hit_cal, ch_invert) is
-    begin
-      if calibration_on_5r = '0' then
-        if ch_invert(i) = '0' then
-          hit_in_s(i) <= HIT_IN(i);
+    Double: if DOUBLE_EDGE_TYPE = 0 or DOUBLE_EDGE_TYPE = 1 or DOUBLE_EDGE_TYPE = 3 or (DOUBLE_EDGE_TYPE = 2 and (i mod 2 = 1)) generate
+      HitSelect : process (calibration_on_5r, HIT_IN, hit_cal, ch_invert) is
+      begin
+        if calibration_on_5r = '0' then
+          if ch_invert(i) = '0' then
+            hit_in_s(i) <= HIT_IN(i);
+          else
+            hit_in_s(i) <= not HIT_IN(i);
+          end if;
         else
-          hit_in_s(i) <= not HIT_IN(i);
+          hit_in_s(i) <= hit_cal;
         end if;
-      else
-        hit_in_s(i) <= hit_cal;
-      end if;
-    end process HitSelect;
+      end process HitSelect;
+    end generate Double;
+    Single: if DOUBLE_EDGE_TYPE = 2 and (i mod 2 = 0) generate
+      HitSelect : process (calibration_on_5r, HIT_IN, hit_cal, ch_invert) is
+      begin
+        if calibration_on_5r = '0' then
+          if ch_invert(i) = '0' then
+            hit_in_s(i) <= HIT_IN(i);
+          else
+            hit_in_s(i) <= not HIT_IN(i);
+          end if;
+        else
+          hit_in_s(i) <= not hit_cal;
+        end if;
+      end process HitSelect;
+    end generate Single;
   end generate GEN_HitSelect;
 
+
+-------------------------------------------------------------------------------
   gen_double_withStretcher : if DOUBLE_EDGE_TYPE = 3 generate
     The_Stretcher : entity work.Stretcher
       generic map (
         CHANNEL => CHANNEL_NUMBER-1,
-        DEPTH   => 3)
+        DEPTH   => 4)
       port map (
-        PULSE_IN  => hit_in_s(CHANNEL_NUMBER-1 downto 1),
-        PULSE_OUT => hit_in_d(CHANNEL_NUMBER-1 downto 1));
+        PULSE_IN  => edge_falling(CHANNEL_NUMBER-1 downto 1),
+        PULSE_OUT => edge_falling_d(CHANNEL_NUMBER-1 downto 1));
   end generate gen_double_withStretcher;
 
   gen_double_withoutStretcher : if DOUBLE_EDGE_TYPE = 1 generate
-    hit_in_d(CHANNEL_NUMBER-1 downto 1) <= hit_in_s(CHANNEL_NUMBER-1 downto 1);
+    edge_falling_d(CHANNEL_NUMBER-1 downto 1) <= edge_falling(CHANNEL_NUMBER-1 downto 1);
   end generate gen_double_withoutStretcher;
 
 
@@ -330,28 +352,81 @@ begin
       edge_rising_2r(i) <= edge_rising_r(i)                           when rising_edge(CLK_TDC);
       edge_rising_3r(i) <= edge_rising_r(i) and not edge_rising_2r(i) when rising_edge(CLK_TDC);
 
-      edge_falling(i)    <= '0' when edge_falling_3r(i) = '1' else
-                            '1' when falling_edge(hit_in_d(i));
+      edge_falling(i) <= '0' when edge_falling_3r(i) = '1' else
+                         '1' when falling_edge(hit_in_s(i));
       edge_falling_r(i)  <= edge_falling(i)                              when rising_edge(CLK_TDC);
       edge_falling_2r(i) <= edge_falling_r(i)                            when rising_edge(CLK_TDC);
       edge_falling_3r(i) <= edge_falling_r(i) and not edge_falling_2r(i) when rising_edge(CLK_TDC);
 
-      hit_latch(i) <= edge_rising(i) or edge_falling(i);
+      hit_latch(i) <= edge_rising(i) or edge_falling_d(i);
 
-      HitEdgeDefine: process (CLK_TDC) is
+      
+      HitEdgeDefine : process (CLK_TDC) is
       begin
-        if rising_edge(CLK_TDC) then  -- rising clock edge
-          if edge_falling_2r(i) = '1' then
+        if rising_edge(CLK_TDC) then    -- rising clock edge
+          if edge_falling_d(i) = '1' then
             hit_edge(i) <= '0';
           elsif edge_rising_r(i) = '1' then
             hit_edge(i) <= '1';
-          end if;      
+          end if;
         end if;
       end process HitEdgeDefine;
+
+      edge_falling_d_r(i)  <= edge_falling_d(i)                                when rising_edge(CLK_TDC);
+      edge_falling_d_2r(i) <= edge_falling_d_r(i)                              when rising_edge(CLK_TDC);
+      edge_falling_d_3r(i) <= edge_falling_d_r(i) and not edge_falling_d_2r(i) when rising_edge(CLK_TDC);
+
       --hit_edge(i)  <= '0' when edge_falling_2r(i) = '1' else
       --                '1' when rising_edge(edge_rising(i));
     end generate gen_double;
+-------------------------------------------------------------------------------
+  --gen_double_withStretcher : if DOUBLE_EDGE_TYPE = 3 generate
+  --  The_Stretcher : entity work.Stretcher
+  --    generic map (
+  --      CHANNEL => CHANNEL_NUMBER-1,
+  --      DEPTH   => 3)
+  --    port map (
+  --      PULSE_IN  => hit_in_s(CHANNEL_NUMBER-1 downto 1),
+  --      PULSE_OUT => hit_in_d(CHANNEL_NUMBER-1 downto 1));
+  --end generate gen_double_withStretcher;
 
+  --gen_double_withoutStretcher : if DOUBLE_EDGE_TYPE = 1 generate
+  --  hit_in_d(CHANNEL_NUMBER-1 downto 1) <= hit_in_s(CHANNEL_NUMBER-1 downto 1);
+  --end generate gen_double_withoutStretcher;
+
+
+  ---- Blocks the input after the rising edge against short pulses
+  --GEN_HitBlock : for i in 1 to CHANNEL_NUMBER-1 generate
+  --  gen_double : if DOUBLE_EDGE_TYPE = 1 or DOUBLE_EDGE_TYPE = 3 generate
+  --    edge_rising(i)    <= '0'            when edge_rising_3r(i) = '1' else
+  --                         edge_rising(i) when hit_edge(i) = '1' else
+  --                         '1'            when rising_edge(hit_in_s(i));
+  --    edge_rising_r(i)  <= edge_rising(i)                             when rising_edge(CLK_TDC);
+  --    edge_rising_2r(i) <= edge_rising_r(i)                           when rising_edge(CLK_TDC);
+  --    edge_rising_3r(i) <= edge_rising_r(i) and not edge_rising_2r(i) when rising_edge(CLK_TDC);
+
+  --    edge_falling(i)    <= '0' when edge_falling_3r(i) = '1' else
+  --                          '1' when falling_edge(hit_in_d(i));
+  --    edge_falling_r(i)  <= edge_falling(i)                              when rising_edge(CLK_TDC);
+  --    edge_falling_2r(i) <= edge_falling_r(i)                            when rising_edge(CLK_TDC);
+  --    edge_falling_3r(i) <= edge_falling_r(i) and not edge_falling_2r(i) when rising_edge(CLK_TDC);
+
+  --    hit_latch(i) <= edge_rising(i) or edge_falling(i);
+
+  --    HitEdgeDefine: process (CLK_TDC) is
+  --    begin
+  --      if rising_edge(CLK_TDC) then  -- rising clock edge
+  --        if edge_falling_2r(i) = '1' then
+  --          hit_edge(i) <= '0';
+  --        elsif edge_rising_r(i) = '1' then
+  --          hit_edge(i) <= '1';
+  --        end if;      
+  --      end if;
+  --    end process HitEdgeDefine;
+  --    --hit_edge(i)  <= '0' when edge_falling_2r(i) = '1' else
+  --    --                '1' when rising_edge(edge_rising(i));
+  --  end generate gen_double;
+-------------------------------------------------------------------------------
     -- for single edge and double edge in alternating channel setup
     gen_single : if DOUBLE_EDGE_TYPE = 0 or DOUBLE_EDGE_TYPE = 2 generate
       edge_rising(i)    <= '0' when edge_rising_3r(i) = '1' else
@@ -709,7 +784,7 @@ begin
   ch_level_hit_number(0)(31)          <= REFERENCE_TIME                          when rising_edge(CLK_READOUT);
   ch_level_hit_number(0)(30 downto 0) <= std_logic_vector(ch_hit_detect_cntr(0)) when rising_edge(CLK_READOUT);
   GenHitDetectNumber : for i in 1 to CHANNEL_NUMBER-1 generate
-    ch_level_hit_number(i)(31)          <= hit_in_s(i)                             when rising_edge(CLK_READOUT);
+    ch_level_hit_number(i)(31)          <= HIT_IN(i)                               when rising_edge(CLK_READOUT);
     ch_level_hit_number(i)(30 downto 0) <= std_logic_vector(ch_hit_detect_cntr(i)) when rising_edge(CLK_READOUT);
   end generate GenHitDetectNumber;
 
@@ -881,21 +956,24 @@ begin
   --logic_anal_data(63 downto 48) <= ch_debug(1)(15 downto 0);
   --logic_anal_data(95 downto 64) <= (others => '0');
 
-  LOGIC_ANALYSER_OUT(0)  <= hit_cal;
-  LOGIC_ANALYSER_OUT(1)  <= hit_in_i(0);
-  LOGIC_ANALYSER_OUT(2)  <= hit_in_i(1);
-  LOGIC_ANALYSER_OUT(3)  <= hit_in_i(2);
-  LOGIC_ANALYSER_OUT(4)  <= hit_in_i(3);
-  LOGIC_ANALYSER_OUT(5)  <= hit_in_i(4);
-  --LOGIC_ANALYSER_OUT(6)  <= hit_in_i(5);
-  --LOGIC_ANALYSER_OUT(7)  <= hit_in_i(6);
-  --LOGIC_ANALYSER_OUT(8)  <= hit_in_i(7);
-  --LOGIC_ANALYSER_OUT(9)  <= hit_in_i(8);
-  --LOGIC_ANALYSER_OUT(10) <= hit_in_i(9);
-  --LOGIC_ANALYSER_OUT(11) <= hit_in_i(10);
-  --LOGIC_ANALYSER_OUT(12) <= hit_in_i(11);
-  --LOGIC_ANALYSER_OUT(13) <= hit_in_i(12);
-  --LOGIC_ANALYSER_OUT(14) <= hit_in_i(13);
-  --LOGIC_ANALYSER_OUT(15) <= hit_in_i(14);
+  --LOGIC_ANALYSER_OUT(0)  <= hit_in_s(1);      -- 0  19
+  --LOGIC_ANALYSER_OUT(1)  <= edge_rising(1);   -- 1  18
+  --LOGIC_ANALYSER_OUT(2)  <= hit_in_d(1);      -- 2  17
+  --LOGIC_ANALYSER_OUT(3)  <= edge_falling(1);  -- 3  16
+  --LOGIC_ANALYSER_OUT(4)  <= HIT_IN(1);        -- 4  15
+  --LOGIC_ANALYSER_OUT(5)  <= HIT_IN(2);        -- 5  14
+  --LOGIC_ANALYSER_OUT(6)  <= HIT_IN(3);        -- 6  13
+  --LOGIC_ANALYSER_OUT(7)  <= HIT_IN(4);        -- 7  12
+  --LOGIC_ANALYSER_OUT(8)  <= hit_in_i(1);      -- 8  11
+  --LOGIC_ANALYSER_OUT(9)  <= hit_in_i(2);      -- 9  10
+  --LOGIC_ANALYSER_OUT(10) <= hit_in_i(3);      -- 10 9
+  --LOGIC_ANALYSER_OUT(11) <= hit_in_i(4);      -- 11 8
+  --LOGIC_ANALYSER_OUT(12) <= hit_edge(1);      -- 12 7
+  --LOGIC_ANALYSER_OUT(13) <= hit_latch(1);     -- 13 6
+  --LOGIC_ANALYSER_OUT(14) <= hit_in_i(1);      -- 14 5
+  --LOGIC_ANALYSER_OUT(13) <= hit_in_i(1);
+  --LOGIC_ANALYSER_OUT(14) <= hit_in_i(1);
+  --LOGIC_ANALYSER_OUT(15) <= hit_in_i(1);
+
   
 end TDC;

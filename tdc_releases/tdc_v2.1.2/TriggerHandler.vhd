@@ -4,7 +4,7 @@
 -- File       : TriggerHandler.vhd
 -- Author     : Cahit Ugur  c.ugur@gsi.de
 -- Created    : 2013-03-13
--- Last update: 2015-02-13
+-- Last update: 2015-03-10
 -------------------------------------------------------------------------------
 -- Description: 
 -------------------------------------------------------------------------------
@@ -63,8 +63,8 @@ architecture behavioral of TriggerHandler is
   signal valid_notiming_200    : std_logic;
   signal valid_trigger_flag    : std_logic := '0';
   -- trigger window signals
-  type TrgWinCounter_FSM is (IDLE, COUNT, COUNT_CALIBRATION, VALIDATE_TRIGGER, WIN_END, MISSING_REFERENCE_TIME,
-                             WAIT_NEXT_TRIGGER);
+  type TrgWinCounter_FSM is (IDLE, CHECK_TRIGGER_LENGTH, COUNT, COUNT_CALIBRATION, VALIDATE_TRIGGER, WIN_END,
+                             MISSING_REFERENCE_TIME, WAIT_NEXT_TRIGGER);
   signal TrgWin_STATE          : TrgWinCounter_FSM;
   signal trg_win_cnt_f         : unsigned(11 downto 0);
   signal trg_win_cnt_r         : unsigned(11 downto 0);
@@ -177,7 +177,7 @@ begin  -- architecture behavioral
       else
         case TrgWin_STATE is
           when IDLE =>
-            if trg_pulse_tdc(0) = '1' then
+            if trg_in_3r(0) = '1' then
               if TRG_WIN_EN_IN = '1' then
                 TrgWin_STATE <= COUNT;
               else
@@ -194,9 +194,10 @@ begin  -- architecture behavioral
             else
               TrgWin_STATE <= IDLE;
             end if;
+            
 
           when COUNT =>
-            if trg_win_cnt_r(10 downto 0) = TRG_WIN_POST_IN + to_unsigned(4, 11) then
+            if trg_win_cnt_r(10 downto 0) = TRG_WIN_POST_IN then
               TrgWin_STATE <= VALIDATE_TRIGGER;
             else
               TrgWin_STATE <= COUNT;
@@ -238,7 +239,7 @@ begin  -- architecture behavioral
   -- Output depends solely on the current state
   TrgWinOutput : process (TrgWin_STATE, trg_win_cnt_r)
   begin
-    trg_win_cnt_f         <= x"003";
+    trg_win_cnt_f         <= x"00a";
     trg_win_end_f         <= '0';
     missing_ref_time_f    <= '0';
     trg_win_state_debug_f <= x"0";
@@ -246,30 +247,33 @@ begin  -- architecture behavioral
       when IDLE =>
         trg_win_state_debug_f <= x"1";
 
+      when CHECK_TRIGGER_LENGTH =>
+        trg_win_state_debug_f <= x"2";
+        
       when COUNT =>
         trg_win_cnt_f         <= trg_win_cnt_r + to_unsigned(1, 12);
-        trg_win_state_debug_f <= x"2";
+        trg_win_state_debug_f <= x"3";
         
       when COUNT_CALIBRATION =>
         trg_win_cnt_f         <= trg_win_cnt_r + to_unsigned(1, 12);
-        trg_win_state_debug_f <= x"3";
+        trg_win_state_debug_f <= x"4";
 
       when VALIDATE_TRIGGER =>
         trg_win_end_f         <= '0';
-        trg_win_state_debug_f <= x"4";
+        trg_win_state_debug_f <= x"5";
         
       when WIN_END =>
         trg_win_end_f         <= '1';
-        trg_win_state_debug_f <= x"5";
+        trg_win_state_debug_f <= x"6";
 
       when MISSING_REFERENCE_TIME =>
         trg_win_end_f         <= '1';
         missing_ref_time_f    <= '1';
-        trg_win_state_debug_f <= x"6";
+        trg_win_state_debug_f <= x"7";
         
       when WAIT_NEXT_TRIGGER =>
         trg_win_end_f         <= '0';
-        trg_win_state_debug_f <= x"7";
+        trg_win_state_debug_f <= x"8";
     end case;
   end process TrgWinOutput;
   trg_win_cnt_r           <= trg_win_cnt_f         when rising_edge(CLK_TDC);

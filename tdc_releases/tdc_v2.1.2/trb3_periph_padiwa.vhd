@@ -258,7 +258,7 @@ architecture trb3_periph_padiwa_arch of trb3_periph_padiwa is
   signal tdc_ctrl_addr      : std_logic_vector(2 downto 0);
   signal tdc_ctrl_data_in   : std_logic_vector(31 downto 0);
   signal tdc_ctrl_data_out  : std_logic_vector(31 downto 0);
-  signal tdc_ctrl_reg       : std_logic_vector(6*32-1 downto 0);
+  signal tdc_ctrl_reg       : std_logic_vector(8*32-1 downto 0);
 
   signal spi_bram_addr : std_logic_vector(7 downto 0);
   signal spi_bram_wr_d : std_logic_vector(7 downto 0);
@@ -335,6 +335,7 @@ begin
   THE_MAIN_PLL : pll_in200_out100
     port map(
       CLK   => CLK_GPLL_RIGHT,
+      RESET => '0',
       CLKOP => clk_100_internal,
       CLKOK => clk_200_internal,
       LOCK  => pll_lock
@@ -841,8 +842,7 @@ begin
     generic map (
       CHANNEL_NUMBER => NUM_TDC_CHANNELS,   -- Number of TDC channels
       STATUS_REG_NR  => 21,             -- Number of status regs
-      CONTROL_REG_NR => 6,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
-      TDC_VERSION    => TDC_VERSION,    -- TDC version number
+      CONTROL_REG_NR => 8,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
       DEBUG          => c_YES,
       SIMULATION     => c_NO)
     port map (
