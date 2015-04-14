@@ -43,7 +43,7 @@ package adc_package is
   end record;
 
   type cfg_cfd_t is record
-    ProcessingMode   : integer range 0 to 3; -- 0 CFD events, 1 raw, 2 subtracted, 3 cfd
+    DebugMode   : integer range 0 to 3; -- 0 CFD events, debug: 1 raw, 2 subtracted, 3 cfd
     InputThreshold   : unsigned(9 downto 0);
     PolarityInvert   : std_logic;
     BaselineAverage  : unsigned(3 downto 0);
@@ -58,9 +58,11 @@ package adc_package is
     CheckWordEnable  : std_logic;
     TriggerEnable    : std_logic_vector(47 downto 0);
     ChannelDisable   : std_logic_vector(47 downto 0);
+    DebugSamples     : unsigned(7 downto 0); -- for ProcessingMode>0
   end record;
 
   constant cfg_cfd_t_INIT : cfg_cfd_t := (
+    DebugMode   => 0
     InputThreshold   => (others => '0'),
     PolarityInvert   => '0',
     BaselineAverage  => (others => '0'),
@@ -74,7 +76,8 @@ package adc_package is
     CheckWord2       => (others => '0'),
     CheckWordEnable  => '0',
     TriggerEnable    => (others => '0'),
-    ChannelDisable   => (others => '0')
+    ChannelDisable   => (others => '0'),
+    DebugSamples     => (others => '0')
   );
 
   type debug_cfd_t is record

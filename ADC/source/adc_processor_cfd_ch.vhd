@@ -92,10 +92,12 @@ architecture arch of adc_processor_cfd_ch is
   signal integral_sum                      : signed(RESOLUTION_CFD - 1 downto 0) := (others => '0');
 
   signal epoch_counter, epoch_counter_save : unsigned(23 downto 0) := (others => '0');
-  type state_t is (IDLE, INTEGRATE, WRITE1, WRITE2, WRITE3, WRITE4, FINISH, LOCKED);
+  type state_t is (IDLE, INTEGRATE, WRITE1, WRITE2, WRITE3, WRITE4, FINISH, LOCKED, DEBUG_DUMP);
   signal state : state_t := IDLE;
 
   signal ram_counter : unsigned(8 downto 0) := (others => '0'); 
+  
+  signal debug_mux : std_logic_vector(15 downto 0);
 begin
   -- input ADC data interpreted as unsigned
   input <= unsigned(ADC_DATA);
@@ -226,6 +228,8 @@ begin
   proc_zeroX_gate : process is
     variable zeroX            : std_logic := '0';
     variable integral_counter : integer range 0 to 2 ** CONF.IntegrateWindow'length - 1;
+    variable debug_counter : integer range 0 to 2 ** CONF.DebugSamples'length - 1;
+    
   begin
     wait until rising_edge(CLK);
 
@@ -244,16 +248,40 @@ begin
 
     case state is
       when IDLE =>
-        if zeroX = '1' then
+        if CONF.DebugMode = 0 and zeroX = '1' then
           state            <= INTEGRATE;
           integral_counter := to_integer(CONF.IntegrateWindow);
           integral_sum <= resize(delay_integral_out, RESOLUTION_CFD);
           cfd_prev_save <= cfd_prev;
           cfd_save <= cfd.value;
           epoch_counter_save <= epoch_counter;
-        elsif RAM_BSY_IN = '1' then
+        elsif CONF.DebugMode = 0 and RAM_BSY_IN = '1' then
           state <= LOCKED;
+        elsif CONF.DebugMode /= 0 and RAM_BSY_IN = '1' then
+          -- at least one word is always dumped into the RAM
+          -- don't move the ram pointer yet, it's already at next position
+          RAM_DATA(31 downto 24) <= x"cd";
+          RAM_DATA(23 downto 20) <= std_logic_vector(to_unsigned(DEVICE, 4));
+          RAM_DATA(19 downto 16) <= std_logic_vector(to_unsigned(CHANNEL, 4));
+          RAM_DATA(15 downto  0) <= debug_mux;
+          debug_counter := to_integer(CONF.DebugSamples);
+          state <= DEBUG_DUMP;
         end if;        
+      
+      when DEBUG_DUMP =>
+        -- always move the ram pointer
+        ram_counter <= ram_counter + 1;                
+        if debug_counter = 0 then
+          -- indicate we're done
+          state <= LOCKED;
+        else
+          debug_counter := debug_counter - 1;
+          RAM_DATA(31 downto 24) <= x"cd";
+          RAM_DATA(23 downto 20) <= std_logic_vector(to_unsigned(DEVICE, 4));
+          RAM_DATA(19 downto 16) <= std_logic_vector(to_unsigned(CHANNEL, 4));
+          RAM_DATA(15 downto  0) <= debug_mux;
+        end if;  
+          
       
       when INTEGRATE =>
         if integral_counter = 0 then
@@ -307,6 +335,21 @@ begin
 
   end process proc_zeroX_gate;
   
+  -- debug multiplexer of some signals
+  proc_mux_debug : process is
+  begin
+    wait until rising_edge(CLK);
+    case CONF.DebugMode is
+    when 0 =>
+      debug_mux <= (others => '0');
+    when 1 =>
+      debug_mux <= std_logic_vector(resize(input,debug_mux'length));
+    when 2 =>
+      debug_mux <= std_logic_vector(resize(subtracted.value,debug_mux'length));  
+    when 3 =>
+      debug_mux <= std_logic_vector(resize(cfd.value,debug_mux'length));  
+    end case;  
+  end process proc_mux_debug;
   
   
 

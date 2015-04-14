@@ -142,7 +142,7 @@ begin
           READOUT_TX.statusbits <= (23 => '1', others => '0'); --event not found
           state                 <= RELEASE_DIRECT;
         elsif READOUT_RX.valid_timing_trg = '1' then
-          if CONF_sys.ProcessingMode = 0 then
+          if CONF_sys.DebugMode = 0 then
             counter := to_integer(CONF_sys.TriggerDelay);
             state <= TRIG_DLY;
           else
