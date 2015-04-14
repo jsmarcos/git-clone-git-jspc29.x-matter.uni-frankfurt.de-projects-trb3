@@ -47,6 +47,8 @@ begin
   config.CheckWord2       <= (others => '0');
   config.CheckWordEnable  <= '0';
 
+  config.ChannelDisable   <= (others => '0');
+
   readout_rx.valid_notiming_trg <= '0';
   readout_rx.invalid_trg        <= '0';
   readout_rx.trg_type           <= (others => '0');
