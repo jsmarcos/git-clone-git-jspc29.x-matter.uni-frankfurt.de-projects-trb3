@@ -62,7 +62,7 @@ package adc_package is
   end record;
 
   constant cfg_cfd_t_INIT : cfg_cfd_t := (
-    DebugMode   => 0
+    DebugMode        => 0,
     InputThreshold   => (others => '0'),
     PolarityInvert   => '0',
     BaselineAverage  => (others => '0'),
