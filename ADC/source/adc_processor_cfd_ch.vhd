@@ -92,7 +92,7 @@ architecture arch of adc_processor_cfd_ch is
   signal integral_sum                      : signed(RESOLUTION_CFD - 1 downto 0) := (others => '0');
 
   signal epoch_counter, epoch_counter_save : unsigned(23 downto 0) := (others => '0');
-  type state_t is (IDLE, INTEGRATE, WRITE1, WRITE2, WRITE3, WRITE4, FINISH, LOCKED, DEBUG_DUMP);
+  type state_t is (IDLE, INTEGRATE, WRITE1, WRITE2, WRITE3, FINISH, LOCKED, DEBUG_DUMP);
   signal state : state_t := IDLE;
 
   signal ram_counter : unsigned(8 downto 0) := (others => '0'); 
@@ -317,12 +317,6 @@ begin
       when WRITE3 => 
         RAM_DATA(31 downto 16) <= std_logic_vector(cfd_prev_save);
         RAM_DATA(15 downto  0) <= std_logic_vector(cfd_save);
-        ram_counter <= ram_counter + 1;
-        state <= WRITE4;
-        
-        
-      when WRITE4 =>
-        RAM_DATA <= (others => '1'); -- padding word
         ram_counter <= ram_counter + 1;
         state <= FINISH;
         
