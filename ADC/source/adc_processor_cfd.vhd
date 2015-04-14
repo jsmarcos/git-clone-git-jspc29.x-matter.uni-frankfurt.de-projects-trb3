@@ -69,8 +69,6 @@ architecture arch of adc_processor_cfd is
   signal epoch_counter, epoch_counter_save : epoch_counter_t;
   signal epoch_counter_sys, epoch_counter_adc : epoch_counter_t;
   
-  
-  signal trigger_delay : unsigned(11 downto 0);
 begin
   CONF_adc <= CONF_sys when rising_edge(CLK_ADC);
   CONF_sys <= CONFIG   when rising_edge(CLK_SYS);
@@ -125,7 +123,7 @@ begin
 
   proc_readout : process
     variable channelselect : integer range 0 to 3;
-    variable counter : integer range 0 to 2**trigger_delay'length - 1; 
+    variable counter : integer range 0 to 2**CONFIG.TriggerDelay'length - 1; 
   begin
     wait until rising_edge(CLK_SYS);
     READOUT_TX.busy_release  <= '0';
@@ -144,8 +142,12 @@ begin
           READOUT_TX.statusbits <= (23 => '1', others => '0'); --event not found
           state                 <= RELEASE_DIRECT;
         elsif READOUT_RX.valid_timing_trg = '1' then
-          state <= TRIG_DLY;
-          counter := to_integer(trigger_delay);
+          if CONF_sys.ProcessingMode = 0 then
+            counter := to_integer(CONF_sys.TriggerDelay);
+            state <= TRIG_DLY;
+          else
+            state <= WAIT_BSY;
+          end if;
           epoch_counter_save <= epoch_counter; -- all channels at the same time
         end if;
 

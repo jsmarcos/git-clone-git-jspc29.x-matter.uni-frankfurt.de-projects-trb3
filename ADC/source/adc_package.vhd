@@ -43,6 +43,7 @@ package adc_package is
   end record;
 
   type cfg_cfd_t is record
+    ProcessingMode   : integer range 0 to 3; -- 0 CFD events, 1 raw, 2 subtracted, 3 cfd
     InputThreshold   : unsigned(9 downto 0);
     PolarityInvert   : std_logic;
     BaselineAverage  : unsigned(3 downto 0);
