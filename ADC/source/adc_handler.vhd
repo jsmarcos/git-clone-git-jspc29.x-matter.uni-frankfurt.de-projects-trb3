@@ -417,6 +417,8 @@ begin
           BUS_TX.ack  <= '1';
           BUS_TX.data <= (others => '0');
           case BUS_RX.addr(7 downto 0) is
+            when x"10" => BUS_TX.data(7 downto 0)              <= std_logic_vector(config_cfd.DebugSamples);
+            when x"11" => BUS_TX.data(11 downto 0)             <= std_logic_vector(config_cfd.TriggerDelay);
             when x"13" =>
               BUS_TX.data(9 downto 0)                          <= std_logic_vector(config_cfd.InputThreshold);
               BUS_TX.data(17)                                  <= config_cfd.PolarityInvert;
@@ -428,6 +430,7 @@ begin
               BUS_TX.data(31)                                  <= config_cfd.CheckWordEnable;
             when x"1a" => BUS_TX.data(31 downto 0)             <= config_cfd.ChannelDisable(31 downto 0);
             when x"1b" => BUS_TX.data(15 downto 0)             <= config_cfd.ChannelDisable(47 downto 32);
+            when x"1c" => BUS_TX.data(1 downto 0)              <= std_logic_vector(to_unsigned(config_cfd.DebugMode, 2));
             when x"1d" =>
               BUS_TX.data(7 downto 0)   <= std_logic_vector(config_cfd.IntegrateWindow);
               BUS_TX.data(12 downto 8)  <= std_logic_vector(config_cfd.CFDDelay);
@@ -461,6 +464,8 @@ begin
         if BUS_RX.addr >= x"0010" and BUS_RX.addr <= x"001f" then --basic config registers
           BUS_TX.ack <= '1';
           case BUS_RX.addr(7 downto 0) is
+            when x"10" => config_cfd.DebugSamples <= unsigned(BUS_RX.data(7 downto 0));
+            when x"11" => config_cfd.TriggerDelay <= unsigned(BUS_RX.data(11 downto 0));
             when x"13" =>
               config_cfd.InputThreshold                          <= unsigned(BUS_RX.data(9 downto 0));
               config_cfd.PolarityInvert                          <= BUS_RX.data(17);
@@ -473,6 +478,7 @@ begin
               config_cfd.CheckWordEnable                          <= BUS_RX.data(31);
             when x"1a" => config_cfd.ChannelDisable(31 downto 0)  <= BUS_RX.data(31 downto 0);
             when x"1b" => config_cfd.ChannelDisable(47 downto 32) <= BUS_RX.data(15 downto 0);
+            when x"1c" => config_cfd.DebugMode                    <= to_integer(unsigned(BUS_RX.data(1 downto 0)));  
             when x"1d" =>
               config_cfd.IntegrateWindow <= unsigned(BUS_RX.data(7 downto 0));
               config_cfd.CFDDelay        <= unsigned(BUS_RX.data(12 downto 8));
