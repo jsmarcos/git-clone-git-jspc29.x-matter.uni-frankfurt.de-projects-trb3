@@ -62,7 +62,7 @@ architecture arch of adc_processor_cfd is
   signal RDO_data_main  : std_logic_vector(31 downto 0) := (others => '0');
   signal RDO_write_main : std_logic                     := '0';
   signal readout_reset  : std_logic                     := '0';
-  signal busy_in_adc, busy_in_sys : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
+  signal busy_in_adc, busy_in_sys : std_logic := '0';
   signal busy_out_adc, busy_out_sys : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
   
   type epoch_counter_t is array(CHANNELS - 1 downto 0) of unsigned(23 downto 0);
@@ -97,7 +97,7 @@ begin
                CONF     => CONF_adc,
                RAM_ADDR => ram_addr_adc(i),
                RAM_DATA => ram_data_adc(i),
-               RAM_BSY_IN => busy_in_adc(i),
+               RAM_BSY_IN => busy_in_adc,
                RAM_BSY_OUT => busy_out_adc(i),
                DEBUG    => debug_adc(i)
       );
@@ -131,7 +131,7 @@ begin
     RDO_data_main            <= (others => '0');
     RDO_write_main           <= '0';
 
-    busy_in_sys <= (others => '0');
+    busy_in_sys <= '0';
 
     case state is
       when IDLE =>
@@ -177,14 +177,14 @@ begin
 
       when TRIG_DLY =>
         if counter = 0 then
-          busy_in_sys(channelselect) <= '1';
+          busy_in_sys <= '1';
           state <= WAIT_BSY;
         else
           counter := counter - 1;
         end if;             
 
       when WAIT_BSY =>
-        busy_in_sys(channelselect) <= '1';
+        busy_in_sys <= '1';
         if busy_out_sys(channelselect) = '1' then
           -- start moving the counter already now
           -- the RAM output is registered 
@@ -193,7 +193,7 @@ begin
         end if;
       
       when WAIT_RAM =>
-        busy_in_sys(channelselect) <= '1';
+        busy_in_sys <= '1';
         ram_counter(channelselect) <= ram_counter(channelselect) + 1;
         RDO_data_main <= x"cc" & std_logic_vector(epoch_counter_save(channelselect));
         RDO_write_main <= '1'; 
@@ -201,7 +201,7 @@ begin
         
           
       when READOUT =>
-        busy_in_sys(channelselect) <= '1';
+        busy_in_sys <= '1';
         if ram_data_sys(channelselect) = x"00000000" then
           -- for old channel, decrease count since we found the end
           ram_counter(channelselect) <= ram_counter(channelselect) - 2;
