@@ -196,7 +196,7 @@ begin
         busy_in_sys <= '1';
         ram_counter(channelselect) <= ram_counter(channelselect) + 1;
         RDO_data_main <= x"cc" & std_logic_vector(epoch_counter_save(channelselect));
-        RDO_write_main <= '1'; 
+        RDO_write_main <= not CONF_sys.ChannelDisable(DEVICE * CHANNELS + channelselect); 
         state <= READOUT;
         
           
@@ -215,7 +215,7 @@ begin
           end if;
         else
           RDO_data_main <= ram_data_sys(channelselect);
-          RDO_write_main <= '1';
+          RDO_write_main <= not CONF_sys.ChannelDisable(DEVICE * CHANNELS + channelselect);
           ram_counter(channelselect) <= ram_counter(channelselect) + 1;
         end if;
         
