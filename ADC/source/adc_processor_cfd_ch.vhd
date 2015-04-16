@@ -260,7 +260,7 @@ begin
         elsif CONF.DebugMode /= 0 and RAM_BSY_IN = '1' then
           -- at least one word is always dumped into the RAM
           -- don't move the ram pointer yet, it's already at next position
-          RAM_DATA(31 downto 24) <= x"cd";
+          RAM_DATA(31 downto 24) <= x"00";
           RAM_DATA(23 downto 20) <= std_logic_vector(to_unsigned(DEVICE, 4));
           RAM_DATA(19 downto 16) <= std_logic_vector(to_unsigned(CHANNEL, 4));
           RAM_DATA(15 downto  0) <= debug_mux;
@@ -299,7 +299,7 @@ begin
         
         
       when WRITE1 => 
-        RAM_DATA(31 downto 24) <= x"c0";
+        RAM_DATA(31 downto 24) <= x"d0";
         RAM_DATA(23 downto 20) <= std_logic_vector(to_unsigned(DEVICE, 4));
         RAM_DATA(19 downto 16) <= std_logic_vector(to_unsigned(CHANNEL, 4));
         RAM_DATA(15 downto  8) <= std_logic_vector(resize(epoch_counter_save(epoch_counter_save'high downto 16),8));
