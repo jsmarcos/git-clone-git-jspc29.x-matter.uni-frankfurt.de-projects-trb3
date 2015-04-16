@@ -195,6 +195,14 @@ package trb3_components is
       );
   end component;
 
+  component SFP_DDM is
+    port (
+      CLK100       : in    std_logic;
+      SLOW_CTRL_IN : in    std_logic_vector(31 downto 0);
+      DATA_OUT     : out   std_logic_vector(3*32-1 downto 0);
+      SCL_EXT      : out   std_logic_vector(8 downto 1);
+      SDA_EXT      : inout std_logic_vector(8 downto 1));
+  end component SFP_DDM;
 
   component input_to_trigger_logic is
     generic(

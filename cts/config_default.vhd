@@ -12,15 +12,19 @@ package config is
    constant INCLUDE_CBMNET : integer range c_NO to c_YES := c_NO;
 
 --include TDC for all four trigger input lines
-    constant INCLUDE_TDC : integer range c_NO to c_YES := c_NO;
-    constant TDC_CHANNEL_NUMBER : integer := 5;
 
---Use 64 word ringbuffer instead of 128 word ringbuffer in TDC channels
-    constant USE_64_FIFO : integer := c_YES;
-
---Define ringbuffer size for TDC channels: 32-64-128
-    constant RING_BUFFER_SIZE : integer range 0 to 128 := 1;
-    
+   constant INCLUDE_TDC : integer range c_NO to c_YES := c_NO;
+   constant TDC_CHANNEL_NUMBER : integer := 5;
+   constant DOUBLE_EDGE_TYPE        : integer range 0 to 3  := 0;  --double edge type:  0, 1, 2,  3
+   -- 0: single edge only,
+   -- 1: same channel,
+   -- 2: alternating channels,
+   -- 3: same channel with stretcher
+   constant RING_BUFFER_SIZE        : integer range 0 to 7  := 7;  --ring buffer size:  0, 1, 2,  3,  7
+                                                                   --ring buffer size: 32,64,96,128,dyn
+-- Include SFP power readout
+   constant INCLUDE_SFP_DDM : integer range c_NO to c_YES := c_YES;
+   
 --use all four SFP (1-4) as downlink to other boards (only w/o CBMNET)
     constant USE_4_SFP   : integer range c_NO to c_YES := c_NO;
 
