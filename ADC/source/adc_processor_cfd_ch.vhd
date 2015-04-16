@@ -276,7 +276,7 @@ begin
           state <= LOCKED;
         else
           debug_counter := debug_counter - 1;
-          RAM_DATA(31 downto 24) <= x"cd";
+          RAM_DATA(31 downto 24) <= x"00";
           RAM_DATA(23 downto 20) <= std_logic_vector(to_unsigned(DEVICE, 4));
           RAM_DATA(19 downto 16) <= std_logic_vector(to_unsigned(CHANNEL, 4));
           RAM_DATA(15 downto  0) <= debug_mux;

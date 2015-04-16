@@ -195,7 +195,7 @@ begin
       when WAIT_RAM =>
         busy_in_sys <= '1';
         ram_counter(channelselect) <= ram_counter(channelselect) + 1;
-        RDO_data_main <= x"cc" & std_logic_vector(epoch_counter_save(channelselect));
+        RDO_data_main <= x"e0" & std_logic_vector(epoch_counter_save(channelselect));
         RDO_write_main <= not CONF_sys.ChannelDisable(DEVICE * CHANNELS + channelselect); 
         state <= READOUT;
         
