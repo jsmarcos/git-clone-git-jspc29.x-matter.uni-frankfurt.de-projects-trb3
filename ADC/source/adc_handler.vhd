@@ -422,7 +422,7 @@ begin
             when x"13" =>
               BUS_TX.data(9 downto 0)                          <= std_logic_vector(config_cfd.InputThreshold);
               BUS_TX.data(17)                                  <= config_cfd.PolarityInvert;
-            when x"16" => BUS_TX.data(3 downto 0)              <= std_logic_vector(config_cfd.BaselineAverage);
+            when x"16" => BUS_TX.data(4 downto 0)              <= std_logic_vector(config_cfd.BaselineAverage);
             when x"17" => BUS_TX.data(31 downto 0)             <= config_cfd.TriggerEnable(31 downto 0);
             when x"18" => BUS_TX.data(15 downto 0)             <= config_cfd.TriggerEnable(47 downto 32);
             when x"19" => BUS_TX.data(RESOLUTION - 1 downto 0) <= config_cfd.CheckWord1;
@@ -469,7 +469,7 @@ begin
             when x"13" =>
               config_cfd.InputThreshold                          <= unsigned(BUS_RX.data(9 downto 0));
               config_cfd.PolarityInvert                          <= BUS_RX.data(17);
-            when x"16" => config_cfd.BaselineAverage             <= unsigned(BUS_RX.data(3 downto 0));
+            when x"16" => config_cfd.BaselineAverage             <= unsigned(BUS_RX.data(4 downto 0));
             when x"17" => config_cfd.TriggerEnable(31 downto 0)  <= BUS_RX.data(31 downto 0);
             when x"18" => config_cfd.TriggerEnable(47 downto 32) <= BUS_RX.data(15 downto 0);
             when x"19" =>

@@ -46,7 +46,7 @@ package adc_package is
     DebugMode   : integer range 0 to 3; -- 0 CFD events, debug: 1 raw, 2 subtracted, 3 cfd
     InputThreshold   : unsigned(9 downto 0);
     PolarityInvert   : std_logic;
-    BaselineAverage  : unsigned(3 downto 0);
+    BaselineAverage  : unsigned(4 downto 0);
     BaselineAlwaysOn : std_logic;
     CFDDelay         : unsigned(4 downto 0);
     CFDMult          : unsigned(3 downto 0);
