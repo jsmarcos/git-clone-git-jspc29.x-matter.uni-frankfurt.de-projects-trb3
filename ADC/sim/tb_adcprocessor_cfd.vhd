@@ -33,15 +33,15 @@ begin
 
   config.BaselineAlwaysOn <= '1', '0' after 20 us;
 
-  config.InputThreshold  <= to_unsigned(40, 10);
-  config.BaselineAverage <= to_unsigned(8, 4);
+  config.InputThreshold  <= to_unsigned(32, 10);
+  config.BaselineAverage <= to_unsigned(4, 4);
   config.PolarityInvert  <= '1';
 
-  config.CFDDelay <= to_unsigned(2, 5);
+  config.CFDDelay <= to_unsigned(0, 5);
   config.CFDMult <= to_unsigned(2, 4);
   config.CFDMultDly <= to_unsigned(3, 4);
 
-  config.IntegrateWindow <= to_unsigned(60, 8);
+  config.IntegrateWindow <= to_unsigned(64, 8);
    
   config.CheckWord1       <= (others => '0');
   config.CheckWord2       <= (others => '0');
