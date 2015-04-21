@@ -34,14 +34,14 @@ begin
   config.BaselineAlwaysOn <= '1', '0' after 20 us;
 
   config.InputThreshold  <= to_unsigned(32, 10);
-  config.BaselineAverage <= to_unsigned(4, 5);
+  config.BaselineAverage <= to_unsigned(6, 5);
   config.PolarityInvert  <= '1';
 
-  config.CFDDelay <= to_unsigned(0, 5);
+  config.CFDDelay <= to_unsigned(2, 5);
   config.CFDMult <= to_unsigned(2, 4);
   config.CFDMultDly <= to_unsigned(3, 4);
 
-  config.IntegrateWindow <= to_unsigned(64, 8);
+  config.IntegrateWindow <= to_unsigned(128, 8);
    
   config.CheckWord1       <= (others => '0');
   config.CheckWord2       <= (others => '0');
@@ -69,7 +69,7 @@ begin
   begin
     readout_rx.data_valid       <= '0';
     readout_rx.valid_timing_trg <= '0';
-    wait for 13740 ns;
+    wait for 40740 ns;
     wait until rising_edge(clock100);
     wait for 0.5 ns;
     readout_rx.valid_timing_trg <= '1';
