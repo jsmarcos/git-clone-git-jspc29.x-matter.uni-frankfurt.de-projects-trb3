@@ -80,6 +80,11 @@ architecture arch of adc_processor_cfd_ch is
 
   signal delay_sub     : subtracted_thresh_t                         := subtracted_thresh_t_INIT;
   
+  
+  type edge_samples_t is array(3 downto 0) of signed(RESOLUTION_SUB - 1 downto 0);
+  signal edge_samples, edge_samples_save : edge_samples_t := (others => (others => '0'));
+  signal edge_samples_in  : signed(RESOLUTION_SUB - 1 downto 0) := (others => '0');
+  
   signal prod, prod_invert : product_thresh_t := product_thresh_t_INIT;
   signal prod_delay        : signed(RESOLUTION_PROD - 1 downto 0) := (others => '0');
 
@@ -94,7 +99,7 @@ architecture arch of adc_processor_cfd_ch is
   signal integral_sum                      : signed(RESOLUTION_CFD - 1 downto 0) := (others => '0');
 
   signal epoch_counter, epoch_counter_save : unsigned(23 downto 0) := (others => '0');
-  type state_t is (IDLE, INTEGRATE, WRITE1, WRITE2, WRITE3, FINISH, LOCKED, DEBUG_DUMP);
+  type state_t is (IDLE, INTEGRATE, WRITE1, WRITE2, WRITE3, WRITE4, WRITE5, FINISH, LOCKED, DEBUG_DUMP);
   signal state : state_t := IDLE;
 
   signal ram_counter : unsigned(8 downto 0) := (others => '0'); 
@@ -227,6 +232,14 @@ begin
     delay_integral     <= delay_integral(delay_integral'high - 1 downto 0) & delay_integral_in;
     delay_integral_out <= delay_integral(delay_integral'high);
   end process proc_integral_delay;
+  
+  -- stores the edge samples relative to zeroX detection
+  edge_samples_in <= delay_cfd_out;
+  proc_edge_samples : process is
+  begin
+    wait until rising_edge(CLK);
+    edge_samples     <= edge_samples(edge_samples'high - 1 downto 0) & edge_samples_in;
+  end process proc_edge_samples;
 
   -- ZeroX detect, integrate, write to RAM
   RAM_ADDR <= std_logic_vector(resize(ram_counter,RAM_ADDR'length));
@@ -260,6 +273,7 @@ begin
           cfd_prev_save <= cfd_prev;
           cfd_save <= cfd.value;
           epoch_counter_save <= epoch_counter;
+          edge_samples_save  <= edge_samples;
         elsif CONF.DebugMode = 0 and RAM_BSY_IN = '1' then
           state <= LOCKED;
         elsif CONF.DebugMode /= 0 and RAM_BSY_IN = '1' then
@@ -285,8 +299,7 @@ begin
           RAM_DATA(23 downto 20) <= std_logic_vector(to_unsigned(DEVICE, 4));
           RAM_DATA(19 downto 16) <= std_logic_vector(to_unsigned(CHANNEL, 4));
           RAM_DATA(15 downto  0) <= debug_mux;
-        end if;  
-          
+        end if;
       
       when INTEGRATE =>
         if integral_counter = 0 then
@@ -301,8 +314,7 @@ begin
         if RAM_BSY_IN = '0' then
           state <= IDLE;           
         end if;
-        
-        
+
       when WRITE1 => 
         RAM_DATA(31 downto 24) <= x"d0";
         RAM_DATA(23 downto 20) <= std_logic_vector(to_unsigned(DEVICE, 4));
@@ -322,6 +334,18 @@ begin
       when WRITE3 => 
         RAM_DATA(31 downto 16) <= std_logic_vector(cfd_prev_save);
         RAM_DATA(15 downto  0) <= std_logic_vector(cfd_save);
+        ram_counter <= ram_counter + 1;
+        state <= WRITE4;
+      
+      when WRITE4 => 
+        RAM_DATA(31 downto 16) <= std_logic_vector(resize(edge_samples_save(0),16));
+        RAM_DATA(15 downto  0) <= std_logic_vector(resize(edge_samples_save(1),16));
+        ram_counter <= ram_counter + 1;
+        state <= WRITE5;
+        
+      when WRITE5 => 
+        RAM_DATA(31 downto 16) <= std_logic_vector(resize(edge_samples_save(2),16));
+        RAM_DATA(15 downto  0) <= std_logic_vector(resize(edge_samples_save(3),16));
         ram_counter <= ram_counter + 1;
         state <= FINISH;
         
