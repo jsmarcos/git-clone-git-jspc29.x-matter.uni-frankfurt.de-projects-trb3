@@ -34,7 +34,7 @@ begin
   config.BaselineAlwaysOn <= '1', '0' after 20 us;
 
   config.InputThreshold  <= to_unsigned(32, 10);
-  config.BaselineAverage <= to_unsigned(4, 4);
+  config.BaselineAverage <= to_unsigned(4, 5);
   config.PolarityInvert  <= '1';
 
   config.CFDDelay <= to_unsigned(0, 5);
