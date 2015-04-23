@@ -12,8 +12,7 @@ use work.txt_util.all;
 
 entity dqsinput_dummy is
   generic(
-    stim_file : string := "adcsim.dat";
-    randrange : real := 0.0
+    stim_file : string := "adcsim.dat"
   );
   port(
     eclk : in  std_logic;
@@ -30,8 +29,11 @@ architecture arch of dqsinput_dummy is
   signal readwords : integer;
   
   type word_t is array (0 to CHANNELS-1) of std_logic_vector(9 downto 0);
+
   type word_arr_t is array (1 to 2) of word_t; 
   signal words : word_arr_t;
+
+  constant randrange : real := 0.0;
   
 begin
   sclk <= sclk_int;
