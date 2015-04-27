@@ -45,33 +45,6 @@ package trb3_components is
       LOCK  : out std_logic);
   end component pll_in200_out100;
 
-  component pll_in20_out100 is
-    port (
-      CLK   : in  std_logic;            -- 20 MHz
-      CLKOP : out std_logic;            -- 100 MHz
-      CLKOS : out std_logic;            -- 20 MHz, bypass
-      LOCK  : out std_logic);
-  end component pll_in20_out100;
-  
-  component pll_calibration is
-    port (
-      CLK   : in  std_logic;            -- clk_in 100MHz       
-      CLKOP : out std_logic;            -- 12,5MHz %50 Duty cyc
-      LOCK  : out std_logic);
-  end component pll_calibration;
-
-  component OSCF  -- internal oscillator with a frequency of 2MHz
--- synthesis translate_off
-    generic (NOM_FREQ :     string := "20.0");
--- synthesis translate_on
-    port (OSC         : out std_logic);
-  end component;
-
-  --component OSCF
-  --  port (OSC : out
-  --        std_logic);
-  --end component;
-
   component adc_ad9222
     generic(
       CHANNELS   : integer range 4 to 4   := 4;

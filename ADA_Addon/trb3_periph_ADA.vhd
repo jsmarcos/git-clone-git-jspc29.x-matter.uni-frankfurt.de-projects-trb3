@@ -1,1 +1,1 @@
-currentRelease/trb3_periph_ADA.vhd
+tdc_release/trb3_periph_ADA.vhd

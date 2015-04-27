@@ -25,11 +25,12 @@ package config is
   constant EVENT_MAX_SIZE          : integer := 4096;             --maximum event size. Should not exceed EVENT_BUFFER_SIZE/2
 
 --Include SPI on AddOn connector
-  constant INCLUDE_SPI : integer := c_YES;
+  constant INCLUDE_SPI  : integer := c_YES;
+  constant SPI_FOR_PADI : integer := c_YES;
 
 --Add logic to generate configurable trigger signal from input signals.
-  constant INCLUDE_TRIGGER_LOGIC : integer := c_YES;
-  constant INCLUDE_STATISTICS    : integer := c_YES;  --Do histos of all inputs
+  constant INCLUDE_TRIGGER_LOGIC : integer := c_NO;
+  constant INCLUDE_STATISTICS    : integer := c_NO;  --Do histos of all inputs
   constant PHYSICAL_INPUTS       : integer := 32;  --number of inputs connected
   constant USE_SINGLE_FIFO       : integer := c_YES;  -- single fifo for statistics
   
