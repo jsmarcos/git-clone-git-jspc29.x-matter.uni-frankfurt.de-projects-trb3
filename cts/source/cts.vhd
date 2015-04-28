@@ -81,6 +81,7 @@ library work;
 --        28      If asserted: Use special event builder for calibration trigger, otherwise, use ordinary round robin selection.
 --
 --    0x0e        Statistics: Total dead time of CTS (in clock cycles)
+--    0x0f        24bit of Trigger Information
 -- </address_table>
 
 -- Header of data packet written to event builder
@@ -302,7 +303,7 @@ architecture RTL of CTS is
    signal ro_configuration_i, ro_configuration_buf_i : std_logic_vector(4 downto 0);
    
 -- Debug and statistics
-   type cts_status_registers_t is array(0 to 16#0e#) of std_logic_vector(31 downto 0);
+   type cts_status_registers_t is array(0 to 16#0f#) of std_logic_vector(31 downto 0);
    signal cts_status_registers_i : cts_status_registers_t := (others => (others => '0'));
    
    signal debug_lvl1_limit_i, debug_ipu_limit_i, 
@@ -340,6 +341,9 @@ architecture RTL of CTS is
    signal eb_use_special_calibration_eb_i : std_logic := '0';
    
    signal eb_regio_updated_i : std_logic := '0';
+   
+   signal trg_information_reg : std_logic_vector(23 downto 0);
+   
 begin
    assert(EFFECTIVE_INPUT_COUNT > 0) report "The CTS requires atleast 1 input or input multiplexer";
    assert(TRIGGER_ADDON_COUNT = 0 or ADDON_LINE_COUNT > 0) report "If you use an input multiplexer you have to provide atleast 1 addon input line";
@@ -425,7 +429,8 @@ begin
                
                -- cts
                   CTS_TRG_NUMBER_OUT <= td_trigger_id_i;
-                  CTS_TRG_INFORMATION_OUT <= (7 => trigger_type_buf_i(3), others => '0');
+                  CTS_TRG_INFORMATION_OUT    <= trg_information_reg;
+                  CTS_TRG_INFORMATION_OUT(7) <= trigger_type_buf_i(3);
                   CTS_TRG_RND_CODE_OUT <= td_random_number_i; 
                   CTS_TRG_SEND_OUT <= '1';
 
@@ -889,6 +894,8 @@ begin
    cts_status_registers_i(16#0d#)(28) <= eb_use_special_calibration_eb_i;
    
    cts_status_registers_i(16#0e#) <= stat_total_dead_time_i;
+
+   cts_status_registers_i(16#0f#)(23 downto 0) <= trg_information_reg;
    
    regio_proc: process(CLK) is
       variable addr : integer range 0 to 15;
@@ -958,6 +965,13 @@ begin
                cts_regio_write_ack_out_i <= '1';
                cts_regio_unknown_addr_out_i <= '0';
             end if;
+            
+            if addr = 16#0f# and cts_regio_write_enable_in_i = '1' then
+               trg_information_reg <= cts_regio_data_in_i(23 downto 0);
+               cts_regio_write_ack_out_i <= '1';
+               cts_regio_unknown_addr_out_i <= '0';
+            end if;
+            
          end if;
       end if;
    end process;
