@@ -126,7 +126,8 @@ add_file -vhdl -lib work "../../trbnet/lattice/ecp2m/fifo/fifo_var_oreg.vhd"
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/fifo/fifo_19x16_obuf.vhd"
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/lattice_ecp3_fifo_16x16_dualport.vhd"
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/lattice_ecp3_fifo_18x16_dualport.vhd"
-
+add_file -vhdl -lib work "../../trbnet/lattice/ecp3/lattice_ecp3_fifo_18x16_dualport_oreg.vhd"
+add_file -vhdl -lib work "../../trbnet/special/spi_flash_and_fpga_reload.vhd"
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/spi_dpram_32_to_8.vhd"
 
 add_file -vhdl -lib work "../../trbnet/special/spi_slim.vhd"
@@ -144,6 +145,12 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.v
 add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
 
 
+add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/med_sync_define.vhd"
+add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/rx_control.vhd"
+add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/tx_control.vhd"
+add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/rx_reset_fsm.vhd"
+add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/tx_reset_fsm.vhd"
+add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/serdes_sync_0.vhd"
 
 
 ###############

@@ -116,6 +116,9 @@ architecture cbmtof_arch of cbmtof is
   signal clk_200_i                : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
   signal clk_tdc_i                : std_logic;  --clock for the TDC
   signal clk_osc_int              : std_logic;  -- clock for calibrating the tdc, 2.5 MHz, via internal osscilator
+  signal clk_100_osc              : std_logic;
+  signal rx_clock_100             : std_logic;
+  signal rx_clock_200             : std_logic;
   signal clk_cal                  : std_logic;  -- clock for calibrating the tdc, 100 MHz, via pll
   signal pll_lock                 : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
   signal pll_lock_1               : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
@@ -318,7 +321,7 @@ begin
       CLEAR_IN      => '0',              -- reset input (high active, async)
       CLEAR_N_IN    => '1',              -- reset input (low active, async)
       CLK_IN        => clk_200_i,        -- raw master clock, NOT from PLL/DLL!
-      SYSCLK_IN     => clk_100_i,        -- PLL/DLL remastered clock
+      SYSCLK_IN     => clk_100_osc,        -- PLL/DLL remastered clock
       PLL_LOCKED_IN => pll_lock,         -- master PLL lock signal (async)
       RESET_IN      => '0',              -- general reset signal (SYSCLK)
       TRB_RESET_IN  => med_stat_op(13),  -- TRBnet reset signal (SYSCLK)
@@ -336,7 +339,7 @@ begin
     port map (
       CLK   => CLK_OSC,
       RESET => '0',
-      CLKOP => clk_100_i,               -- 100 MHz        
+      CLKOP => clk_100_osc,               -- 100 MHz        
       CLKOK => clk_200_i,               -- 200 MHz, bypass
       LOCK  => pll_lock_1);
 
@@ -367,17 +370,22 @@ begin
 
   clk_cal <= clk_100_i;
 
-  TDC_Clock_Int : if USE_EXTERNALCLOCK = 0 generate
+  TDC_Clock_Int : if USE_EXTERNALCLOCK = 0 and USE_RXCLOCK = 0 generate
     clk_tdc_i <= CLK_OSC;  -- Oscillator used for the time measurement
   end generate TDC_Clock_Int;
 
-  TDC_Clock_Ext : if USE_EXTERNALCLOCK = 1 generate
+  TDC_Clock_Ext : if USE_EXTERNALCLOCK = 1 and USE_RXCLOCK = 0 generate
     clk_tdc_i <= CLK_EXT;  -- External Clock used for the time measurement
   end generate TDC_Clock_Ext;
+
+  TDC_Clock_Rx : if USE_EXTERNALCLOCK = 0 and USE_RXCLOCK = 1 generate
+    clk_tdc_i <= rx_clock_200;  -- Recovered Clock used for the time measurement
+  end generate;
 
 ---------------------------------------------------------------------------
 -- The TrbNet media interface (to other FPGA)
 ---------------------------------------------------------------------------
+gen_norm_uplink : if USE_RXCLOCK = c_NO generate
   THE_MEDIA_UPLINK : trb_net16_med_ecp3_sfp
     generic map(
       SERDES_NUM  => 0,                 --number of serdes in quad
@@ -419,6 +427,63 @@ begin
       STAT_DEBUG         => med_stat_debug,
       CTRL_DEBUG         => (others => '0')
       );
+  clk_100_i <= clk_100_osc;    
+end generate;
+
+gen_sync_uplink : if USE_RXCLOCK = c_YES generate
+  THE_MEDIA_UPLINK : med_ecp3_sfp_sync
+    generic map(
+        SERDES_NUM  => 0,    --number of serdes in quad
+        IS_SYNC_SLAVE => c_YES
+        )
+    port map(
+        CLK                  => clk_200_i,
+        SYSCLK               => clk_100_i,
+        RESET                => reset_i,
+        CLEAR                => clear_i,
+        --Internal Connection for TrbNet data -> not used a.t.m.
+        MED_DATA_IN        => med_data_out,
+        MED_PACKET_NUM_IN  => med_packet_num_out,
+        MED_DATAREADY_IN   => med_dataready_out,
+        MED_READ_OUT       => med_read_in,
+        MED_DATA_OUT       => med_data_in,
+        MED_PACKET_NUM_OUT => med_packet_num_in,
+        MED_DATAREADY_OUT  => med_dataready_in,
+        MED_READ_IN        => med_read_out,
+        CLK_RX_HALF_OUT    => rx_clock_100,
+        CLK_RX_FULL_OUT    => rx_clock_200,
+
+        RX_DLM               => open,
+        RX_DLM_WORD          => open,
+        TX_DLM               => '0',
+        TX_DLM_WORD          => (others => '0'),
+        --SFP Connection
+        SD_RXD_P_IN          => SERDES_RX(0),
+        SD_RXD_N_IN          => SERDES_RX(1),
+        SD_TXD_P_OUT         => SERDES_TX(0),
+        SD_TXD_N_OUT         => SERDES_TX(1),
+        SD_REFCLK_P_IN       => open,
+        SD_REFCLK_N_IN       => open,
+        SD_PRSNT_N_IN        => SFP_MOD(0),
+        SD_LOS_IN            => SFP_LOS,
+        SD_TXDIS_OUT         => SFP_TXDIS,
+
+        SCI_DATA_IN          => (others => '0'),
+        SCI_DATA_OUT         => open,
+        SCI_ADDR             => (others => '0'),
+        SCI_READ             => '0',
+        SCI_WRITE            => '0',
+        SCI_ACK              => open,  
+        SCI_NACK             => open,
+        -- Status and control port
+        STAT_OP              => med_stat_op,
+        CTRL_OP              => med_ctrl_op,
+        STAT_DEBUG           => med_stat_debug,
+        CTRL_DEBUG           => (others => '0')
+    ); 
+ clk_100_i <= rx_clock_100;   
+end generate;
+
 
 ---------------------------------------------------------------------------
 -- Endpoint

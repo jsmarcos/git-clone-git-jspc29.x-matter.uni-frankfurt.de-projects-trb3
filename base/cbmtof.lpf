@@ -22,6 +22,8 @@ MULTICYCLE FROM CLKNET "clk_100_i_c" TO CLKNET "CLK_EXT_c" 1 X ;
 MULTICYCLE FROM CLKNET "CLK_EXT_c" TO CLKNET "clk_100_i_c" 2 X ;
 
 LOCATE COMP   "THE_MEDIA_UPLINK/gen_serdes_0_200_ctc.THE_SERDES/PCSD_INST" SITE "PCSA" ;
+LOCATE COMP   "gen_norm_uplink/THE_MEDIA_UPLINK/gen_serdes_0_200_ctc.THE_SERDES/PCSD_INST" SITE "PCSA" ;
+LOCATE COMP   "gen_sync_uplink/THE_MEDIA_UPLINK/THE_SERDES/PCSD_INST" SITE "PCSA" ;
 
 #################################################################
 # Clock I/O
