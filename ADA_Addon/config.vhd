@@ -26,7 +26,7 @@ package config is
 
 --Include SPI on AddOn connector
   constant INCLUDE_SPI  : integer := c_YES;
-  constant SPI_FOR_PADI : integer := c_YES;
+  constant SPI_FOR_PADI : integer := c_YES;  -- YES: PADI SPI    NO: Normal SPI
 
 --Add logic to generate configurable trigger signal from input signals.
   constant INCLUDE_TRIGGER_LOGIC : integer := c_NO;

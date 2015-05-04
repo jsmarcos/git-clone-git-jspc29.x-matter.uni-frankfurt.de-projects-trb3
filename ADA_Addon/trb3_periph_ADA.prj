@@ -165,4 +165,4 @@ add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_36x128_OutReg.vhd"
 add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_36x64_OutReg.vhd"
 add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_36x32_OutReg.vhd"
 add_file -vhdl -lib work "trb3_periph_ADA.vhd"
-add_file -vhdl -lib work "../../tdc/base/cores/ecp3/PLL/pll_in20_out100.vhd"
+
