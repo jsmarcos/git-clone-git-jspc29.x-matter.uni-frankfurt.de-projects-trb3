@@ -11,7 +11,7 @@ package config is
 
 --TDC settings
   constant NUM_TDC_MODULES         : integer range 1 to 4  := 1;  -- number of tdc modules to implement
-  constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 33;  -- number of tdc channels per module
+  constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 5;  -- number of tdc channels per module
   constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6  := 5;  --the nearest power of two, for convenience reasons 
   constant DOUBLE_EDGE_TYPE        : integer range 0 to 3  := 3;  --double edge type:  0, 1, 2,  3
   -- 0: single edge only,
@@ -35,7 +35,7 @@ package config is
 
 --Run wih 125 MHz instead of 100 MHz, use received clock from serdes or external clock input
   constant USE_125_MHZ              : integer := c_NO;  --not implemented yet!  
-  constant USE_RXCLOCK              : integer := c_NO;  --not implemented yet!
+  constant USE_RXCLOCK              : integer := c_YES;  --not implemented yet!
   constant USE_EXTERNALCLOCK        : integer := c_YES;
   constant USE_CLK_MANAGER_REF_TIME : integer := c_YES; --reference time through clk manager or direct
 
