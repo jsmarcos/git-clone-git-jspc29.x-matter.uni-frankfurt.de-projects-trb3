@@ -1,0 +1,32 @@
+BLOCK RESETPATHS ;
+BLOCK ASYNCPATHS ;
+BLOCK RD_DURING_WR_PATHS ;
+
+#################################################################
+# Basic Settings
+#################################################################
+
+SYSCONFIG MCCLK_FREQ = 20;
+
+FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
+#FREQUENCY PORT CLK_PCLK_LEFT  200 MHz;
+#FREQUENCY PORT CLK_GPLL_RIGHT 200 MHz;
+#FREQUENCY PORT CLK_GPLL_LEFT  125 MHz;
+  
+#################################################################
+# Reset Nets
+#################################################################  
+GSR_NET NET "GSR_N";  
+
+MULTICYCLE TO CELL "THE_RESET_HANDLER/final_reset*" 20 ns;
+
+#################################################################
+# Locate Serdes and media interfaces
+#################################################################
+
+LOCATE COMP          "THE_MEDIA_UPLINK/gen_serdes_1_200_THE_SERDES/PCSD_INST" SITE "PCSA" ;
+REGION               "MEDIA_UPLINK" "R102C95D" 13 25;
+LOCATE UGROUP        "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLINK" ;
+
+MULTICYCLE TO CELL  "THE_SPI_RELOAD_THE_SPI_MASTER_THE_SPI_SLIM_tx_sreg_oregio*" 20 ns;
+
