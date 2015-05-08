@@ -1,1 +1,1 @@
-currentRelease/trb3_periph_32PinAddOn.vhd
+tdc_release/trb3_periph_32PinAddOn.vhd
