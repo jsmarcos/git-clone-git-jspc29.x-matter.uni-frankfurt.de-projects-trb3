@@ -7,9 +7,9 @@ my $TOPNAME  = "trb3_periph_padiwa"; #Name of top-level entity
 
 #create full lpf file
 system("cp ../base/$TOPNAME.lpf diamond/trb3_periph.lpf");
-system("cat currentRelease/trbnet_constraints.lpf >> diamond/trb3_periph.lpf");
-system("cat currentRelease/tdc_constraints_64.lpf >> diamond/trb3_periph.lpf");
-system("cat currentRelease/unimportant_lines_constraints.lpf >> diamond/trb3_periph.lpf");
+system("cat tdc_release/trbnet_constraints.lpf >> diamond/trb3_periph.lpf");
+system("cat tdc_release/tdc_constraints_64.lpf >> diamond/trb3_periph.lpf");
+system("cat tdc_release/unimportant_lines_constraints.lpf >> diamond/trb3_periph.lpf");
 system("cat unimportant_lines_constraints.lpf >> diamond/trb3_periph.lpf");
 
 

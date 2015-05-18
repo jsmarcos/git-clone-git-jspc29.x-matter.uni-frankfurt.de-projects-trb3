@@ -8,11 +8,12 @@ use Getopt::Long;
 ###################################################################################
 #Settings for this project
 my $TOPNAME                      = "trb3_periph_padiwa";  #Name of top-level entity
-my $lattice_path                 = '/opt/lattice/diamond/3.0_x64/';
+my $lattice_path                 = '/opt/lattice/diamond/3.4_x64/';
 my $lattice_bin_path             = "$lattice_path/bin/lin64"; # note the lin/lin64 at the end, no isfgpa needed
-my $synplify_path                = '/opt/synplicity/I-2013.09-SP1'; 
+my $synplify_path                = '/opt/synplicity/J-2014.09-SP2'; 
 my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
 my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
+my $synplify_locale_workaround   = "en_US\@UTF-8";
 ###################################################################################
 
 ###################################################################################
@@ -41,7 +42,7 @@ my $result = GetOptions (
 if($help) {
     print "Usage: compile_priph_gsi.de <OPTIONS><ARGUMENTS>\n\n";
     print "-h  --help\tPrints the usage manual.\n";
-    print "-a  --all\tRun all compile script. By default the script is going to rung the whole process.\n";
+    print "-a  --all\tRun all compile script. By default the script is going to run the whole process.\n";
     print "-s  --syn\tRun synthesis part of the compile script.\n";
     print "-mp --map\tRun map part of the compile script.\n";
     print "-p  --par\tRun par part of the compile script.\n";
@@ -75,8 +76,10 @@ while (<$SOURCE>) {
 close $SOURCE;
 
 
+
 $ENV{'PAR_DESIGN_NAME'}=$TOPNAME;
 $ENV{'SYNPLIFY'}=$synplify_path;
+$ENV{'LC_ALL'}="en_US\@UTF-8";
 $ENV{'SYN_DISABLE_RAINBOW_DONGLE'}=1;
 $ENV{'LM_LICENSE_FILE'}=$lm_license_file_for_synplify;
 
@@ -94,12 +97,14 @@ unless(-d $WORKDIR) {
 system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");
 
 #create full lpf file
-system("cp ../base/$TOPNAME.lpf $WORKDIR/$TOPNAME.lpf");
-system("cat currentRelease/trbnet_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
-system("cat currentRelease/tdc_constraints_64.lpf >> $WORKDIR/$TOPNAME.lpf");
-system("cat currentRelease/unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
-system("cat unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+#system("cp ../base/$TOPNAME.lpf $WORKDIR/$TOPNAME.lpf");
+#system("cat tdc_release/trbnet_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+#system("cat tdc_release/tdc_constraints_64.lpf >> $WORKDIR/$TOPNAME.lpf");
+#system("cat tdc_release/unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+#system("cat unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
 
+#copy delay line to project folder
+system("cp tdc_release/Adder_304.ngo $WORKDIR/");
 
 #generate timestamp
 my $t=time;
@@ -142,7 +147,7 @@ if($syn==1 || $all==1){
     
     foreach (@a)
     {
-	if(/\@E:/)
+	if(/\@E|/)
 	{
 	    print "\n";
 	    $c="cat $TOPNAME.srr | grep \"\@E\"";
@@ -152,6 +157,8 @@ if($syn==1 || $all==1){
 	}
     }
 }
+
+
 
 $ENV{'LM_LICENSE_FILE'}=$lm_license_file_for_par;
 
@@ -176,7 +183,7 @@ if($map==1 || $all==1){
     $fh -> close;
     foreach (@a)
     {
-	if(/FC_|HitInvert|ff_en_/)
+	if(/FC_|hitBuf_|ff_en_/)
 	{
 	    print "\n\n";
 	    print "#################################################\n";
@@ -198,8 +205,11 @@ if($par==1 || $all==1){
     {
 	#$c=qq|par -m ../nodes_lxhadeb07.txt -n $nrNodes -stopzero -w -l 5 -t 1 -e 100 -exp parDisablePgroup=0:parUseNBR=1:parCDP=1:parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
 	#$c=qq|par -m ../nodes_lxhadeb07.txt -n $nrNodes -stopzero -w -l 5 -i 6 -t 1 -c 0 -e 0 -exp parDisablePgroup=0:parUseNBR=1:parCDP=0:parCDR=0:parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
-	$c=qq|par -m ../nodes_lxhadeb07.txt -n $nrNodes -w -l 5 -t 1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
+	#$c=qq|par -m ../nodes_lxhadeb07.txt -n $nrNodes -w -l 5 -t 1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
+
+	$c=qq|par -m ../nodes_lxhadeb07.txt -n $nrNodes -w -i 15 -l 5 -y -s 8 -t 1 -c 1 -e 2 -exp parCDP=1:parCDR=1:parPlcInLimit=0:parPlcInNeighborSize=1:parPathBased=ON:parHold=1:parHoldLimit=10000:paruseNBR=1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
 	execute($c);
+
         # find and copy the .ncd file which has met the timing constraints
 	$fh = new FileHandle("<$TOPNAME".".par");
 	my @a = <$fh>;
@@ -233,7 +243,8 @@ if($par==1 || $all==1){
     else
     {
 	#$c=qq|par -w -l 5 -i 6 -t 1 -c 0 -e 0 -exp parUseNBR=1:parCDP=0:parCDR=0:parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
-	$c=qq|par -w -l 5 -t 1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
+	#$c=qq|par -w -l 5 -t 1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
+	$c=qq|par -p "../$TOPNAME.p2t" -t 1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
 	execute($c);
 	my $c="cp $TOPNAME.dir/5_1.ncd $TOPNAME.ncd";
 	system($c);
