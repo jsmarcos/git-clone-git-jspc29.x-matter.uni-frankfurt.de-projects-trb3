@@ -194,7 +194,7 @@ if($map==1 || $all==1){
 	    }
 	    elsif(grep /WARNING - map: There are semantic errors in the preference file/, $_)
 	    {
-		print RED, "There are errors in the constraints file. Better have a look...", RESET;
+		print RED, "There are errors in the constraints file. Better have a look...\n\n", RESET;
 		sleep(5); # ERROR -> sleep is effective before the print
 		last;
 	    }
@@ -237,20 +237,22 @@ if($par==1 || $all==1){
 	my @a = <$fh>;
 	my $isSuccess = 0;
 	$fh -> close;
+	my $i=1;
 	foreach (@a)
 	{
-	    my @line = split(' ', $_);
-	    if(@line && ($line[2] =~ m/^[0-9]+$/) && ($line[3] =~ m/^[0-9]+$/))
+	    my @line = split(/\s+/, $_);
+
+	    if(@line && ($line[2] =~ m/^[0-9]+$/) && ($line[4] =~ m/^[0-9]+$/))
 	    {	
-		if(($line[2] == 0) && ($line[3] == 0))
-		{
-		    print GREEN, "Copying $line[0].ncd file to workdir\n", RESET;
-		    my $c="cp $TOPNAME.dir/$line[0].ncd $TOPNAME.ncd";
-		    system($c);
-		    print "\n\n";
-		    $isSuccess = 1;
-		    last;
-		}
+	    	if(($line[2] == 0) && ($line[4] == 0))
+	    	{
+	    	    print GREEN, "Copying $line[0].ncd file to workdir\n", RESET;
+	    	    my $c="cp $TOPNAME.dir/$line[0].ncd $TOPNAME.ncd";
+	    	    system($c);
+	    	    print "\n\n";
+	    	    $isSuccess = 1;
+	    	    last;
+	    	}
 	    }
 	}
 	
