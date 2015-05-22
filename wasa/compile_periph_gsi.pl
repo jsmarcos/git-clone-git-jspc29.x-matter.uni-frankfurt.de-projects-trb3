@@ -4,6 +4,7 @@ use warnings;
 use strict;
 use FileHandle;
 use Getopt::Long;
+use Term::ANSIColor qw(:constants);
 
 ###################################################################################
 #Settings for this project
@@ -63,7 +64,6 @@ if ($syn!=0 || $map!=0 || $par!=0 || $timing!=0 || $bitgen!=0){
 ###################################################################################
 
 
-
 # source the standard lattice environment
 $ENV{bindir}="$lattice_bin_path";
 open my $SOURCE, "bash -c '. $lattice_bin_path/diamond_env >& /dev/null; env'|" or
@@ -97,11 +97,12 @@ unless(-d $WORKDIR) {
 system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");
 
 #create full lpf file
-#system("cp ../base/$TOPNAME.lpf $WORKDIR/$TOPNAME.lpf");
-#system("cat tdc_release/trbnet_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
-#system("cat tdc_release/tdc_constraints_64.lpf >> $WORKDIR/$TOPNAME.lpf");
-#system("cat tdc_release/unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
-#system("cat unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+print GREEN, "Generating constraints file...\n\n", RESET;
+system("cp ../base/$TOPNAME.lpf $WORKDIR/$TOPNAME.lpf");
+system("cat tdc_release/trbnet_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+system("cat tdc_release/tdc_constraints_script.lpf >> $WORKDIR/$TOPNAME.lpf");
+system("cat tdc_release/unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+system("cat unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
 
 #copy delay line to project folder
 system("cp tdc_release/Adder_304.ngo $WORKDIR/");
@@ -133,26 +134,24 @@ my $c     = "";
 my @a     = ();
 my $tpmap = $TOPNAME . "_map" ;
 
-if($syn==1 || $all==1){
-    $c="$synplify_path/bin/synplify_premier_dp -batch $TOPNAME.prj";
-    $r=execute($c, "do_not_exit" );
-}
-
 chdir $WORKDIR;
-
 if($syn==1 || $all==1){
+    print GREEN, "Starting synthesis process...\n\n", RESET;
+    $c="$synplify_path/bin/synplify_premier_dp -batch ../$TOPNAME.prj";
+    $r=execute($c, "do_not_exit" );
+
     $fh = new FileHandle("<$TOPNAME".".srr");
     @a = <$fh>;
     $fh -> close;
     
     foreach (@a)
     {
-	if(/\@E|/)
+	if(/\@E:/)
 	{
 	    print "\n";
-	    $c="cat $TOPNAME.srr | grep \"\@E\"";
+	    $c="cat $TOPNAME.srr | egrep --color \"\@E:\"";
 	    system($c);
-	    print "\n\n";
+	    print RED, "ERROR in the log file $TOPNAME.srr Exiting...\n\n", RESET;
 	    exit 129;
 	}
     }
@@ -163,6 +162,8 @@ if($syn==1 || $all==1){
 $ENV{'LM_LICENSE_FILE'}=$lm_license_file_for_par;
 
 if($map==1 || $all==1){
+    print GREEN, "Starting mapping process...\n\n", RESET;
+
     $c=qq| edif2ngd -path "../" -path "." -l $FAMILYNAME -d $DEVICENAME "$TOPNAME.edf" "$TOPNAME.ngo" |;
     execute($c);
     
@@ -181,33 +182,54 @@ if($map==1 || $all==1){
     $fh = new FileHandle("<$TOPNAME"."_mrp.html");
     @a = <$fh>;
     $fh -> close;
+    my $i=1;
+    my $print=0;
     foreach (@a)
     {
-	if(/FC_|hitBuf_|ff_en_/)
+	if(/WARNING/|$print)
 	{
-	    print "\n\n";
-	    print "#################################################\n";
-	    print "#        !!!Possible Placement Errors!!!        #\n";
-	    print "#################################################\n\n";
-	    
-	    my $c="egrep 'WARNING.*hitBuf_|Channels/hit_buf_RNO|WARNING.*FC_|Channels/Channel200/SimAdderNo_FC|WARNING.*ff_en_|Channels/Channel200/ff_array_en_i_1_i'"." $TOPNAME"."_mrp.html";
-	    system($c);
-	    last;
+	    if((grep /WARNING - map: There are semantic errors in the preference file/, $_) & ($i == 1))
+	    {
+		last;
+	    }
+	    elsif(grep /WARNING - map: There are semantic errors in the preference file/, $_)
+	    {
+		print RED, "There are errors in the constraints file. Better have a look...", RESET;
+		sleep(5); # ERROR -> sleep is effective before the print
+		last;
+	    }
+	    elsif ($i == 1)
+	    {
+		print RED,"\n\n", RESET;
+		print RED,"#################################################\n", RESET;
+		print RED,"CONSTRAINTS ERRORS\n", RESET;
+		print RED,"#################################################\n\n", RESET;
+	    }
+	    $print=1;
+	    if(grep /WARNING.*UGROUP/, $_)
+	    {
+		print RED, $_, RESET;
+	    }
+	    elsif(grep /FC|hitBuf|ff_en/, $_)
+	    {
+		print YELLOW, $_, RESET;
+	    }
+	    else
+	    {
+		print $_;
+	    }
+	    $i++;
 	}
     }
 }
 
 if($par==1 || $all==1){
+    print GREEN, "Starting placement process...\n\n", RESET;
+
     system("rm $TOPNAME.ncd");
-    #$c=qq|mpartrce -p "../$TOPNAME.p2t" -log "$TOPNAME.log" -o "$TOPNAME.rpt" -pr "$TOPNAME.prf" -tf "$TOPNAME.pt" "|.$TOPNAME.qq|_map.ncd" "$TOPNAME.ncd"|;
-    #$c=qq|$lattice_path/ispfpga/bin/lin/multipar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t" "$tpmap.ncd" "$TOPNAME.ncd"|;
     if ($isMultiPar)
     {
-	#$c=qq|par -m ../nodes_lxhadeb07.txt -n $nrNodes -stopzero -w -l 5 -t 1 -e 100 -exp parDisablePgroup=0:parUseNBR=1:parCDP=1:parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
-	#$c=qq|par -m ../nodes_lxhadeb07.txt -n $nrNodes -stopzero -w -l 5 -i 6 -t 1 -c 0 -e 0 -exp parDisablePgroup=0:parUseNBR=1:parCDP=0:parCDR=0:parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
-	#$c=qq|par -m ../nodes_lxhadeb07.txt -n $nrNodes -w -l 5 -t 1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
-
-	$c=qq|par -m ../nodes_lxhadeb07.txt -n $nrNodes -w -i 15 -l 5 -y -s 8 -t 1 -c 1 -e 2 -exp parCDP=1:parCDR=1:parPlcInLimit=0:parPlcInNeighborSize=1:parPathBased=ON:parHold=1:parHoldLimit=10000:paruseNBR=1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
+	$c=qq|LC_ALL=en_US.UTF-8; par -m ../nodes_lxhadeb07.txt -n $nrNodes -w -i 15 -l 5 -y -s 8 -t 1 -c 1 -e 2 -exp parCDP=1:parCDR=1:parPlcInLimit=0:parPlcInNeighborSize=1:parPathBased=ON:parHold=1:parHoldLimit=10000:paruseNBR=1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf;|;
 	execute($c);
 
         # find and copy the .ncd file which has met the timing constraints
@@ -222,7 +244,7 @@ if($par==1 || $all==1){
 	    {	
 		if(($line[2] == 0) && ($line[3] == 0))
 		{
-		    print "Copying $line[0].ncd file to workdir\n";
+		    print GREEN, "Copying $line[0].ncd file to workdir\n", RESET;
 		    my $c="cp $TOPNAME.dir/$line[0].ncd $TOPNAME.ncd";
 		    system($c);
 		    print "\n\n";
@@ -233,18 +255,16 @@ if($par==1 || $all==1){
 	}
 	
 	if (!$isSuccess){
-	    print "\n\n";
-	    print "#################################################\n";
-	    print "#           !!!PAR not succesfull!!!            #\n";
-	    print "#################################################\n\n";
+	    print RED, "\n\n", RESET;
+	    print RED, "#################################################\n", RESET;
+	    print RED, "#           !!!PAR not succesfull!!!            #\n", RESET;
+	    print RED, "#################################################\n\n", RESET;
 	    exit 129;
 	}
     }
     else
     {
-	#$c=qq|par -w -l 5 -i 6 -t 1 -c 0 -e 0 -exp parUseNBR=1:parCDP=0:parCDR=0:parPathBased=ON $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
-	#$c=qq|par -w -l 5 -t 1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
-	$c=qq|par -p "../$TOPNAME.p2t" -t 1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
+	$c=qq|par -w -i 15 -l 5 -y -s 8 -t 1 -c 1 -e 2 -exp parCDP=1:parCDR=1:parPlcInLimit=0:parPlcInNeighborSize=1:parPathBased=ON:parHold=1:parHoldLimit=10000:paruseNBR=1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf|;
 	execute($c);
 	my $c="cp $TOPNAME.dir/5_1.ncd $TOPNAME.ncd";
 	system($c);
@@ -256,6 +276,8 @@ if($par==1 || $all==1){
 
 
 if($timing==1 || $all==1){
+    print GREEN, "Generating timing report...\n\n", RESET;
+
     # IOR IO Timing Report
     $c=qq|iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;
     execute($c);
@@ -272,11 +294,12 @@ if($timing==1 || $all==1){
 }
     
 if($bitgen==1 || $all==1){
+    print GREEN, "Generating bit file...\n\n", RESET;
+
     $c=qq|ltxt2ptxt $TOPNAME.ncd|;
     execute($c);
 
     $c=qq|bitgen -w -g CfgMode:Disable -g RamCfg:Reset -g ES:No $TOPNAME.ncd $TOPNAME.bit $TOPNAME.prf|;
-    # $c=qq|$lattice_path/ispfpga/bin/lin/bitgen -w "$TOPNAME.ncd" "$TOPNAME.prf"|;
     execute($c);
 }
 
@@ -293,7 +316,7 @@ sub execute {
     my ($c, $op) = @_;
     #print "option: $op \n";
     $op = "" if(!$op);
-    print "\n\ncommand to execute: $c \n";
+    print GREEN, "\n\ncommand to execute: $c \n", RESET;
     $r=system($c);
     if($r) {
 	print "$!";
