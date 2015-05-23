@@ -1,0 +1,22 @@
+x"0000"   "0001"      1    -- Data Delay
+x"0020"   "0000"      0    -- Debug Handler
+x"0040"   "0001"      1    -- I2C Master
+x"0060"   "0000"      0    -- SPI Master
+x"0080"   "0007"      3    -- Event Buffer
+x"0100"   "000f"      4    -- NX Status Handler
+x"0120"   "001f"      5    -- Data Validate
+x"0140"   "0007"      3    -- Trigger Generator
+x"0160"   "000f"      4    -- Trigger Handler
+
+x"0200"   "01ff"      9  0x0380   -- NX Register Setup
+
+x"0400"   "001f"      5    -- Trigger Validate
+
+x"0500"   "001f"      5    -- Data Receiver
+
+
+
+x"0800"   "07ff"     11    -- NX Histograms
+
+
+

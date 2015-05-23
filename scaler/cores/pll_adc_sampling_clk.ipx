@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="pll_adc_sampling_clk" module="PLL" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2013 10 19 21:30:32.016" version="5.3" type="Module" synthesis="" source_format="VHDL">
+  <Package>
+		<File name="pll_adc_sampling_clk.lpc" type="lpc" modified="2013 10 19 21:30:28.000"/>
+		<File name="pll_adc_sampling_clk.vhd" type="top_level_vhdl" modified="2013 10 19 21:30:29.000"/>
+		<File name="pll_adc_sampling_clk_tmpl.vhd" type="template_vhdl" modified="2013 10 19 21:30:29.000"/>
+  </Package>
+</DiamondModule>

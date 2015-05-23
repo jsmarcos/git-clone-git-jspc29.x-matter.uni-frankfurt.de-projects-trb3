@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="pll_nx_clk250" module="PLL" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2014 04 08 23:14:15.031" version="5.3" type="Module" synthesis="" source_format="VHDL">
+  <Package>
+		<File name="pll_nx_clk250.lpc" type="lpc" modified="2014 04 08 23:14:13.000"/>
+		<File name="pll_nx_clk250.vhd" type="top_level_vhdl" modified="2014 04 08 23:14:13.000"/>
+		<File name="pll_nx_clk250_tmpl.vhd" type="template_vhdl" modified="2014 04 08 23:14:13.000"/>
+  </Package>
+</DiamondModule>

@@ -1,0 +1,275 @@
+----------------------------------------------------------------------
+-- NXyter BVoradcast Address is: 0xfe49                             --
+----------------------------------------------------------------------
+
+-- Control Register
+0x8100 :  w    w: reset I2C State Machine
+0x8101 :  w    w: reset I2C all Register
+0x8102 :  w    w: Reset and Sync Timestamps (nXyter and FPGA)
+0x8103 :  r/w  Force Nxyter offline mode 
+0x8104 :  r    Nxyter I2C Online Status
+0x8105 :  r    Nxyter Offline
+0x8106 :  r    Nxyter Main Clock Lock (250 MHz)
+0x8107 :  r    ADC Data Clock Lock    (187.5 MHz)
+0x8108 :  r    ADC Sample Clock Lock    (31.25 MHz)
+0x8109 :  r/w  r: PLL Nxyter Main Clock NotLock Counter (16 Bit)
+0x810a :  r    PLL ADC Data Clock NotLock Counter (16 Bit)
+               w: Clear all NotLOck Counters
+0x810b :  r    PLL ADC Sample Clock NotLock Counter (16 Bit)
+0x810c :  r    All ERROR Flags (8 Bit)
+
+-- NX I2C Setup Handler
+0x8200 : r/w   I2C Memory Register (Depth: 0 - 45 ... 0x822c) 
+0x8280 : r     ADC Memory Register (Depth: 0 - 3  ... 0x8283) 
+0x8300 : r/w   DAC Register Memory (Depth: 0 - 128 ... 0x82e0) 
+0x8250 : r/w   Enable Nxyter Clock 
+0x8251 : r/w   Nxyter Polarity
+0x8252 : r     Nxyter Testpulse Polarity 
+0x8253 : r/w   Enable Nxyter Testpulse
+0x8254 : r/w   Enable Nxyter Testtrigger
+0x8255 : r/w   Nxyter Testpulse Channels (0: 0,4,..   1: 1,5,..
+                                          2: 2,6,..   3: 3,7,..)
+0x8256 : r     Nxyter I2C Online
+0x8260 : w     Read all I2C Registers into Memory     
+0x8261 : w     Read Trim DAC Registers (129 deep FIFO) into Memory
+0x8262 : w     Read ALL: Read all I2C and all Trim DAC Registers into Memory
+0x8270 : r     Token register, 14 in a row
+
+-- Trigger Generator
+0x8140 : r/w   3Bit: #0  Self Trigger On
+                     #1  Pulser Trigger On
+                     #2  Trigger Output Select (0: extern, 1: Intern)
+0x8141 : r/w   Pulser Trigger Period (28 Bit)
+0x8142 : r     Self Trigger Rate (1/s)
+0x8143 : r     Pulser Trigger Rate (1/s)
+0x8144 : r     Trigger Rate (1/s)
+
+-- Trigger Handler
+0x8160 :  r/w  Enable Testpulse Signal (default: off)
+0x8161 :  r/w  Delay Testpulse Signal after Trigger (12 Bit, in 10ns)
+0x8162 :  r/w  Length of Trigger TestPulse (12 Bit, in 4ns)
+0x8163 :  r/w  r: Invalid Timing Trigger Counter (16 Bit)
+               w: Clear Counter
+0x8164 :  r/w  Clear Countercceptred Trigger Rate (1/s)
+0x8165 :  r/w  Testpulse Rate (1/s)
+0x8166 :  r/w  Bit0: Bypass Timing Trigger
+               Bit1: Bypass Status Trigger
+               Bit2: Bypass Calibration Trigger
+               Bit3: Bypass All Trigger
+0x8167 : r/w   Calibration Trigger Downscale (16 Bit) 
+0x8168 : r/w   Timing Trigger Type (4 Bit) 
+0x8169 : r/w   Status Trigger Type (4 Bit) 
+0x816a : r/w   Calibration Trigger Type (4 Bit) 
+
+-- NX Data Receiver
+0x8500 :  r    current Timestamp FIFO value
+0x8501 :  r/w  r: FIFO Status 
+                    0: fifo_full
+                    1: fifo_empty
+                    2: fifo_almost_empty
+                3..29: ignore
+                   31: nx_frame_synced
+0x8502 :  r/w  r: Resync Counter(12 Bit)
+               w: Clear Resync Counter    
+0x8503 :  r/w  r: Parity Error Counter (12 Bit)
+               w: Clear Parity Error Counter   
+0x8504 :  r/w  ADC Sampling PLL Clock Not Lock Counter
+               w: Clear Counter
+0x8505 :  r/w  johnson_counter_sync (2 Bit), do not touch, experts only register
+0x8506 :  r/w  PLL ADC Sampling Clock DPHASE (4 Bit)
+0x8507 :  r/w  PLL ADC Sampling Clock FINEDELB (4 Bit)
+0x8508 :  r    current ADC FIFO value
+0x8509 :  r    ADC Reset Counter
+0x850a :  r    Reserved 
+0x850b :  r/w  r: Nxyter Data Clock Status (1 = O.K.)
+               w: reset ADC Handler
+0x850c :  r/w  r: Reset Handler Counter (16 Bit)
+               w: Clear Counter
+0x850d :  r/w  Nxyter Timestamp vs ADC FIFO Delay (4 Bit)
+0x850e :  r/w  ADC Bit Shift  (Bit3: Direction 0=ror, 1=rol)
+                              (Bit2..0: Value)
+0x850f :  r    ADC Not Lock Frame Counter, should be constant
+0x8510 :  r    Raw Nxyter Frame Rate, must be 31.25 MHz
+0x8511 :  r    Raw ADC Frame Rate, must be 31.25 MHz
+0x8512 :  r    Test ADC Value
+0x8513 :  r    Error Status Bits   
+0x8514 :  r    Data Frame Rate, i.e. Combination Nxyter and ADC Frames 
+0x851e :  r/w  Debug Multiplexer:
+               0: Default Debug
+               1: Reset Handler
+               2: ADC Handler adc_ad922** direct
+               3: Testchannel handler, forget about it
+0x851f :  r/w  ADC Debug Multiplexer:
+
+-- NX Data Validate
+0x8120 :  r/w  Invalid Frame Counter (16 bit) / w: clear all counters
+0x8121 :  r    Overflow Counter (16 bit)
+0x8122 :  r    Pileup Counter (16 bit)
+0x8123 :  r    Parity Error Counter (16 bit)
+0x8124 :  r    Nxyter Hit Rate (in Hz)
+0x8125 :  r    Frame Rate (in Hz)
+
+-- NX Data Delay
+0x8000 :  r    FIFO Delay, i.e. Trigger Delay (8 Bit, in 32ns).
+                Calculation is based on CTS Trigger Delay
+               (see NX Trigger Validate)
+0x8001 : r/w   Debug Multiplexer (0=Data Delay, 1=FIFO)
+
+-- NX Trigger Validate
+0x8400 :  r/w  Readout Mode: 4 Bits
+               Bit #3:    Self Trigger Mode
+               Bit #2:    0: activate TS Selection Window
+                          1: disable TS Selection Window, i.e.
+                             data will be written to disk as long as
+                             Readout Time Max (Reg.: 0x8184) is valid
+               Bit #1..0     0: TS Ovfl and Parity Bit valid
+                             1: TS Ovfl, Parity and Pileup Bit valid
+                             2: ignore TS Status Bits
+                             3: -------- " -------
+                           
+0x8401 :  r/w  Trigger Window Offset [TS_Offset] (11 Bit signed, in 4ns) 
+0x8402 :  r/w  Trigger Window Width [TS_Width] (10 Bit, in 4ns)
+0x8403 :  r/w  CTS Trigger Delay [CTS_Delay] (10 Bit, in 4ns)
+               FPGA_Timestamp = TS_Ref
+               Trigger Window Lower Threshold =
+                  TS_FPGA - CTS_Delay +/- TS_Offset 
+               Trigger Window Upper Threshold =
+                  TS_FPGA - CTS_Delay + TS_Offset + TS_Width
+0x8404 :  r/w  Readout Time Max (10 Bit, in 10ns)
+
+0x8405 :  r/w  FPGA Timestamp Offset (12 Bit, in 4ns)
+0x8406 :  r    Busy Time Counter (12 Bit, in 10ns)
+0x8407 :  r    timestamp_ref
+0x8408 :  r    window_lower_thr
+0x8409 :  r/w  Out of Window Error Counter (16 Bit)
+               w: Clear Counter
+0x840a :  r    data_fifo_delay (7 Bit, in 32ns)
+0x840b :  r    WAIT flags ch 0..31
+0x840c :  r    WAIT flags ch 32..63
+0x840d :  r    WAIT flags ch 94..95
+0x840e :  r    WAIT flags ch 96..127
+0x840f :  r    HIT flags ch 0..31
+0x8410 :  r    HIT flags ch 32..63
+0x8411 :  r    HIT flags ch 94..95
+0x8412 :  r    HIT flags ch 96..127
+0x8413 :  r    DONE flags ch 0..31
+0x8414 :  r    DONE flags ch 32..63
+0x8415 :  r    DONE flags ch 94..95
+0x8416 :  r    DONE flags ch 96..127
+0x8417 :  r    channel_all_done
+0x8418 :  r    EVT_BUFFER_FULL_IN    
+0x8419 :  r    Wait for Data time (ns)
+0x841a :  r    Nxyter CVT (ns) 
+0x841b :  r    Minimum validation Time    
+0x841c :  r    Out of Window Counter last Event Low 
+0x841d :  r    Window Hit Counter last Event
+0x841e :  r    Out of Window Counter last Event High
+0x841f :  r    Data Rate being written to Event Buffer (Hz)
+
+-- Event Data Buffer
+0x8600 :  r    read FIFO buffer
+0x8601 :  rw   Fifo Depth in words (10...4000, default 350)
+0x8602 :  r    FIFO flush counter last
+0x8603 :  r    read FIFO status
+
+--- DEBUG ------------------------------------------------------------
+
+-- I2C Master
+0x8040 :  r/w  Access to I2C Interface
+               Chip Ids:  0x08   : nXyter
+                          0x29   : AD7991-1
+                                   Reg: 0x10   ADC Channel 0 slow nx channel
+                                   Reg: 0x20   ADC Channel 1 fast nx channel
+                                   Reg: 0x40   ADC Channel 2 Temperature
+                                   Reg: 0x80   ADC Channel 3 Current
+                          0x50   : EEPROM
+0x8041 :  r    Full I2C Word
+
+-- SPI Master
+0x8060 :       Access to SPI Interface
+
+-- Histogram Handler
+0x8800 :  r    Read Channel Hit Statistic (128 channels in a row)
+0x8900 :  r    Read Channel Pileup Rate (128 channels in a row, 1/s)
+0x8a00 :  r    Read Channel Overflow Rate (128 channels in a row, 1/s)
+0x8b00 :  r    Read Channel averaged ADC Value (128 channels in a row)
+0x8c00 :  r    Read Channel Timestamp Statistic (512 channels in a row)
+
+0x8880 :  r/w  Hit Rate num averages (3 Bit)
+0x8881 :  r/w  Hit Rate average enable 
+0x8980 :  r/w  ADC num averages (3 Bit)
+0x8981 :  r/w  ADC average enable 
+0x8a80 :  r/w  PileUp Rate num averages (3 Bit)
+0x8a81 :  r/w  PileUp Rate average enable 
+0x8b80 :  r/w  Overflow Rate num averages (3 Bit)
+0x8b81 :  r/w  Overflow Rate average enable 
+
+-- Debug Multiplexer
+0x8020 :  r/w   Select Debug Entity
+                 0: nx_status
+                 1: nx_register_setup
+                 2: nx_i2c_master
+                 3: adc_spi_master
+                 4: nx_fpga_timestamp
+                 5: nx_trigger_handler
+                 6: nx_trigger_generator
+                 7: nx_data_receiver
+                 8: nx_data_delay
+                 9: nx_data_validate
+                10: nx_trigger_validate
+                11: nx_event_buffer
+                12: nx_histograms
+                13: nx_status_event
+                14: Checkerboard
+
+--- Trigger Selction Window Setup
+
+                                      _
+Physics Trigger [PT]  _______________| |___________________________________
+                                           _
+NX_TS_Trigger   [NXT] ____________________| |______________________________
+                                                            _
+CTS Trigger     [CT]  _____________________________________| |_____________
+                                                                _
+FPGA TS Trigger [FT]  _________________________________________| |_________
+                                                               |
+CTS+FPGA Trigger Delay                    |--------------------|
+                                                               |
+FPGA TS-Ref stored                                             |
+in Event Header                -----------|--------------------|
+                                                               |
+Trigger Window Offset(-)       |----------|                    | 
+Trigger Window Width(-)        |----------------|              | 
+Timestamps stored in Event(-)  |--|---|--|-||--|---------------|
+                                          |                    |
+                                          |                    |
+Trigger Window Offset(+)                  |-----|              |
+Trigger Window Width(+)                         |---------|    |    
+Timestamps stored in Event(+)  -----------------|--||--|-|-----|
+
+         ---------------------------------------------------------------> Time t
+
+
+
+##############################################################################
+# nXyter FEB Clock Setup:
+#
+# CLK_PCLK_RIGHT : real Oszillator 200MHz
+# CLK_PCLK_RIGHT --> PLL#0 --> clk_100_i     -----> Main Clock all entities
+#
+# CLK_PCLK_RIGHT         --> nx_main_clk 1+2 
+#                            (250 MHz)       -----> nXyter Main Clock 1+2
+#                                            | 
+#                                            |----> FPGA Timestamp Entity 1+2
+#
+# nx_main_clk 1+2        --> nXyter Data Clk 
+#                            (1/2 = 125MHz)  -----> FPGA Data Receiver
+#                                            |
+#                                            |----> Johnson 1/4 --> ADC SCLK
+#
+# CLK_PCLK_RIGHT (PLL#2) --> clk_adc_dat_1
+#                (nx_main_clk * 3/4 = 187.5) -----> ADC Handler 1
+#
+# CLK_PCLK_RIGHT (PLL#3) --> clk_adc_dat_2
+#                (nx_main_clk * 3/4 = 187.5) -----> ADC Handler 2
+

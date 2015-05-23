@@ -1,0 +1,13 @@
+Zum Kompilieren:
+das in workdir aufrufen falls die links weg sind:
+/home/rich/TRB/nXyter/trb3/base/linkdesignfiles.sh
+
+
+
+Zum debuggen: see workdir/*
+.srr
+.mrp
+.par
+.twr.setup
+
+dateien

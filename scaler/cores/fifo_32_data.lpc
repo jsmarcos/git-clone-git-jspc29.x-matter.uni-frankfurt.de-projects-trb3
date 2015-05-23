@@ -1,0 +1,45 @@
+[Device]
+Family=latticeecp3
+PartType=LFE3-150EA
+PartName=LFE3-150EA-8FN672C
+SpeedGrade=8
+Package=FPBGA672
+OperatingCondition=COM
+Status=P
+
+[IP]
+VendorName=Lattice Semiconductor Corporation
+CoreType=LPM
+CoreStatus=Demo
+CoreName=FIFO
+CoreRevision=4.8
+ModuleName=fifo_32_data
+SourceFormat=VHDL
+ParameterFileVersion=1.0
+Date=03/06/2014
+Time=20:19:42
+
+[Parameters]
+Verilog=0
+VHDL=1
+EDIF=1
+Destination=Synplicity
+Expression=BusA(0 to 7)
+Order=Big Endian [MSB:LSB]
+IO=0
+FIFOImp=EBR Based
+Depth=2048
+Width=32
+regout=1
+CtrlByRdEn=0
+EmpFlg=0
+PeMode=Static - Single Threshold
+PeAssert=1
+PeDeassert=12
+FullFlg=1
+PfMode=Dynamic - Single Threshold
+PfAssert=1020
+PfDeassert=506
+RDataCount=0
+EnECC=0
+EnFWFT=0

@@ -1,4 +1,4 @@
-TARGET=trb3_periph_nxyter
+TARGET=trb3_periph_scaler
 FAMILYNAME=LatticeECP3
 DEVICENAME=LFE3-150EA
 PACKAGE=FPBGA672
