@@ -176,7 +176,7 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   
   -- TDC stuff
   
-  constant TDC_CHANNEL_NUMBER  : integer := 1; -- just one TDC channel needed besides reference channel
+  constant TDC_CHANNEL_NUMBER  : integer := 2; -- just one TDC channel needed besides reference channel
   
   component OSCF is
       port (
@@ -185,7 +185,7 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
    end component;      
   signal osc_int : std_logic;
   
-  signal tdc_inputs                  : std_logic_vector(TDC_CHANNEL_NUMBER-1 downto 0);
+  signal tdc_inputs                  : std_logic_vector(TDC_CHANNEL_NUMBER-2 downto 0);
   
   signal tdc_ctrl_reg   : std_logic_vector(8*32-1 downto 0);
   
@@ -673,28 +673,28 @@ LED_YELLOW <= not med_stat_op(11);
         --Hit Counter Bus
         HCB_READ_EN_IN        => bustdc_hit_rx.read,  -- bus read en strobe
         HCB_WRITE_EN_IN       => bustdc_hit_rx.write,   -- bus write en strobe
-        HCB_ADDR_IN           => bustdc_hit_rx.addr,     -- bus address
+        HCB_ADDR_IN           => bustdc_hit_rx.addr(6 downto 0),     -- bus address
         HCB_DATA_OUT          => bustdc_hit_tx.data,   -- bus data
         HCB_DATAREADY_OUT     => bustdc_hit_tx.ack,   -- bus data ready strobe
         HCB_UNKNOWN_ADDR_OUT  => bustdc_hit_tx.unknown,  -- bus invalid addr
         --Status Registers Bus
         SRB_READ_EN_IN        => bustdc_srb_rx.read,     -- bus read en strobe
         SRB_WRITE_EN_IN       => bustdc_srb_rx.write,    -- bus write en strobe
-        SRB_ADDR_IN           => bustdc_srb_rx.addr,   -- bus address
+        SRB_ADDR_IN           => bustdc_srb_rx.addr(6 downto 0),   -- bus address
         SRB_DATA_OUT          => bustdc_srb_tx.data,    -- bus data
         SRB_DATAREADY_OUT     => bustdc_srb_tx.ack,  -- bus data ready strobe
         SRB_UNKNOWN_ADDR_OUT  => bustdc_srb_tx.unknown,     -- bus invalid addr
         --Encoder Start Registers Bus
         ESB_READ_EN_IN        => bustdc_esb_rx.read,     -- bus read en strobe
         ESB_WRITE_EN_IN       => bustdc_esb_rx.write,    -- bus write en strobe
-        ESB_ADDR_IN           => bustdc_esb_rx.addr,   -- bus address
+        ESB_ADDR_IN           => bustdc_esb_rx.addr(6 downto 0),   -- bus address
         ESB_DATA_OUT          => bustdc_esb_tx.data,    -- bus data
         ESB_DATAREADY_OUT     => bustdc_esb_tx.ack,  -- bus data ready strobe
         ESB_UNKNOWN_ADDR_OUT  => bustdc_esb_tx.unknown,     -- bus invalid addr
         --Fifo Write Registers Bus
         EFB_READ_EN_IN        => bustdc_fwb_rx.read,     -- bus read en strobe
         EFB_WRITE_EN_IN       => bustdc_fwb_rx.write,    -- bus write en strobe
-        EFB_ADDR_IN           => bustdc_fwb_rx.addr,   -- bus address
+        EFB_ADDR_IN           => bustdc_fwb_rx.addr(6 downto 0),   -- bus address
         EFB_DATA_OUT          => bustdc_fwb_tx.data,    -- bus data
         EFB_DATAREADY_OUT     => bustdc_fwb_tx.ack,  -- bus data ready strobe
         EFB_UNKNOWN_ADDR_OUT  => bustdc_fwb_tx.unknown,     -- bus invalid addr
