@@ -78,7 +78,8 @@ architecture arch of adc_processor_cfd_ch is
   signal delay_cfd_in  : signed(RESOLUTION_SUB - 1 downto 0) := (others => '0');
   signal delay_cfd_out : signed(RESOLUTION_SUB - 1 downto 0) := (others => '0');
 
-  signal delay_sub     : subtracted_thresh_t                         := subtracted_thresh_t_INIT;
+  type delay_sub_t is array (1 downto 0) of subtracted_thresh_t;
+  signal delay_sub     : delay_sub_t                         := (others => subtracted_thresh_t_INIT);
   
   signal prod, prod_invert : product_thresh_t := product_thresh_t_INIT;
   signal prod_delay        : signed(RESOLUTION_PROD - 1 downto 0) := (others => '0');
@@ -204,14 +205,15 @@ begin
     -- undelayed chain: input is subtracted signal
     -- however, undelayed chain is also a little bit delayed
     -- to account for in/out registers of delay chain above
-    delay_sub <= subtracted;
+    delay_sub(0) <= subtracted;
+    delay_sub(1) <= delay_sub(0);
     mult_s      := signed(resize(CONF.CFDMult, CONF.CFDMult'length + 1)); -- add extra zero sign bit
-    prod_s      := mult_s * delay_sub.value;
+    prod_s      := mult_s * delay_sub(1).value;
     prod.value  <= resize(prod_s, RESOLUTION_PROD); -- get rid of extra bit again
-    prod.thresh <= delay_sub.thresh;
+    prod.thresh <= delay_sub(1).thresh;
     
     -- invert
-    prod_invert.value  <= -prod.value;
+    prod_invert.value  <= -delay_prod.value;
     prod_invert.thresh <= prod.thresh;
 
     -- add both signals to generate the bipolar cfd signal
