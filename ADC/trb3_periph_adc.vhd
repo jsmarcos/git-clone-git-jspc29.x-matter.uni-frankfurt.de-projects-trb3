@@ -187,7 +187,10 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   
   signal tdc_inputs                  : std_logic_vector(TDC_CHANNEL_NUMBER-2 downto 0);
   
-  signal tdc_ctrl_reg   : std_logic_vector(8*32-1 downto 0);
+  constant TDC_CONTROL_REG_NR : integer := 8;
+  type tdc_ctrl_reg_arr_t is array (0 to TDC_CONTROL_REG_NR-1) of std_logic_vector(31 downto 0);
+  signal tdc_ctrl_reg_arr : tdc_ctrl_reg_arr_t;
+  signal tdc_ctrl_reg   : std_logic_vector(TDC_CONTROL_REG_NR*32-1 downto 0);
   
   signal bustdc_hit_rx, bustdc_srb_rx, bustdc_esb_rx, bustdc_fwb_rx, bustdc_ctrl_rx : CTRLBUS_RX;
   signal bustdc_hit_tx, bustdc_srb_tx, bustdc_esb_tx, bustdc_fwb_tx, bustdc_ctrl_tx : CTRLBUS_TX;
@@ -636,7 +639,7 @@ LED_YELLOW <= not med_stat_op(11);
       generic map (
         CHANNEL_NUMBER => TDC_CHANNEL_NUMBER,     -- Number of TDC channels
         STATUS_REG_NR  => 21,           -- Number of status regs
-        CONTROL_REG_NR => 8,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
+        CONTROL_REG_NR => TDC_CONTROL_REG_NR,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
         DEBUG          => c_NO
         )
       port map (
@@ -724,17 +727,25 @@ LED_YELLOW <= not med_stat_op(11);
     --JTTL(0 downto 15) <= (others => '0');
 
 
+
+
     PROC_TDC_CTRL_REG : process
-      variable pos : integer;
+      variable pos : integer range 0 to TDC_CONTROL_REG_NR-1;
     begin
       wait until rising_edge(clk_100_i);
-      pos                := to_integer(unsigned(bustdc_ctrl_rx.addr))*32;
-      bustdc_ctrl_tx.data <= tdc_ctrl_reg(pos+31 downto pos);
+      pos                := to_integer(unsigned(bustdc_ctrl_rx.addr(2 downto 0)));
+      bustdc_ctrl_tx.data <= tdc_ctrl_reg_arr(pos);
       bustdc_ctrl_tx.ack  <= bustdc_ctrl_rx.read;
       if bustdc_ctrl_rx.write = '1' then
-        tdc_ctrl_reg(pos+31 downto pos) <= bustdc_ctrl_rx.data;
+        tdc_ctrl_reg_arr(pos) <= bustdc_ctrl_rx.data;
       end if;
     end process;
+    
+    -- wire up the TDC ctrl reg 
+    wire_tdc_ctrl_reg : for i in 0 to TDC_CONTROL_REG_NR-1 generate
+      tdc_ctrl_reg(32*i+31 downto 32*i) <= tdc_ctrl_reg_arr(i);
+    end generate; 
+    
   end generate;
 
   GEN_NO_TDC : if INCLUDE_TDC = c_NO generate
