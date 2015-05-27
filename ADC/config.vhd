@@ -2,6 +2,7 @@ library ieee;
 USE IEEE.std_logic_1164.ALL;
 use ieee.numeric_std.all;
 use work.trb_net_std.all;
+use work.adc_package.all;
 
 package config is
 
@@ -36,6 +37,9 @@ package config is
     constant ADC_BASELINE_LOGIC     : integer := c_YES;
     constant ADC_TRIGGER_LOGIC      : integer := c_YES;
     constant ADC_CHANNELS           : integer := 48;
+    
+--Include the TDC if READOUT_MODE is CFD    
+    constant INCLUDE_TDC : integer := sel(READOUT_MODE = READOUT_MODE_CFD, c_YES, c_NO);
     
 ------------------------------------------------------------------------------
 --End of design configuration

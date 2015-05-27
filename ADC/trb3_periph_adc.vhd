@@ -2,13 +2,16 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-library work;
 use work.trb_net_std.all;
 use work.trb_net_components.all;
 use work.trb3_components.all;
 use work.config.all;
 use work.version.all;
 use work.adc_package.all;
+
+use work.tdc_components.TDC;
+use work.tdc_version.all;
+
 
 entity trb3_periph_adc is
   port(
@@ -155,16 +158,39 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
 
   signal regio_rx, busadc_rx, busspi_rx, busmem_rx, bussed_rx : CTRLBUS_RX;
   signal regio_tx, busadc_tx, busspi_tx, busmem_tx, bussed_tx : CTRLBUS_TX;
-  signal readout_rx : READOUT_RX;
-  signal readout_tx : readout_tx_array_t(0 to 11);
   
-  signal fee_data_finished_in : std_logic_vector(DEVICES-1 downto 0);
-  signal fee_data_write_in    : std_logic_vector(DEVICES-1 downto 0);
-  signal fee_trg_release_in   : std_logic_vector(DEVICES-1 downto 0);
-  signal fee_data_in           : std_logic_vector(32*DEVICES-1 downto 0);
-  signal fee_trg_statusbits_in : std_logic_vector(32*DEVICES-1 downto 0);
+  -- always have enough signals for TDC
+  -- readout_tx(0) is then used by TDC 
+  constant NUM_READOUTS : integer := DEVICES+1; 
+  
+  signal readout_rx : READOUT_RX;
+  signal readout_tx : readout_tx_array_t(0 to NUM_READOUTS-1);
+  
+  signal fee_data_finished_in : std_logic_vector(NUM_READOUTS-1 downto 0);
+  signal fee_data_write_in    : std_logic_vector(NUM_READOUTS-1 downto 0);
+  signal fee_trg_release_in   : std_logic_vector(NUM_READOUTS-1 downto 0);
+  signal fee_data_in           : std_logic_vector(32*NUM_READOUTS-1 downto 0);
+  signal fee_trg_statusbits_in : std_logic_vector(32*NUM_READOUTS-1 downto 0);
   
   signal sed_debug : std_logic_vector(31 downto 0);
+  
+  -- TDC stuff
+  
+  constant TDC_CHANNEL_NUMBER  : integer := 1; -- just one TDC channel needed besides reference channel
+  
+  component OSCF is
+      port (
+         OSC : out std_logic
+         );
+   end component;      
+  signal osc_int : std_logic;
+  
+  signal tdc_inputs                  : std_logic_vector(TDC_CHANNEL_NUMBER-1 downto 0);
+  
+  signal tdc_ctrl_reg   : std_logic_vector(8*32-1 downto 0);
+  
+  signal bustdc_hit_rx, bustdc_srb_rx, bustdc_esb_rx, bustdc_fwb_rx, bustdc_ctrl_rx : CTRLBUS_RX;
+  signal bustdc_hit_tx, bustdc_srb_tx, bustdc_esb_tx, bustdc_fwb_tx, bustdc_ctrl_tx : CTRLBUS_TX;
   
 begin
 ---------------------------------------------------------------------------
@@ -269,7 +295,7 @@ begin
       CLOCK_FREQUENCY           => CLOCK_FREQUENCY,
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
-      DATA_INTERFACE_NUMBER     => 12,
+      DATA_INTERFACE_NUMBER     => NUM_READOUTS,
       DATA_BUFFER_DEPTH         => 10,
       DATA_BUFFER_WIDTH         => 32,
       DATA_BUFFER_FULL_THRESH   => 2**10-511,
@@ -360,7 +386,7 @@ begin
   timing_trg_received_i <= TRIGGER_LEFT;  --TRIGGER_RIGHT;  --
   common_stat_reg       <= (others => '0');
 
-gen_rdo_tx : for i in 0 to DEVICES-1 generate
+gen_rdo_tx : for i in 0 to NUM_READOUTS-1 generate
       fee_trg_release_in(i)                      <= readout_tx(i).busy_release;
       fee_trg_statusbits_in(i*32+31 downto i*32) <= readout_tx(i).statusbits;
       fee_data_in(i*32+31 downto i*32)           <= readout_tx(i).data;
@@ -395,7 +421,7 @@ gen_reallogic : if READOUT_MODE /= READOUT_MODE_DUMMY generate
       
       TRIGGER_IN  => TRIGGER_LEFT,
       READOUT_RX  => readout_rx,
-      READOUT_TX  => readout_tx,
+      READOUT_TX  => readout_tx(1 to DEVICES),
       BUS_RX      => busadc_rx,
       BUS_TX      => busadc_tx,
       
@@ -437,9 +463,16 @@ end generate;
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : entity work.trb_net16_regio_bus_handler_record
     generic map(
-      PORT_NUMBER      => 4,
-      PORT_ADDRESSES   => (0 => x"d000", 1 => x"d400", 2 => x"a000", 3 => x"d500", others => x"0000"),
-      PORT_ADDR_MASK   => (0 => 9,       1 => 5,       2 => 12,      3 => 2,       others => 0),
+      PORT_NUMBER      => 9,
+      PORT_ADDRESSES   => (
+        0 => x"d000", 1 => x"d400", 2 => x"a000", 3 => x"d500", 
+        4 => x"c000", 5 => x"c100", 6 => x"c200", 7 => x"c300", 8 => x"c800", 
+        others => x"0000"),
+      PORT_ADDR_MASK   => (
+        0 => 9, 1 => 5, 2 => 12, 3 => 2, 
+        4 => 7, 5 => 5, 6 => 7, 7 => 7, 8 => 3,
+        others => 0
+      ),
       PORT_MASK_ENABLE => 1
       )
     port map(
@@ -452,11 +485,22 @@ end generate;
       BUS_RX(0) => busmem_rx, --Flash
       BUS_RX(1) => busspi_rx, --SPI
       BUS_RX(2) => busadc_rx, --ADC
-      BUS_RX(3) => bussed_rx,
+      BUS_RX(3) => bussed_rx, --SED
+      BUS_RX(4) => bustdc_hit_rx,
+      BUS_RX(5) => bustdc_srb_rx,
+      BUS_RX(6) => bustdc_esb_rx,
+      BUS_RX(7) => bustdc_fwb_rx,
+      BUS_RX(8) => bustdc_ctrl_rx,
+      
       BUS_TX(0) => busmem_tx,
       BUS_TX(1) => busspi_tx,
       BUS_TX(2) => busadc_tx,
       BUS_TX(3) => bussed_tx,
+      BUS_TX(4) => bustdc_hit_tx,
+      BUS_TX(5) => bustdc_srb_tx,
+      BUS_TX(6) => bustdc_esb_tx,
+      BUS_TX(7) => bustdc_fwb_tx,
+      BUS_TX(8) => bustdc_ctrl_tx,
       
       STAT_DEBUG => open
       );
@@ -576,5 +620,141 @@ LED_YELLOW <= not med_stat_op(11);
 ---------------------------------------------------------------------------
 
   TEST_LINE <= sed_debug(28 downto 24) & sed_debug(10 downto 0);
+
+-------------------------------------------------------------------------------
+-- TDC
+-------------------------------------------------------------------------------
+   GEN_TDC : if INCLUDE_TDC = c_YES generate
+   -- generates hits for calibration uncorrelated with tdc clk
+   -- also used for the trigger and clock selection procoess
+      OSCInst0 : OSCF  -- internal oscillator with frequency of 2.5MHz
+      port map (
+         OSC => osc_int
+      );
+   
+      THE_TDC : TDC
+      generic map (
+        CHANNEL_NUMBER => TDC_CHANNEL_NUMBER,     -- Number of TDC channels
+        STATUS_REG_NR  => 21,           -- Number of status regs
+        CONTROL_REG_NR => 8,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
+        DEBUG          => c_NO
+        )
+      port map (
+        RESET                 => reset_i,
+        CLK_TDC               => CLK_PCLK_RIGHT,  -- Clock used for the time measurement
+        CLK_READOUT           => clk_100_i,  -- Clock for the readout
+        REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
+        HIT_IN                => tdc_inputs,      -- Channel start signals
+        HIT_CAL_IN            => osc_int,  --clk_20_i,    -- Hits for calibrating the TDC
+        TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
+        TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
+        --
+        -- Trigger signals from handler
+        TRG_DATA_VALID_IN     => readout_rx.data_valid,  -- trig data valid signal from trbnet
+        VALID_TIMING_TRG_IN   => readout_rx.valid_timing_trg,  -- valid timing trigger signal from trbnet
+        VALID_NOTIMING_TRG_IN => readout_rx.valid_notiming_trg,  -- valid notiming signal from trbnet
+        INVALID_TRG_IN        => readout_rx.invalid_trg,  -- invalid trigger signal from trbnet
+        TMGTRG_TIMEOUT_IN     => readout_rx.trg_timeout,  -- timing trigger timeout signal from trbnet
+        SPIKE_DETECTED_IN     => readout_rx.trg_spike,
+        MULTI_TMG_TRG_IN      => readout_rx.trg_multiple,
+        SPURIOUS_TRG_IN       => readout_rx.trg_spurious,
+        --
+        TRG_NUMBER_IN         => readout_rx.trg_number,  -- LVL1 trigger information package
+        TRG_CODE_IN           => readout_rx.trg_code,  --
+        TRG_INFORMATION_IN    => readout_rx.trg_information,   --
+        TRG_TYPE_IN           => readout_rx.trg_type,  -- LVL1 trigger information package
+        --Response to handler
+        --       TRG_RELEASE_OUT       => fee_trg_release_i,   -- trigger release signal
+        TRG_RELEASE_OUT       => readout_tx(0).busy_release,
+        TRG_STATUSBIT_OUT     => readout_tx(0).statusbits,
+        DATA_OUT              => readout_tx(0).data,
+        DATA_WRITE_OUT        => readout_tx(0).data_write,
+        DATA_FINISHED_OUT     => readout_tx(0).data_finished,
+        --Hit Counter Bus
+        HCB_READ_EN_IN        => bustdc_hit_rx.read,  -- bus read en strobe
+        HCB_WRITE_EN_IN       => bustdc_hit_rx.write,   -- bus write en strobe
+        HCB_ADDR_IN           => bustdc_hit_rx.addr,     -- bus address
+        HCB_DATA_OUT          => bustdc_hit_tx.data,   -- bus data
+        HCB_DATAREADY_OUT     => bustdc_hit_tx.ack,   -- bus data ready strobe
+        HCB_UNKNOWN_ADDR_OUT  => bustdc_hit_tx.unknown,  -- bus invalid addr
+        --Status Registers Bus
+        SRB_READ_EN_IN        => bustdc_srb_rx.read,     -- bus read en strobe
+        SRB_WRITE_EN_IN       => bustdc_srb_rx.write,    -- bus write en strobe
+        SRB_ADDR_IN           => bustdc_srb_rx.addr,   -- bus address
+        SRB_DATA_OUT          => bustdc_srb_tx.data,    -- bus data
+        SRB_DATAREADY_OUT     => bustdc_srb_tx.ack,  -- bus data ready strobe
+        SRB_UNKNOWN_ADDR_OUT  => bustdc_srb_tx.unknown,     -- bus invalid addr
+        --Encoder Start Registers Bus
+        ESB_READ_EN_IN        => bustdc_esb_rx.read,     -- bus read en strobe
+        ESB_WRITE_EN_IN       => bustdc_esb_rx.write,    -- bus write en strobe
+        ESB_ADDR_IN           => bustdc_esb_rx.addr,   -- bus address
+        ESB_DATA_OUT          => bustdc_esb_tx.data,    -- bus data
+        ESB_DATAREADY_OUT     => bustdc_esb_tx.ack,  -- bus data ready strobe
+        ESB_UNKNOWN_ADDR_OUT  => bustdc_esb_tx.unknown,     -- bus invalid addr
+        --Fifo Write Registers Bus
+        EFB_READ_EN_IN        => bustdc_fwb_rx.read,     -- bus read en strobe
+        EFB_WRITE_EN_IN       => bustdc_fwb_rx.write,    -- bus write en strobe
+        EFB_ADDR_IN           => bustdc_fwb_rx.addr,   -- bus address
+        EFB_DATA_OUT          => bustdc_fwb_tx.data,    -- bus data
+        EFB_DATAREADY_OUT     => bustdc_fwb_tx.ack,  -- bus data ready strobe
+        EFB_UNKNOWN_ADDR_OUT  => bustdc_fwb_tx.unknown,     -- bus invalid addr
+        --Lost Hit Registers Bus
+        LHB_READ_EN_IN        => '0',  -- lhb_read_en,   -- bus read en strobe
+        LHB_WRITE_EN_IN       => '0',  -- lhb_write_en,  -- bus write en strobe
+        LHB_ADDR_IN           => (others => '0'),  -- lhb_addr,    -- bus address
+        LHB_DATA_OUT          => open,  -- lhb_data_out,  -- bus data
+        LHB_DATAREADY_OUT     => open,  -- lhb_data_ready,    -- bus data ready strobe
+        LHB_UNKNOWN_ADDR_OUT  => open,  -- lhb_invalid,   -- bus invalid addr
+        -- Channel Debug
+        CDB_READ_EN_IN        => '0',   -- in  std_logic;
+        CDB_WRITE_EN_IN       => '1',   -- in  std_logic;
+        CDB_ADDR_IN           => "0000000",  -- in  std_logic_vector(6 downto 0);
+        CDB_DATA_OUT          => open,  -- out std_logic_vector(31 downto 0);
+        CDB_DATAREADY_OUT     => open,  -- out std_logic;
+        CDB_UNKNOWN_ADDR_OUT  => open,  -- out std_logic;
+        --
+        LOGIC_ANALYSER_OUT    => open,
+        CONTROL_REG_IN        => tdc_ctrl_reg
+        );
+
+    --tdc_inputs(1) used by CBM-MBS ETM
+    --tdc_inputs(2) <= cbm_sync_pulser_i;
+    --tdc_inputs(3) <= cbm_sync_timing_trigger_i;
+    --tdc_inputs(4) <= JINLVDS(0);        --NIM_IN(0);
+    --JTTL(0 downto 15) <= (others => '0');
+
+
+    PROC_TDC_CTRL_REG : process
+      variable pos : integer;
+    begin
+      wait until rising_edge(clk_100_i);
+      pos                := to_integer(unsigned(bustdc_ctrl_rx.addr))*32;
+      bustdc_ctrl_tx.data <= tdc_ctrl_reg(pos+31 downto pos);
+      bustdc_ctrl_tx.ack  <= bustdc_ctrl_rx.read;
+      if bustdc_ctrl_rx.write = '1' then
+        tdc_ctrl_reg(pos+31 downto pos) <= bustdc_ctrl_rx.data;
+      end if;
+    end process;
+  end generate;
+
+  GEN_NO_TDC : if INCLUDE_TDC = c_NO generate
+    bustdc_srb_tx.ack  <= '0';
+    bustdc_esb_tx.ack  <= '0';
+    bustdc_fwb_tx.ack  <= '0';
+    bustdc_hit_tx.ack  <= '0';
+    bustdc_ctrl_tx.ack <= '0';
+    readout_tx(0).data_finished <= '1';
+    process
+    begin
+      wait until rising_edge(clk_100_i);
+      bustdc_srb_tx.unknown    <= bustdc_srb_rx.read or bustdc_srb_rx.write;
+      bustdc_esb_tx.unknown    <= bustdc_esb_rx.read or bustdc_esb_rx.write;
+      bustdc_fwb_tx.unknown    <= bustdc_fwb_rx.read or bustdc_fwb_rx.write;
+      bustdc_hit_tx.unknown    <= bustdc_hit_rx.read or bustdc_hit_rx.write;
+      bustdc_ctrl_tx.unknown    <= bustdc_ctrl_rx.read or bustdc_ctrl_rx.write;
+    end process;
+
+  end generate;
+
 
 end architecture;
