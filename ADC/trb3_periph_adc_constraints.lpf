@@ -117,11 +117,11 @@ REGION "THE_ADC_PROC_cfd_3_region" "R7C83D" 49 27;
 LOCATE UGROUP "THE_ADC_PROC_cfd_3_group" REGION "THE_ADC_PROC_cfd_3_region";
 
 UGROUP "THE_ADC_PROC_cfd_4_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.4.THE_ADC_PROC;
-REGION "THE_ADC_PROC_cfd_4_region" "R66C2D" 49 27;
+REGION "THE_ADC_PROC_cfd_4_region" "R66C2D" 39 26;
 LOCATE UGROUP "THE_ADC_PROC_cfd_4_group" REGION "THE_ADC_PROC_cfd_4_region";
 
 UGROUP "THE_ADC_PROC_cfd_5_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.5.THE_ADC_PROC;
-REGION "THE_ADC_PROC_cfd_5_region" "R66C29D" 49 27;
+REGION "THE_ADC_PROC_cfd_5_region" "R66C29D" 39 26;
 LOCATE UGROUP "THE_ADC_PROC_cfd_5_group" REGION "THE_ADC_PROC_cfd_5_region";
 
 UGROUP "THE_ADC_PROC_cfd_7_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.7.THE_ADC_PROC;
