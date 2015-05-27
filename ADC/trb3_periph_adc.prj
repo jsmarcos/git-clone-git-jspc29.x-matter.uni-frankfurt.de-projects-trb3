@@ -1,3 +1,5 @@
+# load configuration derived from config.vhd by compile_constraints.pl
+source trb3_periph_adc_prjconfig.tcl  
 
 # implementation: "workdir"
 impl -add workdir -type fpga
@@ -167,3 +169,42 @@ add_file -vhdl -lib "work" "source/adc_slowcontrol_data_buffer.vhd"
 
 add_file -vhdl -lib "work" "trb3_periph_adc.vhd"
 add_file -constraint "trb3_periph_adc.sdc"
+
+# TDC stuff
+
+add_file -vhdl -lib "work" "tdc_release/tdc_version.vhd"
+add_file -vhdl -lib "work" "tdc_release/tdc_components.vhd"
+if {$INCLUDE_TDC == 1} {
+   ###############
+   #Change path to tdc release also in compile script!
+   ###############
+   # don't use vhd but link Adder_304.ngo to workdir!
+
+
+   add_file -vhdl -lib "work" "tdc_release/bit_sync.vhd"
+   add_file -vhdl -lib "work" "tdc_release/BusHandler.vhd"
+   add_file -vhdl -lib "work" "tdc_release/Channel_200.vhd"
+   add_file -vhdl -lib "work" "tdc_release/Channel.vhd"
+   add_file -vhdl -lib "work" "tdc_release/Encoder_304_Bit.vhd"
+   add_file -vhdl -lib "work" "tdc_release/fallingEdgeDetect.vhd"
+   add_file -vhdl -lib "work" "tdc_release/hit_mux.vhd"
+   add_file -vhdl -lib "work" "tdc_release/LogicAnalyser.vhd"
+   add_file -vhdl -lib "work" "tdc_release/Readout.vhd"
+   add_file -vhdl -lib "work" "tdc_release/risingEdgeDetect.vhd"
+   add_file -vhdl -lib "work" "tdc_release/ROM_encoder_ecp3.vhd"
+   add_file -vhdl -lib "work" "tdc_release/ShiftRegisterSISO.vhd"
+   add_file -vhdl -lib "work" "tdc_release/Stretcher_A.vhd"
+   add_file -vhdl -lib "work" "tdc_release/Stretcher_B.vhd"
+   add_file -vhdl -lib "work" "tdc_release/Stretcher.vhd"
+   add_file -vhdl -lib "work" "tdc_release/TDC.vhd"
+   add_file -vhdl -lib "work" "tdc_release/TriggerHandler.vhd"
+   add_file -vhdl -lib "work" "tdc_release/up_counter.vhd"
+
+   add_file -vhdl -lib "work" "../../tdc/base/cores/ecp3/FIFO/FIFO_DC_36x128_DynThr_OutReg.vhd"
+   add_file -vhdl -lib "work" "../../tdc/base/cores/ecp3/FIFO/FIFO_DC_36x128_OutReg.vhd"
+   add_file -vhdl -lib "work" "../../tdc/base/cores/ecp3/FIFO/FIFO_DC_36x64_OutReg.vhd"
+   add_file -vhdl -lib "work" "../../tdc/base/cores/ecp3/FIFO/FIFO_DC_36x32_OutReg.vhd"
+   add_file -vhdl -lib "work" "../../tdc/base/cores/ecp3/FIFO/FIFO_36x128_OutReg.vhd"
+   add_file -vhdl -lib "work" "../../tdc/base/cores/ecp3/FIFO/FIFO_36x64_OutReg.vhd"
+   add_file -vhdl -lib "work" "../../tdc/base/cores/ecp3/FIFO/FIFO_36x32_OutReg.vhd"
+}

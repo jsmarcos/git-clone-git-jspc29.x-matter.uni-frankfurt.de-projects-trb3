@@ -9,9 +9,9 @@ use FileHandle;
 ###################################################################################
 #Settings for this project
 my $TOPNAME                      = "trb3_periph_adc"; #Name of top-level entity
-my $lattice_path                 = '/opt/lattice/diamond/2.1_x64';
+my $lattice_path                 = '/opt/lattice/diamond/3.2_x64';
 my $lattice_bin_path             = "$lattice_path/bin/lin64"; # note the lin/lin64 at the end, no isfgpa needed
-my $synplify_path                = '/opt/synplicity/F-2012.03-SP1';
+my $synplify_path                = '/opt/synplicity/I-2013.09-SP1';
 my $lm_license_file_for_synplify = '27000@lxcad01.gsi.de';
 my $lm_license_file_for_par      = '1702@hadeb05.gsi.de';
 ###################################################################################
@@ -41,13 +41,7 @@ my $DEVICENAME="LFE3-150EA";
 my $PACKAGE="FPBGA672";
 my $SPEEDGRADE="8";
 
-my $WORKDIR = "workdir";
-unless(-d $WORKDIR) {
-  mkdir $WORKDIR or die "can't create workdir '$WORKDIR': $!";
-  system ("cd workdir; ../../base/linkdesignfiles.sh; cd ..;");
-}
-
-
+# also links the design files and creates the workdir if necessary
 system ("./compile_constraints.pl");
 system ("../base/make_version_vhd.pl");
 

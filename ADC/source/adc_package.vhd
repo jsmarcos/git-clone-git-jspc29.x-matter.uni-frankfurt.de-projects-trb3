@@ -88,27 +88,9 @@ package adc_package is
     Trigger          : std_logic;
   end record;
 
-  function sel(Cond: BOOLEAN; If_True, If_False: integer) return integer;
-
 end package;
 
 package body adc_package is
-
----*** START CODE ***---
-    ----------------------------------------------------------------
-    -- Functions to select one or the other based on a boolean (or
-    -- std_ulogic or std_logic) input.
-    -- Analogous to the C statement x = Cond ? a : b
-    ----------------------------------------------------------------
-    function sel(Cond: BOOLEAN; If_True, If_False: integer) return integer is
-    begin
-        if (Cond = TRUE) then
-            return(If_True);
-        else
-            return(If_False);
-        end if;
-    end function sel;
----*** END CODE ***--- 
 
 end package body;
 

@@ -38,8 +38,8 @@ package config is
     constant ADC_TRIGGER_LOGIC      : integer := c_YES;
     constant ADC_CHANNELS           : integer := 48;
     
---Include the TDC if READOUT_MODE is CFD    
-    constant INCLUDE_TDC : integer := sel(READOUT_MODE = READOUT_MODE_CFD, c_YES, c_NO);
+--Include the TDC (only usefule for CFD readout mode) 
+    constant INCLUDE_TDC : integer := c_YES;
     
 ------------------------------------------------------------------------------
 --End of design configuration
