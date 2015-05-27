@@ -80,6 +80,8 @@ architecture adc_handler_arch of adc_handler is
 
   signal adc_clk                     : std_logic_vector(DEVICES downto 1) := (others => '1');
   signal adc_clk_left, adc_clk_right : std_logic                          := '1';
+  
+  signal adc_clk_tdc_out_i : std_logic_vector(DEVICES-1 downto 0);
 
 -- 000 - 0ff configuration
 --       000 reset, buffer clear strobes
@@ -388,9 +390,11 @@ begin
           DEBUG_BUFFER_READY    => buffer_ready(i),
           READOUT_RX            => READOUT_RX,
           READOUT_TX            => READOUT_TX(i),
-          ADC_CLK_TDC_OUT       => ADC_CLK_TDC_OUT
+          ADC_CLK_TDC_OUT       => adc_clk_tdc_out_i(i)
         );
     end generate;
+    
+    ADC_CLK_TDC_OUT <= adc_clk_tdc_out_i(5); -- select 5 as it's closest to the TDC placement
 
     config_cfd.BaselineAlwaysOn <= buffer_ctrl_reg(4);
 

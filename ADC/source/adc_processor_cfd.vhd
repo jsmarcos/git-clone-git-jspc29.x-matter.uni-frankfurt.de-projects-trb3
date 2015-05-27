@@ -82,7 +82,7 @@ begin
   busy_in_adc <= busy_in_sys when rising_edge(CLK_ADC);
   busy_out_sys <= busy_out_adc when rising_edge(CLK_SYS);
   
-  ADC_CLK_TDC_OUT <= debug_adc(5).EpochCounter(10);
+  ADC_CLK_TDC_OUT <= debug_adc(0).EpochCounter(10);
   
   gen_cfd : for i in 0 to CHANNELS - 1 generate
     trigger_gen(i) <= debug_sys(i).Trigger;
