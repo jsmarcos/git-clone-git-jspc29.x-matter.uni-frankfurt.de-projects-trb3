@@ -103,10 +103,10 @@ begin
   input <= unsigned(ADC_DATA);
 
   -- Tell the outer word some useful debug infos
-  DEBUG.InvalidWordCount <= invalid_word_count;
+  DEBUG.InvalidWordCount <= invalid_word_count when rising_edge(CLK);
   DEBUG.Baseline         <= baseline;
   DEBUG.LastWord         <= input;
-  DEBUG.EpochCounter     <= epoch_counter;
+  DEBUG.EpochCounter     <= epoch_counter when rising_edge(CLK);
 
   -- word checker, needed for ADC phase adjustment
   gen_word_checker : for i in 0 to CHANNELS - 1 generate
