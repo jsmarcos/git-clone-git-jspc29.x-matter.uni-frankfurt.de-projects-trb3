@@ -26,7 +26,9 @@ entity adc_handler is
     BUS_RX           : in  CTRLBUS_RX;
     BUS_TX           : out CTRLBUS_TX;
 
-    ADCSPI_CTRL      : out std_logic_vector(7 downto 0)
+    ADCSPI_CTRL      : out std_logic_vector(7 downto 0);
+    
+    ADC_CLK_TDC_OUT  : out std_logic
   );
 end entity;
 
@@ -385,7 +387,8 @@ begin
           DEBUG_BUFFER_DATA     => buffer_data(i),
           DEBUG_BUFFER_READY    => buffer_ready(i),
           READOUT_RX            => READOUT_RX,
-          READOUT_TX            => READOUT_TX(i)
+          READOUT_TX            => READOUT_TX(i),
+          ADC_CLK_TDC_OUT       => ADC_CLK_TDC_OUT
         );
     end generate;
 

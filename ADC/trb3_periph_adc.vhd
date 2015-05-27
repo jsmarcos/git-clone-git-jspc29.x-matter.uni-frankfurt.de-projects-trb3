@@ -428,7 +428,9 @@ gen_reallogic : if READOUT_MODE /= READOUT_MODE_DUMMY generate
       BUS_RX      => busadc_rx,
       BUS_TX      => busadc_tx,
       
-      ADCSPI_CTRL => adcspi_ctrl
+      ADCSPI_CTRL => adcspi_ctrl,
+      
+      ADC_CLK_TDC_OUT => tdc_inputs(0)
       );    
 end generate;
     

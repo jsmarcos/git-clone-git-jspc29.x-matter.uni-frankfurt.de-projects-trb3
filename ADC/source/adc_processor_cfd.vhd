@@ -26,7 +26,9 @@ entity adc_processor_cfd is
     DEBUG_BUFFER_READY : out std_logic;
 
     READOUT_RX         : in  READOUT_RX;
-    READOUT_TX         : out READOUT_TX
+    READOUT_TX         : out READOUT_TX;
+    
+    ADC_CLK_TDC_OUT    : out std_logic
   );
 end entity adc_processor_cfd;
 
@@ -79,6 +81,9 @@ begin
   debug_sys <= debug_adc when rising_edge(CLK_SYS);
   busy_in_adc <= busy_in_sys when rising_edge(CLK_ADC);
   busy_out_sys <= busy_out_adc when rising_edge(CLK_SYS);
+  
+  ADC_CLK_TDC_OUT <= debug_adc(5).EpochCounter(10);
+  
   gen_cfd : for i in 0 to CHANNELS - 1 generate
     trigger_gen(i) <= debug_sys(i).Trigger;
         
