@@ -186,32 +186,35 @@ begin
       );
   end generate;
   
-  -- skip ADC10, connected to problematic input for Diamond >2.1
-  gen_4 : if NUM_DEVICES = 5 and ADC_CHANNELS = 44 generate
-    THE_4 : entity work.dqsinput_4x5
+  -- skip ADC10 connected to ADC_DATA(14 downto 10),
+  -- due to disable input for Diamond version >2.1
+  gen_fake4 : if NUM_DEVICES = 5 and ADC_CHANNELS = 44 generate
+    THE_5 : entity work.dqsinput_5x5
       port map(
         clk_0        => ADC_DCO(1),
         clk_1        => ADC_DCO(2),
-        clk_2        => ADC_DCO(3),
+        clk_2        => '0',
         clk_3        => ADC_DCO(4),
+        clk_4        => ADC_DCO(5),
         clkdiv_reset => RESTART_IN,
         eclk         => clk_adcfast_i,
         reset_0      => restart_i,
         reset_1      => restart_i,
-        reset_2      => restart_i,
+        reset_2      => '0',
         reset_3      => restart_i,
+        reset_4      => restart_i,
         sclk         => clk_data,
         datain_0     => ADC_DATA(4 downto 0),
         datain_1     => ADC_DATA(9 downto 5),
-        -- ADC_DATA(14 downto 10) corresponds to ADC10
-        datain_2     => ADC_DATA(19 downto 15),
-        datain_3     => ADC_DATA(24 downto 20),
+        datain_2     => (others => '0'),
+        datain_3     => ADC_DATA(19 downto 15),
+        datain_4     => ADC_DATA(24 downto 20),
         q_0          => q(0),
         q_1          => q(1),
-        -- skip here as well
-        q_2          => q(3),
-        q_3          => q(4)
-    );
+        q_2          => open,
+        q_3          => q(3),
+        q_4          => q(4)
+      );
     q(2) <= (others => '0');
   end generate;
 
