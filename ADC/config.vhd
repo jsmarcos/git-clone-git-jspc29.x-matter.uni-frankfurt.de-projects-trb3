@@ -35,7 +35,9 @@ package config is
   --These are currently used for the included features table only
   constant ADC_BASELINE_LOGIC : integer := c_YES;
   constant ADC_TRIGGER_LOGIC  : integer := c_YES;
-  constant ADC_CHANNELS       : integer := 44;
+  -- ADC channels may be 48 or 40, the latter for enabling compilation 
+  -- with TDC and lattice diamond version >2.1
+  constant ADC_CHANNELS       : integer := 40;
 
   --Include the TDC (only usefule for CFD readout mode) 
   constant INCLUDE_TDC : integer := c_YES;

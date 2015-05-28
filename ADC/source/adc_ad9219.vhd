@@ -120,7 +120,11 @@ begin
 
   restart_i <= RESTART_IN when rising_edge(clk_data);
 
-  gen_7 : if NUM_DEVICES = 7 generate
+  assert    (ADC_CHANNELS = 48 or ADC_CHANNELS = 40)
+    report "The number of either 48 or 40." severity error;
+
+
+  gen_7 : if NUM_DEVICES = 7 and ADC_CHANNELS = 48 generate
     THE_7 : entity work.dqsinput_7x5
       port map(
         clk_0        => ADC_DCO(1),
@@ -156,6 +160,44 @@ begin
         q_6          => q(6)
       );
   end generate;
+  
+  -- skip ADC5, connected to problematic input for Diamond >2.1
+  gen_6 : if NUM_DEVICES = 7 and ADC_CHANNELS = 40 generate
+    THE_7 : entity work.dqsinput_6x5
+      port map(
+        clk_0        => ADC_DCO(1),
+        clk_1        => ADC_DCO(2),
+        clk_2        => ADC_DCO(3),
+        clk_3        => ADC_DCO(4),
+        -- skip here as well
+        clk_4        => ADC_DCO(6),
+        clk_5        => ADC_DCO(7),
+        clkdiv_reset => RESTART_IN,
+        eclk         => clk_adcfast_i,
+        reset_0      => restart_i,
+        reset_1      => restart_i,
+        reset_2      => restart_i,
+        reset_3      => restart_i,
+        reset_4      => restart_i,
+        reset_5      => restart_i,
+        sclk         => clk_data,
+        datain_0     => ADC_DATA(4 downto 0),
+        datain_1     => ADC_DATA(9 downto 5),
+        datain_2     => ADC_DATA(14 downto 10),
+        datain_3     => ADC_DATA(19 downto 15),
+        -- ADC_DATA(24 downto 20) corresponds to ADC5
+        datain_4     => ADC_DATA(29 downto 25),
+        datain_5     => ADC_DATA(34 downto 30),
+        q_0          => q(0),
+        q_1          => q(1),
+        q_2          => q(2),
+        q_3          => q(3),
+        -- skip here as well
+        q_4          => q(5),
+        q_5          => q(6)
+      );
+      q(4) <= (others => '0');
+  end generate;
 
   gen_5 : if NUM_DEVICES = 5 and ADC_CHANNELS = 48 generate
     THE_5 : entity work.dqsinput_5x5
@@ -187,11 +229,12 @@ begin
   end generate;
   
   -- skip ADC10, connected to problematic input for Diamond >2.1
-  gen_4 : if NUM_DEVICES = 5 and ADC_CHANNELS = 44 generate
+  gen_4 : if NUM_DEVICES = 5 and ADC_CHANNELS = 40 generate
     THE_4 : entity work.dqsinput_4x5
       port map(
         clk_0        => ADC_DCO(1),
         clk_1        => ADC_DCO(2),
+        -- skip here as well
         clk_2        => ADC_DCO(4),
         clk_3        => ADC_DCO(5),
         clkdiv_reset => RESTART_IN,
