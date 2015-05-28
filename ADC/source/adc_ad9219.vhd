@@ -192,8 +192,8 @@ begin
       port map(
         clk_0        => ADC_DCO(1),
         clk_1        => ADC_DCO(2),
-        clk_2        => ADC_DCO(3),
-        clk_3        => ADC_DCO(4),
+        clk_2        => ADC_DCO(4),
+        clk_3        => ADC_DCO(5),
         clkdiv_reset => RESTART_IN,
         eclk         => clk_adcfast_i,
         reset_0      => restart_i,
