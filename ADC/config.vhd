@@ -35,7 +35,7 @@ package config is
   --These are currently used for the included features table only
   constant ADC_BASELINE_LOGIC : integer := c_YES;
   constant ADC_TRIGGER_LOGIC  : integer := c_YES;
-  constant ADC_CHANNELS       : integer := 48;
+  constant ADC_CHANNELS       : integer := 44;
 
   --Include the TDC (only usefule for CFD readout mode) 
   constant INCLUDE_TDC : integer := c_YES;
