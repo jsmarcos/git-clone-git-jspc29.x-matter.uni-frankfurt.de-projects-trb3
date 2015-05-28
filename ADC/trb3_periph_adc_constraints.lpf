@@ -96,60 +96,60 @@ MULTICYCLE FROM CELL "gen_reallogic*THE_ADC/gen_readout_cfd*gen_processors*THE_A
 MULTICYCLE FROM CELL "gen_reallogic*THE_ADC/THE_ADC_*/state_q_*" TO CELL "gen_reallogic*THE_ADC/THE_ADC_*/state_qq_*" 2 X;
 
 # left are ADCs 0-5 and 7 (counted from 0)
-UGROUP "THE_ADC_LEFT_group" BLKNAME gen_reallogic_THE_ADC/THE_ADC_LEFT;
+UGROUP "THE_ADC_LEFT_group" BLKNAME gen_reallogic.THE_ADC/THE_ADC_LEFT;
 REGION "THE_ADC_LEFT_region" "R57C2D" 9 55;
 LOCATE UGROUP "THE_ADC_LEFT_group" REGION "THE_ADC_LEFT_region";
 
-UGROUP "THE_ADC_PROC_cfd_0_group" BLKNAME gen_reallogic_THE_ADC/gen_readout_cfd_gen_processors_0_THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_0_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.0.THE_ADC_PROC;
 REGION "THE_ADC_PROC_cfd_0_region" "R7C2D" 49 27;
 LOCATE UGROUP "THE_ADC_PROC_cfd_0_group" REGION "THE_ADC_PROC_cfd_0_region";
 
-UGROUP "THE_ADC_PROC_cfd_1_group" BLKNAME gen_reallogic_THE_ADC/gen_readout_cfd_gen_processors_1_THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_1_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.1.THE_ADC_PROC;
 REGION "THE_ADC_PROC_cfd_1_region" "R7C29D" 49 27;
 LOCATE UGROUP "THE_ADC_PROC_cfd_1_group" REGION "THE_ADC_PROC_cfd_1_region";
 
-UGROUP "THE_ADC_PROC_cfd_2_group" BLKNAME gen_reallogic_THE_ADC/gen_readout_cfd_gen_processors_2_THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_2_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.2.THE_ADC_PROC;
 REGION "THE_ADC_PROC_cfd_2_region" "R7C56D" 49 27;
 LOCATE UGROUP "THE_ADC_PROC_cfd_2_group" REGION "THE_ADC_PROC_cfd_2_region";
 
-UGROUP "THE_ADC_PROC_cfd_3_group" BLKNAME gen_reallogic_THE_ADC/gen_readout_cfd_gen_processors_3_THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_3_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.3.THE_ADC_PROC;
 REGION "THE_ADC_PROC_cfd_3_region" "R7C83D" 49 27;
 LOCATE UGROUP "THE_ADC_PROC_cfd_3_group" REGION "THE_ADC_PROC_cfd_3_region";
 
-UGROUP "THE_ADC_PROC_cfd_4_group" BLKNAME gen_reallogic_THE_ADC/gen_readout_cfd_gen_processors_4_THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_4_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.4.THE_ADC_PROC;
 REGION "THE_ADC_PROC_cfd_4_region" "R66C2D" 39 26;
 LOCATE UGROUP "THE_ADC_PROC_cfd_4_group" REGION "THE_ADC_PROC_cfd_4_region";
 
-UGROUP "THE_ADC_PROC_cfd_5_group" BLKNAME gen_reallogic_THE_ADC/gen_readout_cfd_gen_processors_5_THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_5_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.5.THE_ADC_PROC;
 REGION "THE_ADC_PROC_cfd_5_region" "R66C29D" 39 26;
 LOCATE UGROUP "THE_ADC_PROC_cfd_5_group" REGION "THE_ADC_PROC_cfd_5_region";
 
-UGROUP "THE_ADC_PROC_cfd_7_group" BLKNAME gen_reallogic_THE_ADC/gen_readout_cfd_gen_processors_7_THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_7_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.7.THE_ADC_PROC;
 REGION "THE_ADC_PROC_cfd_7_region" "R66C56D" 49 27;
 LOCATE UGROUP "THE_ADC_PROC_cfd_7_group" REGION "THE_ADC_PROC_cfd_7_region";
 
 # right are ADCs 6 and 8-11 (counted from 0)
-UGROUP "THE_ADC_RIGHT_group" BLKNAME gen_reallogic_THE_ADC/THE_ADC_RIGHT;
+UGROUP "THE_ADC_RIGHT_group" BLKNAME gen_reallogic.THE_ADC/THE_ADC_RIGHT;
 REGION "THE_ADC_RIGHT_region" "R57C137D" 9 45;
 LOCATE UGROUP "THE_ADC_RIGHT_group" REGION "THE_ADC_RIGHT_region";
 
-UGROUP "THE_ADC_PROC_cfd_6_group" BLKNAME gen_reallogic_THE_ADC/gen_readout_cfd_gen_processors_6_THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_6_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.6.THE_ADC_PROC;
 REGION "THE_ADC_PROC_cfd_6_region" "R66C101D" 49 27;
 LOCATE UGROUP "THE_ADC_PROC_cfd_6_group" REGION "THE_ADC_PROC_cfd_6_region";
 
-UGROUP "THE_ADC_PROC_cfd_8_group" BLKNAME gen_reallogic_THE_ADC/gen_readout_cfd_gen_processors_8_THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_8_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.8.THE_ADC_PROC;
 REGION "THE_ADC_PROC_cfd_8_region" "R66C128D" 49 27;
 LOCATE UGROUP "THE_ADC_PROC_cfd_8_group" REGION "THE_ADC_PROC_cfd_8_region";
 
-UGROUP "THE_ADC_PROC_cfd_9_group" BLKNAME gen_reallogic_THE_ADC/gen_readout_cfd_gen_processors_9_THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_9_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.9.THE_ADC_PROC;
 REGION "THE_ADC_PROC_cfd_9_region" "R66C155D" 49 27;
 LOCATE UGROUP "THE_ADC_PROC_cfd_9_group" REGION "THE_ADC_PROC_cfd_9_region";
 
-UGROUP "THE_ADC_PROC_cfd_10_group" BLKNAME gen_reallogic_THE_ADC/gen_readout_cfd_gen_processors_10_THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_10_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.10.THE_ADC_PROC;
 REGION "THE_ADC_PROC_cfd_10_region" "R7C128D" 49 27;
 LOCATE UGROUP "THE_ADC_PROC_cfd_10_group" REGION "THE_ADC_PROC_cfd_10_region";
 
-UGROUP "THE_ADC_PROC_cfd_11_group" BLKNAME gen_reallogic_THE_ADC/gen_readout_cfd_gen_processors_11_THE_ADC_PROC;
+UGROUP "THE_ADC_PROC_cfd_11_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.11.THE_ADC_PROC;
 REGION "THE_ADC_PROC_cfd_11_region" "R7C155D" 49 27;
 LOCATE UGROUP "THE_ADC_PROC_cfd_11_group" REGION "THE_ADC_PROC_cfd_11_region";
 
@@ -161,14 +161,14 @@ LOCATE UGROUP "THE_ADC_PROC_cfd_11_group" REGION "THE_ADC_PROC_cfd_11_region";
 
 UGROUP "EF_LT2" BBOX 10 51
        BLKNAME THE_TDC/ReferenceChannel/Channel200
-       BLKNAME THE_TDC/ReferenceChannel/Buffer_128_The_Buffer
-       BLKNAME THE_TDC/GEN_Channels_1_Channels/Channel200
-       BLKNAME THE_TDC/GEN_Channels_1_Channels/Buffer_128_The_Buffer
+       BLKNAME THE_TDC/ReferenceChannel/Buffer_128.The_Buffer
+       BLKNAME THE_TDC/GEN_Channels.1.Channels/Channel200
+       BLKNAME THE_TDC/GEN_Channels.1.Channels/Buffer_128.The_Buffer
        ;
 LOCATE UGROUP "EF_LT2" SITE "R105C2D" ;
 
 UGROUP "Ref_Ch" BBOX 1 51 
-       BLKNAME THE_TDC/ReferenceChannel/Channel200/SimAdderNo_FC;
+       BLKNAME THE_TDC/ReferenceChannel/Channel200/SimAdderNo.FC;
 LOCATE UGROUP "Ref_Ch" SITE "R111C2D" ;
 UGROUP "hitBuf_ref" BBOX 1 1
        BLKNAME THE_TDC/hit_mux_ref;
@@ -178,57 +178,11 @@ UGROUP "Ref_ff_en"  BBOX 1 1
 LOCATE UGROUP "Ref_ff_en" SITE "R111C27D" ;
 #
 UGROUP "FC_1" BBOX 1 51 
-       BLKNAME THE_TDC/GEN_Channels_1_Channels/Channel200/SimAdderNo_FC;
+       BLKNAME THE_TDC/GEN_Channels.1.Channels/Channel200/SimAdderNo.FC;
 LOCATE UGROUP "FC_1" SITE "R113C2D" ;
 UGROUP "hitBuf_1" BBOX 1 1
-       BLKNAME THE_TDC/GEN_hit_mux_1_hit_mux_ch;
+       BLKNAME THE_TDC/GEN_hit_mux.1.hit_mux_ch;
 LOCATE UGROUP "hitBuf_1" SITE "R114C4D" ;
 UGROUP "ff_en_1" BBOX 1 1
-       BLKNAME THE_TDC/GEN_Channels_1_Channels/Channel200/ff_array_en_1_i;
+       BLKNAME THE_TDC/GEN_Channels.1.Channels/Channel200/ff_array_en_1_i;
 LOCATE UGROUP "ff_en_1" SITE "R113C27D" ;
-
-
-#############################################################################
-##                         Unimportant Data Lines                          ##
-#############################################################################
-MULTICYCLE FROM CELL "THE_TDC/reset_tdc*" TO CLKNET CLK_PCLK_LEFT_c 2x;
-MULTICYCLE FROM CELL "THE_TDC/reset_counters*" 4 X;
-
-MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/Channel200/RingBuffer*FIFO/FF*" TO CELL "THE_TDC/ReferenceChannel/Channel200/ringBuffer_almost_full_sync*" 2x;
-MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/Channel200/RingBuffer*FIFO/FF*" TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/ringBuffer_almost_full_sync*" 2x;
-
-MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter*" TO CELL "THE_TDC/ReferenceChannel/Channel200/epoch_cntr[*]" 4 X;
-MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter*" TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/epoch_cntr[*]" 4 X;
-
-MULTICYCLE TO CELL "THE_TDC/TheReadout/TW_pre*" 4 X;
-MULTICYCLE TO CELL "THE_TDC/TheReadout/TW_post*" 4 X;
-
-MULTICYCLE FROM CELL "THE_TDC/hit_edge[*]" TO CELL "THE_TDC/GEN_Channels_*_Channels/Channel200/memory[*]" 2 X ;
-
-MULTICYCLE TO CELL "THE_TDC/TheChannelDebugBus/data_out_reg[*]" 4 X;
-
-#MULTICYCLE FROM CLKNET "clk_100_i" TO CLKNET "CLK_OSC_c" 4 X ;
-
-
-BLOCK NET "THE_TDC/pulse[*]";
-BLOCK NET "THE_TDC/hit_in_s*";
-
-MAXDELAY NET "THE_TDC/hit_in_i*" 0.600000 nS; #DATAPATH_ONLY ;
-
-
-
-
-
-
-# MULTICYCLE FROM CELL "PROC_TDC_CTRL_REG*tdc_ctrl_reg*" 4x;
-# MULTICYCLE TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/SimAdderNo*FC/FF*" 4x;
-# MULTICYCLE TO CELL "THE_TDC/ReferenceChannel/Channel200/SimAdderNo*FC/FF*" 4x;
-
-## Maybe effective
-
-# MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/The_Buffer/*" TO CELL "THE_TDC/TheReadout/rd_en*" 2 X;
-
-
-
-PROHIBIT SECONDARY NET "THE_TDC/ReferenceChannel/Channel200/ff_array_en";
-PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels_1_Channels/Channel200/ff_array_en";

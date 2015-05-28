@@ -59,16 +59,16 @@ symlink "$back/../tdc_release/Adder_304.ngo", "Adder_304.ngo";
 chdir($script_dir);
 
 system("cp ../base/$TOPNAME.lpf $workdir/$TOPNAME.lpf");
-# channel placements and unimportant lines already added in $TOPNAME_constraints.lpf file
+# channel placements already added in $TOPNAME_constraints.lpf file
 #system("cat tdc_release/tdc_constraints_64.lpf >> $workdir/$TOPNAME.lpf") if $configSettings{'INCLUDE_TDC'};
-#system("cat tdc_release/unimportant_lines_constraints.lpf >> $workdir/$TOPNAME.lpf") if $configSettings{'INCLUDE_TDC'};
+system("cat tdc_release/unimportant_lines_constraints.lpf >> $workdir/$TOPNAME.lpf") if $configSettings{'INCLUDE_TDC'};
 system("cat ".$TOPNAME."_constraints.lpf >> $workdir/$TOPNAME.lpf");
 
 open FILE, "<$workdir/$TOPNAME.lpf" or die "Couldnt open file: $!";
 my $lpf = join('', <FILE>);
 close FILE;
 
-$lpf =~ s#THE_TDC/#GEN_TDC_THE_TDC/#g;
+$lpf =~ s#THE_TDC/#GEN_TDC.THE_TDC/#g;
 
 open FILE, ">$workdir/$TOPNAME.lpf" or die "Couldnt open file: $!";
 print FILE $lpf;
