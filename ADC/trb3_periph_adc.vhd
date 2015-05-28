@@ -195,6 +195,8 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   signal bustdc_hit_rx, bustdc_srb_rx, bustdc_esb_rx, bustdc_fwb_rx, bustdc_ctrl_rx : CTRLBUS_RX;
   signal bustdc_hit_tx, bustdc_srb_tx, bustdc_esb_tx, bustdc_fwb_tx, bustdc_ctrl_tx : CTRLBUS_TX;
   
+  signal adc10_ch_i : std_logic_vector(4 downto 0);
+  
 begin
 ---------------------------------------------------------------------------
 -- Reset Generation
@@ -416,7 +418,7 @@ gen_reallogic : if READOUT_MODE /= READOUT_MODE_DUMMY generate
       ADC_DATA(34 downto 30)   => ADC7_CH,
       ADC_DATA(39 downto 35)   => ADC8_CH,
       ADC_DATA(44 downto 40)   => ADC9_CH,
-      ADC_DATA(49 downto 45)   => ADC10_CH,
+      ADC_DATA(49 downto 45)   => adc10_ch_i,
       ADC_DATA(54 downto 50)   => ADC11_CH,
       ADC_DATA(59 downto 55)   => ADC12_CH,
       ADC_DCO     => ADC_DCO,
@@ -432,6 +434,9 @@ gen_reallogic : if READOUT_MODE /= READOUT_MODE_DUMMY generate
       
       ADC_CLK_TDC_OUT => tdc_inputs(0)
       );    
+      
+  adc10_ch_i(3 downto 0) <= ADC10_CH(3 downto 0);    
+  adc10_ch_i(4) <= '0';
 end generate;
     
 gen_dummyreadout : if READOUT_MODE = READOUT_MODE_DUMMY generate
