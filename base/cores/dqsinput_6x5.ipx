@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="dqsinput_6x5" module="DDR_GENERIC" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2015 05 28 15:27:58.179" version="5.4" type="Module" synthesis="synplify" source_format="VHDL">
+  <Package>
+		<File name="dqsinput_6x5.lpc" type="lpc" modified="2015 05 28 15:27:06.000"/>
+		<File name="dqsinput_6x5.vhd" type="top_level_vhdl" modified="2015 05 28 15:27:06.000"/>
+		<File name="dqsinput_6x5_tmpl.vhd" type="template_vhdl" modified="2015 05 28 15:27:06.000"/>
+  </Package>
+</DiamondModule>
