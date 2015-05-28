@@ -191,7 +191,7 @@ LOCATE UGROUP "ff_en_1" SITE "R113C27D" ;
 #############################################################################
 ##                         Unimportant Data Lines                          ##
 #############################################################################
-MULTICYCLE FROM CELL "THE_TDC/reset_tdc*" TO CLKNET CLK_PCLK_RIGHT_c 2x;
+MULTICYCLE FROM CELL "THE_TDC/reset_tdc*" TO CLKNET CLK_PCLK_LEFT_c 2x;
 MULTICYCLE FROM CELL "THE_TDC/reset_counters*" 4 X;
 
 MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/Channel200/RingBuffer*FIFO/FF*" TO CELL "THE_TDC/ReferenceChannel/Channel200/ringBuffer_almost_full_sync*" 2x;
