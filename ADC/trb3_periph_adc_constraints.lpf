@@ -97,19 +97,19 @@ MULTICYCLE FROM CELL "gen_reallogic*THE_ADC/THE_ADC_*/state_q_*" TO CELL "gen_re
 
 # left are ADCs 0-5 and 7 (counted from 0)
 UGROUP "THE_ADC_LEFT_group" BLKNAME gen_reallogic.THE_ADC/THE_ADC_LEFT;
-REGION "THE_ADC_LEFT_region" "R57C2D" 9 55;
+REGION "THE_ADC_LEFT_region" "R53C2D" 9 68;
 LOCATE UGROUP "THE_ADC_LEFT_group" REGION "THE_ADC_LEFT_region";
 
 UGROUP "THE_ADC_PROC_cfd_0_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.0.THE_ADC_PROC;
-REGION "THE_ADC_PROC_cfd_0_region" "R7C2D" 49 27;
+REGION "THE_ADC_PROC_cfd_0_region" "R4C2D" 49 27;
 LOCATE UGROUP "THE_ADC_PROC_cfd_0_group" REGION "THE_ADC_PROC_cfd_0_region";
 
 UGROUP "THE_ADC_PROC_cfd_1_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.1.THE_ADC_PROC;
-REGION "THE_ADC_PROC_cfd_1_region" "R7C29D" 49 27;
+REGION "THE_ADC_PROC_cfd_1_region" "R4C29D" 49 27;
 LOCATE UGROUP "THE_ADC_PROC_cfd_1_group" REGION "THE_ADC_PROC_cfd_1_region";
 
 UGROUP "THE_ADC_PROC_cfd_2_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.2.THE_ADC_PROC;
-REGION "THE_ADC_PROC_cfd_2_region" "R7C56D" 49 27;
+REGION "THE_ADC_PROC_cfd_2_region" "R4C56D" 49 27;
 LOCATE UGROUP "THE_ADC_PROC_cfd_2_group" REGION "THE_ADC_PROC_cfd_2_region";
 
 UGROUP "THE_ADC_PROC_cfd_3_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.3.THE_ADC_PROC;
@@ -117,11 +117,11 @@ REGION "THE_ADC_PROC_cfd_3_region" "R7C83D" 49 27;
 LOCATE UGROUP "THE_ADC_PROC_cfd_3_group" REGION "THE_ADC_PROC_cfd_3_region";
 
 UGROUP "THE_ADC_PROC_cfd_4_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.4.THE_ADC_PROC;
-REGION "THE_ADC_PROC_cfd_4_region" "R66C2D" 39 26;
+REGION "THE_ADC_PROC_cfd_4_region" "R62C2D" 43 27;
 LOCATE UGROUP "THE_ADC_PROC_cfd_4_group" REGION "THE_ADC_PROC_cfd_4_region";
 
 UGROUP "THE_ADC_PROC_cfd_5_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.5.THE_ADC_PROC;
-REGION "THE_ADC_PROC_cfd_5_region" "R66C29D" 39 26;
+REGION "THE_ADC_PROC_cfd_5_region" "R62C29D" 43 27;
 LOCATE UGROUP "THE_ADC_PROC_cfd_5_group" REGION "THE_ADC_PROC_cfd_5_region";
 
 UGROUP "THE_ADC_PROC_cfd_7_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.7.THE_ADC_PROC;
