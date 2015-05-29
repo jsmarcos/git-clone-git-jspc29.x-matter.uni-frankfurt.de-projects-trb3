@@ -130,7 +130,7 @@ LOCATE UGROUP "THE_ADC_PROC_cfd_7_group" REGION "THE_ADC_PROC_cfd_7_region";
 
 # right are ADCs 6 and 8-11 (counted from 0)
 UGROUP "THE_ADC_RIGHT_group" BLKNAME gen_reallogic.THE_ADC/THE_ADC_RIGHT;
-REGION "THE_ADC_RIGHT_region" "R57C137D" 9 45;
+REGION "THE_ADC_RIGHT_region" "R57C124D" 9 58;
 LOCATE UGROUP "THE_ADC_RIGHT_group" REGION "THE_ADC_RIGHT_region";
 
 UGROUP "THE_ADC_PROC_cfd_6_group" BLKNAME gen_reallogic.THE_ADC/gen_readout_cfd.gen_processors.6.THE_ADC_PROC;
