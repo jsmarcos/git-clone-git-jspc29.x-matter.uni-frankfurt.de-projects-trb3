@@ -322,7 +322,12 @@ STY
       system "./compile_constraints.pl $workdir";
       
       if(-e $lpffile) {
-         rename $lpffile, 'project/' . $options->{'top_module'} . '.lpf';         
+	 my $lpffile_new = 'project/' . $options->{'top_module'} . '.lpf'; 
+         rename $lpffile, $lpffile_new;  
+         # for newer diamond version, create some weirdly named symlink
+	 my $prj_title = $options->{'top_module'};
+	 $prj_title =~ s/trb3_(central|periph)_(.+)/$2/;
+         symlink '../'.$options->{'top_module'} . '.lpf', $workdir . '/'.$prj_title.'_' . $options->{'top_module'} . '_synplify.lpf';      
          push @$files, ['work', 'project/' . $options->{'top_module'} . '.lpf'];
       } else {
          print "WARNING: compile_constraints did not generate $lpffile. Please include the necessary contraint files manually\n";
