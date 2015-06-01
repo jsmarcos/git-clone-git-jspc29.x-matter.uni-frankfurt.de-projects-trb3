@@ -68,9 +68,9 @@ execute($c);
 
 system("rm $TOPNAME.ncd");
 
-$c=qq|mpartrce -p "../$TOPNAME.p2t" -f "../$TOPNAME.p3t" -tf "$TOPNAME.pt" "$tpmap.ncd" "$TOPNAME.ncd"|;
+#$c=qq|mpartrce -p "../$TOPNAME.p2t" -f "../$TOPNAME.p3t" -tf "$TOPNAME.pt" "$tpmap.ncd" "$TOPNAME.ncd"|;
 #$c=qq|mpar -pr "$TOPNAME.prf" -o "mpar_$TOPNAME.rpt" -log "mpar_$TOPNAME.log" -p "../$TOPNAME.p2t"  "$tpmap.ncd" "$TOPNAME.ncd"|;
-#$c=qq|par -w -l 5 -i 6 -t 5 -c 0 -e 0 -exp parUseNBR=1:parCDP=0:parCDR=0:parPathBased=OFF $tpmap.ncd $TOPNAME.ncd $TOPNAME.prf|;
+$c=qq|par -f "../$TOPNAME.p2t" "$tpmap.ncd" "$TOPNAME.dir" "$TOPNAME.prf"|;
 execute($c);
 
 $c=qq|ltxt2ptxt $TOPNAME.ncd|;
