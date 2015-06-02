@@ -104,8 +104,8 @@ begin
 
   -- Tell the outer word some useful debug infos
   DEBUG.InvalidWordCount <= invalid_word_count when rising_edge(CLK);
-  DEBUG.Baseline         <= baseline;
-  DEBUG.LastWord         <= input;
+  DEBUG.Baseline         <= baseline when rising_edge(CLK);
+  DEBUG.LastWord         <= input when rising_edge(CLK);
   DEBUG.EpochCounter     <= epoch_counter when rising_edge(CLK);
 
   -- word checker, needed for ADC phase adjustment
