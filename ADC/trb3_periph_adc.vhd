@@ -737,7 +737,7 @@ LED_YELLOW <= not med_stat_op(11);
       wait until rising_edge(clk_100_i);
       pos                := to_integer(unsigned(bustdc_ctrl_rx.addr(2 downto 0)));
       bustdc_ctrl_tx.data <= tdc_ctrl_reg_arr(pos);
-      bustdc_ctrl_tx.ack  <= bustdc_ctrl_rx.read;
+      bustdc_ctrl_tx.ack  <= bustdc_ctrl_rx.read or bustdc_ctrl_rx.write; -- always acknowledge, one could check the addr indeed
       if bustdc_ctrl_rx.write = '1' then
         tdc_ctrl_reg_arr(pos) <= bustdc_ctrl_rx.data;
       end if;
