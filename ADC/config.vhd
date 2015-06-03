@@ -47,7 +47,7 @@ package config is
   -- 1: same channel,
   -- 2: alternating channels,
   -- 3: same channel with stretcher
-  constant DOUBLE_EDGE_TYPE : integer range 0 to 3 := 2;
+  constant DOUBLE_EDGE_TYPE : integer range 0 to 3 := 0;
   
   --> change names in constraints file
   --ring buffer size: 32,64,96,128,dyn    
