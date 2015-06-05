@@ -10,6 +10,22 @@ package trb3_components is
   type unsigned_array_8 is array (integer range <>) of unsigned(7 downto 0);
   type unsigned_array_5 is array (integer range <>) of unsigned(4 downto 0);
 
+  
+component dcs
+-- synthesis translate_off
+  generic (
+    DCSMODE : string := "POS"
+    );
+-- synthesis translate_on
+  port (
+    CLK0   :IN std_logic ;
+    CLK1   :IN std_logic ;
+    SEL    :IN std_logic ;
+    DCSOUT :OUT std_logic
+    ) ;
+end component;
+
+  
   component oddr is
     port (
       clk    : in  std_logic;

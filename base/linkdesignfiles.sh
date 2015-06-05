@@ -27,6 +27,7 @@ ln -sf $prefix/../../../trbnet/media_interfaces/ecp3_sfp/sfp_1_125_int.txt
 ln -sf $prefix/../../../trbnet/media_interfaces/ecp3_sfp/sfp_0_200_ctc.txt
 ln -sf $prefix/../../../trbnet/media_interfaces/ecp3_sfp/serdes_onboard_full.txt
 ln -sf $prefix/../../../trbnet/media_interfaces/ecp3_sfp/serdes_sync_0.txt
+ln -sf $prefix/../../../trbnet/media_interfaces/ecp3_sfp/serdes_sync_3.txt
 ln -sf $prefix/../../../trbnet/media_interfaces/ecp3_sfp/serdes_sync_125_0.txt
 ln -sf $prefix/../../../trbnet/media_interfaces/ecp3_sfp/serdes_full_ctc.txt
 
