@@ -15,6 +15,7 @@ all: workdir/$(TARGET).bit
 .PHONY: clean
 clean:
 	rm -rf workdir/* 
+	rm -f workdir/.[a-z,A-Z]*
 
 .PHONY: distclean
 distclean:
@@ -57,6 +58,13 @@ workdir/$(TARGET).ncd: workdir/$(TARGET)_map.ncd
 	cd workdir && \
 	 par -f ../$(TARGET).p2t $(TARGET)_map.ncd $(TARGET).dir $(TARGET).prf
 	cp workdir/$(TARGET).dir/*.ncd workdir/$(TARGET).ncd
+	#
+	# Multipar geht gerade nicht
+	#par $(TARGET)_map.ncd $(TARGET).prf
+	#mv $(TARGET).prf.ncd $(TARGET).ncd
+	# par -f ../$(TARGET).p2t $(TARGET)_map.ncd $(TARGET).dir $(TARGET).prf
+	#cp workdir/$(TARGET).dir/*.ncd workdir/$(TARGET).ncd
+
 
 # Mapper
 workdir/$(TARGET)_map.ncd: workdir/$(TARGET).ngd $(TARGET).lpf

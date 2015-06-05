@@ -2,7 +2,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-use work.nxyter_components.all;
+use work.scaler_components.all;
 
 entity signal_async_to_pulse is
   generic (

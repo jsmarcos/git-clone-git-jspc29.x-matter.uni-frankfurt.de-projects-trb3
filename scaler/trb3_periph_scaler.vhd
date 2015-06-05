@@ -16,7 +16,7 @@ use ecp3.components.all;
 entity trb3_periph_scaler is
   port(
     --Clocks
-    CLK_GPLL_RIGHT            : in    std_logic;  --Clock Manager 2/(2468), 200 MHz  <-- MAIN CLOCK for FPGA
+    CLK_GPLL_RIGHT       : in    std_logic;  --Clock Manager 2/(2468), 200 MHz  <-- MAIN CLOCK for FPGA
     CLK_GPLL_LEFT        : in    std_logic;  --Clock Manager 1/(2468), 125 MHz
     CLK_PCLK_LEFT        : in    std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL left!
     CLK_PCLK_RIGHT       : in    std_logic;  --Clock Fan-out, 200/400 MHz <-- For TDC. Same oscillator as GPLL right!
@@ -37,36 +37,11 @@ entity trb3_periph_scaler is
                                         --Bit 2/3 output, serial link TX active
     
     ---------------------------------------------------------------------------
-    -- BEGIN AddonBoard nXyter
+    -- BEGIN AddonBoard Scaler
     ---------------------------------------------------------------------------
-    --Connections to NXYTER-FEB 1
-
-    NX1_RESET_OUT              : out   std_logic;     
-    NX1_I2C_SDA_INOUT          : inout std_logic;
-    NX1_I2C_SCL_INOUT          : inout std_logic;
-    NX1_I2C_SM_RESET_OUT       : inout std_logic;
-    NX1_I2C_REG_RESET_OUT      : out   std_logic;
-    NX1_SPI_SCLK_OUT           : out   std_logic;
-    NX1_SPI_SDIO_INOUT         : inout std_logic;
-    NX1_SPI_CSB_OUT            : out   std_logic;
-    NX1_DATA_CLK_IN            : in    std_logic;
-    NX1_TIMESTAMP_IN           : in    std_logic_vector (7 downto 0);
-    NX1_MAIN_CLK_OUT           : out   std_logic;
-    NX1_TESTPULSE_OUT          : out   std_logic;
-    NX1_TS_HOLD_OUT            : out   std_logic;
-    NX1_ADC_FCLK_IN            : in    std_logic;
-    NX1_ADC_DCLK_IN            : in    std_logic;
-    NX1_ADC_SAMPLE_CLK_OUT     : out   std_logic;
-    NX1_ADC_A_IN               : in    std_logic;
-    NX1_ADC_B_IN               : in    std_logic;
-    NX1_ADC_NX_IN              : in    std_logic;
-    NX1_ADC_D_IN               : in    std_logic;
-    NX1B_ADC_FCLK_IN           : in    std_logic;
-    NX1B_ADC_DCLK_IN           : in    std_logic;
-    NX1B_ADC_A_IN              : in    std_logic;
-    NX1B_ADC_B_IN              : in    std_logic;
-    NX1B_ADC_NX_IN             : in    std_logic;
-    NX1B_ADC_D_IN              : in    std_logic;
+    --Connections to Scaler Channels
+    SCALER_LATCH_IN      : in    std_logic;
+    SCALER_CHANNELS_IN   : in    std_logic_vector (7 downto 0);
 
     ---------------------------------------------------------------------------
     -- END AddonBoard nXyter
@@ -86,9 +61,10 @@ entity trb3_periph_scaler is
     LED_RED              : out   std_logic;
     LED_YELLOW           : out   std_logic;
     SUPPL                : in    std_logic;  --terminated diff pair, PCLK, Pads
+
     --Test Connectors
-    TEST_LINE            : out   std_logic_vector(15 downto 0);
-    NX1_DEBUG_LINE       : out   std_logic_vector(15 downto 0)
+    TEST_LINE            : out   std_logic_vector(15 downto 0)
+    --SCALER_DEBUG_LINE    : out   std_logic_vector(15 downto 0)
     );
 
   attribute syn_useioff                  : boolean;
@@ -109,9 +85,9 @@ entity trb3_periph_scaler is
   attribute syn_useioff of FLASH_DOUT    : signal is true;
   attribute syn_useioff of FPGA5_COMM    : signal is true;
   attribute syn_useioff of TEST_LINE     : signal is false;
-  attribute syn_useioff of NX1_DEBUG_LINE  : signal is false;
+  --attribute syn_useioff of SCALER_DEBUG_LINE  : signal is false;
   --attribute syn_useioff of INP           : signal is false;
-  attribute syn_useioff of NX1_TIMESTAMP_IN   : signal is true;
+  attribute syn_useioff of SCALER_CHANNELS_IN : signal is true;
 
   --attribute syn_useioff of NX1_ADC_NX_IN   : signal is true;
   --attribute syn_useioff of NX1_ADC_D_IN    : signal is true;
@@ -130,11 +106,6 @@ architecture Behavioral of trb3_periph_scaler is
 
   constant NUM_NXYTER : integer := 1;
     
-  -- For 250MHz PLL scaler clock, THE_32M_ODDR_1
-  attribute ODDRAPPS : string;
-  attribute ODDRAPPS of THE_NX_MAIN_ODDR_1       : label is "SCLK_ALIGNED";
-  -- attribute ODDRAPPS of THE_ADC_SAMPLE_ODDR_1    : label is "SCLK_ALIGNED";
-
   --Constants
   constant REGIO_NUM_STAT_REGS : integer := 5;
   constant REGIO_NUM_CTRL_REGS : integer := 3;
@@ -257,13 +228,8 @@ architecture Behavioral of trb3_periph_scaler is
 
   -- SED Detection
   signal sed_error  : std_logic;
-  signal sed_din    : std_logic_vector(31 downto 0);
-  signal sed_dout   : std_logic_vector(31 downto 0);
-  signal sed_write  : std_logic := '0';
-  signal sed_read   : std_logic := '0';
-  signal sed_ack    : std_logic := '0';
-  signal sed_nack   : std_logic := '0';
-  signal sed_addr   : std_logic_vector(15 downto 0) := (others => '0');
+  signal bussed_rx : CTRLBUS_RX;
+  signal bussed_tx : CTRLBUS_TX;
   
   -- nXyter-FEB-Board Clocks
   signal nx_main_clk                : std_logic;
@@ -564,16 +530,16 @@ begin
       BUS_NO_MORE_DATA_IN(2)               => nx1_regio_no_more_data_out,
       BUS_UNKNOWN_ADDR_IN(2)               => nx1_regio_unknown_addr_out,
 
-      BUS_READ_ENABLE_OUT(3)              => sed_read,
-      BUS_WRITE_ENABLE_OUT(3)             => sed_write,
-      BUS_DATA_OUT(3*32+31 downto 3*32)   => sed_din,
-      BUS_ADDR_OUT(3*16+15 downto 3*16)   => sed_addr,
-      BUS_TIMEOUT_OUT(3)                  => open,
-      BUS_DATA_IN(3*32+31 downto 3*32)    => sed_dout,
-      BUS_DATAREADY_IN(3)                 => sed_ack,
-      BUS_WRITE_ACK_IN(3)                 => sed_ack,
-      BUS_NO_MORE_DATA_IN(3)              => '0',
-      BUS_UNKNOWN_ADDR_IN(3)              => sed_nack,
+      BUS_READ_ENABLE_OUT(3)              => bussed_rx.read,
+      BUS_WRITE_ENABLE_OUT(3)             => bussed_rx.write,
+      BUS_DATA_OUT(3*32+31 downto 3*32)   => bussed_rx.data,
+      BUS_ADDR_OUT(3*16+15 downto 3*16)   => bussed_rx.addr,
+      BUS_TIMEOUT_OUT(3)                  => bussed_rx.timeout,
+      BUS_DATA_IN(3*32+31 downto 3*32)    => bussed_tx.data,
+      BUS_DATAREADY_IN(3)                 => bussed_tx.ack,
+      BUS_WRITE_ACK_IN(3)                 => bussed_tx.ack,
+      BUS_NO_MORE_DATA_IN(3)              => bussed_tx.nack,
+      BUS_UNKNOWN_ADDR_IN(3)              => bussed_tx.unknown,
       
       STAT_DEBUG => open
       );
@@ -651,7 +617,7 @@ begin
 -----------------------------------------------------------------------------
 -- The xXyter-FEB #1
 -----------------------------------------------------------------------------
-  
+
   scaler_0: scaler
     generic map (
       BOARD_ID => "01"
@@ -664,31 +630,10 @@ begin
       PLL_RESET_OUT              => nx_pll_reset,
       
       TRIGGER_OUT                => fee1_trigger,                       
-      
-      I2C_SDA_INOUT              => NX1_I2C_SDA_INOUT,
-      I2C_SCL_INOUT              => NX1_I2C_SCL_INOUT,
-      I2C_SM_RESET_OUT           => NX1_I2C_SM_RESET_OUT,
-      I2C_REG_RESET_OUT          => NX1_I2C_REG_RESET_OUT,
                                  
-      SPI_SCLK_OUT               => NX1_SPI_SCLK_OUT,
-      SPI_SDIO_INOUT             => NX1_SPI_SDIO_INOUT,
-      SPI_CSB_OUT                => NX1_SPI_CSB_OUT,
-                                 
-      NX_TIMESTAMP_CLK_IN        => NX1_DATA_CLK_IN,
-      NX_TIMESTAMP_IN            => NX1_TIMESTAMP_IN,
-                                 
-      NX_RESET_OUT               => NX1_RESET_OUT,
-      NX_TESTPULSE_OUT           => NX1_TESTPULSE_OUT,
-      NX_TIMESTAMP_TRIGGER_OUT   => NX1_TS_HOLD_OUT,
-
-      ADC_SAMPLE_CLK_OUT         => nx1_adc_sample_clk,
-      ADC_FCLK_IN                => NX1_ADC_FCLK_IN,
-      ADC_DCLK_IN                => NX1_ADC_DCLK_IN,
-      ADC_A_IN                   => NX1_ADC_A_IN,
-      ADC_B_IN                   => NX1_ADC_B_IN,
-      ADC_NX_IN                  => NX1_ADC_NX_IN,
-      ADC_D_IN                   => NX1_ADC_D_IN,
-
+      SCALER_LATCH_IN            => SCALER_LATCH_IN,
+      SCALER_CHANNELS_IN         => SCALER_CHANNELS_IN,
+  
       TIMING_TRIGGER_IN          => TRIGGER_RIGHT, 
       LVL1_TRG_DATA_VALID_IN     => trg_data_valid_i,
       LVL1_VALID_TIMING_TRG_IN   => trg_timing_valid_i,
@@ -718,55 +663,41 @@ begin
       REGIO_NO_MORE_DATA_OUT     => nx1_regio_no_more_data_out,
       REGIO_UNKNOWN_ADDR_OUT     => nx1_regio_unknown_addr_out,
                                  
-      DEBUG_LINE_OUT             => nx1_debug_line_o
-      --DEBUG_LINE_OUT                => open
+      --DEBUG_LINE_OUT             =>  TEST_LINE
+      DEBUG_LINE_OUT                => open
       );
+  
+  nx1_regio_addr_in(15 downto 12) <= (others => '0');
 
-  TEST_LINE                     <= nx1_debug_line_o;
-  NX1_DEBUG_LINE                <= nx1_debug_line_o;
-
-  FPGA5_COMM(10)                <= fee1_trigger;
-
+  TEST_LINE(0) <= clk_100_i;
+  TEST_LINE(1) <= nx1_regio_read_enable_in;
+  TEST_LINE(2) <= nx1_regio_write_enable_in;
+  TEST_LINE(3) <= nx1_regio_dataready_out;
+  TEST_LINE(4) <= nx1_regio_write_ack_out;
+  TEST_LINE(5) <= nx1_regio_unknown_addr_out;
+  TEST_LINE(15 downto 6) <= (others => '0');
   ---------------------------------------------------------------------------
   -- SED Detection
   ---------------------------------------------------------------------------
-
   THE_SED : entity work.sedcheck
     port map(
-      CLK        => clk_100_i,
-      ERROR_OUT  => sed_error,
-    
-      DATA_IN    => sed_din,
-      DATA_OUT   => sed_dout, 
-      WRITE_IN   => sed_write,
-      READ_IN    => sed_read,
-      ACK_OUT    => sed_ack,  
-      NACK_OUT   => sed_nack, 
-      ADDR_IN    => sed_addr
+      CLK       => clk_100_i,
+      ERROR_OUT => sed_error,
+      BUS_RX    => bussed_rx,
+      BUS_TX    => bussed_tx
       );
   
   -----------------------------------------------------------------------------
   -- nXyter Main and ADC Clocks
   -----------------------------------------------------------------------------
 
-  -- nXyter Main Clock (250MHz)
-  pll_nx_clk250_1: entity work.pll_nx_clk250
+  -- Scaler Domain Clock(400MHz)
+  pll_clk400_1: entity work.pll_clk400
     port map (
       CLK   => CLK_PCLK_RIGHT,
       RESET => nx_pll_reset,
       CLKOP => nx_main_clk,
       LOCK  => nx_pll_clk_lock
       );
-  
-  -- Port FF for Nxyter Main Clocks
-  THE_NX_MAIN_ODDR_1: ODDRXD1
-    port map(
-      SCLK  => nx_main_clk,
-      DA    => '1',
-      DB    => '0',
-      Q     => NX1_MAIN_CLK_OUT
-      );
-  
-  NX1_ADC_SAMPLE_CLK_OUT <= nx1_adc_sample_clk;
   
 end architecture;

@@ -4,7 +4,7 @@ use ieee.numeric_std.all;
 
 library work;
 use work.trb_net_std.all;
-use work.nxyter_components.all;
+use work.scaler_components.all;
 
 entity nx_data_validate is
   port (

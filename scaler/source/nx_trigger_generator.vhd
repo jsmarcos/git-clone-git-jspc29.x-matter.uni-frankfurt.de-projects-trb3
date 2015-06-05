@@ -3,7 +3,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 library work;
-use work.nxyter_components.all;
+use work.scaler_components.all;
 
 entity nx_trigger_generator is
   port (

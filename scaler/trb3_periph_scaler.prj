@@ -143,7 +143,7 @@ add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
 
 # nXyter Files
 
-add_file -vhdl -lib "work" "cores/pll_nx_clk250.vhd"
+add_file -vhdl -lib "work" "cores/pll_clk400.vhd"
 add_file -vhdl -lib "work" "cores/pll_adc_sampling_clk.vhd"
 add_file -vhdl -lib "work" "cores/fifo_data_stream_44to44_dc.vhd"
 add_file -vhdl -lib "work" "cores/ram_dp_128x40.vhd"
@@ -176,6 +176,7 @@ add_file -vhdl -lib "work" "source/debug_multiplexer.vhd"
 add_file -vhdl -lib "work" "source/fifo_44_data_delay_my.vhd"
 
 add_file -vhdl -lib "work" "source/scaler.vhd"
+add_file -vhdl -lib "work" "source/scaler_channel.vhd"
 add_file -vhdl -lib "work" "source/nx_data_receiver.vhd"
 add_file -vhdl -lib "work" "source/nx_data_delay.vhd"
 add_file -vhdl -lib "work" "source/nx_data_validate.vhd"

@@ -2,68 +2,75 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-package nxyter_components is
+package scaler_components is
 
 -------------------------------------------------------------------------------
 -- TRBNet interfaces
 -------------------------------------------------------------------------------
-
+  
   component scaler
     generic (
       BOARD_ID : std_logic_vector(1 downto 0));
     port (
-      CLK_IN                     : in    std_logic;
-      RESET_IN                   : in    std_logic;
-      CLK_NX_MAIN_IN             : in    std_logic;
-      PLL_NX_CLK_LOCK_IN         : in    std_logic;
-      PLL_RESET_OUT              : out   std_logic;
-      TRIGGER_OUT                : out   std_logic;
-      I2C_SDA_INOUT              : inout std_logic;
-      I2C_SCL_INOUT              : inout std_logic;
-      I2C_SM_RESET_OUT           : inout std_logic;
-      I2C_REG_RESET_OUT          : out   std_logic;
-      SPI_SCLK_OUT               : out   std_logic;
-      SPI_SDIO_INOUT             : inout std_logic;
-      SPI_CSB_OUT                : out   std_logic;
-      NX_TIMESTAMP_CLK_IN        : in    std_logic;
-      NX_TIMESTAMP_IN            : in    std_logic_vector (7 downto 0);
-      NX_RESET_OUT               : out   std_logic;
-      NX_TESTPULSE_OUT           : out   std_logic;
-      NX_TIMESTAMP_TRIGGER_OUT   : out   std_logic;
-      ADC_SAMPLE_CLK_OUT         : out   std_logic;
-      ADC_FCLK_IN                : in    std_logic;
-      ADC_DCLK_IN                : in    std_logic;
-      ADC_A_IN                   : in    std_logic;
-      ADC_B_IN                   : in    std_logic;
-      ADC_NX_IN                  : in    std_logic;
-      ADC_D_IN                   : in    std_logic;
-      TIMING_TRIGGER_IN          : in    std_logic;
-      LVL1_TRG_DATA_VALID_IN     : in    std_logic;
-      LVL1_VALID_TIMING_TRG_IN   : in    std_logic;
-      LVL1_VALID_NOTIMING_TRG_IN : in    std_logic;
-      LVL1_INVALID_TRG_IN        : in    std_logic;
-      LVL1_TRG_TYPE_IN           : in    std_logic_vector(3 downto 0);
-      LVL1_TRG_NUMBER_IN         : in    std_logic_vector(15 downto 0);
-      LVL1_TRG_CODE_IN           : in    std_logic_vector(7 downto 0);
-      LVL1_TRG_INFORMATION_IN    : in    std_logic_vector(23 downto 0);
-      LVL1_INT_TRG_NUMBER_IN     : in    std_logic_vector(15 downto 0);
-      FEE_TRG_RELEASE_OUT        : out   std_logic;
-      FEE_TRG_STATUSBITS_OUT     : out   std_logic_vector(31 downto 0);
-      FEE_DATA_OUT               : out   std_logic_vector(31 downto 0);
-      FEE_DATA_WRITE_OUT         : out   std_logic;
-      FEE_DATA_FINISHED_OUT      : out   std_logic;
-      FEE_DATA_ALMOST_FULL_IN    : in    std_logic;
-      REGIO_ADDR_IN              : in    std_logic_vector(15 downto 0);
-      REGIO_DATA_IN              : in    std_logic_vector(31 downto 0);
-      REGIO_DATA_OUT             : out   std_logic_vector(31 downto 0);
-      REGIO_READ_ENABLE_IN       : in    std_logic;
-      REGIO_WRITE_ENABLE_IN      : in    std_logic;
-      REGIO_TIMEOUT_IN           : in    std_logic;
-      REGIO_DATAREADY_OUT        : out   std_logic;
-      REGIO_WRITE_ACK_OUT        : out   std_logic;
-      REGIO_NO_MORE_DATA_OUT     : out   std_logic;
-      REGIO_UNKNOWN_ADDR_OUT     : out   std_logic;
-      DEBUG_LINE_OUT             : out   std_logic_vector(15 downto 0)
+      CLK_IN                     : in  std_logic;
+      RESET_IN                   : in  std_logic;
+      CLK_NX_MAIN_IN             : in  std_logic;
+      PLL_NX_CLK_LOCK_IN         : in  std_logic;
+      PLL_RESET_OUT              : out std_logic;
+      TRIGGER_OUT                : out std_logic;
+      SCALER_LATCH_IN            : in  std_logic;
+      SCALER_CHANNELS_IN         : in  std_logic_vector (7 downto 0);
+      TIMING_TRIGGER_IN          : in  std_logic;
+      LVL1_TRG_DATA_VALID_IN     : in  std_logic;
+      LVL1_VALID_TIMING_TRG_IN   : in  std_logic;
+      LVL1_VALID_NOTIMING_TRG_IN : in  std_logic;
+      LVL1_INVALID_TRG_IN        : in  std_logic;
+      LVL1_TRG_TYPE_IN           : in  std_logic_vector(3 downto 0);
+      LVL1_TRG_NUMBER_IN         : in  std_logic_vector(15 downto 0);
+      LVL1_TRG_CODE_IN           : in  std_logic_vector(7 downto 0);
+      LVL1_TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0);
+      LVL1_INT_TRG_NUMBER_IN     : in  std_logic_vector(15 downto 0);
+      FEE_TRG_RELEASE_OUT        : out std_logic;
+      FEE_TRG_STATUSBITS_OUT     : out std_logic_vector(31 downto 0);
+      FEE_DATA_OUT               : out std_logic_vector(31 downto 0);
+      FEE_DATA_WRITE_OUT         : out std_logic;
+      FEE_DATA_FINISHED_OUT      : out std_logic;
+      FEE_DATA_ALMOST_FULL_IN    : in  std_logic;
+      REGIO_ADDR_IN              : in  std_logic_vector(15 downto 0);
+      REGIO_DATA_IN              : in  std_logic_vector(31 downto 0);
+      REGIO_DATA_OUT             : out std_logic_vector(31 downto 0);
+      REGIO_READ_ENABLE_IN       : in  std_logic;
+      REGIO_WRITE_ENABLE_IN      : in  std_logic;
+      REGIO_TIMEOUT_IN           : in  std_logic;
+      REGIO_DATAREADY_OUT        : out std_logic;
+      REGIO_WRITE_ACK_OUT        : out std_logic;
+      REGIO_NO_MORE_DATA_OUT     : out std_logic;
+      REGIO_UNKNOWN_ADDR_OUT     : out std_logic;
+      DEBUG_LINE_OUT             : out std_logic_vector(15 downto 0)
+    );
+  end component;
+
+----------------------------------------------------------------------
+-- Scaler Channel Entity
+----------------------------------------------------------------------
+  component scaler_channel
+    port (
+      CLK_IN               : in  std_logic;
+      RESET_IN             : in  std_logic;
+      CLK_SCALER_IN        : in  std_logic;
+      RESET_SCALER_IN      : in  std_logic;
+      LATCH_IN             : in  std_logic;
+      PULSE_IN             : in  std_logic;
+      INHIBIT_IN           : in  std_logic;
+      SLV_READ_IN          : in  std_logic;
+      SLV_WRITE_IN         : in  std_logic;
+      SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
+      SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
+      SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
+      SLV_ACK_OUT          : out std_logic;
+      SLV_NO_MORE_DATA_OUT : out std_logic;
+      SLV_UNKNOWN_ADDR_OUT : out std_logic;
+      DEBUG_OUT            : out std_logic_vector(15 downto 0)
       );
   end component;
 

@@ -6,7 +6,7 @@ library work;
 use work.trb_net_std.all;
 use work.trb_net_components.all;
 use work.trb3_components.all;
-use work.nxyter_components.all;
+use work.scaler_components.all;
 
 entity nx_data_delay is
   port(

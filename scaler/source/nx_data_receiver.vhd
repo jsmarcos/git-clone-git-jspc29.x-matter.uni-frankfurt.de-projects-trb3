@@ -5,7 +5,7 @@ use ieee.numeric_std.all;
 library work;
 use work.trb_net_std.all;
 use work.trb_net_components.all;
-use work.nxyter_components.all;
+use work.scaler_components.all;
 
 entity nx_data_receiver is
   generic (
