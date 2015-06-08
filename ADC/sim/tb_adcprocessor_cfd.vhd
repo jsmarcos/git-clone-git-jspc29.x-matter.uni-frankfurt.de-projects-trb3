@@ -120,7 +120,8 @@ begin
       DEBUG_BUFFER_DATA  => open,
       DEBUG_BUFFER_READY => open,
       READOUT_TX         => readout_tx,
-      READOUT_RX         => readout_rx
+      READOUT_RX         => readout_rx,
+      EPOCH_COUNTER_IN   => (others => '0')
     );
 
   PROC_ADC : process

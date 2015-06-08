@@ -23,7 +23,9 @@ entity adc_processor_cfd_ch is
     RAM_BSY_IN : in std_logic;
     RAM_BSY_OUT : out std_logic;
 
-    DEBUG    : out debug_cfd_t
+    DEBUG    : out debug_cfd_t;
+    
+    EPOCH_COUNTER_IN    : in unsigned(EPOCH_COUNTER_SIZE-1 downto 0)
   );
 end entity adc_processor_cfd_ch;
 
@@ -91,7 +93,7 @@ architecture arch of adc_processor_cfd_ch is
 
   signal integral_sum                      : signed(RESOLUTION_CFD - 1 downto 0) := (others => '0');
 
-  signal epoch_counter, epoch_counter_save : unsigned(23 downto 0) := (others => '0');
+  signal epoch_counter_save : unsigned(EPOCH_COUNTER_SIZE-1 downto 0) := (others => '0');
   type state_t is (IDLE, INTEGRATE, WRITE1, WRITE2, WRITE3, FINISH, LOCKED, DEBUG_DUMP);
   signal state : state_t := IDLE;
 
@@ -106,7 +108,6 @@ begin
   DEBUG.InvalidWordCount <= invalid_word_count when rising_edge(CLK);
   DEBUG.Baseline         <= baseline when rising_edge(CLK);
   DEBUG.LastWord         <= input when rising_edge(CLK);
-  DEBUG.EpochCounter     <= epoch_counter when rising_edge(CLK);
 
   -- word checker, needed for ADC phase adjustment
   gen_word_checker : for i in 0 to CHANNELS - 1 generate
@@ -233,8 +234,6 @@ begin
   begin
     wait until rising_edge(CLK);
 
-    epoch_counter <= epoch_counter + 1;
-
     cfd_prev <= cfd.value;
     if cfd_prev < 0 and cfd.value >= 0 and cfd.thresh = '1' then
       zeroX := '1';
@@ -252,9 +251,9 @@ begin
           state            <= INTEGRATE;
           integral_counter := to_integer(CONF.IntegrateWindow);
           integral_sum <= resize(delay_integral_out, RESOLUTION_CFD);
-          cfd_prev_save <= cfd_prev;
+          cfd_prev_save <= cfd_prev; 
           cfd_save <= cfd.value;
-          epoch_counter_save <= epoch_counter;
+          epoch_counter_save <= EPOCH_COUNTER_IN;
         elsif CONF.DebugMode = 0 and RAM_BSY_IN = '1' then
           state <= LOCKED;
         elsif CONF.DebugMode /= 0 and RAM_BSY_IN = '1' then

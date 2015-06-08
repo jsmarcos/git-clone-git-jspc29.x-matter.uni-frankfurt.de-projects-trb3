@@ -39,7 +39,7 @@ package config is
   -- with TDC and lattice diamond version >2.1
   constant ADC_CHANNELS       : integer := 36;
 
-  --Include the TDC (only usefule for CFD readout mode) 
+  --Include the TDC (only useful for CFD readout mode) 
   constant INCLUDE_TDC : integer := c_YES;
 
   --double edge type:  0, 1, 2,  3

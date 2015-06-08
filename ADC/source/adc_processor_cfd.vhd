@@ -28,7 +28,7 @@ entity adc_processor_cfd is
     READOUT_RX         : in  READOUT_RX;
     READOUT_TX         : out READOUT_TX;
     
-    ADC_CLK_TDC_OUT    : out std_logic
+    EPOCH_COUNTER_IN    : in unsigned(EPOCH_COUNTER_SIZE-1 downto 0)
   );
 end entity adc_processor_cfd;
 
@@ -61,15 +61,13 @@ architecture arch of adc_processor_cfd is
   signal state     : state_t;
   signal statebits : std_logic_vector(7 downto 0);
 
-  signal RDO_data_main  : std_logic_vector(31 downto 0) := (others => '0');
-  signal RDO_write_main : std_logic                     := '0';
   signal readout_reset  : std_logic                     := '0';
   signal busy_in_adc, busy_in_sys : std_logic := '0';
   signal busy_out_adc, busy_out_sys : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
   
-  type epoch_counter_t is array(CHANNELS - 1 downto 0) of unsigned(23 downto 0);
-  signal epoch_counter, epoch_counter_save : epoch_counter_t;
-  signal epoch_counter_sys, epoch_counter_adc : epoch_counter_t;
+  --type epoch_counter_t is array(CHANNELS - 1 downto 0) of unsigned(23 downto 0);
+  --signal epoch_counter, epoch_counter_save : epoch_counter_t;
+  --signal epoch_counter_sys, epoch_counter_adc : epoch_counter_t;
   
 begin
   CONF_adc <= CONF_sys when rising_edge(CLK_ADC);
@@ -82,15 +80,14 @@ begin
   busy_in_adc <= busy_in_sys when rising_edge(CLK_ADC);
   busy_out_sys <= busy_out_adc when rising_edge(CLK_SYS);
   
-  ADC_CLK_TDC_OUT <= debug_adc(0).EpochCounter(10);
   
   gen_cfd : for i in 0 to CHANNELS - 1 generate
     trigger_gen(i) <= debug_sys(i).Trigger;
         
     -- first convert to gray counting, then do clock domain crossing 
-    epoch_counter_adc(i) <= debug_adc(i).EpochCounter xor shift_right(debug_adc(i).EpochCounter,1);
-    epoch_counter_sys(i) <= epoch_counter_adc(i) when rising_edge(CLK_SYS);
-    epoch_counter(i) <= epoch_counter_sys(i); -- no back conversion to binary for now  
+    --epoch_counter_adc(i) <= debug_adc(i).EpochCounter xor shift_right(debug_adc(i).EpochCounter,1);
+    --epoch_counter_sys(i) <= epoch_counter_adc(i) when rising_edge(CLK_SYS);
+    --epoch_counter(i) <= epoch_counter_sys(i); -- no back conversion to binary for now  
     
     THE_CFD : entity work.adc_processor_cfd_ch
       generic map(
@@ -104,7 +101,8 @@ begin
                RAM_DATA => ram_data_adc(i),
                RAM_BSY_IN => busy_in_adc,
                RAM_BSY_OUT => busy_out_adc(i),
-               DEBUG    => debug_adc(i)
+               DEBUG    => debug_adc(i),
+               EPOCH_COUNTER_IN => EPOCH_COUNTER_IN
       );
     
     ram_addr_sys(i) <= std_logic_vector(resize(ram_counter(i),ram_addr_sys(i)'length));
@@ -121,8 +119,8 @@ begin
                Q         => ram_data_sys(i));
   end generate;
 
-  READOUT_TX.data_write <= RDO_write_main when rising_edge(CLK_SYS);
-  READOUT_TX.data       <= RDO_data_main when rising_edge(CLK_SYS);
+  -- <= RDO_write_main when rising_edge(CLK_SYS);
+  --READOUT_TX.data       <= RDO_data_main when rising_edge(CLK_SYS);
   readout_reset         <= CONTROL(12) when rising_edge(CLK_SYS);
   statebits             <= std_logic_vector(to_unsigned(state_t'pos(state), 8));
 
@@ -133,8 +131,8 @@ begin
     wait until rising_edge(CLK_SYS);
     READOUT_TX.busy_release  <= '0';
     READOUT_TX.data_finished <= '0';
-    RDO_data_main            <= (others => '0');
-    RDO_write_main           <= '0';
+    READOUT_TX.data            <= (others => '0');
+    READOUT_TX.data_write           <= '0';
 
     busy_in_sys <= '0';
 
@@ -153,7 +151,7 @@ begin
           else
             state <= WAIT_BSY;
           end if;
-          epoch_counter_save <= epoch_counter; -- all channels at the same time
+          --epoch_counter_save <= epoch_counter; -- all channels at the same time
         end if;
 
       when RELEASE_DIRECT =>
@@ -200,8 +198,8 @@ begin
       when WAIT_RAM =>
         busy_in_sys <= '1';
         ram_counter(channelselect) <= ram_counter(channelselect) + 1;
-        RDO_data_main <= x"e0" & std_logic_vector(epoch_counter_save(channelselect));
-        RDO_write_main <= not CONF_sys.ChannelDisable(DEVICE * CHANNELS + channelselect); 
+        --RDO_data_main <= x"e0" & std_logic_vector(epoch_counter_save(channelselect));
+        --RDO_write_main <= not CONF_sys.ChannelDisable(DEVICE * CHANNELS + channelselect); 
         state <= READOUT;
         
           
@@ -219,15 +217,15 @@ begin
             state <= WAIT_BSY;
           end if;
         else
-          RDO_data_main <= ram_data_sys(channelselect);
-          RDO_write_main <= not CONF_sys.ChannelDisable(DEVICE * CHANNELS + channelselect);
+          READOUT_TX.data <= ram_data_sys(channelselect);
+          READOUT_TX.data_write <= not CONF_sys.ChannelDisable(DEVICE * CHANNELS + channelselect);
           ram_counter(channelselect) <= ram_counter(channelselect) + 1;
         end if;
         
         
       when SEND_STATUS =>
-        RDO_write_main <= '1';
-        RDO_data_main  <= x"20000000";
+        READOUT_TX.data_write <= '1';
+        READOUT_TX.data  <= x"20000000";
         -- nothing implemented yet
         state          <= RELEASE_DIRECT;
     end case;

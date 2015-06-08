@@ -9,6 +9,8 @@ package adc_package is
   constant DEVICES_2  : integer := 5;
   constant CHANNELS   : integer := 4;
   constant RESOLUTION : integer := 10;
+  
+  constant EPOCH_COUNTER_SIZE : integer := 24; 
 
   type buffer_data_t is array (0 to DEVICES - 1) of std_logic_vector(31 downto 0);
 
@@ -84,7 +86,6 @@ package adc_package is
     InvalidWordCount : unsigned(31 downto 0);
     Baseline         : unsigned(RESOLUTION - 1 downto 0);
     LastWord         : unsigned(RESOLUTION - 1 downto 0);
-    EpochCounter     : unsigned(23 downto 0);
     Trigger          : std_logic;
   end record;
 

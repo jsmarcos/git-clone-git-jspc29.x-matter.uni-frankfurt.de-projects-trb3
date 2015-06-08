@@ -121,7 +121,7 @@ begin
   restart_i <= RESTART_IN when rising_edge(clk_data);
 
   assert    (ADC_CHANNELS = 48 or ADC_CHANNELS = 36)
-    report "The number of either 48 or 36." severity error;
+    report "The number of ADC_CHANNELS must be either 48 or 36." severity error;
 
 
   gen_7 : if NUM_DEVICES = 7 and ADC_CHANNELS = 48 generate

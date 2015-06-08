@@ -160,8 +160,9 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   signal regio_tx, busadc_tx, busspi_tx, busmem_tx, bussed_tx : CTRLBUS_TX;
   
   -- always have enough signals for TDC
-  -- readout_tx(0) is then used by TDC 
-  constant NUM_READOUTS : integer := DEVICES+1; 
+  -- readout_tx(0) is used by (possibly available) TDC 
+  -- readout_tx(1) is used by (possibly available) CFD EpochCounter
+  constant NUM_READOUTS : integer := DEVICES+2; 
   
   signal readout_rx : READOUT_RX;
   signal readout_tx : readout_tx_array_t(0 to NUM_READOUTS-1);
@@ -424,7 +425,8 @@ gen_reallogic : if READOUT_MODE /= READOUT_MODE_DUMMY generate
       
       TRIGGER_IN  => TRIGGER_LEFT,
       READOUT_RX  => readout_rx,
-      READOUT_TX  => readout_tx(1 to DEVICES),
+      READOUT_TX  => readout_tx(2 to DEVICES),
+      READOUT_TX_CFD => readout_tx(1),
       BUS_RX      => busadc_rx,
       BUS_TX      => busadc_tx,
       
@@ -721,15 +723,6 @@ LED_YELLOW <= not med_stat_op(11);
         LOGIC_ANALYSER_OUT    => open,
         CONTROL_REG_IN        => tdc_ctrl_reg
         );
-
-    --tdc_inputs(1) used by CBM-MBS ETM
-    --tdc_inputs(2) <= cbm_sync_pulser_i;
-    --tdc_inputs(3) <= cbm_sync_timing_trigger_i;
-    --tdc_inputs(4) <= JINLVDS(0);        --NIM_IN(0);
-    --JTTL(0 downto 15) <= (others => '0');
-
-
-
 
     PROC_TDC_CTRL_REG : process
       variable pos : integer range 0 to TDC_CONTROL_REG_NR-1;

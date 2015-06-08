@@ -21,7 +21,9 @@ entity adc_handler is
     TRIGGER_FLAG_OUT : out std_logic;
     --Readout    
     READOUT_RX       : in  READOUT_RX;
+    READOUT_TX_CFD   : out READOUT_TX;
     READOUT_TX       : out readout_tx_array_t(0 to (DEVICES_1 + DEVICES_2) - 1);
+
     --Slow control    
     BUS_RX           : in  CTRLBUS_RX;
     BUS_TX           : out CTRLBUS_TX;
@@ -81,7 +83,10 @@ architecture adc_handler_arch of adc_handler is
   signal adc_clk                     : std_logic_vector(DEVICES downto 1) := (others => '1');
   signal adc_clk_left, adc_clk_right : std_logic                          := '1';
   
-  signal adc_clk_tdc_out_i : std_logic_vector(DEVICES-1 downto 0);
+  signal epoch_counter, epoch_counter_save, epoch_counter_save_sys : unsigned(EPOCH_COUNTER_SIZE-1 downto 0) := (others => '0');
+  signal trigger_in_i : std_logic;
+  type state_cfd_t is (IDLE, DO_RELEASE, RELEASE_DIRECT, WAIT_FOR_END, WRITE_EPOCH);
+  signal state_cfd     : state_cfd_t;
 
 -- 000 - 0ff configuration
 --       000 reset, buffer clear strobes
@@ -390,11 +395,66 @@ begin
           DEBUG_BUFFER_READY    => buffer_ready(i),
           READOUT_RX            => READOUT_RX,
           READOUT_TX            => READOUT_TX(i),
-          ADC_CLK_TDC_OUT       => adc_clk_tdc_out_i(i)
+          EPOCH_COUNTER_IN      => epoch_counter
         );
     end generate;
     
-    ADC_CLK_TDC_OUT <= adc_clk_tdc_out_i(5); -- select 5 as it's closest to the TDC placement
+    ADC_CLK_TDC_OUT <= epoch_counter(10);
+    
+    PROC_EPOCH_COUNTER : process is
+    begin
+      wait until rising_edge(adc_clk_left);
+      epoch_counter <= epoch_counter + 1;
+      trigger_in_i <= TRIGGER_IN;
+      if trigger_in_i = '1' then
+        epoch_counter_save <= epoch_counter;
+      end if;
+    end process PROC_EPOCH_COUNTER;
+    
+    PROC_READOUT_CFD : process is
+    begin
+      wait until rising_edge(CLK);
+      epoch_counter_save_sys <= epoch_counter_save;
+      READOUT_TX_CFD.busy_release  <= '0';
+      READOUT_TX_CFD.data_finished <= '0';
+      READOUT_TX_CFD.data          <= (others => '0');
+      READOUT_TX_CFD.data_write    <= '0';
+      
+      case state_cfd is
+        when IDLE =>
+          READOUT_TX_CFD.statusbits <= (others => '0');
+          if READOUT_RX.valid_notiming_trg = '1' then
+            state_cfd <= RELEASE_DIRECT;
+          elsif READOUT_RX.data_valid = '1' then --seems to have missed trigger...
+            READOUT_TX_CFD.statusbits <= (23 => '1', others => '0'); --event not found
+            state_cfd                 <= RELEASE_DIRECT;
+          elsif READOUT_RX.valid_timing_trg = '1' then
+            state_cfd <= WRITE_EPOCH;
+          end if;
+
+        when RELEASE_DIRECT =>
+          state_cfd <= DO_RELEASE;
+
+        when DO_RELEASE =>
+          if READOUT_RX.data_valid = '1' then
+            READOUT_TX_CFD.busy_release  <= '1';
+            READOUT_TX_CFD.data_finished <= '1';
+            state_cfd                    <= WAIT_FOR_END;
+          end if;
+
+        when WAIT_FOR_END =>
+          if READOUT_RX.data_valid = '0' then
+            state_cfd <= IDLE;
+          end if;
+        
+        when WRITE_EPOCH =>
+          READOUT_TX_CFD.data <= x"1" & std_logic_vector(resize(epoch_counter_save_sys,28));
+          READOUT_TX_CFD.data_write <= '1';
+          state_cfd <= RELEASE_DIRECT;
+      end case;
+    end process PROC_READOUT_CFD;
+    
+
 
     config_cfd.BaselineAlwaysOn <= buffer_ctrl_reg(4);
 
