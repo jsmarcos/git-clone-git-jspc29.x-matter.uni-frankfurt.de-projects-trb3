@@ -366,7 +366,7 @@ gen_reallogic : if READOUT_MODE /= READOUT_MODE_DUMMY generate
       
       TRIGGER_IN  => TRIGGER_LEFT,
       READOUT_RX  => readout_rx,
-      READOUT_TX  => readout_tx(2 to DEVICES),
+      READOUT_TX  => readout_tx(2 to DEVICES-1+2),
       READOUT_TX_CFD => readout_tx(1),
       BUS_RX      => busadc_rx,
       BUS_TX      => busadc_tx,
