@@ -167,6 +167,12 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   signal readout_rx : READOUT_RX;
   signal readout_tx : readout_tx_array_t(0 to NUM_READOUTS-1);
   
+  signal fee_data_finished_in : std_logic_vector(NUM_READOUTS-1 downto 0);
+  signal fee_data_write_in    : std_logic_vector(NUM_READOUTS-1 downto 0);
+  signal fee_trg_release_in   : std_logic_vector(NUM_READOUTS-1 downto 0);
+  signal fee_data_in           : std_logic_vector(32*NUM_READOUTS-1 downto 0);
+  signal fee_trg_statusbits_in : std_logic_vector(32*NUM_READOUTS-1 downto 0);
+  
   signal sed_debug : std_logic_vector(31 downto 0);
   
   -- TDC stuff
@@ -280,10 +286,17 @@ begin
 
   THE_ENDPOINT : entity work.trb_net16_endpoint_hades_full_handler_record
     generic map(
+      REGIO_NUM_STAT_REGS       => 0,
+      REGIO_NUM_CTRL_REGS       => 0,
       ADDRESS_MASK              => x"FFFF",
       BROADCAST_BITMASK         => x"ff",
+      BROADCAST_SPECIAL_ADDR    => BROADCAST_SPECIAL_ADDR,
+      REGIO_COMPILE_TIME        => std_logic_vector(to_unsigned(VERSION_NUMBER_TIME, 32)),
       REGIO_HARDWARE_VERSION    => HARDWARE_INFO,
+      REGIO_INIT_ADDRESS        => INIT_ADDRESS,
       REGIO_USE_VAR_ENDPOINT_ID => c_YES,
+      REGIO_INCLUDED_FEATURES   => INCLUDED_FEATURES,
+      CLOCK_FREQUENCY           => CLOCK_FREQUENCY,
       TIMING_TRIGGER_RAW        => c_YES,
       --Configure data handler
       DATA_INTERFACE_NUMBER     => NUM_READOUTS,
@@ -311,16 +324,42 @@ begin
       
       --Timing trigger in
       TRG_TIMING_TRG_RECEIVED_IN  => timing_trg_received_i,
-      
-      READOUT_TX => readout_tx,
-      READOUT_RX => readout_rx,
+      --LVL1 trigger to FEE
+      LVL1_TRG_DATA_VALID_OUT     => readout_rx.data_valid,
+      LVL1_VALID_TIMING_TRG_OUT   => readout_rx.valid_timing_trg,
+      LVL1_VALID_NOTIMING_TRG_OUT => readout_rx.valid_notiming_trg,
+      LVL1_INVALID_TRG_OUT        => readout_rx.invalid_trg,
 
+      LVL1_TRG_TYPE_OUT        => readout_rx.trg_type,
+      LVL1_TRG_NUMBER_OUT      => readout_rx.trg_number,
+      LVL1_TRG_CODE_OUT        => readout_rx.trg_code,
+      LVL1_TRG_INFORMATION_OUT => readout_rx.trg_information,
+      LVL1_INT_TRG_NUMBER_OUT  => readout_rx.trg_int_number,
+
+      --Information about trigger handler errors
+      TRG_MULTIPLE_TRG_OUT     => readout_rx.trg_multiple,
+      TRG_TIMEOUT_DETECTED_OUT => readout_rx.trg_timeout,
+      TRG_SPURIOUS_TRG_OUT     => readout_rx.trg_spurious,
+      TRG_MISSING_TMG_TRG_OUT  => readout_rx.trg_missing,
+      TRG_SPIKE_DETECTED_OUT   => readout_rx.trg_spike,
+
+      --Response from FEE
+      FEE_TRG_RELEASE_IN           => fee_trg_release_in,
+      FEE_TRG_STATUSBITS_IN        => fee_trg_statusbits_in,
+      FEE_DATA_IN                  => fee_data_in,
+      FEE_DATA_WRITE_IN            => fee_data_write_in,
+      FEE_DATA_FINISHED_IN         => fee_data_finished_in,
+      FEE_DATA_ALMOST_FULL_OUT(0)  => readout_rx.buffer_almost_full,
       
       -- Slow Control Data Port
       REGIO_COMMON_STAT_REG_IN           => common_stat_reg,  --0x00
       REGIO_COMMON_CTRL_REG_OUT          => common_ctrl_reg,  --0x20
       REGIO_COMMON_STAT_STROBE_OUT       => common_stat_reg_strobe,
       REGIO_COMMON_CTRL_STROBE_OUT       => common_ctrl_reg_strobe,
+      REGIO_STAT_REG_IN                  => (others => '0'),
+      REGIO_CTRL_REG_OUT                 => open,
+      REGIO_STAT_STROBE_OUT              => open,
+      REGIO_CTRL_STROBE_OUT              => open,
       REGIO_VAR_ENDPOINT_ID(1 downto 0)  => CODE_LINE,
       REGIO_VAR_ENDPOINT_ID(15 downto 2) => (others => '0'),
 
@@ -328,16 +367,36 @@ begin
       BUS_TX => regio_tx,
       
       ONEWIRE_INOUT        => TEMPSENS,
+      ONEWIRE_MONITOR_OUT  => open,
 
       TIME_GLOBAL_OUT         => global_time,
       TIME_LOCAL_OUT          => local_time,
       TIME_SINCE_LAST_TRG_OUT => time_since_last_trg,
       TIME_TICKS_OUT          => timer_ticks
+-- 
+--       STAT_DEBUG_IPU              => open,
+--       STAT_DEBUG_1                => open,
+--       STAT_DEBUG_2                => open,
+--       STAT_DEBUG_DATA_HANDLER_OUT => open,
+--       STAT_DEBUG_IPU_HANDLER_OUT  => open,
+--       STAT_TRIGGER_OUT            => open,
+--       CTRL_MPLEX                  => (others => '0'),
+--       IOBUF_CTRL_GEN              => (others => '0'),
+--       STAT_ONEWIRE                => open,
+--       STAT_ADDR_DEBUG             => open,
+--       DEBUG_LVL1_HANDLER_OUT      => open
       );
 
   timing_trg_received_i <= TRIGGER_LEFT;  --TRIGGER_RIGHT;  --
   common_stat_reg       <= (others => '0');
 
+gen_rdo_tx : for i in 0 to NUM_READOUTS-1 generate
+      fee_trg_release_in(i)                      <= readout_tx(i).busy_release;
+      fee_trg_statusbits_in(i*32+31 downto i*32) <= readout_tx(i).statusbits;
+      fee_data_in(i*32+31 downto i*32)           <= readout_tx(i).data;
+      fee_data_write_in(i)                       <= readout_tx(i).data_write;
+      fee_data_finished_in(i)                    <= readout_tx(i).data_finished;
+end generate;
 
 ---------------------------------------------------------------------------
 -- AddOn
