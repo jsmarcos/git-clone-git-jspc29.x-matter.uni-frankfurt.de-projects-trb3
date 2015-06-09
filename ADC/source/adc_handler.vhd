@@ -87,6 +87,9 @@ architecture adc_handler_arch of adc_handler is
   signal trigger_in_i : std_logic;
   type state_cfd_t is (IDLE, DO_RELEASE, RELEASE_DIRECT, WAIT_FOR_END, WRITE_EPOCH);
   signal state_cfd     : state_cfd_t;
+  
+  signal RDO_CFD_write : std_logic := '0';
+  signal RDO_CFD_data  : std_logic_vector(31 downto 0) := (others => '0');
 
 -- 000 - 0ff configuration
 --       000 reset, buffer clear strobes
@@ -223,6 +226,8 @@ begin
 
     adc_stop                  <= buffer_ctrl_reg(0);
     config.baseline_always_on <= buffer_ctrl_reg(4);
+
+    READOUT_TX_CFD.data_finished <= '1';
 
     PROC_BUS : process
     begin
@@ -417,8 +422,10 @@ begin
       epoch_counter_save_sys <= epoch_counter_save;
       READOUT_TX_CFD.busy_release  <= '0';
       READOUT_TX_CFD.data_finished <= '0';
-      READOUT_TX_CFD.data          <= (others => '0');
-      READOUT_TX_CFD.data_write    <= '0';
+      READOUT_TX_CFD.data          <= RDO_CFD_data;
+      READOUT_TX_CFD.data_write    <= RDO_CFD_write;
+      RDO_CFD_data          <= (others => '0');
+      RDO_CFD_write    <= '0';
       
       case state_cfd is
         when IDLE =>
@@ -448,8 +455,8 @@ begin
           end if;
         
         when WRITE_EPOCH =>
-          READOUT_TX_CFD.data <= x"1" & std_logic_vector(resize(epoch_counter_save_sys,28));
-          READOUT_TX_CFD.data_write <= '1';
+          RDO_CFD_data <= x"1" & std_logic_vector(resize(epoch_counter_save_sys,28));
+          RDO_CFD_write <= '1';
           state_cfd <= RELEASE_DIRECT;
       end case;
     end process PROC_READOUT_CFD;

@@ -65,6 +65,9 @@ architecture arch of adc_processor_cfd is
   signal busy_in_adc, busy_in_sys : std_logic := '0';
   signal busy_out_adc, busy_out_sys : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
   
+  signal RDO_write : std_logic := '0';
+  signal RDO_data  : std_logic_vector(31 downto 0) := (others => '0');
+  
   --type epoch_counter_t is array(CHANNELS - 1 downto 0) of unsigned(23 downto 0);
   --signal epoch_counter, epoch_counter_save : epoch_counter_t;
   --signal epoch_counter_sys, epoch_counter_adc : epoch_counter_t;
@@ -119,8 +122,8 @@ begin
                Q         => ram_data_sys(i));
   end generate;
 
-  -- <= RDO_write_main when rising_edge(CLK_SYS);
-  --READOUT_TX.data       <= RDO_data_main when rising_edge(CLK_SYS);
+  READOUT_TX.data_write <= RDO_write when rising_edge(CLK_SYS);
+  READOUT_TX.data       <= RDO_data when rising_edge(CLK_SYS);
   readout_reset         <= CONTROL(12) when rising_edge(CLK_SYS);
   statebits             <= std_logic_vector(to_unsigned(state_t'pos(state), 8));
 
@@ -131,8 +134,8 @@ begin
     wait until rising_edge(CLK_SYS);
     READOUT_TX.busy_release  <= '0';
     READOUT_TX.data_finished <= '0';
-    READOUT_TX.data            <= (others => '0');
-    READOUT_TX.data_write           <= '0';
+    RDO_data            <= (others => '0');
+    RDO_write           <= '0';
 
     busy_in_sys <= '0';
 
@@ -217,15 +220,15 @@ begin
             state <= WAIT_BSY;
           end if;
         else
-          READOUT_TX.data <= ram_data_sys(channelselect);
-          READOUT_TX.data_write <= not CONF_sys.ChannelDisable(DEVICE * CHANNELS + channelselect);
+          RDO_data <= ram_data_sys(channelselect);
+          RDO_write <= not CONF_sys.ChannelDisable(DEVICE * CHANNELS + channelselect);
           ram_counter(channelselect) <= ram_counter(channelselect) + 1;
         end if;
         
         
       when SEND_STATUS =>
-        READOUT_TX.data_write <= '1';
-        READOUT_TX.data  <= x"20000000";
+        RDO_write <= '1';
+        RDO_data  <= x"20000000";
         -- nothing implemented yet
         state          <= RELEASE_DIRECT;
     end case;
