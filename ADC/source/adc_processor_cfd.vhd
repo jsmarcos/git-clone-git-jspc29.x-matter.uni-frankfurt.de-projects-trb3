@@ -68,9 +68,8 @@ architecture arch of adc_processor_cfd is
   signal RDO_write : std_logic := '0';
   signal RDO_data  : std_logic_vector(31 downto 0) := (others => '0');
   
-  --type epoch_counter_t is array(CHANNELS - 1 downto 0) of unsigned(23 downto 0);
-  --signal epoch_counter, epoch_counter_save : epoch_counter_t;
-  --signal epoch_counter_sys, epoch_counter_adc : epoch_counter_t;
+  type epoch_counter_t is array(CHANNELS - 1 downto 0) of unsigned(EPOCH_COUNTER_SIZE-1 downto 0);
+  signal epoch_counter : epoch_counter_t;
   
 begin
   CONF_adc <= CONF_sys when rising_edge(CLK_ADC);
@@ -83,6 +82,7 @@ begin
   busy_in_adc <= busy_in_sys when rising_edge(CLK_ADC);
   busy_out_sys <= busy_out_adc when rising_edge(CLK_SYS);
   
+  epoch_counter <= (others => EPOCH_COUNTER_IN) when rising_edge(CLK_ADC);
   
   gen_cfd : for i in 0 to CHANNELS - 1 generate
     trigger_gen(i) <= debug_sys(i).Trigger;
@@ -105,7 +105,7 @@ begin
                RAM_BSY_IN => busy_in_adc,
                RAM_BSY_OUT => busy_out_adc(i),
                DEBUG    => debug_adc(i),
-               EPOCH_COUNTER_IN => EPOCH_COUNTER_IN
+               EPOCH_COUNTER_IN => epoch_counter(i)
       );
     
     ram_addr_sys(i) <= std_logic_vector(resize(ram_counter(i),ram_addr_sys(i)'length));

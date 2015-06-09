@@ -93,7 +93,7 @@ architecture arch of adc_processor_cfd_ch is
 
   signal integral_sum                      : signed(RESOLUTION_CFD - 1 downto 0) := (others => '0');
 
-  signal epoch_counter_save : unsigned(EPOCH_COUNTER_SIZE-1 downto 0) := (others => '0');
+  signal epoch_counter, epoch_counter_save : unsigned(EPOCH_COUNTER_SIZE-1 downto 0) := (others => '0');
   type state_t is (IDLE, INTEGRATE, WRITE1, WRITE2, WRITE3, FINISH, LOCKED, DEBUG_DUMP);
   signal state : state_t := IDLE;
 
@@ -234,6 +234,8 @@ begin
   begin
     wait until rising_edge(CLK);
 
+    epoch_counter <= EPOCH_COUNTER_IN;
+
     cfd_prev <= cfd.value;
     if cfd_prev < 0 and cfd.value >= 0 and cfd.thresh = '1' then
       zeroX := '1';
@@ -253,7 +255,7 @@ begin
           integral_sum <= resize(delay_integral_out, RESOLUTION_CFD);
           cfd_prev_save <= cfd_prev; 
           cfd_save <= cfd.value;
-          epoch_counter_save <= EPOCH_COUNTER_IN;
+          epoch_counter_save <= epoch_counter;
         elsif CONF.DebugMode = 0 and RAM_BSY_IN = '1' then
           state <= LOCKED;
         elsif CONF.DebugMode /= 0 and RAM_BSY_IN = '1' then
