@@ -404,15 +404,15 @@ begin
         );
     end generate;
     
-    ADC_CLK_TDC_OUT <= epoch_counter(10);
-    
     PROC_EPOCH_COUNTER : process is
     begin
       wait until rising_edge(adc_clk_left);
       epoch_counter <= epoch_counter + 1;
       trigger_in_i <= TRIGGER_IN;
+      ADC_CLK_TDC_OUT <= '0';
       if trigger_in_i = '1' then
         epoch_counter_save <= epoch_counter;
+        ADC_CLK_TDC_OUT <= '1';
       end if;
     end process PROC_EPOCH_COUNTER;
     
