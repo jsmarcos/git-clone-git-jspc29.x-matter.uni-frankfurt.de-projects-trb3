@@ -617,6 +617,7 @@ begin
         TIMER_TICK_1US_IN => timer_ticks(0),
         SERIAL_IN         => CLK_EXT(3),
         EXT_TRG_IN        => CLK_EXT(4),
+        TRG_ASYNC_OUT     => tdc_inputs(1),
         TRG_SYNC_OUT      => cts_ext_trigger,
         TRIGGER_IN        => cts_rdo_trg_data_valid,
 

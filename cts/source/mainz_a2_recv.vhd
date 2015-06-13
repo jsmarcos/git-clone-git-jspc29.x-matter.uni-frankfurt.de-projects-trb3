@@ -19,6 +19,7 @@ entity mainz_a2_recv is
 							-- the external trigger id is sent on SERIAL_IN
 
 		TRG_SYNC_OUT : out std_logic;				-- sync. to CLK
+		TRG_ASYNC_OUT : out std_logic;		  -- Asynchronous for TDC
 
 																				--data output for read-out
 		TRIGGER_IN		: in	std_logic;
@@ -73,7 +74,6 @@ architecture arch1 of mainz_a2_recv is
 
 	signal timeout_seen : std_logic := '0';
 
-	signal trg_async		: std_logic;
 	signal trg_sync			: std_logic;
 	signal trg_sync_old : std_logic;
 	
@@ -93,6 +93,7 @@ begin
 
 	timer_tick_1us <= TIMER_TICK_1US_IN;
 	TRG_SYNC_OUT	 <= trg_sync;
+	TRG_ASYNC_OUT	 <= EXT_TRG_IN;
 	trg_sync			 <= EXT_TRG_IN when rising_edge(CLK);
 	trg_sync_old	 <= trg_sync	 when rising_edge(CLK);
 	reg_SERIAL_IN	 <= SERIAL_IN	 when rising_edge(CLK);
