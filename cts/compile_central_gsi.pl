@@ -16,8 +16,8 @@ my $CbmNetPath                   = "../../cbmnet";
 my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
 my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
 
-my $lattice_path                 = '/opt/lattice/diamond/3.2_x64/';
-my $synplify_path                = '/opt/synplicity/I-2013.09-SP1/';
+my $lattice_path                 = '/opt/lattice/diamond/3.4_x64/';
+my $synplify_path                = '/opt/synplicity/J-2014.09-SP2/';
 my $lattice_bin_path             = "$lattice_path/bin/lin64"; # note the lin or lin64 at the end, no isfgpa needed
 my $config_vhd                   = 'config_mainz_a2.vhd';
 ###################################################################################
