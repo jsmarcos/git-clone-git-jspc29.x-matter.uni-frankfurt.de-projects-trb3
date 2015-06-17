@@ -50,9 +50,13 @@ package config is
   constant DOUBLE_EDGE_TYPE : integer range 0 to 3 := 0;
   
   --> change names in constraints file
-  --ring buffer size: 32,64,96,128,dyn    
-  constant RING_BUFFER_SIZE : integer range 0 to 7 := 7; --ring buffer size:  0, 1, 2,  3,  7   
+  --ring buffer size: 32,64,96,128,dyn
+  --for TDC v1.6.3, only 0,1,3 are valid
+  constant RING_BUFFER_SIZE : integer range 0 to 7 := 3; --ring buffer size:  0, 1, 2,  3,  7   
 
+
+  constant TDC_CONTROL_REG_NR : integer := 6;
+  
 
   ------------------------------------------------------------------------------
   --End of design configuration
