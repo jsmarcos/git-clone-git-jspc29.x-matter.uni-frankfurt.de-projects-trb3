@@ -37,7 +37,7 @@ package config is
   constant ADC_TRIGGER_LOGIC  : integer := c_YES;
   -- ADC channels may be 48 or 36, the latter for enabling compilation 
   -- with TDC and lattice diamond version >2.1
-  constant ADC_CHANNELS       : integer := 48;
+  constant ADC_CHANNELS       : integer := 36;
 
   --Include the TDC (only useful for CFD readout mode) 
   constant INCLUDE_TDC : integer := c_YES;
@@ -50,13 +50,9 @@ package config is
   constant DOUBLE_EDGE_TYPE : integer range 0 to 3 := 0;
   
   --> change names in constraints file
-  --ring buffer size: 32,64,96,128,dyn
-  --for TDC v1.6.3, only 0,1,3 are valid
-  constant RING_BUFFER_SIZE : integer range 0 to 7 := 3; --ring buffer size:  0, 1, 2,  3,  7   
+  --ring buffer size: 32,64,96,128,dyn    
+  constant RING_BUFFER_SIZE : integer range 0 to 7 := 7; --ring buffer size:  0, 1, 2,  3,  7   
 
-
-  constant TDC_CONTROL_REG_NR : integer := 6;
-  
 
   ------------------------------------------------------------------------------
   --End of design configuration
