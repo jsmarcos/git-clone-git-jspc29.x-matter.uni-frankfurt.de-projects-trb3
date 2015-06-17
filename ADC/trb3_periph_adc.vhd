@@ -182,7 +182,6 @@ architecture trb3_periph_adc_arch of trb3_periph_adc is
   
   signal tdc_inputs                  : std_logic_vector(TDC_CHANNEL_NUMBER-2 downto 0);
   
-  constant TDC_CONTROL_REG_NR : integer := 8;
   type tdc_ctrl_reg_arr_t is array (0 to TDC_CONTROL_REG_NR-1) of std_logic_vector(31 downto 0);
   signal tdc_ctrl_reg_arr : tdc_ctrl_reg_arr_t;
   signal tdc_ctrl_reg   : std_logic_vector(TDC_CONTROL_REG_NR*32-1 downto 0);
@@ -593,7 +592,7 @@ LED_YELLOW <= not med_stat_op(11);
         CLK_READOUT           => clk_100_i,  -- Clock for the readout
         REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
         HIT_IN                => tdc_inputs,      -- Channel start signals
-        HIT_CAL_IN            => osc_int,  --clk_20_i,    -- Hits for calibrating the TDC
+        HIT_CALIBRATION       => osc_int,  --clk_20_i,    -- Hits for calibrating the TDC
         TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
         TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
         --
