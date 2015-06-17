@@ -37,7 +37,7 @@ package config is
   constant ADC_TRIGGER_LOGIC  : integer := c_YES;
   -- ADC channels may be 48 or 36, the latter for enabling compilation 
   -- with TDC and lattice diamond version >2.1
-  constant ADC_CHANNELS       : integer := 36;
+  constant ADC_CHANNELS       : integer := 48;
 
   --Include the TDC (only useful for CFD readout mode) 
   constant INCLUDE_TDC : integer := c_YES;

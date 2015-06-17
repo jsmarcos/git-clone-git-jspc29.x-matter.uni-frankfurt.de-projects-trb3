@@ -69,6 +69,21 @@ my $lpf = join('', <FILE>);
 close FILE;
 
 $lpf =~ s#THE_TDC/#GEN_TDC.THE_TDC/#g;
+# only for TDC v1.6.3
+#$lpf =~ s#ff_array_en#ff_array_en_i#g;
+
+
+# make the LPF diamond 2.1 compatible
+# we assume that generate loops are all named with "gen_"
+sub replace_dot {
+  my @m = @_;
+  $m[1] =~ s/\./_/g;
+  return join("", @m);
+}
+$lpf =~ s#(BLKNAME\s+)(.+?)([;\s])#replace_dot($1,$2,$3)#eg;
+$lpf =~ s#(CELL\s+")(.+?)(")#replace_dot($1,$2,$3)#eg;
+$lpf =~ s#(NET\s+")(.+?)(")#replace_dot($1,$2,$3)#eg;
+
 
 open FILE, ">$workdir/$TOPNAME.lpf" or die "Couldnt open file: $!";
 print FILE $lpf;
