@@ -92,7 +92,7 @@ USE PRIMARY NET "CLK_PCLK_RIGHT_c";
 #MULTICYCLE FROM CLKNET "gen_reallogic_THE_ADC/THE_ADC_RIGHT/clk_data" TO CLKNET "gen_reallogic_THE_ADC/adc_clk_right_c" 2 X;
 
 MULTICYCLE FROM CELL "gen_reallogic*THE_ADC/gen_readout_cfd*gen_processors*THE_ADC_PROC/CONF_sys*" TO CELL "gen_reallogic*THE_ADC/gen_readout_cfd*gen_processors*THE_ADC_PROC/CONF_adc*" 4 X;
-MULTICYCLE FROM CELL "gen_reallogic*THE_ADC/gen_readout_cfd*gen_processors*THE_ADC_PROC/*busy_in_sys*" TO CELL "gen_reallogic*THE_ADC/gen_readout_cfd*gen_processors*THE_ADC_PROC/busy_in_adc*" 2 X;
+MULTICYCLE FROM CELL "gen_reallogic*THE_ADC/gen_readout_cfd*gen_processors*THE_ADC_PROC/busy_in_sys*" TO CELL "gen_reallogic*THE_ADC/gen_readout_cfd*gen_processors*THE_ADC_PROC/busy_in_adc*" 2 X;
 MULTICYCLE FROM CELL "gen_reallogic*THE_ADC/THE_ADC_*/state_q_*" TO CELL "gen_reallogic*THE_ADC/THE_ADC_*/state_qq_*" 2 X;
 
 # left are ADCs 0-5 and 7 (counted from 0)
