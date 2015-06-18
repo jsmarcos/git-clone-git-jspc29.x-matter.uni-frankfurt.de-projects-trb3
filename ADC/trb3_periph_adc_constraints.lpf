@@ -270,7 +270,7 @@ MULTICYCLE TO CELL "THE_TDC/TheReadout/TW_post*" 4 x;
 # #MAXDELAY FROM GROUP "hitBuf*" TO GROUP "FC*" 0.600000 nS;
 # #MAXDELAY FROM GROUP "hitBuf_ref*" TO GROUP "Ref_Ch" 0.600000 nS;
 
-MAXDELAY NET "THE_TDC/hit_in_i*" 0.800000 nS; #DATAPATH_ONLY ;
+MAXDELAY NET "THE_TDC/hit_in_i*" 0.600000 nS; #DATAPATH_ONLY ;
 
 
 ## Maybe effective
@@ -291,3 +291,18 @@ MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/Buffer*The_Buffer/*" TO CELL
 
 # # PROHIBIT SECONDARY NET "THE_TDC/ReferenceChannel/Channel200/ff_array_en_i";
 # # PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels*Channels/Channel200/ff_array_en_i";
+
+
+MULTICYCLE TO CELL "THE_MEDIA_DOWNLINK/SCI_DATA_OUT*" 50 ns;
+MULTICYCLE TO CELL "THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
+MULTICYCLE TO CELL "THE_RESET_HANDLER/final_reset*" 30 ns;
+MULTICYCLE TO CELL "THE_RESET_HANDLER/trb_reset_*" 20 ns;
+MULTICYCLE TO CELL "gen_SPI_DAC_SPI_*io*" 20 ns;
+MULTICYCLE TO CELL "THE_SPI_MASTER_THE_SPI_SLIM_tx_sreg_oregio*" 20 ns;
+
+BLOCK PATH TO CELL "gen_TRIGGER_LOGIC_THE_TRIG_LOGIC/out_*";
+
+#Jan: Placement of TrbNet components (at least, most of them)
+
+
+MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset*" 30 ns;
