@@ -187,55 +187,59 @@ UGROUP "ff_en_1" BBOX 1 1
        BLKNAME THE_TDC/GEN_Channels.1.Channels/Channel200/ff_array_en_1_i;
 LOCATE UGROUP "ff_en_1" SITE "R113C27D" ;
 
-#############################################################################
-##                         Unimportant Data Lines                          ##
-#############################################################################
-#MULTICYCLE FROM CELL "THE_TDC/reset_tdc*" TO CLKNET CLK_PCLK_LEFT_c 2x;
-MULTICYCLE FROM CELL "THE_TDC/reset_tdc*" TO CLKNET CLK_PCLK_RIGHT_c 2x;
-MULTICYCLE FROM CELL "THE_TDC/reset_counters*" 4x;
-
-MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/Channel200/RingBuffer*FIFO/FF*" TO CELL "THE_TDC/ReferenceChannel/Channel200/ringBuffer_almost_full_sync*" 2x;
-MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/Channel200/RingBuffer*FIFO/FF*" TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/ringBuffer_almost_full_sync*" 2x;
-
-MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter*" TO CELL "THE_TDC/ReferenceChannel/Channel200/epoch_cntr[*]" 4 X;
-MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter*" TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/epoch_cntr[*]" 4 X;
-
-MULTICYCLE TO CELL "THE_TDC/TheReadout/TW_pre*" 4 x;
-MULTICYCLE TO CELL "THE_TDC/TheReadout/TW_post*" 4 x;
-
-MULTICYCLE FROM CELL "THE_TDC/hit_edge[*]" TO CELL "THE_TDC/GEN_Channels.*.Channels/Channel200/memory[*]" 2.000000 X ;
-
-MULTICYCLE TO CELL "THE_TDC/TheChannelDebugBus/data_out_reg[*]" 4 x;
-
-#MULTICYCLE FROM CLKNET "clk_100_i" TO CLKNET "CLK_OSC_c" 4.000000 X ;
-
-
-BLOCK NET "THE_TDC/pulse[*]";
-BLOCK NET "THE_TDC/hit_in_s*";
-
-MAXDELAY NET "THE_TDC/hit_in_i*" 0.600000 nS; #DATAPATH_ONLY ;
-
-
-
-
-
-
-# MULTICYCLE FROM CELL "PROC_TDC_CTRL_REG*tdc_ctrl_reg*" 4x;
+# TDC control register in top-level entity
 MULTICYCLE FROM CELL "tdc_ctrl_reg*" 4x;
-# MULTICYCLE TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/SimAdderNo*FC/FF*" 4x;
-# MULTICYCLE TO CELL "THE_TDC/ReferenceChannel/Channel200/SimAdderNo*FC/FF*" 4x;
 
-## Maybe effective
+# For v2.1.3
 
-# MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/The_Buffer/*" TO CELL "THE_TDC/TheReadout/rd_en*" 2 X;
+# #############################################################################
+# ##                         Unimportant Data Lines                          ##
+# #############################################################################
+# #MULTICYCLE FROM CELL "THE_TDC/reset_tdc*" TO CLKNET CLK_PCLK_LEFT_c 2x;
+# MULTICYCLE FROM CELL "THE_TDC/reset_tdc*" TO CLKNET CLK_PCLK_RIGHT_c 2x;
+# MULTICYCLE FROM CELL "THE_TDC/reset_counters*" 4x;
+
+# MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/Channel200/RingBuffer*FIFO/FF*" TO CELL "THE_TDC/ReferenceChannel/Channel200/ringBuffer_almost_full_sync*" 2x;
+# MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/Channel200/RingBuffer*FIFO/FF*" TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/ringBuffer_almost_full_sync*" 2x;
+
+# MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter*" TO CELL "THE_TDC/ReferenceChannel/Channel200/epoch_cntr[*]" 4 X;
+# MULTICYCLE FROM CELL "THE_TDC/TheEpochCounter/counter*" TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/epoch_cntr[*]" 4 X;
+
+# MULTICYCLE TO CELL "THE_TDC/TheReadout/TW_pre*" 4 x;
+# MULTICYCLE TO CELL "THE_TDC/TheReadout/TW_post*" 4 x;
+
+# MULTICYCLE FROM CELL "THE_TDC/hit_edge[*]" TO CELL "THE_TDC/GEN_Channels.*.Channels/Channel200/memory[*]" 2.000000 X ;
+
+# MULTICYCLE TO CELL "THE_TDC/TheChannelDebugBus/data_out_reg[*]" 4 x;
+
+# #MULTICYCLE FROM CLKNET "clk_100_i" TO CLKNET "CLK_OSC_c" 4.000000 X ;
+
+
+# BLOCK NET "THE_TDC/pulse[*]";
+# BLOCK NET "THE_TDC/hit_in_s*";
+
+# MAXDELAY NET "THE_TDC/hit_in_i*" 0.600000 nS; #DATAPATH_ONLY ;
 
 
 
-PROHIBIT SECONDARY NET "THE_TDC/ReferenceChannel/Channel200/ff_array_en";
-PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.1.Channels/Channel200/ff_array_en";
 
 
-### Additions for v1.6.3
+
+# # MULTICYCLE FROM CELL "PROC_TDC_CTRL_REG*tdc_ctrl_reg*" 4x;
+# # MULTICYCLE TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/SimAdderNo*FC/FF*" 4x;
+# # MULTICYCLE TO CELL "THE_TDC/ReferenceChannel/Channel200/SimAdderNo*FC/FF*" 4x;
+
+# ## Maybe effective
+
+# # MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/The_Buffer/*" TO CELL "THE_TDC/TheReadout/rd_en*" 2 X;
+
+
+
+# PROHIBIT SECONDARY NET "THE_TDC/ReferenceChannel/Channel200/ff_array_en";
+# PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels.1.Channels/Channel200/ff_array_en";
+
+
+### For v1.6.3
 
 #############################################################################
 ##                         Unimportant Data Lines                          ##
@@ -245,8 +249,8 @@ MULTICYCLE FROM CELL "THE_TDC/reset_tdc*" TO CLKNET CLK_PCLK_LEFT_c 2x;
 MULTICYCLE FROM CELL "THE_TDC/reset_counters*" 4x;
 # MULTICYCLE FROM CELL "PROC_TDC_CTRL_REG*tdc_ctrl_reg*" 4x;
 
-# MULTICYCLE TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/SimAdderNo*FC/FF*" 4x;
-# MULTICYCLE TO CELL "THE_TDC/ReferenceChannel/Channel200/SimAdderNo*FC/FF*" 4x;
+MULTICYCLE TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/SimAdderNo*FC/FF*" 4x;
+MULTICYCLE TO CELL "THE_TDC/ReferenceChannel/Channel200/SimAdderNo*FC/FF*" 4x;
 
 MULTICYCLE TO CELL "THE_TDC/GEN_Channels*Channels/sync_q*" 4 x;
 MULTICYCLE TO CELL "THE_TDC/ReferenceChannel/sync_q*" 4 x;
@@ -270,7 +274,7 @@ MAXDELAY NET "THE_TDC/hit_in_i*" 0.600000 nS; #DATAPATH_ONLY ;
 
 ## Maybe effective
 
-# MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/The_Buffer/*" TO CELL "THE_TDC/TheReadout/rd_en*" 2 X;
+MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/The_Buffer/*" TO CELL "THE_TDC/TheReadout/rd_en*" 2 X;
 
 
 
