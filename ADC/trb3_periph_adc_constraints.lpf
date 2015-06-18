@@ -19,6 +19,8 @@ FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
 GSR_NET NET "GSR_N";  
 
 MULTICYCLE TO CELL "THE_RESET_HANDLER/final_reset*" 20 ns;
+MULTICYCLE TO CELL "THE_RESET_HANDLER/trb_reset_*" 20 ns;
+MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset*" 30 ns;
 
 #################################################################
 # Locate Serdes and media interfaces
@@ -244,7 +246,7 @@ MULTICYCLE FROM CELL "tdc_ctrl_reg*" 4x;
 #############################################################################
 ##                         Unimportant Data Lines                          ##
 #############################################################################
-MULTICYCLE FROM CELL "THE_TDC/reset_tdc*" TO CLKNET CLK_PCLK_LEFT_c 2x;
+MULTICYCLE FROM CELL "THE_TDC/reset_tdc*" TO CLKNET CLK_PCLK_RIGHT_c 2x;
 
 MULTICYCLE FROM CELL "THE_TDC/reset_counters*" 4x;
 # MULTICYCLE FROM CELL "PROC_TDC_CTRL_REG*tdc_ctrl_reg*" 4x;
@@ -292,17 +294,3 @@ MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/Buffer*The_Buffer/*" TO CELL
 # # PROHIBIT SECONDARY NET "THE_TDC/ReferenceChannel/Channel200/ff_array_en_i";
 # # PROHIBIT SECONDARY NET "THE_TDC/GEN_Channels*Channels/Channel200/ff_array_en_i";
 
-
-MULTICYCLE TO CELL "THE_MEDIA_DOWNLINK/SCI_DATA_OUT*" 50 ns;
-MULTICYCLE TO CELL "THE_MEDIA_UPLINK/SCI_DATA_OUT*" 50 ns;
-MULTICYCLE TO CELL "THE_RESET_HANDLER/final_reset*" 30 ns;
-MULTICYCLE TO CELL "THE_RESET_HANDLER/trb_reset_*" 20 ns;
-MULTICYCLE TO CELL "gen_SPI_DAC_SPI_*io*" 20 ns;
-MULTICYCLE TO CELL "THE_SPI_MASTER_THE_SPI_SLIM_tx_sreg_oregio*" 20 ns;
-
-BLOCK PATH TO CELL "gen_TRIGGER_LOGIC_THE_TRIG_LOGIC/out_*";
-
-#Jan: Placement of TrbNet components (at least, most of them)
-
-
-MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset*" 30 ns;
