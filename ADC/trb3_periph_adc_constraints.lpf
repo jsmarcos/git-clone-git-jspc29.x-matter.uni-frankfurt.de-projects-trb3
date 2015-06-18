@@ -252,8 +252,9 @@ MULTICYCLE FROM CELL "THE_TDC/reset_counters*" 4x;
 MULTICYCLE TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/SimAdderNo*FC/FF*" 4x;
 MULTICYCLE TO CELL "THE_TDC/ReferenceChannel/Channel200/SimAdderNo*FC/FF*" 4x;
 
-MULTICYCLE TO CELL "THE_TDC/GEN_Channels*Channels/sync_q*" 4 x;
-MULTICYCLE TO CELL "THE_TDC/ReferenceChannel/sync_q*" 4 x;
+# only relevant when TDC debug mode is c_YES
+# MULTICYCLE TO CELL "THE_TDC/GEN_Channels*Channels/sync_q*" 4 x;
+# MULTICYCLE TO CELL "THE_TDC/ReferenceChannel/sync_q*" 4 x;
 
 MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/Channel200/RingBuffer*FIFO/FF*" TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/ringBuffer_almost_full_sync*" 2x;
 MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/Channel200/RingBuffer*FIFO/FF*" TO CELL "THE_TDC/ReferenceChannel/Channel200/ringBuffer_almost_full_sync*" 2x;
@@ -274,7 +275,7 @@ MAXDELAY NET "THE_TDC/hit_in_i*" 0.800000 nS; #DATAPATH_ONLY ;
 
 ## Maybe effective
 
-MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/The_Buffer/*" TO CELL "THE_TDC/TheReadout/rd_en*" 2 X;
+MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/Buffer*The_Buffer/*" TO CELL "THE_TDC/TheReadout/rd_en*" 2 X;
 
 
 
