@@ -163,7 +163,7 @@ LOCATE UGROUP "THE_ADC_PROC_cfd_11_group" REGION "THE_ADC_PROC_cfd_11_region";
 
 UGROUP "EF_LT2" BBOX 10 51
        BLKNAME THE_TDC/ReferenceChannel/Channel200
-       BLKNAME THE_TDC/ReferenceChannel/Buffer_128.The_Buffer
+       BLKNAME THE_TDC/ReferenceChannel/Buffer_32.The_Buffer
        BLKNAME THE_TDC/GEN_Channels.1.Channels/Channel200
        BLKNAME THE_TDC/GEN_Channels.1.Channels/Buffer_32.The_Buffer
        ;
@@ -255,8 +255,8 @@ MULTICYCLE TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/SimAdderNo*FC/FF*" 
 MULTICYCLE TO CELL "THE_TDC/ReferenceChannel/Channel200/SimAdderNo*FC/FF*" 4x;
 
 # only relevant when TDC debug mode is c_YES
-MULTICYCLE TO CELL "THE_TDC/GEN_Channels*Channels/sync_q*" 4 x;
-MULTICYCLE TO CELL "THE_TDC/ReferenceChannel/sync_q*" 4 x;
+# MULTICYCLE TO CELL "THE_TDC/GEN_Channels*Channels/sync_q*" 4 x;
+# MULTICYCLE TO CELL "THE_TDC/ReferenceChannel/sync_q*" 4 x;
 
 MULTICYCLE FROM CELL "THE_TDC/GEN_Channels*Channels/Channel200/RingBuffer*FIFO/FF*" TO CELL "THE_TDC/GEN_Channels*Channels/Channel200/ringBuffer_almost_full_sync*" 2x;
 MULTICYCLE FROM CELL "THE_TDC/ReferenceChannel/Channel200/RingBuffer*FIFO/FF*" TO CELL "THE_TDC/ReferenceChannel/Channel200/ringBuffer_almost_full_sync*" 2x;
