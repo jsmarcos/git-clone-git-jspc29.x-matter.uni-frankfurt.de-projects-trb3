@@ -12,30 +12,41 @@ set_option -speed_grade -8
 set_option -part_companion ""
 
 # compilation/mapping options
-set_option -default_enum_encoding sequential
+#set_option -default_enum_encoding sequential
 set_option -symbolic_fsm_compiler 1
 set_option -top_module "trb3_periph_adc"
-set_option -resource_sharing true
+#set_option -resource_sharing true
+
+
+
+# Lattice XP
+set_option -maxfan 100
+set_option -fix_gated_and_generated_clocks 1
+set_option -RWCheckOnRam 1
+set_option -update_models_cp 0
+set_option -syn_edif_array_rename 1
+
 
 # map options
 set_option -frequency 200
-set_option -fanout_limit 100
+set_option -fanout_limit 1000
 set_option -disable_io_insertion 0
-set_option -retiming 1
-set_option -pipe 1
-#set_option -force_gsr 
 set_option -force_gsr false
-set_option -fixgatedclocks false #3
-set_option -fixgeneratedclocks false #3
 set_option -compiler_compatible true
+set_option -retiming 0
+set_option -pipe 1
 
+set_option -max_parallel_jobs 3
+#set_option -automatic_compile_point 1
+#set_option -continue_on_error 1
+set_option -resolve_multiple_driver 1
 
 # simulation options
 set_option -write_verilog 0
 set_option -write_vhdl 1
 
 # automatic place and route (vendor) options
-set_option -write_apr_constraint 0
+set_option -write_apr_constraint 1
 
 # set result format/file last
 project -result_format "edif"
