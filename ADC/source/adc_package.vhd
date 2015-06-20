@@ -50,9 +50,9 @@ package adc_package is
     PolarityInvert   : std_logic;
     BaselineAverage  : unsigned(4 downto 0);
     BaselineAlwaysOn : std_logic;
-    CFDDelay         : unsigned(4 downto 0);
-    CFDMult          : unsigned(3 downto 0);
-    CFDMultDly       : unsigned(3 downto 0);
+    CFDDelay         : unsigned(2 downto 0);
+    CFDMult          : unsigned(2 downto 0);
+    CFDMultDly       : unsigned(2 downto 0);
     IntegrateWindow  : unsigned(7 downto 0);
     TriggerDelay     : unsigned(11 downto 0);
     CheckWord1       : std_logic_vector(RESOLUTION - 1 downto 0);

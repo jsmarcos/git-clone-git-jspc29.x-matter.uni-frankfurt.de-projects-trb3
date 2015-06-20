@@ -35,7 +35,7 @@ architecture arch of adc_processor_cfd_ch is
   constant RESOLUTION_CFD  : integer := RESOLUTION_PROD + 1; -- this should be 16 to fit into the readout ram
 
   constant RESOLUTION_BASEAVG : integer := RESOLUTION + 2 ** CONF.BaselineAverage'length - 1;
-  constant LENGTH_BASEDLY     : integer := 32; -- longer than typical pulses?
+  constant LENGTH_BASEDLY     : integer := 128; -- longer than typical pulses?
   constant LENGTH_CFDDLY      : integer := 2 ** CONF.CFDDelay'length;
   constant LENGTH_INTDLY      : integer := 3;  -- must match CFD/zeroX calculation chain
 

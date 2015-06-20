@@ -507,9 +507,9 @@ begin
             when x"1c" => BUS_TX.data(1 downto 0)              <= std_logic_vector(to_unsigned(config_cfd.DebugMode, 2));
             when x"1d" =>
               BUS_TX.data(7 downto 0)   <= std_logic_vector(config_cfd.IntegrateWindow);
-              BUS_TX.data(12 downto 8)  <= std_logic_vector(config_cfd.CFDDelay);
-              BUS_TX.data(16 downto 13) <= std_logic_vector(config_cfd.CFDMult);
-              BUS_TX.data(20 downto 17) <= std_logic_vector(config_cfd.CFDMultDly);
+              BUS_TX.data(12 downto 8)  <= std_logic_vector(resize(config_cfd.CFDDelay,5));
+              BUS_TX.data(16 downto 13) <= std_logic_vector(resize(config_cfd.CFDMult,4));
+              BUS_TX.data(20 downto 17) <= std_logic_vector(resize(config_cfd.CFDMultDly,4));
             when others =>
               BUS_TX.ack     <= '0';
               BUS_TX.unknown <= '1';
@@ -555,9 +555,9 @@ begin
             when x"1c" => config_cfd.DebugMode                    <= to_integer(unsigned(BUS_RX.data(1 downto 0)));  
             when x"1d" =>
               config_cfd.IntegrateWindow <= unsigned(BUS_RX.data(7 downto 0));
-              config_cfd.CFDDelay        <= unsigned(BUS_RX.data(12 downto 8));
-              config_cfd.CFDMult         <= unsigned(BUS_RX.data(16 downto 13));
-              config_cfd.CFDMultDly      <= unsigned(BUS_RX.data(20 downto 17));
+              config_cfd.CFDDelay        <= resize(unsigned(BUS_RX.data(12 downto  8)), config_cfd.CFDDelay'length);
+              config_cfd.CFDMult         <= resize(unsigned(BUS_RX.data(16 downto 13)), config_cfd.CFDMult'length);
+              config_cfd.CFDMultDly      <= resize(unsigned(BUS_RX.data(20 downto 17)), config.CFDMult'length);
             when others => BUS_TX.ack    <= '0';
               BUS_TX.unknown             <= '1';
           end case;
