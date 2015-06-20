@@ -585,7 +585,7 @@ LED_YELLOW <= not med_stat_op(11);
         STATUS_REG_NR  => 21,           -- Number of status regs
         TDC_VERSION => TDC_VERSION,
         CONTROL_REG_NR => TDC_CONTROL_REG_NR,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
-        DEBUG          => c_NO
+        DEBUG          => c_YES
         )
       port map (
         RESET                 => reset_i,
