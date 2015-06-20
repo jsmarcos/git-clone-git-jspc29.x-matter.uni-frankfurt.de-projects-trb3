@@ -32,8 +32,11 @@ end entity adc_processor_cfd_ch;
 architecture arch of adc_processor_cfd_ch is
   constant RESOLUTION_SUB  : integer := RESOLUTION + 1; -- one sign bit extra for baseline subtracted value
   constant RESOLUTION_PROD : integer := RESOLUTION_SUB + CONF.CFDMult'length; -- assume CONF.CFDMult length equals CFDMultDly
-  constant RESOLUTION_CFD  : integer := RESOLUTION_PROD + 1; -- this should be 16 to fit into the readout ram
+  constant RESOLUTION_CFD  : integer := RESOLUTION_PROD + 1; -- should be
+                                                             -- smaller or
+                                                             -- equal than 16
 
+  
   constant RESOLUTION_BASEAVG : integer := RESOLUTION + 2 ** CONF.BaselineAverage'length - 1;
   constant LENGTH_BASEDLY     : integer := 128; -- longer than typical pulses?
   constant LENGTH_CFDDLY      : integer := 2 ** CONF.CFDDelay'length;
@@ -91,7 +94,7 @@ architecture arch of adc_processor_cfd_ch is
   signal delay_integral_in  : signed(RESOLUTION_SUB - 1 downto 0) := (others => '0');
   signal delay_integral_out : signed(RESOLUTION_SUB - 1 downto 0) := (others => '0');
 
-  signal integral_sum                      : signed(RESOLUTION_CFD - 1 downto 0) := (others => '0');
+  signal integral_sum                      : signed(15 downto 0) := (others => '0');
 
   signal epoch_counter, epoch_counter_save : unsigned(EPOCH_COUNTER_SIZE-1 downto 0) := (others => '0');
   type state_t is (IDLE, INTEGRATE, WRITE1, WRITE2, WRITE3, FINISH, LOCKED, DEBUG_DUMP);
@@ -101,6 +104,8 @@ architecture arch of adc_processor_cfd_ch is
   
   signal debug_mux : std_logic_vector(15 downto 0);
 begin
+  assert RESOLUTION_CFD<=16 report "RESOLUTION_CFD does not fit into 16bit" severity error;
+
   -- input ADC data interpreted as unsigned
   input <= unsigned(ADC_DATA);
 
@@ -252,7 +257,7 @@ begin
         if CONF.DebugMode = 0 and zeroX = '1' then
           state            <= INTEGRATE;
           integral_counter := to_integer(CONF.IntegrateWindow);
-          integral_sum <= resize(delay_integral_out, RESOLUTION_CFD);
+          integral_sum <= resize(delay_integral_out, 16);
           cfd_prev_save <= cfd_prev; 
           cfd_save <= cfd.value;
           epoch_counter_save <= epoch_counter;
@@ -288,7 +293,7 @@ begin
         if integral_counter = 0 then
           state         <= WRITE1;
         else
-          integral_sum <= integral_sum + resize(delay_integral_out, RESOLUTION_CFD);
+          integral_sum <= integral_sum + resize(delay_integral_out, 16);
           integral_counter := integral_counter - 1;
         end if;
       
@@ -316,8 +321,8 @@ begin
         state <= WRITE3;
         
       when WRITE3 => 
-        RAM_DATA(31 downto 16) <= std_logic_vector(cfd_prev_save);
-        RAM_DATA(15 downto  0) <= std_logic_vector(cfd_save);
+        RAM_DATA(31 downto 16) <= std_logic_vector(resize(cfd_prev_save,16));
+        RAM_DATA(15 downto  0) <= std_logic_vector(resize(cfd_save,16));
         ram_counter <= ram_counter + 1;
         state <= FINISH;
         

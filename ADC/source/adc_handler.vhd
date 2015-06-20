@@ -557,7 +557,7 @@ begin
               config_cfd.IntegrateWindow <= unsigned(BUS_RX.data(7 downto 0));
               config_cfd.CFDDelay        <= resize(unsigned(BUS_RX.data(12 downto  8)), config_cfd.CFDDelay'length);
               config_cfd.CFDMult         <= resize(unsigned(BUS_RX.data(16 downto 13)), config_cfd.CFDMult'length);
-              config_cfd.CFDMultDly      <= resize(unsigned(BUS_RX.data(20 downto 17)), config.CFDMult'length);
+              config_cfd.CFDMultDly      <= resize(unsigned(BUS_RX.data(20 downto 17)), config_cfd.CFDMult'length);
             when others => BUS_TX.ack    <= '0';
               BUS_TX.unknown             <= '1';
           end case;
