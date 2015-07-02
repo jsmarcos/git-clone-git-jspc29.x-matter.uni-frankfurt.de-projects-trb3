@@ -1,1 +1,1 @@
-currentRelease/cbmtof.vhd
+tdc_release/cbmtof.vhd

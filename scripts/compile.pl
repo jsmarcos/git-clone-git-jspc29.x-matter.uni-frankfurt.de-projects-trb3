@@ -128,6 +128,8 @@ if($include_TDC) {
   system("ln -s ../../../tdc/base/cores/ecp3/TDC/Adder_304.ngo $WORKDIR/Adder_304.ngo");
 }
 
+system("cd workdir; ../../base/linkdesignfiles.sh; cd ..");
+
 #generate timestamp
 my $t=time;
 my $fh = new FileHandle(">version.vhd");
