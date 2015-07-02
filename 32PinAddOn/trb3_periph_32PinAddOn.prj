@@ -49,44 +49,44 @@ impl -active "workdir"
 ####################
 
 
-#project files
+
+#add_file options
+
 add_file -vhdl -lib work "version.vhd"
-add_file -vhdl -lib work "tdc_release/tdc_version.vhd"
 add_file -vhdl -lib work "config.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_std.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_components.vhd"
 add_file -vhdl -lib work "../base/trb3_components.vhd"
-add_file -vhdl -lib work "tdc_release/tdc_components.vhd"
+add_file -vhdl -lib work "tdc_release/tdc_version.vhd"
 
+add_file -vhdl -lib work "../../trbnet/trb_net16_term_buf.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_CRC.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_CRC8.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_onewire.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net16_addresses.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net16_term.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_sbuf.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_sbuf5.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_sbuf6.vhd"
-add_file -vhdl -lib work "../../trbnet/trb_net_priority_encoder.vhd"
-add_file -vhdl -lib work "../../trbnet/trb_net_dummy_fifo.vhd"
-add_file -vhdl -lib work "../../trbnet/trb_net_priority_arbiter.vhd"
-add_file -vhdl -lib work "../../trbnet/trb_net_pattern_gen.vhd"
-
-add_file -vhdl -lib work "../../trbnet/trb_net16_addresses.vhd"
-add_file -vhdl -lib work "../../trbnet/trb_net16_api_base.vhd"
-add_file -vhdl -lib work "../../trbnet/trb_net16_dummy_fifo.vhd"
-add_file -vhdl -lib work "../../trbnet/trb_net16_endpoint_hades_full.vhd"
-add_file -vhdl -lib work "../../trbnet/trb_net16_endpoint_hades_full_handler.vhd"
-add_file -vhdl -lib work "../../trbnet/trb_net16_ipudata.vhd"
-add_file -vhdl -lib work "../../trbnet/trb_net16_iobuf.vhd"
-add_file -vhdl -lib work "../../trbnet/trb_net16_io_multiplexer.vhd"
-add_file -vhdl -lib work "../../trbnet/trb_net16_ibuf.vhd"
-add_file -vhdl -lib work "../../trbnet/trb_net16_obuf_nodata.vhd"
-add_file -vhdl -lib work "../../trbnet/trb_net16_obuf.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net16_sbuf.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net16_regIO.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net16_regio_bus_handler.vhd"
-add_file -vhdl -lib work "../../trbnet/trb_net16_sbuf.vhd"
-add_file -vhdl -lib work "../../trbnet/trb_net16_term_buf.vhd"
-add_file -vhdl -lib work "../../trbnet/trb_net16_term.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net_priority_encoder.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net_dummy_fifo.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net16_dummy_fifo.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net16_term_ibuf.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net_priority_arbiter.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net_pattern_gen.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net16_obuf_nodata.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net16_obuf.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net16_iobuf.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net16_api_base.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net16_ibuf.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net16_io_multiplexer.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net16_trigger.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net16_ipudata.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net16_endpoint_hades_full.vhd"
+add_file -vhdl -lib work "../../trbnet/trb_net16_endpoint_hades_full_handler.vhd"
 
 add_file -vhdl -lib work "../../trbnet/basics/rom_16x8.vhd"
 add_file -vhdl -lib work "../../trbnet/basics/ram.vhd"
@@ -105,12 +105,12 @@ add_file -vhdl -lib work "../../trbnet/special/handler_ipu.vhd"
 add_file -vhdl -lib work "../../trbnet/special/handler_trigger_and_data.vhd"
 add_file -vhdl -lib work "../../trbnet/special/trb_net_reset_handler.vhd"
 add_file -vhdl -lib work "../../trbnet/special/fpga_reboot.vhd"
-add_file -vhdl -lib work "../../trbnet/special/spi_flash_and_fpga_reload.vhd"
-add_file -vhdl -lib work "../../trbnet/special/bus_register_handler.vhd"
 add_file -vhdl -lib work "../../trbnet/special/spi_slim.vhd"
 add_file -vhdl -lib work "../../trbnet/special/spi_master.vhd"
 add_file -vhdl -lib work "../../trbnet/special/spi_databus_memory.vhd"
 add_file -vhdl -lib work "../../trbnet/special/spi_ltc2600.vhd"
+add_file -vhdl -lib work "../../trbnet/special/spi_flash_and_fpga_reload.vhd"
+add_file -vhdl -lib work "../../trbnet/special/bus_register_handler.vhd"
 
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/lattice_ecp2m_fifo.vhd" 
 add_file -vhdl -lib work "../../trbnet/lattice/ecp3/lattice_ecp3_fifo_18x1k.vhd"
@@ -144,13 +144,12 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/sfp_1_125_int.v
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_lsm_sfp.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.vhd"
 
-add_file -vhdl -lib "work" "../base/cores/pll_in200_out100.vhd"
+add_file -vhdl -lib work "../base/cores/pll_in200_out100.vhd"
+add_file -vhdl -lib work "../base/code/input_to_trigger_logic.vhd"
+add_file -vhdl -lib work "../base/code/input_statistics.vhd"
+add_file -vhdl -lib work "../base/code/sedcheck.vhd"
 
 
-
-###############
-#Change path to tdc release also in compile script!
-###############
 add_file -vhdl -lib work "tdc_release/tdc_components.vhd"
 add_file -vhdl -lib work "tdc_release/bit_sync.vhd"
 add_file -vhdl -lib work "tdc_release/BusHandler.vhd"
@@ -177,11 +176,7 @@ add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_DC_36x32_OutReg.vh
 add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_36x128_OutReg.vhd"
 add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_36x64_OutReg.vhd"
 add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_36x32_OutReg.vhd"
-add_file -vhdl -lib work "../../tdc/base/cores/ecp3/PLL/pll_in125_out333.vhd"
+add_file -vhdl -lib work "../../tdc/base/cores/ecp3/PLL/pll_in125_out33.vhd"
 
-add_file -vhdl -lib "work" "../base/code/input_to_trigger_logic.vhd"
-add_file -vhdl -lib "work" "../base/code/input_statistics.vhd"
-add_file -vhdl -lib "work" "../base/code/sedcheck.vhd"
-
-add_file -vhdl -lib "work" "trb3_periph_32PinAddOn.vhd"
+add_file -vhdl -lib work "trb3_periph_32PinAddOn.vhd"
 

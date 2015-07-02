@@ -1,0 +1,7 @@
+// nodes file for parallel place&route
+
+[lxhadeb07]
+SYSTEM = linux
+CORENUM = 32
+ENV = /u/cugur/depc363/bin/diamond_setup_x64.sh
+WORKDIR = /u/cugur/depc363/Projects/TDC_on_TRB3/trb3/32PinAddOn/workdir
