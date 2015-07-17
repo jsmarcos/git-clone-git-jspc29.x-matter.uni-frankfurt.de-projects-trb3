@@ -38,6 +38,8 @@ checkenv:
 
 # Bitgen
 workdir/$(TARGET).bit: workdir/$(TARGET).ncd
+	@$(MAKE) report
+
 	@echo ""
 	@echo "----------------------------------------------------------------------"
 	@echo "-------------- Bitgen ------------------------------------------------"
@@ -45,7 +47,7 @@ workdir/$(TARGET).bit: workdir/$(TARGET).ncd
 	cd workdir && \
 	  bitgen -w -g CfgMode:Disable -g RamCfg:Reset -g ES:No $(TARGET).ncd \
                  $(TARGET).bit $(TARGET).prf
-	@$(MAKE) report
+
 	@$(MAKE) error	
 
 # Place and Route (multipar)

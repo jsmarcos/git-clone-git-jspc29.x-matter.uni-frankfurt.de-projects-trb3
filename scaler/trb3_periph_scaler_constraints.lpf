@@ -26,7 +26,6 @@ FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
 
 USE PRIMARY   NET "CLK_PCLK_RIGHT_c";
 USE PRIMARY   NET "clk_100_i";
-USE PRIMARY   NET "nx_main_clk"; 
                      
 #################################################################
 # Reset Nets
@@ -38,7 +37,7 @@ USE PRIMARY   NET "nx_main_clk";
 # Locate Serdes and media interfaces
 #################################################################
 
-LOCATE COMP          "THE_MEDIA_UPLINK/gen_serdes_1_200_THE_SERDES/PCSD_INST" SITE "PCSA" ;
+LOCATE COMP          "THE_MEDIA_UPLINK/gen_serdes_1_200.THE_SERDES/PCSD_INST" SITE "PCSA" ;
 REGION               "MEDIA_UPLINK" "R102C95D" 13 25;
 LOCATE UGROUP        "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLINK" ;
 
@@ -57,9 +56,21 @@ LOCATE UGROUP "THE_SPI_MEMORY/SPI_group" REGION "REGION_SPI" ;
 #################################################
 
 
-MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset*"                                                      50 ns;
+MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset*"                                                    50 ns;
 
-# MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_trigger_handler_*/reset_nx_main_clk_in_ff*"                    30 ns;
+MULTICYCLE TO     CELL "scaler_0/scaler_channel_*/reset_clk_d1_ff*"                                      30 ns;
+
+MULTICYCLE TO     CELL "scaler_0/scaler_channel_*/PULSE_IN_to_pulse/pulse_ff*"                           30 ns;
+MULTICYCLE TO     CELL "scaler_0/scaler_channel_*/LATCH_IN_to_latch/pulse_ff*"                           30 ns;
+MULTICYCLE FROM   CELL "scaler_0/scaler_channel_*/internal_pulse*"                                      100 ns;
+
+MULTICYCLE TO GROUP  "TEST_LINE_group"          500.000000 ns ;
+MAXDELAY   TO GROUP  "TEST_LINE_group"          500.000000 ns ;
+
+#MULTICYCLE TO   CELL "scaler_0/scaler_channel_1/INHIBIT_IN_to_inhibit/pulse_ff*"                        30 ns;
+#MULTICYCLE TO   CELL "scaler_0/scaler_channel_1/counter_latched*"                                       30 ns;
+
+
 # MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_trigger_handler_*/trigger_busy_ff*"                            30 ns;
 # MULTICYCLE to   CELL "nXyter_FEE_board_*/nx_trigger_handler_*/fast_clear_ff*"                              30 ns;
 # MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_handler_*/reg_testpulse_delay*"                       100 ns;
@@ -110,10 +121,7 @@ MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset*"                           
 # MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_error_status_i_*"                         100 ns;
 # MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_ad9228_*/adc_ad9228_data_handler*/adc_locked_o*" 100 ns;
 # 
-# MULTICYCLE TO GROUP  "TEST_LINE_group"          500.000000 ns ;
-# MULTICYCLE TO GROUP  "NX1_DEBUG_LINE_group"     500.000000 ns ;
-# MAXDELAY   TO GROUP  "TEST_LINE_group"          500.000000 ns ;
-# MAXDELAY   TO GROUP  "NX1_DEBUG_LINE_group"     500.000000 ns ;
+
 
 #################################################################
 # Constraints for nxyter inputs

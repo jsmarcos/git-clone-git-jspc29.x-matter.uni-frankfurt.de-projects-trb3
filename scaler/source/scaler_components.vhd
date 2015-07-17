@@ -14,12 +14,12 @@ package scaler_components is
     port (
       CLK_IN                     : in  std_logic;
       RESET_IN                   : in  std_logic;
-      CLK_NX_MAIN_IN             : in  std_logic;
-      PLL_NX_CLK_LOCK_IN         : in  std_logic;
-      PLL_RESET_OUT              : out std_logic;
+
+      CLK_D1_IN                  : in  std_logic;
+
       TRIGGER_OUT                : out std_logic;
-      SCALER_LATCH_IN            : in  std_logic;
-      SCALER_CHANNELS_IN         : in  std_logic_vector (7 downto 0);
+      LATCH_IN                   : in  std_logic;
+      CHANNELS_IN                : in  std_logic_vector (7 downto 0);
       TIMING_TRIGGER_IN          : in  std_logic;
       LVL1_TRG_DATA_VALID_IN     : in  std_logic;
       LVL1_VALID_TIMING_TRG_IN   : in  std_logic;
@@ -57,10 +57,11 @@ package scaler_components is
     port (
       CLK_IN               : in  std_logic;
       RESET_IN             : in  std_logic;
-      CLK_SCALER_IN        : in  std_logic;
+      CLK_D1_IN            : in  std_logic;
       RESET_SCALER_IN      : in  std_logic;
       LATCH_IN             : in  std_logic;
       PULSE_IN             : in  std_logic;
+      PULSE_INTERNAL_IN    : in  std_logic;
       INHIBIT_IN           : in  std_logic;
       SLV_READ_IN          : in  std_logic;
       SLV_WRITE_IN         : in  std_logic;
@@ -71,6 +72,59 @@ package scaler_components is
       SLV_NO_MORE_DATA_OUT : out std_logic;
       SLV_UNKNOWN_ADDR_OUT : out std_logic;
       DEBUG_OUT            : out std_logic_vector(15 downto 0)
+      );
+  end component;
+
+-------------------------------------------------------------------------------
+-- Trigger Handler
+-------------------------------------------------------------------------------
+ 
+  component trigger_handler
+    port (
+      CLK_IN                     : in  std_logic;
+      RESET_IN                   : in  std_logic;
+      NX_MAIN_CLK_IN             : in  std_logic;
+      OFFLINE_IN                 : in  std_logic;
+      TIMING_TRIGGER_IN          : in  std_logic;
+      LVL1_TRG_DATA_VALID_IN     : in  std_logic;
+      LVL1_VALID_TIMING_TRG_IN   : in  std_logic;
+      LVL1_VALID_NOTIMING_TRG_IN : in  std_logic;
+      LVL1_INVALID_TRG_IN        : in  std_logic;
+      LVL1_TRG_TYPE_IN           : in  std_logic_vector(3 downto 0);
+      LVL1_TRG_NUMBER_IN         : in  std_logic_vector(15 downto 0);
+      LVL1_TRG_CODE_IN           : in  std_logic_vector(7 downto 0);
+      LVL1_TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0);
+      LVL1_INT_TRG_NUMBER_IN     : in  std_logic_vector(15 downto 0);
+      FEE_DATA_OUT               : out std_logic_vector(31 downto 0);
+      FEE_DATA_WRITE_OUT         : out std_logic;
+      FEE_DATA_FINISHED_OUT      : out std_logic;
+      FEE_TRG_RELEASE_OUT        : out std_logic;
+      FEE_TRG_STATUSBITS_OUT     : out std_logic_vector(31 downto 0);
+      FEE_DATA_0_IN              : in  std_logic_vector(31 downto 0);
+      FEE_DATA_WRITE_0_IN        : in  std_logic;
+      FEE_DATA_1_IN              : in  std_logic_vector(31 downto 0);
+      FEE_DATA_WRITE_1_IN        : in  std_logic;
+      INTERNAL_TRIGGER_IN        : in  std_logic;
+      TRIGGER_VALIDATE_BUSY_IN   : in  std_logic;
+      TRIGGER_BUSY_0_IN          : in  std_logic;
+      TRIGGER_BUSY_1_IN          : in  std_logic;
+      VALID_TRIGGER_OUT          : out std_logic;
+      TIMESTAMP_TRIGGER_OUT      : out std_logic;
+      TRIGGER_TIMING_OUT         : out std_logic;
+      TRIGGER_STATUS_OUT         : out std_logic;
+      TRIGGER_CALIBRATION_OUT    : out std_logic;
+      FAST_CLEAR_OUT             : out std_logic;
+      TRIGGER_BUSY_OUT           : out std_logic;
+      TESTPULSE_OUT              : out std_logic;
+      SLV_READ_IN                : in  std_logic;
+      SLV_WRITE_IN               : in  std_logic;
+      SLV_DATA_OUT               : out std_logic_vector(31 downto 0);
+      SLV_DATA_IN                : in  std_logic_vector(31 downto 0);
+      SLV_ADDR_IN                : in  std_logic_vector(15 downto 0);
+      SLV_ACK_OUT                : out std_logic;
+      SLV_NO_MORE_DATA_OUT       : out std_logic;
+      SLV_UNKNOWN_ADDR_OUT       : out std_logic;
+      DEBUG_OUT                  : out std_logic_vector(15 downto 0)
       );
   end component;
 
@@ -695,54 +749,6 @@ package scaler_components is
       );
   end component;
 
-  component nx_trigger_handler
-    port (
-      CLK_IN                     : in  std_logic;
-      RESET_IN                   : in  std_logic;
-      NX_MAIN_CLK_IN             : in  std_logic;
-      NXYTER_OFFLINE_IN          : in  std_logic;
-      TIMING_TRIGGER_IN          : in  std_logic;
-      LVL1_TRG_DATA_VALID_IN     : in  std_logic;
-      LVL1_VALID_TIMING_TRG_IN   : in  std_logic;
-      LVL1_VALID_NOTIMING_TRG_IN : in  std_logic;
-      LVL1_INVALID_TRG_IN        : in  std_logic;
-      LVL1_TRG_TYPE_IN           : in  std_logic_vector(3 downto 0);
-      LVL1_TRG_NUMBER_IN         : in  std_logic_vector(15 downto 0);
-      LVL1_TRG_CODE_IN           : in  std_logic_vector(7 downto 0);
-      LVL1_TRG_INFORMATION_IN    : in  std_logic_vector(23 downto 0);
-      LVL1_INT_TRG_NUMBER_IN     : in  std_logic_vector(15 downto 0);
-      FEE_DATA_OUT               : out std_logic_vector(31 downto 0);
-      FEE_DATA_WRITE_OUT         : out std_logic;
-      FEE_DATA_FINISHED_OUT      : out std_logic;
-      FEE_TRG_RELEASE_OUT        : out std_logic;
-      FEE_TRG_STATUSBITS_OUT     : out std_logic_vector(31 downto 0);
-      FEE_DATA_0_IN              : in  std_logic_vector(31 downto 0);
-      FEE_DATA_WRITE_0_IN        : in  std_logic;
-      FEE_DATA_1_IN              : in  std_logic_vector(31 downto 0);
-      FEE_DATA_WRITE_1_IN        : in  std_logic;
-      INTERNAL_TRIGGER_IN        : in  std_logic;
-      TRIGGER_VALIDATE_BUSY_IN   : in  std_logic;
-      TRIGGER_BUSY_0_IN          : in  std_logic;
-      TRIGGER_BUSY_1_IN          : in  std_logic;
-      VALID_TRIGGER_OUT          : out std_logic;
-      TIMESTAMP_TRIGGER_OUT      : out std_logic;
-      TRIGGER_TIMING_OUT         : out std_logic;
-      TRIGGER_STATUS_OUT         : out std_logic;
-      TRIGGER_CALIBRATION_OUT    : out std_logic;
-      FAST_CLEAR_OUT             : out std_logic;
-      TRIGGER_BUSY_OUT           : out std_logic;
-      NX_TESTPULSE_OUT           : out std_logic;
-      SLV_READ_IN                : in  std_logic;
-      SLV_WRITE_IN               : in  std_logic;
-      SLV_DATA_OUT               : out std_logic_vector(31 downto 0);
-      SLV_DATA_IN                : in  std_logic_vector(31 downto 0);
-      SLV_ADDR_IN                : in  std_logic_vector(15 downto 0);
-      SLV_ACK_OUT                : out std_logic;
-      SLV_NO_MORE_DATA_OUT       : out std_logic;
-      SLV_UNKNOWN_ADDR_OUT       : out std_logic;
-      DEBUG_OUT                  : out std_logic_vector(15 downto 0)
-      );
-  end component;
 
   component nx_trigger_generator
     port (

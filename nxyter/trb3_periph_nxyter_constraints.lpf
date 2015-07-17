@@ -34,12 +34,12 @@ SYSCONFIG MCCLK_FREQ = 20;
 FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
 FREQUENCY PORT NX1_DATA_CLK_IN 125 MHz;
 FREQUENCY PORT NX1_ADC_DCLK_IN 187.5 MHz;
-FREQUENCY NET "nXyter_FEE_board_0/nx_data_receiver_1/DDR_DATA_CLK_c" 93.750000 MHz;
+FREQUENCY NET "nXyter_FEE_board_0/nx_data_receiver_1/DDR_DATA_CLK" 93.750000 MHz;
 
 USE PRIMARY   NET "CLK_PCLK_RIGHT_c";
-USE PRIMARY   NET "clk_100_i_c";
-USE PRIMARY   NET "nx_main_clk_c"; 
-USE PRIMARY   NET "nXyter_FEE_board_0/nx_data_receiver_1/DDR_DATA_CLK_c";
+USE PRIMARY   NET "clk_100_i";
+USE PRIMARY   NET "nx_main_clk"; 
+USE PRIMARY   NET "nXyter_FEE_board_0/nx_data_receiver_1/DDR_DATA_CLK";
                      
 #################################################################
 # Reset Nets
@@ -51,7 +51,7 @@ USE PRIMARY   NET "nXyter_FEE_board_0/nx_data_receiver_1/DDR_DATA_CLK_c";
 # Locate Serdes and media interfaces
 #################################################################
 
-LOCATE COMP          "THE_MEDIA_UPLINK/gen_serdes_1_200_THE_SERDES/PCSD_INST" SITE "PCSA" ;
+LOCATE COMP          "THE_MEDIA_UPLINK/gen_serdes_1_200.THE_SERDES/PCSD_INST" SITE "PCSA" ;
 REGION               "MEDIA_UPLINK" "R102C95D" 13 25;
 LOCATE UGROUP        "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLINK" ;
 
@@ -74,7 +74,7 @@ MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset*"                           
 
 MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_trigger_handler_*/reset_nx_main_clk_in_ff*"                    30 ns;
 MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_trigger_handler_*/trigger_busy_ff*"                            30 ns;
-MULTICYCLE to   CELL "nXyter_FEE_board_*/nx_trigger_handler_*/fast_clear_ff*"                              30 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_trigger_handler_*/fast_clear_ff*"                              30 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_handler_*/reg_testpulse_delay*"                       100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_handler_*/reg_testpulse_length*"                      100 ns;
 MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_handler_*/reg_testpulse_enable*"                      100 ns;

@@ -20,14 +20,14 @@ entity scaler is
   port (
     CLK_IN                     : in  std_logic;  
     RESET_IN                   : in  std_logic;
-    CLK_NX_MAIN_IN             : in  std_logic;
-    PLL_NX_CLK_LOCK_IN         : in  std_logic;
-    PLL_RESET_OUT              : out std_logic;
+
+    CLK_D1_IN                  : in  std_logic;
+
     TRIGGER_OUT                : out std_logic;
                                 
     -- Scaler Channels
-    SCALER_LATCH_IN            : in  std_logic;
-    SCALER_CHANNELS_IN         : in  std_logic_vector (7 downto 0);
+    LATCH_IN                   : in  std_logic;
+    CHANNELS_IN                : in  std_logic_vector (7 downto 0);
                                 
     -- Input Triggers
     TIMING_TRIGGER_IN          : in  std_logic;  
@@ -78,7 +78,7 @@ architecture Behavioral of scaler is
 -------------------------------------------------------------------------------
   
   -- Bus Handler                
-  constant NUM_PORTS            : integer := 2;
+  constant NUM_PORTS            : integer := 3;
   
   signal slv_read               : std_logic_vector(NUM_PORTS-1 downto 0);
   signal slv_write              : std_logic_vector(NUM_PORTS-1 downto 0);
@@ -192,7 +192,7 @@ architecture Behavioral of scaler is
   signal error_event_buffer     : std_logic;
   
   -- Debug Handler
-  constant DEBUG_NUM_PORTS      : integer := 1;  -- 14
+  constant DEBUG_NUM_PORTS      : integer := 2;  -- 14
   signal debug_line             : debug_array_t(0 to DEBUG_NUM_PORTS-1);
 
   ----------------------------------------------------------------------
@@ -201,6 +201,9 @@ architecture Behavioral of scaler is
 
   signal clock_div              : unsigned(11 downto 0);
   signal clk_pulse              : std_logic;
+  signal pulse                  : std_logic;
+  signal latch_i                : std_logic;
+  signal latch                  : std_logic;
   
   signal scaler_counter         : unsigned(11 downto 0);
   signal input_pulse            : std_logic;
@@ -211,27 +214,12 @@ architecture Behavioral of scaler is
   ----------------------------------------------------------------------
   -- Reset
   ----------------------------------------------------------------------
-  signal reset_scaler_clk_in_ff     : std_logic;
-  signal reset_scaler_clk_in_f      : std_logic;
+  
   signal RESET_SCALER_CLK_IN        : std_logic;
-  
-  attribute syn_keep : boolean;
-  attribute syn_keep of reset_scaler_clk_in_ff     : signal is true;
-  attribute syn_keep of reset_scaler_clk_in_f      : signal is true;
-
-  attribute syn_preserve : boolean;
-  attribute syn_preserve of reset_scaler_clk_in_ff : signal is true;
-  attribute syn_preserve of reset_scaler_clk_in_f  : signal is true;
-  
+    
 begin
-  -----------------------------------------------------------------------------
-  -- Reset Domain Transfer
-  -----------------------------------------------------------------------------
-  reset_scaler_clk_in_ff   <= RESET_IN when rising_edge(CLK_NX_MAIN_IN);
-  reset_scaler_clk_in_f    <= reset_scaler_clk_in_ff
-                              when rising_edge(CLK_NX_MAIN_IN); 
-  RESET_SCALER_CLK_IN      <= reset_scaler_clk_in_f
-                              when rising_edge(CLK_NX_MAIN_IN);
+
+  RESET_SCALER_CLK_IN <= RESET_IN;
   
 -------------------------------------------------------------------------------
 -- Port Maps
@@ -241,13 +229,29 @@ begin
     generic map(
       PORT_NUMBER         => NUM_PORTS,
 
-      PORT_ADDRESSES      => (0 => x"0020",       -- Debug Handler
-                              1 => x"0040",       -- Scaler Channel 0 
+      PORT_ADDRESSES      => (0 => x"0200",       -- Debug Multiplexer
+                              1 => x"0000",       -- Scaler Channel 0
+                              2 => x"0160",       -- Trigger Handler
+                              --2 => x"0040",       -- Scaler Channel 2
+                              --3 => x"0060",       -- Scaler Channel 3
+                              --4 => x"0080",       -- Scaler Channel 4
+                              --5 => x"00a0",       -- Scaler Channel 5
+                              --6 => x"00c0",       -- Scaler Channel 6
+                              --7 => x"00e0",       -- Scaler Channel 7
+                                                      
                               others => x"0000"
                               ),
 
-      PORT_ADDR_MASK      => (0 => 0,          -- Debug Handler
-                              1 => 2,          -- Scaler Channel 0 
+      PORT_ADDR_MASK      => (0 => 0,          -- Debug Multiplexer
+                              1 => 2,          -- Scaler Channel 0
+                              7 => 4,          -- Trigger Handler
+                              --2 => 2,          -- Scaler Channel 2
+                              --3 => 2,          -- Scaler Channel 3
+                              --4 => 2,          -- Scaler Channel 4
+                              --5 => 2,          -- Scaler Channel 5
+                              --6 => 2,          -- Scaler Channel 6
+                              --7 => 2,          -- Scaler Channel 7
+              
                               others => 0
                               ),
 
@@ -298,8 +302,8 @@ begin
         clock_div    <= (others => '0');
         clk_pulse    <= '0';
       else
-        if (clock_div < x"3e8") then
-          clk_pulse  <= '0';
+        if (clock_div < x"00f") then   -- x"3e8"
+          clk_pulse  <= '0';          
           clock_div  <= clock_div + 1;
         else
           clk_pulse  <= '1';
@@ -309,15 +313,18 @@ begin
     end if;
   end process PROC_CLOCK_DIVIDER;
 
+  latch_i <= clk_pulse;
+  pulse   <= CLK_IN;
 
-  scaler_channel_1: scaler_channel
+  scaler_channel_0: scaler_channel
     port map (
       CLK_IN               => CLK_IN,
       RESET_IN             => RESET_IN,
-      CLK_SCALER_IN        => CLK_NX_MAIN_IN,
+      CLK_D1_IN            => CLK_D1_IN,
       RESET_SCALER_IN      => RESET_SCALER_CLK_IN,
-      LATCH_IN             => clk_pulse,
-      PULSE_IN             => clk_pulse,
+      LATCH_IN             => latch_i, --LATCH_IN,
+      PULSE_IN             => CHANNELS_IN(0),
+      PULSE_INTERNAL_IN    => pulse,
       INHIBIT_IN           => '0',
       
       SLV_READ_IN          => slv_read(1),
@@ -331,10 +338,230 @@ begin
       
       DEBUG_OUT            => debug_line(0)
       );
-  
+
+
+  trigger_handler_1: trigger_handler
+    port map (
+      CLK_IN                     => CLK_IN,
+      RESET_IN                   => RESET_IN,
+      NX_MAIN_CLK_IN             => CLK_IN,
+      OFFLINE_IN                 => not nxyter_online,
+
+      TIMING_TRIGGER_IN          => TIMING_TRIGGER_IN,
+      LVL1_TRG_DATA_VALID_IN     => LVL1_TRG_DATA_VALID_IN,
+      LVL1_VALID_TIMING_TRG_IN   => LVL1_VALID_TIMING_TRG_IN,
+      LVL1_VALID_NOTIMING_TRG_IN => LVL1_VALID_NOTIMING_TRG_IN,
+      LVL1_INVALID_TRG_IN        => LVL1_INVALID_TRG_IN,
+
+      LVL1_TRG_TYPE_IN           => LVL1_TRG_TYPE_IN,
+      LVL1_TRG_NUMBER_IN         => LVL1_TRG_NUMBER_IN,
+      LVL1_TRG_CODE_IN           => LVL1_TRG_CODE_IN,
+      LVL1_TRG_INFORMATION_IN    => LVL1_TRG_INFORMATION_IN,
+      LVL1_INT_TRG_NUMBER_IN     => LVL1_INT_TRG_NUMBER_IN,
+
+      FEE_DATA_OUT               => FEE_DATA_OUT,
+      FEE_DATA_WRITE_OUT         => FEE_DATA_WRITE_OUT,
+      FEE_DATA_FINISHED_OUT      => FEE_DATA_FINISHED_OUT,
+      FEE_TRG_RELEASE_OUT        => FEE_TRG_RELEASE_OUT,
+      FEE_TRG_STATUSBITS_OUT     => FEE_TRG_STATUSBITS_OUT,
+
+      FEE_DATA_0_IN              => fee_data_o_0,
+      FEE_DATA_WRITE_0_IN        => fee_data_write_o_0,
+      FEE_DATA_1_IN              => fee_data_o_1,
+      FEE_DATA_WRITE_1_IN        => fee_data_write_o_1,
+      INTERNAL_TRIGGER_IN        => internal_trigger,
+
+      TRIGGER_VALIDATE_BUSY_IN   => trigger_validate_busy,
+      TRIGGER_BUSY_0_IN          => trigger_evt_busy_0,
+      TRIGGER_BUSY_1_IN          => trigger_evt_busy_1,
+      
+      VALID_TRIGGER_OUT          => trigger,
+      TIMESTAMP_TRIGGER_OUT      => timestamp_trigger,
+      TRIGGER_TIMING_OUT         => trigger_timing,
+      TRIGGER_STATUS_OUT         => trigger_status,
+      TRIGGER_CALIBRATION_OUT    => trigger_calibration,
+      FAST_CLEAR_OUT             => fast_clear,
+      TRIGGER_BUSY_OUT           => trigger_busy,
+
+      TESTPULSE_OUT              => open,
+      
+      SLV_READ_IN                => slv_read(2),
+      SLV_WRITE_IN               => slv_write(2),
+      SLV_DATA_OUT               => slv_data_rd(2*32+31 downto 2*32),
+      SLV_DATA_IN                => slv_data_wr(2*32+31 downto 2*32),
+      SLV_ADDR_IN                => slv_addr(2*16+15 downto 2*16),
+      SLV_ACK_OUT                => slv_ack(2),
+      SLV_NO_MORE_DATA_OUT       => slv_no_more_data(2),
+      SLV_UNKNOWN_ADDR_OUT       => slv_unknown_addr(2),
+
+      DEBUG_OUT                  => debug_line(1)
+      );
+
+  -- scaler_channel_1: scaler_channel
+  --   port map (
+  --     CLK_IN               => CLK_IN,
+  --     RESET_IN             => RESET_IN,
+  --     CLK_SCALER_IN        => CLK_SCALER_1_IN,
+  --     RESET_SCALER_IN      => RESET_SCALER_CLK_IN,
+  --     LATCH_IN             => latch,    -- must be CLK_SCALER_IN domain
+  --     PULSE_IN             => SCALER_CHANNELS_IN(1),
+  --     PULSE_INTERNAL_IN    => pulse,
+  --     INHIBIT_IN           => '0',
+  --     
+  --     SLV_READ_IN          => slv_read(1),
+  --     SLV_WRITE_IN         => slv_write(1),
+  --     SLV_DATA_OUT         => slv_data_rd(1*32+31 downto 1*32),
+  --     SLV_DATA_IN          => slv_data_wr(1*32+31 downto 1*32),
+  --     SLV_ADDR_IN          => slv_addr(1*16+15 downto 1*16),
+  --     SLV_ACK_OUT          => slv_ack(1),
+  --     SLV_NO_MORE_DATA_OUT => slv_no_more_data(1),
+  --     SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(1),
+  --     
+  --     DEBUG_OUT            => open
+  --     );
+  -- 
+  -- scaler_channel_2: scaler_channel
+  --   port map (
+  --     CLK_IN               => CLK_IN,
+  --     RESET_IN             => RESET_IN,
+  --     CLK_SCALER_IN        => CLK_SCALER_1_IN,
+  --     RESET_SCALER_IN      => RESET_SCALER_CLK_IN,
+  --     LATCH_IN             => latch,    -- must be CLK_SCALER_IN domain
+  --     PULSE_IN             => SCALER_CHANNELS_IN(2),
+  --     PULSE_INTERNAL_IN    => pulse,
+  --     INHIBIT_IN           => '0',
+  --     
+  --     SLV_READ_IN          => slv_read(2),
+  --     SLV_WRITE_IN         => slv_write(2),
+  --     SLV_DATA_OUT         => slv_data_rd(2*32+31 downto 2*32),
+  --     SLV_DATA_IN          => slv_data_wr(2*32+31 downto 2*32),
+  --     SLV_ADDR_IN          => slv_addr(2*16+15 downto 2*16),
+  --     SLV_ACK_OUT          => slv_ack(2),
+  --     SLV_NO_MORE_DATA_OUT => slv_no_more_data(2),
+  --     SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(2),
+  --     
+  --     DEBUG_OUT            => open
+  --     );
+  -- 
+  -- scaler_channel_3: scaler_channel
+  --   port map (
+  --     CLK_IN               => CLK_IN,
+  --     RESET_IN             => RESET_IN,
+  --     CLK_SCALER_IN        => CLK_SCALER_1_IN,
+  --     RESET_SCALER_IN      => RESET_SCALER_CLK_IN,
+  --     LATCH_IN             => latch,    -- must be CLK_SCALER_IN domain
+  --     PULSE_IN             => SCALER_CHANNELS_IN(3),
+  --     PULSE_INTERNAL_IN    => pulse,
+  --     INHIBIT_IN           => '0',
+  --     
+  --     SLV_READ_IN          => slv_read(3),
+  --     SLV_WRITE_IN         => slv_write(3),
+  --     SLV_DATA_OUT         => slv_data_rd(3*32+31 downto 3*32),
+  --     SLV_DATA_IN          => slv_data_wr(3*32+31 downto 3*32),
+  --     SLV_ADDR_IN          => slv_addr(3*16+15 downto 3*16),
+  --     SLV_ACK_OUT          => slv_ack(3),
+  --     SLV_NO_MORE_DATA_OUT => slv_no_more_data(3),
+  --     SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(3),
+  --     
+  --     DEBUG_OUT            => open
+  --     );
+  -- 
+  --   scaler_channel_4: scaler_channel
+  --   port map (
+  --     CLK_IN               => CLK_IN,
+  --     RESET_IN             => RESET_IN,
+  --     CLK_SCALER_IN        => CLK_SCALER_1_IN,
+  --     RESET_SCALER_IN      => RESET_SCALER_CLK_IN,
+  --     LATCH_IN             => latch,    -- must be CLK_SCALER_IN domain
+  --     PULSE_IN             => SCALER_CHANNELS_IN(4),
+  --     PULSE_INTERNAL_IN    => pulse,
+  --     INHIBIT_IN           => '0',
+  --     
+  --     SLV_READ_IN          => slv_read(4),
+  --     SLV_WRITE_IN         => slv_write(4),
+  --     SLV_DATA_OUT         => slv_data_rd(4*32+31 downto 4*32),
+  --     SLV_DATA_IN          => slv_data_wr(4*32+31 downto 4*32),
+  --     SLV_ADDR_IN          => slv_addr(4*16+15 downto 4*16),
+  --     SLV_ACK_OUT          => slv_ack(4),
+  --     SLV_NO_MORE_DATA_OUT => slv_no_more_data(4),
+  --     SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(4),
+  --     
+  --     DEBUG_OUT            => open
+  --     );
+  -- 
+  -- scaler_channel_5: scaler_channel
+  --   port map (
+  --     CLK_IN               => CLK_IN,
+  --     RESET_IN             => RESET_IN,
+  --     CLK_SCALER_IN        => CLK_SCALER_1_IN,
+  --     RESET_SCALER_IN      => RESET_SCALER_CLK_IN,
+  --     LATCH_IN             => latch,    -- must be CLK_SCALER_IN domain
+  --     PULSE_IN             => SCALER_CHANNELS_IN(5),
+  --     PULSE_INTERNAL_IN    => pulse,
+  --     INHIBIT_IN           => '0',
+  --     
+  --     SLV_READ_IN          => slv_read(5),
+  --     SLV_WRITE_IN         => slv_write(5),
+  --     SLV_DATA_OUT         => slv_data_rd(5*32+31 downto 5*32),
+  --     SLV_DATA_IN          => slv_data_wr(5*32+31 downto 5*32),
+  --     SLV_ADDR_IN          => slv_addr(5*16+15 downto 5*16),
+  --     SLV_ACK_OUT          => slv_ack(5),
+  --     SLV_NO_MORE_DATA_OUT => slv_no_more_data(5),
+  --     SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(5),
+  --     
+  --     DEBUG_OUT            => open
+  --     );
+  -- 
+  -- scaler_channel_6: scaler_channel
+  --   port map (
+  --     CLK_IN               => CLK_IN,
+  --     RESET_IN             => RESET_IN,
+  --     CLK_SCALER_IN        => CLK_SCALER_1_IN,
+  --     RESET_SCALER_IN      => RESET_SCALER_CLK_IN,
+  --     LATCH_IN             => latch,    -- must be CLK_SCALER_IN domain
+  --     PULSE_IN             => SCALER_CHANNELS_IN(6),
+  --     PULSE_INTERNAL_IN    => pulse,
+  --     INHIBIT_IN           => '0',
+  --     
+  --     SLV_READ_IN          => slv_read(6),
+  --     SLV_WRITE_IN         => slv_write(6),
+  --     SLV_DATA_OUT         => slv_data_rd(6*32+31 downto 6*32),
+  --     SLV_DATA_IN          => slv_data_wr(6*32+31 downto 6*32),
+  --     SLV_ADDR_IN          => slv_addr(6*16+15 downto 6*16),
+  --     SLV_ACK_OUT          => slv_ack(6),
+  --     SLV_NO_MORE_DATA_OUT => slv_no_more_data(6),
+  --     SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(6),
+  --     
+  --     DEBUG_OUT            => open
+  --     );
+  -- 
+  -- scaler_channel_7: scaler_channel
+  --   port map (
+  --     CLK_IN               => CLK_IN,
+  --     RESET_IN             => RESET_IN,
+  --     CLK_SCALER_IN        => CLK_SCALER_1_IN,
+  --     RESET_SCALER_IN      => RESET_SCALER_CLK_IN,
+  --     LATCH_IN             => latch,    -- must be CLK_SCALER_IN domain
+  --     PULSE_IN             => SCALER_CHANNELS_IN(7),
+  --     PULSE_INTERNAL_IN    => pulse,
+  --     INHIBIT_IN           => '0',
+  --     
+  --     SLV_READ_IN          => slv_read(7),
+  --     SLV_WRITE_IN         => slv_write(7),
+  --     SLV_DATA_OUT         => slv_data_rd(7*32+31 downto 7*32),
+  --     SLV_DATA_IN          => slv_data_wr(7*32+31 downto 7*32),
+  --     SLV_ADDR_IN          => slv_addr(7*16+15 downto 7*16),
+  --     SLV_ACK_OUT          => slv_ack(7),
+  --     SLV_NO_MORE_DATA_OUT => slv_no_more_data(7),
+  --     SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(7),
+  --     
+  --     DEBUG_OUT            => open
+  --     );
+
 -------------------------------------------------------------------------------
 -- DEBUG Line Select
 -------------------------------------------------------------------------------
+
   debug_multiplexer_1: debug_multiplexer
     generic map (
       NUM_PORTS => DEBUG_NUM_PORTS

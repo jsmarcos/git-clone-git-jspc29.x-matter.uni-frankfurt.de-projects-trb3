@@ -232,11 +232,9 @@ architecture Behavioral of trb3_periph_scaler is
   signal bussed_tx : CTRLBUS_TX;
   
   -- nXyter-FEB-Board Clocks
-  signal nx_main_clk                : std_logic;
-  signal nx_pll_clk_lock            : std_logic;
-  signal nx_pll_reset               : std_logic;
-  
-  signal nx1_adc_sample_clk         : std_logic;
+  signal clk_scaler                  : std_logic;
+  signal clk_scaler_lock             : std_logic;
+  signal clk_scaler_reset            : std_logic;
 
   -- nXyter 1 Regio Bus
   signal nx1_regio_addr_in           : std_logic_vector (15 downto 0);
@@ -625,14 +623,13 @@ begin
     port map (
       CLK_IN                     => clk_100_i,
       RESET_IN                   => reset_i,
-      CLK_NX_MAIN_IN             => nx_main_clk,
-      PLL_NX_CLK_LOCK_IN         => nx_pll_clk_lock,
-      PLL_RESET_OUT              => nx_pll_reset,
-      
+
+      CLK_D1_IN                  => clk_scaler,
+
       TRIGGER_OUT                => fee1_trigger,                       
                                  
-      SCALER_LATCH_IN            => SCALER_LATCH_IN,
-      SCALER_CHANNELS_IN         => SCALER_CHANNELS_IN,
+      LATCH_IN                   => SCALER_LATCH_IN,
+      CHANNELS_IN                => SCALER_CHANNELS_IN,
   
       TIMING_TRIGGER_IN          => TRIGGER_RIGHT, 
       LVL1_TRG_DATA_VALID_IN     => trg_data_valid_i,
@@ -663,19 +660,23 @@ begin
       REGIO_NO_MORE_DATA_OUT     => nx1_regio_no_more_data_out,
       REGIO_UNKNOWN_ADDR_OUT     => nx1_regio_unknown_addr_out,
                                  
-      --DEBUG_LINE_OUT             =>  TEST_LINE
-      DEBUG_LINE_OUT                => open
+      DEBUG_LINE_OUT             =>  TEST_LINE
+      --DEBUG_LINE_OUT                => open
       );
   
   nx1_regio_addr_in(15 downto 12) <= (others => '0');
 
-  TEST_LINE(0) <= clk_100_i;
-  TEST_LINE(1) <= nx1_regio_read_enable_in;
-  TEST_LINE(2) <= nx1_regio_write_enable_in;
-  TEST_LINE(3) <= nx1_regio_dataready_out;
-  TEST_LINE(4) <= nx1_regio_write_ack_out;
-  TEST_LINE(5) <= nx1_regio_unknown_addr_out;
-  TEST_LINE(15 downto 6) <= (others => '0');
+  -- TEST_LINE(0) <= clk_100_i;
+  -- TEST_LINE(1) <= nx1_regio_read_enable_in;
+  -- TEST_LINE(2) <= nx1_regio_write_enable_in;
+  -- TEST_LINE(3) <= nx1_regio_dataready_out;
+  -- TEST_LINE(4) <= nx1_regio_write_ack_out;
+  -- TEST_LINE(5) <= nx1_regio_unknown_addr_out;
+  -- TEST_LINE(6) <= LED_GREEN;
+  -- TEST_LINE(7) <= LED_ORANGE;
+  -- TEST_LINE(8) <= LED_RED;
+  -- TEST_LINE(9) <= LED_YELLOW;
+  -- TEST_LINE(15 downto 10) <= (others => '0');
   ---------------------------------------------------------------------------
   -- SED Detection
   ---------------------------------------------------------------------------
@@ -691,13 +692,13 @@ begin
   -- nXyter Main and ADC Clocks
   -----------------------------------------------------------------------------
 
-  -- Scaler Domain Clock(400MHz)
-  pll_clk400_1: entity work.pll_clk400
+  -- Scaler Domain Clock 500MHz
+  pll_scaler_1: entity work.pll_clk400
     port map (
       CLK   => CLK_PCLK_RIGHT,
-      RESET => nx_pll_reset,
-      CLKOP => nx_main_clk,
-      LOCK  => nx_pll_clk_lock
+      RESET => clk_scaler_reset,
+      CLKOP => clk_scaler,
+      LOCK  => clk_scaler_lock
       );
   
 end architecture;
