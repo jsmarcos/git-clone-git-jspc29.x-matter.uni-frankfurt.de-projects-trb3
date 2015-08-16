@@ -39,10 +39,13 @@ entity trb3_periph_scaler is
     ---------------------------------------------------------------------------
     -- BEGIN AddonBoard Scaler
     ---------------------------------------------------------------------------
-    --Connections to Scaler Channels
-    SCALER_LATCH_IN      : in    std_logic;
-    SCALER_CHANNELS_IN   : in    std_logic_vector (7 downto 0);
 
+    --Connections to Scaler Channels
+    CHANNELS_NIM_IN      : in    std_logic_vector (7 downto 0);
+    CHANNELS_ECL_IN      : in    std_logic_vector (15 downto 0);
+    LEDR_OUT             : out   std_logic_vector (3 downto 0);
+    LEDG_OUT             : out   std_logic_vector (6 downto 0);
+    
     ---------------------------------------------------------------------------
     -- END AddonBoard nXyter
     ---------------------------------------------------------------------------
@@ -85,20 +88,13 @@ entity trb3_periph_scaler is
   attribute syn_useioff of FLASH_DOUT    : signal is true;
   attribute syn_useioff of FPGA5_COMM    : signal is true;
   attribute syn_useioff of TEST_LINE     : signal is false;
-  --attribute syn_useioff of SCALER_DEBUG_LINE  : signal is false;
-  --attribute syn_useioff of INP           : signal is false;
-  attribute syn_useioff of SCALER_CHANNELS_IN : signal is true;
-
-  --attribute syn_useioff of NX1_ADC_NX_IN   : signal is true;
-  --attribute syn_useioff of NX1_ADC_D_IN    : signal is true;
   
-  --attribute syn_useioff of NX1_ADC_NX_IN   : signal is true;
-  --attribute syn_useioff of DAC_SDO       : signal is true;
-  --attribute syn_useioff of DAC_SDI       : signal is true;
-  --attribute syn_useioff of DAC_SCK       : signal is true;
-  --attribute syn_useioff of DAC_CS        : signal is true;
+  attribute syn_useioff of CHANNELS_NIM_IN : signal is false;
+  attribute syn_useioff of CHANNELS_ECL_IN : signal is false;
 
-
+  attribute syn_useioff of LEDR_OUT        : signal is false;
+  attribute syn_useioff of LEDG_OUT        : signal is false;
+  
 end entity;
 
 
@@ -232,23 +228,25 @@ architecture Behavioral of trb3_periph_scaler is
   signal bussed_tx : CTRLBUS_TX;
   
   -- nXyter-FEB-Board Clocks
+  signal quad_channel_0              : std_logic;
+  
   signal clk_scaler                  : std_logic;
   signal clk_scaler_lock             : std_logic;
   signal clk_scaler_reset            : std_logic;
 
   -- nXyter 1 Regio Bus
-  signal nx1_regio_addr_in           : std_logic_vector (15 downto 0);
-  signal nx1_regio_data_in           : std_logic_vector (31 downto 0);
-  signal nx1_regio_data_out          : std_logic_vector (31 downto 0);
-  signal nx1_regio_read_enable_in    : std_logic;
-  signal nx1_regio_write_enable_in   : std_logic;
-  signal nx1_regio_timeout_in        : std_logic;
-  signal nx1_regio_dataready_out     : std_logic;
-  signal nx1_regio_write_ack_out     : std_logic;
-  signal nx1_regio_no_more_data_out  : std_logic;
-  signal nx1_regio_unknown_addr_out  : std_logic;
+  signal feb_regio_addr_in           : std_logic_vector (15 downto 0);
+  signal feb_regio_data_in           : std_logic_vector (31 downto 0);
+  signal feb_regio_data_out          : std_logic_vector (31 downto 0);
+  signal feb_regio_read_enable_in    : std_logic;
+  signal feb_regio_write_enable_in   : std_logic;
+  signal feb_regio_timeout_in        : std_logic;
+  signal feb_regio_dataready_out     : std_logic;
+  signal feb_regio_write_ack_out     : std_logic;
+  signal feb_regio_no_more_data_out  : std_logic;
+  signal feb_regio_unknown_addr_out  : std_logic;
 
-  signal nx1_debug_line_o            : std_logic_vector(15 downto 0);
+  signal feb_debug_line_o            : std_logic_vector(15 downto 0);
   
   -- Internal Trigger
   signal fee1_trigger                : std_logic;
@@ -454,10 +452,6 @@ begin
   timing_trg_received_i <= TRIGGER_LEFT;
   
 ---------------------------------------------------------------------------
--- AddOn
----------------------------------------------------------------------------
-
----------------------------------------------------------------------------
 -- Bus Handler
 ---------------------------------------------------------------------------
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
@@ -515,18 +509,18 @@ begin
       BUS_NO_MORE_DATA_IN(1)               => '0',
       BUS_UNKNOWN_ADDR_IN(1)               => '0',
 
-      --Bus Handler (nXyter1 trb_net16_regio_bus_handler)
-      BUS_READ_ENABLE_OUT(2)               => nx1_regio_read_enable_in,
-      BUS_WRITE_ENABLE_OUT(2)              => nx1_regio_write_enable_in,
-      BUS_DATA_OUT(2*32+31 downto 2*32)    => nx1_regio_data_in,
-      BUS_ADDR_OUT(2*16+11 downto 2*16)    => nx1_regio_addr_in(11 downto 0),
+      --Bus Handler (FEB trb_net16_regio_bus_handler)
+      BUS_READ_ENABLE_OUT(2)               => feb_regio_read_enable_in,
+      BUS_WRITE_ENABLE_OUT(2)              => feb_regio_write_enable_in,
+      BUS_DATA_OUT(2*32+31 downto 2*32)    => feb_regio_data_in,
+      BUS_ADDR_OUT(2*16+11 downto 2*16)    => feb_regio_addr_in(11 downto 0),
       BUS_ADDR_OUT(2*16+15 downto 2*16+12) => open,
-      BUS_TIMEOUT_OUT(2)                   => open,  --nx1_regio_timeout_in,
-      BUS_DATA_IN(2*32+31 downto 2*32)     => nx1_regio_data_out,
-      BUS_DATAREADY_IN(2)                  => nx1_regio_dataready_out,
-      BUS_WRITE_ACK_IN(2)                  => nx1_regio_write_ack_out,
-      BUS_NO_MORE_DATA_IN(2)               => nx1_regio_no_more_data_out,
-      BUS_UNKNOWN_ADDR_IN(2)               => nx1_regio_unknown_addr_out,
+      BUS_TIMEOUT_OUT(2)                   => open,  --feb_regio_timeout_in,
+      BUS_DATA_IN(2*32+31 downto 2*32)     => feb_regio_data_out,
+      BUS_DATAREADY_IN(2)                  => feb_regio_dataready_out,
+      BUS_WRITE_ACK_IN(2)                  => feb_regio_write_ack_out,
+      BUS_NO_MORE_DATA_IN(2)               => feb_regio_no_more_data_out,
+      BUS_UNKNOWN_ADDR_IN(2)               => feb_regio_unknown_addr_out,
 
       BUS_READ_ENABLE_OUT(3)              => bussed_rx.read,
       BUS_WRITE_ENABLE_OUT(3)             => bussed_rx.write,
@@ -612,9 +606,11 @@ begin
   LED_RED    <= timing_trg_received_i;
   LED_YELLOW <= not med_stat_op(11);
 
------------------------------------------------------------------------------
--- The xXyter-FEB #1
------------------------------------------------------------------------------
+---------------------------------------------------------------------------
+-- AddOn GPIN_ADDON1
+---------------------------------------------------------------------------
+  --LEDG_OUT <= CHANNELS_NIM_IN(6 downto 0);
+  LEDR_OUT <= (others => '1');
 
   scaler_0: scaler
     generic map (
@@ -628,8 +624,9 @@ begin
 
       TRIGGER_OUT                => fee1_trigger,                       
                                  
-      LATCH_IN                   => SCALER_LATCH_IN,
-      CHANNELS_IN                => SCALER_CHANNELS_IN,
+      LATCH_IN                   => CHANNELS_ECL_IN(0),
+      CHANNELS_IN(0)             => quad_channel_0,
+      CHANNELS_IN(7 downto 1)    => CHANNELS_NIM_IN(7 downto 1),
   
       TIMING_TRIGGER_IN          => TRIGGER_RIGHT, 
       LVL1_TRG_DATA_VALID_IN     => trg_data_valid_i,
@@ -649,29 +646,29 @@ begin
       FEE_DATA_FINISHED_OUT      => fee_data_finished_i(0),
       FEE_DATA_ALMOST_FULL_IN    => fee_almost_full_i(0),
       
-      REGIO_ADDR_IN              => nx1_regio_addr_in,
-      REGIO_DATA_IN              => nx1_regio_data_in,
-      REGIO_DATA_OUT             => nx1_regio_data_out,
-      REGIO_READ_ENABLE_IN       => nx1_regio_read_enable_in,
-      REGIO_WRITE_ENABLE_IN      => nx1_regio_write_enable_in,
-      REGIO_TIMEOUT_IN           => nx1_regio_timeout_in,
-      REGIO_DATAREADY_OUT        => nx1_regio_dataready_out,
-      REGIO_WRITE_ACK_OUT        => nx1_regio_write_ack_out,
-      REGIO_NO_MORE_DATA_OUT     => nx1_regio_no_more_data_out,
-      REGIO_UNKNOWN_ADDR_OUT     => nx1_regio_unknown_addr_out,
+      REGIO_ADDR_IN              => feb_regio_addr_in,
+      REGIO_DATA_IN              => feb_regio_data_in,
+      REGIO_DATA_OUT             => feb_regio_data_out,
+      REGIO_READ_ENABLE_IN       => feb_regio_read_enable_in,
+      REGIO_WRITE_ENABLE_IN      => feb_regio_write_enable_in,
+      REGIO_TIMEOUT_IN           => feb_regio_timeout_in,
+      REGIO_DATAREADY_OUT        => feb_regio_dataready_out,
+      REGIO_WRITE_ACK_OUT        => feb_regio_write_ack_out,
+      REGIO_NO_MORE_DATA_OUT     => feb_regio_no_more_data_out,
+      REGIO_UNKNOWN_ADDR_OUT     => feb_regio_unknown_addr_out,
                                  
       DEBUG_LINE_OUT             =>  TEST_LINE
       --DEBUG_LINE_OUT                => open
       );
   
-  nx1_regio_addr_in(15 downto 12) <= (others => '0');
+  feb_regio_addr_in(15 downto 12) <= (others => '0');
 
   -- TEST_LINE(0) <= clk_100_i;
-  -- TEST_LINE(1) <= nx1_regio_read_enable_in;
-  -- TEST_LINE(2) <= nx1_regio_write_enable_in;
-  -- TEST_LINE(3) <= nx1_regio_dataready_out;
-  -- TEST_LINE(4) <= nx1_regio_write_ack_out;
-  -- TEST_LINE(5) <= nx1_regio_unknown_addr_out;
+  -- TEST_LINE(1) <= feb_regio_read_enable_in;
+  -- TEST_LINE(2) <= feb_regio_write_enable_in;
+  -- TEST_LINE(3) <= feb_regio_dataready_out;
+  -- TEST_LINE(4) <= feb_regio_write_ack_out;
+  -- TEST_LINE(5) <= feb_regio_unknown_addr_out;
   -- TEST_LINE(6) <= LED_GREEN;
   -- TEST_LINE(7) <= LED_ORANGE;
   -- TEST_LINE(8) <= LED_RED;
@@ -689,10 +686,17 @@ begin
       );
   
   -----------------------------------------------------------------------------
-  -- nXyter Main and ADC Clocks
+  -- Scaler Clocks
   -----------------------------------------------------------------------------
 
-  -- Scaler Domain Clock 500MHz
+  pll_quadruple_channel_0: entity work.pll_quadruple
+    port map (
+      CLK   => CHANNELS_NIM_IN(0),
+      CLKOP => quad_channel_0,
+      LOCK  => open
+      );
+  
+  -- Scaler Domain Clock 400MHz
   pll_scaler_1: entity work.pll_clk400
     port map (
       CLK   => CLK_PCLK_RIGHT,

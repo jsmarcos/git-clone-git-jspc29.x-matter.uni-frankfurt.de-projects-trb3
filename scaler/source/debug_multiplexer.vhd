@@ -79,7 +79,7 @@ begin
         slv_no_more_data_o  <= '0';
         slv_unknown_addr_o  <= '0';
         slv_ack_o           <= '0';
-        port_select         <= (others => '0');
+        port_select         <= x"00";
       else
         slv_ack_o           <= '1';
         slv_unknown_addr_o  <= '0';

@@ -21,7 +21,7 @@ architecture Behavioral of signal_async_to_pulse is
 --  attribute HGROUP : string;
 --  attribute HGROUP of Behavioral : architecture is "SIGNAL_ASYNC_TO_PULSE";
 
-  signal pulse_ff      : std_logic_vector(NUM_FF - 1 downto 0);
+  signal pulse_ff      : std_logic_vector(NUM_FF downto 0);
   signal pulse_o       : std_logic;
 
   attribute syn_keep : boolean;
@@ -36,24 +36,13 @@ begin
   -- Clock CLK_IN Domain
   -----------------------------------------------------------------------------
 
-  PROC_SYNC_PULSE: process(CLK_IN)
-  begin
-    if( rising_edge(CLK_IN) ) then
-      pulse_ff(NUM_FF - 1)             <= PULSE_A_IN;
-      for i in NUM_FF - 2 downto 0 loop
-        pulse_ff(i)                  <= pulse_ff(i + 1); 
-      end loop;
-    end if;
-  end process PROC_SYNC_PULSE;
+  pulse_ff(NUM_FF)   <= PULSE_A_IN when rising_edge(CLK_IN);
+  L1: for I in (NUM_FF - 1) downto 0 generate
+    pulse_ff(I)      <= pulse_ff(I + 1) when rising_edge(CLK_IN); 
+  end generate L1;  
 
-  level_to_pulse_1: level_to_pulse
-    port map (
-      CLK_IN    => CLK_IN,
-      RESET_IN  => RESET_IN,
-      LEVEL_IN  => pulse_ff(0),
-      PULSE_OUT => pulse_o
-      );
-
+  pulse_o <= '1' when pulse_ff(1 downto 0) = "10" and RESET_IN = '0' else '0'; 
+  
   -- Outputs
   PULSE_OUT     <= pulse_o;
     

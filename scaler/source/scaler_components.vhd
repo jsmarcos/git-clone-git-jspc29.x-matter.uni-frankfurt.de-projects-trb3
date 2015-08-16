@@ -58,10 +58,10 @@ package scaler_components is
       CLK_IN               : in  std_logic;
       RESET_IN             : in  std_logic;
       CLK_D1_IN            : in  std_logic;
-      RESET_SCALER_IN      : in  std_logic;
+      RESET_D1_IN          : in  std_logic;
+      RESET_CTR_IN         : in  std_logic; 
       LATCH_IN             : in  std_logic;
       PULSE_IN             : in  std_logic;
-      PULSE_INTERNAL_IN    : in  std_logic;
       INHIBIT_IN           : in  std_logic;
       SLV_READ_IN          : in  std_logic;
       SLV_WRITE_IN         : in  std_logic;
@@ -74,16 +74,43 @@ package scaler_components is
       DEBUG_OUT            : out std_logic_vector(15 downto 0)
       );
   end component;
-
+  
+----------------------------------------------------------------------
+-- Latch Handler Entity
+----------------------------------------------------------------------
+  component latch_handler
+    port (
+      CLK_IN               : in  std_logic;
+      RESET_IN             : in  std_logic;
+      CLK_D1_IN            : in  std_logic;
+      RESET_D1_IN          : in  std_logic;
+      RESET_CTR_IN         : in std_logic;
+      LATCH_TRIGGER_IN     : in  std_logic;
+      LATCH_EXTERN_IN      : in  std_logic;
+      RESET_CTR_OUT        : out std_logic;
+      LATCH_OUT            : out std_logic;
+      LATCH_VALID_OUT      : out std_logic;
+      LATCH_INVALID_OUT    : out std_logic;
+      SLV_READ_IN          : in  std_logic;
+      SLV_WRITE_IN         : in  std_logic;
+      SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
+      SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
+      SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
+      SLV_ACK_OUT          : out std_logic;
+      SLV_NO_MORE_DATA_OUT : out std_logic;
+      SLV_UNKNOWN_ADDR_OUT : out std_logic;
+      DEBUG_OUT            : out std_logic_vector(15 downto 0));
+  end component;
+  
 -------------------------------------------------------------------------------
 -- Trigger Handler
 -------------------------------------------------------------------------------
- 
   component trigger_handler
     port (
       CLK_IN                     : in  std_logic;
       RESET_IN                   : in  std_logic;
-      NX_MAIN_CLK_IN             : in  std_logic;
+      CLK_D1_IN                  : in  std_logic;
+      RESET_D1_IN                : in  std_logic;
       OFFLINE_IN                 : in  std_logic;
       TIMING_TRIGGER_IN          : in  std_logic;
       LVL1_TRG_DATA_VALID_IN     : in  std_logic;
@@ -354,123 +381,6 @@ package scaler_components is
       SLV_ACK_OUT            : out std_logic;
       SLV_NO_MORE_DATA_OUT   : out std_logic;
       SLV_UNKNOWN_ADDR_OUT   : out std_logic;
-      DEBUG_OUT              : out std_logic_vector(15 downto 0)
-      );
-  end component;
-
-  component fifo_data_stream_44to44_dc
-    port (
-      Data    : in  std_logic_vector(43 downto 0);
-      WrClock : in  std_logic;
-      RdClock : in  std_logic;
-      WrEn    : in  std_logic;
-      RdEn    : in  std_logic;
-      Reset   : in  std_logic;
-      RPReset : in  std_logic;
-      Q       : out std_logic_vector(43 downto 0);
-      Empty   : out std_logic;
-      Full    : out std_logic
-      );
-  end component;
-
-  component fifo_44_data_delay_my
-    port (
-      Data          : in  std_logic_vector(43 downto 0);
-      Clock         : in  std_logic;
-      WrEn          : in  std_logic;
-      RdEn          : in  std_logic;
-      Reset         : in  std_logic;
-      AmEmptyThresh : in  std_logic_vector(7 downto 0);
-      Q             : out std_logic_vector(43 downto 0);
-      Empty         : out std_logic;
-      Full          : out std_logic;
-      AlmostEmpty   : out std_logic;
-      DEBUG_OUT     : out std_logic_vector(15 downto 0)
-      );
-  end component;
-
-  component nx_data_receiver
-    generic (
-      DEBUG_ENABLE : boolean);
-    port (
-      CLK_IN                 : in  std_logic;
-      RESET_IN               : in  std_logic;
-      TRIGGER_IN             : in  std_logic;
-      NX_ONLINE_IN           : in  std_logic;
-      NX_CLOCK_ON_IN         : in  std_logic;
-      NX_DATA_CLK_IN         : in  std_logic;
-      NX_TIMESTAMP_IN        : in  std_logic_vector (7 downto 0);
-      NX_TIMESTAMP_RESET_OUT : out std_logic;
-      ADC_SAMPLE_CLK_OUT     : out std_logic;
-      ADC_SCLK_LOCK_OUT      : out std_logic;
-      ADC_FCLK_IN            : in  std_logic;
-      ADC_DCLK_IN            : in  std_logic;
-      ADC_A_IN               : in  std_logic;
-      ADC_B_IN               : in  std_logic;
-      ADC_NX_IN              : in  std_logic;
-      ADC_D_IN               : in  std_logic;
-      DATA_OUT               : out std_logic_vector(43 downto 0);
-      DATA_CLK_OUT           : out std_logic;
-      SLV_READ_IN            : in  std_logic;
-      SLV_WRITE_IN           : in  std_logic;
-      SLV_DATA_OUT           : out std_logic_vector(31 downto 0);
-      SLV_DATA_IN            : in  std_logic_vector(31 downto 0);
-      SLV_ADDR_IN            : in  std_logic_vector(15 downto 0);
-      SLV_ACK_OUT            : out std_logic;
-      SLV_NO_MORE_DATA_OUT   : out std_logic;
-      SLV_UNKNOWN_ADDR_OUT   : out std_logic;
-      ADC_TR_ERROR_IN        : in  std_logic;
-      DISABLE_ADC_OUT        : out std_logic;
-      ERROR_OUT              : out std_logic;
-      DEBUG_OUT              : out std_logic_vector(15 downto 0)
-      );
-  end component;
-
-  component nx_data_delay
-    port (
-      CLK_IN               : in  std_logic;
-      RESET_IN             : in  std_logic;
-      DATA_IN              : in  std_logic_vector(43 downto 0);
-      DATA_CLK_IN          : in  std_logic;
-      DATA_OUT             : out std_logic_vector(43 downto 0);
-      DATA_CLK_OUT         : out std_logic;
-      FIFO_DELAY_IN        : in  std_logic_vector(7 downto 0);
-      SLV_READ_IN          : in  std_logic;
-      SLV_WRITE_IN         : in  std_logic;
-      SLV_DATA_OUT         : out std_logic_vector(31 downto 0);
-      SLV_DATA_IN          : in  std_logic_vector(31 downto 0);
-      SLV_ADDR_IN          : in  std_logic_vector(15 downto 0);
-      SLV_ACK_OUT          : out std_logic;
-      SLV_NO_MORE_DATA_OUT : out std_logic;
-      SLV_UNKNOWN_ADDR_OUT : out std_logic;
-      DEBUG_OUT            : out std_logic_vector(15 downto 0)
-      );
-  end component;
-
-  component nx_data_validate
-    port (
-      CLK_IN                 : in  std_logic;
-      RESET_IN               : in  std_logic;
-      DATA_IN                : in  std_logic_vector(43 downto 0);
-      DATA_CLK_IN            : in  std_logic;
-      TIMESTAMP_OUT          : out std_logic_vector(13 downto 0);
-      CHANNEL_OUT            : out std_logic_vector(6 downto 0);
-      TIMESTAMP_STATUS_OUT   : out std_logic_vector(2 downto 0);
-      ADC_DATA_OUT           : out std_logic_vector(11 downto 0);
-      DATA_CLK_OUT           : out std_logic;
-      NX_TOKEN_RETURN_OUT    : out std_logic;
-      NX_NOMORE_DATA_OUT     : out std_logic;
-      SLV_READ_IN            : in  std_logic;
-      SLV_WRITE_IN           : in  std_logic;
-      SLV_DATA_OUT           : out std_logic_vector(31 downto 0);
-      SLV_DATA_IN            : in  std_logic_vector(31 downto 0);
-      SLV_ADDR_IN            : in  std_logic_vector(15 downto 0);
-      SLV_ACK_OUT            : out std_logic;
-      SLV_NO_MORE_DATA_OUT   : out std_logic;
-      SLV_UNKNOWN_ADDR_OUT   : out std_logic;
-      ADC_TR_ERROR_OUT       : out std_logic;
-      DISABLE_ADC_IN         : in  std_logic;
-      ERROR_OUT              : out std_logic;
       DEBUG_OUT              : out std_logic_vector(15 downto 0)
       );
   end component;

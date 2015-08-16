@@ -56,19 +56,21 @@ LOCATE UGROUP "THE_SPI_MEMORY/SPI_group" REGION "REGION_SPI" ;
 #################################################
 
 
-MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset*"                                                    50 ns;
+PROHIBIT PRIMARY   NET "quad_channel_0*";
+PROHIBIT SECONDARY NET "quad_channel_0*";
 
-MULTICYCLE TO     CELL "scaler_0/scaler_channel_*/reset_clk_d1_ff*"                                      30 ns;
+MULTICYCLE FROM CELL   "THE_RESET_HANDLER/final_reset*"                                                  100 ns;
 
-MULTICYCLE TO     CELL "scaler_0/scaler_channel_*/PULSE_IN_to_pulse/pulse_ff*"                           30 ns;
-MULTICYCLE TO     CELL "scaler_0/scaler_channel_*/LATCH_IN_to_latch/pulse_ff*"                           30 ns;
-MULTICYCLE FROM   CELL "scaler_0/scaler_channel_*/internal_pulse*"                                      100 ns;
+MULTICYCLE TO   CELL   "scaler_0/reset_d1_ff*[1]*"                                                       100 ns;
 
-MULTICYCLE TO GROUP  "TEST_LINE_group"          500.000000 ns ;
-MAXDELAY   TO GROUP  "TEST_LINE_group"          500.000000 ns ;
+MULTICYCLE TO   CELL   "scaler_0/scaler_channel_0/pulse_ff*[2]*"                                           30 ns;
 
-#MULTICYCLE TO   CELL "scaler_0/scaler_channel_1/INHIBIT_IN_to_inhibit/pulse_ff*"                        30 ns;
-#MULTICYCLE TO   CELL "scaler_0/scaler_channel_1/counter_latched*"                                       30 ns;
+MULTICYCLE TO   CELL   "scaler_0/latch_handler_1/reset_ctr_ff*[2]*"                                        30 ns;
+MULTICYCLE FROM CELL   "scaler_0/latch_handler_1/latch_select_r*"                                         100 ns;
+MULTICYCLE TO   CELL   "scaler_0/latch_handler_1/latch_ff*[2]*"                                            30 ns;
+
+MULTICYCLE TO   GROUP  "TEST_LINE_group"          500.000000 ns ;
+MAXDELAY   TO   GROUP  "TEST_LINE_group"          500.000000 ns ;
 
 
 # MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_trigger_handler_*/trigger_busy_ff*"                            30 ns;

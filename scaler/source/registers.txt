@@ -204,72 +204,28 @@
 0x8b80 :  r/w  Overflow Rate num averages (3 Bit)
 0x8b81 :  r/w  Overflow Rate average enable 
 
+
+
+-- Latch Handler
+0x8180 : r/w  Latch Select
+                 0: CTS Timing Trigger
+                 1: External Latch
+
+-- Scaler Channel #0
+0x8000 : r/w  Counter Offset(16 Bit)
+0x8001 : r    Counter Latched Low (32 Bit)
+0x8002 : r    Counter Latched High (16 Bit)
+
 -- Debug Multiplexer
-0x8020 :  r/w   Select Debug Entity
-                 0: nx_status
-                 1: nx_register_setup
-                 2: nx_i2c_master
-                 3: adc_spi_master
-                 4: nx_fpga_timestamp
-                 5: nx_trigger_handler
-                 6: nx_trigger_generator
-                 7: nx_data_receiver
-                 8: nx_data_delay
-                 9: nx_data_validate
-                10: nx_trigger_validate
-                11: nx_event_buffer
-                12: nx_histograms
-                13: nx_status_event
-                14: Checkerboard
-
---- Trigger Selction Window Setup
-
-                                      _
-Physics Trigger [PT]  _______________| |___________________________________
-                                           _
-NX_TS_Trigger   [NXT] ____________________| |______________________________
-                                                            _
-CTS Trigger     [CT]  _____________________________________| |_____________
-                                                                _
-FPGA TS Trigger [FT]  _________________________________________| |_________
-                                                               |
-CTS+FPGA Trigger Delay                    |--------------------|
-                                                               |
-FPGA TS-Ref stored                                             |
-in Event Header                -----------|--------------------|
-                                                               |
-Trigger Window Offset(-)       |----------|                    | 
-Trigger Window Width(-)        |----------------|              | 
-Timestamps stored in Event(-)  |--|---|--|-||--|---------------|
-                                          |                    |
-                                          |                    |
-Trigger Window Offset(+)                  |-----|              |
-Trigger Window Width(+)                         |---------|    |    
-Timestamps stored in Event(+)  -----------------|--||--|-|-----|
-
-         ---------------------------------------------------------------> Time t
-
-
+0x8200 :  r/w Select Debug Entity
+               0: Scaler Channel 0
+               1: Trigger Handler
+               2: Latch Handler
 
 ##############################################################################
-# nXyter FEB Clock Setup:
+# Clock Setup:
 #
 # CLK_PCLK_RIGHT : real Oszillator 200MHz
 # CLK_PCLK_RIGHT --> PLL#0 --> clk_100_i     -----> Main Clock all entities
 #
-# CLK_PCLK_RIGHT         --> nx_main_clk 1+2 
-#                            (250 MHz)       -----> nXyter Main Clock 1+2
-#                                            | 
-#                                            |----> FPGA Timestamp Entity 1+2
-#
-# nx_main_clk 1+2        --> nXyter Data Clk 
-#                            (1/2 = 125MHz)  -----> FPGA Data Receiver
-#                                            |
-#                                            |----> Johnson 1/4 --> ADC SCLK
-#
-# CLK_PCLK_RIGHT (PLL#2) --> clk_adc_dat_1
-#                (nx_main_clk * 3/4 = 187.5) -----> ADC Handler 1
-#
-# CLK_PCLK_RIGHT (PLL#3) --> clk_adc_dat_2
-#                (nx_main_clk * 3/4 = 187.5) -----> ADC Handler 2
-
+# CLK_PCLK_RIGHT --> PLL#1 --> clk_scaler    -----> 400 MHz Clock Domain
