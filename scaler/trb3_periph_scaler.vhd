@@ -626,7 +626,8 @@ begin
                                  
       LATCH_IN                   => CHANNELS_ECL_IN(0),
       CHANNELS_IN(0)             => quad_channel_0,
-      CHANNELS_IN(7 downto 1)    => CHANNELS_NIM_IN(7 downto 1),
+      CHANNELS_IN(1)             => CHANNELS_NIM_IN(0),
+      CHANNELS_IN(7 downto 2)    => CHANNELS_NIM_IN(7 downto 2),
   
       TIMING_TRIGGER_IN          => TRIGGER_RIGHT, 
       LVL1_TRG_DATA_VALID_IN     => trg_data_valid_i,

@@ -33,30 +33,8 @@ entity trigger_handler is
     FEE_TRG_RELEASE_OUT        : out std_logic;
     FEE_TRG_STATUSBITS_OUT     : out std_logic_vector(31 downto 0);
 
-    FEE_DATA_0_IN              : in  std_logic_vector(31 downto 0);
-    FEE_DATA_WRITE_0_IN        : in  std_logic;
-    FEE_DATA_1_IN              : in  std_logic_vector(31 downto 0);
-    FEE_DATA_WRITE_1_IN        : in  std_logic;
-    
-    -- Internal FPGA Trigger
-    INTERNAL_TRIGGER_IN        : in  std_logic;
-
-    -- Trigger FeedBack
-    TRIGGER_VALIDATE_BUSY_IN   : in  std_logic;
-    TRIGGER_BUSY_0_IN          : in  std_logic;
-    TRIGGER_BUSY_1_IN          : in  std_logic;
-    
-    -- OUT
-    VALID_TRIGGER_OUT          : out std_logic;
-    TIMESTAMP_TRIGGER_OUT      : out std_logic;
-    TRIGGER_TIMING_OUT         : out std_logic;
-    TRIGGER_STATUS_OUT         : out std_logic;
-    TRIGGER_CALIBRATION_OUT    : out std_logic;
-    FAST_CLEAR_OUT             : out std_logic;
-    TRIGGER_BUSY_OUT           : out std_logic;
-
-    -- Pulser
-    TESTPULSE_OUT              : out std_logic;
+    CHANNEL_DATA_0_IN          : in  std_logic_vector(47 downto 0);
+    CHANNEL_DATA_1_IN          : in  std_logic_vector(47 downto 0);
     
     -- Slave bus               
     SLV_READ_IN                : in  std_logic;
@@ -130,16 +108,19 @@ architecture Behavioral of trigger_handler is
   
   type STATES is (S_IDLE,
                   S_IGNORE_TRIGGER,
-                  S_STATUS_TRIGGER,
                   S_TIMING_TRIGGER,
-                  S_CALIBRATION_TRIGGER,
                   S_WAIT_TRG_DATA_VALID,
-                  S_WAIT_TIMING_TRIGGER_DONE,
+
+                  S_SEND_CHANNEL_0_DATA,
+                  S_SEND_CHANNEL_0_DATA_HIGH,
+
+                  S_SEND_CHANNEL_1_DATA,
+                  S_SEND_CHANNEL_1_DATA_HIGH,
+                  
+                  S_SEND_FEE_DATA_DONE,
+                  
                   S_FEE_TRIGGER_RELEASE,
-                  S_WAIT_FEE_TRIGGER_RELEASE_ACK,
-                  S_INTERNAL_TRIGGER,
-                  S_WAIT_TRIGGER_VALIDATE_ACK,
-                  S_WAIT_TRIGGER_VALIDATE_DONE
+                  S_WAIT_FEE_TRIGGER_RELEASE_ACK
                   );
   signal STATE : STATES;
 
@@ -185,34 +166,6 @@ architecture Behavioral of trigger_handler is
   signal status_trigger_type         : std_logic_vector(3 downto 0);
   signal calibration_trigger_type    : std_logic_vector(3 downto 0);
   
-  attribute syn_keep : boolean;
-
-  attribute syn_keep of trigger_busy_ff             : signal is true;
-  attribute syn_keep of trigger_busy_f              : signal is true;
-
-  attribute syn_keep of fast_clear_ff               : signal is true;
-  attribute syn_keep of fast_clear_f                : signal is true;
-
-  attribute syn_keep of internal_trigger_f          : signal is true;
-  attribute syn_keep of internal_trigger            : signal is true;
-
-  attribute syn_keep of timestamp_calib_trigger_f   : signal is true;
-  attribute syn_keep of timestamp_calib_trigger_o   : signal is true;
-  
-  attribute syn_preserve : boolean;
-
-  attribute syn_preserve of trigger_busy_ff         : signal is true;
-  attribute syn_preserve of trigger_busy_f          : signal is true;
-  
-  attribute syn_preserve of fast_clear_ff           : signal is true;
-  attribute syn_preserve of fast_clear_f            : signal is true;
-
-  attribute syn_preserve of internal_trigger_f      : signal is true;
-  attribute syn_preserve of internal_trigger        : signal is true;
-
-  attribute syn_preserve of timestamp_calib_trigger_f  : signal is true;
-  attribute syn_preserve of timestamp_calib_trigger_o  : signal is true;
-  
 begin
 
   -- Debug Line
@@ -222,8 +175,8 @@ begin
   DEBUG_OUT(3)            <= LVL1_VALID_TIMING_TRG_IN;
   DEBUG_OUT(4)            <= LVL1_TRG_DATA_VALID_IN;
   DEBUG_OUT(5)            <= fee_data_write_o;
-  DEBUG_OUT(6)            <= TRIGGER_VALIDATE_BUSY_IN;
-  DEBUG_OUT(7)            <= TRIGGER_BUSY_0_IN;
+  DEBUG_OUT(6)            <= '0';
+  DEBUG_OUT(7)            <= '0';
   DEBUG_OUT(8)            <= valid_trigger_o;
   DEBUG_OUT(9)            <= timing_trigger_o;
   DEBUG_OUT(10)           <= fee_data_finished_o;
@@ -237,159 +190,6 @@ begin
   -- Trigger Handler
   -----------------------------------------------------------------------------
   
-  PROC_TIMING_TRIGGER_HANDLER: process(CLK_D1_IN)
-    constant pattern : std_logic_vector(NUM_FF - 1 downto 0)
-    := (others => '1');
-  begin
-    if( rising_edge(CLK_D1_IN) ) then
-      timing_trigger_ff_p(1)                   <= TIMING_TRIGGER_IN;
-      if (RESET_D1_IN = '1') then 
-        timing_trigger_ff_p(0)                 <= '0';
-        timing_trigger_ff(NUM_FF - 1 downto 0) <= (others => '0');
-        timing_trigger_l                       <= '0';
-      else
-        timing_trigger_ff_p(0)                 <= timing_trigger_ff_p(1);
-        timing_trigger_ff(NUM_FF - 1)          <= timing_trigger_ff_p(0);
-        
-        for I in NUM_FF - 2 downto 0 loop
-          timing_trigger_ff(I)                 <= timing_trigger_ff(I + 1);    
-        end loop;
-        
-        if (timing_trigger_ff = pattern) then
-          timing_trigger_l                     <= '1';
-        else
-          timing_trigger_l                     <= '0';
-        end if;
-      end if;   
-    end if;
-  end process PROC_TIMING_TRIGGER_HANDLER;
-
-  level_to_pulse_1: level_to_pulse
-    port map (
-      CLK_IN    => CLK_D1_IN,
-      RESET_IN  => RESET_D1_IN,
-      LEVEL_IN  => timing_trigger_l,
-      PULSE_OUT => timing_trigger
-      );
-  
-  -- Signal Domain Transfers to NX Clock
-  trigger_busy_ff  <= trigger_busy_o
-                      when rising_edge(CLK_D1_IN);
-  trigger_busy_f   <= trigger_busy_ff
-                      when rising_edge(CLK_D1_IN);
-  trigger_busy     <= trigger_busy_f
-                      when rising_edge(CLK_D1_IN);
-
-  fast_clear_ff    <= fast_clear_o
-                      when rising_edge(CLK_D1_IN);
-  fast_clear_f     <= fast_clear_ff
-                      when rising_edge(CLK_D1_IN);
-  fast_clear       <= fast_clear_f
-                      when rising_edge(CLK_D1_IN);
-
-  PROC_TIMING_TRIGGER_HANDLER: process(CLK_D1_IN)
-  begin
-    if( rising_edge(CLK_D1_IN) ) then
-      if (RESET_D1_IN = '1') then
-        invalid_timing_trigger_n   <= '1';
-        ts_wait_timer_start        <= '0';
-        ts_wait_timer_reset        <= '1';
-        timestamp_trigger_o        <= '0';
-        TS_STATE                   <= TS_IDLE;     
-      else
-        invalid_timing_trigger_n   <= '0';
-        ts_wait_timer_start        <= '0';
-        ts_wait_timer_reset        <= '0';
-        timestamp_trigger_o        <= '0';
-
-        if (fast_clear = '1') then
-          ts_wait_timer_reset      <= '1';
-          TS_STATE                 <= TS_IDLE;
-        else
-          case TS_STATE is
-            when  TS_IDLE =>
-              -- Wait for Timing Trigger synced to NX_MAIN_CLK_DOMAIN
-              if (timing_trigger = '1') then
-                if (trigger_busy = '1') then
-                  -- If busy is set --> Error
-                  TS_STATE                <= TS_INVALID_TRIGGER;
-                else
-                  timestamp_trigger_o     <= '1';
-                  ts_wait_timer_start     <= '1';
-                  TS_STATE                <= TS_WAIT_VALID_TIMING_TRIGGER;
-                end if;
-              else
-                TS_STATE                  <= TS_IDLE;
-              end if;
-
-            when TS_WAIT_VALID_TIMING_TRIGGER =>
-              -- Wait and test if CLK_IN Trigger Handler does accepted Trigger 
-              if (trigger_busy = '1') then
-                -- Trigger has been accepted, stop timer and wait trigger end
-                ts_wait_timer_reset       <= '1';
-                TS_STATE                  <= TS_WAIT_TRIGGER_END;
-              else
-                if (ts_wait_timer_done = '1') then
-                  -- Timeout after 128ns --> Invalid Trigger Error
-                  TS_STATE                <= TS_INVALID_TRIGGER;
-                else
-                  TS_STATE                <= TS_WAIT_VALID_TIMING_TRIGGER;
-                end if;
-              end if;
-
-            when TS_INVALID_TRIGGER =>
-              invalid_timing_trigger_n    <= '1';
-              TS_STATE                    <= TS_IDLE;
-              
-            when TS_WAIT_TRIGGER_END =>
-              if (trigger_busy = '0') then
-                TS_STATE                  <= TS_IDLE;
-              else
-                TS_STATE                  <= TS_WAIT_TRIGGER_END;
-              end if;
-              
-          end case;
-        end if;
-      end if;
-    end if;
-  end process PROC_TIMING_TRIGGER_HANDLER;
-  
-  PROC_TIMING_TRIGGER_COUNTER: process(CLK_IN)
-  begin
-    if( rising_edge(CLK_IN) ) then
-      if (RESET_IN = '1') then
-        invalid_timing_trigger_ctr    <= (others => '0');
-      else
-        if (invalid_t_trigger_ctr_clear = '1') then
-          invalid_timing_trigger_ctr  <= (others => '0');
-        elsif (invalid_timing_trigger = '1') then
-          invalid_timing_trigger_ctr  <= invalid_timing_trigger_ctr + 1;
-        end if;
-      end if;
-    end if;
-  end process PROC_TIMING_TRIGGER_COUNTER;
-  
-  -- Relax Timing 
-  invalid_timing_trigger_ff  <= invalid_timing_trigger_n
-                                when rising_edge(CLK_D1_IN);
-  invalid_timing_trigger_f   <= invalid_timing_trigger_ff
-                                when rising_edge(CLK_D1_IN);
-
-  pulse_dtrans_INVALID_TIMING_TRIGGER: pulse_dtrans
-    generic map (
-      CLK_RATIO => 4
-      )
-    port map (
-      CLK_A_IN    => CLK_D1_IN,
-      RESET_A_IN  => RESET_D1_IN,
-      PULSE_A_IN  => invalid_timing_trigger_f,
-      CLK_B_IN    => CLK_IN,
-      RESET_B_IN  => RESET_IN,
-      PULSE_B_OUT => invalid_timing_trigger
-      );
-  
-  -----------------------------------------------------------------------------
-  
   PROC_TRIGGER_HANDLER: process(CLK_IN)
   begin
     if( rising_edge(CLK_IN) ) then
@@ -398,6 +198,8 @@ begin
         timing_trigger_o             <= '0';
         status_trigger_o             <= '0';
         calibration_trigger_o        <= '0';
+        fee_data_o                   <= (others => '0');
+        fee_data_write_o             <= '0';
         fee_data_finished_o          <= '0';
         fee_trg_release_o            <= '0';
         fee_trg_statusbits_o         <= (others => '0');
@@ -412,6 +214,8 @@ begin
         timing_trigger_o             <= '0';
         status_trigger_o             <= '0';
         calibration_trigger_o        <= '0';
+        fee_data_o                   <= (others => '0');
+        fee_data_write_o             <= '0';
         fee_data_finished_o          <= '0';
         fee_trg_release_o            <= '0';
         fee_trg_statusbits_o         <= (others => '0');
@@ -431,78 +235,21 @@ begin
             when  S_IDLE =>
 
               if (LVL1_VALID_TIMING_TRG_IN = '1') then
-                -- Timing Trigger IN
-                if (OFFLINE_IN              = '1' or
-                    bypass_all_trigger      = '1') then
-
-                  -- Ignore Trigger for nxyter is or pretends to be offline 
-                  TRIGGER_TYPE                     <= T_IGNORE;
-                  STATE                            <= S_IGNORE_TRIGGER;
+                -- Check Trigger Type
+                if (LVL1_TRG_TYPE_IN = physics_trigger_type) then
+                  -- Physiks Trigger
+                  TRIGGER_TYPE                 <= T_TIMING;
+                  STATE                        <= S_TIMING_TRIGGER;
                 else
-                  -- Check Trigger Type
-                  if (LVL1_TRG_TYPE_IN = physics_trigger_type) then
-                    -- Physiks Trigger
-                    if (bypass_physics_trigger = '1') then
-                      TRIGGER_TYPE                 <= T_IGNORE;
-                      STATE                        <= S_IGNORE_TRIGGER;
-                    else
-                      TRIGGER_TYPE                 <= T_TIMING;
-                      STATE                        <= S_TIMING_TRIGGER;
-                    end if; 
-                  else
-                    -- Unknown Timing Trigger, ignore
-                    TRIGGER_TYPE                 <= T_IGNORE;
-                    STATE                        <= S_IGNORE_TRIGGER;
-                  end if;
+                  -- Unknown Timing Trigger, ignore
+                  TRIGGER_TYPE                 <= T_IGNORE;
+                  STATE                        <= S_IGNORE_TRIGGER;
                 end if;
-
+              
               elsif (LVL1_VALID_NOTIMING_TRG_IN = '1') then
-                -- No Timing Trigger IN
-                if (OFFLINE_IN                 = '1' or
-                    bypass_all_trigger         = '1') then
-                  
-                  -- Ignore Trigger for nxyter or pretend to be offline 
-                  TRIGGER_TYPE                     <= T_IGNORE;
-                  STATE                            <= S_IGNORE_TRIGGER;
-                else
-                  -- Check Trigger Type
-                  if (LVL1_TRG_TYPE_IN = calibration_trigger_type) then
-                    -- Calibration Trigger
-                    if (bypass_calibration_trigger = '1') then
-                      TRIGGER_TYPE                 <= T_IGNORE;
-                      STATE                        <= S_IGNORE_TRIGGER;
-                    else
-                      if (calib_downscale_ctr >= calibration_downscale) then
-                        timestamp_calib_trigger_c100 <= '1';
-                        calib_downscale_ctr          <= x"0001";
-                        TRIGGER_TYPE                 <= T_CALIBRATION;
-                        STATE                        <= S_CALIBRATION_TRIGGER;
-                      else
-                        calib_downscale_ctr          <= calib_downscale_ctr + 1;
-                        TRIGGER_TYPE                 <= T_IGNORE;
-                        STATE                        <= S_IGNORE_TRIGGER;
-                      end if;
-                    end if;  
-
-                  elsif (LVL1_TRG_TYPE_IN = status_trigger_type) then
-                    -- Status Trigger
-                    if (bypass_status_trigger = '1') then
-                      TRIGGER_TYPE                 <= T_IGNORE;
-                      STATE                        <= S_IGNORE_TRIGGER;
-                    else
-                      -- Status Trigger  
-                      status_trigger_o               <= '1';
-                      TRIGGER_TYPE                   <= T_STATUS;
-                      STATE                          <= S_STATUS_TRIGGER;
-                    end if;
-
-                  else
-                    -- Some other Trigger, ignore it
-                    TRIGGER_TYPE                     <= T_IGNORE;
-                    STATE                            <= S_IGNORE_TRIGGER;
-                  end if;
-                  
-                end if;
+                -- Ignore NOTIMING Triggers  
+                TRIGGER_TYPE                     <= T_IGNORE;
+                STATE                            <= S_IGNORE_TRIGGER;
                 
               else
                 -- No Trigger IN, Nothing to do, Sleep Well
@@ -516,33 +263,49 @@ begin
               timing_trigger_o        <= '1';
               STATE                   <= S_WAIT_TRG_DATA_VALID;
 
-            when S_CALIBRATION_TRIGGER =>
-              calibration_trigger_o   <= '1';
-              valid_trigger_o         <= '1';
-              timing_trigger_o        <= '1';
-              STATE                   <= S_WAIT_TRG_DATA_VALID;
-              
-            when S_WAIT_TRG_DATA_VALID | S_STATUS_TRIGGER | S_IGNORE_TRIGGER =>
+            when S_WAIT_TRG_DATA_VALID | S_IGNORE_TRIGGER =>
               if (LVL1_TRG_DATA_VALID_IN = '0') then
                 STATE                 <= S_WAIT_TRG_DATA_VALID;
               else
-                STATE                 <= S_WAIT_TIMING_TRIGGER_DONE;
+                if (TRIGGER_TYPE = T_IGNORE) then
+                  STATE               <=  S_SEND_FEE_DATA_DONE;
+                else
+                  STATE               <= S_SEND_CHANNEL_0_DATA;
+                end if;
               end if;
+              
+              -- Send Channel Data
+            when S_SEND_CHANNEL_0_DATA =>
+              fee_data_o(31 downto 28) <= x"0";            
+              fee_data_o(27 downto 16) <= x"aaa";
+              fee_data_o(15 downto 0)  <= CHANNEL_DATA_0_IN(47 downto 32);
+              fee_data_write_o         <= '1';
+              STATE                    <= S_SEND_CHANNEL_0_DATA_HIGH;
 
-            when S_WAIT_TIMING_TRIGGER_DONE =>
-              if (((TRIGGER_TYPE = T_TIMING or
-                    TRIGGER_TYPE = T_CALIBRATION)
-                   and TRIGGER_BUSY_0_IN = '1')
-                  or
-                  (TRIGGER_TYPE = T_STATUS  and
-                   TRIGGER_BUSY_1_IN = '1')
-                  ) then
-                STATE                 <= S_WAIT_TIMING_TRIGGER_DONE;
-              else
-                fee_data_finished_o   <= '1';
-                STATE                 <= S_FEE_TRIGGER_RELEASE;
-              end if;
+            when S_SEND_CHANNEL_0_DATA_HIGH =>
+              fee_data_o               <= CHANNEL_DATA_0_IN(31 downto 0);
+              fee_data_write_o         <= '1';
+              STATE                    <= S_SEND_CHANNEL_1_DATA;
 
+
+            when S_SEND_CHANNEL_1_DATA =>
+              fee_data_o(31 downto 28) <= x"1";            
+              fee_data_o(27 downto 16) <= x"bbb";
+              fee_data_o(15 downto 0)  <= CHANNEL_DATA_1_IN(47 downto 32);
+              fee_data_write_o         <= '1';
+              STATE                    <= S_SEND_CHANNEL_1_DATA_HIGH;
+
+            when S_SEND_CHANNEL_1_DATA_HIGH =>
+              fee_data_o               <= CHANNEL_DATA_1_IN(31 downto 0);
+              fee_data_write_o         <= '1';
+              STATE                    <= S_SEND_FEE_DATA_DONE;
+
+              
+            when S_SEND_FEE_DATA_DONE =>
+              fee_data_finished_o   <= '1';
+              STATE                 <= S_FEE_TRIGGER_RELEASE;
+
+              -- Hier noch warten auf CTS
             when S_FEE_TRIGGER_RELEASE =>
               fee_trg_release_o       <= '1';
               STATE                   <= S_WAIT_FEE_TRIGGER_RELEASE_ACK;
@@ -553,77 +316,12 @@ begin
               else
                 STATE                 <= S_IDLE;
               end if;
-              
-              -- Internal Trigger Handler
-            when S_INTERNAL_TRIGGER =>
-              valid_trigger_o         <= '1';
-              STATE                   <= S_WAIT_TRIGGER_VALIDATE_ACK;
 
-            when S_WAIT_TRIGGER_VALIDATE_ACK =>
-              if (TRIGGER_VALIDATE_BUSY_IN = '0') then
-                STATE                 <= S_WAIT_TRIGGER_VALIDATE_ACK;
-              else
-                STATE                 <= S_WAIT_TRIGGER_VALIDATE_DONE;
-              end if;
-              
-            when S_WAIT_TRIGGER_VALIDATE_DONE =>
-              if (TRIGGER_VALIDATE_BUSY_IN = '1') then
-                STATE                 <= S_WAIT_TRIGGER_VALIDATE_DONE;
-              else
-                STATE                 <= S_IDLE;
-              end if;
-              
-          end case;
+              end case;
         end if;
       end if;
     end if;
   end process PROC_TRIGGER_HANDLER;
-
-  PROC_EVENT_DATA_MULTIPLEXER: process(TRIGGER_TYPE)
-  begin
-    case TRIGGER_TYPE is
-      when  T_UNDEF | T_IGNORE =>
-        fee_data_o                   <= (others => '0');
-        fee_data_write_o             <= '0';
-        
-      when T_TIMING | T_CALIBRATION =>
-        fee_data_o                   <= FEE_DATA_0_IN;
-        fee_data_write_o             <= FEE_DATA_WRITE_0_IN;
-        
-      when T_STATUS =>
-        fee_data_o                   <= FEE_DATA_1_IN;
-        fee_data_write_o             <= FEE_DATA_WRITE_1_IN;
-
-    end case;
-  end process PROC_EVENT_DATA_MULTIPLEXER;
-
-  internal_trigger_f  <= INTERNAL_TRIGGER_IN or
-                         calibration_trigger_o when rising_edge(CLK_D1_IN);
-  internal_trigger    <= internal_trigger_f  when rising_edge(CLK_D1_IN);
-
-  PROC_CAL_RATES: process (CLK_IN)
-  begin 
-    if( rising_edge(CLK_IN) ) then
-      if (RESET_IN = '1') then
-        accepted_trigger_rate_t     <= (others => '0');
-        accepted_trigger_rate       <= (others => '0');
-        rate_timer                  <= (others => '0');
-      else
-        if (rate_timer < x"5f5e100") then
-          if (timing_trigger_o = '1') then
-            accepted_trigger_rate_t            <= accepted_trigger_rate_t + 1;
-          end if;
-
-          rate_timer                           <= rate_timer + 1;
-        else
-          rate_timer                           <= (others => '0');
-          accepted_trigger_rate                <= accepted_trigger_rate_t;
-          
-          accepted_trigger_rate_t              <= (others => '0');
-        end if;
-      end if;
-    end if;
-  end process PROC_CAL_RATES;
 
 -----------------------------------------------------------------------------
 -- TRBNet Slave Bus
@@ -746,21 +444,7 @@ begin
 -- Output Signals
 -----------------------------------------------------------------------------
 
-  timestamp_calib_trigger_f  <= timestamp_calib_trigger_c100
-                                when rising_edge(CLK_D1_IN);
-
-  timestamp_calib_trigger_o  <= timestamp_calib_trigger_f
-                                when rising_edge(CLK_D1_IN);
-
   -- Trigger Output
-  VALID_TRIGGER_OUT         <= valid_trigger_o;
-  TIMESTAMP_TRIGGER_OUT     <= timestamp_trigger_o or timestamp_calib_trigger_o;
-  TRIGGER_TIMING_OUT        <= timing_trigger_o;
-  TRIGGER_STATUS_OUT        <= status_trigger_o;
-  TRIGGER_CALIBRATION_OUT   <= calibration_trigger_o;
-  FAST_CLEAR_OUT            <= fast_clear_o;
-  TRIGGER_BUSY_OUT          <= trigger_busy_o;
-
   FEE_DATA_OUT              <= fee_data_o;
   FEE_DATA_WRITE_OUT        <= fee_data_write_o; 
   FEE_DATA_FINISHED_OUT     <= fee_data_finished_o;

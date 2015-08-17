@@ -82,7 +82,7 @@ architecture Behavioral of scaler is
   signal RESET_D1               : std_logic;
 
   -- Bus Handler                
-  constant NUM_PORTS            : integer := 4;
+  constant NUM_PORTS            : integer := 5;
   
   signal slv_read               : std_logic_vector(NUM_PORTS-1 downto 0);
   signal slv_write              : std_logic_vector(NUM_PORTS-1 downto 0);
@@ -139,8 +139,6 @@ architecture Behavioral of scaler is
   -- Latch Handler
   signal reset_ctr              : std_logic;
   signal latch                  : std_logic;
-  signal latch_valid            : std_logic;
-  signal latch_invalid          : std_logic;
   
   -- Trigger Validate           
   signal trigger_data           : std_logic_vector(31 downto 0);
@@ -188,7 +186,11 @@ architecture Behavioral of scaler is
   signal trigger_busy           : std_logic;
   signal fast_clear             : std_logic;
   signal fee_trg_release_o      : std_logic;
-
+  
+  -- Scaler Channels
+  signal channel_0_counter      : std_logic_vector(47 downto 0);
+  signal channel_1_counter      : std_logic_vector(47 downto 0);
+  
   -- FPGA Timestamp
   signal timestamp_hold         : unsigned(11 downto 0);
   
@@ -202,7 +204,7 @@ architecture Behavioral of scaler is
   signal error_event_buffer     : std_logic;
   
   -- Debug Handler
-  constant DEBUG_NUM_PORTS      : integer := 3;  -- 14
+  constant DEBUG_NUM_PORTS      : integer := 4;  -- 14
   signal debug_line             : debug_array_t(0 to DEBUG_NUM_PORTS-1);
 
   ----------------------------------------------------------------------
@@ -241,9 +243,12 @@ begin
       PORT_NUMBER         => NUM_PORTS,
 
       PORT_ADDRESSES      => (0 => x"0200",       -- Debug Multiplexer
-                              1 => x"0000",       -- Scaler Channel 0
+                              1 => x"0180",       -- Latch Handler
                               2 => x"0160",       -- Trigger Handler
-                              3 => x"0180",       -- Latch Handler
+
+                              3 => x"0000",       -- Scaler Channel 0
+                              4 => x"0020",       -- Scaler Channel 1
+                              
                               --2 => x"0040",       -- Scaler Channel 2
                               --3 => x"0060",       -- Scaler Channel 3
                               --4 => x"0080",       -- Scaler Channel 4
@@ -255,9 +260,12 @@ begin
                               ),
 
       PORT_ADDR_MASK      => (0 => 0,          -- Debug Multiplexer
-                              1 => 2,          -- Scaler Channel 0
+                              1 => 4,          -- Latch Handler
                               2 => 4,          -- Trigger Handler
-                              3 => 4,          -- Latch Handler
+
+                              3 => 2,          -- Scaler Channel 0
+                              4 => 2,          -- Scaler Channel 1
+
                               --2 => 2,          -- Scaler Channel 2
                               --3 => 2,          -- Scaler Channel 3
                               --4 => 2,          -- Scaler Channel 4
@@ -338,21 +346,18 @@ begin
       CLK_D1_IN            => CLK_D1_IN,
       RESET_D1_IN          => RESET_D1,
       RESET_CTR_IN         => CHANNELS_IN(7),
-      LATCH_TRIGGER_IN     => clk_pulse, -- TIMING_TRIGGER_IN, -- latch_i,
-      LATCH_EXTERN_IN      => TIMING_TRIGGER_IN,
+      LATCH_TRIGGER_IN     => TIMING_TRIGGER_IN,
       RESET_CTR_OUT        => reset_ctr,
       LATCH_OUT            => latch,
-      LATCH_VALID_OUT      => latch_valid,
-      LATCH_INVALID_OUT    => latch_invalid,
-      SLV_READ_IN          => slv_read(3),
-      SLV_WRITE_IN         => slv_write(3),
-      SLV_DATA_OUT         => slv_data_rd(3*32+31 downto 3*32),
-      SLV_DATA_IN          => slv_data_wr(3*32+31 downto 3*32),
-      SLV_ADDR_IN          => slv_addr(3*16+15 downto 3*16),
-      SLV_ACK_OUT          => slv_ack(3),
-      SLV_NO_MORE_DATA_OUT => slv_no_more_data(3),
-      SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(3),              
-      DEBUG_OUT            => debug_line(2)
+      SLV_READ_IN          => slv_read(1),
+      SLV_WRITE_IN         => slv_write(1),
+      SLV_DATA_OUT         => slv_data_rd(1*32+31 downto 1*32),
+      SLV_DATA_IN          => slv_data_wr(1*32+31 downto 1*32),
+      SLV_ADDR_IN          => slv_addr(1*16+15 downto 1*16),
+      SLV_ACK_OUT          => slv_ack(1),
+      SLV_NO_MORE_DATA_OUT => slv_no_more_data(1),
+      SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(1),              
+      DEBUG_OUT            => debug_line(1)
       );
 
   
@@ -367,17 +372,45 @@ begin
       LATCH_IN             => latch,
       PULSE_IN             => CHANNELS_IN(0),
       INHIBIT_IN           => '0',
+
+      COUNTER_OUT          => channel_0_counter,
       
-      SLV_READ_IN          => slv_read(1),
-      SLV_WRITE_IN         => slv_write(1),
-      SLV_DATA_OUT         => slv_data_rd(1*32+31 downto 1*32),
-      SLV_DATA_IN          => slv_data_wr(1*32+31 downto 1*32),
-      SLV_ADDR_IN          => slv_addr(1*16+15 downto 1*16),
-      SLV_ACK_OUT          => slv_ack(1),
-      SLV_NO_MORE_DATA_OUT => slv_no_more_data(1),
-      SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(1),              
+      SLV_READ_IN          => slv_read(3),
+      SLV_WRITE_IN         => slv_write(3),
+      SLV_DATA_OUT         => slv_data_rd(3*32+31 downto 3*32),
+      SLV_DATA_IN          => slv_data_wr(3*32+31 downto 3*32),
+      SLV_ADDR_IN          => slv_addr(3*16+15 downto 3*16),
+      SLV_ACK_OUT          => slv_ack(3),
+      SLV_NO_MORE_DATA_OUT => slv_no_more_data(3),
+      SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(3),              
       
-      DEBUG_OUT            => debug_line(0)
+      DEBUG_OUT            => debug_line(2)
+      );
+
+  scaler_channel_1: scaler_channel
+    port map (
+      CLK_IN               => CLK_IN,
+      RESET_IN             => RESET_IN,
+      CLK_D1_IN            => CLK_D1_IN,
+      RESET_D1_IN          => RESET_D1,
+
+      RESET_CTR_IN         => reset_ctr,
+      LATCH_IN             => latch,
+      PULSE_IN             => CHANNELS_IN(1),
+      INHIBIT_IN           => '0',
+
+      COUNTER_OUT          => channel_1_counter,
+      
+      SLV_READ_IN          => slv_read(4),
+      SLV_WRITE_IN         => slv_write(4),
+      SLV_DATA_OUT         => slv_data_rd(4*32+31 downto 4*32),
+      SLV_DATA_IN          => slv_data_wr(4*32+31 downto 4*32),
+      SLV_ADDR_IN          => slv_addr(4*16+15 downto 4*16),
+      SLV_ACK_OUT          => slv_ack(4),
+      SLV_NO_MORE_DATA_OUT => slv_no_more_data(4),
+      SLV_UNKNOWN_ADDR_OUT => slv_unknown_addr(4),              
+      
+      DEBUG_OUT            => debug_line(3)
       );
 
 
@@ -407,26 +440,9 @@ begin
       FEE_TRG_RELEASE_OUT        => FEE_TRG_RELEASE_OUT,
       FEE_TRG_STATUSBITS_OUT     => FEE_TRG_STATUSBITS_OUT,
 
-      FEE_DATA_0_IN              => fee_data_o_0,
-      FEE_DATA_WRITE_0_IN        => fee_data_write_o_0,
-      FEE_DATA_1_IN              => fee_data_o_1,
-      FEE_DATA_WRITE_1_IN        => fee_data_write_o_1,
-      INTERNAL_TRIGGER_IN        => internal_trigger,
+      CHANNEL_DATA_0_IN          => channel_0_counter,
+      CHANNEL_DATA_1_IN          => channel_1_counter,
 
-      TRIGGER_VALIDATE_BUSY_IN   => trigger_validate_busy,
-      TRIGGER_BUSY_0_IN          => trigger_evt_busy_0,
-      TRIGGER_BUSY_1_IN          => trigger_evt_busy_1,
-      
-      VALID_TRIGGER_OUT          => trigger,
-      TIMESTAMP_TRIGGER_OUT      => timestamp_trigger,
-      TRIGGER_TIMING_OUT         => trigger_timing,
-      TRIGGER_STATUS_OUT         => trigger_status,
-      TRIGGER_CALIBRATION_OUT    => trigger_calibration,
-      FAST_CLEAR_OUT             => fast_clear,
-      TRIGGER_BUSY_OUT           => trigger_busy,
-
-      TESTPULSE_OUT              => open,
-      
       SLV_READ_IN                => slv_read(2),
       SLV_WRITE_IN               => slv_write(2),
       SLV_DATA_OUT               => slv_data_rd(2*32+31 downto 2*32),
@@ -436,7 +452,7 @@ begin
       SLV_NO_MORE_DATA_OUT       => slv_no_more_data(2),
       SLV_UNKNOWN_ADDR_OUT       => slv_unknown_addr(2),
 
-      DEBUG_OUT                  => debug_line(1)
+      DEBUG_OUT                  => debug_line(0)
       );
 
 

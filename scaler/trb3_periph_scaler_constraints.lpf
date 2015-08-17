@@ -66,7 +66,6 @@ MULTICYCLE TO   CELL   "scaler_0/reset_d1_ff*[1]*"                              
 MULTICYCLE TO   CELL   "scaler_0/scaler_channel_0/pulse_ff*[2]*"                                           30 ns;
 
 MULTICYCLE TO   CELL   "scaler_0/latch_handler_1/reset_ctr_ff*[2]*"                                        30 ns;
-MULTICYCLE FROM CELL   "scaler_0/latch_handler_1/latch_select_r*"                                         100 ns;
 MULTICYCLE TO   CELL   "scaler_0/latch_handler_1/latch_ff*[2]*"                                            30 ns;
 
 MULTICYCLE TO   GROUP  "TEST_LINE_group"          500.000000 ns ;

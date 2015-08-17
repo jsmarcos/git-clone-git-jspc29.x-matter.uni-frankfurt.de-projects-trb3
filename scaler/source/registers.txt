@@ -218,9 +218,10 @@
 
 -- Debug Multiplexer
 0x8200 :  r/w Select Debug Entity
-               0: Scaler Channel 0
-               1: Trigger Handler
-               2: Latch Handler
+               0: Trigger Handler
+               1: Latch Handler
+               2: Scaler Channel 0
+               3: Scaler Channel 1
 
 ##############################################################################
 # Clock Setup:

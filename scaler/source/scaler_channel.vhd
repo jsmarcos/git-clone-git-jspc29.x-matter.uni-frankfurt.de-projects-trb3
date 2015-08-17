@@ -17,6 +17,9 @@ entity scaler_channel is
     LATCH_IN               : in  std_logic;
     PULSE_IN               : in  std_logic;
     INHIBIT_IN             : in  std_logic;
+
+    -- Trigger
+    COUNTER_OUT            : out std_logic_vector(47 downto 0);
     
     -- Slave bus           
     SLV_READ_IN            : in  std_logic;
@@ -161,8 +164,8 @@ begin
   -- Clock Domain Transfer in case of latch or overflow
   -----------------------------------------------------------------------------
 
-  --latch_d1 <= LATCH_IN when rising_edge(CLK_D1_IN);
-  latch_d1 <= counter_low_ovfl_d1 when rising_edge(CLK_D1_IN);
+  latch_d1 <= LATCH_IN when rising_edge(CLK_D1_IN);
+  --latch_d1 <= counter_low_ovfl_d1 when rising_edge(CLK_D1_IN);
   
   COUNTER_LOW_DOMAIN_TRANSFER_1: entity work.fifo_6to6_dc
     port map (
@@ -320,6 +323,10 @@ begin
   ----------------------------------------------------------------------
   -- Output Signals
   ----------------------------------------------------------------------
+
+  --COUNTER_OUT           <= x"affedeadbeef";
+  
+  COUNTER_OUT           <= counter_latched;
 
   SLV_DATA_OUT          <= slv_data_out_o;    
   SLV_NO_MORE_DATA_OUT  <= slv_no_more_data_o; 
