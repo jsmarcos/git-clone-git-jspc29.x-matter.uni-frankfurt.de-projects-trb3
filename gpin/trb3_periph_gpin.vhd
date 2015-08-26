@@ -1,1 +1,1 @@
-currentRelease/trb3_periph_gpin.vhd
+tdc_release/trb3_periph_gpin.vhd
