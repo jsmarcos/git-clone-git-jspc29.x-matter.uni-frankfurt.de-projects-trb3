@@ -83,7 +83,8 @@ architecture Behavioral of scaler_channel is
   signal slv_no_more_data_o          : std_logic;
   signal slv_unknown_addr_o          : std_logic;
   signal slv_ack_o                   : std_logic;
-  signal counter_latched_offset      : std_logic_vector(15 downto 0);
+  signal counter_latched_offset_sign : std_logic;  -- 1 = +
+  signal counter_latched_offset      : unsigned(15 downto 0);
 
   -----------------------------------------------------------------------------
   
@@ -212,27 +213,21 @@ begin
         counter_low_ovfl     <= '0';
         latch                <= '0';
       else
-        counter_low          <= (others => '0');
-        counter_low_ovfl     <= '0';
-        latch                <= '0';
+        counter_low            <= (others => '0');
+        counter_low_ovfl       <= '0';
+        latch                  <= '0';
         
         if (fifo_data_clk = '1') then
-          counter_low          <= (others => '0');
-          counter_low_ovfl     <= '0';
-          latch                <= '0';
+          counter_low          <= fifo_data(2 downto 0);
+          counter_low_ovfl     <= fifo_data(3);
+          latch                <= fifo_data(4);
 
           -- High Bit Counter
           if (fifo_data(5) = '1') then    -- in case of Reset Counters 
             counter_high       <= (others => '0');
           else
             if (fifo_data(3) = '1') then  -- in case of overflow
-              counter_low      <= fifo_data(2 downto 0);
-              counter_low_ovfl <= fifo_data(3);
               counter_high     <= counter_high + 1;
-            end if;
-          
-            if (fifo_data(4) = '1') then
-              latch             <= '1';
             end if;
           end if;
         end if;
@@ -241,6 +236,7 @@ begin
   end process PROC_FIFO_OUTPUT_HANDLER;
 
   PROC_LATCH: process(CLK_IN)
+    variable counter_latched_new : unsigned(47 downto 0);
   begin
     if (rising_edge(CLK_IN)) then
       if (RESET_IN = '1') then
@@ -249,8 +245,16 @@ begin
       else
         data_clk             <= '0';
         if (latch = '1') then
-          counter_latched(2 downto 0)   <= counter_low;
-          counter_latched(47 downto 3)  <= counter_high;
+          counter_latched_new(2 downto 0)   := unsigned(counter_low);
+          counter_latched_new(47 downto 3)  := unsigned(counter_high);
+          if (counter_latched_offset_sign = '0') then
+            counter_latched_new             :=
+              counter_latched_new - resize(counter_latched_offset, 47);
+          else
+            counter_latched_new             :=
+              counter_latched_new + resize(counter_latched_offset, 47);
+          end if;
+          counter_latched <= std_logic_vector(counter_latched_new);
           data_clk                      <= '1';
         end if;
       end if;
@@ -265,26 +269,29 @@ begin
   begin
     if( rising_edge(CLK_IN) ) then
       if( RESET_IN = '1' ) then
-        slv_data_out_o             <= (others => '0');
-        slv_no_more_data_o         <= '0';
-        slv_unknown_addr_o         <= '0';
-        slv_ack_o                  <= '0';
+        slv_data_out_o              <= (others => '0');
+        slv_no_more_data_o          <= '0';
+        slv_unknown_addr_o          <= '0';
+        slv_ack_o                   <= '0';
         
-        counter_latched_offset     <= (others => '0');
-        data_reg                   <= (others => '0');
+        counter_latched_offset      <= (others => '0');
+        counter_latched_offset_sign <= '0';
+        data_reg                    <= (others => '0');
       else
-        slv_unknown_addr_o         <= '0';
-        slv_no_more_data_o         <= '0';
-        slv_data_out_o             <= (others => '0');    
+        slv_unknown_addr_o          <= '0';
+        slv_no_more_data_o          <= '0';
+        slv_data_out_o              <= (others => '0');    
        
         if (data_clk = '1') then
-          data_reg                 <= counter_latched;
+          data_reg                  <= counter_latched;
         end if;
         
         if (SLV_WRITE_IN  = '1') then
           case SLV_ADDR_IN is
             when x"0000" =>
-              counter_latched_offset       <= SLV_DATA_IN(15 downto 0);
+              counter_latched_offset(15 downto 0)  <=
+                unsigned(SLV_DATA_IN(15 downto 0));
+              counter_latched_offset_sign  <= SLV_DATA_IN(31);
               slv_ack_o                    <= '1';
             
             when others =>                
@@ -295,8 +302,10 @@ begin
         elsif (SLV_READ_IN = '1') then
           case SLV_ADDR_IN is
             when x"0000" =>
-              slv_data_out_o(15 downto 0)  <= counter_latched_offset;
-              slv_data_out_o(31 downto 16) <= (others => '0');
+              slv_data_out_o(15 downto 0)  <=
+                std_logic_vector(counter_latched_offset);
+              slv_data_out_o(30 downto 16) <= (others => '0');
+              slv_data_out_o(31)           <= counter_latched_offset_sign;
               slv_ack_o                    <= '1';
                    
             when x"0001" =>

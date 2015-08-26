@@ -1,10 +1,10 @@
-[pbs1]
+[pbs2]
 system = linux
 corenum = 2
 env = /usr/local/opt/lattice_diamond/diamond/3.4/bin/lin64/diamond_env
 workdir = /home/rich/TRB/nXyter/trb3/scaler/workdir/
 
-[pbs2]
+[pbs1]
 system = linux
 corenum = 2
 env = /usr/local/opt/lattice_diamond/diamond/3.4/bin/lin64/diamond_env
