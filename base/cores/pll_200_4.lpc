@@ -12,12 +12,12 @@ VendorName=Lattice Semiconductor Corporation
 CoreType=LPM
 CoreStatus=Demo
 CoreName=PLL
-CoreRevision=5.3
+CoreRevision=5.4
 ModuleName=pll_200_4
 SourceFormat=VHDL
 ParameterFileVersion=1.0
-Date=10/07/2014
-Time=15:22:29
+Date=07/03/2015
+Time=18:18:12
 
 [Parameters]
 Verilog=0
@@ -38,7 +38,7 @@ OP_Tol=0.0
 OFrq=4.000000
 DutyTrimP=Rising
 DelayMultP=0
-fb_mode=CLKOP
+fb_mode=Internal
 Mult=1
 Phase=0.0
 Duty=8
