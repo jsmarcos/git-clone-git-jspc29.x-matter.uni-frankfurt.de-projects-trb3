@@ -49,7 +49,9 @@ entity trb3_central is
     --Trigger
     TRIGGER_LEFT  : in  std_logic;      --left side trigger input from fan-out
     TRIGGER_RIGHT : in  std_logic;      --right side trigger input from fan-out
-    TRIGGER_EXT   : in  std_logic_vector(4 downto 2);  --additional trigger from RJ45
+    TRIGGER_EXT_2 : in  std_logic;
+    TRIGGER_EXT_3 : inout std_logic;
+--     TRIGGER_EXT   : inout  std_logic_vector(4 downto 2);  --additional trigger from RJ45
     TRIGGER_OUT   : out std_logic;      --trigger to second input of fan-out
     TRIGGER_OUT2  : out std_logic;
 
@@ -214,7 +216,6 @@ entity trb3_central is
   attribute syn_keep of CLK_PCLK_RIGHT       : signal is true;
   attribute syn_keep of TRIGGER_LEFT         : signal is true;
   attribute syn_keep of TRIGGER_RIGHT        : signal is true;
-  attribute syn_keep of TRIGGER_EXT          : signal is true;
   attribute syn_keep of TRIGGER_OUT          : signal is true;
   attribute syn_keep of TRIGGER_OUT2         : signal is true;
   attribute syn_keep of CLK_SERDES_INT_LEFT  : signal is true;
@@ -719,7 +720,7 @@ begin
         );   
 
     cts_addon_triggers_in(1 downto 0) <= CLK_EXT;  -- former trigger inputs
-    cts_addon_triggers_in(3 downto 2) <= TRIGGER_EXT(3 downto 2);  -- former trigger inputs
+    cts_addon_triggers_in(3 downto 2) <= TRIGGER_EXT_3 & TRIGGER_EXT_2;  -- former trigger inputs
 
     cts_addon_triggers_in(7 downto 4)   <= ECL_IN;
     cts_addon_triggers_in(11 downto 8)  <= JIN1;
@@ -1872,7 +1873,14 @@ begin
   FPGA3_CONNECTOR <= (others => 'Z');
   FPGA4_CONNECTOR <= (others => 'Z');
 
-
+  gen_busy_out : if GEN_BUSY_OUTPUT = 1 generate
+    TRIGGER_EXT_3 <= trigger_busy_i;
+  end generate;  
+  gen_no_busy_out : if GEN_BUSY_OUTPUT = 0 generate
+    TRIGGER_EXT_3 <= 'Z';
+  end generate;  
+  
+  
 ---------------------------------------------------------------------------
 -- AddOn Connector
 ---------------------------------------------------------------------------

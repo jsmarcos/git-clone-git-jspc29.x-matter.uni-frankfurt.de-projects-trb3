@@ -23,7 +23,7 @@ package config is
    constant RING_BUFFER_SIZE        : integer range 0 to 7  := 7;  --ring buffer size:  0, 1, 2,  3,  7
                                                                    --ring buffer size: 32,64,96,128,dyn
 -- Include SFP power readout
-   constant INCLUDE_SFP_DDM : integer range c_NO to c_YES := c_YES;
+   constant INCLUDE_SFP_DDM : integer range c_NO to c_YES := c_NO;
    
 --use all four SFP (1-4) as downlink to other boards (only w/o CBMNET)
     constant USE_4_SFP   : integer range c_NO to c_YES := c_NO;
@@ -42,6 +42,8 @@ package config is
     
     constant ETM_ID : std_logic_vector(7 downto 0);
 
+--output busy signal on pair 4 of Trigger RJ45?    
+    constant GEN_BUSY_OUTPUT : integer := c_YES;
     
     constant TRIGGER_COIN_COUNT   : integer := 4;
     constant TRIGGER_PULSER_COUNT : integer := 2;

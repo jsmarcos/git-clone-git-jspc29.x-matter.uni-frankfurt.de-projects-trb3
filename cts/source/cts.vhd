@@ -562,6 +562,16 @@ begin
    end process;
    
    CTS_TRG_TYPE_OUT <= trigger_type_buf_i;
+   
+   
+   proc_busyout : process begin
+     wait until rising_edge(CLK);
+     if td_fsm_i = TD_FSM_IDLE then
+       TRIGGER_BUSY_OUT <= '0';
+     else  
+       TRIGGER_BUSY_OUT <= '1';
+     end if;
+   end process;  
 
    read_out_proc: process(CLK) is
    begin
