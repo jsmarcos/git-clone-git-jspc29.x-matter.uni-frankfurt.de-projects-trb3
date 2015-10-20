@@ -10,11 +10,11 @@ use POSIX;
 ###################################################################################
 #Settings for this project
 my $TOPNAME                      = "trb3_periph_billboard";  #Name of top-level entity
-my $BasePath                     = "../base/";     #path to "base" directory
-my $lm_license_file_for_synplify = "27000\@lxcad01.gsi.de";
+my $lm_license_file_for_synplify = "1702\@hadeb05.gsi.de"; #"27000\@lxcad01.gsi.de";
 my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
-my $synplify_path              = '/d/jspc29/lattice/synplify/I-2013.09-SP1/'; 
-my $lattice_path                 = '/d/jspc29/lattice/diamond/3.2_x64/';
+
+my $lattice_path                 = '/d/jspc29/lattice/diamond/3.5_x64';
+my $synplify_path                = '/d/jspc29/lattice/synplify/K-2015.09/';
 ###################################################################################
 
 my $btype = 'slave';
@@ -57,7 +57,7 @@ $fh->close;
 system("env| grep LM_");
 my $r = "";
 
-my $c="$synplify_path/bin/synplify_premier_dp -batch $TOPNAME.prj";
+my $c="$lattice_path/bin/lin64/synpwrap -fg -options -batch $TOPNAME.prj";
 $r=execute($c, "do_not_exit" );
 
 chdir "workdir";
