@@ -253,7 +253,7 @@ if($par==1 || $all==1){
     system("rm $TOPNAME.ncd");
     if ($isMultiPar)
     {
-	$c=qq|LC_ALL=en_US.UTF-8; par -m ../nodes_lxhadeb07.txt -n $nrNodes -w -i 15 -l 5 -y -s 8 -t 33 -c 1 -e 2 -exp parCDP=1:parCDR=1:parPlcInLimit=0:parPlcInNeighborSize=1:parPathBased=ON:parHold=1:parHoldLimit=10000:paruseNBR=1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf;|;
+	$c=qq|LC_ALL=en_US.UTF-8; par -m ../nodes_lxhadeb07.txt -n $nrNodes -w -i 15 -l 5 -y -s 8 -t 1 -c 1 -e 2 -exp parCDP=1:parCDR=1:parPlcInLimit=0:parPlcInNeighborSize=1:parPathBased=ON:parHold=1:parHoldLimit=10000:paruseNBR=1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf;|;
 	execute($c);
 
         # find and copy the .ncd file which has met the timing constraints
