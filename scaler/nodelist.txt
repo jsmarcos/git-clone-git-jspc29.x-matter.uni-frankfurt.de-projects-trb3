@@ -1,0 +1,47 @@
+[pbs2]
+system = linux
+corenum = 2
+env = /usr/local/opt/lattice_diamond/diamond/3.4/bin/lin64/diamond_env
+workdir = /home/rich/TRB/nXyter/trb3/scaler/workdir/
+
+[pbs1]
+system = linux
+corenum = 2
+env = /usr/local/opt/lattice_diamond/diamond/3.4/bin/lin64/diamond_env
+workdir = /home/rich/TRB/nXyter/trb3/scaler/workdir/
+
+[pbs3]
+system = linux
+corenum = 2
+env = /usr/local/opt/lattice_diamond/diamond/3.4/bin/lin64/diamond_env
+workdir = /home/rich/TRB/nXyter/trb3/scaler/workdir/
+
+[pbs4]
+system = linux
+corenum = 2
+env = /usr/local/opt/lattice_diamond/diamond/3.4/bin/lin64/diamond_env
+workdir = /home/rich/TRB/nXyter/trb3/scaler/workdir/
+
+[pbs5]
+system = linux
+corenum = 2
+env = /usr/local/opt/lattice_diamond/diamond/3.4/bin/lin64/diamond_env
+workdir = /home/rich/TRB/nXyter/trb3/scaler/workdir/
+
+[pbs6]
+system = linux
+corenum = 2
+env = /usr/local/opt/lattice_diamond/diamond/3.4/bin/lin64/diamond_env
+workdir = /home/rich/TRB/nXyter/trb3/scaler/workdir/
+
+[pbs7]
+system = linux
+corenum = 2
+env = /usr/local/opt/lattice_diamond/diamond/3.4/bin/lin64/diamond_env
+workdir = /home/rich/TRB/nXyter/trb3/scaler/workdir/
+
+[pbs8]
+system = linux
+corenum = 2
+env = /usr/local/opt/lattice_diamond/diamond/3.4/bin/lin64/diamond_env
+workdir = /home/rich/TRB/nXyter/trb3/scaler/workdir/

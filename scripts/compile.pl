@@ -21,6 +21,9 @@ my $lattice_bin_path             = "$lattice_path/bin/lin64"; # note the lin/lin
 
 my $include_TDC                  = $config{include_TDC} || 0;
 my $include_GBE                  = $config{include_GBE} || 0;
+my $include_CTS                  = $config{include_CTS} || 0;
+my $include_HUB                  = $config{include_HUB} || 0;
+my $central_FPGA                 = $config{central_FPGA} || 0;
 my $twr_number_of_errors         = $config{twr_number_of_errors} || 10;
 
 
@@ -98,8 +101,11 @@ $ENV{'LM_LICENSE_FILE'}=$lm_license_file_for_synplify;
 
 my $FAMILYNAME="LatticeECP3";
 my $DEVICENAME="LFE3-150EA";
-my $PACKAGE="FPBGA672";
 my $SPEEDGRADE="8";
+my $PACKAGE="FPBGA672";
+if ($central_FPGA) {
+$PACKAGE="FPBGA1156";
+}
 
 my $WORKDIR = "workdir";
 unless(-d $WORKDIR) {
@@ -112,7 +118,7 @@ system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");
 print GREEN, "Generating constraints file...\n\n", RESET;
 system("cp ../base/$TOPNAME.lpf $WORKDIR/$TOPNAME.lpf");
 
-if($include_TDC) {
+if($include_TDC && $include_CTS==0) {
   system("cat tdc_release/trbnet_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
   system("cat tdc_release/tdc_constraints_64.lpf >> $WORKDIR/$TOPNAME.lpf");
   system("cat tdc_release/unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
@@ -120,6 +126,18 @@ if($include_TDC) {
 }
 if($include_GBE) {
 
+}
+if($include_HUB) {
+  system("cat trb3_periph_hub_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+}
+
+if($include_CTS) {
+my $CbmNetPath                   = "../../cbmnet";
+my $config_vhd                   = 'config_mainz_a2.vhd';
+system("ln -f -s $config_vhd config.vhd") unless (-e "config.vhd");
+system("./compile_constraints.pl");
+system("cp ../base/mulipar_nodelist_example.txt workdir/nodelist.txt") unless (-e "workdir/nodelist.txt");
+symlink($CbmNetPath, '../cbmnet/cbmnet') unless (-e '../cbmnet/cbmnet');
 }
 
 if($include_TDC) {
@@ -253,7 +271,7 @@ if($par==1 || $all==1){
     system("rm $TOPNAME.ncd");
     if ($isMultiPar)
     {
-	$c=qq|LC_ALL=en_US.UTF-8; par -m ../nodes_lxhadeb07.txt -n $nrNodes -w -i 15 -l 5 -y -s 8 -t 1 -c 1 -e 2 -exp parCDP=1:parCDR=1:parPlcInLimit=0:parPlcInNeighborSize=1:parPathBased=ON:parHold=1:parHoldLimit=10000:paruseNBR=1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf;|;
+	$c=qq|LC_ALL=en_US.UTF-8; par -m nodelist.txt -n $nrNodes -w -i 15 -l 5 -y -s 8 -t 1 -c 1 -e 2 -exp parCDP=1:parCDR=1:parPlcInLimit=0:parPlcInNeighborSize=1:parPathBased=ON:parHold=1:parHoldLimit=10000:paruseNBR=1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf;|;
 	execute($c);
 
         # find and copy the .ncd file which has met the timing constraints

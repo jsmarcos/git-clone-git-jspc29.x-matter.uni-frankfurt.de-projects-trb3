@@ -1,30 +1,50 @@
-[c2]
+[pbs1]
 system = linux
-corenum = 4
-env = /usr/local/opt/lattice_diamond/diamond/2.1/bin/lin64/diamond_env
+corenum = 2
+env = /usr/local/opt/lattice_diamond/diamond/3.2/bin/lin64/diamond_env
 workdir = /home/rich/TRB/nXyter/trb3/nxyter/workdir/
-[c3]
+[pbs2]
 system = linux
-corenum = 4
-env = /usr/local/opt/lattice_diamond/diamond/2.1/bin/lin64/diamond_env
+corenum = 2
+env = /usr/local/opt/lattice_diamond/diamond/3.2/bin/lin64/diamond_env
 workdir = /home/rich/TRB/nXyter/trb3/nxyter/workdir/
-[c4]
+[pbs3]
 system = linux
-corenum = 4
-env = /usr/local/opt/lattice_diamond/diamond/2.1/bin/lin64/diamond_env
+corenum = 2
+env = /usr/local/opt/lattice_diamond/diamond/3.2/bin/lin64/diamond_env
 workdir = /home/rich/TRB/nXyter/trb3/nxyter/workdir/
-[c5]
+[pbs4]
 system = linux
-corenum = 4
-env = /usr/local/opt/lattice_diamond/diamond/2.1/bin/lin64/diamond_env
+corenum = 2
+env = /usr/local/opt/lattice_diamond/diamond/3.2/bin/lin64/diamond_env
 workdir = /home/rich/TRB/nXyter/trb3/nxyter/workdir/
-[c6]
+[pbs5]
 system = linux
-corenum = 4
-env = /usr/local/opt/lattice_diamond/diamond/2.1/bin/lin64/diamond_env
+corenum = 2
+env = /usr/local/opt/lattice_diamond/diamond/3.2/bin/lin64/diamond_env
 workdir = /home/rich/TRB/nXyter/trb3/nxyter/workdir/
-[c7]
+[pbs6]
 system = linux
-corenum = 4
-env = /usr/local/opt/lattice_diamond/diamond/2.1/bin/lin64/diamond_env
+corenum = 2
+env = /usr/local/opt/lattice_diamond/diamond/3.2/bin/lin64/diamond_env
+workdir = /home/rich/TRB/nXyter/trb3/nxyter/workdir/
+[pbs7]
+system = linux
+corenum = 2
+env = /usr/local/opt/lattice_diamond/diamond/3.2/bin/lin64/diamond_env
+workdir = /home/rich/TRB/nXyter/trb3/nxyter/workdir/
+[pbs8]
+system = linux
+corenum = 2
+env = /usr/local/opt/lattice_diamond/diamond/3.2/bin/lin64/diamond_env
+workdir = /home/rich/TRB/nXyter/trb3/nxyter/workdir/
+[pbs9]
+system = linux
+corenum = 2
+env = /usr/local/opt/lattice_diamond/diamond/3.2/bin/lin64/diamond_env
+workdir = /home/rich/TRB/nXyter/trb3/nxyter/workdir/
+[pbs10]
+system = linux
+corenum = 2
+env = /usr/local/opt/lattice_diamond/diamond/3.2/bin/lin64/diamond_env
 workdir = /home/rich/TRB/nXyter/trb3/nxyter/workdir/

@@ -224,6 +224,9 @@ architecture trb3_periph_hub_arch of trb3_periph_hub is
   --FPGA Test
   signal time_counter : unsigned(31 downto 0);
 
+  -- SFP DDM
+  signal busddm_rx   : CTRLBUS_RX;
+  signal busddm_tx   : CTRLBUS_TX;
 
 begin
 ---------------------------------------------------------------------------
@@ -525,27 +528,41 @@ THE_MEDIA_DOWNLINK : trb_net16_med_ecp3_sfp_4
       );
 
       
-      
-THE_SFP_i2C : sfp_i2c_readout
-  generic map(
-    SFP_NUMBER => 6
-    )
-  port map(
-    CLOCK     => clk_100_i,
-    RESET     => reset_i,
+-------------------------------------------------------------------------------
+-- SFP I2C  Digital Diagnostic Monitoring (DDM) Entity
+-------------------------------------------------------------------------------
+-- Generate_SFP_DDM : if INCLUDE_SFP_DDM = c_YES generate
+  THE_SFP_DDM : entity work.SFP_DDM_periph_hub
+    port map (
+      CLK100        => clk_100_i,
+      TRB_RESET     => reset_i,
+      BUSDDM_RX     => busddm_rx,
+      BUSDDM_TX     => busddm_tx,
+      SCL_EXT       => SFP_MOD1,
+      SDA_EXT       => SFP_MOD2
+      );
+--end generate Generate_Sfp_DDM;
+                 
+--THE_SFP_i2C : sfp_i2c_readout
+--  generic map(
+--    SFP_NUMBER => 6
+--    )
+--  port map(
+--    CLOCK     => clk_100_i,
+--    RESET     => reset_i,
     
-    BUS_DATA_IN   => i2c_data_in,
-    BUS_DATA_OUT  => i2c_data_out,
-    BUS_ADDR_IN   => i2c_addr,
-    BUS_WRITE_IN  => i2c_write,
-    BUS_READ_IN   => i2c_read,
-    BUS_ACK_OUT   => i2c_ack,
-    BUS_NACK_OUT  => i2c_nack,
+--    BUS_DATA_IN   => i2c_data_in,
+--    BUS_DATA_OUT  => i2c_data_out,
+--    BUS_ADDR_IN   => i2c_addr,
+--    BUS_WRITE_IN  => i2c_write,
+--    BUS_READ_IN   => i2c_read,
+--    BUS_ACK_OUT   => i2c_ack,
+--    BUS_NACK_OUT  => i2c_nack,
     
-    SDA           => SFP_MOD2,
---     SDA_IN        => buf_SFP_MOD2_IN,
-    SCL           => SFP_MOD1
-    );
+--    SDA           => SFP_MOD2,
+----     SDA_IN        => buf_SFP_MOD2_IN,
+--    SCL           => SFP_MOD1
+--    );
     
 ---------------------------------------------------------------------------
 -- Hub
@@ -628,7 +645,7 @@ THE_HUB : trb_net16_hub_base
     generic map(
       PORT_NUMBER    => 6,
       PORT_ADDRESSES => (0 => x"d000", 1 => x"d100", 2 => x"b000", 3 => x"b200", 4 => x"d600", 5 => x"d500", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 9,       3 => 9,       4 => 8,       5 => 4,       others => 0)
+      PORT_ADDR_MASK => (0 => 1,       1 => 6,       2 => 9,       3 => 9,       4 => 1,       5 => 4,       others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -695,18 +712,30 @@ THE_HUB : trb_net16_hub_base
       BUS_WRITE_ACK_IN(3)                 => sci2_ack,
       BUS_NO_MORE_DATA_IN(3)              => '0',
       BUS_UNKNOWN_ADDR_IN(3)              => '0',
-      --I2C for SFP
-      BUS_READ_ENABLE_OUT(4)              => i2c_read,
-      BUS_WRITE_ENABLE_OUT(4)             => i2c_write,
-      BUS_DATA_OUT(4*32+31 downto 4*32)   => i2c_data_in,
-      BUS_ADDR_OUT(4*16+7 downto 4*16)    => i2c_addr,
-      BUS_ADDR_OUT(4*16+15 downto 4*16+9) => open,
+      --SFP DDM
+      BUS_READ_ENABLE_OUT(4)              => busddm_rx.read,
+      BUS_WRITE_ENABLE_OUT(4)             => busddm_rx.write,
+      BUS_DATA_OUT(4*32+15 downto 4*32)   => busddm_rx.data(15 downto 0),
+      BUS_ADDR_OUT(4*16+1 downto 4*16)    => busddm_rx.addr(1 downto 0),
+      BUS_ADDR_OUT(4*16+15 downto 4*16+2) => open,
       BUS_TIMEOUT_OUT(4)                  => open,
-      BUS_DATA_IN(4*32+31 downto 4*32)    => i2c_data_out,
-      BUS_DATAREADY_IN(4)                 => i2c_ack,
-      BUS_WRITE_ACK_IN(4)                 => i2c_ack,
+      BUS_DATA_IN(4*32+31 downto 4*32)    => busddm_tx.data,
+      BUS_DATAREADY_IN(4)                 => busddm_tx.ack,
+      BUS_WRITE_ACK_IN(4)                 => busddm_rx.write,
       BUS_NO_MORE_DATA_IN(4)              => '0',
-      BUS_UNKNOWN_ADDR_IN(4)              => i2c_nack,   
+      BUS_UNKNOWN_ADDR_IN(4)              => '0',
+      --I2C for SFP
+      --BUS_READ_ENABLE_OUT(4)              => i2c_read,
+      --BUS_WRITE_ENABLE_OUT(4)             => i2c_write,
+      --BUS_DATA_OUT(4*32+31 downto 4*32)   => i2c_data_in,
+      --BUS_ADDR_OUT(4*16+7 downto 4*16)    => i2c_addr,
+      --BUS_ADDR_OUT(4*16+15 downto 4*16+9) => open,
+      --BUS_TIMEOUT_OUT(4)                  => open,
+      --BUS_DATA_IN(4*32+31 downto 4*32)    => i2c_data_out,
+      --BUS_DATAREADY_IN(4)                 => i2c_ack,
+      --BUS_WRITE_ACK_IN(4)                 => i2c_ack,
+      --BUS_NO_MORE_DATA_IN(4)              => '0',
+      --BUS_UNKNOWN_ADDR_IN(4)              => i2c_nack,   
       --SEU Detection
       BUS_READ_ENABLE_OUT(5)              => bussed_rx.read,
       BUS_WRITE_ENABLE_OUT(5)             => bussed_rx.write,

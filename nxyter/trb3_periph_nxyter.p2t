@@ -1,0 +1,11 @@
+-w 
+-i 2
+-l 5
+-n 8 
+-t 1
+-s 1
+-c 1
+-e 2
+-stopzero
+-m nodelist.txt
+-exp parCDP=1:parCDR=1:parPlcInLimit=0:parPlcInNeighborSize=1:parPathBased=ON:parHold=ON:parHoldLimit=10000:paruseNBR=1:

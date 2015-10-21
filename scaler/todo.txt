@@ -1,0 +1,11 @@
+
+
+
+- change compile_munich.pl to contain correct paths to tools
+- link ../../../trbnet/media_interfaces/ecp3_sfp/sfp_1_200_int.txt to ./workdir
+
+- change ../base/trb3_periph_nxyter.lpf to the pin names used for the nxyter addon (starting from line 92), remove all DQ* signals
+- add the signal names for the nxyter addon in the entity declaration of the top-level trb3_periph.vhd
+
+- add your vhdl files to trb3_periph.prj
+- Edit trb3_periph_constraints.lpf to contain the correct names of clock nets & pins - see the two comments in the second block.

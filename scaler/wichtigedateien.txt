@@ -1,0 +1,12 @@
+Zum Kompilieren:
+das in workdir aufrufen falls die links weg sind:
+
+
+
+Zum debuggen: see workdir/*
+.srr
+.mrp
+.par
+.twr.setup
+
+dateien

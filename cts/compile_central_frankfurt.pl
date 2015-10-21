@@ -16,8 +16,8 @@ my $CbmNetPath                   = "../../cbmnet";
 my $lm_license_file_for_synplify = "1702\@hadeb05.gsi.de"; #"27000\@lxcad01.gsi.de";
 my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
 
-my $lattice_path                 = '/d/jspc29/lattice/diamond/3.4_x64';
-my $synplify_path                = '/d/jspc29/lattice/synplify/J-2014.09-SP2/';
+my $lattice_path                 = '/d/jspc29/lattice/diamond/3.5_x64';
+my $synplify_path                = '/d/jspc29/lattice/synplify/J-2015.03-SP1/';
 ###################################################################################
 
 
@@ -94,19 +94,19 @@ foreach (@a)
 
 $ENV{'LM_LICENSE_FILE'}=$lm_license_file_for_par;
 
-$c=qq' $lattice_path/ispfpga/bin/lin/edif2ngd  -l $FAMILYNAME -d $DEVICENAME "$TOPNAME.edf" "$TOPNAME.ngo" | grep -v -e "WARNING - edif2ngd: Unsupported property" | grep -v -e "Property MEM_INIT_FILE has no value" ' ;
+$c=qq' $lattice_path/ispfpga/bin/lin64/edif2ngd  -l $FAMILYNAME -d $DEVICENAME "$TOPNAME.edf" "$TOPNAME.ngo" | grep -v -e "WARNING - edif2ngd: Unsupported property" | grep -v -e "Property MEM_INIT_FILE has no value" ' ;
 execute($c);
 
-$c=qq|$lattice_path/ispfpga/bin/lin/edfupdate   -t "$TOPNAME.tcy" -w "$TOPNAME.ngo" -m "$TOPNAME.ngo" "$TOPNAME.ngx"|;
+$c=qq|$lattice_path/ispfpga/bin/lin64/edfupdate   -t "$TOPNAME.tcy" -w "$TOPNAME.ngo" -m "$TOPNAME.ngo" "$TOPNAME.ngx"|;
 execute($c);
 
-$c=qq'$lattice_path/ispfpga/bin/lin/ngdbuild  -a $FAMILYNAME -d $DEVICENAME -p "$lattice_path/ispfpga/ep5c00/data" -dt "$TOPNAME.ngo" "$TOPNAME.ngd" | grep -v -e "^WARNING.*has no load"';
+$c=qq'$lattice_path/ispfpga/bin/lin64/ngdbuild  -a $FAMILYNAME -d $DEVICENAME -p "$lattice_path/ispfpga/ep5c00/data" -dt "$TOPNAME.ngo" "$TOPNAME.ngd" | grep -v -e "^WARNING.*has no load"';
 execute($c);
 
 my $tpmap = $TOPNAME . "_map" ;
 
 system("rm $tpmap.ncd");
-$c=qq|$lattice_path/ispfpga/bin/lin/map -hier -td_pack -retime EFFORT=6  -split_node -a $FAMILYNAME -p $DEVICENAME -t $PACKAGE -s $SPEEDGRADE "$TOPNAME.ngd" -o "$tpmap.ncd" -xref_sig  -mp "$TOPNAME.mrp"|;
+$c=qq|$lattice_path/ispfpga/bin/lin64/map -hier -td_pack -retime EFFORT=6  -split_node -a $FAMILYNAME -p $DEVICENAME -t $PACKAGE -s $SPEEDGRADE "$TOPNAME.ngd" -o "$tpmap.ncd" -xref_sig  -mp "$TOPNAME.mrp"|;
 execute($c);
 
 system("rm $TOPNAME.ncd");
@@ -117,21 +117,21 @@ $c=qq|mpartrce -p "../$TOPNAME.p2t" -f "../$TOPNAME.p3t" -tf "$TOPNAME.pt" "|.$T
 execute($c);
 
 # IOR IO Timing Report
-$c=qq|$lattice_path/ispfpga/bin/lin/iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;
+$c=qq|$lattice_path/ispfpga/bin/lin64/iotiming -s "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
 
-$c=qq|$lattice_path/ispfpga/bin/lin/ltxt2ptxt $TOPNAME.ncd|;
+$c=qq|$lattice_path/ispfpga/bin/lin64/ltxt2ptxt $TOPNAME.ncd|;
 execute($c);
 
-$c=qq|$lattice_path/ispfpga/bin/lin/bitgen  -w "$TOPNAME.ncd" "$TOPNAME.prf"|;
+$c=qq|$lattice_path/ispfpga/bin/lin64/bitgen  -w "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
 
 
 # TWR Timing Report
-$c=qq|$lattice_path/ispfpga/bin/lin/trce -fullname -c -v 15 -o "$TOPNAME.twr.setup" "$TOPNAME.ncd" "$TOPNAME.prf"|;
+$c=qq|$lattice_path/ispfpga/bin/lin64/trce -fullname -c -v 15 -o "$TOPNAME.twr.setup" "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
 
-$c=qq|$lattice_path/ispfpga/bin/lin/trce -fullname -hld -c -v 5 -o "$TOPNAME.twr.hold"  "$TOPNAME.ncd" "$TOPNAME.prf"|;
+$c=qq|$lattice_path/ispfpga/bin/lin64/trce -fullname -hld -c -v 5 -o "$TOPNAME.twr.hold"  "$TOPNAME.ncd" "$TOPNAME.prf"|;
 execute($c);
 
 chdir "..";

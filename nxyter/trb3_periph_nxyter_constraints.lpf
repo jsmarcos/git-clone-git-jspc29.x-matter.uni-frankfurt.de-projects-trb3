@@ -1,0 +1,142 @@
+#######################################################################
+
+
+BLOCK RESETPATHS ;
+BLOCK ASYNCPATHS ;
+BLOCK RD_DURING_WR_PATHS ;
+
+#################################################################
+# Basic Settings
+#################################################################
+
+# nXyter FEB Clock Setup:
+#
+# CLK_PCLK_RIGHT : real Oszillator 200MHz
+# CLK_PCLK_RIGHT --> PLL#0 --> clk_100_i     -----> Main Clock all entities
+#
+# CLK_PCLK_RIGHT         --> nx_main_clk 1+2 
+#                            (250 MHz)       -----> nXyter Main Clock 1+2
+#                                            | 
+#                                            |----> FPGA Timestamp Entity 1+2
+#
+# nx_main_clk 1+2        --> nXyter Data Clk 
+#                            (1/2 = 125MHz)  -----> FPGA Data Receiver
+#                                            |
+#                                            |----> Johnson 1/4 --> ADC SCLK
+#
+# ADC_DATA_CLK           --> ADC Data Clk    -----> FPGA ADC Handler
+#                            DDR (187.5 MHz)
+
+
+# Speed for the configuration Flash access
+SYSCONFIG MCCLK_FREQ = 20;
+
+FREQUENCY PORT CLK_PCLK_RIGHT 200 MHz;
+FREQUENCY PORT NX1_DATA_CLK_IN 125 MHz;
+FREQUENCY PORT NX1_ADC_DCLK_IN 187.5 MHz;
+FREQUENCY NET "nXyter_FEE_board_0/nx_data_receiver_1/DDR_DATA_CLK" 93.750000 MHz;
+
+USE PRIMARY   NET "CLK_PCLK_RIGHT_c";
+USE PRIMARY   NET "clk_100_i";
+USE PRIMARY   NET "nx_main_clk"; 
+USE PRIMARY   NET "nXyter_FEE_board_0/nx_data_receiver_1/DDR_DATA_CLK";
+                     
+#################################################################
+# Reset Nets
+#################################################################  
+
+# GSR_NET NET "GSR_N";  
+
+#################################################################
+# Locate Serdes and media interfaces
+#################################################################
+
+LOCATE COMP          "THE_MEDIA_UPLINK/gen_serdes_1_200.THE_SERDES/PCSD_INST" SITE "PCSA" ;
+REGION               "MEDIA_UPLINK" "R102C95D" 13 25;
+LOCATE UGROUP        "THE_MEDIA_UPLINK/media_interface_group" REGION "MEDIA_UPLINK" ;
+
+#################################################################
+# Relax some of the timing constraints
+#################################################################
+
+#SPI Interface
+REGION "REGION_SPI" "R9C108D" 20 20 DEVSIZE;
+LOCATE UGROUP "THE_SPI_MEMORY/SPI_group" REGION "REGION_SPI" ;
+
+#################################################
+# Muelleimer:
+# #LOCATE COMP "pll_adc_clk_1/PLLInst_0" SITE "PLL_R43C5" ;
+#
+#################################################
+
+
+MULTICYCLE FROM CELL "THE_RESET_HANDLER/final_reset*"                                                      50 ns;
+
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_trigger_handler_*/reset_nx_main_clk_in_ff*"                    30 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_trigger_handler_*/trigger_busy_ff*"                            30 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_trigger_handler_*/fast_clear_ff*"                              30 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_handler_*/reg_testpulse_delay*"                       100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_handler_*/reg_testpulse_length*"                      100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_handler_*/reg_testpulse_enable*"                      100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_handler_*/calibration_trigger_o*"                      50 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_handler_*/timestamp_calib_trigger_c*"                  20 ns;
+
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_generator_*/internal_trigger_o*"                      100 ns;
+
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_fpga_timestamp_*/reset_nx_main_clk_in_ff*"                     30 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_fpga_timestamp_*/timestamp_reset_ff*"                          10 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_fpga_timestamp_*/timestamp_hold_o_*"                           30 ns;
+
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/reset_nx_timestamp_clk_in_ff*"                 30 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/merge_handler_reset_i*"                        30 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_reset_handler_cnx_ff*"                     30 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/reset_handler_start_r*"                       100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/johnson_counter_sync_r*"                      100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_timestamp_delay_s*"                        100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/pll_adc_sample_clk_finedelb_r*"               100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/pll_adc_sample_clk_dphase_r*"                 100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/pll_adc_sampling_clk_reset*"                  100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_dt_error_ctr_r*"                          100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/timestamp_dt_error_ctr_*"                     100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/merge_error_ctr_r*"                           100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_sclk_ok_f*"                               100 ns; 
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_debug_type_r*"                            100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_timestamp_reset_o*"                        100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/nx_frame_synced_rr*"                          100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_debug_type_f*"                            100 ns;
+
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/readout_mode_r_*"                          100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/cts_trigger_delay_*"                       100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/ts_window_offset_*"                        100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/ts_window_width_*"                         100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/readout_time_max_*"                        100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_trigger_validate_*/fpga_timestamp_offset_*"                   100 ns;
+
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_event_buffer_*/fifo_almost_full_thr_*"                        100 ns;
+
+
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/debug_multiplexer_*/port_select_*"                               500 ns;
+
+
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/new_adc_dt_error_ctr_*"                       100 ns;
+MULTICYCLE TO   CELL "nXyter_FEE_board_*/nx_data_receiver_*/new_timestamp_dt_error_ctr_*"                 100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_error_status_i_*"                         100 ns;
+MULTICYCLE FROM CELL "nXyter_FEE_board_*/nx_data_receiver_*/adc_ad9228_*/adc_ad9228_data_handler*/adc_locked_o*" 100 ns;
+
+MULTICYCLE TO GROUP  "TEST_LINE_group"          500.000000 ns ;
+MULTICYCLE TO GROUP  "NX1_DEBUG_LINE_group"     500.000000 ns ;
+MAXDELAY   TO GROUP  "TEST_LINE_group"          500.000000 ns ;
+MAXDELAY   TO GROUP  "NX1_DEBUG_LINE_group"     500.000000 ns ;
+
+#################################################################
+# Constraints for nxyter inputs
+#################################################################
+
+# look at .par and .twr.setup file for clocks 
+# IN .mrp  you find the semantic errors
+
+PROHIBIT PRIMARY   NET "NX1_DATA_CLK_IN_c";
+PROHIBIT SECONDARY NET "NX1_DATA_CLK_IN_c";
+
+DEFINE PORT GROUP    "NX1_IN" "NX1_TIMESTAMP_*";
+INPUT_SETUP GROUP    "NX1_IN" 1.5 ns HOLD 1.5 ns CLKPORT="NX1_DATA_CLK_IN"; 
