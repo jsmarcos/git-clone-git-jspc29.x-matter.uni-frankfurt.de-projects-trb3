@@ -19,6 +19,7 @@ my $synplify_command             = $config{synplify_command};
 my $synplify_locale_workaround   = "en_US\@UTF-8";
 my $lattice_bin_path             = "$lattice_path/bin/lin64"; # note the lin/lin64 at the end, no isfgpa needed
 
+my $nodelist_file                = $config{nodelist_file};
 my $include_TDC                  = $config{include_TDC} || 0;
 my $include_GBE                  = $config{include_GBE} || 0;
 my $include_CTS                  = $config{include_CTS} || 0;
@@ -123,7 +124,56 @@ if($include_TDC && $include_CTS==0) {
   system("cat tdc_release/tdc_constraints_64.lpf >> $WORKDIR/$TOPNAME.lpf");
   system("cat tdc_release/unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
   system("cat unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+
+  #change the Ring buffer name in the constraints file according to the config.vhd
+  my $fh = new FileHandle("<config.vhd");
+  my @a = <$fh>;
+  $fh -> close;
+  my $ringbuffersize = 5;
+    
+    foreach (@a)
+    {
+	if(/constant\s*RING_BUFFER_SIZE/)
+	{
+	    my $tmp = $1 if $_ =~ /(:=.*;)/;
+	    $ringbuffersize = $1 if $1 =~ /(\d+)/;
+	}
+    }
+
+
+  my @newline;
+  $fh = new FileHandle("<$WORKDIR/$TOPNAME".".lpf");
+  @a = <$fh>;
+  $fh -> close;
+    
+    foreach (@a)
+    {
+	if ($ringbuffersize == 0) {
+	    $_ =~ s/Buffer_128.The_Buffer/Buffer_32.The_Buffer/g;
+	}
+	elsif ($ringbuffersize == 1 || $ringbuffersize == 5) {
+	    $_ =~ s/Buffer_128.The_Buffer/Buffer_64.The_Buffer/g;
+	}
+	elsif ($ringbuffersize == 2) {
+	    $_ =~ s/Buffer_128.The_Buffer/Buffer_96.The_Buffer/g;
+	}
+	elsif ($ringbuffersize == 3 || $ringbuffersize == 7) {
+	    $_ =~ s/Buffer_128.The_Buffer/Buffer_128.The_Buffer/g;
+	}
+	else {
+	    print "unknown ringbuffer size... \n";
+	    exit 129;
+	}
+
+	push(@newline,$_);
+    }
+  $fh = new FileHandle(">$WORKDIR/$TOPNAME".".lpf");
+  print $fh @newline;
+  $fh -> close;
+
 }
+
+
 if($include_GBE) {
 
 }
@@ -271,7 +321,7 @@ if($par==1 || $all==1){
     system("rm $TOPNAME.ncd");
     if ($isMultiPar)
     {
-	$c=qq|LC_ALL=en_US.UTF-8; par -m nodelist.txt -n $nrNodes -w -i 15 -l 5 -y -s 8 -t 1 -c 1 -e 2 -exp parCDP=1:parCDR=1:parPlcInLimit=0:parPlcInNeighborSize=1:parPathBased=ON:parHold=1:parHoldLimit=10000:paruseNBR=1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf;|;
+	$c=qq|LC_ALL=en_US.UTF-8; par -m $nodelist_file -n $nrNodes -w -i 15 -l 5 -y -s 8 -t 1 -c 1 -e 2 -exp parCDP=1:parCDR=1:parPlcInLimit=0:parPlcInNeighborSize=1:parPathBased=ON:parHold=1:parHoldLimit=10000:paruseNBR=1 $tpmap.ncd $TOPNAME.dir $TOPNAME.prf;|;
 	execute($c);
 
         # find and copy the .ncd file which has met the timing constraints
