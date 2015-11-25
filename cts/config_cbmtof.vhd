@@ -33,7 +33,7 @@ package config is
     constant USE_125_MHZ : integer range c_NO to c_YES := c_NO;    
 
 --Run external 200 MHz clock source
-    constant USE_EXTERNAL_CLOCK : integer range c_NO to c_YES := c_YES;    
+    constant USE_EXTERNAL_CLOCK : integer range c_NO to c_YES := c_NO;    
        
 --Which external trigger module (ETM) to use?
     constant INCLUDE_ETM : integer range c_NO to c_YES := c_YES;
@@ -50,6 +50,10 @@ package config is
     constant TRIGGER_RAND_PULSER  : integer := 1;
     constant TRIGGER_ADDON_COUNT  : integer := 8;
     constant PERIPH_TRIGGER_COUNT : integer := 2;      
+
+--Address settings   
+    constant INIT_ADDRESS           : std_logic_vector := x"F3CE";
+    constant BROADCAST_SPECIAL_ADDR : std_logic_vector := x"60";    
     
 ------------------------------------------------------------------------------
 --End of configuration
