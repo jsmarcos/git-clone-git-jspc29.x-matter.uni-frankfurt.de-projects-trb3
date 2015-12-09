@@ -95,6 +95,7 @@ package config is
                                                   (0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0)); 
     constant HARDWARE_INFO_ARR    : hw_info_t := (x"9000CEE0",x"9000CEE2");
                           
+    constant CLOCK_FREQUENCY : integer := 100;                      
     constant INTERNAL_NUM         : integer;
     constant INTERFACE_NUM        : integer;
     constant IS_UPLINK            : hub_ct;

@@ -143,7 +143,7 @@ entity trb3_central is
     LED_YELLOW        : out   std_logic;
 
     --Test Connectors
-    TEST_LINE : out std_logic_vector(31 downto 0)
+    TEST_LINE : inout std_logic_vector(31 downto 0)
     );
 
 
@@ -330,6 +330,16 @@ architecture trb3_central_arch of trb3_central is
    signal regio_write_ack_in      : std_logic;
    signal regio_unknown_addr_in   : std_logic;
    signal regio_timeout_out       : std_logic;
+   
+   signal bus_debug_tx_in         : CTRLBUS_TX;
+   signal bus_debug_rx_out        : CTRLBUS_RX;
+   signal debug_active            : std_logic;
+   signal handler_addr            : std_logic_vector(15 downto 0);
+   signal handler_data_out        : std_logic_vector(31 downto 0);
+   signal handler_read            : std_logic;
+   signal handler_write           : std_logic;
+   signal handler_timeout         : std_logic;
+
 
    signal spictrl_read_en         : std_logic;
    signal spictrl_write_en        : std_logic;
@@ -1260,13 +1270,13 @@ begin
       FIXED_DELAY               => 100,
 
       NUMBER_OF_GBE_LINKS       => 4,
-      LINKS_ACTIVE              => "1100",
+      LINKS_ACTIVE              => "1000",
 
-      LINK_HAS_READOUT  => "1100",
+      LINK_HAS_READOUT  => "1000",
       LINK_HAS_SLOWCTRL => "1000",
-      LINK_HAS_DHCP     => "1100",
-      LINK_HAS_ARP      => "1100",
-      LINK_HAS_PING     => "1100"
+      LINK_HAS_DHCP     => "1000",
+      LINK_HAS_ARP      => "1000",
+      LINK_HAS_PING     => "1000"
       
       )
     port map(
@@ -1439,11 +1449,11 @@ begin
       CLK   => clk_100_i,
       RESET => reset_i,
 
-      DAT_ADDR_IN          => regio_addr_out,
-      DAT_DATA_IN          => regio_data_out,
+      DAT_ADDR_IN          => handler_addr,
+      DAT_DATA_IN          => handler_data_out,
       DAT_DATA_OUT         => regio_data_in,
-      DAT_READ_ENABLE_IN   => regio_read_enable_out,
-      DAT_WRITE_ENABLE_IN  => regio_write_enable_out,
+      DAT_READ_ENABLE_IN   => handler_read,
+      DAT_WRITE_ENABLE_IN  => handler_read,
       DAT_TIMEOUT_IN       => regio_timeout_out,
       DAT_DATAREADY_OUT    => regio_dataready_in,
       DAT_WRITE_ACK_OUT    => regio_write_ack_in,
@@ -1997,9 +2007,42 @@ begin
   LED_RED    <= debug(2) when INCLUDE_CBMNET = c_NO else cbm_link_active_i;
   LED_YELLOW <= link_ok;
 
+  
+---------------------------------------------------------------------------
+-- Debugging UART
+--------------------------------------------------------------------------- 
+  THE_DEBUG : entity work.debuguart
+    port map(
+      CLK => clk_100_i,
+      RESET => reset_i, 
+      
+      RX_IN  => TEST_LINE(30),
+      TX_OUT => TEST_LINE(31),
+      
+      DEBUG_ACTIVE  => debug_active,
+    
+      BUS_DEBUG_TX  => bus_debug_tx_in,
+      BUS_DEBUG_RX  => bus_debug_rx_out,
+      
+      STATUS => open
+      
+      );  
+
+  handler_addr     <= bus_debug_rx_out.addr  when debug_active = '1' else regio_addr_out;
+  handler_data_out <= bus_debug_rx_out.data  when debug_active = '1' else regio_data_out;
+  handler_read     <= bus_debug_rx_out.read  when debug_active = '1' else regio_read_enable_out;
+  handler_write    <= bus_debug_rx_out.write when debug_active = '1' else regio_write_enable_out;
+
+  bus_debug_tx_in.data    <= regio_data_in;
+  bus_debug_tx_in.ack     <= regio_dataready_in or regio_write_ack_in;
+  bus_debug_tx_in.nack    <= regio_no_more_data_in;
+  bus_debug_tx_in.unknown <= regio_unknown_addr_in;
+ 
+ 
+      
 ---------------------------------------------------------------------------
 -- Test Connector
 ---------------------------------------------------------------------------    
-  TEST_LINE <= (others => '0');
+  TEST_LINE(29 downto 0) <= (others => '0');
 
 end architecture;
