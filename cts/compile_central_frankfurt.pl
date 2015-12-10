@@ -16,8 +16,8 @@ my $CbmNetPath                   = "../../cbmnet";
 my $lm_license_file_for_synplify = "1702\@hadeb05.gsi.de"; #"27000\@lxcad01.gsi.de";
 my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
 
-my $lattice_path                 = '/d/jspc29/lattice/diamond/3.5_x64';
-my $synplify_path                = '/d/jspc29/lattice/synplify/J-2015.03-SP1/';
+my $lattice_path                 = '/d/jspc29/lattice/diamond/3.6_x64';
+my $synplify_path                = '/d/jspc29/lattice/synplify/K-2015.09/';
 ###################################################################################
 
 
