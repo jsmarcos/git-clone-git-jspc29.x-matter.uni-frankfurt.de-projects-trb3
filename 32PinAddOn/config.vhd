@@ -11,7 +11,7 @@ package config is
 
 --TDC settings
   constant NUM_TDC_MODULES         : integer range 1 to 4  := 1;  -- number of tdc modules to implement
-  constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 65;  -- number of tdc channels per module
+  constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 3;  -- number of tdc channels per module
   constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6  := 5;  --the nearest power of two, for convenience reasons 
   constant DOUBLE_EDGE_TYPE        : integer range 0 to 3  := 2;  --double edge type:  0, 1, 2,  3
   -- 0: single edge only,
@@ -24,16 +24,20 @@ package config is
   constant EVENT_BUFFER_SIZE       : integer range 9 to 13 := 13; -- size of the event buffer, 2**N
   constant EVENT_MAX_SIZE          : integer := 4096;             --maximum event size. Should not exceed EVENT_BUFFER_SIZE/2
                                                                   
---Include SPI on AddOn connector
-  constant INCLUDE_SPI : integer := c_YES;
-
---Add logic to generate configurable trigger signal from input signals.
-  constant INCLUDE_TRIGGER_LOGIC : integer := c_NO;
-  constant INCLUDE_STATISTICS    : integer := c_YES;  --Do histos of all inputs
-  constant PHYSICAL_INPUTS       : integer := 32;  --number of inputs connected
-  constant USE_SINGLE_FIFO       : integer := c_YES;  -- single fifo for statistics
+  constant INCLUDE_UART           : integer  := c_NO;
+  constant INCLUDE_SPI            : integer  := c_YES;
+  constant INCLUDE_LCD            : integer  := c_NO;
+  constant INCLUDE_DEBUG_INTERFACE: integer  := c_NO;    
   
---Run wih 125 MHz instead of 100 MHz, use received clock from serdes or external clock input
+  --input monitor and trigger generation logic
+  constant INCLUDE_TRIGGER_LOGIC  : integer  := c_YES;
+  constant INCLUDE_STATISTICS     : integer  := c_YES;
+  constant TRIG_GEN_INPUT_NUM     : integer  := 16;
+  constant TRIG_GEN_OUTPUT_NUM    : integer  := 4;
+  constant MONITOR_INPUT_NUM      : integer  := 24;    
+  constant USE_SINGLE_FIFO        : integer := c_YES;  -- single fifo for statistics
+
+    --Run wih 125 MHz instead of 100 MHz, use received clock from serdes or external clock input
   constant USE_125_MHZ               : integer    := c_NO;  --not implemented yet!  
   constant USE_RXCLOCK               : integer    := c_NO;  --not implemented yet!
   constant USE_EXTERNALCLOCK         : integer    := c_NO;  --not implemented yet!
@@ -46,6 +50,20 @@ package config is
 --End of design configuration
 ------------------------------------------------------------------------------
 
+
+  type data_t is array (0 to 1023) of std_logic_vector(7 downto 0);
+  constant LCD_DATA : data_t := (
+      x"36",x"48",x"3A",x"55",x"29",x"2A",x"00",x"00", --config don't touch
+      x"00",x"EF",x"2B",x"00",x"00",x"01",x"3F",x"2C", --config don't touch
+      x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00", --config don't touch
+      x"00",x"00",x"00",x"00",x"00",x"00",x"00",x"00", --config don't touch
+      
+      x"54", x"72", x"62", x"33", x"73", x"63", x"0a",
+      x"0a",
+      x"41", x"64", x"64", x"72", x"65", x"73", x"73", x"20", x"20", x"20", x"20", x"20", x"20", x"20", x"20", x"20", x"20", x"80",                     x"0a",                            
+      x"43", x"6f", x"6d", x"70", x"69", x"6c", x"65", x"54", x"69", x"6d", x"65", x"20", x"20", x"84",                      x"83",                     x"0a", 
+      x"54", x"69", x"6d", x"65", x"20", x"20", x"20", x"20", x"20", x"20", x"20", x"20", x"20", x"82",                      x"81",                     x"0a",
+      others => x"00");
 
 
 ------------------------------------------------------------------------------
