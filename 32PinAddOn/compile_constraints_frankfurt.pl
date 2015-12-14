@@ -7,7 +7,9 @@ my $TOPNAME                      = "trb3_periph_32PinAddOn";  #Name of top-level
 
 
 #create full lpf file
-system("cp ../base/trb3_periph_32PinAddOn.lpf workdir/$TOPNAME.lpf");
-system("cat currentRelease/trbnet_constraints.lpf >> workdir/$TOPNAME.lpf");
-system("cat currentRelease/tdc_constraints.lpf >> workdir/$TOPNAME.lpf");
 
+system("cp ../base/$TOPNAME.lpf workdir/diamond/$TOPNAME.lpf");
+system("cat tdc_release/trbnet_constraints.lpf >> workdir/diamond/$TOPNAME.lpf");
+system("cat tdc_release/tdc_constraints_64.lpf >> workdir/diamond/$TOPNAME.lpf");
+system("cat tdc_release/unimportant_lines_constraints.lpf >> workdir/diamond/$TOPNAME.lpf");
+system("cat unimportant_lines_constraints.lpf >> workdir/diamond/$TOPNAME.lpf");

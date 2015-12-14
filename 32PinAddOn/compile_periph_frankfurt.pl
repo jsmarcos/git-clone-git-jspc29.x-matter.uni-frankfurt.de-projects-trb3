@@ -31,12 +31,14 @@ my $FAMILYNAME="LatticeECP3";
 my $DEVICENAME="LFE3-150EA";
 my $PACKAGE="FPBGA672";
 my $SPEEDGRADE="8";
-
+my $WORKDIR = "workdir";
 
 #create full lpf file
-system("cp ../base/trb3_periph_32PinAddOn.lpf workdir/$TOPNAME.lpf");
-system("cat currentRelease/trbnet_constraints.lpf >> workdir/$TOPNAME.lpf");
-system("cat currentRelease/tdc_constraints.lpf >> workdir/$TOPNAME.lpf");
+system("cp ../base/$TOPNAME.lpf $WORKDIR/$TOPNAME.lpf");
+system("cat tdc_release/trbnet_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+system("cat tdc_release/tdc_constraints_64.lpf >> $WORKDIR/$TOPNAME.lpf");
+system("cat tdc_release/unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+system("cat unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
 
 
 #set -e

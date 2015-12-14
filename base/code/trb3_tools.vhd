@@ -84,8 +84,8 @@ begin
   THE_BUS_HANDLER : entity work.trb_net16_regio_bus_handler_record
     generic map(
       PORT_NUMBER      => 7,
-      PORT_ADDRESSES   => (0 => x"0000", 1 => x"0400", 3 => x"0500", 4 => x"0600", 5 => x"0180", 6 => x"0f00", 7 => x"0f80", others => x"0000"),
-      PORT_ADDR_MASK   => (0 => 9,       1 => 5,       3 => 1,       4 => 2,       5 => 4,       6 => 7,       7 => 7,       others => 0),
+      PORT_ADDRESSES   => (0 => x"0000", 1 => x"0400", 2 => x"0500", 3 => x"0600", 4 => x"0180", 5 => x"0f00", 6 => x"0f80", others => x"0000"),
+      PORT_ADDR_MASK   => (0 => 9,       1 => 5,       2 => 1,       3 => 2,       4 => 4,       5 => 7,       6 => 7,       others => 0),
       PORT_MASK_ENABLE => 1
       )
     port map(
@@ -232,9 +232,11 @@ end generate;
     SPI_MOSI_OUT <= (others => spi_sdo);
     SPI_CLR_OUT  <= spi_clr;
     spi_sdi      <= or_all(SPI_MISO_IN and not spi_cs);
-    
+    busspi_tx.unknown <= '0';
   end generate;
-  busspi_tx.unknown <= '0';
+  gen_noSPI_LOGIC : if INCLUDE_SPI = 0 generate
+    busspi_tx.unknown <= busspi_rx.read or busspi_rx.write;
+  end generate;
 
 ---------------------------------------------------------------------------
 -- UART
@@ -253,6 +255,9 @@ end generate;
         BUS_TX    => busuart_tx
         );
   end generate;      
+  gen_noUART_LOGIC : if INCLUDE_UART = 0 generate
+    busuart_tx.unknown <= busuart_rx.read or busuart_rx.write;
+  end generate;
 
 ---------------------------------------------------------------------------
 -- Debug Connection
@@ -282,6 +287,7 @@ gen_nodebug : if INCLUDE_DEBUG_INTERFACE = 0 generate
   bus_debug_rx_out.addr    <= (others => '0');
   bus_debug_rx_out.data    <= (others => '0');
   debug_tx <= 'Z';
+  debug_active <= '0';
 end generate;
   
 ---------------------------------------------------------------------------
