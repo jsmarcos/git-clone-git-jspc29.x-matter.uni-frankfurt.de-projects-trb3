@@ -32,9 +32,9 @@ package config is
   --input monitor and trigger generation logic
   constant INCLUDE_TRIGGER_LOGIC  : integer  := c_YES;
   constant INCLUDE_STATISTICS     : integer  := c_YES;
-  constant TRIG_GEN_INPUT_NUM     : integer  := 16;
+  constant TRIG_GEN_INPUT_NUM     : integer  := 32;
   constant TRIG_GEN_OUTPUT_NUM    : integer  := 4;
-  constant MONITOR_INPUT_NUM      : integer  := 24;    
+  constant MONITOR_INPUT_NUM      : integer  := 36;    
   constant USE_SINGLE_FIFO        : integer := c_YES;  -- single fifo for statistics
 
     --Run wih 125 MHz instead of 100 MHz, use received clock from serdes or external clock input

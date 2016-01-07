@@ -294,7 +294,7 @@ end generate;
 -- Trigger logic
 ---------------------------------------------------------------------------
 gen_TRIG_LOGIC : if INCLUDE_TRIGGER_LOGIC = 1 generate
-  THE_TRIG_LOGIC : input_to_trigger_logic
+  THE_TRIG_LOGIC : entity work.input_to_trigger_logic_record
     generic map(
       INPUTS    => TRIG_GEN_INPUT_NUM,
       OUTPUTS   => TRIG_GEN_OUTPUT_NUM
@@ -305,13 +305,8 @@ gen_TRIG_LOGIC : if INCLUDE_TRIGGER_LOGIC = 1 generate
       INPUT     => TRIG_GEN_INPUTS,
       OUTPUT    => TRIG_GEN_OUTPUTS,
 
-      DATA_IN   => bustrig_rx.data,  
-      DATA_OUT  => bustrig_tx.data, 
-      WRITE_IN  => bustrig_rx.write,
-      READ_IN   => bustrig_rx.read,
-      ACK_OUT   => bustrig_tx.ack,  
-      NACK_OUT  => bustrig_tx.nack, 
-      ADDR_IN   => bustrig_rx.addr
+      BUS_RX    => bustrig_rx,
+      BUS_TX    => bustrig_tx
       );      
 
 end generate;

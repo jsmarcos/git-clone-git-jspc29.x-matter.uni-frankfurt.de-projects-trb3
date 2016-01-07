@@ -326,9 +326,9 @@ THE_ENDPOINT : entity work.trb_net16_endpoint_hades_full_handler_record
       DEBUG_TX_OUT  => debug_tx,
 
       --Trigger & Monitor 
-      MONITOR_INPUTS(19 downto 0) => INP(19 downto 0),
-      MONITOR_INPUTS(23 downto 20) => trig_gen_out_i,
-      TRIG_GEN_INPUTS  => INP(15 downto 0),
+      MONITOR_INPUTS(31 downto 0) => INP(31 downto 0),
+      MONITOR_INPUTS(35 downto 32) => trig_gen_out_i,
+      TRIG_GEN_INPUTS  => INP(31 downto 0),
       TRIG_GEN_OUTPUTS => trig_gen_out_i,
       LCD_OUT => lcd_out,
       --SED
