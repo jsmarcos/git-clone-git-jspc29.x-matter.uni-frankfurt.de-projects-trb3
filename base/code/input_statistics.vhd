@@ -111,7 +111,7 @@ begin
         when x"0"   => DATA_OUT <= enable(31 downto 0);
         when x"1"   => DATA_OUT <= invert(31 downto 0);
         when x"2"   => DATA_OUT <= std_logic_vector(rate);
-        when x"3"   => DATA_OUT <= timer;
+        when x"3"   => DATA_OUT <= std_logic_vector(timer);
         when x"4"   => DATA_OUT <= status_reg;
         when x"5"   => DATA_OUT <= enable(63 downto 32);
         when x"6"   => DATA_OUT <= invert(63 downto 32);
@@ -130,7 +130,7 @@ begin
       fifo_select <= to_integer(unsigned(ADDR_IN(4 downto 0)));
       fifo_wait <= '1';
     elsif ADDR_IN(6 downto 5) = "10" and tmp < INPUTS then
-      DATA_OUT(23 downto 0) <= cnt(to_integer(unsigned(ADDR_IN(4 downto 0))));
+      DATA_OUT(23 downto 0) <= std_logic_vector(cnt(to_integer(unsigned(ADDR_IN(4 downto 0)))));
       ACK_OUT               <= '1';
     else
       NACK_OUT              <= '1';
@@ -244,7 +244,7 @@ end generate;
 status_reg(10 downto 0) <= fifo_count(0);
 status_reg(11)          <= fifo_write;
 status_reg(15 downto 12)<= (others => '0');
-status_reg(27 downto 16)<= word_cnt;
+status_reg(27 downto 16)<= std_logic_vector(word_cnt);
 status_reg(31 downto 28)<= (others => '0');
 
 
