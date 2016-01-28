@@ -6,7 +6,7 @@ synplify_path                => '/opt/synplicity/J-2015.03-SP1',
 #synplify_command             => "/opt/lattice/diamond/3.5_x64/bin/lin64/synpwrap -fg -options",
 synplify_command             => "/opt/synplicity/J-2015.03-SP1/bin/synplify_premier_dp",
 
-nodelist_file                => 'nodes_gsi.txt',
+nodelist_file                => '../nodes_lxhadeb07.txt',
 
 include_TDC                  => 1,
 include_GBE                  => 0,
