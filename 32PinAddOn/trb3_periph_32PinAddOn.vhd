@@ -420,11 +420,12 @@ THE_ENDPOINT : entity work.trb_net16_endpoint_hades_full_handler_record
       -- Trigger signals from handler
       BUSRDO_RX          => readout_rx,
       BUSRDO_TX          => readout_tx(0),
-      --
-      INFO_IN            => timer,
-      LOGIC_ANALYSER_OUT => TEST_LINE,
+      -- Slow control bus
       BUS_RX             => bustdc_rx,
-      BUS_TX             => bustdc_tx
+      BUS_TX             => bustdc_tx,
+      -- Dubug signals
+      INFO_IN            => timer,
+      LOGIC_ANALYSER_OUT => TEST_LINE
       );
 
   -- For single edge measurements
