@@ -1453,7 +1453,7 @@ begin
       DAT_DATA_IN          => handler_data_out,
       DAT_DATA_OUT         => regio_data_in,
       DAT_READ_ENABLE_IN   => handler_read,
-      DAT_WRITE_ENABLE_IN  => handler_read,
+      DAT_WRITE_ENABLE_IN  => handler_write,
       DAT_TIMEOUT_IN       => regio_timeout_out,
       DAT_DATAREADY_OUT    => regio_dataready_in,
       DAT_WRITE_ACK_OUT    => regio_write_ack_in,
@@ -2034,7 +2034,7 @@ begin
   handler_write    <= bus_debug_rx_out.write when debug_active = '1' else regio_write_enable_out;
 
   bus_debug_tx_in.data    <= regio_data_in;
-  bus_debug_tx_in.ack     <= regio_dataready_in or regio_write_ack_in;
+  bus_debug_tx_in.ack     <= regio_dataready_in or regio_write_ack_in ;
   bus_debug_tx_in.nack    <= regio_no_more_data_in;
   bus_debug_tx_in.unknown <= regio_unknown_addr_in;
  

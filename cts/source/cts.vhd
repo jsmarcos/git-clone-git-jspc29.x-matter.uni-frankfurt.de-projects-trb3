@@ -438,6 +438,9 @@ begin
                   fifo_data_in_i <= "----" & trigger_type_buf_i & td_random_number_i & td_trigger_id_i;
 
                   td_fsm_i <= TD_FSM_WAIT_FEE_RECV_TRIGGER;
+                  
+                  fee_input_counter_v   := 0;
+                  fee_channel_counter_v := 0;
 
                when TD_FSM_WAIT_FEE_RECV_TRIGGER =>
                   if LVL1_TRG_DATA_VALID_IN = '1' then
@@ -467,24 +470,24 @@ begin
                   if ro_configuration_buf_i(0) = '1' then
                      FEE_DATA_WRITE_OUT <= '1';
                      if fee_input_counter_v mod 2 = 0 then
-                        FEE_DATA_OUT <= input_counters_buf_i(32*fee_input_counter_v + 31 downto 32*fee_input_counter_v); 
+                        FEE_DATA_OUT <= input_counters_buf_i(32*(fee_input_counter_v/2) + 31 downto 32*(fee_input_counter_v/2)); 
                      else
-                        FEE_DATA_OUT <= input_edge_counters_buf_i(32*fee_input_counter_v + 31 downto 32*fee_input_counter_v); 
+                        FEE_DATA_OUT <= input_edge_counters_buf_i(32*(fee_input_counter_v/2) + 31 downto 32*(fee_input_counter_v/2)); 
                      end if;
                   end if;
 
                   if fee_input_counter_v = 2*EFFECTIVE_INPUT_COUNT - 1 or ro_configuration_buf_i(0) = '0' then
                      td_fsm_i <= TD_FSM_FEE_ENQUEUE_CHANNEL_COUNTER;
-                  end if;
-
-                  fee_input_counter_v := fee_input_counter_v + 1;
+                  else
+                    fee_input_counter_v := fee_input_counter_v + 1;
+                  end if;  
 
                when TD_FSM_FEE_ENQUEUE_CHANNEL_COUNTER =>
                   if ro_configuration_buf_i(1) = '1' then
                      if fee_channel_counter_v mod 2 = 0 then
-                        FEE_DATA_OUT <= channel_counters_buf_i(32*fee_channel_counter_v + 31 downto 32*fee_channel_counter_v/2); 
+                        FEE_DATA_OUT <= channel_counters_buf_i(32*(fee_channel_counter_v/2) + 31 downto 32*(fee_channel_counter_v/2)); 
                      else
-                        FEE_DATA_OUT <= channel_edge_counters_buf_i(32*fee_channel_counter_v + 31 downto 32*fee_channel_counter_v/2); 
+                        FEE_DATA_OUT <= channel_edge_counters_buf_i(32*(fee_channel_counter_v/2) + 31 downto 32*(fee_channel_counter_v/2)); 
                      end if; 
                      
                      FEE_DATA_WRITE_OUT <= '1';
@@ -492,9 +495,9 @@ begin
 
                   if fee_channel_counter_v = 2*to_integer(unsigned(num_of_itc_used_i)) - 1 or  ro_configuration_buf_i(1) = '0' then
                      td_fsm_i <= TD_FSM_FEE_ENQUEUE_IDLE_COUNTER;
-                  end if;
-
-                  fee_channel_counter_v := fee_channel_counter_v + 1;
+                  else
+                    fee_channel_counter_v := fee_channel_counter_v + 1;
+                  end if;  
 
                when TD_FSM_FEE_ENQUEUE_IDLE_COUNTER =>
                   FEE_DATA_OUT <= stat_idle_time_buf_i;

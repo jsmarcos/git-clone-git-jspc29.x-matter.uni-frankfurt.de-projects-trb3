@@ -6,7 +6,7 @@ use work.trb_net_std.all;
 
 entity input_statistics is
   generic(
-    INPUTS     : integer range 1 to 32 := 16;
+    INPUTS     : integer range 1 to 96 := 16;
     SINGLE_FIFO_ONLY : integer := 0
     );
   port(
@@ -32,13 +32,14 @@ signal inp_reg      : std_logic_vector(INPUTS-1 downto 0);
 signal inp_reg_last : std_logic_vector(INPUTS-1 downto 0);
 signal inp_inv      : std_logic_vector(INPUTS-1 downto 0);
 signal inp_stretch  : std_logic_vector(INPUTS-1 downto 0);
+signal inp_reg_95   : std_logic_vector(95 downto 0);
 
 signal trigger_fifo : std_logic;
 signal reset_cnt    : std_logic;
 signal timer_rst    : std_logic;
 
-signal enable : std_logic_vector(31 downto 0);
-signal invert : std_logic_vector(31 downto 0);
+signal enable : std_logic_vector(95 downto 0);
+signal invert : std_logic_vector(95 downto 0);
 signal rate   : unsigned(31 downto 0);
 
 signal fifo_cnt_in : std_logic_vector(17 downto 0);
@@ -46,8 +47,8 @@ signal fifo_read   : std_logic_vector(LAST_FIFO_NUM downto 0);
 signal fifo_wait,fifo_wait2,fifo_wait3   : std_logic;
 signal fifo_empty  : std_logic_vector(LAST_FIFO_NUM downto 0);
 signal fifo_write  : std_logic;
-signal fifo_select : integer range 0 to 31;
-signal fifo_in_sel : integer range 0 to 31;
+signal fifo_select : integer range 0 to 95;
+signal fifo_in_sel : integer range 0 to 95;
 
 
 type cnt_t is array(0 to INPUTS-1) of unsigned(23 downto 0);
@@ -86,10 +87,15 @@ begin
     if ADDR_IN(6 downto 4) = "000" then
       ACK_OUT <= '1';
       case ADDR_IN(3 downto 0) is
-        when x"0"   => enable <= DATA_IN;
-        when x"1"   => invert <= DATA_IN;
+        when x"0"   => enable(31 downto 0) <= DATA_IN;
+        when x"1"   => invert(31 downto 0) <= DATA_IN;
         when x"2"   => rate   <= unsigned(DATA_IN);
                        timer_rst    <= '1';
+        when x"5"   => enable(63 downto 32) <= DATA_IN;
+        when x"6"   => invert(63 downto 32) <= DATA_IN;
+        when x"7"   => enable(95 downto 64) <= DATA_IN;
+        when x"8"   => invert(95 downto 64) <= DATA_IN;
+                       
         when x"f"   => trigger_fifo <= DATA_IN(0);
                        reset_cnt    <= DATA_IN(1);
                        fifo_in_sel  <= to_integer(unsigned(DATA_IN(20 downto 16)));
@@ -102,14 +108,20 @@ begin
     if ADDR_IN(6 downto 4) = "000" then
       ACK_OUT <= '1';
       case ADDR_IN(3 downto 0) is
-        when x"0"   => DATA_OUT <= enable;
-        when x"1"   => DATA_OUT <= invert;
+        when x"0"   => DATA_OUT <= enable(31 downto 0);
+        when x"1"   => DATA_OUT <= invert(31 downto 0);
         when x"2"   => DATA_OUT <= std_logic_vector(rate);
-        when x"3"   => DATA_OUT <= timer;
+        when x"3"   => DATA_OUT <= std_logic_vector(timer);
         when x"4"   => DATA_OUT <= status_reg;
-        when x"e"   => DATA_OUT <= (others => '0'); DATA_OUT(INPUTS-1 downto 0)  <= inp_reg;
+        when x"5"   => DATA_OUT <= enable(63 downto 32);
+        when x"6"   => DATA_OUT <= invert(63 downto 32);
+        when x"7"   => DATA_OUT <= enable(95 downto 64);
+        when x"8"   => DATA_OUT <= invert(95 downto 64);
+        when x"c"   => DATA_OUT <= (others => '0'); DATA_OUT  <= inp_reg_95(31 downto 0);
+        when x"d"   => DATA_OUT <= (others => '0'); DATA_OUT  <= inp_reg_95(63 downto 32);
+        when x"e"   => DATA_OUT <= (others => '0'); DATA_OUT  <= inp_reg_95(95 downto 64);
         when x"f"   => DATA_OUT <= (others => '0'); DATA_OUT(20 downto 16)       <= std_logic_vector(to_unsigned(fifo_in_sel,5));
-                                                    DATA_OUT(12 downto  8)       <= std_logic_vector(to_unsigned(INPUTS,5));
+                                                    DATA_OUT(14 downto  8)       <= std_logic_vector(to_unsigned(INPUTS,7));
                                                     DATA_OUT(15 downto 15)       <= std_logic_vector(to_unsigned(SINGLE_FIFO_ONLY,1));
         when others => DATA_OUT <= (others => '0');
       end case;
@@ -118,7 +130,7 @@ begin
       fifo_select <= to_integer(unsigned(ADDR_IN(4 downto 0)));
       fifo_wait <= '1';
     elsif ADDR_IN(6 downto 5) = "10" and tmp < INPUTS then
-      DATA_OUT(23 downto 0) <= cnt(to_integer(unsigned(ADDR_IN(4 downto 0))));
+      DATA_OUT(23 downto 0) <= std_logic_vector(cnt(to_integer(unsigned(ADDR_IN(4 downto 0)))));
       ACK_OUT               <= '1';
     else
       NACK_OUT              <= '1';
@@ -137,6 +149,8 @@ fifo_wait3 <= fifo_wait2 when rising_edge(CLK);
 
 inp_inv <= INPUT xor invert(INPUTS-1 downto 0);
 inp_stretch <= (inp_inv or inp_stretch) and not inp_reg;
+
+inp_reg_95(INPUTS-1 downto 0) <= inp_reg;
 
 process begin
   wait until rising_edge(CLK);
@@ -230,7 +244,7 @@ end generate;
 status_reg(10 downto 0) <= fifo_count(0);
 status_reg(11)          <= fifo_write;
 status_reg(15 downto 12)<= (others => '0');
-status_reg(27 downto 16)<= word_cnt;
+status_reg(27 downto 16)<= std_logic_vector(word_cnt);
 status_reg(31 downto 28)<= (others => '0');
 
 
