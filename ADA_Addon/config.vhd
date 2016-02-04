@@ -11,7 +11,7 @@ package config is
 
 --TDC settings
   constant NUM_TDC_MODULES         : integer range 1 to 4  := 1;  -- number of tdc modules to implement
-  constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 33;  -- number of tdc channels per module
+  constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 5;  -- number of tdc channels per module
   constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6  := 5;  --the nearest power of two, for convenience reasons 
   constant DOUBLE_EDGE_TYPE        : integer range 0 to 3  := 3;  --double edge type:  0, 1, 2,  3
   -- 0: single edge only,
@@ -25,8 +25,8 @@ package config is
   constant EVENT_MAX_SIZE          : integer := 4096;             --maximum event size. Should not exceed EVENT_BUFFER_SIZE/2
 
 --Include SPI on AddOn connector
-  constant INCLUDE_SPI  : integer := c_YES;
-  constant SPI_FOR_PADI : integer := c_YES;  -- YES: PADI SPI    NO: Normal SPI
+  constant INCLUDE_SPI  : integer := c_NO;
+  constant SPI_FOR_PADI : integer := c_NO;  -- YES: PADI SPI    NO: Normal SPI
 
 --Add logic to generate configurable trigger signal from input signals.
   constant INCLUDE_TRIGGER_LOGIC : integer := c_NO;
