@@ -46,11 +46,12 @@ if ($help) {
   print "-p  --par\tRun par part of the compile script.\n";
   print "-t  --timing\tRun timing analysis part of the compile script.\n";
   print "-b  --bitgen\tRun bit generation part of the compile script.\n";
-  print "-m  --mpar\tSwitch for multi par. \"-m <number_of_nodes>\" (Default = off)\n";
-  print "\t\tThe node list file name has to be edited in the script. (Default = nodes_lxhadeb07.txt)\n";
-  print "-g  --guide\tDefine guide file for the guided placement & routing\n";
-  print "-d  --design\tSelect the design to compile. Overrides the TOPNAME option in config_compile.pl\n";
-  print "\t\t\"-d <DESIGN_TOPNAME>\"\n";
+  print "-m  --mpar\tSwitch for multi par. \"-m <number_of_nodes>\" (Default = off).\n";
+  print "\t\tThe node list file name has to be edited in the script. (Default = nodes_lxhadeb07.txt).\n";
+  print "-g  --guide\tDefine guide file for the guided placement & routing.\n";
+  print "-d  --design\tSelect the design to compile. Overrides the TOPNAME option in config_compile.pl.\n";
+  print "\t\t-d <DESIGN_TOPNAME>\n";
+  print "\t\tDESIGN_TOPNAME: 32PinAddOn, ADA_Addon, gpin, wasa, hadesstart, hub, cts, cbmtof\n";
   print "\n";
   exit;
 }
