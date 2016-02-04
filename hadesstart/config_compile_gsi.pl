@@ -1,5 +1,5 @@
-TOPNAME                      => "cbmtof",
-project_path                 => "cbmtof",
+TOPNAME                      => "trb3_periph_hadesstart",
+project_path                 => "hadesstart",
 lm_license_file_for_synplify => "27000\@lxcad01.gsi.de",
 lm_license_file_for_par      => "1702\@hadeb05.gsi.de",
 lattice_path                 => '/opt/lattice/diamond/3.6_x64',

@@ -51,7 +51,7 @@ impl -active "workdir"
 
 #add_file options
 
-add_file -vhdl -lib work "version.vhd"
+add_file -vhdl -lib work "workdir/version.vhd"
 add_file -vhdl -lib work "config.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_std.vhd"
 add_file -vhdl -lib work "../../trbnet/trb_net_components.vhd"
