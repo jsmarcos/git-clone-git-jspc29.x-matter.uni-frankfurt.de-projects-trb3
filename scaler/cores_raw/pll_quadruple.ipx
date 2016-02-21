@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="pll_quadruple" module="PLL" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2015 08 12 16:45:02.955" version="5.7" type="Module" synthesis="synplify" source_format="VHDL">
+  <Package>
+		<File name="pll_quadruple.lpc" type="lpc" modified="2015 08 12 16:45:00.000"/>
+		<File name="pll_quadruple.vhd" type="top_level_vhdl" modified="2015 08 12 16:45:01.000"/>
+		<File name="pll_quadruple_tmpl.vhd" type="template_vhdl" modified="2015 08 12 16:45:01.000"/>
+  </Package>
+</DiamondModule>

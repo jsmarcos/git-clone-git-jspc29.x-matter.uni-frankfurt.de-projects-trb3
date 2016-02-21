@@ -1,0 +1,39 @@
+[Device]
+Family=latticeecp3
+PartType=LFE3-150EA
+PartName=LFE3-150EA-8FN672C
+SpeedGrade=8
+Package=FPBGA672
+OperatingCondition=COM
+Status=P
+
+[IP]
+VendorName=Lattice Semiconductor Corporation
+CoreType=LPM
+CoreStatus=Demo
+CoreName=Counter
+CoreRevision=4.5
+ModuleName=counter_45bit
+SourceFormat=VHDL
+ParameterFileVersion=1.0
+Date=06/08/2015
+Time=02:11:09
+
+[Parameters]
+Verilog=0
+VHDL=1
+EDIF=1
+Destination=Synplicity
+Expression=BusA(0 to 7)
+Order=Big Endian [MSB:LSB]
+IO=0
+InputWidth=45
+CountType=Synchronous
+CountDirection=Up
+OptimizeSpeed=1
+Lower=0
+Upper=255
+Load=0
+
+[Command]
+cmd_line= -w -n counter_45bit -lang vhdl -synth synplify -bus_exp 7 -bb -arch ep5c00 -type mgcounter -width 45 -cnt_direction up -aclear -clken -group 16
