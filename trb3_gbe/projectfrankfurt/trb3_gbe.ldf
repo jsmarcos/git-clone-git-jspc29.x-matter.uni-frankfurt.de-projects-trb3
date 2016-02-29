@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<BaliProject version="2.0" title="trb3_gbe" device="LFE3-150EA-8FN1156C" default_implementation="trb3_gbe">
+<BaliProject version="3.2" title="trb3_gbe" device="LFE3-150EA-8FN1156C" default_implementation="trb3_gbe">
     <Options/>
-    <Implementation title="trb3_gbe" dir="trb3_gbe" description="trb3_gbe" default_strategy="Strategy1">
-        <Options def_top="pll_in200_out100" top="trb3_central"/>
+    <Implementation title="trb3_gbe" dir="trb3_gbe" description="trb3_gbe" synthesis="synplify" default_strategy="Strategy1">
+        <Options def_top="tx_reset_sm_125" top="trb3_central"/>
         <Source name="../../../trbnet/gbe2_ecp3/ipcores_ecp3/sgmii33/sgmii_channel_smi.v" type="Verilog" type_short="Verilog">
             <Options/>
         </Source>
@@ -391,6 +391,9 @@
             <Options top_module="trb3_central"/>
         </Source>
         <Source name="../../../trbnet/media_interfaces/ecp3_sfp/sfp_1_125_int.vhd" type="VHDL" type_short="VHDL">
+            <Options/>
+        </Source>
+        <Source name="powertest.pcf" type="Power Calculator" type_short="PCF" excluded="TRUE">
             <Options/>
         </Source>
         <Source name="../workdir/trb3_central.lpf" type="Logic Preference" type_short="LPF">
