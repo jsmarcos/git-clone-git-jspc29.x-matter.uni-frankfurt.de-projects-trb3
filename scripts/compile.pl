@@ -113,6 +113,7 @@ my %FPGA=(
     trb3_periph_hadesstart =>{family=>"LatticeECP3", device=>"LFE3-150EA", speed=>"8", package=>"FPBGA672",  path=>"hadesstart"},
     trb3_periph_hub        =>{family=>"LatticeECP3", device=>"LFE3-150EA", speed=>"8", package=>"FPBGA672",  path=>"hub"},
     trb3_central_cts       =>{family=>"LatticeECP3", device=>"LFE3-150EA", speed=>"8", package=>"FPBGA1156", path=>"cts"},
+    trb3_central_gbe       =>{family=>"LatticeECP3", device=>"LFE3-150EA", speed=>"8", package=>"FPBGA1156", path=>"trb3_gbe"},
     cbmtof                 =>{family=>"LatticeECP3", device=>"LFE3-150EA", speed=>"8", package=>"FPBGA672",  path=>"cbmtof"},
 #   trb3sc                 =>{family=>"LatticeECP3", device=>"LFE3-150EA", speed=>"8", package=>"FPBGA1156", path=>"../trb3sc/tdctemplate"},
 #   dirich                 =>{family=>"ECP5UM",      device=>"LFE5UM-85F", speed=>"8", package=>"BG381C",    path=>"../dirich/dirich"},
