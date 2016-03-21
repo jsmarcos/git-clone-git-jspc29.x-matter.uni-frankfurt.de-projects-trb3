@@ -576,6 +576,16 @@ begin
      end if;
    end process;  
 
+--    proc_busyout : process begin
+--      wait until rising_edge(CLK);
+--      if ro_fsm_i = RO_FSM_WAIT_BECOME_IDLE and CTS_IPU_BUSY_IN = '0' and fifo_empty_i = '1' then
+--        TRIGGER_BUSY_OUT <= '0';
+--      elsif  td_fsm_i = TD_FSM_SEND_TRIGGER then 
+--        TRIGGER_BUSY_OUT <= '1';
+--      end if;
+--    end process;  
+   
+   
    read_out_proc: process(CLK) is
    begin
       if rising_edge(CLK) then
