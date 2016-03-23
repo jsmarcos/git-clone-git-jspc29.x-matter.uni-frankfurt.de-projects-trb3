@@ -18,11 +18,18 @@ package config is
   -- 1: same channel,
   -- 2: alternating channels,
   -- 3: same channel with stretcher
-  constant RING_BUFFER_SIZE        : integer range 0 to 7  := 1;  --ring buffer size:  0, 1, 2,  3,  7   --> change names in constraints file
-                                                                  --ring buffer size: 32,64,96,128,dyn
-
-  constant EVENT_BUFFER_SIZE       : integer range 9 to 13 := 11; -- size of the event buffer, 2**N
-  constant EVENT_MAX_SIZE          : integer := 1024;             --maximum event size. Should not exceed EVENT_BUFFER_SIZE/2
+  constant RING_BUFFER_SIZE        : integer range 0 to 7  := 0;  --ring buffer size
+  -- mode:  0,  1,  2,   3,   7
+  -- size: 32, 64, 96, 128, dyn
+  constant TDC_DATA_FORMAT         : integer range 0 to 15 := 1;  --type of data format for the TDC
+  --  0: Single fine time as the sum of the two transitions
+  --  1: Double fine time, individual transitions
+  -- 13: Debug - single fine time and the chain for the 0x3ff hits
+  -- 14: Debug - single fine time and the ROM addresses for the two transitions
+  -- 15: Debug - complete carry chain dump
+  
+  constant EVENT_BUFFER_SIZE : integer range 9 to 13 := 11;  -- size of the event buffer, 2**N
+  constant EVENT_MAX_SIZE    : integer               := 1024;  --maximum event size. Should not exceed EVENT_BUFFER_SIZE/2
 
   constant INCLUDE_UART           : integer  := c_NO;
   constant INCLUDE_SPI            : integer  := c_YES;
