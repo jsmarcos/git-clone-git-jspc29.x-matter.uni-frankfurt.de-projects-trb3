@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<DiamondModule name="fifo_6to6_dc" module="FIFO_DC" VendorName="Lattice Semiconductor Corporation" generator="IPexpress" date="2015 06 15 23:21:53.787" version="5.7" type="Module" synthesis="synplify" source_format="VHDL">
+  <Package>
+		<File name="fifo_6to6_dc.lpc" type="lpc" modified="2015 06 15 23:21:51.000"/>
+		<File name="fifo_6to6_dc.vhd" type="top_level_vhdl" modified="2015 06 15 23:21:51.000"/>
+		<File name="fifo_6to6_dc_tmpl.vhd" type="template_vhdl" modified="2015 06 15 23:21:51.000"/>
+		<File name="tb_fifo_6to6_dc_tmpl.vhd" type="testbench_vhdl" modified="2015 06 15 23:21:51.000"/>
+  </Package>
+</DiamondModule>

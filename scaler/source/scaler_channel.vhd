@@ -255,7 +255,7 @@ begin
               counter_latched_new + resize(counter_latched_offset, 47);
           end if;
           counter_latched <= std_logic_vector(counter_latched_new);
-          data_clk                      <= '1';
+          data_clk        <= '1';
         end if;
       end if;
     end if;
