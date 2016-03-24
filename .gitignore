@@ -34,3 +34,5 @@ work
 *stacktrace.txt
 *edn
 licbug.txt
+**/*workdir
+**/diamond

@@ -21,7 +21,7 @@ package config is
   constant RING_BUFFER_SIZE        : integer range 0 to 7  := 0;  --ring buffer size
   -- mode:  0,  1,  2,   3,   7
   -- size: 32, 64, 96, 128, dyn
-  constant TDC_DATA_FORMAT         : integer range 0 to 15 := 1;  --type of data format for the TDC
+  constant TDC_DATA_FORMAT         : integer range 0 to 15 := 0;  --type of data format for the TDC
   --  0: Single fine time as the sum of the two transitions
   --  1: Double fine time, individual transitions
   -- 13: Debug - single fine time and the chain for the 0x3ff hits
