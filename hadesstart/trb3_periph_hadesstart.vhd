@@ -6,6 +6,7 @@ library work;
 use work.trb_net_std.all;
 use work.trb_net_components.all;
 use work.trb3_components.all;
+use work.tdc_components.all;
 use work.config.all;
 use work.tdc_version.all;
 use work.version.all;
@@ -93,8 +94,6 @@ architecture trb3_periph_hadesstart_arch of trb3_periph_hadesstart is
   --Clock / Reset
   signal clk_100_i                : std_logic;  --clock for main logic, 100 MHz, via Clock Manager and internal PLL
   signal clk_200_i                : std_logic;  --clock for logic at 200 MHz, via Clock Manager and bypassed PLL
-  signal clk_125_i                : std_logic;  -- 125 MHz, via Clock Manager and bypassed PLL
-  signal clk_20_i                 : std_logic;  -- clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
   signal osc_int                  : std_logic;  -- clock for calibrating the tdc, 20 MHz, via Clock Manager and internal PLL
   signal pll_lock                 : std_logic;  --Internal PLL locked. E.g. used to reset all internal logic.
   signal clear_i                  : std_logic;
@@ -119,28 +118,10 @@ architecture trb3_periph_hadesstart_arch of trb3_periph_hadesstart is
 
   --LVL1 channel
   signal timing_trg_received_i  : std_logic;
-  signal trg_data_valid_i       : std_logic;
-  signal trg_timing_valid_i     : std_logic;
-  signal trg_notiming_valid_i   : std_logic;
-  signal trg_invalid_i          : std_logic;
-  signal trg_type_i             : std_logic_vector(3 downto 0);
-  signal trg_number_i           : std_logic_vector(15 downto 0);
-  signal trg_code_i             : std_logic_vector(7 downto 0);
-  signal trg_information_i      : std_logic_vector(23 downto 0);
-  signal trg_int_number_i       : std_logic_vector(15 downto 0);
-  signal trg_multiple_trg_i     : std_logic;
-  signal trg_timeout_detected_i : std_logic;
-  signal trg_spurious_trg_i     : std_logic;
-  signal trg_missing_tmg_trg_i  : std_logic;
-  signal trg_spike_detected_i   : std_logic;
 
-  --Data channel
-  signal fee_trg_release_i    : std_logic;
-  signal fee_trg_statusbits_i : std_logic_vector(31 downto 0);
-  signal fee_data_i           : std_logic_vector(31 downto 0);
-  signal fee_data_write_i     : std_logic;
-  signal fee_data_finished_i  : std_logic;
-  signal fee_almost_full_i    : std_logic;
+  --READOUT
+  signal readout_rx : READOUT_RX;
+  signal readout_tx : readout_tx_array_t(0 to 0);
 
   --Slow Control channel
   signal common_stat_reg        : std_logic_vector(std_COMSTATREG*32-1 downto 0);
@@ -151,6 +132,7 @@ architecture trb3_periph_hadesstart_arch of trb3_periph_hadesstart is
   signal common_ctrl_reg_strobe : std_logic_vector(std_COMCTRLREG-1 downto 0);
   signal stat_reg_strobe        : std_logic_vector(2**REGIO_NUM_STAT_REGS-1 downto 0);
   signal ctrl_reg_strobe        : std_logic_vector(2**REGIO_NUM_CTRL_REGS-1 downto 0);
+  signal timer                  : TIMERS;
 
   --RegIO
   signal regio_addr_out         : std_logic_vector (15 downto 0);
@@ -194,57 +176,6 @@ architecture trb3_periph_hadesstart_arch of trb3_periph_hadesstart is
   signal spi_sdo : std_logic;
   signal spi_sck : std_logic;
 
-  signal hitreg_read_en    : std_logic;
-  signal hitreg_write_en   : std_logic;
-  signal hitreg_addr       : std_logic_vector(6 downto 0);
-  signal hitreg_data_out   : std_logic_vector(31 downto 0);
-  signal hitreg_data_ready : std_logic;
-  signal hitreg_invalid    : std_logic;
-
-  signal srb_read_en    : std_logic;
-  signal srb_write_en   : std_logic;
-  signal srb_addr       : std_logic_vector(6 downto 0);
-  signal srb_data_out   : std_logic_vector(31 downto 0);
-  signal srb_data_ready : std_logic;
-  signal srb_invalid    : std_logic;
-
-  signal cdb_read_en    : std_logic;
-  signal cdb_write_en   : std_logic;
-  signal cdb_data_in    : std_logic_vector(31 downto 0);
-  signal cdb_addr       : std_logic_vector(6 downto 0);
-  signal cdb_data_out   : std_logic_vector(31 downto 0);
-  signal cdb_data_ready : std_logic;
-  signal cdb_invalid    : std_logic;
-
-  signal lhb_read_en    : std_logic;
-  signal lhb_write_en   : std_logic;
-  signal lhb_addr       : std_logic_vector(6 downto 0);
-  signal lhb_data_out   : std_logic_vector(31 downto 0);
-  signal lhb_data_ready : std_logic;
-  signal lhb_invalid    : std_logic;
-
-  signal esb_read_en    : std_logic;
-  signal esb_write_en   : std_logic;
-  signal esb_addr       : std_logic_vector(6 downto 0);
-  signal esb_data_out   : std_logic_vector(31 downto 0);
-  signal esb_data_ready : std_logic;
-  signal esb_invalid    : std_logic;
-
-  signal efb_read_en    : std_logic;
-  signal efb_write_en   : std_logic;
-  signal efb_addr       : std_logic_vector(6 downto 0);
-  signal efb_data_out   : std_logic_vector(31 downto 0);
-  signal efb_data_ready : std_logic;
-  signal efb_invalid    : std_logic;
-
-  signal tdc_ctrl_read      : std_logic;
-  signal last_tdc_ctrl_read : std_logic;
-  signal tdc_ctrl_write     : std_logic;
-  signal tdc_ctrl_addr      : std_logic_vector(2 downto 0);
-  signal tdc_ctrl_data_in   : std_logic_vector(31 downto 0);
-  signal tdc_ctrl_data_out  : std_logic_vector(31 downto 0);
-  signal tdc_ctrl_reg       : std_logic_vector(5*32+31 downto 0);
-
   signal spi_bram_addr : std_logic_vector(7 downto 0);
   signal spi_bram_wr_d : std_logic_vector(7 downto 0);
   signal spi_bram_rd_d : std_logic_vector(7 downto 0);
@@ -268,8 +199,8 @@ architecture trb3_periph_hadesstart_arch of trb3_periph_hadesstart is
   signal stat_addr  : std_logic_vector(15 downto 0) := (others => '0');
 
   signal sed_error : std_logic;
-  signal bussed_rx : CTRLBUS_RX;
-  signal bussed_tx : CTRLBUS_TX;
+  signal bussed_rx, bustdc_rx : CTRLBUS_RX;
+  signal bussed_tx, bustdc_tx : CTRLBUS_TX;
 
   --TDC
   signal hit_in_i         : std_logic_vector(64 downto 1);
@@ -309,22 +240,17 @@ begin
   THE_MAIN_PLL : pll_in200_out100
     port map(
       CLK   => CLK_GPLL_RIGHT,
+      RESET => '0',
       CLKOP => clk_100_i,
       CLKOK => clk_200_i,
       LOCK  => pll_lock
       );
 
-  -- generates hits for calibration uncorrelated with tdc clk
-  THE_CALIBRATION_PLL : pll_in125_out20
+  pll_calibration: entity work.pll_in125_out33
     port map (
       CLK   => CLK_GPLL_LEFT,
-      CLKOP => clk_20_i,
-      CLKOK => clk_125_i,
+      CLKOP => osc_int,
       LOCK  => open);
-
-  OSCInst0 : OSCF  -- internal oscillator with frequency of 2.5MHz
-    port map (
-      OSC => osc_int);
 
 
 ---------------------------------------------------------------------------
@@ -415,32 +341,31 @@ begin
 
       --Timing trigger in
       TRG_TIMING_TRG_RECEIVED_IN  => timing_trg_received_i,
-      --LVL1 trigger to FEE
-      LVL1_TRG_DATA_VALID_OUT     => trg_data_valid_i,
-      LVL1_VALID_TIMING_TRG_OUT   => trg_timing_valid_i,
-      LVL1_VALID_NOTIMING_TRG_OUT => trg_notiming_valid_i,
-      LVL1_INVALID_TRG_OUT        => trg_invalid_i,
+      LVL1_TRG_DATA_VALID_OUT     => readout_rx.data_valid,
+      LVL1_VALID_TIMING_TRG_OUT   => readout_rx.valid_timing_trg,
+      LVL1_VALID_NOTIMING_TRG_OUT => readout_rx.valid_notiming_trg,
+      LVL1_INVALID_TRG_OUT        => readout_rx.invalid_trg,
 
-      LVL1_TRG_TYPE_OUT        => trg_type_i,
-      LVL1_TRG_NUMBER_OUT      => trg_number_i,
-      LVL1_TRG_CODE_OUT        => trg_code_i,
-      LVL1_TRG_INFORMATION_OUT => trg_information_i,
-      LVL1_INT_TRG_NUMBER_OUT  => trg_int_number_i,
+      LVL1_TRG_TYPE_OUT        => readout_rx.trg_type,
+      LVL1_TRG_NUMBER_OUT      => readout_rx.trg_number,
+      LVL1_TRG_CODE_OUT        => readout_rx.trg_code,
+      LVL1_TRG_INFORMATION_OUT => readout_rx.trg_information,
+      LVL1_INT_TRG_NUMBER_OUT  => readout_rx.trg_int_number,
 
       --Information about trigger handler errors
-      TRG_MULTIPLE_TRG_OUT     => trg_multiple_trg_i,
-      TRG_TIMEOUT_DETECTED_OUT => trg_timeout_detected_i,
-      TRG_SPURIOUS_TRG_OUT     => trg_spurious_trg_i,
-      TRG_MISSING_TMG_TRG_OUT  => trg_missing_tmg_trg_i,
-      TRG_SPIKE_DETECTED_OUT   => trg_spike_detected_i,
+      TRG_MULTIPLE_TRG_OUT     => readout_rx.trg_multiple,
+      TRG_TIMEOUT_DETECTED_OUT => readout_rx.trg_timeout,
+      TRG_SPURIOUS_TRG_OUT     => readout_rx.trg_spurious,
+      TRG_MISSING_TMG_TRG_OUT  => readout_rx.trg_missing,
+      TRG_SPIKE_DETECTED_OUT   => readout_rx.trg_spike,
 
       --Response from FEE
-      FEE_TRG_RELEASE_IN(0)       => fee_trg_release_i,
-      FEE_TRG_STATUSBITS_IN       => fee_trg_statusbits_i,
-      FEE_DATA_IN                 => fee_data_i,
-      FEE_DATA_WRITE_IN(0)        => fee_data_write_i,
-      FEE_DATA_FINISHED_IN(0)     => fee_data_finished_i,
-      FEE_DATA_ALMOST_FULL_OUT(0) => fee_almost_full_i,
+      FEE_TRG_RELEASE_IN(0)       => readout_tx(0).busy_release,
+      FEE_TRG_STATUSBITS_IN       => readout_tx(0).statusbits,
+      FEE_DATA_IN                 => readout_tx(0).data,
+      FEE_DATA_WRITE_IN(0)        => readout_tx(0).data_write,
+      FEE_DATA_FINISHED_IN(0)     => readout_tx(0).data_finished,
+      FEE_DATA_ALMOST_FULL_OUT(0) => readout_rx.buffer_almost_full,
 
       -- Slow Control Data Port
       REGIO_COMMON_STAT_REG_IN           => common_stat_reg,  --0x00
@@ -471,6 +396,7 @@ begin
       TIME_LOCAL_OUT          => local_time,
       TIME_SINCE_LAST_TRG_OUT => time_since_last_trg,
       TIME_TICKS_OUT          => timer_ticks,
+      TEMPERATURE_OUT         => timer.temperature,
 
       STAT_DEBUG_IPU              => open,
       STAT_DEBUG_1                => open,
@@ -496,10 +422,10 @@ begin
   THE_BUS_HANDLER : trb_net16_regio_bus_handler
     generic map(
       PORT_NUMBER    => 9,
-      PORT_ADDRESSES => (0 => x"d000", 1 => x"cf80", 2 => x"d400", 3 => x"c000", 4 => x"c100",
-                         5 => x"c800", 6 => x"cf00", 7 => x"d500", 8 => x"c200", others => x"0000"),
-      PORT_ADDR_MASK => (0 => 9, 1 => 7, 2 => 5, 3 => 7, 4 => 5,
-                         5 => 3, 6 => 6, 7 => 4, 8 => 7, others => 0)
+      PORT_ADDRESSES => (0 => x"d000", 1 => x"cf80", 2 => x"d400", 3 => x"c000",
+                         4 => x"cf00", 5 => x"d500", others => x"0000"),
+      PORT_ADDR_MASK => (0 => 9, 1 => 7, 2 => 5, 3 => 12,
+                         4 => 6, 5 => 4, others => 0)
       )
     port map(
       CLK   => clk_100_i,
@@ -551,127 +477,42 @@ begin
       BUS_WRITE_ACK_IN(2)                 => spidac_ack,
       BUS_NO_MORE_DATA_IN(2)              => spidac_busy,
       BUS_UNKNOWN_ADDR_IN(2)              => '0',
-      --HitRegisters
-      BUS_READ_ENABLE_OUT(3)              => hitreg_read_en,
-      BUS_WRITE_ENABLE_OUT(3)             => hitreg_write_en,
-      BUS_DATA_OUT(3*32+31 downto 3*32)   => open,
-      BUS_ADDR_OUT(3*16+6 downto 3*16)    => hitreg_addr,
-      BUS_ADDR_OUT(3*16+15 downto 3*16+7) => open,
-      BUS_TIMEOUT_OUT(3)                  => open,
-      BUS_DATA_IN(3*32+31 downto 3*32)    => hitreg_data_out,
-      BUS_DATAREADY_IN(3)                 => hitreg_data_ready,
-      BUS_WRITE_ACK_IN(3)                 => '0',
-      BUS_NO_MORE_DATA_IN(3)              => '0',
-      BUS_UNKNOWN_ADDR_IN(3)              => hitreg_invalid,
-      --Status Registers
-      BUS_READ_ENABLE_OUT(4)              => srb_read_en,
-      BUS_WRITE_ENABLE_OUT(4)             => srb_write_en,
-      BUS_DATA_OUT(4*32+31 downto 4*32)   => open,
-      BUS_ADDR_OUT(4*16+6 downto 4*16)    => srb_addr,
-      BUS_ADDR_OUT(4*16+15 downto 4*16+7) => open,
-      BUS_TIMEOUT_OUT(4)                  => open,
-      BUS_DATA_IN(4*32+31 downto 4*32)    => srb_data_out,
-      BUS_DATAREADY_IN(4)                 => srb_data_ready,
-      BUS_WRITE_ACK_IN(4)                 => '0',
-      BUS_NO_MORE_DATA_IN(4)              => '0',
-      BUS_UNKNOWN_ADDR_IN(4)              => srb_invalid,
-      ----Encoder Start Registers
-      --BUS_READ_ENABLE_OUT(5)              => esb_read_en,
-      --BUS_WRITE_ENABLE_OUT(5)             => esb_write_en,
-      --BUS_DATA_OUT(5*32+31 downto 5*32)   => open,
-      --BUS_ADDR_OUT(5*16+6 downto 5*16)    => esb_addr,
-      --BUS_ADDR_OUT(5*16+15 downto 5*16+7) => open,
-      --BUS_TIMEOUT_OUT(5)                  => open,
-      --BUS_DATA_IN(5*32+31 downto 5*32)    => esb_data_out,
-      --BUS_DATAREADY_IN(5)                 => esb_data_ready,
-      --BUS_WRITE_ACK_IN(5)                 => '0',
-      --BUS_NO_MORE_DATA_IN(5)              => '0',
-      --BUS_UNKNOWN_ADDR_IN(5)              => esb_invalid,
-      ----Fifo Write Registers
-      --BUS_READ_ENABLE_OUT(6)              => efb_read_en,
-      --BUS_WRITE_ENABLE_OUT(6)             => efb_write_en,
-      --BUS_DATA_OUT(6*32+31 downto 6*32)   => open,
-      --BUS_ADDR_OUT(6*16+6 downto 6*16)    => efb_addr,
-      --BUS_ADDR_OUT(6*16+15 downto 6*16+7) => open,
-      --BUS_TIMEOUT_OUT(6)                  => open,
-      --BUS_DATA_IN(6*32+31 downto 6*32)    => efb_data_out,
-      --BUS_DATAREADY_IN(6)                 => efb_data_ready,
-      --BUS_WRITE_ACK_IN(6)                 => '0',
-      --BUS_NO_MORE_DATA_IN(6)              => '0',
-      --BUS_UNKNOWN_ADDR_IN(6)              => efb_invalid,
-      ----Lost Hit Registers
-      --BUS_READ_ENABLE_OUT(7)              => lhb_read_en,
-      --BUS_WRITE_ENABLE_OUT(7)             => lhb_write_en,
-      --BUS_DATA_OUT(7*32+31 downto 7*32)   => open,
-      --BUS_ADDR_OUT(7*16+6 downto 7*16)    => lhb_addr,
-      --BUS_ADDR_OUT(7*16+15 downto 7*16+7) => open,
-      --BUS_TIMEOUT_OUT(7)                  => open,
-      --BUS_DATA_IN(7*32+31 downto 7*32)    => lhb_data_out,
-      --BUS_DATAREADY_IN(7)                 => lhb_data_ready,
-      --BUS_WRITE_ACK_IN(7)                 => '0',
-      --BUS_NO_MORE_DATA_IN(7)              => '0',
-      --BUS_UNKNOWN_ADDR_IN(7)              => lhb_invalid,
-      --TDC config registers
-      BUS_READ_ENABLE_OUT(5)              => tdc_ctrl_read,
-      BUS_WRITE_ENABLE_OUT(5)             => tdc_ctrl_write,
-      BUS_DATA_OUT(5*32+31 downto 5*32)   => tdc_ctrl_data_in,
-      BUS_ADDR_OUT(5*16+2 downto 5*16)    => tdc_ctrl_addr,
-      BUS_ADDR_OUT(5*16+15 downto 5*16+3) => open,
-      BUS_TIMEOUT_OUT(5)                  => open,
-      BUS_DATA_IN(5*32+31 downto 5*32)    => tdc_ctrl_data_out,
-      BUS_DATAREADY_IN(5)                 => last_tdc_ctrl_read,
-      BUS_WRITE_ACK_IN(5)                 => tdc_ctrl_write,
-      BUS_NO_MORE_DATA_IN(5)              => '0',
-      BUS_UNKNOWN_ADDR_IN(5)              => '0',
+      --TDC
+      BUS_READ_ENABLE_OUT(3)              => bustdc_rx.read,
+      BUS_WRITE_ENABLE_OUT(3)             => bustdc_rx.write,
+      BUS_DATA_OUT(3*32+31 downto 3*32)   => bustdc_rx.data,
+      BUS_ADDR_OUT(3*16+15 downto 3*16)   => bustdc_rx.addr,
+      BUS_TIMEOUT_OUT(3)                  => bustdc_rx.timeout,
+      BUS_DATA_IN(3*32+31 downto 3*32)    => bustdc_tx.data,
+      BUS_DATAREADY_IN(3)                 => bustdc_tx.ack,
+      BUS_WRITE_ACK_IN(3)                 => bustdc_tx.ack,
+      BUS_NO_MORE_DATA_IN(3)              => bustdc_tx.nack,
+      BUS_UNKNOWN_ADDR_IN(3)              => bustdc_tx.unknown,
       --Trigger logic registers
-      BUS_READ_ENABLE_OUT(6)              => trig_read,
-      BUS_WRITE_ENABLE_OUT(6)             => trig_write,
-      BUS_DATA_OUT(6*32+31 downto 6*32)   => trig_din,
-      BUS_ADDR_OUT(6*16+15 downto 6*16)   => trig_addr,
-      BUS_TIMEOUT_OUT(6)                  => open,
-      BUS_DATA_IN(6*32+31 downto 6*32)    => trig_dout,
-      BUS_DATAREADY_IN(6)                 => trig_ack,
-      BUS_WRITE_ACK_IN(6)                 => trig_ack,
-      BUS_NO_MORE_DATA_IN(6)              => '0',
-      BUS_UNKNOWN_ADDR_IN(6)              => trig_nack,
+      BUS_READ_ENABLE_OUT(4)              => trig_read,
+      BUS_WRITE_ENABLE_OUT(4)             => trig_write,
+      BUS_DATA_OUT(4*32+31 downto 4*32)   => trig_din,
+      BUS_ADDR_OUT(4*16+15 downto 4*16)   => trig_addr,
+      BUS_TIMEOUT_OUT(4)                  => open,
+      BUS_DATA_IN(4*32+31 downto 4*32)    => trig_dout,
+      BUS_DATAREADY_IN(4)                 => trig_ack,
+      BUS_WRITE_ACK_IN(4)                 => trig_ack,
+      BUS_NO_MORE_DATA_IN(4)              => '0',
+      BUS_UNKNOWN_ADDR_IN(4)              => trig_nack,
       --SEU Detection
-      BUS_READ_ENABLE_OUT(7)              => bussed_rx.read,
-      BUS_WRITE_ENABLE_OUT(7)             => bussed_rx.write,
-      BUS_DATA_OUT(7*32+31 downto 7*32)   => bussed_rx.data,
-      BUS_ADDR_OUT(7*16+15 downto 7*16)   => bussed_rx.addr,
-      BUS_TIMEOUT_OUT(7)                  => bussed_rx.timeout,
-      BUS_DATA_IN(7*32+31 downto 7*32)    => bussed_tx.data,
-      BUS_DATAREADY_IN(7)                 => bussed_tx.ack,
-      BUS_WRITE_ACK_IN(7)                 => bussed_tx.ack,
-      BUS_NO_MORE_DATA_IN(7)              => bussed_tx.nack,
-      BUS_UNKNOWN_ADDR_IN(7)              => bussed_tx.unknown,
-      --Channel Debug Registers
-      BUS_READ_ENABLE_OUT(8)              => cdb_read_en,
-      BUS_WRITE_ENABLE_OUT(8)             => cdb_write_en,
-      BUS_DATA_OUT(8*32+31 downto 8*32)   => open,
-      BUS_ADDR_OUT(8*16+6 downto 8*16)    => cdb_addr,
-      BUS_ADDR_OUT(8*16+15 downto 8*16+7) => open,
-      BUS_TIMEOUT_OUT(8)                  => open,
-      BUS_DATA_IN(8*32+31 downto 8*32)    => cdb_data_out,
-      BUS_DATAREADY_IN(8)                 => cdb_data_ready,
-      BUS_WRITE_ACK_IN(8)                 => '0',
-      BUS_NO_MORE_DATA_IN(8)              => '0',
-      BUS_UNKNOWN_ADDR_IN(8)              => cdb_invalid,
+      BUS_READ_ENABLE_OUT(5)              => bussed_rx.read,
+      BUS_WRITE_ENABLE_OUT(5)             => bussed_rx.write,
+      BUS_DATA_OUT(5*32+31 downto 5*32)   => bussed_rx.data,
+      BUS_ADDR_OUT(5*16+15 downto 5*16)   => bussed_rx.addr,
+      BUS_TIMEOUT_OUT(5)                  => bussed_rx.timeout,
+      BUS_DATA_IN(5*32+31 downto 5*32)    => bussed_tx.data,
+      BUS_DATAREADY_IN(5)                 => bussed_tx.ack,
+      BUS_WRITE_ACK_IN(5)                 => bussed_tx.ack,
+      BUS_NO_MORE_DATA_IN(5)              => bussed_tx.nack,
+      BUS_UNKNOWN_ADDR_IN(5)              => bussed_tx.unknown,
 
       STAT_DEBUG => open
       );
-
-  PROC_TDC_CTRL_REG : process
-    variable pos : integer;
-  begin
-    wait until rising_edge(clk_100_i);
-    pos                := to_integer(unsigned(tdc_ctrl_addr))*32;
-    tdc_ctrl_data_out  <= tdc_ctrl_reg(pos+31 downto pos);
-    last_tdc_ctrl_read <= tdc_ctrl_read;
-    if tdc_ctrl_write = '1' then
-      tdc_ctrl_reg(pos+31 downto pos) <= tdc_ctrl_data_in;
-    end if;
-  end process;
 
 ---------------------------------------------------------------------------
 -- SPI / Flash
@@ -818,92 +659,29 @@ begin
 -- TDC
 -------------------------------------------------------------------------------
 
-  THE_TDC : TDC
+  THE_TDC : TDC_record
     generic map (
-      CHANNEL_NUMBER => NUM_TDC_CHANNELS,   -- Number of TDC channels
-      STATUS_REG_NR  => 22,             -- Number of status regs
-      CONTROL_REG_NR => 6,  -- Number of control regs - higher than 8 check tdc_ctrl_addr
-      TDC_VERSION    => TDC_VERSION,    -- TDC version number
+      CHANNEL_NUMBER => NUM_TDC_CHANNELS,  -- Number of TDC channels per module
+      STATUS_REG_NR  => 21,             -- Number of status regs
       DEBUG          => c_YES,
       SIMULATION     => c_NO)
     port map (
-      RESET                 => reset_i,
-      CLK_TDC               => CLK_PCLK_LEFT,  -- Clock used for the time measurement
-      CLK_READOUT           => clk_100_i,   -- Clock for the readout
-      REFERENCE_TIME        => timing_trg_received_i,   -- Reference time input
-      HIT_IN                => hit_in_i(NUM_TDC_CHANNELS-1 downto 1),  -- Channel start signals
-      HIT_CALIBRATION       => osc_int,  --clk_20_i,    -- Hits for calibrating the TDC
-      TRG_WIN_PRE           => tdc_ctrl_reg(42 downto 32),  -- Pre-Trigger window width
-      TRG_WIN_POST          => tdc_ctrl_reg(58 downto 48),  -- Post-Trigger window width
-      --
+      RESET              => reset_i,
+      CLK_TDC            => CLK_PCLK_LEFT,
+      CLK_READOUT        => clk_100_i,  -- Clock for the readout
+      REFERENCE_TIME     => timing_trg_received_i,  -- Reference time input
+      HIT_IN             => hit_in_i(NUM_TDC_CHANNELS-1 downto 1),  -- Channel start signals
+      HIT_CAL_IN         => osc_int,    -- Hits for calibrating the TDC
       -- Trigger signals from handler
-      TRG_DATA_VALID_IN     => trg_data_valid_i,  -- trig data valid signal from trbnet
-      VALID_TIMING_TRG_IN   => trg_timing_valid_i,  -- valid timing trigger signal from trbnet
-      VALID_NOTIMING_TRG_IN => trg_notiming_valid_i,  -- valid notiming signal from trbnet
-      INVALID_TRG_IN        => trg_invalid_i,  -- invalid trigger signal from trbnet
-      TMGTRG_TIMEOUT_IN     => trg_timeout_detected_i,  -- timing trigger timeout signal from trbnet
-      SPIKE_DETECTED_IN     => trg_spike_detected_i,
-      MULTI_TMG_TRG_IN      => trg_multiple_trg_i,
-      SPURIOUS_TRG_IN       => trg_spurious_trg_i,
-      --
-      TRG_NUMBER_IN         => trg_number_i,  -- LVL1 trigger information package
-      TRG_CODE_IN           => trg_code_i,  --
-      TRG_INFORMATION_IN    => trg_information_i,   --
-      TRG_TYPE_IN           => trg_type_i,  -- LVL1 trigger information package
-      --
-      --Response to handler
-      TRG_RELEASE_OUT       => fee_trg_release_i,   -- trigger release signal
-      TRG_STATUSBIT_OUT     => fee_trg_statusbits_i,  -- status information of the tdc
-      DATA_OUT              => fee_data_i,  -- tdc data
-      DATA_WRITE_OUT        => fee_data_write_i,  -- data valid signal
-      DATA_FINISHED_OUT     => fee_data_finished_i,  -- readout finished signal
-      --
-      --Hit Counter Bus
-      HCB_READ_EN_IN        => hitreg_read_en,    -- bus read en strobe
-      HCB_WRITE_EN_IN       => hitreg_write_en,   -- bus write en strobe
-      HCB_ADDR_IN           => hitreg_addr,   -- bus address
-      HCB_DATA_OUT          => hitreg_data_out,   -- bus data
-      HCB_DATAREADY_OUT     => hitreg_data_ready,   -- bus data ready strobe
-      HCB_UNKNOWN_ADDR_OUT  => hitreg_invalid,    -- bus invalid addr
-      --Status Registers Bus
-      SRB_READ_EN_IN        => srb_read_en,   -- bus read en strobe
-      SRB_WRITE_EN_IN       => srb_write_en,  -- bus write en strobe
-      SRB_ADDR_IN           => srb_addr,    -- bus address
-      SRB_DATA_OUT          => srb_data_out,  -- bus data
-      SRB_DATAREADY_OUT     => srb_data_ready,    -- bus data ready strobe
-      SRB_UNKNOWN_ADDR_OUT  => srb_invalid,   -- bus invalid addr
-      --Channel Debug Bus
-      CDB_READ_EN_IN        => cdb_read_en,   -- bus read en strobe
-      CDB_WRITE_EN_IN       => cdb_write_en,  -- bus write en strobe
-      CDB_ADDR_IN           => cdb_addr,    -- bus address
-      CDB_DATA_OUT          => cdb_data_out,  -- bus data
-      CDB_DATAREADY_OUT     => cdb_data_ready,    -- bus data ready strobe
-      CDB_UNKNOWN_ADDR_OUT  => cdb_invalid,   -- bus invalid addr
-      --Encoder Start Registers Bus
-      ESB_READ_EN_IN        => esb_read_en,   -- bus read en strobe
-      ESB_WRITE_EN_IN       => esb_write_en,  -- bus write en strobe
-      ESB_ADDR_IN           => esb_addr,    -- bus address
-      ESB_DATA_OUT          => esb_data_out,  -- bus data
-      ESB_DATAREADY_OUT     => esb_data_ready,    -- bus data ready strobe
-      ESB_UNKNOWN_ADDR_OUT  => esb_invalid,   -- bus invalid addr
-      --Fifo Write Registers Bus
-      EFB_READ_EN_IN        => efb_read_en,   -- bus read en strobe
-      EFB_WRITE_EN_IN       => efb_write_en,  -- bus write en strobe
-      EFB_ADDR_IN           => efb_addr,    -- bus address
-      EFB_DATA_OUT          => efb_data_out,  -- bus data
-      EFB_DATAREADY_OUT     => efb_data_ready,    -- bus data ready strobe
-      EFB_UNKNOWN_ADDR_OUT  => efb_invalid,   -- bus invalid addr
-      --Lost Hit Registers Bus
-      LHB_READ_EN_IN        => lhb_read_en,   -- bus read en strobe
-      LHB_WRITE_EN_IN       => lhb_write_en,  -- bus write en strobe
-      LHB_ADDR_IN           => lhb_addr,    -- bus address
-      LHB_DATA_OUT          => lhb_data_out,  -- bus data
-      LHB_DATAREADY_OUT     => lhb_data_ready,    -- bus data ready strobe
-      LHB_UNKNOWN_ADDR_OUT  => lhb_invalid,   -- bus invalid addr
-      --
-      LOGIC_ANALYSER_OUT    => logic_analyser_i,
-      CONTROL_REG_IN        => tdc_ctrl_reg);
-
+      BUSRDO_RX          => readout_rx,
+      BUSRDO_TX          => readout_tx(0),
+      -- Slow control bus
+      BUS_RX             => bustdc_rx,
+      BUS_TX             => bustdc_tx,
+      -- Dubug signals
+      INFO_IN            => timer,
+      LOGIC_ANALYSER_OUT => logic_analyser_i
+      );
   
   
   gen_select_fast_mapping : if USE_HPTDC_FASTMODE_PINOUT = 1 generate
@@ -918,12 +696,12 @@ begin
 
 
   -- For single edge measurements
-  gen_single : if USE_DOUBLE_EDGE = 0 generate
+  gen_single : if DOUBLE_EDGE_TYPE = 0 or DOUBLE_EDGE_TYPE = 1 or DOUBLE_EDGE_TYPE = 3 generate
     hit_in_i <= inputs_i;
   end generate;
 
   -- For ToT Measurements
-  gen_double : if USE_DOUBLE_EDGE = 1 generate
+  gen_double : if DOUBLE_EDGE_TYPE = 2 generate
     Gen_Hit_In_Signals : for i in 1 to 32 generate
       hit_in_i(i*2-1) <= inputs_i(i-1);
       hit_in_i(i*2)   <= not inputs_i(i-1);

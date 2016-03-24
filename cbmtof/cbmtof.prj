@@ -1,3 +1,5 @@
+# load configuration derived from config.vhd by compile_constraints.pl
+source workdir/cbmtof_prjconfig.tcl
 
 # implementation: "workdir"
 impl -add workdir -type fpga
@@ -144,7 +146,9 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_lsm_sfp.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/trb_net16_med_ecp3_sfp.vhd"
 
 add_file -vhdl -lib work "../base/cores/pll_in200_out100.vhd"
-
+add_file -vhdl -lib work "../base/code/input_to_trigger_logic.vhd"
+add_file -vhdl -lib work "../base/code/input_statistics.vhd"
+add_file -vhdl -lib work "../base/code/sedcheck.vhd"
 
 add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/med_sync_define.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/rx_control.vhd"
@@ -154,41 +158,73 @@ add_file -vhdl -lib work "../../trbnet/media_interfaces/sync/tx_reset_fsm.vhd"
 add_file -vhdl -lib work "../../trbnet/media_interfaces/ecp3_sfp/serdes_sync_0.vhd"
 
 
-###############
-#Change path to tdc release also in compile script!
-###############
-
-#add_file -vhdl -lib work "tdc_release/Adder_304.vhd"
 add_file -vhdl -lib work "tdc_release/tdc_components.vhd"
 add_file -vhdl -lib work "tdc_release/bit_sync.vhd"
-#add_file -vhdl -lib work "tdc_release/BusHandler.vhd"
 add_file -vhdl -lib work "tdc_release/BusHandler_record.vhd"
 add_file -vhdl -lib work "tdc_release/Channel.vhd"
 add_file -vhdl -lib work "tdc_release/Channel_200.vhd"
-#add_file -vhdl -lib work "tdc_release/Encoder_304_Bit.vhd"
 add_file -vhdl -lib work "tdc_release/Encoder_288_Bit.vhd"
+add_file -vhdl -lib work "tdc_release/fallingEdgeDetect.vhd"
+add_file -vhdl -lib work "tdc_release/hit_mux.vhd"
 add_file -vhdl -lib work "tdc_release/LogicAnalyser.vhd"
-#add_file -vhdl -lib work "tdc_release/Readout.vhd"
-add_file -vhdl -lib work "tdc_release/Readout_record.vhd"
+add_file -vhdl -lib work "tdc_release/risingEdgeDetect.vhd"
 add_file -vhdl -lib work "tdc_release/ROM_encoder_ecp3.vhd"
 add_file -vhdl -lib work "tdc_release/ShiftRegisterSISO.vhd"
 add_file -vhdl -lib work "tdc_release/Stretcher_A.vhd"
 add_file -vhdl -lib work "tdc_release/Stretcher_B.vhd"
 add_file -vhdl -lib work "tdc_release/Stretcher.vhd"
-#add_file -vhdl -lib work "tdc_release/TDC.vhd"
 add_file -vhdl -lib work "tdc_release/TDC_record.vhd"
-add_file -vhdl -lib work "tdc_release/TriggerHandler.vhd"
 add_file -vhdl -lib work "tdc_release/up_counter.vhd"
-add_file -vhdl -lib work "tdc_release/fallingEdgeDetect.vhd"
-add_file -vhdl -lib work "tdc_release/risingEdgeDetect.vhd"
-add_file -vhdl -lib work "tdc_release/hit_mux.vhd"
-add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_DC_36x32_OutReg.vhd"
 add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_DC_36x128_DynThr_OutReg.vhd"
-add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_36x32_OutReg.vhd"
+add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_DC_36x128_OutReg.vhd"
+add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_DC_36x64_OutReg.vhd"
+add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_DC_36x32_OutReg.vhd"
 add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_36x128_OutReg.vhd"
-add_file -vhdl -lib work "../base/code/input_to_trigger_logic.vhd"
-add_file -vhdl -lib work "../base/code/input_statistics.vhd"
-add_file -vhdl -lib work "../base/code/sedcheck.vhd"
+add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_36x64_OutReg.vhd"
+add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_36x32_OutReg.vhd"
+add_file -vhdl -lib work "../../tdc/base/cores/ecp3/PLL/pll_in125_out33.vhd"
+
+if {$TDC_DATA_FORMAT == 0 | $TDC_DATA_FORMAT == 1 | $TDC_DATA_FORMAT == 14} {
+add_file -vhdl -lib work "tdc_release/Readout_record.vhd"
+add_file -vhdl -lib work "tdc_release/TriggerHandler.vhd"
+}
+if {$TDC_DATA_FORMAT == 13 | $TDC_DATA_FORMAT == 15} {
+add_file -vhdl -lib work "tdc_release/Readout_record_noDecode.vhd"
+add_file -vhdl -lib work "tdc_release/TriggerHandler_noDecode.vhd"
+}
+
+# ###############
+# #Change path to tdc release also in compile script!
+# ###############
+
+# #add_file -vhdl -lib work "tdc_release/Adder_304.vhd"
+# add_file -vhdl -lib work "tdc_release/tdc_components.vhd"
+# add_file -vhdl -lib work "tdc_release/bit_sync.vhd"
+# #add_file -vhdl -lib work "tdc_release/BusHandler.vhd"
+# add_file -vhdl -lib work "tdc_release/BusHandler_record.vhd"
+# add_file -vhdl -lib work "tdc_release/Channel.vhd"
+# add_file -vhdl -lib work "tdc_release/Channel_200.vhd"
+# #add_file -vhdl -lib work "tdc_release/Encoder_304_Bit.vhd"
+# add_file -vhdl -lib work "tdc_release/Encoder_288_Bit.vhd"
+# add_file -vhdl -lib work "tdc_release/LogicAnalyser.vhd"
+# #add_file -vhdl -lib work "tdc_release/Readout.vhd"
+# add_file -vhdl -lib work "tdc_release/Readout_record.vhd"
+# add_file -vhdl -lib work "tdc_release/ROM_encoder_ecp3.vhd"
+# add_file -vhdl -lib work "tdc_release/ShiftRegisterSISO.vhd"
+# add_file -vhdl -lib work "tdc_release/Stretcher_A.vhd"
+# add_file -vhdl -lib work "tdc_release/Stretcher_B.vhd"
+# add_file -vhdl -lib work "tdc_release/Stretcher.vhd"
+# #add_file -vhdl -lib work "tdc_release/TDC.vhd"
+# add_file -vhdl -lib work "tdc_release/TDC_record.vhd"
+# add_file -vhdl -lib work "tdc_release/TriggerHandler.vhd"
+# add_file -vhdl -lib work "tdc_release/up_counter.vhd"
+# add_file -vhdl -lib work "tdc_release/fallingEdgeDetect.vhd"
+# add_file -vhdl -lib work "tdc_release/risingEdgeDetect.vhd"
+# add_file -vhdl -lib work "tdc_release/hit_mux.vhd"
+# add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_DC_36x32_OutReg.vhd"
+# add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_DC_36x128_DynThr_OutReg.vhd"
+# add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_36x32_OutReg.vhd"
+# add_file -vhdl -lib work "../../tdc/base/cores/ecp3/FIFO/FIFO_36x128_OutReg.vhd"
 
 
 add_file -vhdl -lib work "cbmtof.vhd"

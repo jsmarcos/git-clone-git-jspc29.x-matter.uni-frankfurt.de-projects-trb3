@@ -140,9 +140,9 @@ if ($con==1 || $all==1) {
     system("ln -s ../../../tdc/base/cores/ecp3/TDC/Adder_304.ngo $WORKDIR/Adder_304.ngo");
 
     #edit the lpf file according to tdc settings
-    system("unlink compile_tdc.pl");
-    system("ln -s ../../tdc/scripts/compile_tdc.pl");
-    system ("./compile_tdc.pl", $WORKDIR, $TOPNAME, "config");
+    system("unlink $WORKDIR/compile_tdc.pl");
+    system("ln -s ../../../tdc/scripts/compile_tdc.pl $WORKDIR/");
+    system ("./$WORKDIR/compile_tdc.pl", $WORKDIR, $TOPNAME, "config");
   }
 
   if ($include_GBE) {
@@ -199,7 +199,7 @@ my $tpmap = $TOPNAME . "_map" ;
 
 chdir $WORKDIR;
 if ($syn==1 || $all==1) {
-  system ("./../compile_tdc.pl", $WORKDIR, $TOPNAME, "prj") if ($include_TDC); ## edit prj file for different designs
+  system ("./compile_tdc.pl", $WORKDIR, $TOPNAME, "prj") if ($include_TDC); ## edit prj file for different designs
 
   print GREEN, "Starting synthesis process...\n\n", RESET;
   $c="$synplify_path/bin/synplify_premier_dp -batch ../$TOPNAME.prj";

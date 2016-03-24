@@ -1,5 +1,9 @@
+Familyname  => 'LatticeECP3',
+Devicename  => 'LFE3-150EA',
+Package     => 'FPBGA672',
+Speedgrade  => '8',
+
 TOPNAME                      => "trb3_periph_hadesstart",
-project_path                 => "hadesstart",
 lm_license_file_for_synplify => "27000\@lxcad01.gsi.de",
 lm_license_file_for_par      => "1702\@hadeb05.gsi.de",
 lattice_path                 => '/opt/lattice/diamond/3.6_x64',
@@ -8,7 +12,7 @@ synplify_path                => '/opt/synplicity/K-2015.09',
 synplify_command             => "/opt/synplicity/K-2015.09/bin/synplify_premier_dp",
 
 nodelist_file                => '../nodes_lxhadeb07.txt',
-par_options                  => '../../base/trb3_periph.p2t',
+par_options                  => '../trb3_periph_hadesstart.p2t',
     
 #Include only necessary lpf files
 include_TDC                  => 1,

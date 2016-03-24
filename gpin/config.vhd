@@ -11,15 +11,22 @@ package config is
 
 --TDC settings
   constant NUM_TDC_MODULES         : integer range 1 to 4  := 1;  -- number of tdc modules to implement
-  constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 25; -- number of tdc channels per module
+  constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 5; -- number of tdc channels per module
   constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6  := 5;  --the nearest power of two, for convenience reasons 
-  constant DOUBLE_EDGE_TYPE        : integer range 0 to 3  := 3;  --double edge type:  0, 1, 2,  3
+  constant DOUBLE_EDGE_TYPE        : integer range 0 to 3  := 2;  --double edge type:  0, 1, 2,  3
   -- 0: single edge only,
   -- 1: same channel,
   -- 2: alternating channels,
   -- 3: same channel with stretcher
-  constant RING_BUFFER_SIZE        : integer range 0 to 7  := 7;  --ring buffer size:  0, 1, 2,  3,  7   --> change names in constraints file
-                                                                  --ring buffer size: 32,64,96,128,dyn
+  constant RING_BUFFER_SIZE        : integer range 0 to 7  := 7;  --ring buffer size
+  -- mode:  0,  1,  2,   3,   7
+  -- size: 32, 64, 96, 128, dyn
+  constant TDC_DATA_FORMAT         : integer range 0 to 15 := 0;  --type of data format for the TDC
+  --  0: Single fine time as the sum of the two transitions
+  --  1: Double fine time, individual transitions
+  -- 13: Debug - single fine time and the chain for the 0x3ff hits
+  -- 14: Debug - single fine time and the ROM addresses for the two transitions
+  -- 15: Debug - complete carry chain dump
 
   constant EVENT_BUFFER_SIZE       : integer range 9 to 13 := 13; -- size of the event buffer, 2**N
   constant EVENT_MAX_SIZE          : integer := 4096;             --maximum event size. Should not exceed EVENT_BUFFER_SIZE/2
@@ -28,7 +35,7 @@ package config is
   constant INCLUDE_SPI : integer := c_NO;  --there is no spi connector on the addon
 
 --Add logic to generate configurable trigger signal from input signals.
-  constant INCLUDE_TRIGGER_LOGIC : integer := c_NO;
+  constant INCLUDE_TRIGGER_LOGIC : integer := c_YES;
   constant INCLUDE_STATISTICS    : integer := c_YES;  --Do histos of all inputs
   constant PHYSICAL_INPUTS       : integer := 24;  --number of inputs connected
   constant USE_SINGLE_FIFO       : integer := c_YES;  -- single fifo for statistics

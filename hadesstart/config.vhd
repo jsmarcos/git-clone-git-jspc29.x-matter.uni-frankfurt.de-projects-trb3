@@ -5,17 +5,28 @@ use work.trb_net_std.all;
 
 package config is
 
-
 ------------------------------------------------------------------------------
 --Begin of design configuration
 ------------------------------------------------------------------------------
 
 --TDC settings
-  constant NUM_TDC_CHANNELS        : integer range 1 to 65   := 5;
-  constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6    := 5;  --the nearest power of two, for convenience reasons 
-  constant USE_DOUBLE_EDGE         : integer                 := c_YES;
-  constant RING_BUFFER_SIZE        : integer range 0 to 7    := 0;  --ring buffer size:  0, 1, 2,  3
-                                                                    --ring buffer size: 32,64,96,128
+  constant NUM_TDC_MODULES         : integer range 1 to 4  := 1;  -- number of tdc modules to implement
+  constant NUM_TDC_CHANNELS        : integer range 1 to 65 := 5;  -- number of tdc channels per module
+  constant NUM_TDC_CHANNELS_POWER2 : integer range 0 to 6  := 5;  --the nearest power of two, for convenience reasons 
+  constant DOUBLE_EDGE_TYPE        : integer range 0 to 3  := 2;  --double edge type:  0, 1, 2,  3
+  -- 0: single edge only,
+  -- 1: same channel,
+  -- 2: alternating channels,
+  -- 3: same channel with stretcher
+  constant RING_BUFFER_SIZE        : integer range 0 to 7  := 0;  --ring buffer size
+  -- mode:  0,  1,  2,   3,   7
+  -- size: 32, 64, 96, 128, dyn
+  constant TDC_DATA_FORMAT         : integer range 0 to 15 := 0;  --type of data format for the TDC
+  --  0: Single fine time as the sum of the two transitions
+  --  1: Double fine time, individual transitions
+  -- 13: Debug - single fine time and the chain for the 0x3ff hits
+  -- 14: Debug - single fine time and the ROM addresses for the two transitions
+  -- 15: Debug - complete carry chain dump
 
 --use only every fourth input as in HPTDC high precision mode
   constant USE_HPTDC_FASTMODE_PINOUT : integer    := c_YES;
@@ -73,8 +84,10 @@ begin
   t               := (others => '0');
   t(63 downto 56) := std_logic_vector(to_unsigned(2,8)); --table version 2
   t(7 downto 0)   := std_logic_vector(to_unsigned(USE_HPTDC_FASTMODE_PINOUT*3,8));
-  t(11 downto 8)  := std_logic_vector(to_unsigned(USE_DOUBLE_EDGE*2,4));
+  t(11 downto 8)  := std_logic_vector(to_unsigned(DOUBLE_EDGE_TYPE,4));
+  t(14 downto 12) := std_logic_vector(to_unsigned(RING_BUFFER_SIZE,3));
   t(15)           := '1'; --TDC
+  t(17 downto 16) := std_logic_vector(to_unsigned(NUM_TDC_MODULES-1,2));
   t(42 downto 42) := std_logic_vector(to_unsigned(INCLUDE_SPI,1));
   t(44 downto 44) := std_logic_vector(to_unsigned(INCLUDE_STATISTICS,1));
   t(51 downto 48) := std_logic_vector(to_unsigned(INCLUDE_TRIGGER_LOGIC,4));
