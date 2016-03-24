@@ -8,69 +8,15 @@ use Term::ANSIColor qw(:constants);
 use Cwd;
 
 ###################################################################################
-#Options for the script
-my $help = "";
-my $isMultiPar  = 0;   # set it to zero for single par run on the local machine
-my $nrNodes     = 0;   # set it to one for single par run on the local machine
-my $all         = 1;
-my $syn         = 0;
-my $map         = 0;
-my $par         = 0;
-my $timing      = 0;
-my $bitgen      = 0;
-my $con         = 0;
-my $guidefile   = 0;
-my $compile_all = 0;
-my $design      = "";
-my $result = GetOptions (
-			 "h|help"     => \$help,
-			 "m|mpar=i"   => \$nrNodes,
-			 "a|all"      => \$all,
-			 "c|con"      => \$con,
-			 "s|syn"      => \$syn,
-			 "mp|map"     => \$map,
-			 "p|par"      => \$par,
-			 "t|timing"   => \$timing,
-			 "b|bitgen"   => \$bitgen,
-			 "g|guide"    => \$guidefile,
-			 "d|design=s" => \$design,
-			);
-
-if ($help) {
-  print "Usage: compile_priph_gsi.de <OPTIONS><ARGUMENTS>\n\n";
-  print "-h  --help\tPrints the usage manual.\n";
-  print "-a  --all\tRun all compile script. By default the script is going to run the whole process.\n";
-  print "-c  --con\tCompile constraints only.\n";
-  print "-s  --syn\tRun synthesis part of the compile script.\n";
-  print "-mp --map\tRun map part of the compile script.\n";
-  print "-p  --par\tRun par part of the compile script.\n";
-  print "-t  --timing\tRun timing analysis part of the compile script.\n";
-  print "-b  --bitgen\tRun bit generation part of the compile script.\n";
-  print "-m  --mpar\tSwitch for multi par. \"-m <number_of_nodes>\" (Default = off).\n";
-  print "\t\tThe node list file name has to be edited in the script. (Default = nodes_lxhadeb07.txt).\n";
-  print "-g  --guide\tDefine guide file for the guided placement & routing.\n";
-  print "-d  --design\tSelect the design to compile. Overrides the TOPNAME option in config_compile.pl.\n";
-  print "\t\t-d <DESIGN_TOPNAME>\n";
-  print "\t\tDESIGN_TOPNAME: 32PinAddOn, ADA_Addon, gpin, wasa, hadesstart, hub, cts, cbmtof\n";
-  print "\n";
-  exit;
-}
-
-if ($nrNodes!=0) {
-  $isMultiPar=1;
-}
-if ($con!=0 || $syn!=0 || $map!=0 || $par!=0 || $timing!=0 || $bitgen!=0) {
-  $all=0;
-}
-###################################################################################
-
-###################################################################################
 #Settings for this project
+my $FAMILYNAME="LatticeECP3";
+my $DEVICENAME="LFE3-150EA";
+my $PACKAGE="FPBGA1156";
+my $SPEEDGRADE="8";
+
 my %config = do "config_compile.pl";
 
-
-my $TOPNAME                      = $design || $config{TOPNAME};
-my $project_path                 = $config{project_path};
+my $TOPNAME                      = $config{TOPNAME};
 my $lattice_path                 = $config{lattice_path};
 my $synplify_path                = $config{synplify_path}; 
 my $lm_license_file_for_synplify = $config{lm_license_file_for_synplify};
@@ -86,49 +32,76 @@ my $include_GBE                  = $config{include_GBE} || 0;
 my $include_CTS                  = $config{include_CTS} || 0;
 my $include_HUB                  = $config{include_HUB} || 0;
 my $twr_number_of_errors         = $config{twr_number_of_errors} || 10;
-#my $pinout_file                  = $config{pinout_file} || $TOPNAME;
-my $nodelist_file                = $config{nodelist_file};
+my $pinout_file                  = $config{pinout_file} || $TOPNAME;
+my $nodelist_file                = $config{nodelist_file} || 'nodelist.txt';
 my $par_options                  = $config{par_options};
+
+$FAMILYNAME = $config{Familyname} if $config{Familyname};
+$DEVICENAME = $config{Devicename} if $config{Devicename};
+$PACKAGE    = $config{Package} if $config{Package};
+$SPEEDGRADE = $config{Speedgrade} if $config{Speedgrade};
 ###################################################################################
 
+###################################################################################
+#Options for the script
+my $help = "";
+my $isMultiPar  = 0;   # set it to zero for single par run on the local machine
+my $nrNodes     = 0;   # set it to one for single par run on the local machine
+my $all         = 1;
+my $syn         = 0;
+my $map         = 0;
+my $par         = 0;
+my $timing      = 0;
+my $bitgen      = 0;
+my $con         = 0;
+my $guidefile   = 0;
+my $compile_all = 0;
+my $result = GetOptions (
+			 "h|help"     => \$help,
+			 "m|mpar=i"   => \$nrNodes,
+			 "a|all"      => \$all,
+			 "c|con"      => \$con,
+			 "s|syn"      => \$syn,
+			 "mp|map"     => \$map,
+			 "p|par"      => \$par,
+			 "t|timing"   => \$timing,
+			 "b|bitgen"   => \$bitgen,
+			 "g|guide"    => \$guidefile,
+			);
+
+if ($help) {
+  print "Usage: compile_priph_gsi.de <OPTIONS><ARGUMENTS>\n\n";
+  print "-h  --help\tPrints the usage manual.\n";
+  print "-a  --all\tRun all compile script. By default the script is going to run the whole process.\n";
+  print "-c  --con\tCompile constraints only.\n";
+  print "-s  --syn\tRun synthesis part of the compile script.\n";
+  print "-mp --map\tRun map part of the compile script.\n";
+  print "-p  --par\tRun par part of the compile script.\n";
+  print "-t  --timing\tRun timing analysis part of the compile script.\n";
+  print "-b  --bitgen\tRun bit generation part of the compile script.\n";
+  print "-m  --mpar\tSwitch for multi par. \"-m <number_of_nodes>\" (Default = off).\n";
+  print "\t\tThe node list file name has to be edited in the script. (Default = nodes_lxhadeb07.txt).\n";
+  print "-g  --guide\tDefine guide file for the guided placement & routing.\n";
+  print "\n";
+  exit;
+}
+
+if ($nrNodes!=0) {
+  $isMultiPar=1;
+}
+if ($con!=0 || $syn!=0 || $map!=0 || $par!=0 || $timing!=0 || $bitgen!=0) {
+  $all=0;
+}
+###################################################################################
 
 # source the standard lattice environment
 $ENV{bindir}="$lattice_bin_path";
 
-#open my $SOURCE, "bash -c '. $lattice_bin_path/diamond_env >& /dev/null; env'|" or
-#  die "Can't fork: $!";
-#while (<$SOURCE>) {
-#  if (/^(.*)=(.*)/) {
-#    $ENV{$1} = ${2} ;
-#  }
-#}
-#close $SOURCE;
-
-
-my %FPGA=(
-    trb3_periph_32PinAddOn =>{family=>"LatticeECP3", device=>"LFE3-150EA", speed=>"8", package=>"FPBGA672",  path=>"32PinAddOn"},
-    trb3_periph_ADA        =>{family=>"LatticeECP3", device=>"LFE3-150EA", speed=>"8", package=>"FPBGA672",  path=>"ADA_Addon"},
-    trb3_periph_gpin       =>{family=>"LatticeECP3", device=>"LFE3-150EA", speed=>"8", package=>"FPBGA672",  path=>"gpin"},
-    trb3_periph_padiwa     =>{family=>"LatticeECP3", device=>"LFE3-150EA", speed=>"8", package=>"FPBGA672",  path=>"wasa"},
-    trb3_periph_hadesstart =>{family=>"LatticeECP3", device=>"LFE3-150EA", speed=>"8", package=>"FPBGA672",  path=>"hadesstart"},
-    trb3_periph_hub        =>{family=>"LatticeECP3", device=>"LFE3-150EA", speed=>"8", package=>"FPBGA672",  path=>"hub"},
-    trb3_central_cts       =>{family=>"LatticeECP3", device=>"LFE3-150EA", speed=>"8", package=>"FPBGA1156", path=>"cts"},
-    cbmtof                 =>{family=>"LatticeECP3", device=>"LFE3-150EA", speed=>"8", package=>"FPBGA672",  path=>"cbmtof"},
-#   trb3sc                 =>{family=>"LatticeECP3", device=>"LFE3-150EA", speed=>"8", package=>"FPBGA1156", path=>"../trb3sc/tdctemplate"},
-#   dirich                 =>{family=>"ECP5UM",      device=>"LFE5UM-85F", speed=>"8", package=>"BG381C",    path=>"../dirich/dirich"},
-    );
 
 compile();
 
 
 sub compile {
-  unless (defined $FPGA{$TOPNAME}) {
-    print RED, "Project $TOPNAME is not defined. Please edit the FPGA details in the compile script.\n", RESET;
-    exit 129;
-  }
-  if ($design) {
-    $project_path = $FPGA{$TOPNAME}{path};
-  }
 
   $ENV{'PAR_DESIGN_NAME'}=$TOPNAME;
   $ENV{'SYNPLIFY'}=$synplify_path;
@@ -137,21 +110,11 @@ sub compile {
   $ENV{'LM_LICENSE_FILE'}=$lm_license_file_for_synplify;
   $ENV{'SYNPLIFY_BINARY'}=$config{synplify_binary};
 
-  my $FAMILYNAME= $FPGA{$TOPNAME}{family};
-  my $DEVICENAME= $FPGA{$TOPNAME}{device};
-  my $SPEEDGRADE= $FPGA{$TOPNAME}{speed};
-  my $PACKAGE= $FPGA{$TOPNAME}{package};
-
-  unless(-d "../$project_path") {
-    print "Project path does not exit.\n";
-    exit 129;
-  }
-  chdir "../$project_path";
   my $cwd = getcwd();
   my $WORKDIR = "workdir";
   unless(-d $WORKDIR) {
     mkdir $WORKDIR or die "can't create workdir '$WORKDIR': $!";
-    system("cd $WORKDIR; ../../base/linkdesignfiles.sh; cd ..");
+    system("cd $WORKDIR; ../../../trb3/base/linkdesignfiles.sh; cd ..");
   }
 
   system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");
@@ -162,13 +125,22 @@ sub compile {
     #create full lpf file
     my $pinout_file                  = $config{pinout_file} || $TOPNAME;
     print GREEN, "Generating constraints file...\n\n", RESET;
-    system("cp ../base/$pinout_file.lpf $WORKDIR/$TOPNAME.lpf");
+    if ($TOPNAME =~ /trb3/) {
+      system("cp ../base/$pinout_file.lpf $WORKDIR/$TOPNAME.lpf");
+    }
+    else {
+      system("cp ../pinout/$pinout_file.lpf $WORKDIR/$TOPNAME.lpf");
+    }
 
     if ($include_TDC && $include_CTS==0) {
       system("cat tdc_release/trbnet_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
       system("cat tdc_release/tdc_constraints_64.lpf >> $WORKDIR/$TOPNAME.lpf");
       system("cat tdc_release/unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
       system("cat unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+
+      #copy delay line to project folder
+      system("rm $WORKDIR/Adder_304.ngo");
+      system("ln -s ../../../tdc/base/cores/ecp3/TDC/Adder_304.ngo $WORKDIR/Adder_304.ngo");
 
       #change the Ring buffer name in the constraints file according to the config.vhd
       my $fh = new FileHandle("<config.vhd");
@@ -231,14 +203,8 @@ sub compile {
     my $config_vhd                   = 'config_mainz_a2.vhd';
     system("ln -f -s $config_vhd config.vhd") unless (-e "config.vhd");
     system("./compile_constraints.pl");
-    system("cp ../base/mulipar_nodelist_example.txt $WORKDIR/nodelist.txt") unless (-e "$WORKDIR/nodelist.txt");
+    system("cp ../../trb3/base/mulipar_nodelist_example.txt $WORKDIR/nodelist.txt") unless (-e "$WORKDIR/nodelist.txt");
     symlink($CbmNetPath, '../cbmnet/cbmnet') unless (-e '../cbmnet/cbmnet');
-  }
-
-  if ($include_TDC) {
-    #copy delay line to project folder
-    system("rm $WORKDIR/Adder_304.ngo");
-    system("ln -s ../../../tdc/base/cores/ecp3/TDC/Adder_304.ngo $WORKDIR/Adder_304.ngo");
   }
 
   if ($guidefile &&  -f "$TOPNAME.ncd") {
@@ -278,6 +244,28 @@ EOF
 
   chdir $WORKDIR;
   if ($syn==1 || $all==1) {
+    if ($include_TDC) { ## edit prj file for different designs
+      my %configSettings = ();
+      open(CONFIG, '../config.vhd');
+      my $config = "#!!! This file was compiled using compile_contraints.pl.\n#!!! DO NOT EDIT AS ALL CHANGES WILL BE OVERRIDEN\n\n";
+      print "The following module configuration was derived from config.vhd:\n";
+
+      while(my $line = <CONFIG>) {
+	if ($line =~ /(TDC_DATA_FORMAT).*:=\s*(\d+).*;/i) {
+	  my $mod = uc $1;
+	  my $type = $2;
+	  $configSettings{$mod} = $type;
+	  my $conf = "set $mod $type\n";
+	  print ' ' . $conf;
+	  $config .= $conf;
+	}
+      }
+      close(CONFIG);
+      open TCLCONF, '>', $TOPNAME . '_prjconfig.tcl';
+      print TCLCONF $config;
+      close TCLCONF;
+    }
+
     print GREEN, "Starting synthesis process...\n\n", RESET;
     $c="$synplify_path/bin/synplify_premier_dp -batch ../$TOPNAME.prj";
     $r=execute($c, "do_not_exit" );
