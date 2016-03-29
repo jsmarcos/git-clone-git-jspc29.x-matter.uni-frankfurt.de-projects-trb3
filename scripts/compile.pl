@@ -120,24 +120,25 @@ system("ln -sfT $lattice_path $WORKDIR/lattice-diamond");
 print GREEN, "Compiling $TOPNAME project in $cwd/$WORKDIR...\n\n", RESET;
 
 if ($con==1 || $all==1) {
-  #create full lpf file
+  #create full lpf file and copy delay line to project folder
   my $pinout_file                  = $config{pinout_file} || $TOPNAME;
   print GREEN, "Generating constraints file...\n\n", RESET;
-  if ($TOPNAME =~ /trb3/) {
-    system("cp ../base/$pinout_file.lpf $WORKDIR/$TOPNAME.lpf");
-  } else {
-    system("cp ../pinout/$pinout_file.lpf $WORKDIR/$TOPNAME.lpf");
-  }
+  system("cp ../pinout/$pinout_file.lpf $WORKDIR/$TOPNAME.lpf");
+  system("unlink $WORKDIR/Adder_304.ngo");
 
   if ($include_TDC && $include_CTS==0) {
-    system("cat tdc_release/trbnet_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
-    system("cat tdc_release/tdc_constraints_64.lpf >> $WORKDIR/$TOPNAME.lpf");
-    system("cat tdc_release/unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+    if ($TOPNAME =~ /dirich/) {
+      system("cat tdc_release/dirich_trbnet_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+      system("cat tdc_release/dirich_tdc_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+      system("ln -s ../../../tdc/base/cores/ecp5/TDC/Adder_304.ngo $WORKDIR/Adder_304.ngo");
+    } else {
+      system("cat tdc_release/trbnet_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+      system("cat tdc_release/tdc_constraints_64.lpf >> $WORKDIR/$TOPNAME.lpf");
+      system("cat tdc_release/unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+      system("ln -s ../../../tdc/base/cores/ecp3/TDC/Adder_304.ngo $WORKDIR/Adder_304.ngo");
+    }
     system("cat unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
 
-    #copy delay line to project folder
-    system("rm $WORKDIR/Adder_304.ngo");
-    system("ln -s ../../../tdc/base/cores/ecp3/TDC/Adder_304.ngo $WORKDIR/Adder_304.ngo");
 
     #edit the lpf file according to tdc settings
     system("unlink $WORKDIR/compile_tdc.pl");
