@@ -202,7 +202,8 @@ if ($syn==1 || $all==1) {
   system ("./compile_tdc.pl", $WORKDIR, $TOPNAME, "prj") if ($include_TDC); ## edit prj file for different designs
 
   print GREEN, "Starting synthesis process...\n\n", RESET;
-  $c="$synplify_path/bin/synplify_premier_dp -batch ../$TOPNAME.prj";
+  $synplify_command = "$synplify_path/bin/synplify_premier_dp -batch ../$TOPNAME.prj" unless $synplify_command;
+  $c="$synplify_command -batch ../$TOPNAME.prj";
   $r=execute($c, "do_not_exit" );
 
   $fh = new FileHandle("<$TOPNAME".".srr");
