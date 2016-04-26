@@ -68,7 +68,7 @@ signal ram_debug_read    : std_logic_vector(CHANNELS-1 downto 0) := (others => '
 signal ram_clear         : std_logic_vector(CHANNELS-1 downto 0) := (others => '0');
 signal ram_reset         : std_logic := '0';
 signal ram_data_in       : unsigned_array_18(0 to CHANNELS-1) := (others => (others => '0'));
-signal ram_data_out      : unsigned_array_18(0 to CHANNELS-1) := (others => (others => '0'));
+signal ram_data_out      : unsigned_array_18(0 to CHANNELS-1); -- := (others => (others => '0'));
 signal reg_ram_data_out  : unsigned_array_18(0 to CHANNELS-1) := (others => (others => '0'));
 signal reg_buffer_addr   : std_logic_vector(4 downto 0);
 signal reg_buffer_read   : std_logic;
