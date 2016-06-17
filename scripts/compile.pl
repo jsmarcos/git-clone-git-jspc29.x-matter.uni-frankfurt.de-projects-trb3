@@ -34,7 +34,7 @@ my $include_HUB          = $config{include_HUB} || 0;
 my $twr_number_of_errors = $config{twr_number_of_errors} || 10;
 my $pinout_file          = $config{pinout_file} || $TOPNAME;
 my $nodelist_file        = $config{nodelist_file} || 'nodelist.txt';
-my $par_options          = $config{par_options};
+my $par_options          = $config{par_options} || "";
 
 $FAMILYNAME = $config{Familyname} if $config{Familyname};
 $DEVICENAME = $config{Devicename} if $config{Devicename};
@@ -124,25 +124,28 @@ if ($con==1 || $all==1) {
   my $pinout_file                  = $config{pinout_file} || $TOPNAME;
   print GREEN, "Generating constraints file...\n\n", RESET;
   system("cp ../pinout/$pinout_file.lpf $WORKDIR/$TOPNAME.lpf");
-  system("unlink $WORKDIR/Adder_304.ngo");
+  system("cat ../pinout/basic_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
+  system("cat $TOPNAME.lpf >> $WORKDIR/$TOPNAME.lpf");
+
+  
+  #system("unlink $WORKDIR/Adder_304.ngo");
 
   if ($include_TDC && $include_CTS==0) {
     if ($TOPNAME =~ /dirich/) {
       system("cat tdc_release/dirich_trbnet_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
       system("cat tdc_release/dirich_tdc_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
-      system("ln -s ../../../tdc/base/cores/ecp5/TDC/Adder_304.ngo $WORKDIR/Adder_304.ngo");
+      system("ln -s $cwd/../../tdc/base/cores/ecp5/TDC/Adder_304.ngo $WORKDIR/Adder_304.ngo");
     } else {
       system("cat tdc_release/trbnet_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
       system("cat tdc_release/tdc_constraints_64.lpf >> $WORKDIR/$TOPNAME.lpf");
       system("cat tdc_release/unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
-      system("ln -s ../../../tdc/base/cores/ecp3/TDC/Adder_304.ngo $WORKDIR/Adder_304.ngo");
+      system("ln -s $cwd/../../tdc/base/cores/ecp3/TDC/Adder_304.ngo $WORKDIR/Adder_304.ngo");
     }
     system("cat unimportant_lines_constraints.lpf >> $WORKDIR/$TOPNAME.lpf");
 
-
     #edit the lpf file according to tdc settings
     system("unlink $WORKDIR/compile_tdc.pl");
-    system("ln -s ../../../tdc/scripts/compile_tdc.pl $WORKDIR/");
+    system("ln -s $cwd/../../tdc/scripts/compile_tdc.pl $WORKDIR/");
     system ("./$WORKDIR/compile_tdc.pl", $WORKDIR, $TOPNAME, "config");
   }
 
@@ -169,7 +172,6 @@ if ($guidefile &&  -f "$TOPNAME.ncd") {
 } else {
   $guidefile = "";
 }
-
 
 #generate timestamp
 my $t=time;
@@ -203,7 +205,7 @@ if ($syn==1 || $all==1) {
   system ("./compile_tdc.pl", $WORKDIR, $TOPNAME, "prj") if ($include_TDC); ## edit prj file for different designs
 
   print GREEN, "Starting synthesis process...\n\n", RESET;
-  $synplify_command = "$synplify_path/bin/synplify_premier_dp -batch ../$TOPNAME.prj" unless $synplify_command;
+  $synplify_command = "$synplify_path/bin/synplify_premier_dp" unless $synplify_command;
   $c="$synplify_command -batch ../$TOPNAME.prj";
   $r=execute($c, "do_not_exit" );
 
