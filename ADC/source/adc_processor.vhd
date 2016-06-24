@@ -358,8 +358,8 @@ end generate;
 gen_baselines : for i in 0 to CHANNELS-1 generate
   proc_baseline_calc : process begin
     wait until rising_edge(CLK);
-    if baseline_reset = '1' then
-      baseline_averages(i) <= CONF.baseline_reset_value;
+    if baseline_reset = '1' or CONF.baseline_reset_value(31) = '1' then
+      baseline_averages(i) <= "00" & CONF.baseline_reset_value(29 downto 0);
     elsif reg2_ram_remove = '1' and (reg_ram_data_out(i)(17) = '0' or CONF.baseline_always_on = '1') then
       baseline_averages(i) <= baseline_averages(i) 
                               + resize(reg_ram_data_out(i)(15 downto 0),32) 
@@ -380,8 +380,8 @@ gen_triggers : for i in 0 to CHANNELS-1 generate
   proc_trigger : process begin
     wait until rising_edge(CLK);
     if ram_write = '1' then
-      if   (ram_data_in(i)(15 downto 0) > baseline(i) + CONF.trigger_threshold(15 downto 0) and CONF.trigger_threshold(16) = '0') 
-        or (ram_data_in(i)(15 downto 0) < baseline(i) + CONF.trigger_threshold(15 downto 0) and CONF.trigger_threshold(16) = '1') then
+      if   (ram_data_in(i)(15 downto 0) > unsigned(signed(baseline(i)) + CONF.trigger_threshold(15 downto 0)) and CONF.trigger_threshold(16) = '0') 
+        or (ram_data_in(i)(15 downto 0) < unsigned(signed(baseline(i)) + CONF.trigger_threshold(15 downto 0)) and CONF.trigger_threshold(16) = '1') then
         trigger_gen(i) <= '1';
       else  
         trigger_gen(i) <= '0';
@@ -411,8 +411,8 @@ gen_rdo_thresh : for i in 0 to CHANNELS-1 generate
       readout_flag(i) <= '0';
     end if;
     
-    if  (ram_data_in(i)(15 downto 0) > baseline(i) + CONF.readout_threshold(15 downto 0) and CONF.readout_threshold(16) = '0') 
-        or (ram_data_in(i)(15 downto 0) < baseline(i) + CONF.readout_threshold(15 downto 0) and CONF.readout_threshold(16) = '1') then
+    if     (ram_data_in(i)(15 downto 0) > unsigned(signed(baseline(i)) + CONF.readout_threshold(15 downto 0)) and CONF.readout_threshold(16) = '0') 
+        or (ram_data_in(i)(15 downto 0) < unsigned(signed(baseline(i)) + CONF.readout_threshold(15 downto 0)) and CONF.readout_threshold(16) = '1') then
       reset_threshold_counter(i) <= '1';
     else
       reset_threshold_counter(i) <= '0';   

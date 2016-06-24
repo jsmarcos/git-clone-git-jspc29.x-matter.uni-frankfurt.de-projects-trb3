@@ -29,14 +29,15 @@ type cfg_t is record
   buffer_depth      : unsigned(10 downto 0);
   samples_after     : unsigned(10 downto 0);
   block_count       : unsigned( 1 downto 0);
-  trigger_threshold : unsigned(17 downto 0);
-  readout_threshold : unsigned(17 downto 0);
+  trigger_threshold : signed  (17 downto 0);
+  readout_threshold : signed  (17 downto 0);
   presum            : unsigned( 7 downto 0);
   averaging         : unsigned( 3 downto 0);
   trigger_enable    : std_logic_vector(47 downto 0);
   channel_disable   : std_logic_vector(47 downto 0);
   baseline_always_on: std_logic;
   baseline_reset_value : unsigned(31 downto 0);
+  baseline_fix_value : unsigned(31 downto 0);
   block_avg         : unsigned_array_8(0 to 3);
   block_sums        : unsigned_array_8(0 to 3);
   block_scale       : unsigned_array_8(0 to 3);

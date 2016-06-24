@@ -63,12 +63,12 @@ signal lock            : std_logic_vector(1 downto 0);
 
 begin
 
-  THE_ADC_REF : entity work.pll_in200_out40
-    port map(
-      CLK   => CLK_ADCRAW,
-      CLKOP => ADCCLK_OUT,
-      LOCK  => lock(0)
-      );
+--   THE_ADC_REF : entity work.pll_in240_out40
+--     port map(
+--       CLK   => CLK_ADCRAW,
+--       CLKOP => ADCCLK_OUT,
+--       LOCK  => lock(0)
+--       );
 
   THE_ADC_PLL_0 : entity work.pll_adc10bit
     port map(

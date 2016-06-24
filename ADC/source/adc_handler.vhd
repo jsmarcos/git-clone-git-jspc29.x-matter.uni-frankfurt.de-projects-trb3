@@ -11,7 +11,8 @@ entity adc_handler is
   port(
     CLK        : in std_logic;
     CLK_ADCRAW : in std_logic;
-
+    CLK_RAW_LEFT : in std_logic;
+    CLK_RAW_RIGHT : in std_logic;
 --ADC
     ADCCLK_OUT : out std_logic; 
     ADC_DATA   : in  std_logic_vector((DEVICES_1+DEVICES_2)*(CHANNELS+1)-1 downto 0);
@@ -115,7 +116,7 @@ THE_ADC_LEFT : entity work.adc_ad9219
     )
   port map(
     CLK         => CLK,
-    CLK_ADCRAW  => CLK_ADCRAW,
+    CLK_ADCRAW  => CLK_RAW_LEFT,
     RESTART_IN  => adc_restart,
     ADCCLK_OUT  => ADCCLK_OUT,
         --FCO is another channel for each ADC    
@@ -154,7 +155,7 @@ THE_ADC_RIGHT : entity work.adc_ad9219
     )
   port map(
     CLK         => CLK,
-    CLK_ADCRAW  => CLK_ADCRAW,
+    CLK_ADCRAW  => CLK_RAW_RIGHT,
     RESTART_IN  => adc_restart,
     ADCCLK_OUT  => open,
         --FCO is another channel for each ADC    
@@ -266,7 +267,9 @@ PROC_BUS : process begin
                        BUS_TX.data(31)                        <= config.check_word_enable;
         when x"1a" =>  BUS_TX.data(31 downto 0) <=  config.channel_disable(31 downto  0);
         when x"1b" =>  BUS_TX.data(15 downto 0) <=  config.channel_disable(47 downto 32);
-        when x"1c" =>  BUS_TX.data(1 downto 0) <= std_logic_vector(to_unsigned(config.processing_mode,2));
+        when x"1c" =>  BUS_TX.data(1 downto 0)  <= std_logic_vector(to_unsigned(config.processing_mode,2));
+        when x"1d" =>  BUS_TX.data <= (others => '0');
+        when x"1e" =>  BUS_TX.data              <= std_logic_vector(config.baseline_fix_value);
         when others => BUS_TX.ack <= '0'; BUS_TX.unknown <= '1';
       end case;
     elsif BUS_RX.addr >= x"0020" and BUS_RX.addr <= x"002f" then      
@@ -306,7 +309,7 @@ PROC_BUS : process begin
         when x"10" =>   config.buffer_depth       <= unsigned(BUS_RX.data(10 downto 0));
         when x"11" =>   config.samples_after      <= unsigned(BUS_RX.data(10 downto 0));
         when x"12" =>   config.block_count        <= unsigned(BUS_RX.data( 1 downto 0));
-        when x"13" =>   config.trigger_threshold  <= unsigned(BUS_RX.data(17 downto 0));
+        when x"13" =>   config.trigger_threshold  <= signed(BUS_RX.data(17 downto 0));
         when x"14" =>   config.readout_threshold  <= unsigned(BUS_RX.data(17 downto 0));
         when x"15" =>   config.presum             <= unsigned(BUS_RX.data( 7 downto 0));
         when x"16" =>   config.averaging          <= unsigned(BUS_RX.data( 3 downto 0));
@@ -318,6 +321,7 @@ PROC_BUS : process begin
         when x"1a" =>   config.channel_disable(31 downto  0) <=  BUS_RX.data(31 downto 0);
         when x"1b" =>   config.channel_disable(47 downto 32) <=  BUS_RX.data(15 downto 0);
         when x"1c" =>   config.processing_mode <= to_integer(unsigned(BUS_RX.data(1 downto 0)));
+        when x"1e" =>   config.baseline_fix_value <= unsigned(BUS_RX.data);
         when others => BUS_TX.ack <= '0'; BUS_TX.unknown <= '1';        
       end case;
     elsif BUS_RX.addr >= x"0020" and BUS_RX.addr <= x"002f" then      
@@ -358,8 +362,13 @@ proc_baseline_reset_value : process begin
   baseline_reset_value(2) <= baseline_reset_value(3);
   baseline_reset_value(1) <= baseline_reset_value(2)(23 downto 0) * resize(config.presum+1,8);
   baseline_reset_value(0) <= baseline_reset_value(1);
+  
+  if config.baseline_fix_value(30) = '0' then
+    config.baseline_reset_value <= baseline_reset_value(0);
+  else
+    config.baseline_reset_value <= config.baseline_fix_value(31) & '0' & config.baseline_fix_value(29 downto 0);
+  end if;
 end process; 
-  config.baseline_reset_value <= baseline_reset_value(0);
   
   
 end architecture;
