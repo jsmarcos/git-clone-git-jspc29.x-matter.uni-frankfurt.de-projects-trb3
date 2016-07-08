@@ -689,13 +689,13 @@ THE_MEDIA_ONBOARD : trb_net16_med_ecp3_sfp_4
       FIXED_DELAY               => 100,
 
       NUMBER_OF_GBE_LINKS       => 4,
-      LINKS_ACTIVE              => "1100",
+      LINKS_ACTIVE              => "1000",
 
-      LINK_HAS_READOUT  => "1100",
+      LINK_HAS_READOUT  => "1000",
       LINK_HAS_SLOWCTRL => "1000",
-      LINK_HAS_DHCP     => "1100",
-      LINK_HAS_ARP      => "1100",
-      LINK_HAS_PING     => "1100"
+      LINK_HAS_DHCP     => "1000",
+      LINK_HAS_ARP      => "1000",
+      LINK_HAS_PING     => "1000"
       
       )
     port map(

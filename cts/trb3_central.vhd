@@ -2011,22 +2011,22 @@ begin
 ---------------------------------------------------------------------------
 -- Debugging UART
 --------------------------------------------------------------------------- 
-  THE_DEBUG : entity work.debuguart
-    port map(
-      CLK => clk_100_i,
-      RESET => reset_i, 
+--  THE_DEBUG : entity work.debuguart
+--    port map(
+--      CLK => clk_100_i,
+--      RESET => reset_i, 
       
-      RX_IN  => TEST_LINE(30),
-      TX_OUT => TEST_LINE(31),
+--      RX_IN  => TEST_LINE(30),
+--      TX_OUT => TEST_LINE(31),
       
-      DEBUG_ACTIVE  => debug_active,
+--      DEBUG_ACTIVE  => debug_active,
     
-      BUS_DEBUG_TX  => bus_debug_tx_in,
-      BUS_DEBUG_RX  => bus_debug_rx_out,
+--      BUS_DEBUG_TX  => bus_debug_tx_in,
+--      BUS_DEBUG_RX  => bus_debug_rx_out,
       
-      STATUS => open
+--      STATUS => open
       
-      );  
+--      );  
 
   handler_addr     <= bus_debug_rx_out.addr  when debug_active = '1' else regio_addr_out;
   handler_data_out <= bus_debug_rx_out.data  when debug_active = '1' else regio_data_out;

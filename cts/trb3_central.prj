@@ -87,7 +87,7 @@ add_file -vhdl -lib work "../base/code/trigger_clock_manager.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe_trb/base/trb_net_gbe_protocols.vhd"
 add_file -vhdl -lib work "../../trbnet/gbe_trb/base/trb_net_gbe_components.vhd"
 
-add_file -vhdl -lib work "../../trb3sc/code/debuguart.vhd"
+#add_file -vhdl -lib work "../../trb3sc/code/debuguart.vhd"
 add_file -vhdl -lib work "../../trbnet/special/uart.vhd"
 add_file -vhdl -lib work "../../trbnet/special/uart_rec.vhd"
 add_file -vhdl -lib work "../../trbnet/special/uart_trans.vhd"
