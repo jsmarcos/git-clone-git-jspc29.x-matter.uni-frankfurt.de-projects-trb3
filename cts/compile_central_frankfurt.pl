@@ -13,11 +13,11 @@ use Cwd 'abs_path';
 my $TOPNAME                      = "trb3_central";  #Name of top-level entity
 my $BasePath                     = "../base/";     #path to "base" directory
 my $CbmNetPath                   = "../../cbmnet";
-my $lm_license_file_for_synplify = "1702\@hadeb05.gsi.de"; #"27000\@lxcad01.gsi.de";
+my $lm_license_file_for_synplify = "27020\@jspc29"; #"27000\@lxcad01.gsi.de";
 my $lm_license_file_for_par      = "1702\@hadeb05.gsi.de";
 
-my $lattice_path                 = '/d/jspc29/lattice/diamond/3.6_x64';
-my $synplify_path                = '/d/jspc29/lattice/synplify/J-2015.03-SP1/';
+my $lattice_path                 = '/d/jspc29/lattice/diamond/3.7_x64';
+my $synplify_path                = '/d/jspc29/lattice/synplify/K-2015.09/';
 ###################################################################################
 
 
@@ -69,7 +69,11 @@ system("env| grep LM_");
 my $r = "";
 
 # my $c="$synplify_path/bin/synplify_premier_dp -batch $TOPNAME.prj";
-my $c="$lattice_path/bin/lin64/synpwrap -fg -options -batch $TOPNAME.prj";
+# my $c="$lattice_path/bin/lin64/synpwrap -fg -options -batch $TOPNAME.prj";
+print "Starting synthesis process...\n\n";
+my $synplify_command = "$synplify_path/bin/synplify_premier_dp";
+my $c="$synplify_command -batch $TOPNAME.prj";
+
 $r=execute($c, "do_not_exit" );
 chdir "workdir";
 

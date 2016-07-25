@@ -53,6 +53,7 @@ package cts_pkg is
          EXT_STATUS_IN   : in std_logic_vector(31 downto 0) := X"00000000";
          EXT_CONTROL_OUT : out std_logic_vector(31 downto 0);
          EXT_HEADER_BITS_IN : in std_logic_vector( 1 downto 0) := "00";         
+         EXT_FORCE_TRIGGER_INFO_IN : in std_logic_vector(23 downto 0) := (others => '0');
 
 
    -- CTS Endpoint -----------------------------------------------------------

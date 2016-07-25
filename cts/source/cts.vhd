@@ -6,7 +6,7 @@ library work;
    use work.trb_net_components.all;
    use work.trb_net_std.all;
    use work.CTS_PKG.ALL;
-
+   use work.config.all;
 -- Debug and status registers
 -- Address        Description
 -- <address_table name="cts_register_block" prefix="0xa0">
@@ -144,6 +144,7 @@ entity CTS is
       EXT_STATUS_IN   : in std_logic_vector(31 downto 0) := X"00000000";
       EXT_CONTROL_OUT : out std_logic_vector(31 downto 0);    
       EXT_HEADER_BITS_IN : in std_logic_vector( 1 downto 0) := "00";
+      EXT_FORCE_TRIGGER_INFO_IN : in std_logic_vector(23 downto 0) := (others => '0');
 
   -- CTS Endpoint -----------------------------------------------------------
       --LVL1 trigger
@@ -429,7 +430,11 @@ begin
                
                -- cts
                   CTS_TRG_NUMBER_OUT <= td_trigger_id_i;
-                  CTS_TRG_INFORMATION_OUT    <= trg_information_reg;
+--                   if EXTERNAL_TRIGGER_ID = x"63" then
+                     CTS_TRG_INFORMATION_OUT    <= trg_information_reg or EXT_FORCE_TRIGGER_INFO_IN;
+--                   else
+--                      CTS_TRG_INFORMATION_OUT    <= trg_information_reg;
+--                   end if;
                   CTS_TRG_INFORMATION_OUT(7) <= trigger_type_buf_i(3);
                   CTS_TRG_RND_CODE_OUT <= td_random_number_i; 
                   CTS_TRG_SEND_OUT <= '1';
@@ -687,8 +692,8 @@ begin
    begin
       if rising_edge(CLK) then
          -- sequence (without external entropy) repeats every 256 iterations
-         td_random_number_i <= STD_LOGIC_VECTOR(UNSIGNED(td_random_number_i) + TO_UNSIGNED(113, 8) + UNSIGNED(CTS_REGIO_ADDR_IN(7 downto 0))) 
-            xor ("0" & LVL1_TRG_DATA_VALID_IN & "0" &LVL1_VALID_TIMING_TRG_IN & "0000");
+         td_random_number_i <= STD_LOGIC_VECTOR(UNSIGNED(td_random_number_i) + TO_UNSIGNED(113, 8));-- + UNSIGNED(CTS_REGIO_ADDR_IN(7 downto 0))) 
+            --xor ("0" & LVL1_TRG_DATA_VALID_IN & "0" &LVL1_VALID_TIMING_TRG_IN & "0000");
       end if;
    end process;
    

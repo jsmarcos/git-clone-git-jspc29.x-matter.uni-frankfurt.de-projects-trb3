@@ -54,7 +54,8 @@ entity trb3_central is
 --     TRIGGER_EXT   : inout  std_logic_vector(4 downto 2);  --additional trigger from RJ45
     TRIGGER_OUT   : out std_logic;      --trigger to second input of fan-out
     TRIGGER_OUT2  : out std_logic;
-
+    CLK_TEST_OUT  : out std_logic_vector(1 downto 0); --CLK_EXT_3/4 as output
+    
     --Serdes
     CLK_SERDES_INT_LEFT  : in std_logic;  --Clock Manager 2/0, 200 MHz, only in case of problems
     CLK_SERDES_INT_RIGHT : in std_logic;  --Clock Manager 1/0, off, 125 MHz possible
@@ -564,6 +565,13 @@ architecture trb3_central_arch of trb3_central is
    signal do_reboot_i         : std_logic;
    signal killswitch_reboot_i : std_logic;
 
+   signal cts_ext_bufferwarning : std_logic := '0';  
+   signal cts_ext_discard       : std_logic := '0'; 
+   signal cts_ext_force_trigger_info : std_logic_vector(23 downto 0) := (others => '0');
+   signal last_cts_trg_busy     : std_logic;
+
+   signal mbs_clock_i, mbs_data_i : std_logic;  
+   
    -- cbmnet  
    signal cbm_clk_i           : std_logic;
    signal cbm_reset_i         : std_logic;
@@ -590,6 +598,7 @@ architecture trb3_central_arch of trb3_central is
 begin
   assert not(USE_4_SFP = c_YES and INCLUDE_CBMNET = c_YES) report "CBMNET uses SFPs 1-4 and hence does not support USE_4_SFP" severity failure;
   assert not(INCLUDE_CBMNET = c_YES and INCLUDE_CTS = c_NO) report "CBMNET is supported only with CTS included" severity failure;
+  assert not(INCLUDE_TDC = c_YES and INCLUDE_MBS_MASTER = c_NO) report "TDC and MBS Master can not be implemented" severity failure;
 
 -- MBS Module
   gen_mbs_vulom_as_etm : if ETM_CHOICE = ETM_CHOICE_MBS_VULOM and INCLUDE_CTS = c_YES and INCLUDE_ETM = c_YES generate
@@ -647,6 +656,37 @@ begin
         );
   end generate;
 
+-- Mimosa26 MVD ETM
+   gen_m26_etm : if ETM_CHOICE = ETM_CHOICE_M26 and INCLUDE_CTS = c_YES and INCLUDE_ETM = c_YES generate
+      m26_etm : entity work.m26_sensor_etm
+         port map (
+            CLK               => clk_100_i,
+            RESET_IN          => reset_i,
+            
+            BUSY_IN           => trigger_busy_i,
+            BUFFER_WARNING_IN => cts_ext_bufferwarning,
+            TRIGGER_OUT       => cts_ext_trigger,
+            DISCARD_OUT       => cts_ext_discard,
+            
+            TRIGGER_IN        => cts_rdo_trg_data_valid,
+            DATA_OUT          => cts_rdo_additional(0).data,   
+            WRITE_OUT         => cts_rdo_additional(0).data_write,   
+            FINISHED_OUT      => cts_rdo_additional(0).data_finished,   
+            STATUSBIT_OUT     => cts_rdo_additional(0).statusbits,   
+
+            --Registers / Debug  
+            CONTROL_REG_IN  => cts_ext_control,      
+            STATUS_REG_OUT  => cts_ext_status,      
+            DEBUG           => cts_ext_debug
+         );
+      cts_ext_header <= "10";   
+      cts_ext_force_trigger_info(0) <= cts_ext_discard;
+      cts_ext_force_trigger_info(23 downto 1) <= (others => '0');
+      last_cts_trg_busy <= cts_trg_busy when rising_edge(clk_100_i);
+      cts_ext_bufferwarning <= cts_trg_status_bits(20) when cts_trg_busy = '0' and last_cts_trg_busy = '1';
+   end generate;
+ 
+
 -- CBMNet ETM
   gen_cbmnet_etm : if (ETM_CHOICE = ETM_CHOICE_CBMNET and INCLUDE_CTS = c_YES) or INCLUDE_ETM = c_NO generate
     cts_ext_trigger                     <= cbm_etm_trigger_i;
@@ -691,6 +731,7 @@ begin
         EXT_STATUS_IN      => cts_ext_status,
         EXT_CONTROL_OUT    => cts_ext_control,
         EXT_HEADER_BITS_IN => cts_ext_header,
+        EXT_FORCE_TRIGGER_INFO_IN => cts_ext_force_trigger_info,
 
         PERIPH_TRIGGER_IN => cts_periph_trigger_i,
 
@@ -732,7 +773,9 @@ begin
         FEE_DATA_FINISHED_OUT  => cts_rdo_finished
         );   
 
+gen_trigger_in_nombsmaster : if INCLUDE_MBS_MASTER = c_NO generate      
     cts_addon_triggers_in(1 downto 0) <= CLK_EXT;  -- former trigger inputs
+end generate;    
     cts_addon_triggers_in(3 downto 2) <= TRIGGER_EXT_3 & TRIGGER_EXT_2;  -- former trigger inputs
 
     cts_addon_triggers_in(7 downto 4)   <= ECL_IN;
@@ -782,115 +825,115 @@ begin
     cts_trigger_out <= '0';
   end generate;
 
----------------------------------------------------------------------------
--- CBMNET stack
----------------------------------------------------------------------------   
-  GEN_CBMNET : if INCLUDE_CBMNET = c_YES generate
-    THE_CBM_BRIDGE : cbmnet_bridge
-      port map (
-        -- clock and reset
-        CLK125_IN      => clk_125_i,    -- in std_logic;
-        ASYNC_RESET_IN => clear_i,
-        TRB_CLK_IN     => clk_100_i,    -- in std_logic;
-        TRB_RESET_IN   => reset_i,      -- in std_logic;
-
-        CBM_CLK_OUT   => cbm_clk_i,     -- out std_logic;
-        CBM_RESET_OUT => cbm_reset_i,   -- out std_logic;
-
-        -- Media Interface
-        SD_RXD_P_IN  => SFP_RX_P(5),
-        SD_RXD_N_IN  => SFP_RX_N(5),
-        SD_TXD_P_OUT => SFP_TX_P(5),
-        SD_TXD_N_OUT => SFP_TX_N(5),
-
-        SD_PRSNT_N_IN => SFP_MOD0(1),
-        SD_LOS_IN     => SFP_LOS(1),
-        SD_TXDIS_OUT  => SFP_TXDIS(1),
-
-        LED_RX_OUT => cbm_phy_led_rx_i,
-        LED_TX_OUT => cbm_phy_led_tx_i,
-        LED_OK_OUT => cbm_phy_led_ok_i,
-
-        -- Status and strobes   
-        CBM_LINK_ACTIVE_OUT    => cbm_link_active_i,
-        CBM_DLM_OUT            => cbm_sync_dlm_sensed_i,      -- out std_logic;
-        CBM_TIMING_TRIGGER_OUT => cbm_sync_timing_trigger_i,  -- out std_logic;
-        CBM_SYNC_PULSER_OUT    => cbm_sync_pulser_i,          -- out std_logic;
-
-        -- TRBNet Terminal
-        TRB_TRIGGER_IN             => cts_trigger_out,
-        TRB_RDO_VALID_DATA_TRG_IN  => cts_rdo_trg_data_valid,  -- in  std_logic;
-        TRB_RDO_VALID_NO_TIMING_IN => cts_rdo_valid_notiming_trg,  -- in  std_logic;
-        TRB_RDO_DATA_OUT           => cts_rdo_additional(1).data,  --  out std_logic_vector(31 downto 0);
-        TRB_RDO_WRITE_OUT          => cts_rdo_additional(1).data_write,  --  out std_logic;
-        TRB_RDO_FINISHED_OUT       => cts_rdo_additional(1).data_finished,  --  out std_logic;
-
-        TRB_TRIGGER_OUT => cbm_etm_trigger_i,
-
-        -- connect to hub
-        HUB_CTS_NUMBER_IN            => hub_cts_number,  -- in  std_logic_vector (15 downto 0);
-        HUB_CTS_CODE_IN              => hub_cts_code,  -- in  std_logic_vector (7  downto 0);
-        HUB_CTS_INFORMATION_IN       => hub_cts_information,  -- in  std_logic_vector (7  downto 0);
-        HUB_CTS_READOUT_TYPE_IN      => hub_cts_readout_type,  -- in  std_logic_vector (3  downto 0);
-        HUB_CTS_START_READOUT_IN     => hub_cts_start_readout,  -- in  std_logic;
-        HUB_CTS_READOUT_FINISHED_OUT => hub_cts_readout_finished,  -- out std_logic;  --no more data, end transfer, send TRM
-        HUB_CTS_STATUS_BITS_OUT      => hub_cts_status_bits,  -- out std_logic_vector (31 downto 0);
-        HUB_FEE_DATA_IN              => hub_fee_data,  -- in  std_logic_vector (15 downto 0);
-        HUB_FEE_DATAREADY_IN         => hub_fee_dataready,    -- in  std_logic;
-        HUB_FEE_READ_OUT             => hub_fee_read,  -- out std_logic;  --must be high when idle, otherwise you will never get a dataready
-        HUB_FEE_STATUS_BITS_IN       => hub_fee_status_bits,  -- in  std_logic_vector (31 downto 0);
-        HUB_FEE_BUSY_IN              => hub_fee_busy,  -- in  std_logic;   
-
-        -- connect to GbE
-        GBE_CTS_NUMBER_OUT          => gbe_cts_number,  -- out std_logic_vector (15 downto 0);
-        GBE_CTS_CODE_OUT            => gbe_cts_code,  -- out std_logic_vector (7  downto 0);
-        GBE_CTS_INFORMATION_OUT     => gbe_cts_information,  -- out std_logic_vector (7  downto 0);
-        GBE_CTS_READOUT_TYPE_OUT    => gbe_cts_readout_type,  -- out std_logic_vector (3  downto 0);
-        GBE_CTS_START_READOUT_OUT   => gbe_cts_start_readout,  -- out std_logic;
-        GBE_CTS_READOUT_FINISHED_IN => gbe_cts_readout_finished,  -- in  std_logic;      --no more data, end transfer, send TRM
-        GBE_CTS_STATUS_BITS_IN      => gbe_cts_status_bits,  -- in  std_logic_vector (31 downto 0);
-        GBE_FEE_DATA_OUT            => gbe_fee_data,  -- out std_logic_vector (15 downto 0);
-        GBE_FEE_DATAREADY_OUT       => gbe_fee_dataready,    -- out std_logic;
-        GBE_FEE_READ_IN             => gbe_fee_read,  -- in  std_logic;  --must be high when idle, otherwise you will never get a dataready
-        GBE_FEE_STATUS_BITS_OUT     => gbe_fee_status_bits,  -- out std_logic_vector (31 downto 0);
-        GBE_FEE_BUSY_OUT            => gbe_fee_busy,  -- out std_logic;
-
-        -- reg io
-        --REGIO_IN              => cbm_regio_rx,
-        --REGIO_OUT             => cbm_regio_tx
-        REGIO_ADDR_IN         => cbm_regio_rx.addr,
-        REGIO_DATA_IN         => cbm_regio_rx.data,
-        REGIO_TIMEOUT_IN      => cbm_regio_rx.timeout,
-        REGIO_READ_ENABLE_IN  => cbm_regio_rx.read,
-        REGIO_WRITE_ENABLE_IN => cbm_regio_rx.write,
-
-        REGIO_DATA_OUT         => cbm_regio_tx.data,
-        REGIO_DATAREADY_OUT    => cbm_regio_tx.rack,
-        REGIO_WRITE_ACK_OUT    => cbm_regio_tx.wack,
-        REGIO_NO_MORE_DATA_OUT => cbm_regio_tx.nack,
-        REGIO_UNKNOWN_ADDR_OUT => cbm_regio_tx.unknown
-        );
-
-    cbm_regio_tx.ack <= cbm_regio_tx.rack or cbm_regio_tx.wack;
-
-    SFP_RATE_SEL(1)   <= '1';  -- not supported by SFP, but in general, this should be the correct setting
-    LED_TRIGGER_GREEN <= not cbm_link_active_i;
-    LED_TRIGGER_RED   <= '0';
-
-    --Internal Connection
-    med_read_in(4)                  <= '0';
-    med_data_in(79 downto 64)       <= (others => '0');
-    med_packet_num_in(14 downto 12) <= (others => '0');
-    med_dataready_in(4)             <= '0';
-    med_stat_op(79 downto 64) <= (
-      64+2 downto 64 => '1',            -- ERROR_NC
-      64 + 14        => '1',            -- indicate "no signal"
-      others         => '0');
-    med_stat_debug(4*64+63 downto 4*64) <= (others => '0');
-
-    SFP_TXDIS(4 downto 2) <= (others => '1');
-
-  end generate;
+-- ---------------------------------------------------------------------------
+-- -- CBMNET stack
+-- ---------------------------------------------------------------------------   
+--   GEN_CBMNET : if INCLUDE_CBMNET = c_YES generate
+--     THE_CBM_BRIDGE : cbmnet_bridge
+--       port map (
+--         -- clock and reset
+--         CLK125_IN      => clk_125_i,    -- in std_logic;
+--         ASYNC_RESET_IN => clear_i,
+--         TRB_CLK_IN     => clk_100_i,    -- in std_logic;
+--         TRB_RESET_IN   => reset_i,      -- in std_logic;
+-- 
+--         CBM_CLK_OUT   => cbm_clk_i,     -- out std_logic;
+--         CBM_RESET_OUT => cbm_reset_i,   -- out std_logic;
+-- 
+--         -- Media Interface
+--         SD_RXD_P_IN  => SFP_RX_P(5),
+--         SD_RXD_N_IN  => SFP_RX_N(5),
+--         SD_TXD_P_OUT => SFP_TX_P(5),
+--         SD_TXD_N_OUT => SFP_TX_N(5),
+-- 
+--         SD_PRSNT_N_IN => SFP_MOD0(1),
+--         SD_LOS_IN     => SFP_LOS(1),
+--         SD_TXDIS_OUT  => SFP_TXDIS(1),
+-- 
+--         LED_RX_OUT => cbm_phy_led_rx_i,
+--         LED_TX_OUT => cbm_phy_led_tx_i,
+--         LED_OK_OUT => cbm_phy_led_ok_i,
+-- 
+--         -- Status and strobes   
+--         CBM_LINK_ACTIVE_OUT    => cbm_link_active_i,
+--         CBM_DLM_OUT            => cbm_sync_dlm_sensed_i,      -- out std_logic;
+--         CBM_TIMING_TRIGGER_OUT => cbm_sync_timing_trigger_i,  -- out std_logic;
+--         CBM_SYNC_PULSER_OUT    => cbm_sync_pulser_i,          -- out std_logic;
+-- 
+--         -- TRBNet Terminal
+--         TRB_TRIGGER_IN             => cts_trigger_out,
+--         TRB_RDO_VALID_DATA_TRG_IN  => cts_rdo_trg_data_valid,  -- in  std_logic;
+--         TRB_RDO_VALID_NO_TIMING_IN => cts_rdo_valid_notiming_trg,  -- in  std_logic;
+--         TRB_RDO_DATA_OUT           => cts_rdo_additional(1).data,  --  out std_logic_vector(31 downto 0);
+--         TRB_RDO_WRITE_OUT          => cts_rdo_additional(1).data_write,  --  out std_logic;
+--         TRB_RDO_FINISHED_OUT       => cts_rdo_additional(1).data_finished,  --  out std_logic;
+-- 
+--         TRB_TRIGGER_OUT => cbm_etm_trigger_i,
+-- 
+--         -- connect to hub
+--         HUB_CTS_NUMBER_IN            => hub_cts_number,  -- in  std_logic_vector (15 downto 0);
+--         HUB_CTS_CODE_IN              => hub_cts_code,  -- in  std_logic_vector (7  downto 0);
+--         HUB_CTS_INFORMATION_IN       => hub_cts_information,  -- in  std_logic_vector (7  downto 0);
+--         HUB_CTS_READOUT_TYPE_IN      => hub_cts_readout_type,  -- in  std_logic_vector (3  downto 0);
+--         HUB_CTS_START_READOUT_IN     => hub_cts_start_readout,  -- in  std_logic;
+--         HUB_CTS_READOUT_FINISHED_OUT => hub_cts_readout_finished,  -- out std_logic;  --no more data, end transfer, send TRM
+--         HUB_CTS_STATUS_BITS_OUT      => hub_cts_status_bits,  -- out std_logic_vector (31 downto 0);
+--         HUB_FEE_DATA_IN              => hub_fee_data,  -- in  std_logic_vector (15 downto 0);
+--         HUB_FEE_DATAREADY_IN         => hub_fee_dataready,    -- in  std_logic;
+--         HUB_FEE_READ_OUT             => hub_fee_read,  -- out std_logic;  --must be high when idle, otherwise you will never get a dataready
+--         HUB_FEE_STATUS_BITS_IN       => hub_fee_status_bits,  -- in  std_logic_vector (31 downto 0);
+--         HUB_FEE_BUSY_IN              => hub_fee_busy,  -- in  std_logic;   
+-- 
+--         -- connect to GbE
+--         GBE_CTS_NUMBER_OUT          => gbe_cts_number,  -- out std_logic_vector (15 downto 0);
+--         GBE_CTS_CODE_OUT            => gbe_cts_code,  -- out std_logic_vector (7  downto 0);
+--         GBE_CTS_INFORMATION_OUT     => gbe_cts_information,  -- out std_logic_vector (7  downto 0);
+--         GBE_CTS_READOUT_TYPE_OUT    => gbe_cts_readout_type,  -- out std_logic_vector (3  downto 0);
+--         GBE_CTS_START_READOUT_OUT   => gbe_cts_start_readout,  -- out std_logic;
+--         GBE_CTS_READOUT_FINISHED_IN => gbe_cts_readout_finished,  -- in  std_logic;      --no more data, end transfer, send TRM
+--         GBE_CTS_STATUS_BITS_IN      => gbe_cts_status_bits,  -- in  std_logic_vector (31 downto 0);
+--         GBE_FEE_DATA_OUT            => gbe_fee_data,  -- out std_logic_vector (15 downto 0);
+--         GBE_FEE_DATAREADY_OUT       => gbe_fee_dataready,    -- out std_logic;
+--         GBE_FEE_READ_IN             => gbe_fee_read,  -- in  std_logic;  --must be high when idle, otherwise you will never get a dataready
+--         GBE_FEE_STATUS_BITS_OUT     => gbe_fee_status_bits,  -- out std_logic_vector (31 downto 0);
+--         GBE_FEE_BUSY_OUT            => gbe_fee_busy,  -- out std_logic;
+-- 
+--         -- reg io
+--         --REGIO_IN              => cbm_regio_rx,
+--         --REGIO_OUT             => cbm_regio_tx
+--         REGIO_ADDR_IN         => cbm_regio_rx.addr,
+--         REGIO_DATA_IN         => cbm_regio_rx.data,
+--         REGIO_TIMEOUT_IN      => cbm_regio_rx.timeout,
+--         REGIO_READ_ENABLE_IN  => cbm_regio_rx.read,
+--         REGIO_WRITE_ENABLE_IN => cbm_regio_rx.write,
+-- 
+--         REGIO_DATA_OUT         => cbm_regio_tx.data,
+--         REGIO_DATAREADY_OUT    => cbm_regio_tx.rack,
+--         REGIO_WRITE_ACK_OUT    => cbm_regio_tx.wack,
+--         REGIO_NO_MORE_DATA_OUT => cbm_regio_tx.nack,
+--         REGIO_UNKNOWN_ADDR_OUT => cbm_regio_tx.unknown
+--         );
+-- 
+--     cbm_regio_tx.ack <= cbm_regio_tx.rack or cbm_regio_tx.wack;
+-- 
+--     SFP_RATE_SEL(1)   <= '1';  -- not supported by SFP, but in general, this should be the correct setting
+--     LED_TRIGGER_GREEN <= not cbm_link_active_i;
+--     LED_TRIGGER_RED   <= '0';
+-- 
+--     --Internal Connection
+--     med_read_in(4)                  <= '0';
+--     med_data_in(79 downto 64)       <= (others => '0');
+--     med_packet_num_in(14 downto 12) <= (others => '0');
+--     med_dataready_in(4)             <= '0';
+--     med_stat_op(79 downto 64) <= (
+--       64+2 downto 64 => '1',            -- ERROR_NC
+--       64 + 14        => '1',            -- indicate "no signal"
+--       others         => '0');
+--     med_stat_debug(4*64+63 downto 4*64) <= (others => '0');
+-- 
+--     SFP_TXDIS(4 downto 2) <= (others => '1');
+-- 
+--   end generate;
 
   GEN_NO_CBMNET : if INCLUDE_CBMNET = c_NO generate
     gbe_cts_number        <= hub_cts_number;
@@ -1839,6 +1882,27 @@ begin
     end process;
 
   end generate;
+
+  GEN_MBS_MASTER : if INCLUDE_MBS_MASTER = c_YES generate
+    THE_MBS_MASTER : entity work.mbs_master 
+      port map(
+        CLK               => clk_100_i,
+        RESET_IN          => reset_i,
+        
+        MBS_CLOCK_OUT     => mbs_clock_i,
+        MBS_DATA_OUT      => mbs_data_i,
+      
+        TRIGGER_IN        => cts_rdo_trg_data_valid,
+        TRIGGER_NUMBER_IN => cts_rdo_trg_number,
+        DATA_OUT          => cts_rdo_additional(1).data,   
+        WRITE_OUT         => cts_rdo_additional(1).data_write,   
+        FINISHED_OUT      => cts_rdo_additional(1).data_finished,   
+        STATUSBIT_OUT     => cts_rdo_additional(1).statusbits 
+        );
+    CLK_TEST_OUT(0) <= mbs_data_i;
+    CLK_TEST_OUT(1) <= mbs_clock_i;
+  end generate;
+  
 
 -------------------------------------------------------------------------------
 -- SFP POWER Entity
