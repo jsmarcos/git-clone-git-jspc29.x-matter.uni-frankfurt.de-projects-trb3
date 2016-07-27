@@ -15,10 +15,10 @@ else
    prefix="."
 fi
 
-ln -sf $prefix/../../base/cores/sgmii_gbe_pcs35.ngo
-ln -sf $prefix/../../base/cores/tsmac35.ngo
-ln -sf $prefix/../../base/cores/pmi_ram_dpEbnonessdn208256208256.ngo
-ln -sf $prefix/../../base/cores/pmi_ram_dpEbnonessdn96649664.ngo
+ln -sf $prefix/../../../trb3/base/cores/sgmii_gbe_pcs35.ngo
+ln -sf $prefix/../../../trb3/base/cores/tsmac35.ngo
+ln -sf $prefix/../../../trb3/base/cores/pmi_ram_dpEbnonessdn208256208256.ngo
+ln -sf $prefix/../../../trb3/base/cores/pmi_ram_dpEbnonessdn96649664.ngo
 #ln -sf $prefix/../../../trbnet/gbe2_ecp3/ipcores_ecp3/serdes_gbe_0ch/serdes_gbe_0ch.txt
 #ln -sf $prefix/../../../trbnet/gbe2_ecp3/ipcores_ecp3/serdes_ch4.txt
 ln -sf $prefix/../../../trbnet/gbe_trb/media/serdes_gbe_4ch.txt
